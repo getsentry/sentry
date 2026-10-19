@@ -1,13 +1,17 @@
 name: 'Setup Node and pnpm'
 description: 'Sets up Node.js, pnpm, and caches node_modules'
+inputs:
+  setup-toolchain:
+    description: >-
+      Install Node.js and pnpm. Set to 'false' when the job already ran
+      ./.github/actions/setup-node-toolchain, so this action can run inside a
+      `parallel:` group or alongside a `background:` step.
+    default: 'true'
 runs:
   using: 'composite'
   steps:
-    - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-      with:
-        node-version-file: '.node-version'
-
-    - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
+    - uses: ./.github/actions/setup-node-toolchain
+      if: inputs.setup-toolchain == 'true'
 
     - uses: ./.github/actions/node-modules-cache-paths
       id: workspace-cache

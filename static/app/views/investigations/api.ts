@@ -4,6 +4,7 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -60,19 +61,21 @@ export function getInvestigationDetailQueryOptions(
   );
 }
 
-/** Newest first, page-level and block comments together. */
+/** Newest first. Without `blockId`, page-level and block comments together. */
 export function investigationCommentsQueryOptions({
   organizationSlug,
   investigationId,
+  blockId,
 }: {
   investigationId: string;
   organizationSlug: string;
+  blockId?: string;
 }) {
   return apiOptions.as<InvestigationComment[]>()(
     '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/',
     {
       path: {organizationIdOrSlug: organizationSlug, investigationId},
-      query: {per_page: 100},
+      query: {blockId, per_page: 100},
       staleTime: 0,
     }
   );
@@ -84,11 +87,14 @@ export function useCreateInvestigationCommentMutation(
   investigationId: string,
   options?: MutationOptions<InvestigationComment, {body: string; blockId?: string}>
 ) {
-  const queryClient = useQueryClient();
   const [commentsUrl] = investigationCommentsQueryOptions({
     organizationSlug,
     investigationId,
   }).queryKey;
+  const invalidateComments = useInvalidateInvestigationComments(
+    organizationSlug,
+    investigationId
+  );
 
   return useMutation({
     ...options,
@@ -99,10 +105,124 @@ export function useCreateInvestigationCommentMutation(
         data: blockId === undefined ? {body} : {body, blockId},
       }),
     onSuccess: async (comment, variables, onMutateResult, context) => {
-      await queryClient.invalidateQueries({queryKey: [commentsUrl]});
+      await invalidateComments();
       await options?.onSuccess?.(comment, variables, onMutateResult, context);
     },
   });
+}
+
+function investigationCommentUrl(
+  organizationSlug: string,
+  investigationId: string,
+  commentId: string
+) {
+  return getApiUrl(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/$commentId/',
+    {path: {organizationIdOrSlug: organizationSlug, investigationId, commentId}}
+  );
+}
+
+function useInvalidateInvestigationComments(
+  organizationSlug: string,
+  investigationId: string
+) {
+  const queryClient = useQueryClient();
+  const [commentsUrl] = investigationCommentsQueryOptions({
+    organizationSlug,
+    investigationId,
+  }).queryKey;
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({queryKey: [commentsUrl]}),
+      queryClient.invalidateQueries({
+        queryKey: investigationCommentCountsQueryOptions(
+          organizationSlug,
+          investigationId
+        ).queryKey,
+      }),
+    ]);
+}
+
+export function useUpdateInvestigationCommentMutation(
+  organizationSlug: string,
+  investigationId: string
+) {
+  const queryClient = useQueryClient();
+  const [commentsUrl] = investigationCommentsQueryOptions({
+    organizationSlug,
+    investigationId,
+  }).queryKey;
+  const invalidateComments = useInvalidateInvestigationComments(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    mutationFn: ({commentId, body}: {body: string; commentId: string}) =>
+      fetchMutation<InvestigationComment>({
+        url: investigationCommentUrl(organizationSlug, investigationId, commentId),
+        method: 'PUT',
+        data: {body},
+      }),
+    onSuccess: updated => {
+      queryClient.setQueriesData(
+        {queryKey: [commentsUrl]},
+        (prev: ApiResponse<InvestigationComment[]> | undefined) =>
+          prev && {
+            ...prev,
+            json: prev.json.map(comment =>
+              comment.id === updated.id ? updated : comment
+            ),
+          }
+      );
+    },
+    onSettled: invalidateComments,
+  });
+}
+
+export function useDeleteInvestigationCommentMutation(
+  organizationSlug: string,
+  investigationId: string
+) {
+  const queryClient = useQueryClient();
+  const [commentsUrl] = investigationCommentsQueryOptions({
+    organizationSlug,
+    investigationId,
+  }).queryKey;
+  const invalidateComments = useInvalidateInvestigationComments(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    mutationFn: ({commentId}: {commentId: string}) =>
+      fetchMutation<void>({
+        url: investigationCommentUrl(organizationSlug, investigationId, commentId),
+        method: 'DELETE',
+      }),
+    onSuccess: (_data, {commentId}) => {
+      queryClient.setQueriesData(
+        {queryKey: [commentsUrl]},
+        (prev: ApiResponse<InvestigationComment[]> | undefined) =>
+          prev && {...prev, json: prev.json.filter(comment => comment.id !== commentId)}
+      );
+    },
+    onSettled: invalidateComments,
+  });
+}
+
+/** Comment count per block, for blocks that have comments. */
+export function investigationCommentCountsQueryOptions(
+  organizationSlug: string,
+  investigationId: string
+) {
+  return apiOptions.as<Record<string, number>>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/comment-counts/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, investigationId},
+      staleTime: 0,
+    }
+  );
 }
 
 export function investigationExecutionDetailQueryOptions({

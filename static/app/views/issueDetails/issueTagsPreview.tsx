@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -117,7 +117,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (
-    <TooltipLegend>
+    <Container padding="xs md">
       <LegendTitle>{tag.key}</LegendTitle>
       <LegendGrid>
         {segments.map((segment, idx) => (
@@ -139,7 +139,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
           </Fragment>
         )}
       </LegendGrid>
-    </TooltipLegend>
+    </Container>
   );
 
   return (
@@ -359,10 +359,6 @@ const TopPercentage = styled('div')`
   text-align: right;
   margin-left: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
-`;
-
-const TooltipLegend = styled('div')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 `;
 
 const LegendGrid = styled('div')`

@@ -8,13 +8,18 @@ ACTIVITY_READ_METRIC = "issues.action_log.activity_read"
 
 
 class ActivityReadResult(StrEnum):
-    #: Activity is the authoritative read source, independent of the GAL gate.
+    """Read-path outcomes, not an inventory of every table queried."""
+
+    #: Direct comment-list reads bypass the GAL gate. Activity owns comment state;
+    #: GAL may still supply source metadata.
     ACTIVITY = "activity"
-    #: Served through the GAL-enabled path; feed comments still come from Activity.
+    #: The GAL gate is open and the GAL path is used. For feeds, this combines
+    #: Activity comments with non-comment GAL entries.
     GAL = "group_action_log"
-    #: The gate was open, or the flag was on, but we served Activity anyway.
+    #: The read flag is on, but backfill is incomplete or the log is empty.
+    #: Feed callers fall back to Activity for both comments and non-comments.
     FELL_BACK = "fell_back"
-    #: The read flag is off for this project, so the log was never consulted.
+    #: The read flag is off. Feed callers use Activity for the entire feed.
     FLAG_OFF = "flag_off"
 
 

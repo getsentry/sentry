@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
@@ -46,14 +46,14 @@ export function ActivityLineHeadline({
         ) : null}
         <Fragment>
           {' '}
-          <ActivityLineMeta>
+          <Flex as="span" display="inline-flex" align="center" flexShrink={0} gap="xs">
             <Text as="span" variant="muted" density="comfortable">
               &bull;
             </Text>
             <Text as="span" variant="muted" density="comfortable" wrap="nowrap">
               {timestamp}
             </Text>
-          </ActivityLineMeta>
+          </Flex>
         </Fragment>
       </ActivityLineSentence>
     </Flex>
@@ -104,18 +104,9 @@ const ActivityLineDetails = styled('span')`
   text-box-trim: trim-both;
 `;
 
-const ActivityLineMeta = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  flex-shrink: 0;
-`;
-
-export const ActivityLineContent = styled('div')`
-  grid-column: 2;
-  grid-row: 2;
-  min-width: 0;
-`;
+export function ActivityLineContent(props: ContainerProps) {
+  return <Container minWidth="0" row="2" column="2" {...props} />;
+}
 
 export const ActivityLineList = styled('div')`
   display: flex;

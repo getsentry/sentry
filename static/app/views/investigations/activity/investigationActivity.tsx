@@ -1,8 +1,9 @@
-import {useMemo} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
@@ -12,8 +13,15 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {CommentComposer} from 'sentry/views/investigations/comments/commentComposer';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useUser} from 'sentry/utils/useUser';
+import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
+import {
+  CommentComposer,
+  EditCommentForm,
+} from 'sentry/views/investigations/comments/commentComposer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
+import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
 import type {
   InvestigationComment,
@@ -33,7 +41,7 @@ export function InvestigationActivity({
   ref,
 }: {
   investigation: InvestigationDetail;
-  composerRef?: React.Ref<HTMLDivElement>;
+  composerRef?: React.RefObject<HTMLDivElement | null>;
   ref?: React.Ref<HTMLElement>;
 }) {
   const {data, isPending, refetch} = useInvestigationComments(investigation.id);
@@ -65,7 +73,10 @@ export function InvestigationActivity({
             <CommentRow
               key={comment.id}
               comment={comment}
+              investigationId={investigation.id}
+              readOnly={investigation.status === 'archived'}
               blockTitle={comment.blockId ? blockTitles.get(comment.blockId) : undefined}
+              onDeleted={() => composerRef?.current?.focus()}
             />
           ))}
           {hasOlder ? (
@@ -98,11 +109,25 @@ export function InvestigationActivity({
 
 function CommentRow({
   comment,
+  investigationId,
+  readOnly,
   blockTitle,
+  onDeleted,
 }: {
   comment: InvestigationComment;
+  investigationId: string;
+  onDeleted: () => void;
+  readOnly: boolean;
   blockTitle?: string;
 }) {
+  const actionsRef = useRef<HTMLButtonElement>(null);
+  const user = useUser();
+  const location = useLocation();
+  const [editing, setEditing] = useState(false);
+
+  const isAuthor = comment.author?.id === user.id;
+  const edited = isCommentEdited(comment);
+
   return (
     <ActivityLineRow as="li">
       <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
@@ -130,7 +155,27 @@ function CommentRow({
         </Text>
         {comment.blockId ? (
           <Text variant="muted" density="comfortable">
-            {tct('on [block]', {block: blockTitle ?? t('a deleted block')})}
+            {blockTitle
+              ? tct('on [block]', {
+                  block: (
+                    <Link
+                      data-block-comments-trigger
+                      to={{
+                        query: {
+                          ...location.query,
+                          comments: 'open',
+                          commentsBlock: comment.blockId,
+                          comment: comment.id,
+                        },
+                      }}
+                    >
+                      <Text variant="muted" underline>
+                        {blockTitle}
+                      </Text>
+                    </Link>
+                  ),
+                })
+              : t('on a deleted block')}
           </Text>
         ) : null}
         <Text variant="muted" density="comfortable">
@@ -139,17 +184,43 @@ function CommentRow({
         <Text variant="muted" density="comfortable" wrap="nowrap">
           <TimeSince date={comment.dateCreated} />
         </Text>
+        {edited ? (
+          <Text variant="muted" density="comfortable">
+            {t('(edited)')}
+          </Text>
+        ) : null}
+        {isAuthor && !readOnly ? (
+          <CommentActions
+            comment={comment}
+            investigationId={investigationId}
+            editing={editing}
+            onEdit={() => setEditing(true)}
+            onDeleted={onDeleted}
+            triggerRef={actionsRef}
+          />
+        ) : null}
       </Flex>
       <ActivityLineContent>
-        <Container
-          background="secondary"
-          border="primary"
-          radius="lg"
-          padding="sm md"
-          marginTop="xs"
-        >
-          <NoteBody text={comment.body} />
-        </Container>
+        {editing ? (
+          <EditCommentForm
+            comment={comment}
+            investigationId={investigationId}
+            onDone={() => {
+              setEditing(false);
+              actionsRef.current?.focus();
+            }}
+          />
+        ) : (
+          <Container
+            background="secondary"
+            border="primary"
+            radius="lg"
+            padding="sm md"
+            marginTop="xs"
+          >
+            <NoteBody text={comment.body} />
+          </Container>
+        )}
       </ActivityLineContent>
     </ActivityLineRow>
   );

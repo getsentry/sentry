@@ -37,7 +37,7 @@ export function useSaveFormula() {
         method: id ? 'PUT' : 'POST',
         data: formula,
       }),
-    onSuccess: invalidateSavedFormulas,
+    onSuccess: formula => invalidateSavedFormulas(formula.id),
   });
 
   return {saveFormula, isSaving};

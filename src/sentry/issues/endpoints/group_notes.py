@@ -21,13 +21,14 @@ from sentry.api.serializers.models.activity import (
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.issues.action_log import action_context_scope, resolve_action_source
+from sentry.issues.action_log import action_context_scope
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
     ActivityReadResult,
     activity_read_endpoint,
     record_activity_read,
 )
+from sentry.issues.action_log.request import resolve_action_source
 from sentry.issues.action_log.types import GroupActionActor
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint

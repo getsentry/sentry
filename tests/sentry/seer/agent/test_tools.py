@@ -11,7 +11,7 @@ from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import nodestore
-from sentry.api import client
+from sentry.api.client import client
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -3595,15 +3595,22 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             mock_replay(datetime.now(UTC) - timedelta(seconds=5), self.project.id, replay1_id)
         )
 
-        # Store a replay at the very start of the retention period.
+        # Store a replay at the very start of the retention period. mock_replay defaults to
+        # 30-day retention, which ClickHouse's TTL would already have expired.
         self.store_replays(
             mock_replay(
-                datetime.now(UTC) - timedelta(days=89, seconds=10), self.project.id, replay2_id
+                datetime.now(UTC) - timedelta(days=89, seconds=10),
+                self.project.id,
+                replay2_id,
+                retention_days=90,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.now(UTC) - timedelta(days=89, seconds=5), self.project.id, replay2_id
+                datetime.now(UTC) - timedelta(days=89, seconds=5),
+                self.project.id,
+                replay2_id,
+                retention_days=90,
             )
         )
 

@@ -2,11 +2,11 @@ import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';

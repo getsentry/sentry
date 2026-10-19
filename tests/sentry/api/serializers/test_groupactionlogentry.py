@@ -496,8 +496,14 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
     def test_mutations_do_not_displace_comments_or_require_refetching(self) -> None:
         note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "edited"})
         logged = self._comment(note.id, "original")
-        older_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        newer_action = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
+        older_action = self.create_group_action_log_entry(
+            type=GroupActionType.RESOLVE,
+            date_added=note.datetime + timedelta(seconds=1),
+        )
+        newer_action = self.create_group_action_log_entry(
+            type=GroupActionType.UNRESOLVE,
+            date_added=note.datetime + timedelta(seconds=2),
+        )
         for edit_number in range(30):
             self._comment_mutation(GroupActionType.COMMENT_EDIT, logged, text=f"edit {edit_number}")
         deleted = self._comment(note.id + 1, "deleted")

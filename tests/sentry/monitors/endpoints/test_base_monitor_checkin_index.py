@@ -38,7 +38,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor)
 
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
@@ -59,20 +58,17 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor)
 
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
 
         checkin3 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
@@ -95,7 +91,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor)
 
         checkin = MonitorCheckIn.objects.create(
-            monitor_id=monitor.id,
             monitor_environment_id=monitor_environment.id,
             status=MonitorStatus.OK,
             date_added=timezone.now() - timedelta(hours=12),
@@ -131,13 +126,11 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment_2 = self._create_monitor_environment(monitor, name="volcano")
 
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment_2,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -157,13 +150,11 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         other_monitor_environment = self._create_monitor_environment(other_monitor)
 
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         MonitorCheckIn.objects.create(
-            monitor=other_monitor,
             monitor_environment=other_monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -181,13 +172,11 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor, name="jungle")
         Environment.objects.create(name="volcano", organization_id=self.organization.id)
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -213,14 +202,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         group = Group.objects.get(id=error.group_id)
 
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
             trace_id=trace_id,
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -250,7 +237,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         }
         monitor_environment = self._create_monitor_environment(monitor)
         self.create_monitor_checkin(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
