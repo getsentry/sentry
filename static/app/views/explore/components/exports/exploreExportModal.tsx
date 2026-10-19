@@ -1,7 +1,12 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {
+  useScrapsForm,
+  useSelector,
+  defaultFormValidators,
+  ScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -66,11 +71,8 @@ export function ExploreExportModal({
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onDynamic: exportModalFormSchema,
-    },
+    validators: defaultFormValidators(exportModalFormSchema),
     onSubmit: async ({value}) => {
       const isAllColumns =
         config.supportsAllColumns && value.columns === ModalColumnValue.ALL;
@@ -125,10 +127,10 @@ export function ExploreExportModal({
     },
   });
 
-  const columnsValue = useStore(form.store, state => state.values.columns);
+  const columnsValue = useSelector(form.atom, state => state.values.columns);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h2">{title}</Heading>
       </Header>
@@ -140,12 +142,10 @@ export function ExploreExportModal({
             )}
           </Text>
           {showFormatRadio && (
-            <form.AppField name="format">
+            <form.Field name="format">
               {field => (
                 <field.Radio.Group
-                  value={
-                    columnsValue === ModalColumnValue.ALL ? 'jsonl' : field.state.value
-                  }
+                  value={columnsValue === ModalColumnValue.ALL ? 'jsonl' : field.value}
                   onChange={value =>
                     field.handleChange(value as ExportModalFormValues['format'])
                   }
@@ -157,17 +157,17 @@ export function ExploreExportModal({
                   </field.Layout.Stack>
                 </field.Radio.Group>
               )}
-            </form.AppField>
+            </form.Field>
           )}
           {supportsAllColumns && (
-            <form.AppField name="columns">
+            <form.Field name="columns">
               {field => (
                 <field.Layout.Stack
                   hintText={t('All columns are only supported by JSONL.')}
                   label={t('All Columns?')}
                 >
                   <field.Switch
-                    checked={field.state.value === ModalColumnValue.ALL}
+                    checked={field.value === ModalColumnValue.ALL}
                     onChange={checked =>
                       field.handleChange(
                         checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
@@ -176,20 +176,20 @@ export function ExploreExportModal({
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           )}
-          <form.AppField name="limit">
+          <form.Field name="limit">
             {field => (
               <field.Layout.Stack label={t('Number of rows')} align="start">
                 <field.CompactSelect
                   disabled={rowCountOptions.length === 1}
                   options={rowCountOptions}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -206,6 +206,6 @@ export function ExploreExportModal({
           <form.SubmitButton variant="primary">{t('Export')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

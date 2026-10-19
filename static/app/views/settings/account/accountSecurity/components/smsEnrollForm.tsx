@@ -3,10 +3,11 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
-  defaultFormOptions,
+  defaultFormValidators,
   FieldGroup as FormPanel,
+  ScrapsForm,
   useScrapsForm,
-  useStore,
+  useSelector,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -55,12 +56,11 @@ export function SmsEnrollForm({
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       phone: authenticator.phone ?? getServerFieldDefault(authenticator.form, 'phone'),
       otp: getServerFieldDefault(authenticator.form, 'otp'),
     },
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: async ({value, formApi}) => {
       if (!value.phone || !authenticator.secret) {
         return;
@@ -101,7 +101,7 @@ export function SmsEnrollForm({
       addSuccessMessage(t('Sent code to %s', value.phone));
     },
   });
-  const isSubmitting = useStore(form.store, state => state.isSubmitting);
+  const isSubmitting = useSelector(form.atom, state => state.isSubmitting);
 
   function resetEnrollment(): void {
     enrollMutation.reset();
@@ -109,16 +109,16 @@ export function SmsEnrollForm({
   }
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormPanel title={t('Configuration')}>
-        <form.AppField name="phone">
+        <form.Field name="phone">
           {field => (
             <field.Layout.Row
               label={getServerFieldLabel(authenticator.form, 'phone')}
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={isSubmitting || isCodeSent}
                 autoComplete="off"
@@ -126,24 +126,24 @@ export function SmsEnrollForm({
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         {isCodeSent && (
-          <form.AppField name="otp">
+          <form.Field name="otp">
             {field => (
               <field.Layout.Row
                 label={getServerFieldLabel(authenticator.form, 'otp')}
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   autoComplete="off"
                   maxLength={OTP_MAX_LENGTH}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
         )}
 
         <Flex justify="end" align="center" gap="md">
@@ -157,6 +157,6 @@ export function SmsEnrollForm({
           </form.SubmitButton>
         </Flex>
       </FormPanel>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

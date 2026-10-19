@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, defaultFormValidators, ScrapsForm} from '@sentry/scraps/form';
 import {Container} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
@@ -325,13 +325,12 @@ export function FrameworkSuggestionModal({
   ];
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {framework: selectedPlatform.key},
-    validators: {
-      onDynamic: z.object({
+    validators: defaultFormValidators(
+      z.object({
         framework: z.enum(listEntriesWithVanilla.map(platform => platform.id)),
-      }),
-    },
+      })
+    ),
     onSubmit: ({value}) => {
       if (isCreatingProjectAndRules) {
         return;
@@ -365,7 +364,7 @@ export function FrameworkSuggestionModal({
   }, [listEntriesWithVanilla.length]);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Container
         as="header"
         position="relative"
@@ -387,7 +386,7 @@ export function FrameworkSuggestionModal({
         <ProjectCreationErrorAlert error={createProjectAndRulesError} />
         <StyledPanel>
           <StyledPanelBody role="radiogroup" aria-label={t('Framework')}>
-            <form.AppField name="framework">
+            <form.Field name="framework">
               {field => (
                 <CollapsePanel
                   items={listEntriesWithVanilla.length}
@@ -416,7 +415,7 @@ export function FrameworkSuggestionModal({
                                       size="sm"
                                       autoFocus={platform.id === selectedPlatform.key}
                                       value={platform.id}
-                                      checked={field.state.value === platform.id}
+                                      checked={field.value === platform.id}
                                       onChange={() => field.handleChange(platform.id)}
                                       onKeyDown={event => {
                                         // Radios do not consistently submit on Enter across browsers.
@@ -446,7 +445,7 @@ export function FrameworkSuggestionModal({
                   }}
                 </CollapsePanel>
               )}
-            </form.AppField>
+            </form.Field>
           </StyledPanelBody>
         </StyledPanel>
       </Body>
@@ -458,7 +457,7 @@ export function FrameworkSuggestionModal({
           {t('Configure SDK')}
         </form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

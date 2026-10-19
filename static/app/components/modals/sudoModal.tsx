@@ -5,7 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -200,9 +200,8 @@ export function SudoModal({
   });
 
   const passwordForm = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {password: ''},
-    validators: {onDynamic: passwordSchema},
+    validators: defaultFormValidators(passwordSchema),
     onSubmit: async ({value}) => {
       try {
         await authenticate({
@@ -216,12 +215,11 @@ export function SudoModal({
   });
 
   const superuserForm = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       superuserAccessCategory: '',
       superuserReason: '',
     },
-    validators: {onDynamic: accessSchema},
+    validators: defaultFormValidators(accessSchema),
     onSubmit: async ({value}) => {
       const access = accessSchema.parse(value);
 
@@ -430,7 +428,7 @@ export function SudoModal({
     const isAccessStep = superuserStep.step === 'access';
 
     return (
-      <superuserForm.AppForm form={superuserForm}>
+      <ScrapsForm form={superuserForm}>
         {header}
         <Body>
           <Stack gap="xl">
@@ -438,12 +436,9 @@ export function SudoModal({
             {errorAlert}
             {!isSelfHosted && isAccessStep && (
               <Fragment>
-                <superuserForm.AppField name="superuserAccessCategory">
+                <superuserForm.Field name="superuserAccessCategory">
                   {field => (
-                    <field.Radio.Group
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                    >
+                    <field.Radio.Group value={field.value} onChange={field.handleChange}>
                       <field.Layout.Stack
                         label={t('Categories of Superuser Access')}
                         required
@@ -455,20 +450,20 @@ export function SudoModal({
                       </field.Layout.Stack>
                     </field.Radio.Group>
                   )}
-                </superuserForm.AppField>
-                <superuserForm.AppField name="superuserReason">
+                </superuserForm.Field>
+                <superuserForm.Field name="superuserReason">
                   {field => (
                     <field.Layout.Stack label={t('Reason for Access')} required>
                       <field.Input
                         maxLength={128}
                         minLength={4}
                         placeholder={t('e.g. disabling SSO enforcement')}
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                       />
                     </field.Layout.Stack>
                   )}
-                </superuserForm.AppField>
+                </superuserForm.Field>
               </Fragment>
             )}
             {!isSelfHosted && !isAccessStep && (
@@ -521,12 +516,12 @@ export function SudoModal({
             </Flex>
           )}
         </Footer>
-      </superuserForm.AppForm>
+      </ScrapsForm>
     );
   }
 
   return (
-    <passwordForm.AppForm form={passwordForm}>
+    <ScrapsForm form={passwordForm}>
       {header}
       <Body>
         <Stack gap="xl">
@@ -539,17 +534,17 @@ export function SudoModal({
           </Text>
           {errorAlert}
           {user.hasPasswordAuth && (
-            <passwordForm.AppField name="password">
+            <passwordForm.Field name="password">
               {field => (
                 <field.Layout.Stack label={t('Password')}>
                   <field.Password
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     autoFocus
                   />
                 </field.Layout.Stack>
               )}
-            </passwordForm.AppField>
+            </passwordForm.Field>
           )}
           <WebAuthn
             mode="sudo"
@@ -561,6 +556,6 @@ export function SudoModal({
       <Footer>
         <passwordForm.SubmitButton>{t('Confirm Password')}</passwordForm.SubmitButton>
       </Footer>
-    </passwordForm.AppForm>
+    </ScrapsForm>
   );
 }

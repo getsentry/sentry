@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, defaultFormValidators, ScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -74,28 +74,27 @@ function AddGiftBudgetModal({
     onError: () => addErrorMessage('Unable to add gifted budget amount for org.'),
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       selectedBudgetId: reservedBudgetOptions[0]?.id ?? '',
       giftAmount: 0,
       ticketUrl: '',
       notes: '',
     },
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h2">Add Gift Budget</Heading>
       </Header>
       <Body>
-        <form.AppField name="selectedBudgetId">
+        <form.Field name="selectedBudgetId">
           {budgetField => (
             <Stack gap="lg">
               <budgetField.Radio.Group
-                value={budgetField.state.value}
+                value={budgetField.value}
                 onChange={budgetField.handleChange}
               >
                 <budgetField.Layout.Stack label="Reserved Budget">
@@ -116,7 +115,7 @@ function AddGiftBudgetModal({
                         radius="md"
                         cursor="pointer"
                         background={
-                          budgetField.state.value === budget.id ? 'secondary' : undefined
+                          budgetField.value === budget.id ? 'secondary' : undefined
                         }
                       >
                         <Stack as="span" gap="md">
@@ -149,8 +148,8 @@ function AddGiftBudgetModal({
                   ))}
                 </budgetField.Layout.Stack>
               </budgetField.Radio.Group>
-              {budgetField.state.value && (
-                <form.AppField name="giftAmount">
+              {budgetField.value && (
+                <form.Field name="giftAmount">
                   {field => (
                     <field.Layout.Stack
                       label="Gift Amount ($)"
@@ -160,40 +159,40 @@ function AddGiftBudgetModal({
                       <field.Number
                         min={0}
                         max={10000}
-                        value={field.state.value}
+                        value={field.value}
                         onChange={value => field.handleChange(value ?? 0)}
                       />
-                      <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
+                      <Text>Total Gift: ${field.value.toLocaleString()}</Text>
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               )}
             </Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Stack gap="lg" marginTop="xl">
-          <form.AppField name="ticketUrl">
+          <form.Field name="ticketUrl">
             {field => (
               <field.Layout.Stack label="Ticket URL">
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="notes">
+          </form.Field>
+          <form.Field name="notes">
             {field => (
               <field.Layout.Stack label="Notes" required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   maxLength={500}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -202,7 +201,7 @@ function AddGiftBudgetModal({
           <form.SubmitButton>Confirm</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

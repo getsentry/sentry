@@ -113,13 +113,14 @@ export interface ConnectionModalFrameProps {
   // Left column of the connection grid (label + field).
   leftField: ReactNode;
   leftLabel: string;
-  onSave: () => void;
   pathsSection: ReactNode;
   // Right column of the connection grid (label + field).
   rightField: ReactNode;
   rightLabel: string;
   title: ReactNode;
   intro?: ReactNode;
+  onSave?: () => void;
+  saveButton?: ReactNode;
 }
 
 export function ConnectionModalFrame({
@@ -138,6 +139,7 @@ export function ConnectionModalFrame({
   canSave,
   isSaving,
   onSave,
+  saveButton,
 }: ConnectionModalFrameProps) {
   return (
     <Fragment>
@@ -166,14 +168,16 @@ export function ConnectionModalFrame({
       <Footer>
         <Flex justify="end" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button
-            variant="primary"
-            disabled={!canSave || isSaving}
-            busy={isSaving}
-            onClick={onSave}
-          >
-            {t('Save')}
-          </Button>
+          {saveButton ?? (
+            <Button
+              variant="primary"
+              disabled={!canSave || isSaving}
+              busy={isSaving}
+              onClick={onSave}
+            >
+              {t('Save')}
+            </Button>
+          )}
         </Flex>
       </Footer>
     </Fragment>

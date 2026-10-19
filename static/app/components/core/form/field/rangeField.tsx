@@ -2,29 +2,33 @@ import {Fragment} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
-import {BaseField, type BaseFieldProps} from './baseField';
-import {useLabelId} from './fieldIds';
+import {BaseFieldImpl, type BaseFieldProps} from './baseField';
+import {getLabelId} from './fieldIds';
 
 export function RangeField({
+  field,
   onChange,
   disabled,
   value,
   ref,
   ...props
-}: BaseFieldProps<HTMLInputElement> &
-  DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
+}: BaseFieldProps<HTMLInputElement> & {field: AnyFieldApi} & DistributedOmit<
+    SliderProps,
+    'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'
+  > & {
     onChange: (value: number) => void;
     value: number;
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
-  const labelId = useLabelId();
+  const labelId = getLabelId(field);
 
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (
         <Fragment>
           <Slider
@@ -42,6 +46,6 @@ export function RangeField({
           {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
         </Fragment>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }

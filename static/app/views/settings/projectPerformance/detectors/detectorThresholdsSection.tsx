@@ -59,7 +59,7 @@ export function AdminRegressionSettingsSection({
         {field => (
           <field.Layout.Row label={t('Transaction Duration Regression Enabled')}>
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={!hasWriteAccess || isResetting}
             />
@@ -79,7 +79,7 @@ export function AdminRegressionSettingsSection({
         {field => (
           <field.Layout.Row label={t('Function Duration Regression Enabled')}>
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={!hasWriteAccess || isResetting}
             />

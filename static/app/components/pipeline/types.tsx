@@ -82,7 +82,7 @@ export interface PipelineStepProps<
   D = Record<string, unknown>,
   A = Record<string, unknown>,
 > {
-  advance: (data?: A) => void;
+  advance: (data?: A) => Promise<PipelineAdvanceResponse>;
   advanceError: RequestError | null;
   isAdvancing: boolean;
   isInitializing: boolean;

@@ -7,7 +7,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {PasswordStrengthIndicator} from 'sentry/components/passwordStrengthIndicator';
@@ -54,17 +54,16 @@ export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Pr
     },
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {password: ''},
-    validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) => {
       setSubmitError(undefined);
       return mutation.mutateAsync(schema.parse(value)).catch((error: unknown) => {
-        if (
-          error instanceof RequestError &&
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
-        ) {
-          return;
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
         }
 
         setSubmitError(
@@ -73,12 +72,13 @@ export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Pr
             t('Unable to reset your password. Try again.')
           )
         );
+        return;
       });
     },
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="2xl">
         <Stack gap="lg">
           {submitError && (
@@ -86,17 +86,17 @@ export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Pr
               {submitError}
             </Alert>
           )}
-          <form.AppField name="password">
+          <form.Field name="password">
             {field => (
               <field.Layout.Stack label={t('New password')} required>
                 <field.Input
                   type={isPasswordVisible ? 'text' : 'password'}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   autoComplete="new-password"
                   trailingItems={
                     <Fragment>
-                      <PasswordStrengthIndicator value={field.state.value} />
+                      <PasswordStrengthIndicator value={field.value} />
                       <Button
                         size="xs"
                         variant="transparent"
@@ -117,7 +117,7 @@ export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Pr
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
         <Flex justify="between" align="center" gap="md">
           <LinkButton
@@ -131,6 +131,6 @@ export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Pr
           <form.SubmitButton variant="primary">{t('Reset password')}</form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

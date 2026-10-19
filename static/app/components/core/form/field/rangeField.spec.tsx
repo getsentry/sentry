@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -28,19 +28,18 @@ function TestForm({
   formatOptions,
 }: TestFormProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       volume: defaultValue,
     },
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="volume">
+    <ScrapsForm form={form}>
+      <form.Field name="volume">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
             <field.Range
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               disabled={disabled}
               min={min}
@@ -50,8 +49,8 @@ function TestForm({
             />
           </field.Layout.Row>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 
@@ -80,7 +79,7 @@ function AutoSaveTestForm({
       {field => (
         <field.Layout.Row label={label}>
           <field.Range
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             min={0}
             max={100}

@@ -49,7 +49,7 @@ const schema = z.object({
 >
   {field => (
     <field.Layout.Row label="Display Name">
-      <field.Input value={field.state.value} onChange={field.handleChange} />
+      <field.Input value={field.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
 </AutoSaveForm>;
@@ -111,7 +111,7 @@ const schema = z.object({
 >
   {field => (
     <field.Layout.Row label="Highlight Context">
-      <field.TextArea value={field.state.value} onChange={field.handleChange} />
+      <field.TextArea value={field.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
 </AutoSaveForm>

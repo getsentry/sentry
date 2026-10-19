@@ -99,7 +99,7 @@ export default function ProjectAlertSettings() {
               )}
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="e.g. $shortID - $title"
                 disabled={!canEditRule}
@@ -129,7 +129,7 @@ export default function ProjectAlertSettings() {
             >
               <field.Range
                 aria-label={t('Minimum delivery interval')}
-                value={field.state.value / 60}
+                value={field.value / 60}
                 onChange={minutes => field.handleChange(minutes * 60)}
                 min={1}
                 max={60}
@@ -160,7 +160,7 @@ export default function ProjectAlertSettings() {
                 aria-label={t('Maximum delivery interval')}
                 // The slider works in minutes so formatOptions can render the
                 // value natively; the stored value stays in seconds.
-                value={field.state.value / 60}
+                value={field.value / 60}
                 onChange={minutes => field.handleChange(minutes * 60)}
                 min={1}
                 max={60}

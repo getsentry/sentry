@@ -9,11 +9,11 @@ import {
   type SingleSelectProps,
 } from '@sentry/scraps/compactSelect';
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
 type FieldOverrides = 'value' | 'onChange' | 'disabled' | 'onBlur' | 'id';
 
@@ -34,14 +34,14 @@ type CompactSelectFieldProps<TValue extends SelectKey> =
         })
     );
 
-export function CompactSelectField<TValue extends SelectKey>({
+function CompactSelectField<TValue extends SelectKey>({
   disabled,
+  field,
   ref,
   trigger,
   ...props
-}: CompactSelectFieldProps<TValue>) {
+}: CompactSelectFieldProps<TValue> & {field: AnyFieldApi}) {
   const autoSaveContext = useAutoSaveContext();
-  const field = useFieldContext();
   const selectProps = props.multiple
     ? {
         ...props,
@@ -72,7 +72,11 @@ export function CompactSelectField<TValue extends SelectKey>({
         };
 
   return (
-    <BaseField disabled={disabled ?? props.options.length === 0} ref={ref}>
+    <BaseFieldImpl
+      field={field}
+      disabled={disabled ?? props.options.length === 0}
+      ref={ref}
+    >
       {(fieldProps, {indicator}) => (
         <Fragment>
           <Container flex={1} minWidth={0}>
@@ -113,6 +117,15 @@ export function CompactSelectField<TValue extends SelectKey>({
           {indicator}
         </Fragment>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }
+
+type CompactSelectLooseField = <TValue extends SelectKey>(
+  props: CompactSelectFieldProps<TValue>
+) => React.ReactNode;
+
+export const CompactSelectLooseField = fieldComponent.loose(
+  CompactSelectField,
+  'field'
+) as CompactSelectLooseField;

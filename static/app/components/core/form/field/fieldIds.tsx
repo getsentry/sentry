@@ -1,19 +1,7 @@
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 
-export const useFieldId = () => {
-  const field = useFieldContext();
+export const getFieldId = (field: AnyFieldApi) => field.form.formId + field.name;
 
-  return field.form.formId + field.name;
-};
+export const getHintTextId = (field: AnyFieldApi) => `${getFieldId(field)}-hint`;
 
-export const useHintTextId = () => {
-  const fieldId = useFieldId();
-
-  return `${fieldId}-hint`;
-};
-
-export const useLabelId = () => {
-  const fieldId = useFieldId();
-
-  return `${fieldId}-label`;
-};
+export const getLabelId = (field: AnyFieldApi) => `${getFieldId(field)}-label`;

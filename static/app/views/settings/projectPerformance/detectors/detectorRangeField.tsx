@@ -38,15 +38,15 @@ export function DetectorRangeField({
       mutationOptions={mutationOptions}
     >
       {field => {
-        const rangeValues = allowedValues.includes(field.state.value)
+        const rangeValues = allowedValues.includes(field.value)
           ? allowedValues
-          : [...allowedValues, field.state.value].sort((a, b) => a - b);
-        const valueIndex = rangeValues.indexOf(field.state.value);
+          : [...allowedValues, field.value].sort((a, b) => a - b);
+        const valueIndex = rangeValues.indexOf(field.value);
         const rangeTickValues = tickValues?.map(index => {
           const tickValue = allowedValues[index];
           return tickValue === undefined ? index : rangeValues.indexOf(tickValue);
         });
-        const formattedValue = formatLabel?.(field.state.value);
+        const formattedValue = formatLabel?.(field.value);
 
         return (
           <field.Layout.Row label={label} hintText={help}>
@@ -75,7 +75,7 @@ export function DetectorRangeField({
                 disabled={disabled}
               />
               <Text align="right" size="sm" variant="muted">
-                {formattedValue ?? field.state.value}
+                {formattedValue ?? field.value}
               </Text>
             </Stack>
           </field.Layout.Row>

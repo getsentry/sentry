@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, defaultFormValidators, ScrapsForm} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -45,13 +45,10 @@ export function OrganizationSampling() {
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       targetSampleRate: initialTargetSampleRate,
     },
-    validators: {
-      onDynamic: targetSampleRateSchema,
-    },
+    validators: defaultFormValidators(targetSampleRateSchema),
     onSubmit: async ({value, formApi}) => {
       try {
         await updateOrganization({
@@ -69,7 +66,7 @@ export function OrganizationSampling() {
   const sampleCountsQuery = useProjectSampleCounts({period});
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.Subscribe selector={s => ({isDirty: s.isDirty})}>
         {({isDirty}) => (
           <Fragment>
@@ -87,13 +84,13 @@ export function OrganizationSampling() {
             {sampleCountsQuery.isError ? (
               <LoadingError onRetry={sampleCountsQuery.refetch} />
             ) : (
-              <form.AppField name="targetSampleRate">
+              <form.Field name="targetSampleRate">
                 {field => (
                   <ProjectsPreviewTable
                     sampleCounts={sampleCountsQuery.data}
                     isLoading={sampleCountsQuery.isPending}
                     period={period}
-                    targetSampleRate={field.state.value}
+                    targetSampleRate={field.value}
                     savedTargetSampleRate={savedTargetSampleRate}
                     targetSampleRateInput={
                       <Container borderBottom="muted">
@@ -112,7 +109,7 @@ export function OrganizationSampling() {
                               step="any"
                               size="sm"
                               width="120px"
-                              value={field.state.value}
+                              value={field.value}
                               onChange={field.handleChange}
                               disabled={
                                 hasAccess
@@ -123,13 +120,13 @@ export function OrganizationSampling() {
                               }
                               trailingItems="%"
                             />
-                            {field.state.value !== savedTargetSampleRate && (
+                            {field.value !== savedTargetSampleRate && (
                               <Text size="xs" variant="muted">
                                 {t('previous: %f%%', savedTargetSampleRate)}
                               </Text>
                             )}
-                            {field.state.value === savedTargetSampleRate &&
-                              field.state.value === '100' && (
+                            {field.value === savedTargetSampleRate &&
+                              field.value === '100' && (
                                 <Text size="xs" variant="muted">
                                   {t('All spans are stored')}
                                 </Text>
@@ -157,7 +154,7 @@ export function OrganizationSampling() {
                     }
                   />
                 )}
-              </form.AppField>
+              </form.Field>
             )}
             <SubTextParagraph>
               {t(
@@ -167,7 +164,7 @@ export function OrganizationSampling() {
           </Fragment>
         )}
       </form.Subscribe>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

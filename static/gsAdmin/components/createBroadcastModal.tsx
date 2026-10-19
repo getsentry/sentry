@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -71,15 +71,6 @@ export function CreateBroadcastModal({
         data,
       }),
     onSuccess: data => navigate(`/_admin/broadcasts/${data.id}/`),
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      addErrorMessage('An error occurred while submitting this form.');
-    },
   });
 
   const defaultValues: z.input<typeof schema> = {
@@ -101,10 +92,9 @@ export function CreateBroadcastModal({
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) => {
       const {organizations, ...rest} = value;
       const payload = {
         ...rest,
@@ -119,7 +109,16 @@ export function CreateBroadcastModal({
               .filter(id => id > 0)
           : undefined,
       };
-      return mutation.mutateAsync(payload).catch(() => {});
+      return mutation.mutateAsync(payload).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
+        }
+        addErrorMessage('An error occurred while submitting this form.');
+        return;
+      });
     },
   });
 
@@ -128,60 +127,60 @@ export function CreateBroadcastModal({
       <Header closeButton>
         <Heading as="h3">Add Broadcast</Heading>
       </Header>
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Body>
           <Stack gap="lg">
-            <form.AppField name="title">
+            <form.Field name="title">
               {field => (
                 <field.Layout.Stack label="Title" required>
                   <field.Input
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder="e.g. Shiny New Feature"
                     maxLength={64}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="message">
+            </form.Field>
+            <form.Field name="message">
               {field => (
                 <field.Layout.Stack label="Message" required>
                   <field.Input
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder="e.g. Here's a slightly longer sentence about this shiny new feature"
                     maxLength={256}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="link">
+            </form.Field>
+            <form.Field name="link">
               {field => (
                 <field.Layout.Stack label="Link" required>
                   <field.Input
                     type="url"
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder="e.g. https://blog.sentry.io/2021/01/01/shiny-new-feature"
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="organizations">
+            </form.Field>
+            <form.Field name="organizations">
               {field => (
                 <field.Layout.Stack
                   label="Organization IDs"
                   hintText="Comma-separated list of organization IDs to restrict this broadcast to. If left empty, the broadcast will be shown to all users."
                 >
                   <field.Input
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder="e.g. 123, 456, 789 (leave empty to broadcast to all users)"
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="mediaUrl">
+            </form.Field>
+            <form.Field name="mediaUrl">
               {field => (
                 <field.Layout.Stack
                   label="Image URL"
@@ -189,108 +188,105 @@ export function CreateBroadcastModal({
                 >
                   <field.Input
                     type="url"
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder="e.g. https://example.com/image.png"
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="category">
+            </form.Field>
+            <form.Field name="category">
               {field => (
                 <field.Layout.Stack label="Category">
                   <field.Select
                     clearable
-                    value={field.state.value}
+                    value={field.value}
                     onChange={value => field.handleChange(value ?? '')}
                     options={CATEGORYCHOICES}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="region">
+            </form.Field>
+            <form.Field name="region">
               {field => (
                 <field.Layout.Stack label="Region">
                   <field.Select
                     clearable
-                    value={field.state.value}
+                    value={field.value}
                     onChange={value => field.handleChange(value ?? '')}
                     options={REGIONCHOICES}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="platform">
+            </form.Field>
+            <form.Field name="platform">
               {field => (
                 <field.Layout.Stack label="Platform">
                   <field.Select
                     multiple
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={platformOptions.flatMap(group => group.options)}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="product">
+            </form.Field>
+            <form.Field name="product">
               {field => (
                 <field.Layout.Stack label="Product">
                   <field.Select
                     multiple
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={PRODUCTCHOICES}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="roles">
+            </form.Field>
+            <form.Field name="roles">
               {field => (
                 <field.Layout.Stack label="Roles">
                   <field.Select
                     multiple
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={ROLECHOICES}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="plans">
+            </form.Field>
+            <form.Field name="plans">
               {field => (
                 <field.Layout.Stack label="Plans">
                   <field.Select
                     multiple
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={AVAILABLE_PLANCHOICES}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="trialStatus">
+            </form.Field>
+            <form.Field name="trialStatus">
               {field => (
                 <field.Layout.Stack label="Trial Status">
                   <field.Select
                     multiple
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={TRIALCHOICES}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="earlyAdopter">
+            </form.Field>
+            <form.Field name="earlyAdopter">
               {field => (
                 <field.Layout.Row label="Early Adopter">
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
-            </form.AppField>
-            <form.AppField name="dateExpires">
+            </form.Field>
+            <form.Field name="dateExpires">
               {field => (
                 <field.Layout.Stack
                   label="Expires At"
@@ -298,25 +294,22 @@ export function CreateBroadcastModal({
                 >
                   <field.Input
                     type="datetime-local"
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="isActive">
+            </form.Field>
+            <form.Field name="isActive">
               {field => (
                 <field.Layout.Row
                   label="Active"
                   hintText="Activate this broadcast immediately."
                 >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
-            </form.AppField>
+            </form.Field>
           </Stack>
         </Body>
         <Footer>
@@ -325,7 +318,7 @@ export function CreateBroadcastModal({
             <form.SubmitButton>Save</form.SubmitButton>
           </Flex>
         </Footer>
-      </form.AppForm>
+      </ScrapsForm>
     </Fragment>
   );
 }

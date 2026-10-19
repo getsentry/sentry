@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -63,14 +63,13 @@ function ChangeDashboardsParallelLimitModal({
     dashboardsAsyncQueueParallelLimit: currentLimit,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <Heading as="h2">Change Dashboard Parallel Query Limit</Heading>
       </Header>
@@ -80,7 +79,7 @@ function ChangeDashboardsParallelLimitModal({
             <Text bold>Current value: </Text>
             {currentLimit}
           </Text>
-          <form.AppField name="dashboardsAsyncQueueParallelLimit">
+          <form.Field name="dashboardsAsyncQueueParallelLimit">
             {field => (
               <field.Layout.Stack
                 label="Parallel Limit"
@@ -88,14 +87,14 @@ function ChangeDashboardsParallelLimitModal({
                 required
               >
                 <field.Number
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   min={1}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -104,7 +103,7 @@ function ChangeDashboardsParallelLimitModal({
           <form.SubmitButton>Save</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

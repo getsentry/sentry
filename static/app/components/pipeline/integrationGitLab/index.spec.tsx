@@ -80,7 +80,7 @@ describe('InstallationConfigStep', () => {
   });
 
   it('submits config with required fields and calls advance', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <InstallationConfigStep
         {...makeStepProps({stepData: {setupValues: []}, advance})}
@@ -112,7 +112,7 @@ describe('InstallationConfigStep', () => {
   });
 
   it('submits with group and include_subgroups when group is set', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <InstallationConfigStep
         {...makeStepProps({stepData: {setupValues: []}, advance})}
@@ -176,7 +176,7 @@ describe('InstallationConfigStep', () => {
   });
 
   it('submits self-hosted config with URL and verify_ssl', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <InstallationConfigStep
         {...makeStepProps({stepData: {setupValues: []}, advance})}
@@ -217,7 +217,7 @@ describe('InstallationConfigStep', () => {
   });
 
   it.isKnownFlake('strips trailing slashes from self-hosted URL', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <InstallationConfigStep
         {...makeStepProps({stepData: {setupValues: []}, advance})}
@@ -298,7 +298,7 @@ describe('GitLabOAuthLoginStep', () => {
   });
 
   it.isKnownFlake('calls advance with code and state on OAuth callback', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <GitLabOAuthLoginStep
         {...makeStepProps({

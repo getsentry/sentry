@@ -338,7 +338,7 @@ export function SeerProjectTable() {
                               options={stoppingPointOptions}
                               // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
-                              value={field.state.value}
+                              value={field.value}
                             />
                           )}
                         </AutoSaveForm>
@@ -369,7 +369,7 @@ export function SeerProjectTable() {
                               options={PR_ITERATION_OPTIONS}
                               // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
-                              value={field.state.value}
+                              value={field.value}
                             />
                           )}
                         </AutoSaveForm>
@@ -458,7 +458,7 @@ function AgentSelectCell({
           options={agentSelectOptions}
           // @ts-expect-error: Select component does not have a size prop defined
           size="xs"
-          value={field.state.value}
+          value={field.value}
         />
       )}
     </AutoSaveForm>

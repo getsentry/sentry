@@ -4,7 +4,12 @@ import {z} from 'zod';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {
+  AutoSaveForm,
+  useScrapsForm,
+  defaultFormValidators,
+  ScrapsForm,
+} from '@sentry/scraps/form';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 const OPTIONS = [
@@ -30,23 +35,32 @@ function TestForm({
   validateOnBlur?: boolean;
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {fruit: null as string | null},
-    validators: {
-      [validateOnBlur ? 'onBlur' : 'onDynamic']: z.object({
-        fruit: z.string('Select a fruit'),
-      }),
-    },
+    validators: validateOnBlur
+      ? [
+          {
+            run: z.object({
+              fruit: z.string('Select a fruit'),
+            }),
+            triggers: ['blur'],
+          },
+        ]
+      : defaultFormValidators(
+          z.object({
+            fruit: z.string('Select a fruit'),
+          })
+        ),
+    errorVisibility: validateOnBlur ? () => true : undefined,
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="fruit">
+    <ScrapsForm form={form}>
+      <form.Field name="fruit">
         {field => (
           <field.Layout.Stack label="Fruit" hintText="Choose your favorite fruit">
             <field.CompactSelect
               ref={buttonRef}
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={options}
               disabled={disabled}
@@ -62,9 +76,9 @@ function TestForm({
             />
           </field.Layout.Stack>
         )}
-      </form.AppField>
+      </form.Field>
       <form.SubmitButton>Submit</form.SubmitButton>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -147,28 +161,27 @@ it('keeps an empty menu openable when disabled is explicitly false', async () =>
 
 function ClearableTestForm() {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {fruit: 'apple' as string | null},
-    validators: {onDynamic: z.object({fruit: z.string().nullable()})},
+    validators: defaultFormValidators(z.object({fruit: z.string().nullable()})),
   });
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="fruit">
+    <ScrapsForm form={form}>
+      <form.Field name="fruit">
         {field => (
           <field.Layout.Stack label="Fruit">
             <field.CompactSelect
               clearable
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={OPTIONS}
             />
           </field.Layout.Stack>
         )}
-      </form.AppField>
+      </form.Field>
       <form.Subscribe selector={state => state.values.fruit}>
         {fruit => <output>{JSON.stringify(fruit)}</output>}
       </form.Subscribe>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -198,13 +211,13 @@ function AutoSaveTestForm({
           {multiple ? (
             <field.CompactSelect
               multiple
-              value={Array.isArray(field.state.value) ? field.state.value : []}
+              value={Array.isArray(field.value) ? field.value : []}
               onChange={field.handleChange}
               options={OPTIONS}
             />
           ) : (
             <field.CompactSelect
-              value={typeof field.state.value === 'string' ? field.state.value : ''}
+              value={typeof field.value === 'string' ? field.value : ''}
               onChange={field.handleChange}
               options={OPTIONS}
             />

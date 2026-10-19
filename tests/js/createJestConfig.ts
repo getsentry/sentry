@@ -244,6 +244,9 @@ if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
  * transformed.
  */
 const ESM_NODE_MODULES = [
+  '@tanstack\\+form-core',
+  '@tanstack\\+react-form',
+  '@tanstack\\+react-store',
   'react-router@8\\.',
   '@remix-run\\+route-pattern',
   'cookie-es',

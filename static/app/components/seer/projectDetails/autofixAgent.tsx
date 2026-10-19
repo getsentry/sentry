@@ -185,7 +185,7 @@ export function AutofixAgent({canWrite, project}: Props) {
                   multiple={false}
                   onChange={field.handleChange}
                   options={agentSelectOptions}
-                  value={restrictToSeer ? 'seer' : field.state.value}
+                  value={restrictToSeer ? 'seer' : field.value}
                 />
               </field.Layout.Row>
             </Stack>
@@ -216,7 +216,7 @@ export function AutofixAgent({canWrite, project}: Props) {
             >
               <field.Select
                 disabled={!canWrite}
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={stoppingPointOptions}
               />

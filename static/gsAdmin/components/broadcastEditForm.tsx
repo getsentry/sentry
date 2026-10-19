@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -76,22 +76,6 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
       });
       onSaved();
     },
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      const response = error instanceof RequestError ? error.responseJSON : undefined;
-      const detail =
-        typeof response?.detail === 'string'
-          ? response.detail
-          : response
-            ? JSON.stringify(response)
-            : 'Unknown error';
-      addErrorMessage(detail);
-    },
   });
 
   const defaultValues: z.input<typeof formSchema> = {
@@ -117,10 +101,9 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: formSchema},
-    onSubmit: ({value}) => {
+    validators: defaultFormValidators(formSchema),
+    onSubmit: ({value, createValidationError}) => {
       const payload = {
         title: value.title,
         message: value.message,
@@ -141,12 +124,28 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
         ...(value.mediaUrl ? {mediaUrl: value.mediaUrl} : {}),
         ...(value.category ? {category: value.category} : {}),
       };
-      return mutation.mutateAsync(payload).catch(() => {});
+      return mutation.mutateAsync(payload).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
+        }
+        const response = error instanceof RequestError ? error.responseJSON : undefined;
+        const detail =
+          typeof response?.detail === 'string'
+            ? response.detail
+            : response
+              ? JSON.stringify(response)
+              : 'Unknown error';
+        addErrorMessage(detail);
+        return;
+      });
     },
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         {data.upstreamId && !data.syncLocked && (
           <Alert variant="info">
@@ -160,84 +159,78 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
             let the hourly job refresh it again.
           </Alert>
         )}
-        <form.AppField name="title">
+        <form.Field name="title">
           {field => (
             <field.Layout.Stack label="Title" required>
               <field.Input
-                value={field.state.value ?? ''}
+                value={field.value ?? ''}
                 onChange={field.handleChange}
                 maxLength={64}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="message">
+        </form.Field>
+        <form.Field name="message">
           {field => (
             <field.Layout.Stack label="Message" required>
               <field.Input
-                value={field.state.value ?? ''}
+                value={field.value ?? ''}
                 onChange={field.handleChange}
                 maxLength={256}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="link">
+        </form.Field>
+        <form.Field name="link">
           {field => (
             <field.Layout.Stack label="Link" required>
-              <field.Input
-                value={field.state.value ?? ''}
-                onChange={field.handleChange}
-              />
+              <field.Input value={field.value ?? ''} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="organizations">
+        </form.Field>
+        <form.Field name="organizations">
           {field => (
             <field.Layout.Stack
               label="Organization IDs"
               hintText="Comma-separated list of organization IDs to restrict this broadcast to. If left empty, the broadcast will be shown to all users."
             >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="mediaUrl">
+        </form.Field>
+        <form.Field name="mediaUrl">
           {field => (
             <field.Layout.Stack
               label="Media URL"
               hintText="Optional. Image or video shown in What's New."
             >
-              <field.Input
-                value={field.state.value ?? ''}
-                onChange={field.handleChange}
-              />
+              <field.Input value={field.value ?? ''} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="category">
+        </form.Field>
+        <form.Field name="category">
           {field => (
             <field.Layout.Stack label="Category">
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={CATEGORYCHOICES}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="dateExpires">
+        </form.Field>
+        <form.Field name="dateExpires">
           {field => (
             <field.Layout.Stack label="Expires">
               <field.Input
                 type="datetime-local"
-                value={field.state.value ?? ''}
+                value={field.value ?? ''}
                 onChange={field.handleChange}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="isActive">
+        </form.Field>
+        <form.Field name="isActive">
           {field => (
             <Flex align="center" gap="sm" width="fit-content">
               <Text
@@ -249,49 +242,49 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
                 Active
               </Text>
               <field.Switch
-                checked={Boolean(field.state.value)}
+                checked={Boolean(field.value)}
                 onChange={field.handleChange}
               />
             </Flex>
           )}
-        </form.AppField>
-        <form.AppField name="roles">
+        </form.Field>
+        <form.Field name="roles">
           {field => (
             <field.Layout.Stack label="Roles">
               <field.Select
                 multiple
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={ROLECHOICES}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="plans">
+        </form.Field>
+        <form.Field name="plans">
           {field => (
             <field.Layout.Stack label="Plans">
               <field.Select
                 multiple
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={ALL_PLANCHOICES}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="trialStatus">
+        </form.Field>
+        <form.Field name="trialStatus">
           {field => (
             <field.Layout.Stack label="Trial Status">
               <field.Select
                 multiple
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={TRIALCHOICES}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="earlyAdopter">
+        </form.Field>
+        <form.Field name="earlyAdopter">
           {field => (
             <Flex align="center" gap="sm" width="fit-content">
               <Text
@@ -302,51 +295,51 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
               >
                 Early Adopter
               </Text>
-              <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              <field.Switch checked={field.value} onChange={field.handleChange} />
             </Flex>
           )}
-        </form.AppField>
-        <form.AppField name="region">
+        </form.Field>
+        <form.Field name="region">
           {field => (
             <field.Layout.Stack label="Region">
               <field.Select
                 clearable
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={REGIONCHOICES}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="platform">
+        </form.Field>
+        <form.Field name="platform">
           {field => (
             <field.Layout.Stack label="Platform">
               <field.Select
                 multiple
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={platformOptions.flatMap(group => group.options)}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="product">
+        </form.Field>
+        <form.Field name="product">
           {field => (
             <field.Layout.Stack label="Product">
               <field.Select
                 multiple
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={PRODUCTCHOICES}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex gap="sm" justify="end">
           <Button onClick={onCancel}>Cancel</Button>
           <form.SubmitButton>Save Changes</form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

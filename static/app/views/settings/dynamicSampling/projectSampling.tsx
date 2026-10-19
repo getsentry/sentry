@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -58,13 +58,10 @@ export function ProjectSampling() {
   const [savedProjectRates, setSavedProjectRates] = useState(projectRates);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       projectRates,
     },
-    validators: {
-      onDynamic: projectSamplingSchema,
-    },
+    validators: defaultFormValidators(projectSamplingSchema),
     onSubmit: async ({value, formApi}) => {
       const ratesArray = Object.entries(value.projectRates).map(([id, rate]) => ({
         id: Number(id),
@@ -124,20 +121,24 @@ export function ProjectSampling() {
   }, [sampleRatesQuery.data, sampleCountsQuery.data]);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.Subscribe
         selector={s => ({
           isDirty: s.isDirty,
           currentProjectRates: s.values.projectRates,
-          fieldMeta: s.fieldMeta,
         })}
       >
-        {({isDirty, currentProjectRates, fieldMeta}) => {
+        {({isDirty, currentProjectRates}) => {
           const projectErrors: Record<string, string | undefined> = {};
-          for (const id of Object.keys(currentProjectRates)) {
-            const error = fieldMeta[`projectRates.${id}`]?.errors?.[0]?.message;
-            if (error) {
-              projectErrors[id] = error;
+          const validation = projectSamplingSchema.safeParse({
+            projectRates: currentProjectRates,
+          });
+          if (!validation.success) {
+            for (const issue of validation.error.issues) {
+              const id = issue.path[1];
+              if (typeof id === 'string' && projectErrors[id] === undefined) {
+                projectErrors[id] = issue.message;
+              }
             }
           }
 
@@ -188,7 +189,7 @@ export function ProjectSampling() {
           );
         }}
       </form.Subscribe>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

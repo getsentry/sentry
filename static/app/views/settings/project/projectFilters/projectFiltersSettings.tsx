@@ -13,10 +13,11 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   AutoSaveForm,
-  defaultFormOptions,
   FieldGroup,
   FormSearch,
+  ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -326,7 +327,6 @@ function CustomFiltersForm({
   const updateProject = useUpdateProject(project);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       'filters:releases': String(project.options?.['filters:releases'] ?? ''),
       'filters:error_messages': String(project.options?.['filters:error_messages'] ?? ''),
@@ -335,7 +335,7 @@ function CustomFiltersForm({
         project.options?.['filters:trace_metric_names'] ?? ''
       ),
     },
-    validators: {onDynamic: customFiltersSchema},
+    validators: defaultFormValidators(customFiltersSchema),
     onSubmit: ({value, formApi}) =>
       updateProject
         .mutateAsync({options: value})
@@ -349,7 +349,7 @@ function CustomFiltersForm({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/filters/">
         <FieldGroup title={t('Custom Filters')}>
           <Feature
@@ -386,7 +386,7 @@ function CustomFiltersForm({
                     ...featureProps,
                   })}
 
-                <form.AppField name="filters:releases">
+                <form.Field name="filters:releases">
                   {field => (
                     <field.Layout.Row
                       label={t('Releases')}
@@ -398,7 +398,7 @@ function CustomFiltersForm({
                       }
                     >
                       <field.TextArea
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         disabled={disabled || !hasFeature}
                         monospace
@@ -409,9 +409,9 @@ function CustomFiltersForm({
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
+                </form.Field>
 
-                <form.AppField name="filters:error_messages">
+                <form.Field name="filters:error_messages">
                   {field => (
                     <field.Layout.Row
                       label={t('Error Message')}
@@ -426,7 +426,7 @@ function CustomFiltersForm({
                       }
                     >
                       <field.TextArea
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         disabled={disabled || !hasFeature}
                         monospace
@@ -437,10 +437,10 @@ function CustomFiltersForm({
                       />
                     </field.Layout.Row>
                   )}
-                </form.AppField>
+                </form.Field>
 
                 {organization.features.includes('ourlogs-ingestion') && (
-                  <form.AppField name="filters:log_messages">
+                  <form.Field name="filters:log_messages">
                     {field => (
                       <field.Layout.Row
                         label={t('Log Message')}
@@ -455,7 +455,7 @@ function CustomFiltersForm({
                         }
                       >
                         <field.TextArea
-                          value={field.state.value}
+                          value={field.value}
                           onChange={field.handleChange}
                           disabled={disabled || !hasFeature}
                           monospace
@@ -466,11 +466,11 @@ function CustomFiltersForm({
                         />
                       </field.Layout.Row>
                     )}
-                  </form.AppField>
+                  </form.Field>
                 )}
 
                 {organization.features.includes('tracemetrics-ingestion') && (
-                  <form.AppField name="filters:trace_metric_names">
+                  <form.Field name="filters:trace_metric_names">
                     {field => (
                       <field.Layout.Row
                         label={t('Application Metrics')}
@@ -485,7 +485,7 @@ function CustomFiltersForm({
                         }
                       >
                         <field.TextArea
-                          value={field.state.value}
+                          value={field.value}
                           onChange={field.handleChange}
                           disabled={disabled || !hasFeature}
                           monospace
@@ -496,7 +496,7 @@ function CustomFiltersForm({
                         />
                       </field.Layout.Row>
                     )}
-                  </form.AppField>
+                  </form.Field>
                 )}
 
                 {hasFeature && project.options?.['filters:error_messages'] && (
@@ -529,7 +529,7 @@ function CustomFiltersForm({
           )}
         </FieldGroup>
       </FormSearch>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -608,7 +608,7 @@ function StandardFilter({
       {field => (
         <field.Layout.Row label={description.label} hintText={description.help}>
           <field.Switch
-            checked={field.state.value}
+            checked={field.value}
             onChange={field.handleChange}
             disabled={!hasAccess}
           />
@@ -751,7 +751,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
                         <field.Base disabled={!hasAccess}>
                           {(baseProps, {indicator}) => (
                             <LegacyBrowserFilterRow
-                              subfilters={field.state.value}
+                              subfilters={field.value}
                               disabled={baseProps.disabled}
                               hintText={
                                 <field.Meta.HintText>
@@ -822,7 +822,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
                     )}
                   >
                     <field.Switch
-                      checked={field.state.value}
+                      checked={field.value}
                       onChange={field.handleChange}
                       disabled={!hasAccess}
                     />
@@ -846,7 +846,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
                     )}
                   >
                     <field.Switch
-                      checked={field.state.value}
+                      checked={field.value}
                       onChange={field.handleChange}
                       disabled={!hasAccess}
                     />
@@ -876,7 +876,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
                     }
                   >
                     <field.TextArea
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       disabled={!hasAccess}
                       monospace

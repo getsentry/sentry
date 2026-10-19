@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -20,18 +20,17 @@ function TestForm({
   disabled,
 }: TestFormProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       priority: defaultValue,
     },
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="priority">
+    <ScrapsForm form={form}>
+      <form.Field name="priority">
         {field => (
           <field.Radio.Group
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             disabled={disabled}
           >
@@ -44,8 +43,8 @@ function TestForm({
             </field.Layout.Row>
           </field.Radio.Group>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 
@@ -74,7 +73,7 @@ function AutoSaveTestForm({
       mutationOptions={{mutationFn, onError}}
     >
       {field => (
-        <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
+        <field.Radio.Group value={field.value} onChange={field.handleChange}>
           <field.Layout.Row label={label}>
             <field.Radio.Item value="low">Low</field.Radio.Item>
             <field.Radio.Item value="medium">Medium</field.Radio.Item>

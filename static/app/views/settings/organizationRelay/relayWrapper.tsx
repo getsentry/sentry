@@ -152,7 +152,7 @@ export function RelayWrapper() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={disabled}
               />
@@ -185,7 +185,7 @@ export function RelayWrapper() {
               )}
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={disabled}
               />

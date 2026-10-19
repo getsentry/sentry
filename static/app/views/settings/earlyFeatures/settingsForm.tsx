@@ -93,7 +93,7 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
           {field => (
             <field.Layout.Row label={description}>
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={disabled}
               />
