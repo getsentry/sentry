@@ -986,9 +986,12 @@ class SnubaEventStorage(EventStorage):
                 ],
                 referrer="eventstore.get_next_or_prev_event_id",
             )
-        except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
-            # This can happen when the date conditions for paging
-            # and the current event generate impossible conditions.
+        except (
+            snuba.QueryOutsideRetentionError,
+            snuba.QueryOutsideGroupActivityError,
+            snuba.EmptyGroupIdIntersectionError,
+        ):
+            # Date or group filters can make it impossible for any event to match.
             return [None for _ in filters]
 
         return [self.__get_event_id_from_result(result) for result in results]

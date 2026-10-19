@@ -272,7 +272,6 @@ export function ProjectDetail() {
                       location={location}
                       projectId={selection.projects[0]!}
                       query={query}
-                      api={api}
                     />
                   </Fragment>
                 )}

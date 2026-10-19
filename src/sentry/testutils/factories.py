@@ -70,7 +70,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentProject,
     IncidentType,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
@@ -226,7 +225,6 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
-from sentry.testutils.helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -823,26 +821,20 @@ class Factories:
     def create_project_rule(
         project,
         action_data=None,
-        allow_no_action_data=False,
         condition_data=None,
         name="Test Alert",
         action_match="all",
         filter_match="all",
         frequency=30,
-        include_legacy_rule_id=True,
-        include_workflow_id=True,
         **kwargs,
     ):
-        actions = None
-        if not allow_no_action_data:
-            action_data = action_data or [
-                {
-                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                    "service": "webhooks",
-                    "name": "Send a notification via webhooks",
-                },
-            ]
-            actions = action_data
+        action_data = action_data or [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "webhooks",
+                "name": "Send a notification via webhooks",
+            },
+        ]
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -858,26 +850,14 @@ class Factories:
             "action_match": action_match,
             "filter_match": filter_match,
             "frequency": frequency,
+            "actions": action_data,
         }
-        if actions:
-            data["actions"] = actions
-
-        rule = Rule.objects.create(
+        return Rule.objects.create(
             label=name,
             project=project,
             data=data,
             **kwargs,
         )
-        # dual write the rule to the workflow engine
-        workflow = IssueAlertMigrator(rule).run()
-
-        # annotate the rule with legacy_rule_id and workflow_id
-        if include_legacy_rule_id:
-            rule.data["actions"][0]["legacy_rule_id"] = rule.id
-        if include_workflow_id:
-            rule.data["actions"][0]["workflow_id"] = workflow.id
-
-        return rule
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -2093,6 +2073,7 @@ class Factories:
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
+        # Projects configure the default alert rule, not an incident-project relation.
         if alert_rule is None:
             alert_rule = Factories.create_alert_rule(
                 organization, projects, query=query, time_window=1
@@ -2110,9 +2091,6 @@ class Factories:
             type=IncidentType.ALERT_TRIGGERED.value,
             subscription=subscription,
         )
-        for project in projects:
-            IncidentProject.objects.create(incident=incident, project=project)
-
         return incident
 
     @staticmethod
@@ -2629,7 +2607,7 @@ class Factories:
         """Payload used by Explore saved-formula API and resolver tests."""
         return copy.deepcopy(
             {
-                "name": "formula.apdex",
+                "name": "formula.custom_apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
                 "unit": None,
                 "dataset": "spans",
@@ -2640,7 +2618,7 @@ class Factories:
                     },
                     {
                         "name": "count_tolerating",
-                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
                     },
                 ],
                 "params": [
@@ -2657,7 +2635,7 @@ class Factories:
                         "value": "",
                     },
                     {
-                        "name": "4threshold",
+                        "name": "frustrated",
                         "type": "calculation",
                         "order": 2,
                         "value": "{threshold} * 4",

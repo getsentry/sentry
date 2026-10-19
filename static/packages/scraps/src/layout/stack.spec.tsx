@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {createRef, Fragment} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {act, render, screen} from '@testing-library/react';
@@ -203,6 +204,7 @@ describe('Stack', () => {
 
     let renderCount = 0;
     function Probe() {
+      // oxlint-disable-next-line react/todo
       renderCount++;
       return <span>probe</span>;
     }

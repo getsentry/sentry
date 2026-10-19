@@ -10,7 +10,10 @@ const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}']
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
-  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  rules: {
+    '@sentry/scraps/prefer-primitives': 'error',
+    '@sentry/scraps/prefer-container-responsive-props': 'error',
+  },
   overrides: [
     {
       files: coreComponentFiles,
@@ -661,6 +664,7 @@ const config = defineConfig({
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
     '@sentry/scraps/prefer-stack-for-column-flex': 'error',
+    '@sentry/scraps/require-field-component': 'error',
     '@sentry/scraps/require-render-prop-spread': 'error',
     '@sentry/scraps/use-semantic-token': [
       'error',
@@ -745,7 +749,7 @@ const config = defineConfig({
     'react/globals': 'error',
     'react/hooks': 'error',
     'react/immutability': 'error',
-    'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/incompatible-library': 'error',
     'react/invariant': 'error',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
@@ -786,9 +790,10 @@ const config = defineConfig({
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',
     'react/syntax': 'error',
-    'react/todo': 'off',
+    'react/todo': 'error',
     'react/unsupported-syntax': 'error',
     'react/use-memo': 'error',
+    'react/void-use-memo': 'error',
     'react/no-did-mount-set-state': 'error',
     'react/no-did-update-set-state': 'error',
     'react/no-redundant-should-component-update': 'error',
@@ -1286,6 +1291,7 @@ const config = defineConfig({
     'typescript/no-extra-non-null-assertion': 'error',
     'typescript/no-extraneous-class': 'error',
     'typescript/no-for-in-array': 'error',
+    'typescript/no-generated-empty-object-type': 'error',
     'typescript/no-implied-eval': 'error',
     'typescript/no-meaningless-void-operator': 'error',
     'typescript/no-misused-new': 'error',
@@ -1696,6 +1702,7 @@ const config = defineConfig({
       files: ['static/packages/scraps/src/**/*.{ts,tsx}'],
       // Re-enable these rules when Scraps has its own stricter lint config.
       rules: {
+        '@sentry/no-global-react': 'error',
         'boundaries/no-unknown-files': 'off',
         'no-shadow': 'off',
         'eslint-js/no-restricted-syntax': [
@@ -1853,6 +1860,13 @@ const config = defineConfig({
           },
         ],
       },
+    },
+    {
+      files: [
+        'static/packages/scraps/src/**/*.spec.{ts,tsx}',
+        'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
+      ],
+      rules: {'import/no-relative-parent-imports': 'off'},
     },
     {
       files: ['**/*.stories.tsx'],

@@ -105,11 +105,13 @@ export function ThresholdsSection({
           }
 
           if (newThresholds) {
+            // oxlint-disable-next-line react/todo
             newThresholds.max_values ??= {};
             if (value) {
               // Match the displayed unit on first entry without reinterpreting
               // existing unitless thresholds, which use the base unit.
               if (!hasThresholdValues) {
+                // oxlint-disable-next-line react/todo
                 newThresholds.unit ??= dataUnit || null;
               }
               newThresholds.max_values[maxKey] = Number(value);

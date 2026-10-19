@@ -117,6 +117,7 @@ from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_qu
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
+from sentry.seer.public_caller import restrict_projects
 from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
@@ -455,7 +456,9 @@ def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
             slug=project.slug,
             instrumentation=get_instrumentation_types(project),
         )
-        for project in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        for project in restrict_projects(
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        )
     ]
 
     return OrganizationProjectsResponse(projects=projects)

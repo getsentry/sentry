@@ -16,7 +16,6 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             env = self.env_prod
 
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=env,
             date_added=self.monitor1.date_added + timedelta(**offset),
             status=status,

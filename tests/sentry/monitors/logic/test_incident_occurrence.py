@@ -24,8 +24,9 @@ from sentry.monitors.models import (
     MonitorIncident,
     MonitorStatus,
     ScheduleType,
+    get_detector_for_monitor,
 )
-from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.testutils.cases import TestCase
 
 
@@ -49,7 +50,6 @@ class IncidentOccurrenceTestCase(TestCase):
         )
 
         self.successful_checkin = MonitorCheckIn.objects.create(
-            monitor=self.monitor,
             monitor_environment=self.monitor_environment,
             status=CheckInStatus.OK,
         )
@@ -58,14 +58,12 @@ class IncidentOccurrenceTestCase(TestCase):
         self.trace_id = uuid.uuid4()
 
         self.timeout_checkin = MonitorCheckIn.objects.create(
-            monitor=self.monitor,
             monitor_environment=self.monitor_environment,
             status=CheckInStatus.TIMEOUT,
             trace_id=uuid.uuid4(),
             date_added=self.last_checkin - timedelta(minutes=1),
         )
         self.failed_checkin = MonitorCheckIn.objects.create(
-            monitor=self.monitor,
             monitor_environment=self.monitor_environment,
             status=CheckInStatus.ERROR,
             trace_id=self.trace_id,
@@ -253,17 +251,14 @@ class IncidentOccurrenceTestCase(TestCase):
             environment_id=self.environment.id,
         )
         timeout_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.TIMEOUT,
         )
         error_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
         )
         miss_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.MISSED,
         )
@@ -300,7 +295,6 @@ class IncidentOccurrenceTestCase(TestCase):
         trace_id = uuid.uuid4()
 
         failed_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             trace_id=trace_id,
@@ -379,7 +373,6 @@ class IncidentOccurrenceTestCase(TestCase):
             status=MonitorStatus.ERROR,
         )
         failed_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=timezone.now(),
