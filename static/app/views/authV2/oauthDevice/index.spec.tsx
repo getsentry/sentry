@@ -104,6 +104,40 @@ describe('OAuthDevice', () => {
     );
   });
 
+  it('preselects the sole eligible organization and sends it with approval', async () => {
+    const context = OAuthContextFixture();
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/context/',
+      body: {
+        ...context,
+        application: {...context.application, requiresOrgLevelAccess: true},
+        userCode: 'ABCD-EFGH',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      body: {
+        ...consent,
+        organizationOptions: [{id: '1', name: 'Example Org', slug: 'org-slug'}],
+      },
+    });
+    const approve = MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      method: 'POST',
+      body: {stage: 'approved'},
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    await userEvent.click(await screen.findByRole('button', {name: 'Authorize'}));
+    await waitFor(() =>
+      expect(approve).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {op: 'approve', userCode: 'ABCD-EFGH', selectedOrganizationId: '1'},
+        })
+      )
+    );
+  });
+
   it('allows editing an expired code in place', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/oauth/device/context/',
