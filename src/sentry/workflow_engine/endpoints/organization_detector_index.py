@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from functools import partial
 from typing import Any, assert_never
 
@@ -56,9 +56,6 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.organization_detector_details import (
-    get_detector_validator as get_detector_validator_for_update,
-)
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
@@ -137,7 +134,12 @@ SEAT_DETECTOR_TYPES = (MonitorIncidentType.slug, UptimeDomainCheckFailure.slug)
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance: Any = None
+    request: Request,
+    project: Project,
+    detector_type_slug: str,
+    instance: Detector | None = None,
+    partial: bool = False,
+    data: Mapping[str, Any] | None = None,
 ) -> BaseDetectorTypeValidator:
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
@@ -156,7 +158,8 @@ def get_detector_validator(
             "access": request.access,
             "user": request.user,
         },
-        data=request.data,
+        data=request.data if data is None else data,
+        partial=partial,
     )
 
 
@@ -475,7 +478,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         # Seat detectors commit one at a time, so keep going past failures
         failed_detectors = []
         for detector in seat_detectors:
-            detector_validator = get_detector_validator_for_update(
+            detector_validator = get_detector_validator(
                 request,
                 detector.linked_project,
                 detector.type,
