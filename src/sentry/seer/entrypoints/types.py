@@ -186,7 +186,7 @@ class SeerInvestigationEntrypoint[CachePayloadT](Protocol):
 
     @staticmethod
     def on_investigation_update(
-        cache_payload: CachePayloadT, run: InvestigationOrchestrationRun, attempt: int
+        cache_payload: CachePayloadT, run: InvestigationOrchestrationRun
     ) -> None:
         """
         Called when the orchestration run of an investigation changes.

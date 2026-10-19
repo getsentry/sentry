@@ -1393,7 +1393,7 @@ class TestProcessInvestigationUpdates(TestCase):
             cache_payload=cache_payload,
         )
 
-    def _process(self, registrations: dict[str, Mock], attempt: int = 0) -> None:
+    def _process(self, registrations: dict[str, Mock]) -> None:
         with (
             self.feature("organizations:investigations"),
             patch.dict(
@@ -1402,7 +1402,7 @@ class TestProcessInvestigationUpdates(TestCase):
                 clear=True,
             ),
         ):
-            process_investigation_updates(investigation_id=self.investigation.id, attempt=attempt)
+            process_investigation_updates(investigation_id=self.investigation.id)
 
     def test_calls_entrypoint_on_cache_hit(self) -> None:
         entrypoint_cls = self._make_entrypoint()
@@ -1411,17 +1411,7 @@ class TestProcessInvestigationUpdates(TestCase):
         self._process({"slack": entrypoint_cls})
 
         entrypoint_cls.on_investigation_update.assert_called_once_with(
-            cache_payload=self.cache_payload, run=self.orchestration_run, attempt=0
-        )
-
-    def test_forwards_attempt_to_entrypoint(self) -> None:
-        entrypoint_cls = self._make_entrypoint()
-        self._set_cache("slack", self.cache_payload)
-
-        self._process({"slack": entrypoint_cls}, attempt=2)
-
-        entrypoint_cls.on_investigation_update.assert_called_once_with(
-            cache_payload=self.cache_payload, run=self.orchestration_run, attempt=2
+            cache_payload=self.cache_payload, run=self.orchestration_run
         )
 
     def test_skips_on_cache_miss(self) -> None:
@@ -1463,7 +1453,7 @@ class TestProcessInvestigationUpdates(TestCase):
 
         missing_cls.on_investigation_update.assert_not_called()
         cached_cls.on_investigation_update.assert_called_once_with(
-            cache_payload=self.cache_payload, run=self.orchestration_run, attempt=0
+            cache_payload=self.cache_payload, run=self.orchestration_run
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -1522,6 +1512,6 @@ class TestProcessInvestigationUpdates(TestCase):
         self._process({"failing": failing_cls, "other": other_cls})
 
         other_cls.on_investigation_update.assert_called_once_with(
-            cache_payload=self.cache_payload, run=self.orchestration_run, attempt=0
+            cache_payload=self.cache_payload, run=self.orchestration_run
         )
         assert_failure_metric(mock_record, Exception("boom"))
