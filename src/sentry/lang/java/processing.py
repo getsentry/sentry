@@ -88,7 +88,7 @@ def fixup_frame_in_app(frame: dict[str, Any], release_package: str | None) -> No
     if not release_package or "in_app" in frame:
         return
 
-    if frame.get("module", "").startswith(release_package):
+    if (frame.get("module") or "").startswith(release_package):
         frame["in_app"] = True
 
 
