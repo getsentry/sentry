@@ -1,10 +1,9 @@
+import type * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {keyframes, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
-
-import {unreachable} from 'sentry/utils/unreachable';
 
 type StatusIndicatorVariant =
   | 'accent'
@@ -90,7 +89,7 @@ function getDotTokens(
         pulse: theme.tokens.background.transparent.neutral.muted,
       };
     default:
-      unreachable(variant);
+      variant satisfies never;
       throw new TypeError(`Unsupported StatusIndicator variant: ${variant}`);
   }
 }

@@ -102,6 +102,30 @@
     "./trackingContext": {
       "types": "./dist/trackingContext.d.ts",
       "import": "./dist/trackingContext.js"
+    },
+    "./image": {
+      "types": "./dist/image/index.d.ts",
+      "import": "./dist/image/index.js"
+    },
+    "./descriptionList": {
+      "types": "./dist/descriptionList/index.d.ts",
+      "import": "./dist/descriptionList/index.js"
+    },
+    "./interactionStateLayer": {
+      "types": "./dist/interactionStateLayer/index.d.ts",
+      "import": "./dist/interactionStateLayer/index.js"
+    },
+    "./radio": {
+      "types": "./dist/radio/index.d.ts",
+      "import": "./dist/radio/index.js"
+    },
+    "./statusIndicator": {
+      "types": "./dist/statusIndicator/index.d.ts",
+      "import": "./dist/statusIndicator/index.js"
+    },
+    "./hotkey": {
+      "types": "./dist/hotkey/index.d.ts",
+      "import": "./dist/hotkey/index.js"
     }
   },
   "publishConfig": {
