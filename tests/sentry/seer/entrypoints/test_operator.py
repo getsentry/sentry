@@ -1265,6 +1265,44 @@ class TestSeerAgentOperatorCodeMode(TestCase):
             category_value="thread-123",
         )
 
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_create_pr_turns_on_pull_requests(self, mock_client_cls):
+        self.organization.update_option("sentry:enable_seer_coding", True)
+
+        with self.feature(
+            ["organizations:seer-slack-code-mode", "organizations:ask-seer-create-pr"]
+        ):
+            self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["enable_coding"] is True
+        assert kwargs["enable_bash_mode"] is True
+        assert kwargs["enable_write_pull_request"] is True
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_create_pr_needs_the_coding_option(self, mock_client_cls):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with self.feature(
+            ["organizations:seer-slack-code-mode", "organizations:ask-seer-create-pr"]
+        ):
+            self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["enable_coding"] is False
+        assert kwargs["enable_write_pull_request"] is False
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_create_pr_needs_code_mode(self, mock_client_cls):
+        self.organization.update_option("sentry:enable_seer_coding", True)
+
+        with self.feature("organizations:ask-seer-create-pr"):
+            self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["enable_coding"] is False
+        assert kwargs["enable_write_pull_request"] is False
+
 
 class TestProcessInvestigationUpdates(TestCase):
     def setUp(self) -> None:
