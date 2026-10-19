@@ -1,8 +1,8 @@
 import {useCallback} from 'react';
 
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 /**
  * With code mode on, Seer Agent can drive the run itself, so a next step's "no"

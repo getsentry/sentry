@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import isNumber from 'lodash/isNumber';
 
 import {
@@ -7,7 +8,6 @@ import {
   getPolarityRating,
   type Polarity,
 } from 'sentry/components/percentChange';
-import {IconArrow} from 'sentry/icons';
 import {
   DEEMPHASIS_VARIANT,
   LOADING_PLACEHOLDER,

@@ -1,9 +1,19 @@
 import {Fragment, useState, type ReactNode} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconBug} from '@sentry/icons/bug';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconList} from '@sentry/icons/list';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
@@ -19,17 +29,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  IconAdd,
-  IconBug,
-  IconChevron,
-  IconCode,
-  IconList,
-  IconOpen,
-  IconPullRequest,
-  IconRefresh,
-  IconSeer,
-} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -141,6 +140,7 @@ function RunSeerActionButton({
       await action();
     } catch {
       // Errors are handled in the caller and shown in the autofix panel
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsStartingAction(false);
     }
@@ -196,7 +196,7 @@ function RunSeerActionButton({
         items={codingAgentOptions}
         isDisabled={defined(codingAgentDisabledReason)}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             variant={variant}
             size="sm"

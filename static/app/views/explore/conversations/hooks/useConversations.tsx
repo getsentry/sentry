@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -20,7 +19,6 @@ export interface ConversationUser {
 
 export interface Conversation {
   conversationId: string;
-  duration: number;
   endTimestamp: number;
   errors: number;
   firstInput: string | null;
@@ -36,6 +34,7 @@ export interface Conversation {
   // AI-generated summary of the conversation. Not always available (title
   // generation is gated and asynchronous), so consumers must fall back to the
   // first input message.
+  timeSpan: number;
   title: string | null;
   toolCalls: number;
   toolErrors: number;
@@ -47,14 +46,6 @@ export interface Conversation {
   user: ConversationUser | null;
 }
 
-interface ConversationApiResponse extends Omit<
-  Conversation,
-  'firstInput' | 'lastOutput'
-> {
-  firstInput?: Array<{text: string; type: string}> | string | null;
-  lastOutput?: Array<{text: string; type: string}> | string | null;
-}
-
 const CONVERSATION_LIST_PER_PAGE = 50;
 
 export const CONVERSATION_FIELDS = {
@@ -64,10 +55,11 @@ export const CONVERSATION_FIELDS = {
     description: t("Time of the conversation's latest span."),
     sortable: true,
   },
-  duration: {
-    key: 'conversation.duration',
+  timeSpan: {
+    key: 'conversation.timeSpan',
     valueType: FieldValueType.DURATION,
     description: t('Elapsed time between the first and last conversation span.'),
+    sortable: true,
   },
   generationDuration: {
     key: 'conversation.generationDuration',
@@ -133,14 +125,6 @@ const CONVERSATION_SORTS = CONVERSATION_SORT_FIELDS.flatMap(field => [
   `-${field}`,
 ]);
 
-function normalizeConversationPreview(
-  content: ConversationApiResponse['firstInput']
-): string | null {
-  return typeof content === 'string'
-    ? content
-    : (content?.find(part => part.type === 'text')?.text ?? null);
-}
-
 export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const organization = useOrganization();
   const {cursor, setCursor, unsetCursor} = useTableCursor();
@@ -158,7 +142,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
     isFetching,
     error,
   } = useQuery({
-    ...apiOptions.as<ConversationApiResponse[]>()(
+    ...apiOptions.as<Conversation[]>()(
       '/organizations/$organizationIdOrSlug/agents/conversations/',
       {
         path: {organizationIdOrSlug: organization.slug},
@@ -181,15 +165,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const pageLinks = response?.headers.Link;
   const isDirectHit = response?.headers['X-Sentry-Direct-Hit'] === '1';
 
-  const data = useMemo(() => {
-    return (response?.json ?? []).map(
-      ({firstInput: rawFirstInput, lastOutput: rawLastOutput, ...rest}): Conversation => {
-        const firstInput = normalizeConversationPreview(rawFirstInput);
-        const lastOutput = normalizeConversationPreview(rawLastOutput);
-        return {...rest, firstInput, lastOutput};
-      }
-    );
-  }, [response?.json]);
+  const data = response?.json ?? [];
 
   return {
     data,

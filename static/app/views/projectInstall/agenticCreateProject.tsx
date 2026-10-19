@@ -1,4 +1,5 @@
 import {Activity, useState} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -11,7 +12,6 @@ import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgre
 import {useAgenticSetupRun} from 'sentry/components/onboarding/agenticProgress/useAgenticSetupRun';
 import {ManualSetupCard} from 'sentry/components/onboarding/manualSetupCard';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';

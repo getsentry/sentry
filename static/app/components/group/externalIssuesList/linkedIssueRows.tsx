@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
-import {IconClose} from 'sentry/icons';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t} from 'sentry/locale';
 
 interface LinkedIssueRowsProps {

@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {HistogramQuery} from 'sentry/utils/performance/histogram/histogramQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/histogramChart';

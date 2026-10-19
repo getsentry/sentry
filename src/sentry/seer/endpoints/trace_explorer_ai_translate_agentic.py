@@ -15,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context
+from sentry.seer.endpoints.search_agent_start import resolve_referrer
 from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -48,6 +49,12 @@ class SearchAgentTranslateSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         help_text="Optional configuration options.",
+    )
+    referrer = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Which caller started the run (e.g. `search_bar`). Unknown values are ignored.",
     )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -172,6 +179,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             organization,
             actor=request.user,
         )
+        options["source"] = resolve_referrer(request, validated_data.get("referrer")).value
         data = send_translate_agentic_request(
             organization.id,
             organization.slug,

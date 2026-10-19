@@ -3,6 +3,9 @@ import {mkdtemp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+import {pluginReact} from '@rsbuild/plugin-react';
+import {createRslib} from '@rslib/core';
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
 const temporary = await mkdtemp(join(root, '.verify-'));
@@ -13,6 +16,10 @@ const tarball = join(temporary, 'scraps.tgz');
 try {
   await rm(join(root, 'dist'), {recursive: true, force: true});
   await mkdir(installed, {recursive: true});
+  await writeFile(
+    join(consumer, 'package.json'),
+    JSON.stringify({name: 'scraps-verify-consumer', private: true, type: 'module'})
+  );
   execFileSync('pnpm', ['pack', '--out', tarball], {cwd: root, stdio: 'inherit'});
   execFileSync('tar', ['-xzf', tarball, '-C', installed, '--strip-components=1']);
 
@@ -42,6 +49,40 @@ try {
     }
   }
 
+  // Icons currently exports workspace source. Compile a temporary dependency so
+  // Node can verify the packed Scraps JavaScript without a TSX loader.
+  const iconsRoot = fileURLToPath(new URL('../../icons/', import.meta.url));
+  const installedIcons = join(consumer, 'node_modules', '@sentry', 'icons');
+  const iconsPackage = JSON.parse(
+    await readFile(join(iconsRoot, 'package.json'), 'utf8')
+  );
+  const iconsBuild = await createRslib({
+    cwd: iconsRoot,
+    config: {
+      lib: [{format: 'esm', bundle: false, syntax: 'es2022'}],
+      source: {entry: {index: ['./src/**', '!src/**/*.spec.tsx']}},
+      output: {
+        target: 'node',
+        distPath: {root: join(installedIcons, 'dist')},
+        cleanDistPath: false,
+      },
+      plugins: [pluginReact()],
+    },
+  });
+  await iconsBuild.build();
+  await writeFile(
+    join(installedIcons, 'package.json'),
+    JSON.stringify({
+      ...iconsPackage,
+      exports: Object.fromEntries(
+        Object.entries(iconsPackage.exports).map(([subpath, source]) => [
+          subpath,
+          source.replace('./src/', './dist/').replace(/\.tsx?$/, '.js'),
+        ])
+      ),
+    })
+  );
+
   const config = {
     compilerOptions: {
       target: 'ES2022',
@@ -57,8 +98,7 @@ try {
   };
   await writeFile(join(consumer, 'tsconfig.json'), JSON.stringify(config));
   for (const subpath of Object.keys(packageJson.exports)) {
-    const specifier =
-      subpath === '.' ? '@sentry/scraps' : `@sentry/scraps/${subpath.slice(2)}`;
+    const specifier = `@sentry/scraps/${subpath.slice(2)}`;
     await writeFile(
       join(consumer, 'entry.mts'),
       `import * as entry from '${specifier}';\nvoid entry;\n`
@@ -77,7 +117,8 @@ try {
   await writeFile(
     join(consumer, 'private.mjs'),
     `import {rejects} from 'node:assert/strict';
-for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes', 'code/inlineCode', 'hotkey/kbd']) {
+await rejects(import('@sentry/scraps'), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
+for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes']) {
   await rejects(import('@sentry/scraps/' + subpath), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
 }
 `
@@ -87,26 +128,18 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
   const {createElement} = await import('react');
   const {renderToStaticMarkup} = await import('react-dom/server');
   const {ThemeProvider} = await import('@emotion/react');
-  const {
-    Container,
-    Flex,
-    Grid,
-    Stack,
-    Surface,
-    Text,
-    Heading,
-    Separator,
-    Quote,
-    InlineCode,
-    Kbd,
-    IndeterminateLoader,
-    lightTheme,
-    darkTheme,
-  } = await import(join(installed, 'dist/index.js'));
-  const {Stack: stackSubpath} = await import(join(installed, 'dist/layout/index.js'));
-  if (Stack !== stackSubpath) {
-    throw new Error('Public subpaths created separate component instances');
-  }
+  const {Container, Flex, Grid, Stack, Surface} = await import(
+    join(installed, 'dist/layout/index.js')
+  );
+  const {Text, Heading} = await import(join(installed, 'dist/text/index.js'));
+  const {Separator} = await import(join(installed, 'dist/separator/index.js'));
+  const {Quote} = await import(join(installed, 'dist/quote/index.js'));
+  const {InlineCode} = await import(join(installed, 'dist/code/inlineCode.js'));
+  const {Kbd} = await import(join(installed, 'dist/hotkey/kbd.js'));
+  const {IndeterminateLoader} = await import(join(installed, 'dist/loader/index.js'));
+  const {Switch} = await import(join(installed, 'dist/switch/index.js'));
+  const {Link, ExternalLink} = await import(join(installed, 'dist/link/index.js'));
+  const {lightTheme, darkTheme} = await import(join(installed, 'dist/theme/index.js'));
   for (const theme of [lightTheme, darkTheme]) {
     const html = renderToStaticMarkup(
       createElement(
@@ -125,7 +158,14 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
           createElement(Quote, null, 'Quote'),
           createElement(InlineCode, null, 'InlineCode'),
           createElement(Kbd, null, 'Kbd'),
-          createElement(IndeterminateLoader)
+          createElement(IndeterminateLoader),
+          createElement(Switch, {'aria-label': 'Switch'}),
+          createElement(
+            Link,
+            {to: {pathname: '/issues/', query: {query: 'error'}, hash: 'details'}},
+            'Package link'
+          ),
+          createElement(ExternalLink, {href: 'https://example.com'}, 'External link')
         )
       )
     );
@@ -139,10 +179,20 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       'Quote',
       'InlineCode',
       'Kbd',
+      'data-icon="checkmark"',
+      'data-icon="close"',
+      'Package link',
+      'External link',
     ]) {
       if (!html.includes(label)) {
         throw new Error(`Server render failed for ${label}`);
       }
+    }
+    if (
+      !html.includes('href="/issues/?query=error#details"') ||
+      !html.includes('rel="noreferrer noopener"')
+    ) {
+      throw new Error('Packed links lost their destinations or security attributes');
     }
   }
   console.log('Verified packed server rendering in both themes.');

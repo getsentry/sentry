@@ -34,4 +34,5 @@ def count_unique_aggregate_definition(
                 default_arg=default_arg,
             )
         ],
+        valid_arithmetic=True,
     )

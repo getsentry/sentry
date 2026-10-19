@@ -1,7 +1,10 @@
 from time import time
 from unittest import mock
 
+import orjson
 import pytest
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry import options, quotas
 from sentry.event_manager import EventManager
@@ -17,11 +20,12 @@ from sentry.tasks.store import (
     save_event_transaction,
     should_process,
 )
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.event_tracker import TransactionStageStatus
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, decode_viewer_context, get_viewer_context
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -141,6 +145,7 @@ def test_move_to_process_event_inline_save_event_still_submits_process_event(
         from_symbolicate=False,
         has_attachments=False,
         data=None,
+        unprocessed=None,
     )
     assert mock_save_event.call_count == 0
     assert mock_save_event.delay.call_count == 0
@@ -187,6 +192,7 @@ def test_move_to_save_event_inline(
         start_time=None,
         event_id=EVENT_ID,
         project_id=default_project.id,
+        unprocessed=None,
     )
     assert mock_save_event.delay.call_count == 0
 
@@ -230,6 +236,7 @@ def test_process_event_mutate_and_save(
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
+        unprocessed=None,
     )
 
 
@@ -260,7 +267,12 @@ def test_process_event_no_mutate_and_save(
     mock_event_processing_store.store.assert_called_once_with(data)
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed=None,
     )
 
 
@@ -322,7 +334,12 @@ def test_process_event_unprocessed(
     assert event["unprocessed"] is True
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed=None,
     )
 
 
@@ -368,6 +385,49 @@ def test_save_event_sets_viewer_context(default_project) -> None:
     assert captured_vc.organization_id == default_project.organization_id
     assert captured_vc.project_id == default_project.id
     assert captured_vc.actor_type == ActorType.SYSTEM
+
+
+@django_db_all
+@with_feature("projects:first-event-severity-calculation")
+@with_feature("organizations:seer-based-priority")
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+@mock.patch(
+    "sentry.event_manager.severity_connection_pool.urlopen",
+    return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231}), status=200),
+)
+def test_save_event_passes_system_viewer_context_to_seer(mock_urlopen, default_project) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "event_id": EVENT_ID,
+        "timestamp": time(),
+        "level": "error",
+        "exception": {
+            "values": [
+                {
+                    "type": "NopeError",
+                    "value": "Nopey McNopeface",
+                    "mechanism": {"type": "generic", "handled": True},
+                }
+            ]
+        },
+    }
+
+    manager = EventManager(data)
+    manager.normalize()
+    normalized_data = manager.get_data()
+    normalized_data["project"] = default_project.id
+
+    save_event(data=normalized_data, start_time=time())
+
+    viewer_context = decode_viewer_context(
+        mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+        key="viewer-context-test-secret",
+    )
+    assert viewer_context.organization_id == default_project.organization_id
+    assert viewer_context.project_id == default_project.id
+    assert viewer_context.user_id is None
+    assert viewer_context.actor_type == ActorType.SYSTEM
 
 
 @django_db_all
@@ -551,7 +611,12 @@ def test_scrubbing_after_processing(
     assert event["extra"] == {"ooo": "[Filtered]", "ooo2": "event preprocessor"}
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed=None,
     )
 
 
@@ -664,6 +729,7 @@ def test_store_consumer_type(
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
+        unprocessed=None,
     )
 
     transaction_data = {

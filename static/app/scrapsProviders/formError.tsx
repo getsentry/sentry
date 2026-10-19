@@ -1,4 +1,7 @@
-import {FormErrorContextProvider, type MappedFormError} from '@sentry/scraps/form';
+import {
+  FormErrorContextProvider,
+  type MappedFormError,
+} from '@sentry/scraps/form/formErrorContext';
 
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';

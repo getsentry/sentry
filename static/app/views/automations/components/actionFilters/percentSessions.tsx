@@ -21,8 +21,8 @@ import {
 } from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function PercentSessionsCountDetails({condition}: {condition: DataCondition}) {
   const hasSubfilters = condition.comparison.filters?.length > 0;
@@ -72,14 +72,16 @@ export function PercentSessionsPercentDetails({condition}: {condition: DataCondi
   );
 }
 
-export function PercentSessionsNode() {
+export function PercentSessionsNode({
+  getDefaultComparison,
+}: DataConditionNodeComponentProps) {
   const {condition} = useDataConditionNodeContext();
   const hasSubfilters = condition.comparison.filters?.length > 0;
   return (
     <div>
       <RowLine>
         {tct('Percentage of sessions affected by an issue is [select] [where]', {
-          select: <ComparisonTypeField />,
+          select: <ComparisonTypeField getDefaultComparison={getDefaultComparison} />,
           where: hasSubfilters ? <ConditionBadge>{t('Where')}</ConditionBadge> : null,
         })}
       </RowLine>
@@ -88,7 +90,7 @@ export function PercentSessionsNode() {
   );
 }
 
-function ComparisonTypeField() {
+function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentProps) {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
@@ -119,7 +121,7 @@ function ComparisonTypeField() {
           type: option.value,
           comparison: {
             ...condition.comparison,
-            ...dataConditionNodesMap.get(option.value)?.defaultComparison,
+            ...getDefaultComparison(option.value),
           },
         });
         removeError(condition.id);

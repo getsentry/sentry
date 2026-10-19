@@ -2,7 +2,6 @@ import type {Location, LocationDescriptor} from 'history';
 import * as Papa from 'papaparse';
 
 import type {SelectValue} from '@sentry/scraps/select';
-import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -17,26 +16,16 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
-import type {
-  Aggregation,
-  Column,
-  ColumnType,
-  ColumnValueType,
-  Field,
-} from 'sentry/utils/discover/fields';
+import type {EventData, EventView} from 'sentry/utils/discover/eventView';
+import type {Aggregation, Column, ColumnType, Field} from 'sentry/utils/discover/fields';
 import {
-  aggregateFunctionOutputType,
   AGGREGATIONS,
   explodeFieldString,
   getAggregateAlias,
   getColumnsAndAggregates,
-  getEquation,
   isAggregateEquation,
   isAggregateFieldOrEquation,
-  isEquation,
   isMeasurement,
-  isSpanOperationBreakdownField,
   measurementType,
   PROFILING_FIELDS,
   TRACING_FIELDS,
@@ -62,7 +51,7 @@ import {
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getAllViews} from 'sentry/views/discover/results/data';
 import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
-import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
+import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -86,66 +75,6 @@ function resolveDisplayType(
   return widgetTypeUsesDisplayTypeDirectly(widgetType)
     ? (eventViewDisplay as DisplayType)
     : displayModeToDisplayType(eventViewDisplay as DisplayModes);
-}
-
-const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
-  key: '',
-  name: '',
-
-  type: 'never',
-  isSortable: false,
-
-  column: Object.freeze({kind: 'field', field: ''}),
-  width: COL_WIDTH_UNDEFINED,
-};
-
-export function decodeColumnOrder(
-  fields: readonly Field[],
-  meta?: MetaType
-): Array<TableColumn<string>> {
-  return fields.map((f: Field) => {
-    const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
-
-    const col = explodeFieldString(f.field, f.alias);
-    if (isEquation(f.field)) {
-      column.key = f.field;
-      column.name = getEquation(f.field);
-      column.type = 'number';
-    } else {
-      column.key = f.field;
-      column.name = f.field;
-    }
-    column.width = f.width || COL_WIDTH_UNDEFINED;
-
-    if (col.kind === 'function') {
-      // Aggregations can have a strict outputType or they can inherit from their field.
-      // Otherwise use the FIELDS data to infer types.
-      const outputType = aggregateFunctionOutputType(col.function[0], col.function[1]);
-      if (outputType !== null) {
-        column.type = outputType;
-      }
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      const aggregate = AGGREGATIONS[col.function[0]];
-      column.isSortable = aggregate?.isSortable;
-    } else if (col.kind === 'field') {
-      if (getFieldDefinition(col.field) !== null) {
-        column.type = getFieldDefinition(col.field)?.valueType as ColumnValueType;
-      } else if (isMeasurement(col.field)) {
-        column.type = measurementType(col.field);
-      } else if (isSpanOperationBreakdownField(col.field)) {
-        column.type = 'duration';
-      }
-    }
-
-    // If provided meta with field type, prioritize that over guessing
-    if (meta?.fields?.[column.key]) {
-      column.type = meta.fields[column.key];
-    }
-
-    column.column = col;
-
-    return column;
-  });
 }
 
 export function generateTitle({

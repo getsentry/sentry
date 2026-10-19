@@ -56,6 +56,8 @@ const CONVERSATION_BODY = [
 ];
 
 const DEFAULT_STATS: ConversationStats = {
+  cacheReadTokens: 0,
+  cacheWriteTokens: 0,
   endTimestamp: 2_000_000,
   errors: 0,
   errorToolNames: [],
@@ -64,6 +66,7 @@ const DEFAULT_STATS: ConversationStats = {
   llmCalls: 2,
   usageByModel: [],
   outputTokens: 0,
+  reasoningTokens: 0,
   startTimestamp: 1_000_000,
   toolCalls: 0,
   toolErrors: 0,
@@ -145,20 +148,62 @@ describe('ConversationDetailPage span default selection', () => {
     await waitFor(() => expect(detailPane()).toBeInTheDocument());
   });
 
-  it('shows the copy transcript button only on the transcript tab', async () => {
+  it('shows the export transcript button only on the transcript tab', async () => {
     renderPage();
 
-    // The transcript tab exposes the copy control once messages have loaded.
+    // The transcript tab exposes the export control once messages have loaded.
     expect(
-      await screen.findByRole('button', {name: 'Copy Transcript'})
+      await screen.findByRole('button', {name: 'Export transcript'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
 
-    // The timeline tab has no transcript to copy.
+    // The timeline tab has no transcript to export.
     expect(
-      screen.queryByRole('button', {name: 'Copy Transcript'})
+      screen.queryByRole('button', {name: 'Export transcript'})
     ).not.toBeInTheDocument();
+  });
+
+  it('downloads the full conversation transcript as a markdown file', async () => {
+    const blobs: Blob[] = [];
+    const createObjectURL = jest.fn((blob: Blob) => {
+      blobs.push(blob);
+      return 'blob:conversation';
+    });
+    window.URL.createObjectURL = createObjectURL;
+    window.URL.revokeObjectURL = jest.fn();
+    const clickSpy = jest
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Export transcript'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Download .md'}));
+
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+    expect(clickSpy).toHaveBeenCalled();
+
+    const markdown = await blobs[0]!.text();
+    expect(markdown).toContain('First answer');
+    expect(markdown).toContain('Second answer');
+
+    clickSpy.mockRestore();
+  });
+
+  it('copies the full conversation transcript to the clipboard', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {clipboard: {writeText}});
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Export transcript'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy to clipboard'}));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalled());
+    const copied = writeText.mock.calls[0]![0] as string;
+    expect(copied).toContain('First answer');
+    expect(copied).toContain('Second answer');
   });
 });
 
@@ -237,31 +282,31 @@ describe('ConversationDetailPage summary stats', () => {
     });
   });
 
-  it('shows available token counts from the API', async () => {
+  it('uses token counters from the API without reconciling them', async () => {
     mockApis(null, CONVERSATION_BODY, {
       usageByModel: [
         {
-          cacheReadTokens: 0,
+          cacheReadTokens: 80,
           cacheWriteTokens: 0,
           inputCost: 0,
           inputTokens: 100,
           llmCalls: 1,
           model: null,
           outputCost: 0,
-          outputTokens: 0,
+          outputTokens: 20,
           reasoningTokens: 0,
           totalCost: 0,
-          totalTokens: 150,
+          totalTokens: 200,
         },
       ],
-      totalTokens: 150,
+      totalTokens: 200,
     });
     renderPage();
 
-    const tokenCount = await screen.findByText('150');
+    const tokenCount = await screen.findByText('200');
     await userEvent.hover(tokenCount.parentElement!);
 
-    expect(await screen.findAllByText('150')).toHaveLength(2);
+    expect(await screen.findAllByText('200')).toHaveLength(2);
     expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('Unknown model')).toBeInTheDocument();
     expect(screen.queryByText('Input cost')).not.toBeInTheDocument();

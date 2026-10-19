@@ -20,12 +20,17 @@ import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {IconCopy, IconDelete, IconDownload, IconEdit} from 'sentry/icons';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEdit} from '@sentry/icons/edit';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/dropdownMenu');
 
 Use `DropdownMenu` for an action menu or a short list of links. It renders an accessible trigger and menu together.
+
+Provide either `triggerLabel` for the default button or `trigger` for a custom trigger. One is required, and they cannot be used together.
 
 Use `CompactSelect` when the user chooses a value that stays selected. Use `DropdownMenu` when the items perform actions or navigate somewhere.
 

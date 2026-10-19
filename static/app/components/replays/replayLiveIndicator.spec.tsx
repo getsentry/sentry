@@ -95,6 +95,24 @@ describe('useLiveBadge', () => {
     expect(result.current.isLive).toBe(false);
   });
 
+  it('should go live when the replay record arrives after mount', () => {
+    const now = Date.now();
+
+    const initialProps: {
+      finishedAt: ReplayRecord['finished_at'];
+      startedAt: ReplayRecord['started_at'];
+    } = {startedAt: null, finishedAt: null};
+
+    const {result, rerender} = renderHook(props => useLiveBadge(props), {initialProps});
+
+    // A caller that renders before its record has loaded passes empty times.
+    expect(result.current.isLive).toBe(false);
+
+    rerender({startedAt: new Date(now - 60_000), finishedAt: new Date(now)});
+
+    expect(result.current.isLive).toBe(true);
+  });
+
   it('should return isLive=false when finishedAt is null', () => {
     const now = Date.now();
     const startedAt = new Date(now - 60_000);

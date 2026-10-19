@@ -1,12 +1,16 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconPause} from '@sentry/icons/pause';
+import {IconPlay} from '@sentry/icons/play';
+import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
-import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -202,7 +206,7 @@ function IssueViewEditMenu() {
         },
       ]}
       trigger={props => (
-        <Button
+        <OverlayTrigger.IconButton
           size="sm"
           {...props}
           tooltipProps={{title: moreOptionsLabel}}

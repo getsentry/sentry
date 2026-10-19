@@ -36,9 +36,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
-  LOGS_CURSOR_KEY,
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';

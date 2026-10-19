@@ -5,9 +5,6 @@ import logging
 import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from queue import Queue
-from random import random
-from threading import Thread
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import sentry_sdk
@@ -19,9 +16,6 @@ from sentry.metrics.middleware import MiddlewareWrapper, add_global_tags, global
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-
-metrics_skip_all_internal = settings.SENTRY_METRICS_SKIP_ALL_INTERNAL
-metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
 __all__ = [
     "add_global_tags",
@@ -53,88 +47,18 @@ def get_default_backend() -> MetricsBackend:
 backend = get_default_backend()
 
 
-def _should_sample(sample_rate: float) -> bool:
-    return sample_rate >= 1 or random() >= 1 - sample_rate
-
-
-def _sampled_value(value: int, sample_rate: float) -> int:
-    if sample_rate < 1:
-        value = int(value * (1.0 / sample_rate))
-    return value
-
-
-class InternalMetrics:
-    def __init__(self) -> None:
-        self._started = False
-
-    def _start(self) -> None:
-        q: Queue[tuple[str, str | None, Tags | None, int, float]]
-        self.q = q = Queue()
-
-        def worker() -> None:
-            from sentry import tsdb
-            from sentry.tsdb.base import TSDBModel
-
-            while True:
-                key, instance, tags, amount, sample_rate = q.get()
-                amount = _sampled_value(amount, sample_rate)
-                if instance:
-                    full_key = f"{key}.{instance}"
-                else:
-                    full_key = key
-                try:
-                    tsdb.backend.incr(TSDBModel.internal, full_key, count=amount)
-                except Exception:
-                    logger = logging.getLogger("sentry.errors")
-                    logger.exception("Unable to incr internal metric")
-                finally:
-                    q.task_done()
-
-        t = Thread(target=worker, daemon=True)
-        t.start()
-
-        self._started = True
-
-    def incr(
-        self,
-        key: str,
-        instance: str | None = None,
-        tags: Tags | None = None,
-        amount: int = 1,
-        sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
-    ) -> None:
-        if not self._started:
-            self._start()
-        self.q.put((key, instance, tags, amount, sample_rate))
-
-
-internal = InternalMetrics()
-
-
 def incr(
     key: str,
     amount: int = 1,
     instance: str | None = None,
     tags: Tags | None = None,
-    skip_internal: bool = True,
+    skip_internal: bool = True,  # Ignored; kept for existing callers in sentry and getsentry.
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     unit: str | None = None,
     stacklevel: int = 0,
 ) -> None:
-    should_send_internal = (
-        not metrics_skip_all_internal
-        and not skip_internal
-        and _should_sample(sample_rate)
-        and not key.startswith(metrics_skip_internal_prefixes)
-    )
-
-    if should_send_internal:
-        internal.incr(key, instance, tags, amount, sample_rate)
-
     try:
         backend.incr(key, instance, tags, amount, sample_rate, unit, stacklevel + 1)
-        if should_send_internal:
-            backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")

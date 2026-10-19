@@ -25,6 +25,10 @@ export const getToolSpansFilter = () => {
   return 'gen_ai.operation.type:tool';
 };
 
+export const getAiClientSpansFilter = () => {
+  return 'gen_ai.operation.type:ai_client';
+};
+
 /**
  * Agent name fallback filters.
  *

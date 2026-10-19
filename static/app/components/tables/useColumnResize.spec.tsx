@@ -45,6 +45,7 @@ interface TestTableProps {
 }
 
 function TestTable({
+  // oxlint-disable-next-line react/todo
   getResizeTemplate = (_index, newWidth) => `${Math.round(newWidth)}px`,
   onColumnResizeEnd,
 }: TestTableProps) {

@@ -117,6 +117,48 @@ describe('CreateIssueViewModal', () => {
     );
   }, 10_000);
 
+  it('can create a view with an absolute date range', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issue-view-title/generate/',
+      method: 'POST',
+      body: {},
+    });
+    const mockCreateViewEndpoint = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      method: 'POST',
+      body: GroupSearchViewFixture({id: '4', name: 'absolute'}),
+    });
+
+    // Page filters store absolute ranges as Date objects
+    const start = new Date('2026-09-16T05:00:00Z');
+    const end = new Date('2026-10-01T04:59:59Z');
+
+    render(
+      <CreateIssueViewModal
+        {...defaultProps}
+        timeFilters={{period: null, start, end, utc: null}}
+      />
+    );
+
+    const nameInput = await screen.findByRole('textbox', {name: 'Name'});
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'absolute');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create View'}));
+
+    await waitFor(() => {
+      expect(mockCreateViewEndpoint).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'absolute',
+            timeFilters: {period: null, start, end, utc: null},
+          }),
+        })
+      );
+    });
+  }, 10_000);
+
   describe('AI name streaming animation', () => {
     beforeEach(() => {
       jest.useFakeTimers();

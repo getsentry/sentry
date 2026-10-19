@@ -30,7 +30,10 @@ from sentry.seer.autofix.pr_iteration.completion import (
     iteration_log_context,
     pr_iteration_push_outcome,
 )
-from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
+from sentry.seer.autofix.pr_iteration.completion_reactions import (
+    PrCommentSource,
+    react_to_completed_iteration,
+)
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
@@ -43,6 +46,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTrigge
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
@@ -1829,9 +1833,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
             name="owner/repo",
         )
 
-    def _feedback_metadata(
-        self, sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource]
-    ) -> dict[str, str]:
+    def _feedback_metadata(self, sources: list[PrCommentSource]) -> dict[str, str]:
         return {
             "step": AutofixStep.PR_ITERATION.value,
             "iteration_index": "0",
@@ -1840,7 +1842,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
     def _synced_pr_iteration_block(
         self,
-        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource],
+        sources: list[PrCommentSource],
         repo_name: str = "owner/repo",
         commit_sha: str = "synced-sha",
     ) -> MemoryBlock:
@@ -1877,9 +1879,12 @@ class TestMaybeReactToCompletedIteration(TestCase):
             ),
         )
 
+    def _review_body_source(self) -> GithubPrReviewBodyFeedbackSource:
+        return GithubPrReviewBodyFeedbackSource(review_id=333, body="please rename this")
+
     def _state_with(
         self,
-        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource],
+        sources: list[PrCommentSource],
         *,
         status: str = "completed",
         commit_sha: str = "synced-sha",
@@ -2087,6 +2092,70 @@ class TestMaybeReactToCompletedIteration(TestCase):
         assert mock_react.call_count == 2
         assert all(call.kwargs["reaction"] == "hooray" for call in mock_react.call_args_list)
         mock_delete_eyes.assert_not_called()
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_reacts_hooray_on_review_body(
+        self, mock_react, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._review_body_source()])
+
+        self._run(state)
+
+        mock_review_react.assert_called_once_with(
+            scm, pr_number=7, review_id=333, reaction="hooray"
+        )
+        mock_delete_eyes.assert_called_once_with(scm, pr_number=7, review_id=333)
+        mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=True)
+    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    def test_skips_review_body_eyes_delete_for_rate_limit_sensitive_org(
+        self, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive
+    ):
+        mock_make_scm.return_value = MagicMock()
+        state = self._state_with([self._review_body_source()])
+
+        self._run(state)
+
+        assert mock_review_react.call_args.kwargs["reaction"] == "hooray"
+        mock_delete_eyes.assert_not_called()
+
+    @patch(f"{REACT_PATH}.metrics.incr")
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    def test_skips_review_body_reaction_when_iteration_made_no_changes(
+        self, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive, mock_incr
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._review_body_source()])
+        state.blocks[0].merged_file_patches = []
+
+        self._run(state)
+
+        mock_review_react.assert_not_called()
+        assert self._reaction_outcomes(mock_incr) == ["react_skipped_no_changes"]
+        # :eyes: is still removed from the review body.
+        mock_delete_eyes.assert_called_once_with(scm, pr_number=7, review_id=333)
+
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    def test_skips_review_body_without_review_id(self, mock_make_scm, mock_review_react):
+        state = self._state_with([GithubPrReviewBodyFeedbackSource(body="no id")])
+
+        self._run(state)
+
+        mock_review_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.metrics.incr")
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)

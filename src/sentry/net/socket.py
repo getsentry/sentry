@@ -8,12 +8,12 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.utils.encoding import force_str
+from sentry_sdk import traces
 from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
 from urllib3.util.timeout import _DEFAULT_TIMEOUT, _TYPE_DEFAULT
 
 from sentry.exceptions import RestrictedIPAddress
-from sentry.utils.tracing import set_span_data, start_span, trace
 
 if TYPE_CHECKING:
     from sentry.net.http import IsIpAddressPermitted
@@ -113,7 +113,7 @@ def is_safe_hostname(hostname: str | None) -> bool:
 
 
 # Modifed version of urllib3.util.connection.create_connection.
-@trace
+@traces.trace
 def safe_create_connection(
     address: tuple[str, int],
     timeout: _TYPE_DEFAULT | float | None = _DEFAULT_TIMEOUT,
@@ -143,13 +143,17 @@ def safe_create_connection(
     except UnicodeError:
         raise LocationParseError("'{host}', label empty or too long") from None
 
-    with start_span(op="socket.getaddrinfo", name=f"DNS resolve: {host}") as gai_span:
+    with traces.start_span(
+        name=f"DNS resolve: {host}", attributes={"sentry.op": "socket.getaddrinfo"}
+    ) as gai_span:
         addresses = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
-        set_span_data(gai_span, "address_count", len(addresses))
-        set_span_data(gai_span, "addresses", addresses)
+        gai_span.set_attribute("address_count", len(addresses))
+        gai_span.set_attribute("addresses", repr(addresses))
 
     for res in addresses:
-        with start_span(op="socket.getaddrinfo.loop", name="socket.getaddrinfo.loop"):
+        with traces.start_span(
+            name="socket.getaddrinfo.loop", attributes={"sentry.op": "socket.getaddrinfo.loop"}
+        ):
             af, socktype, proto, canonname, sa = res
 
             # Begin custom code.
@@ -177,7 +181,9 @@ def safe_create_connection(
                     sock.settimeout(timeout)
                 if source_address:
                     sock.bind(source_address)
-                with start_span(op="socket.connect", name=f"sock.connect.{sa}"):
+                with traces.start_span(
+                    name=f"sock.connect.{sa}", attributes={"sentry.op": "socket.connect"}
+                ):
                     sock.connect(sa)
                 return sock
 

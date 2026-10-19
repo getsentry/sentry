@@ -485,15 +485,15 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    if (owner_id := get_owner_id(project)) is None:
-        logger.warning(
-            "Cannot record sourcemaps received for organization (%s) due to missing owners",
-            project.organization_id,
-        )
-        return
-
     # First, only enter this logic if we've never seen a minified stack trace before
     if not project.flags.has_sourcemaps:
+        if (owner_id := get_owner_id(project)) is None:
+            logger.warning(
+                "Cannot record sourcemaps received for organization (%s) due to missing owners",
+                project.organization_id,
+            )
+            return
+
         # Next, attempt to update the flag, but ONLY if the flag is currently not set.
         # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
         # This guarantees us that this analytics event will only be ever sent once.

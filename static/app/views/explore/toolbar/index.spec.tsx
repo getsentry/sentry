@@ -107,6 +107,17 @@ describe('ExploreToolbar', () => {
         valid: true,
       },
     });
+    // Series filter bars always mount and fetch recent searches.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
   });
 
   it('disables changing visualize fields for count', async () => {
@@ -381,6 +392,107 @@ describe('ExploreToolbar', () => {
 
     // last one so remove column button is hidden
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
+  });
+
+  it('only offers group bys present on spans matching the search query', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'http.method',
+          name: 'http.method',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+      body: [
+        {
+          attributeType: 'string',
+          key: 'db.system',
+          name: 'db.system',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {query: 'span.op:db'},
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+
+    expect(
+      await within(section).findByRole('option', {name: 'db.system'})
+    ).toBeInTheDocument();
+    expect(
+      within(section).queryByRole('option', {name: 'http.method'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers all group bys when the search query is invalid', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'http.method',
+          name: 'http.method',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      match: [MockApiClient.matchQuery({query: 'span.op:'})],
+      statusCode: 400,
+      body: {detail: 'Invalid query'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: 'Invalid query', fields: [], valid: false},
+        valid: false,
+      },
+    });
+
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {query: 'span.op:'},
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+
+    expect(
+      await within(section).findByRole('option', {name: 'http.method'})
+    ).toBeInTheDocument();
   });
 
   it('uses validated field type for the selected group by', async () => {
@@ -894,6 +1006,8 @@ describe('ExploreToolbar', () => {
     expect(samplesSortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
 
     act(() => setMode(Mode.AGGREGATE));
+    // Switching to aggregates mounts series filter bars; wait for them to settle.
+    await screen.findByPlaceholderText('Filter spans for this series');
 
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'desc'}]);
 
@@ -906,12 +1020,13 @@ describe('ExploreToolbar', () => {
     expect(samplesSortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
 
     act(() => setMode(Mode.AGGREGATE));
+    await screen.findByPlaceholderText('Filter spans for this series');
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
   });
 
   describe('conditional aggregates', () => {
-    const organizationWithConditionalAggregates = OrganizationFixture({
-      features: ['dashboards-edit', 'incidents', 'explore-conditional-aggregates'],
+    const organizationWithDashboardFeatures = OrganizationFixture({
+      features: ['dashboards-edit', 'incidents'],
     });
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
@@ -931,32 +1046,6 @@ describe('ExploreToolbar', () => {
       });
     }
 
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/recent-searches/`,
-        method: 'GET',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/recent-searches/`,
-        method: 'POST',
-        body: [],
-      });
-    });
-
-    it('hides the series filter without the feature', async () => {
-      render(<ExploreToolbar />, {additionalWrapper: Wrapper, organization});
-
-      const section = screen.getByTestId('section-visualizes');
-
-      expect(
-        await within(section).findByRole('button', {name: 'count'})
-      ).toBeInTheDocument();
-      expect(
-        within(section).queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
-      ).not.toBeInTheDocument();
-    });
-
     it('expands the series filter to match the autocomplete menu width', async () => {
       const viewportWidth = jest
         .spyOn(document.documentElement, 'clientWidth', 'get')
@@ -965,7 +1054,7 @@ describe('ExploreToolbar', () => {
       try {
         render(<ExploreToolbar />, {
           additionalWrapper: Wrapper,
-          organization: organizationWithConditionalAggregates,
+          organization: organizationWithDashboardFeatures,
         });
 
         const input = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
@@ -987,7 +1076,7 @@ describe('ExploreToolbar', () => {
     it('turns a series filter into an _if aggregate', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       const section = screen.getByTestId('section-visualizes');
@@ -1009,7 +1098,7 @@ describe('ExploreToolbar', () => {
     it('keeps a series filter that has errors', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       const section = screen.getByTestId('section-visualizes');
@@ -1037,7 +1126,7 @@ describe('ExploreToolbar', () => {
     it('drops the combinator when the series filter is cleared', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
@@ -1067,7 +1156,7 @@ describe('ExploreToolbar', () => {
     it('hides the series filter for aggregates that cannot be filtered', async () => {
       render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       const section = screen.getByTestId('section-visualizes');
@@ -1086,7 +1175,7 @@ describe('ExploreToolbar', () => {
     it('drops an existing filter when switching to an aggregate that cannot be filtered', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
@@ -1113,7 +1202,7 @@ describe('ExploreToolbar', () => {
     it('keeps an existing filter when switching between filterable aggregates', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
@@ -1142,7 +1231,7 @@ describe('ExploreToolbar', () => {
     it('opens compare queries with series filters moved into the query filter', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
@@ -1190,37 +1279,10 @@ describe('ExploreToolbar', () => {
       ]);
     });
 
-    it('drops the filter when the feature is off', async () => {
-      const {router} = render(<ExploreToolbar />, {
-        additionalWrapper: Wrapper,
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              aggregateField: [
-                JSON.stringify({groupBy: ''}),
-                JSON.stringify({yAxes: ['count_if(`span.op:db`,span.duration)']}),
-              ],
-            },
-          },
-        },
-      });
-
-      const section = screen.getByTestId('section-visualizes');
-
-      await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
-      await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-
-      await waitFor(() => {
-        expect(visualizeYAxesFromRouter(router)).toEqual(['avg(span.duration)']);
-      });
-    });
-
     it('expands the equation editor on click', async () => {
       render(<ExploreToolbar extras={['equations']} />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
@@ -1234,7 +1296,7 @@ describe('ExploreToolbar', () => {
     it('keeps equation suggestions in the same panel as the input', async () => {
       render(<ExploreToolbar extras={['equations']} />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
@@ -1246,20 +1308,6 @@ describe('ExploreToolbar', () => {
       const listbox = await screen.findByRole('listbox');
       expect(panel).toContainElement(listbox);
       expect(panel).toContainElement(input);
-    });
-
-    it('does not expand the equation editor without the feature', async () => {
-      render(<ExploreToolbar extras={['equations']} />, {
-        additionalWrapper: Wrapper,
-        organization,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
-
-      const input = await screen.findByTestId('arithmetic-builder-input');
-      await userEvent.click(input);
-
-      expect(input.closest('[data-expanded="true"]')).toBeNull();
     });
   });
 

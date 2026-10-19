@@ -25,7 +25,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.cell import get_test_env_directory
+from sentry.testutils.cell import get_test_env_directory, override_cells
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -214,6 +214,32 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         response = self.get_success_response(sortBy="members")
 
         assert [item["id"] for item in response.data] == [str(larger_org.id), str(smaller_org.id)]
+
+    def test_excludes_organizations_in_undefined_cell(self) -> None:
+        us_org = self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
+        us_cell = get_test_env_directory().get_cell_by_name("us")
+        assert us_cell is not None
+
+        # Drop "de" from the configured cells, as if it were absent from SENTRY_CELLS
+        with override_cells([us_cell]):
+            response = self.get_success_response()
+
+        assert None not in response.data
+        assert [item["id"] for item in response.data] == [str(us_org.id)]
+
+    def test_ownership_excludes_organizations_in_undefined_cell(self) -> None:
+        us_org = self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
+        us_cell = get_test_env_directory().get_cell_by_name("us")
+        assert us_cell is not None
+
+        # Drop "de" from the configured cells, as if it were absent from SENTRY_CELLS
+        with override_cells([us_cell]):
+            response = self.get_success_response(qs_params={"owner": 1})
+
+        assert all(item["organization"] is not None for item in response.data)
+        assert [item["organization"]["id"] for item in response.data] == [str(us_org.id)]
 
     def test_response_compatible_with_cell(self) -> None:
         # The control listing is being built out to replace the cell listing.

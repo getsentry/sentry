@@ -23,7 +23,7 @@ export interface SnapshotDiffPair {
   head_image: SnapshotImage;
 }
 
-interface SnapshotApprover {
+export interface SnapshotApprover {
   source: 'sentry' | 'github';
   approved_at?: string | null;
   avatar_url?: string | null;

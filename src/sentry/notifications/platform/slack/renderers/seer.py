@@ -9,6 +9,7 @@ from slack_sdk.models.blocks import (
     Block,
     ButtonElement,
     ContextBlock,
+    DividerBlock,
     InteractiveElement,
     LinkButtonElement,
     MarkdownBlock,
@@ -17,6 +18,7 @@ from slack_sdk.models.blocks import (
     RichTextBlock,
     RichTextElementParts,
     RichTextListElement,
+    RichTextQuoteElement,
     RichTextSectionElement,
     SectionBlock,
 )
@@ -30,7 +32,11 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationError,
+    SeerInvestigationStarted,
+    SeerInvestigationStatus,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -97,12 +103,19 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         NotificationSource.SEER_AUTOFIX_UPDATE,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STARTED,
+        NotificationSource.SEER_INVESTIGATION_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STATUS,
     ],
 )
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         if isinstance(data, SeerAutofixTrigger):
             autofix_button = cls._render_autofix_button(data)
@@ -113,11 +126,17 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         elif isinstance(data, SeerAutofixError):
             return cls._render_autofix_error(data)
         elif isinstance(data, SeerAutofixUpdate):
-            return cls._render_autofix_update(data)
+            return cls._render_autofix_update(data, link_decorator)
         elif isinstance(data, SeerAgentError):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
-            return cls._render_agent_response(data)
+            return cls._render_agent_response(data, link_decorator)
+        elif isinstance(data, SeerInvestigationStarted):
+            return cls._render_investigation_started(data)
+        elif isinstance(data, SeerInvestigationError):
+            return cls._render_investigation_error(data)
+        elif isinstance(data, SeerInvestigationStatus):
+            return cls._render_investigation_status(data, link_decorator)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -175,7 +194,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
-    def _render_autofix_update(cls, data: SeerAutofixUpdate) -> SlackRenderable:
+    def _render_autofix_update(
+        cls, data: SeerAutofixUpdate, link_decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
@@ -183,7 +204,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         link_button = cls._render_link_button(
             organization_id=data.organization_id,
             project_id=data.project_id,
-            group_link=data.group_link,
+            group_link=link_decorator.decorate_url(data.group_link),
         )
         action_elements: list[InteractiveElement] = [link_button]
         if data.handoff_target and data.current_point == AutofixStoppingPoint.ROOT_CAUSE:
@@ -244,7 +265,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                     LinkButtonElement(
                         text=f"View PR (#{pr['pr_number']})",
                         style="primary",
-                        url=pr["pr_url"],
+                        url=link_decorator.decorate_url(pr["pr_url"]),
                         action_id=f"{action_id}::{pr['pr_number']}",
                     )
                 )
@@ -265,7 +286,67 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
-    def _render_agent_response(cls, data: SeerAgentResponse) -> SlackRenderable:
+    def _render_investigation_started(cls, data: SeerInvestigationStarted) -> SlackRenderable:
+        text = f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+        return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
+
+    @classmethod
+    def render_investigation_link_button(
+        cls, data: SeerInvestigationStarted, link_decorator: NotificationLinkDecorator
+    ) -> ButtonElement:
+        return ButtonElement(
+            text="Open investigation",
+            url=link_decorator.decorate_url(data.investigation_url),
+            value="link_clicked",
+        )
+
+    @classmethod
+    def _render_investigation_error(cls, data: SeerInvestigationError) -> SlackRenderable:
+        text = f"Seer couldn't start an investigation: {data.error_message}"
+        return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
+
+    @classmethod
+    def _render_investigation_status(
+        cls, data: SeerInvestigationStatus, link_decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
+        from sentry.integrations.slack.utils.escape import escape_slack_text
+
+        text = f"Investigating {data.title}"
+        header = f"*{escape_slack_text(text)}*"
+        if data.subtitle:
+            header += f"\n{escape_slack_text(data.subtitle)}"
+        bold = RichTextElementParts.TextStyle(bold=True)
+        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=header))]
+        for index, hypothesis in enumerate(data.hypotheses, start=1):
+            quote = RichTextQuoteElement(
+                elements=[
+                    RichTextElementParts.Text(
+                        text=f"{index}. {hypothesis['statement']}", style=bold
+                    ),
+                    RichTextElementParts.Text(text=f"\n{hypothesis['label']}", style=bold),
+                    RichTextElementParts.Text(text=f"\n{hypothesis['detail']}"),
+                ]
+            )
+            blocks.append(RichTextBlock(elements=[quote]))
+        blocks.append(DividerBlock())
+        blocks.append(
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text="View full investigation",
+                        style="primary",
+                        url=link_decorator.decorate_url(data.investigation_url),
+                        value="link_clicked",
+                    )
+                ]
+            )
+        )
+        return SlackRenderable(blocks=blocks, text=escape_slack_text(text))
+
+    @classmethod
+    def _render_agent_response(
+        cls, data: SeerAgentResponse, link_decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
         from sentry import features
         from sentry.models.organization import Organization
         from sentry.seer.endpoints.utils import get_seer_run
@@ -284,6 +365,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 run_url = organization.absolute_url(
                     f"/organizations/{organization.slug}/explore/agents/conversations/{conversation_id}/"
                 )
+                run_url = link_decorator.decorate_url(run_url)
                 blocks.append(
                     ContextBlock(
                         elements=[
@@ -293,7 +375,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 )
 
         if data.missing_scope_settings_url:
-            blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
+            blocks.extend(
+                cls.render_missing_scope_footer(
+                    link_decorator.decorate_url(data.missing_scope_settings_url)
+                )
+            )
 
         return SlackRenderable(blocks=blocks, text="Seer Agent has finished")
 
@@ -323,6 +409,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def render_footer_blocks(
         cls,
         data: SeerAutofixUpdate,
+        link_decorator: NotificationLinkDecorator,
         extra_text: str | None = None,
         has_complete_stage: bool = True,
     ) -> list[Block]:
@@ -343,7 +430,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 accessory=cls._render_link_button(
                     organization_id=data.organization_id,
                     project_id=data.project_id,
-                    group_link=data.group_link,
+                    group_link=link_decorator.decorate_url(data.group_link),
                 ),
             ),
         ]

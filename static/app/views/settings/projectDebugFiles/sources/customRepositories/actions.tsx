@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -22,7 +22,7 @@ export function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
     <DropdownMenu
       isDisabled={actionsDisabled}
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           size="xs"
           aria-label={t('Actions')}
           disabled={actionsDisabled}

@@ -2,13 +2,16 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -458,6 +461,37 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             f"answer to: {q.question}" for q in QUESTIONS
         ]
         assert mock_run.call_count == len(QUESTIONS)
+
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @with_feature("organizations:seer-run-questions")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_user_question_propagates_request_context_to_seer(self, mock_urlopen) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            seer_run_state_id=12345,
+            type=SeerRunType.EXPLORER,
+        )
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps({"result": {"answer": "The database is slow."}}), status=200
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"question": ["Why is this slow?"]},
+        )
+
+        row = next(item for item in response.data if item["id"] == str(run.uuid))
+        assert row["outputs"][0]["answer"] == "The database is slow."
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
 
     @with_feature("organizations:seer-run-questions")
     def test_builtin_and_user_questions_are_additive(self) -> None:
