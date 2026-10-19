@@ -16,6 +16,7 @@ interface Props {
   organization: Organization;
   team: Team;
   disabled?: boolean;
+  keepMenuInViewport?: boolean;
   menuPortalTarget?: ControlProps['menuPortalTarget'];
   size?: ControlProps['size'];
 }
@@ -26,6 +27,7 @@ export function TeamRoleSelect({
   member,
   onChangeTeamRole,
   disabled,
+  keepMenuInViewport,
   menuPortalTarget,
   size,
 }: Props) {
@@ -68,6 +70,7 @@ export function TeamRoleSelect({
       roles={teamRoleList}
       value={teamRole.id}
       onChange={option => onChangeTeamRole(option.value)}
+      keepMenuInViewport={keepMenuInViewport}
       menuPortalTarget={menuPortalTarget}
       size={size}
     />

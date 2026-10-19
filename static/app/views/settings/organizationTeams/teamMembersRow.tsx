@@ -36,7 +36,9 @@ export function TeamMembersRow({
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell gap="md">
-        <IdBadge avatarSize={36} member={member} />
+        <Container minWidth={0}>
+          <IdBadge avatarSize={36} member={member} />
+        </Container>
         {member.pending ? <Tag variant="muted">{t('Pending')}</Tag> : null}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
@@ -47,6 +49,7 @@ export function TeamMembersRow({
             team={team}
             member={member}
             onChangeTeamRole={newRole => updateMemberRole({memberId: member.id, newRole})}
+            keepMenuInViewport
             menuPortalTarget={document.body}
           />
         </Container>

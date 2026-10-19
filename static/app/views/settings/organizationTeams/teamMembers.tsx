@@ -47,7 +47,7 @@ import {getButtonHelpText} from './utils';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'member', width: 'minmax(150px, 1fr)'},
-  {key: 'teamRole', width: 200},
+  {key: 'teamRole', width: {zero: 160, md: 200}},
   {key: 'actions', width: 'max-content'},
 ];
 
