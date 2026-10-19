@@ -4,7 +4,7 @@ from collections.abc import Collection, Mapping
 from copy import copy
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
-from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
+from typing import NotRequired, TypedDict, cast
 from urllib.parse import SplitResult, parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.conf import settings
@@ -14,6 +14,7 @@ from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
     NotificationTrackingSentEvent,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.notifications.platform.types import (
     NOTIFICATION_SOURCE_MAP,
     LinkTextBlock,
@@ -26,9 +27,6 @@ from sentry.notifications.platform.types import (
     NotificationTextBlock,
 )
 from sentry.utils import metrics
-
-if TYPE_CHECKING:
-    from sentry.integrations.types import ExternalProviderEnum
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +85,7 @@ class NotificationReferrer:
 
     source: NotificationSource
     category: NotificationCategory
-    provider: "ExternalProviderEnum"
+    provider: ExternalProviderEnum
 
 
 _SOURCE_CATEGORIES: dict[str, NotificationCategory] = {
@@ -136,8 +134,6 @@ def parse_referrer(referrer: str) -> NotificationReferrer | None:
     platform, or one of the legacy referrers above. Referrers naming an unknown provider aren't
     recognized.
     """
-    from sentry.integrations.types import ExternalProviderEnum
-
     prefix, _, provider = referrer.removesuffix("-user").removesuffix("-team").rpartition("-")
     if prefix in _SOURCE_CATEGORIES:
         source = NotificationSource(prefix)
@@ -161,8 +157,6 @@ def is_tracking_enabled(
     before they become metric tags: the source against the rollout option, and the provider
     against the known providers.
     """
-    from sentry.integrations.types import ExternalProviderEnum
-
     return (
         source in options.get("notifications.tracking.sources") and provider in ExternalProviderEnum
     )
