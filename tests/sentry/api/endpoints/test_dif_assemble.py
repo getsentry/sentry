@@ -293,6 +293,7 @@ class DifAssembleEndpoint(APITestCase):
             debug_id="00000000-0000-0000-0000-000000000000",
         )
 
+        file_count = File.objects.filter(type="project.dif", checksum=checksum).count()
         response = self.client.post(
             self.url,
             data={
@@ -314,7 +315,8 @@ class DifAssembleEndpoint(APITestCase):
         )
 
         assert first_dif.file_id == second_dif.file_id
-        assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
+        assert File.objects.filter(type="project.dif", checksum=checksum).count() == file_count
+        assert second_dif.get_file().read() == file_contents
 
     def test_reupload_proguard_with_same_debug_id_is_idempotent(self) -> None:
         file_contents = b"proguard mapping"
@@ -426,7 +428,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
         chunks = [blob.checksum]
 
-        with self.feature({"organizations:objectstore-debugfiles-write": False}):
+        with self.feature({"organizations:objectstore-debugfiles-exclusive-write": False}):
             self._assemble_source(checksum, chunks)
 
         first_dif = ProjectDebugFile.objects.get(
@@ -436,7 +438,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         assert first_dif.file_id is not None
         assert first_dif.storage_path is None
 
-        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+        with self.feature({"organizations:objectstore-debugfiles-exclusive-write": True}):
             response = self._clone_request(checksum, chunks)
 
         assert response.status_code == 200, response.content
@@ -451,25 +453,25 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         assert second_dif.storage_path is None
         assert second_dif.get_file().read() == file_contents
 
-    def test_clone_dual_written_source_remains_dual_written(self) -> None:
-        """A dual-written source produces a clone with its own Objectstore object."""
+    def test_clone_objectstore_source_remains_objectstore_backed(self) -> None:
+        """An Objectstore-only source stays Objectstore-backed when exclusive writes are disabled."""
 
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
         blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
         chunks = [blob.checksum]
 
-        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+        with self.feature({"organizations:objectstore-debugfiles-exclusive-write": True}):
             self._assemble_source(checksum, chunks)
 
         first_dif = ProjectDebugFile.objects.get(
             project_id=self.project.id,
             debug_id="00000000-0000-0000-0000-000000000000",
         )
-        assert first_dif.file_id is not None
+        assert first_dif.file_id is None
         assert first_dif.storage_path is not None
 
-        with self.feature({"organizations:objectstore-debugfiles-write": False}):
+        with self.feature({"organizations:objectstore-debugfiles-exclusive-write": False}):
             response = self._clone_request(checksum, chunks)
 
         assert response.status_code == 200, response.content
@@ -490,7 +492,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         checksum = sha1(file_contents).hexdigest()
         blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
 
-        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+        with self.feature({"organizations:objectstore-debugfiles-exclusive-write": True}):
             self._assemble_source(checksum, [blob.checksum])
 
         source_dif = ProjectDebugFile.objects.get(
