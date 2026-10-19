@@ -13,7 +13,10 @@ from sentry import analytics, audit_log, roles
 from sentry.analytics.events.org_auth_token_created import OrgAuthTokenCreated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import SessionNoAuthTokenAuthentication
+from sentry.api.authentication import (
+    SessionNoAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
@@ -43,7 +46,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.FOUNDATIONS
-    authentication_classes = (SessionNoAuthTokenAuthentication,)
+    authentication_classes = (SessionNoAuthTokenAuthentication, UserAuthTokenAuthentication)
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
     @method_decorator(never_cache)

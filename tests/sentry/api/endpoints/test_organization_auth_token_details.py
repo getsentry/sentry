@@ -495,3 +495,66 @@ class OrganizationAuthTokenDetailsImpersonationTest(APITestCase):
         with simulate_impersonation(self.impersonator):
             response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
+
+
+@control_silo_test
+class OrganizationAuthTokenDetailsOAuthTest(APITestCase):
+    endpoint = "sentry-api-0-org-auth-token-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = self.create_api_application(owner=self.user)
+        self.org_token = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+        )
+
+    def oauth_headers(self, scope_list: list[str]) -> dict[str, str]:
+        token = ApiToken.objects.create(
+            user=self.user, application=self.application, scope_list=scope_list
+        )
+        return {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
+
+    def test_get(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.org_token.id,
+            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+        )
+        assert response.data["id"] == str(self.org_token.id)
+
+    def test_delete(self) -> None:
+        self.get_success_response(
+            self.organization.slug,
+            self.org_token.id,
+            method="DELETE",
+            status_code=status.HTTP_204_NO_CONTENT,
+            extra_headers=self.oauth_headers(["org:write", "org:ci"]),
+        )
+        self.org_token.refresh_from_db()
+        assert self.org_token.date_deactivated is not None
+
+    def test_delete_requires_org_write_scope(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.org_token.id,
+            method="DELETE",
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+        )
+        self.org_token.refresh_from_db()
+        assert self.org_token.date_deactivated is None
+
+    def test_delete_requires_org_ci_scope(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.org_token.id,
+            method="DELETE",
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers=self.oauth_headers(["org:write"]),
+        )
+        self.org_token.refresh_from_db()
+        assert self.org_token.date_deactivated is None

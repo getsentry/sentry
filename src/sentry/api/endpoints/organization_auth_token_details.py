@@ -8,7 +8,10 @@ from sentry import analytics, audit_log
 from sentry.analytics.events.org_auth_token_deleted import OrgAuthTokenDeleted
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import SessionNoAuthTokenAuthentication
+from sentry.api.authentication import (
+    SessionNoAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -27,7 +30,7 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.FOUNDATIONS
-    authentication_classes = (SessionNoAuthTokenAuthentication,)
+    authentication_classes = (SessionNoAuthTokenAuthentication, UserAuthTokenAuthentication)
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
     def convert_args(

@@ -16,7 +16,11 @@ from rest_framework.views import APIView
 from sentry_sdk import traces
 
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist, SuperuserRequired
+from sentry.api.exceptions import (
+    INSUFFICIENT_SCOPE_ATTR,
+    ResourceDoesNotExist,
+    SuperuserRequired,
+)
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
@@ -271,6 +275,23 @@ class OrgAuthTokenPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
     }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.auth is not None:
+            # OAuth application tokens acting for a user are the only tokens allowed here.
+            # Personal, org auth, and integration tokens must not be able to mint new tokens.
+            if (
+                not is_api_token_auth(request.auth)
+                or request.auth.application_id is None
+                or getattr(request.user, "is_sentry_app", False)
+            ):
+                return False
+            # Tokens managed here carry org:ci, so the OAuth grant must include it. Otherwise
+            # an app the user only granted read access could mint a token that writes releases.
+            if not request.auth.has_scope("org:ci"):
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:ci"})
+                return False
+        return super().has_permission(request, view)
 
 
 class OrganizationFlagWebHookSigningSecretPermission(OrganizationPermission):
