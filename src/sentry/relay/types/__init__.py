@@ -1,4 +1,4 @@
 from .generic_filters import GenericFilter, GenericFiltersConfig
-from .rule_condition import RuleCondition
+from .rule_condition import RuleCondition, SerializedRuleCondition
 
-__all__ = ["GenericFilter", "GenericFiltersConfig", "RuleCondition"]
+__all__ = ["GenericFilter", "GenericFiltersConfig", "RuleCondition", "SerializedRuleCondition"]
