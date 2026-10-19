@@ -113,6 +113,13 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         mock_seer_call.assert_called_once_with(self.project.id, hashes)
         assert get_viewer_context() is None
 
+    @patch("sentry.tasks.seer.delete_seer_grouping_records.call_seer_to_delete_these_hashes")
+    def test_missing_project_does_not_call_seer(self, mock_seer_call: MagicMock) -> None:
+        delete_seer_grouping_records_by_hash(self.project.id + 1_000_000_000, ["hash"])
+
+        mock_seer_call.assert_not_called()
+        assert get_viewer_context() is None
+
     @patch(
         "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )

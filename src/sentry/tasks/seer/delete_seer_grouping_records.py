@@ -43,10 +43,12 @@ def delete_seer_grouping_records_by_hash(
     batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
     if len_hashes <= batch_size:  # Base case
-        organization_id = Project.objects.values_list("organization_id", flat=True).get(
-            id=project_id
+        organization_id = (
+            Project.objects.filter(id=project_id).values_list("organization_id", flat=True).first()
         )
-        # This task performs asynchronous data cleanup rather than acting for a user.
+        if organization_id is None:
+            return
+
         with viewer_context_scope(
             ViewerContext(
                 organization_id=organization_id,
