@@ -352,3 +352,40 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
                 )
             ],
         )
+
+
+class SeerInvestigationConclusion(NotificationData):
+    """The report text of a finished Seer investigation, posted in the alert's Slack thread."""
+
+    sections: list[str]
+    investigation_url: str
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_CONCLUSION
+
+
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_CONCLUSION)
+class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigationConclusion]):
+    category = NotificationCategory.SEER
+    example_data = SeerInvestigationConclusion(
+        organization_id=1,
+        sections=[
+            "## Summary\n\nA frontend release added a render-blocking font file, "
+            "which delayed the first paint on organization login pages.",
+            "## Next steps\n\n- Preload the font file or load it asynchronously.\n"
+            "- Add a performance budget for render-blocking assets.",
+        ],
+        investigation_url="https://sentry.io/organizations/example/explore/investigations/1/",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerInvestigationConclusion) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer investigation conclusion",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=section)]) for section in data.sections
+            ],
+            actions=[
+                NotificationRenderedAction(
+                    label="View full investigation", link=data.investigation_url
+                )
+            ],
+        )
