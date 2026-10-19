@@ -244,6 +244,25 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         assert "Events: *5*" in orjson.dumps(legacy).decode()
         assert "Events: *6*" in orjson.dumps(platform).decode()
 
+    def test_slack_counts_dropped_at_a_single_event_are_not_a_mismatch(self) -> None:
+        assert self.issue_group.times_seen == 1
+        self.issue_group.update(substatus=GroupSubStatus.ONGOING)
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        # Legacy reads a pending second event and shows the counts; by the platform render the
+        # buffer was read as empty, so `get_context` leaves them out.
+        counts = itertools.chain(["2", "2"], itertools.repeat("1"))
+
+        with mock.patch(
+            "sentry.integrations.slack.message_builder.issues.get_group_global_count",
+            side_effect=lambda group: next(counts),
+        ):
+            observation, _ = self.send(self.invocation(action))
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        legacy, platform = observation.compared[0]
+        assert "Events: *2*" in orjson.dumps(legacy).decode()
+        assert "Events:" not in orjson.dumps(platform).decode()
+
     def test_slack_mentions_read_scope_without_nudge(self) -> None:
         action = self.create_shadow_action(
             "slack", {"tags": "", "notes": ""}, metadata={"scopes": ["app_mentions:read"]}

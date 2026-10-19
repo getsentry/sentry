@@ -123,19 +123,42 @@ _GROUP_STATS = re.compile(
 _DIGITS = re.compile(r"\d+")
 
 
-def _mask_group_stats(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+# `get_context` leaves out the event and user counts while a group has at most one event.
+_COUNT_STAT = re.compile(
+    "(?:{}): \\*".format(
+        "|".join(
+            re.escape(field)
+            for field in (NotificationContextField.EVENTS, NotificationContextField.USERS_AFFECTED)
+        )
+    )
+)
+_STAT_SEPARATOR = "   "
+
+
+def _mask_group_stats(
+    payload: Mapping[str, Any], *, ignore_counts: bool = False
+) -> Mapping[str, Any]:
     """
     Replaces the digits in the group stats of a normalized Slack payload's context blocks, so two
     renders that differ only by a count or elapsed time compare equal. Labels and non-numeric
     values are kept, so a stat that is added, dropped, or reworded still shows up as a diff.
+    `ignore_counts` also removes the event and user counts, for groups whose count is at the
+    threshold where `get_context` starts showing them.
     """
 
     def mask(match: re.Match[str]) -> str:
         return f"{match['label']}: *{_DIGITS.sub('#', match['value'])}*"
 
+    def mask_text(text: str) -> str:
+        if ignore_counts:
+            text = _STAT_SEPARATOR.join(
+                stat for stat in text.split(_STAT_SEPARATOR) if not _COUNT_STAT.match(stat)
+            )
+        return _GROUP_STATS.sub(mask, text)
+
     def mask_element(element: Any) -> Any:
         if isinstance(element, Mapping) and isinstance(element.get("text"), str):
-            return {**element, "text": _GROUP_STATS.sub(mask, element["text"])}
+            return {**element, "text": mask_text(element["text"])}
         return element
 
     blocks = [
@@ -149,12 +172,35 @@ def _mask_group_stats(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     return {**payload, "blocks": blocks}
 
 
+def _at_single_event(invocation: ActionInvocation) -> bool:
+    """
+    Whether the invocation's group or its cached copy has at most one event written to the
+    database. Its next events are still in the buffer, so the count each render reads depends on
+    when it reads it, and one render can show the event and user counts while the other leaves
+    them out.
+    """
+    group = invocation.event_data.group
+    try:
+        cached = Group.objects.get_from_cache(id=group.id)
+    except Group.DoesNotExist:
+        return False
+    return min(group.times_seen, cached.times_seen) <= 1
+
+
 def _only_group_stats_differ(
-    provider: NotificationProviderKey, legacy: Mapping[str, Any], platform: Mapping[str, Any]
+    invocation: ActionInvocation,
+    provider: NotificationProviderKey,
+    legacy: Mapping[str, Any],
+    platform: Mapping[str, Any],
 ) -> bool:
     if provider not in (NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING):
         return False
-    return not _diff(_mask_group_stats(legacy), _mask_group_stats(platform))
+    if not _diff(_mask_group_stats(legacy), _mask_group_stats(platform)):
+        return True
+    return _at_single_event(invocation) and not _diff(
+        _mask_group_stats(legacy, ignore_counts=True),
+        _mask_group_stats(platform, ignore_counts=True),
+    )
 
 
 def _group_changed(invocation: ActionInvocation) -> bool:
@@ -212,7 +258,7 @@ def _compare_with_platform(
         stats_only = (
             bool(entries)
             and source == NotificationSource.ISSUE
-            and _only_group_stats_differ(provider_key, legacy, platform)
+            and _only_group_stats_differ(invocation, provider_key, legacy, platform)
         )
     except Exception as e:
         return _capture_shadow_error(e, ShadowOutcome.COMPARE_ERROR, source, provider_key)

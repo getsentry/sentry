@@ -255,6 +255,24 @@ def test_mask_group_stats_masks_only_stat_values() -> None:
     }
 
 
+def test_mask_group_stats_ignore_counts() -> None:
+    payload = {
+        "blocks": [
+            _context_block(
+                "Events: *2*   Users Affected: *1*   State: *Ongoing*   First Seen: *2 days ago*"
+            ),
+            _context_block("Events: *2*"),
+        ]
+    }
+
+    assert _mask_group_stats(payload, ignore_counts=True) == {
+        "blocks": [
+            _context_block("State: *Ongoing*   First Seen: *# days ago*"),
+            _context_block(""),
+        ]
+    }
+
+
 @pytest.mark.parametrize(
     ("legacy", "platform"),
     [
@@ -568,9 +586,29 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         ]
 
     def test_dropped_group_stats_is_a_mismatch(self) -> None:
+        self.issue_group.update(times_seen=12)
+
         observation = self._shadow_slack(
             _slack_stats("Events: *12*   Users Affected: *3*   First Seen: *2 days ago*"),
             _slack_stats("First Seen: *2 days ago*"),
+        )
+
+        assert observation.outcome == ShadowOutcome.MISMATCH
+
+    def test_dropped_counts_at_a_single_event_are_group_changed(self) -> None:
+        assert self.issue_group.times_seen == 1
+
+        observation = self._shadow_slack(
+            _slack_stats("Events: *2*   First Seen: *2 days ago*   Suggested: #team"),
+            _slack_stats("First Seen: *2 days ago*   Suggested: #team"),
+        )
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+
+    def test_other_stats_differences_at_a_single_event_are_a_mismatch(self) -> None:
+        observation = self._shadow_slack(
+            _slack_stats("Events: *2*   State: *Ongoing*   First Seen: *2 days ago*"),
+            _slack_stats("State: *Regressed*   First Seen: *2 days ago*"),
         )
 
         assert observation.outcome == ShadowOutcome.MISMATCH
