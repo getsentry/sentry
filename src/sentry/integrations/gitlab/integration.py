@@ -638,6 +638,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     integration_cls = GitlabIntegration
 
     needs_default_identity = True
+    reject_pending_deletion_reinstall = True
 
     features = frozenset(
         [
