@@ -3,7 +3,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MenuListItem} from '@sentry/scraps/menu/listItem';
+import {MenuListItem} from '@sentry/scraps/menuListItem';
 
 describe('MenuListItem', () => {
   it('attaches the ref to the default li wrapper', () => {

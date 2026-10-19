@@ -79,25 +79,23 @@ export function MenuSearch(props: MenuSearchProps) {
   }
   const {listRef, search, searchRef, setSearch} = menu;
   return (
-    <Container padding="0 xs xs xs">
-      <SearchInput
-        {...props}
-        ref={searchRef}
-        size="md"
-        value={search}
-        onChange={event => setSearch(event.target.value)}
-        onKeyDown={event => {
-          props.onKeyDown?.(event);
-          if (event.defaultPrevented) {
-            return;
-          }
-          if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            getMenuItems(listRef.current)[0]?.focus();
-          }
-        }}
-      />
-    </Container>
+    <SearchInput
+      {...props}
+      ref={searchRef}
+      size="sm"
+      value={search}
+      onChange={event => setSearch(event.target.value)}
+      onKeyDown={event => {
+        props.onKeyDown?.(event);
+        if (event.defaultPrevented) {
+          return;
+        }
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          getMenuItems(listRef.current)[0]?.focus();
+        }
+      }}
+    />
   );
 }
 

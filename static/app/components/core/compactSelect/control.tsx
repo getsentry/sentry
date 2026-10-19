@@ -647,7 +647,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 export const ClearButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};

@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {createContext, useContext, useId, useLayoutEffect, useState} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -20,7 +12,7 @@ import {
 
 interface SectionContextValue {
   labelId: string;
-  setItemVisibility: (id: string, visible: boolean | null) => void;
+  setVisibleItems: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 }
 
 export const SectionContext = createContext<SectionContextValue | null>(null);
@@ -34,25 +26,11 @@ export interface MenuSectionProps {
 export function MenuSection({children, 'aria-label': ariaLabel}: MenuSectionProps) {
   const labelId = useId();
   const [visibleItems, setVisibleItems] = useState<Record<string, boolean>>({});
-  const setItemVisibility = useCallback((id: string, visible: boolean | null) => {
-    setVisibleItems(previous => {
-      if (visible === null) {
-        const next = {...previous};
-        delete next[id];
-        return next;
-      }
-      return previous[id] === visible ? previous : {...previous, [id]: visible};
-    });
-  }, []);
-  const sectionContext = useMemo(
-    () => ({labelId, setItemVisibility}),
-    [labelId, setItemVisibility]
-  );
   const itemVisibility = Object.values(visibleItems);
   const isEmpty = itemVisibility.length > 0 && !itemVisibility.some(Boolean);
 
   return (
-    <SectionContext value={sectionContext}>
+    <SectionContext value={{labelId, setVisibleItems}}>
       <MenuSectionLayout
         display={isEmpty ? 'none' : 'block'}
         role="presentation"
@@ -109,9 +87,17 @@ export function MenuSectionSeparator() {
 export function useSectionItemVisibility(visible: boolean) {
   const section = useContext(SectionContext);
   const id = useId();
+  const setVisibleItems = section?.setVisibleItems;
 
   useLayoutEffect(() => {
-    section?.setItemVisibility(id, visible);
-    return () => section?.setItemVisibility(id, null);
-  }, [section, id, visible]);
+    setVisibleItems?.(previous =>
+      previous[id] === visible ? previous : {...previous, [id]: visible}
+    );
+    return () =>
+      setVisibleItems?.(previous => {
+        const next = {...previous};
+        delete next[id];
+        return next;
+      });
+  }, [setVisibleItems, id, visible]);
 }

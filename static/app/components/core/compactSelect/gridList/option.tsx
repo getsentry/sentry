@@ -17,7 +17,7 @@ import {
   InnerWrap,
   MenuListItem,
   type MenuListItemProps,
-} from '@sentry/scraps/menu/listItem';
+} from '@sentry/scraps/menuListItem';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<

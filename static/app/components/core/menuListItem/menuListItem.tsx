@@ -109,6 +109,7 @@ const StyledContentWrap = styled('div')<{
 
 const StyledLeadingItems = styled('div')<{
   disabled: boolean;
+  hasDetails?: boolean;
   size?: FormSize;
 }>`
   display: flex;
@@ -116,10 +117,11 @@ const StyledLeadingItems = styled('div')<{
   min-width: ${p => p.theme.space['2xl']};
   justify-content: center;
   flex-shrink: 0;
-  /* Match the label's first line without centering against any details below it. */
-  min-height: 1.4em;
-  align-self: flex-start;
+  /* Match the label's first line when details appear below it. */
+  min-height: 24px;
+  align-self: ${p => (p.hasDetails ? 'flex-start' : 'center')};
   align-items: center;
+  margin-top: ${p => (p.hasDetails ? p.theme.space.xs : '0')};
 
   ${p => p.disabled && 'opacity: 0.5;'}
 `;
@@ -260,7 +262,7 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
       >
         <StyledInnerWrap
           padding={
-            size === 'xs' ? 'xs md xs lg' : size === 'sm' ? 'sm md sm lg' : 'md md md lg'
+            size === 'xs' ? 'xs md xs lg' : size === 'sm' ? 'sm md sm lg' : 'xs sm xs md'
           }
           isFocused={isFocused}
           disabled={disabled}
@@ -274,7 +276,11 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
             higherOpacity={priority !== 'default'}
           />
           {leadingItems && (
-            <StyledLeadingItems disabled={disabled} size={size}>
+            <StyledLeadingItems
+              disabled={disabled}
+              hasDetails={Boolean(details && !showDetailsInOverlay)}
+              size={size}
+            >
               {typeof leadingItems === 'function'
                 ? leadingItems({disabled, isFocused, isSelected})
                 : leadingItems}
@@ -430,7 +436,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 const TrailingItems = styled('div')<{disabled: boolean}>`
   display: flex;
   align-items: center;
-  height: 1.4em;
+  height: 24px;
   gap: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.xs};
 

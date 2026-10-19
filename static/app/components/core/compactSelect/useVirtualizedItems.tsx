@@ -7,7 +7,7 @@ import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 const heightEstimations = {
   sm: {regular: 32, large: 49},
-  md: {regular: 36, large: 53},
+  md: {regular: 32, large: 53},
   xs: {regular: 25, large: 42},
 } as const satisfies Record<FormSize, {large: number; regular: number}>;
 

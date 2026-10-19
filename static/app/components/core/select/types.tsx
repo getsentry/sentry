@@ -1,4 +1,4 @@
-import type {MenuListItemProps} from '@sentry/scraps/menu/listItem';
+import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 
 /**
  * The option format used by react-select based components

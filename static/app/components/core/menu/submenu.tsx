@@ -2,13 +2,13 @@ import {useRef, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container} from '@sentry/scraps/layout';
+import {MenuListItem} from '@sentry/scraps/menuListItem';
 
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 import {MenuContext, useMenuContext} from './context';
 import type {MenuListItemProps} from './item';
 import {isMenuItemHidden} from './item';
-import {MenuListItem} from './listItem';
 import {SectionContext, useSectionItemVisibility} from './section';
 
 export interface MenuSubmenuProps extends Pick<MenuListItemProps, 'label' | 'disabled'> {
