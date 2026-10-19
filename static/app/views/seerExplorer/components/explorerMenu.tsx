@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
-type MenuMode = 'slash-commands-keyboard' | 'pr-widget' | 'hidden';
+type MenuMode = 'slash-commands-keyboard' | 'hidden';
 
 interface SlashCommandHandlers {
   onFeedback: (() => void) | undefined;
@@ -26,9 +26,6 @@ interface ExplorerMenuProps {
   panelSize: 'max' | 'med';
   slashCommandHandlers: SlashCommandHandlers;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
-  prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
-  prWidgetFooter?: React.ReactNode;
-  prWidgetItems?: MenuItemProps[];
 }
 
 export interface MenuItemProps {
@@ -39,7 +36,7 @@ export interface MenuItemProps {
 }
 
 /**
- * Custom floating menu for Seer Explorer slash commands and PR widget.
+ * Custom floating menu for Seer Explorer slash commands.
  */
 export function useExplorerMenu({
   clearInput,
@@ -49,9 +46,6 @@ export function useExplorerMenu({
   panelSize,
   slashCommandHandlers,
   inputAnchorRef,
-  prWidgetAnchorRef,
-  prWidgetItems,
-  prWidgetFooter,
 }: ExplorerMenuProps) {
   const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
   const [menuPosition, setMenuPosition] = useState<{
@@ -73,16 +67,10 @@ export function useExplorerMenu({
   }, [allSlashCommands, inputValue]);
 
   // Menu items and select handlers change based on the mode.
-  const menuItems = useMemo(() => {
-    switch (menuMode) {
-      case 'slash-commands-keyboard':
-        return filteredSlashCommands;
-      case 'pr-widget':
-        return prWidgetItems ?? [];
-      default:
-        return [];
-    }
-  }, [menuMode, filteredSlashCommands, prWidgetItems]);
+  const menuItems = useMemo(
+    () => (menuMode === 'slash-commands-keyboard' ? filteredSlashCommands : []),
+    [menuMode, filteredSlashCommands]
+  );
 
   const close = useCallback(() => {
     setMenuMode('hidden');
@@ -215,9 +203,7 @@ export function useExplorerMenu({
       return;
     }
 
-    const anchorRef = menuMode === 'pr-widget' ? prWidgetAnchorRef : inputAnchorRef;
-
-    if (!anchorRef?.current) {
+    if (!inputAnchorRef?.current) {
       setMenuPosition({
         bottom: '100%',
         left: '16px',
@@ -225,8 +211,8 @@ export function useExplorerMenu({
       return;
     }
 
-    const rect = anchorRef.current.getBoundingClientRect();
-    const panelRect = anchorRef.current
+    const rect = inputAnchorRef.current.getBoundingClientRect();
+    const panelRect = inputAnchorRef.current
       .closest('[data-seer-explorer-root]')
       ?.getBoundingClientRect();
 
@@ -238,21 +224,12 @@ export function useExplorerMenu({
     const relativeTop = rect.top - panelRect.top;
     const relativeLeft = rect.left - panelRect.left;
 
-    if (menuMode === 'slash-commands-keyboard') {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setMenuPosition({
-        bottom: `${panelRect.height - relativeTop + spacing}px`,
-        left: `${relativeLeft}px`,
-      });
-    } else {
-      // Position above anchor (since button is at bottom of panel)
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setMenuPosition({
-        bottom: `${panelRect.height - relativeTop + spacing}px`,
-        right: `${panelRect.width - relativeLeft - rect.width}px`,
-      });
-    }
-  }, [isVisible, menuMode, inputAnchorRef, prWidgetAnchorRef]);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setMenuPosition({
+      bottom: `${panelRect.height - relativeTop + spacing}px`,
+      left: `${relativeLeft}px`,
+    });
+  }, [isVisible, inputAnchorRef]);
 
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
@@ -270,26 +247,15 @@ export function useExplorerMenu({
             <ItemDescription>{item.description}</ItemDescription>
           </MenuItem>
         ))}
-        {menuMode === 'pr-widget' && prWidgetFooter}
       </MenuPanel>
     </Activity>
   );
-
-  // Handler for opening PR widget from button
-  const openPRWidget = useCallback(() => {
-    if (menuMode === 'pr-widget') {
-      close();
-    } else {
-      setMenuMode('pr-widget');
-    }
-  }, [menuMode, close]);
 
   return {
     menu,
     menuMode,
     isMenuOpen: menuMode !== 'hidden',
     closeMenu: close,
-    openPRWidget,
   };
 }
 
