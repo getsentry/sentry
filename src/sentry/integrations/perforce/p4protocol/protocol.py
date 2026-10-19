@@ -232,6 +232,7 @@ class P4:
         self.ticket_file: str | None = None
         self.ssl_fingerprint: str | None = None
         self.exception_level = 1
+        self.timeout = _DEFAULT_TIMEOUT
         self.use_ssl = False
         self._sock: socket.socket | None = None
         self._buf = b""
@@ -264,7 +265,7 @@ class P4:
         # validated IP, so the SSRF/blocklist check and the connection share a
         # single DNS lookup — closing the DNS-rebinding TOCTOU window.
         try:
-            raw = safe_create_connection((host, port), timeout=_DEFAULT_TIMEOUT)
+            raw = safe_create_connection((host, port), timeout=self.timeout)
         except RestrictedIPAddress as exc:
             raise P4Exception(f"refused to connect to a disallowed address for {host}: {exc}")
         except OSError as exc:
