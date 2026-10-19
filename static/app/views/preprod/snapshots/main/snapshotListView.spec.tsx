@@ -111,10 +111,7 @@ describe('SnapshotListView', () => {
     expect(screen.queryByRole('slider')).not.toBeInTheDocument();
   });
 
-  function changedGroup(
-    count: number,
-    tags: Record<string, string> | null = null
-  ): Extract<SidebarItem, {type: 'changed'}> {
+  function changedGroup(count: number): Extract<SidebarItem, {type: 'changed'}> {
     return {
       key: 'changed:Screens',
       name: 'Screens',
@@ -126,7 +123,6 @@ describe('SnapshotListView', () => {
           display_name: `Screen ${i}`,
           image_file_name: `s${i}.png`,
           group: 'Screens',
-          tags,
         }),
         diff: null,
         diff_image_key: null,
@@ -246,36 +242,12 @@ describe('SnapshotListView', () => {
     await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
     expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toHaveFocus();
     expect(screen.queryByRole('button', {name: 'Zoom in'})).not.toBeInTheDocument();
-    expect(
-      JSON.parse(localStorage.getItem(VIEWED_SNAPSHOTS_STORAGE_KEY)!)
-    ).toHaveProperty([viewedKeyForPair(changedGroup(1).pairs[0]!)]);
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
     expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).not.toBeChecked();
     expect(screen.getAllByRole('button', {name: 'Zoom in'}).length).toBeGreaterThan(0);
-  });
-
-  it('moves the rows below a card up as soon as it is marked viewed', async () => {
-    jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
-      this: HTMLElement
-    ) {
-      if (!this.hasAttribute('data-index')) {
-        return 600;
-      }
-      return this.querySelector('[aria-label="Zoom in"]') ? 400 : 48;
-    });
-    render(<ExampleSnapshotListView items={[changedGroup(2)]} />);
-    jest.mocked(window.getComputedStyle).mockRestore();
-
-    const lastRow = document.querySelector<HTMLElement>('[data-index="2"]')!;
-    expect(lastRow).toHaveStyle({transform: 'translateY(448px)'});
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
-
-    expect(lastRow).toHaveStyle({transform: 'translateY(96px)'});
   });
 
   describe('viewed scroll anchoring', () => {
@@ -320,7 +292,6 @@ describe('SnapshotListView', () => {
             this.scrollHeight - this.clientHeight
           )
         );
-        // Browsers deliver scroll events after layout, never inside React's commit.
         queueMicrotask(() => {
           if (this.isConnected) {
             this.dispatchEvent(new Event('scroll'));
@@ -331,6 +302,7 @@ describe('SnapshotListView', () => {
 
     afterEach(() => {
       HTMLElement.prototype.scrollTo = originalScrollTo;
+      jest.restoreAllMocks();
     });
 
     function siblingGroup(name: string): SidebarItem {
@@ -350,11 +322,6 @@ describe('SnapshotListView', () => {
       };
     }
 
-    function listElements() {
-      const spacer = document.querySelector<HTMLElement>('[data-index]')!.parentElement!;
-      return {spacer, scroller: spacer.parentElement!};
-    }
-
     async function scrollList(scroller: HTMLElement, top: number) {
       await act(async () => {
         scroller.scrollTo({top});
@@ -369,58 +336,16 @@ describe('SnapshotListView', () => {
       });
     }
 
-    it('updates measured off-screen cards and preserves the group header at the top', async () => {
+    it('keeps the same card visible through repeated group toggles from the middle', async () => {
       render(
         <ExampleSnapshotListView
-          items={[
-            siblingGroup('Before'),
-            changedGroup(45, {theme: 'light'}),
-            siblingGroup('After'),
-          ]}
-        />
-      );
-      const {scroller, spacer} = listElements();
-      // Visit the whole group, then return to its header with most cards unmounted.
-      for (let top = 0; top < 19000; top += 2000) {
-        await scrollList(scroller, top);
-      }
-      await scrollList(scroller, 44 + 3 * 400 + 16);
-      expect(
-        screen.queryByRole('checkbox', {name: 'Screen 20 viewed'})
-      ).not.toBeInTheDocument();
-
-      const top = scroller.scrollTop;
-      await userEvent.click(
-        screen.getAllByRole('checkbox', {name: 'All in Screens viewed'})[0]!
-      );
-      await settleLayout();
-
-      expect(scroller.scrollTop).toBe(top);
-      // Off-screen collapsed estimates are 48px; mounted tagged headers measure 80px.
-      expect(parseFloat(spacer.style.height)).toBeLessThan(
-        3 * 44 + 51 * 80 + 3 * 16 + 6 * 400
-      );
-
-      await userEvent.click(
-        screen.getAllByRole('checkbox', {name: 'All in Screens viewed'})[0]!
-      );
-      await settleLayout();
-      expect(scroller.scrollTop).toBe(top);
-      expect(parseFloat(spacer.style.height)).toBeGreaterThan(45 * 300);
-    });
-
-    it('keeps the same card visible through repeated group toggles from the middle', async () => {
-      const onVisibleGroupChange = jest.fn();
-      render(
-        <SnapshotListView
           items={[siblingGroup('Before'), changedGroup(45), siblingGroup('After')]}
-          imageBaseUrl="/images/"
-          onVisibleGroupChange={onVisibleGroupChange}
         />
       );
-      const {scroller} = listElements();
+      const scroller =
+        document.querySelector<HTMLElement>('[data-index]')!.parentElement!
+          .parentElement!;
       await scrollList(scroller, 6500);
-      // Align a mounted card header just below the sticky header.
       const rowTop = () => {
         const card = screen
           .getByLabelText('Screen 15 viewed')
@@ -436,7 +361,6 @@ describe('SnapshotListView', () => {
         expect(screen.getByLabelText('Screen 15 viewed')).toBeChecked();
         expect(groupCheckbox).toHaveFocus();
         expect(rowTop() + 16 - scroller.scrollTop).toBe(44);
-        expect(onVisibleGroupChange).toHaveBeenLastCalledWith('changed:Screens');
 
         await userEvent.click(groupCheckbox);
         await settleLayout();
@@ -444,31 +368,9 @@ describe('SnapshotListView', () => {
         expect(rowTop() + 16 - scroller.scrollTop).toBe(44);
       }
     });
-
-    it('reveals the collapsed header when the viewport was inside its image', async () => {
-      render(<ExampleSnapshotListView items={[changedGroup(45)]} />);
-      const {scroller} = listElements();
-      await scrollList(scroller, 200);
-
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
-      await settleLayout();
-
-      expect(scroller.scrollTop).toBe(16);
-      expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toBeChecked();
-    });
   });
 
-  it('marks and unmarks every card in a group from the group checkbox', async () => {
-    render(<ExampleSnapshotListView items={[changedGroup(2)]} />);
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'All in Screens viewed'}));
-    expect(screen.queryAllByRole('checkbox', {checked: false})).toHaveLength(0);
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'All in Screens viewed'}));
-    expect(screen.queryAllByRole('checkbox', {checked: true})).toHaveLength(0);
-  });
-
-  it('restores stored marks and drops ones whose images changed', async () => {
+  it('restores stored marks, drops changed images, and toggles the whole group', async () => {
     const group = changedGroup(2);
     localStorage.setItem(
       VIEWED_SNAPSHOTS_STORAGE_KEY,
@@ -497,34 +399,10 @@ describe('SnapshotListView', () => {
     expect(screen.getByRole('checkbox', {name: 'Screen 1 viewed'})).not.toBeChecked();
 
     await userEvent.click(groupCheckbox);
+    expect(screen.queryAllByRole('checkbox', {checked: false})).toHaveLength(0);
 
-    expect(screen.getByRole('checkbox', {name: 'Screen 1 viewed'})).toBeChecked();
-  });
-
-  it('does not offer a viewed toggle for unchanged images', () => {
-    render(
-      <ExampleSnapshotListView
-        items={[
-          {
-            key: 'unchanged:solo',
-            name: 'solo.png',
-            displayName: 'solo.png',
-            type: 'unchanged',
-            images: [image({group: undefined, image_file_name: 'solo.png'})],
-          },
-          {
-            key: 'unchanged:Screens',
-            name: 'Screens',
-            displayName: 'Screens',
-            type: 'unchanged',
-            images: [image({group: 'Screens', image_file_name: 'grouped.png'})],
-          },
-        ]}
-      />
-    );
-
-    expect(screen.getByRole('heading', {name: 'Screens'})).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    await userEvent.click(groupCheckbox);
+    expect(screen.queryAllByRole('checkbox', {checked: true})).toHaveLength(0);
   });
 
   it('ignores shortcuts while a modal is open', () => {

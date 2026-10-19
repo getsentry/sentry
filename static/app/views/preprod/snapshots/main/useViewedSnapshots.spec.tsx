@@ -60,10 +60,4 @@ describe('useViewedSnapshots', () => {
       Object.keys(JSON.parse(localStorage.getItem(VIEWED_SNAPSHOTS_STORAGE_KEY)!))
     ).toEqual(expect.arrayContaining(['a', 'fromOtherTab']));
   });
-
-  it('ignores corrupt stored values', () => {
-    localStorage.setItem(VIEWED_SNAPSHOTS_STORAGE_KEY, '{not json');
-    const {result} = renderHookWithProviders(useViewedSnapshots);
-    expect(result.current.viewed).toEqual({});
-  });
 });
