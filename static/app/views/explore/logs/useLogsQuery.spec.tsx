@@ -16,7 +16,6 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   LOGS_ANCHOR_TIMESTAMP_KEY,
-  LOGS_QUERY_KEY,
   LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -32,6 +31,7 @@ import {
   useInfiniteLogsQuery,
   type LogPageParam,
 } from 'sentry/views/explore/logs/useLogsQuery';
+import {useSetQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 
 type CachedQueryData = InfiniteData<ApiResponse<EventsLogsResult>, LogPageParam>;
 
@@ -616,7 +616,7 @@ describe('useInfiniteLogsQuery', () => {
       ]);
     });
 
-    it('anchors on the log from the URL once without loading the unanchored rows when the URL has a row ID and anchor timestamp', async () => {
+    it('anchors on the log from the URL without loading the unanchored rows when the URL has a row ID and anchor timestamp', async () => {
       const baseMock = mockBaseRows();
       mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`, [
         {id: '6', timestamp_precise: '6000', timestamp: '6000'},
@@ -641,13 +641,16 @@ describe('useInfiniteLogsQuery', () => {
         '6',
         '5',
       ]);
-      expect(router.location.query).toEqual({[LOGS_ROW_ID_KEY]: '5'});
+      expect(router.location.query).toEqual({
+        [LOGS_ROW_ID_KEY]: '5',
+        [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000',
+      });
     });
 
     it('does not anchor on the log from the URL when the anchor timestamp is malformed', async () => {
       mockBaseRows();
 
-      const {result, router} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
         additionalWrapper: createWrapper(),
         initialRouterConfig: {
           location: {
@@ -660,15 +663,81 @@ describe('useInfiniteLogsQuery', () => {
       await waitFor(() => expect(result.current.data).toHaveLength(2));
 
       expect(result.current.anchor).toBeUndefined();
-      expect(router.location.query).toEqual({[LOGS_ROW_ID_KEY]: '5'});
     });
 
-    it('does not re-anchor on the log from the URL when the query changes and then changes back', async () => {
+    it('stops anchoring on the log from the URL when the search changes and then changes back', async () => {
       MockApiClient.addMockResponse({
         url: eventsEndpoint,
         body: createMockLogsData([]),
         headers: linkHeaders,
       });
+      mockBaseRows();
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`, []);
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=5256`, [anchorRow]);
+
+      const {result, router} = renderHookWithProviders(
+        () => ({logs: useInfiniteLogsQuery(), setQuery: useSetQueryParamsQuery()}),
+        {
+          additionalWrapper: createWrapper(),
+          initialRouterConfig: {
+            location: {
+              pathname: '/mock-pathname/',
+              query: {[LOGS_ROW_ID_KEY]: '5', [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000'},
+            },
+          },
+          organization,
+        }
+      );
+      await waitFor(() => expect(result.current.logs.anchor?.id).toBe('5'));
+
+      act(() => result.current.setQuery('a'));
+      await waitFor(() => expect(result.current.logs.anchor).toBeUndefined());
+      act(() => result.current.setQuery(''));
+      await waitFor(() => expect(result.current.logs.data).toHaveLength(2));
+
+      expect(result.current.logs.anchor).toBeUndefined();
+      expect(result.current.logs.data.map(row => row[OurLogKnownFieldKey.ID])).toEqual([
+        '9',
+        '8',
+      ]);
+      expect(router.location.query[LOGS_ANCHOR_TIMESTAMP_KEY]).toBeUndefined();
+    });
+
+    it('anchors on the chosen log and removes the URL anchor when viewing another log in the table', async () => {
+      mockBaseRows();
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`, []);
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=5256`, [anchorRow]);
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=7256`, []);
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=7256`, [
+        {id: '7', timestamp_precise: '7000', timestamp: '7000'},
+      ]);
+
+      const {result, router} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createWrapper(),
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {[LOGS_ROW_ID_KEY]: '5', [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000'},
+          },
+        },
+        organization,
+      });
+      await waitFor(() => expect(result.current.anchor?.id).toBe('5'));
+
+      act(() => {
+        result.current.anchorToLog(
+          createMockLogsData([{id: '7', timestamp_precise: '7000', timestamp: '7000'}])
+            .data[0]!
+        );
+      });
+      await waitFor(() =>
+        expect(router.location.query).toEqual({[LOGS_ROW_ID_KEY]: '5'})
+      );
+
+      expect(result.current.anchor?.id).toBe('7');
+    });
+
+    it('removes the log anchor from the URL when the anchor is cleared', async () => {
       mockBaseRows();
       mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`, []);
       mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=5256`, [anchorRow]);
@@ -684,24 +753,14 @@ describe('useInfiniteLogsQuery', () => {
         organization,
       });
       await waitFor(() => expect(result.current.anchor?.id).toBe('5'));
-      await waitFor(() =>
-        expect(router.location.query).toEqual({[LOGS_ROW_ID_KEY]: '5'})
-      );
 
-      act(() => {
-        router.navigate(`/mock-pathname/?${LOGS_ROW_ID_KEY}=5&${LOGS_QUERY_KEY}=a`);
-      });
-      await waitFor(() => expect(result.current.anchor).toBeUndefined());
-      act(() => {
-        router.navigate(`/mock-pathname/?${LOGS_ROW_ID_KEY}=5`);
-      });
+      act(() => result.current.clearAnchor());
       await waitFor(() => expect(result.current.data).toHaveLength(2));
 
       expect(result.current.anchor).toBeUndefined();
-      expect(result.current.data.map(row => row[OurLogKnownFieldKey.ID])).toEqual([
-        '9',
-        '8',
-      ]);
+      await waitFor(() =>
+        expect(router.location.query).toEqual({[LOGS_ROW_ID_KEY]: '5'})
+      );
     });
 
     it('returns to the unanchored rows when the anchor is cleared', async () => {

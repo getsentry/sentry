@@ -799,6 +799,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                             } else {
                               params.set(LOGS_QUERY_KEY, `id:${logId}`);
                               params.delete(LOGS_ROW_ID_KEY);
+                              params.delete(LOGS_ANCHOR_TIMESTAMP_KEY);
                             }
                           });
                           copy(url, {

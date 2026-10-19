@@ -6,6 +6,7 @@ import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {LOGS_ANCHOR_TIMESTAMP_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
 import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
 
@@ -163,6 +164,10 @@ export function useSetLogsAutoRefresh() {
         delete target.query[LOGS_AUTO_REFRESH_KEY];
       } else {
         target.query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
+      }
+
+      if (autoRefresh === 'enabled') {
+        delete target.query[LOGS_ANCHOR_TIMESTAMP_KEY];
       }
 
       navigateIfQueryChanged(navigate, location, target);

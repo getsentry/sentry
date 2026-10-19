@@ -692,25 +692,28 @@ export function useInfiniteLogsQuery({
   };
 }
 
-function useUrlLogAnchor(): LogAnchor | null {
+function useUrlLogAnchor() {
   const location = useLocation();
   const isFrozen = useLogsFrozenIsFrozen();
   const id = decodeScalar(location.query[LOGS_ROW_ID_KEY]);
-  const [timestampPrecise, setTimestampPrecise] = useQueryState(
-    LOGS_ANCHOR_TIMESTAMP_KEY
+  const timestampPrecise = decodeScalar(location.query[LOGS_ANCHOR_TIMESTAMP_KEY]);
+  const [, setTimestampPrecise] = useQueryState(LOGS_ANCHOR_TIMESTAMP_KEY);
+
+  const urlAnchor = useMemo(
+    () =>
+      isFrozen || !id || !timestampPrecise || !/^\d+$/.test(timestampPrecise)
+        ? undefined
+        : {id, timestampPrecise: BigInt(timestampPrecise)},
+    [id, isFrozen, timestampPrecise]
   );
 
-  useEffect(() => {
-    if (!isFrozen && timestampPrecise !== null) {
+  const clearUrlAnchor = useCallback(() => {
+    if (!isFrozen && defined(timestampPrecise)) {
       setTimestampPrecise(null);
     }
   }, [isFrozen, setTimestampPrecise, timestampPrecise]);
 
-  if (isFrozen || !id || !timestampPrecise || !/^\d+$/.test(timestampPrecise)) {
-    return null;
-  }
-
-  return {id, timestampPrecise: BigInt(timestampPrecise)};
+  return {urlAnchor, clearUrlAnchor};
 }
 
 function useLogAnchor({
@@ -722,16 +725,12 @@ function useLogAnchor({
 }) {
   const queryClient = useQueryClient();
   const queryKeyHash = hashKey(queryKey);
-  const urlAnchor = useUrlLogAnchor();
+  const {urlAnchor, clearUrlAnchor} = useUrlLogAnchor();
   const [anchorState, setAnchorState] = useState<{
     anchor: LogAnchor;
     queryKeyHash: string;
-  } | null>(() => (urlAnchor && !autoRefresh ? {anchor: urlAnchor, queryKeyHash} : null));
+  } | null>(null);
   const [previousAutoRefresh, setPreviousAutoRefresh] = useState(autoRefresh);
-
-  if (anchorState && anchorState.queryKeyHash !== queryKeyHash) {
-    setAnchorState(null);
-  }
 
   if (autoRefresh !== previousAutoRefresh) {
     setPreviousAutoRefresh(autoRefresh);
@@ -743,6 +742,7 @@ function useLogAnchor({
   const anchorToLog = useCallback(
     (row: OurLogsResponseItem) => {
       queryClient.removeQueries({predicate: query => query.queryHash === queryKeyHash});
+      clearUrlAnchor();
       setAnchorState({
         anchor: {
           id: row[OurLogKnownFieldKey.ID],
@@ -751,15 +751,19 @@ function useLogAnchor({
         queryKeyHash,
       });
     },
-    [queryClient, queryKeyHash]
+    [clearUrlAnchor, queryClient, queryKeyHash]
   );
 
-  const clearAnchor = useCallback(() => setAnchorState(null), []);
+  const clearAnchor = useCallback(() => {
+    clearUrlAnchor();
+    setAnchorState(null);
+  }, [clearUrlAnchor]);
 
-  const anchor =
-    !autoRefresh && anchorState?.queryKeyHash === queryKeyHash
+  const anchor = autoRefresh
+    ? undefined
+    : anchorState?.queryKeyHash === queryKeyHash
       ? anchorState.anchor
-      : undefined;
+      : urlAnchor;
 
   return {anchor, anchorToLog, clearAnchor};
 }
