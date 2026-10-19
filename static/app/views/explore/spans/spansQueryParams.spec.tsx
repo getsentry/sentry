@@ -367,7 +367,7 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
-  it('shares a chart between a percentile and a stat over the same field', () => {
+  it('keeps a chart per y axis for a percentile and a stat', () => {
     const location = locationFixture({
       aggregateField: [
         {groupBy: 'span.op'},
@@ -378,8 +378,8 @@ describe('getReadableQueryParamsFromLocation', () => {
       .aggregateFields as VisualizeFunction[];
     expect(p90!.yAxis).toBe('p90(span.duration)');
     expect(avg!.yAxis).toBe('avg(span.duration)');
-    expect(p90!.chartGroup).toBeDefined();
-    expect(p90!.chartGroup).toBe(avg!.chartGroup);
+    expect(p90!.chartGroup).toBeUndefined();
+    expect(avg!.chartGroup).toBeUndefined();
   });
 
   it('decodes custom aggregatefields and inserts default group bys', () => {

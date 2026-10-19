@@ -374,7 +374,6 @@ function AggregateMultiSelect({
   const singleSelectValue = SINGLE_SELECT_AGGREGATES.find(aggregate =>
     selected.has(aggregate)
   );
-  const isAtLimit = multiSelectValue.length >= maxAggregates;
   const isDefaultSelection =
     value.length === 1 && value[0] === DEFAULT_VISUALIZATION_AGGREGATE;
 
@@ -389,17 +388,11 @@ function AggregateMultiSelect({
     regionAggregates: readonly string[],
     options: Array<SelectOption<string>>
   ) => {
-    // Selections in the other multi-select region are kept, as they plot on
-    // the same Y axis. The order is fixed so the legend doesn't depend on the
-    // order aggregates were clicked in.
+    // Like the Metrics aggregate picker, picking in one region replaces the
+    // selection made in any other region. The order is fixed so the legend
+    // doesn't depend on the order aggregates were clicked in.
     const regionSelection = new Set(options.map(option => option.value));
-    onChange(
-      SHARED_CHART_AGGREGATES.filter(aggregate =>
-        regionAggregates.includes(aggregate)
-          ? regionSelection.has(aggregate)
-          : multiSelectValue.includes(aggregate)
-      )
-    );
+    onChange(regionAggregates.filter(aggregate => regionSelection.has(aggregate)));
   };
 
   return (
@@ -421,31 +414,37 @@ function AggregateMultiSelect({
       )}
     >
       {[
-        ...SHARED_CHART_AGGREGATE_REGIONS.map(region => (
-          <CompositeSelect.Region
-            key={region.key}
-            label={region.label}
-            multiple
-            options={region.aggregates.map(aggregate => {
-              const disabled = isAtLimit && !selected.has(aggregate);
-              return {
-                ...toOption(aggregate),
-                disabled,
-                tooltip: disabled
-                  ? tn(
-                      'You can plot at most %s aggregate',
-                      'You can plot at most %s aggregates',
-                      MAX_VISUALIZES
-                    )
-                  : undefined,
-              };
-            })}
-            value={multiSelectValue.filter(aggregate =>
-              region.aggregates.includes(aggregate)
-            )}
-            onChange={options => onChangeRegion(region.aggregates, options)}
-          />
-        )),
+        ...SHARED_CHART_AGGREGATE_REGIONS.map(region => {
+          const regionValue = multiSelectValue.filter(aggregate =>
+            region.aggregates.includes(aggregate)
+          );
+          // Picking in another region replaces the selection, so only the
+          // region's own selection counts towards the limit.
+          const isAtLimit = regionValue.length >= maxAggregates;
+          return (
+            <CompositeSelect.Region
+              key={region.key}
+              label={region.label}
+              multiple
+              options={region.aggregates.map(aggregate => {
+                const disabled = isAtLimit && !selected.has(aggregate);
+                return {
+                  ...toOption(aggregate),
+                  disabled,
+                  tooltip: disabled
+                    ? tn(
+                        'You can plot at most %s aggregate',
+                        'You can plot at most %s aggregates',
+                        MAX_VISUALIZES
+                      )
+                    : undefined,
+                };
+              })}
+              value={regionValue}
+              onChange={options => onChangeRegion(region.aggregates, options)}
+            />
+          );
+        }),
         <CompositeSelect.Region
           key="other"
           label={t('Other')}

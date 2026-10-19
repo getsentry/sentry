@@ -4,8 +4,9 @@ import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditi
 
 /**
  * Aggregates that can be selected together and plotted on one chart, grouped
- * the same way as the Metrics aggregate picker. They all take the same numeric
- * argument, so together they share a unit and a Y axis.
+ * the same way as the Metrics aggregate picker. Only aggregates from the same
+ * region can be selected together. They all take the same numeric argument,
+ * so together they share a unit and a Y axis.
  */
 export const SHARED_CHART_AGGREGATE_REGIONS: ReadonlyArray<{
   aggregates: readonly string[];
@@ -36,10 +37,10 @@ export const SHARED_CHART_AGGREGATES: readonly string[] =
 
 /**
  * Whether the y axes can be plotted on one chart. This only holds for what the
- * aggregate picker can select together: aggregates from
- * `SHARED_CHART_AGGREGATES` over the same arguments and filter. Anything else,
- * such as older queries that overlaid `count()` with a duration, keeps a
- * chart per y axis so units are never mixed on one Y axis.
+ * aggregate picker can select together: aggregates from one region of
+ * `SHARED_CHART_AGGREGATE_REGIONS` over the same arguments and filter.
+ * Anything else, such as older queries that overlaid `count()` with a
+ * duration, keeps a chart per y axis.
  */
 export function canShareChart(yAxes: readonly string[]): boolean {
   if (yAxes.length < 2) {
@@ -51,12 +52,18 @@ export function canShareChart(yAxes: readonly string[]): boolean {
   if (!first) {
     return false;
   }
+  const region = SHARED_CHART_AGGREGATE_REGIONS.find(r =>
+    r.aggregates.includes(first.name)
+  );
+  if (!region) {
+    return false;
+  }
   const argumentsKey = JSON.stringify(first.arguments);
 
   return parsed.every(
     aggregate =>
       aggregate !== null &&
-      SHARED_CHART_AGGREGATES.includes(aggregate.name) &&
+      region.aggregates.includes(aggregate.name) &&
       JSON.stringify(aggregate.arguments) === argumentsKey &&
       aggregate.filter === first.filter
   );

@@ -357,15 +357,18 @@ describe('ExploreToolbar', () => {
     const section = screen.getByTestId('section-visualizes');
 
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    // Percentiles and stats are separate groups, like the Metrics picker.
+    expect(within(section).getByText('Percentiles')).toBeInTheDocument();
+    expect(within(section).getByText('Stats')).toBeInTheDocument();
     await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
     await userEvent.click(within(section).getByRole('option', {name: 'p99'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
 
-    // Percentiles and stats over the same field share a chart, so they are
+    // Aggregates from one group over the same field share a chart, so they are
     // written to the URL as a single entry.
     await waitFor(() =>
       expect(chartYAxesFromRouter(router)).toEqual([
-        ['p50(span.duration)', 'p99(span.duration)', 'avg(span.duration)'],
+        ['p50(span.duration)', 'p75(span.duration)', 'p99(span.duration)'],
       ])
     );
     await userEvent.keyboard('{Escape}');
@@ -376,20 +379,28 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     await waitFor(() =>
       expect(chartYAxesFromRouter(router)).toEqual([
-        ['p50(span.self_time)', 'p99(span.self_time)', 'avg(span.self_time)'],
+        ['p50(span.self_time)', 'p75(span.self_time)', 'p99(span.self_time)'],
       ])
     );
 
     // Deselecting down to one aggregate leaves a single, ungrouped chart.
     await userEvent.click(within(section).getByRole('button', {name: 'p50 +2'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
     await userEvent.click(within(section).getByRole('option', {name: 'p99'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
     await waitFor(() =>
       expect(chartYAxesFromRouter(router)).toEqual([['p50(span.self_time)']])
     );
 
+    // Picking from another group replaces the selection instead of adding to it.
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'max'}));
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([
+        ['avg(span.self_time)', 'max(span.self_time)'],
+      ])
+    );
+
     // Aggregates outside the percentiles and stats are picked one at a time.
-    await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
     await userEvent.click(within(section).getByRole('option', {name: 'sum'}));
     await waitFor(() =>
       expect(chartYAxesFromRouter(router)).toEqual([['sum(span.self_time)']])
