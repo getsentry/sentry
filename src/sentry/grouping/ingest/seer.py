@@ -43,7 +43,6 @@ from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.safe import get_path
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -640,16 +639,9 @@ def maybe_check_seer_for_matching_grouphash(
 
         try:
             # If no matching group is found in Seer, these will all be None
-            with viewer_context_scope(
-                ViewerContext(
-                    organization_id=event.project.organization_id,
-                    project_id=event.project.id,
-                    actor_type=ActorType.SYSTEM,
-                )
-            ):
-                seer_match_distance, seer_matched_grouphash, seer_model_used = (
-                    get_seer_similar_issues(event, event_grouphash, variants)
-                )
+            seer_match_distance, seer_matched_grouphash, seer_model_used = get_seer_similar_issues(
+                event, event_grouphash, variants
+            )
         except Exception as e:  # Insurance - in theory we shouldn't ever land here
             sentry_sdk.capture_exception(
                 e, tags={"event": event.event_id, "project": event.project.id}
@@ -743,16 +735,9 @@ def maybe_send_seer_for_new_model_training(
 
     viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
     try:
-        with viewer_context_scope(
-            ViewerContext(
-                organization_id=event.project.organization_id,
-                project_id=event.project.id,
-                actor_type=ActorType.SYSTEM,
-            )
-        ):
-            get_similarity_data_from_seer(
-                request_data, metric_tags, raise_on_error=True, viewer_context=viewer_context
-            )
+        get_similarity_data_from_seer(
+            request_data, metric_tags, raise_on_error=True, viewer_context=viewer_context
+        )
     except Exception as e:
         sentry_sdk.capture_exception(
             e,

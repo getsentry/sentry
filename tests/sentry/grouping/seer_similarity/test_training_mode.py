@@ -7,7 +7,6 @@ from sentry.seer.similarity.config import SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATU
 from sentry.seer.similarity.types import GroupingVersion
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.viewer_context import ActorType, get_viewer_context
 
 
 class MaybeSendSeerForNewModelTrainingTest(TestCase):
@@ -35,18 +34,6 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
                 return_value=([], "v2.1"),
             ) as get_similarity_data,
         ):
-
-            def assert_viewer_context(
-                *_args: object, **_kwargs: object
-            ) -> tuple[list[object], str]:
-                viewer_context = get_viewer_context()
-                assert viewer_context is not None
-                assert viewer_context.organization_id == self.organization.id
-                assert viewer_context.project_id == self.project.id
-                assert viewer_context.actor_type == ActorType.SYSTEM
-                return ([], "v2.1")
-
-            get_similarity_data.side_effect = assert_viewer_context
             with self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE):
                 maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
             with self.feature({SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE: False}):

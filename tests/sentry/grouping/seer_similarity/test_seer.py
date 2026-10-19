@@ -7,23 +7,12 @@ from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import GroupingVersion
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
-from sentry.viewer_context import ActorType, get_viewer_context
 
 
 class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2.1"))
     def test_simple(self, mock_get_similarity_data: MagicMock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-
-        def assert_viewer_context(*_args: object, **_kwargs: object) -> tuple[list[object], str]:
-            viewer_context = get_viewer_context()
-            assert viewer_context is not None
-            assert viewer_context.organization_id == self.organization.id
-            assert viewer_context.project_id == self.project.id
-            assert viewer_context.actor_type == ActorType.SYSTEM
-            return ([], "v2.1")
-
-        mock_get_similarity_data.side_effect = assert_viewer_context
 
         error_type = "FailedToFetchError"
         error_value = "Charlie didn't bring the ball back"
