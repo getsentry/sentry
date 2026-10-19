@@ -138,7 +138,6 @@ def build_investigation_status(
     updated_at: datetime | None = None,
 ) -> tuple[SeerInvestigationStatus, str]:
     """Builds the status message data and a fingerprint of what it shows."""
-    source = investigation.source
     raw_hypotheses = [
         hypothesis
         for hypothesis in _as_dict(projection).get("hypotheses") or []
@@ -169,8 +168,8 @@ def build_investigation_status(
 
     data = SeerInvestigationStatus(
         organization_id=investigation.organization_id,
-        title=get_status_title(source),
-        subtitle=get_status_subtitle(source, updated_at),
+        title=get_status_title(investigation.source),
+        subtitle=get_status_subtitle(investigation.source, updated_at),
         investigation_url=investigation.get_absolute_url(),
         hypotheses=hypotheses,
     )
