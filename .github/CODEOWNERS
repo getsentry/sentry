@@ -654,6 +654,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/analytics/events/agent_monitoring_events.py                                @getsentry/agent-tracing
 /static/app/views/insights/pages/agents/                                               @getsentry/agent-tracing
 /static/app/views/insights/pages/mcp/                                                  @getsentry/agent-tracing
+/static/app/views/insights/agentModels/                                                @getsentry/agent-tracing
+/static/app/views/insights/agentTools/                                                 @getsentry/agent-tracing
 /static/app/utils/analytics/agentMonitoringAnalyticsEvents.tsx                         @getsentry/agent-tracing
 /static/app/utils/analytics/conversationsAnalyticsEvents.tsx                           @getsentry/agent-tracing
 /static/app/utils/analytics/mcpMonitoringAnalyticsEvents.tsx                           @getsentry/agent-tracing
