@@ -140,7 +140,7 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.queryByRole('button', {name: 'Ask Seer'})).not.toBeInTheDocument();
   });
 
-  it('links every reason to the dropped data docs', () => {
+  it("links each reason to its docs section, or the docs page if it's unknown", () => {
     render(
       <OutcomeList
         droppedEvents={[
@@ -163,13 +163,15 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
-    const docsLinks = screen.getAllByRole('button', {name: 'Go to docs'});
-    expect(docsLinks).toHaveLength(2);
-    for (const link of docsLinks) {
-      expect(link).toHaveAttribute(
-        'href',
-        'https://docs.sentry.io/product/explore/dropped-data/'
-      );
-    }
+    const hrefs = screen
+      .getAllByRole('button', {name: 'Go to docs'})
+      .map(link => link.getAttribute('href'));
+    expect(hrefs).toHaveLength(2);
+    expect(hrefs).toEqual(
+      expect.arrayContaining([
+        'https://docs.sentry.io/product/explore/dropped-data/#spike-protection',
+        'https://docs.sentry.io/product/explore/dropped-data/',
+      ])
+    );
   });
 });

@@ -13,8 +13,11 @@ import type {
   OutcomeSection,
   ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
-import {formatDroppedShare, reasonTitle} from 'sentry/components/droppedData/outcomes';
-import {DROPPED_DATA_DOCS_URL} from 'sentry/components/droppedData/reasonInfo';
+import {
+  formatDroppedShare,
+  reasonDocsUrl,
+  reasonTitle,
+} from 'sentry/components/droppedData/outcomes';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
@@ -50,7 +53,7 @@ function ReasonAskSeerButton({
   );
 }
 
-function ReasonDocsLinkButton() {
+function ReasonDocsLinkButton({href}: {href: string}) {
   return (
     <LinkButton
       size="zero"
@@ -58,7 +61,7 @@ function ReasonDocsLinkButton() {
       icon={<IconOpen size="xs" />}
       aria-label={t('Go to docs')}
       tooltipProps={{title: t('Go to docs')}}
-      href={DROPPED_DATA_DOCS_URL}
+      href={href}
       external
     />
   );
@@ -77,7 +80,7 @@ function ReasonTableRow({
         <SimpleTable.Row {...props}>
           <SimpleTable.RowCell padding="md xl" gap="sm">
             <Text size="md">{reasonTitle(row.reason)}</Text>
-            <ReasonDocsLinkButton />
+            <ReasonDocsLinkButton href={reasonDocsUrl(row.reason)} />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="end" padding="md xl">
             <Text size="md" variant="muted" tabular>
