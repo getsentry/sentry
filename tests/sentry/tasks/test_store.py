@@ -1,4 +1,6 @@
+from collections.abc import MutableMapping
 from time import time
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -558,7 +560,9 @@ def test_discard_event_cleans_up_attachments_with_optional_cache_key(
     assert "_attachments" not in data
 
 
-def _event_with_rate_limited_minidump(project_id: int, rate_limited: bool | str) -> dict:
+def _event_with_rate_limited_minidump(
+    project_id: int, rate_limited: bool | str
+) -> MutableMapping[str, Any]:
     manager = EventManager(
         {
             "platform": "native",
