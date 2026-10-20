@@ -19,7 +19,10 @@ import {mobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetCo
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
-import {combineIngestionMeta} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {
+  combineIngestionMeta,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -163,7 +166,7 @@ export function useMobileAppSizeSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
+    const timeseriesResults: Array<Series | WidgetTimeSeries> = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
@@ -174,22 +177,36 @@ export function useMobileAppSizeSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = mobileAppSizeResponseTransforms.transformSeries!(
-        responseData,
-        filteredWidget.queries[requestIndex]!,
-        organization
-      );
-      const seriesQueryPrefix = getSeriesQueryPrefix(
-        filteredWidget.queries[requestIndex]!,
-        filteredWidget
-      );
+      if (isEventsTimeSeriesResponse(responseData)) {
+        const transformedResult = mobileAppSizeResponseTransforms.transformTimeSeries!(
+          responseData,
+          filteredWidget,
+          requestIndex
+        );
 
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+        transformedResult.forEach((result, resultIndex) => {
+          timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+            result;
+        });
+      } else {
+        const transformedResult = mobileAppSizeResponseTransforms.transformSeries!(
+          responseData,
+          filteredWidget.queries[requestIndex]!,
+          organization
+        );
+        const seriesQueryPrefix = getSeriesQueryPrefix(
+          filteredWidget.queries[requestIndex]!,
+          filteredWidget
+        );
+
+        transformedResult.forEach((result: Series, resultIndex: number) => {
+          if (seriesQueryPrefix) {
+            result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
+          }
+          timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+            result;
+        });
+      }
 
       const resultTypes = mobileAppSizeResponseTransforms.getSeriesResultType?.(
         responseData,
