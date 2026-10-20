@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -18,7 +16,10 @@ from sentry.investigations.endpoints.base import (
     require_authenticated_user,
     service_error,
 )
-from sentry.investigations.endpoints.serializers.responses import InvestigationCommandResponse
+from sentry.investigations.endpoints.serializers.responses import (
+    InvestigationCommandResponse,
+    InvestigationOrchestrationResponse,
+)
 from sentry.investigations.endpoints.validators import (
     InvestigationOrchestrationCommandValidator,
 )
@@ -43,7 +44,7 @@ class OrganizationInvestigationOrchestrationEndpoint(OrganizationInvestigationEn
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "RetrieveInvestigationOrchestrationResponse", dict[str, Any]
+                "RetrieveInvestigationOrchestrationResponse", InvestigationOrchestrationResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,

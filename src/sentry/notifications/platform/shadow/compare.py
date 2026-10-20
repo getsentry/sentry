@@ -135,19 +135,31 @@ _COUNT_STAT = re.compile(
 _STAT_SEPARATOR = "   "
 
 
+def _is_relative_time(value: str) -> bool:
+    """
+    Whether a value is one of `time_since`'s relative times, such as `Just now` or `2 hours ago`.
+    Renders made a second apart can cross a unit, as from `Just now` to `1 minute ago`.
+    """
+    return value in ("Just now", "Yesterday") or value.endswith(" ago")
+
+
 def _mask_group_stats(
     payload: Mapping[str, Any], *, ignore_counts: bool = False
 ) -> Mapping[str, Any]:
     """
     Replaces the digits in the group stats of a normalized Slack payload's context blocks, so two
     renders that differ only by a count or elapsed time compare equal. Labels and non-numeric
-    values are kept, so a stat that is added, dropped, or reworded still shows up as a diff.
-    `ignore_counts` also removes the event and user counts, for groups whose count is at the
-    threshold where `get_context` starts showing them.
+    values are kept, so a stat that is added, dropped, or reworded still shows up as a diff, except
+    for relative first-seen times, which are masked whole. `ignore_counts` also removes the event
+    and user counts, for groups whose count is at the threshold where `get_context` starts showing
+    them.
     """
 
     def mask(match: re.Match[str]) -> str:
-        return f"{match['label']}: *{_DIGITS.sub('#', match['value'])}*"
+        value = match["value"]
+        if match["label"] == NotificationContextField.FIRST_SEEN and _is_relative_time(value):
+            return f"{match['label']}: *relative*"
+        return f"{match['label']}: *{_DIGITS.sub('#', value)}*"
 
     def mask_text(text: str) -> str:
         if ignore_counts:

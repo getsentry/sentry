@@ -666,7 +666,7 @@ async function ciBaseline(base: string, allowed: Set<string>, policy: string) {
       [
         'oxlint.config.ts',
         'oxlint.base.ts',
-        'scripts/custom-oxlint.ts',
+        'scripts/oxlint-suppressions.ts',
         'pnpm-lock.yaml',
         'pnpm-workspace.yaml',
         '.node-version',

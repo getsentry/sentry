@@ -67,7 +67,7 @@ jobs:
               - 'oxlint.base.ts'
               - 'package.json'
               - 'pnpm-lock.yaml'
-              - 'scripts/custom-oxlint.ts'
+              - 'scripts/oxlint-suppressions.ts'
               - 'stylelint.config.js'
 
       - uses: ./.github/actions/setup-node-pnpm

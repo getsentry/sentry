@@ -7,7 +7,7 @@ import type {
   MouseEventHandler,
   Ref,
 } from 'react';
-import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
@@ -338,11 +338,7 @@ export function ComboBox({
     state.close();
   }, [onInputBlur, state]);
 
-  const {
-    overlayProps: positionedOverlayProps,
-    triggerProps,
-    update: updateOverlayPosition,
-  } = useOverlay({
+  const {overlayProps: positionedOverlayProps, triggerProps} = useOverlay({
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
@@ -379,12 +375,6 @@ export function ComboBox({
     },
     [inputProps, onInputKeyUp]
   );
-
-  useUpdateOverlayPositionOnContentChange({
-    contentRef: popoverRef,
-    updateOverlayPosition,
-    isOpen,
-  });
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
@@ -444,57 +434,6 @@ export function ComboBox({
       {isMenuVisible && portalTarget ? createPortal(overlay, portalTarget) : overlay}
     </Flex>
   );
-}
-
-// The menu size can change from things like loading states, long options,
-// or custom menus like a date picker. This hook ensures that the overlay
-// is updated in response to these changes.
-function useUpdateOverlayPositionOnContentChange({
-  contentRef,
-  updateOverlayPosition,
-  isOpen,
-}: {
-  contentRef: React.RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
-  updateOverlayPosition: (() => void) | null;
-}) {
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
-  // Keep a ref to the updateOverlayPosition function so that we can
-  // access the latest value in the resize observer callback.
-  const updateOverlayPositionRef = useRef(updateOverlayPosition);
-  // oxlint-disable-next-line react/refs
-  if (updateOverlayPositionRef.current !== updateOverlayPosition) {
-    // oxlint-disable-next-line react/refs
-    updateOverlayPositionRef.current = updateOverlayPosition;
-  }
-
-  useLayoutEffect(() => {
-    resizeObserverRef.current = new ResizeObserver(() => {
-      if (!updateOverlayPositionRef.current) {
-        return;
-      }
-      updateOverlayPositionRef.current?.();
-    });
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
-      return () => {};
-    }
-
-    resizeObserverRef.current?.observe(contentRef.current);
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

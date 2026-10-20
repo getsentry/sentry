@@ -40,18 +40,6 @@ export const incubator = defineConfig({
   ],
 });
 
-const IS_PRECOMMIT =
-  process.env.SENTRY_PRECOMMIT !== undefined &&
-  Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
-const IS_CI = process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
-const enableTypeAwareLinting = (() => {
-  if (process.env.SENTRY_OXLINT_TYPEAWARE !== undefined) {
-    return Boolean(JSON.parse(process.env.SENTRY_OXLINT_TYPEAWARE));
-  }
-
-  return IS_PRECOMMIT ? IS_CI : true;
-})();
-
 /**
  * Oxlint configuration reference:
  * https://oxc.rs/docs/guide/usage/linter/config.html
@@ -117,11 +105,8 @@ const config = defineConfig({
     {name: 'boundaries', specifier: '@boundaries/eslint-plugin'},
   ],
   options: {
-    typeAware: enableTypeAwareLinting,
-    // Only report unused directives when the full rule set runs. Without
-    // type-aware linting the type-aware rules never fire, so the suppressions
-    // that silence them look unused and `--fix` would delete live ones.
-    reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
+    typeAware: true,
+    reportUnusedDisableDirectives: 'error',
   },
   globals: {
     MockApiClient: 'writable',

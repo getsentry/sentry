@@ -21,7 +21,7 @@ import {globSync} from 'tinyglobby';
 import {parse} from 'yaml';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const runner = path.join(root, 'scripts/custom-oxlint.ts');
+const runner = path.join(root, 'scripts/oxlint-suppressions.ts');
 
 test('root lint excludes workspaces that own their lint tasks', () => {
   const app = 'static/app/components/inspector.tsx';
@@ -741,7 +741,7 @@ test('CI detects changed policy inputs and deleted rules', t => {
     ['nested/package.json', '{"private":true}'],
     ['tsconfig.extra.json', '{}'],
     ['static/oxlint/example.ts', 'export {};'],
-    ['scripts/custom-oxlint.ts', 'export {};'],
+    ['scripts/oxlint-suppressions.ts', 'export {};'],
     ['oxlint.base.ts', 'export {};'],
   ] as const) {
     write(file, contents);

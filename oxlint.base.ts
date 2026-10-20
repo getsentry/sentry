@@ -732,7 +732,7 @@ const base = defineConfig({
           'analyze-styled\\.ts$',
           'type-coverage\\.ts$',
           'type-coverage-diff\\.ts$',
-          '^custom-oxlint\\.ts$',
+          '^oxlint-suppressions\\.ts$',
           'AiSetupDataConsent\\.tsx$',
           'CredentialRow\\.tsx$',
           'DevKitSettings\\.tsx$',
