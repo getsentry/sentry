@@ -58,7 +58,7 @@ export function ListBoxSection<T extends ListItemBase>({
       <Menu.SectionGroup {...itemProps} data-index={dataIndex} ref={ref}>
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
           <Menu.SectionHeader
-            trailingItem={
+            trailingAction={
               showToggleAllButton ? (
                 <SectionToggle item={item} listState={listState} />
               ) : null

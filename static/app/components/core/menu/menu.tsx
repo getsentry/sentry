@@ -55,9 +55,9 @@ export function MenuSectionLabel({
 /** Layout for a menu section heading and an optional action beside it. */
 export function MenuSectionHeader({
   children,
-  trailingItem,
+  trailingAction,
   ...props
-}: FlexProps & {trailingItem?: React.ReactNode}) {
+}: FlexProps & {trailingAction?: React.ReactNode}) {
   return (
     <Flex
       data-section-header
@@ -68,7 +68,7 @@ export function MenuSectionHeader({
       {...props}
     >
       {children}
-      {trailingItem}
+      {trailingAction}
     </Flex>
   );
 }

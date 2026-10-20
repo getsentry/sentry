@@ -50,7 +50,7 @@ export function GridListSection<T extends ListItemBase>({
       >
         {(node.rendered || showToggleAllButton) && (
           <Menu.SectionHeader
-            trailingItem={
+            trailingAction={
               showToggleAllButton ? (
                 <SectionToggle item={node} listState={listState} />
               ) : null
