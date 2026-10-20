@@ -884,30 +884,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 name="Matrix Slack integration",
             )
         elif name == "codeowners_integration":
-            resource = self._resource("scm_integration")[0]
-        elif name == "scm_integration":
-            resource = self.create_provider_integration_for(
-                self.org,
-                self.owner,
+            resource = self.create_integration(
+                organization=self.org,
                 external_id=f"matrix-github-{uuid4()}",
                 provider="github",
                 name="Matrix GitHub integration",
-                metadata={"domain_name": "github.com/permission-matrix"},
-            )
-        elif name == "scm_repository":
-            resource = self.create_repo(
-                project=self.project,
-                name="permission-matrix/repo",
-                provider="integrations:github",
-                integration_id=self._resource("codeowners_integration").id,
-                external_id="123",
-                url="https://github.com/permission-matrix/repo",
-            )
-        elif name == "scm_code_mapping":
-            resource = self.create_code_mapping(
-                project=self.project,
-                repo=self._resource("scm_repository"),
-                organization_integration=self._resource("scm_integration")[1],
             )
         elif name == "code_mapping":
             _integration, organization_integration = self.create_provider_integration_for(
@@ -933,6 +914,22 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 organization=self.org,
                 provider="segment",
                 config={"write_key": "matrix-key"},
+            )
+        elif name == "scm_repository":
+            integration, _organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            resource = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id="123",
+                url="https://github.com/permission-matrix/repo",
             )
         elif name == "flag_log":
             resource = FlagAuditLogModel.objects.create(
@@ -1135,8 +1132,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return self.project.slug
         if placeholder == "codeowners_id":
             return str(self._resource("codeowners").id)
-        if placeholder == "config_id":
-            return str(self._resource("scm_code_mapping").id)
         if placeholder == "team_id_or_slug":
             if endpoint.endpoint_name == "OrganizationSCIMTeamDetails":
                 return str(self.team.id)
@@ -1166,8 +1161,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "integration_id":
             if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
                 return str(self._resource("channel_integration").id)
-            if endpoint.endpoint_name == "OrganizationIntegrationRepoSyncEndpoint":
-                return str(self._resource("codeowners_integration").id)
             return str(self._resource("integration").id)
         if placeholder == "data_forwarder_id":
             return str(self._resource("data_forwarder").id)
@@ -1268,15 +1261,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         return path
 
     def _query_params(self, endpoint: PublicGetEndpoint | PublicMutationEndpoint) -> dict[str, Any]:
-        if endpoint.endpoint_name == "OrganizationCodeMappingRepoPrefixesEndpoint":
-            return {"repositoryId": self._resource("scm_repository").id}
         if endpoint.endpoint_name == "OrganizationDeriveCodeMappingsEndpoint" and isinstance(
             endpoint, PublicGetEndpoint
         ):
             self._resource("scm_repository")
             return {"stacktraceFilename": "matrix.py", "platform": "python"}
-        if endpoint.endpoint_name == "ProjectStacktraceLinkEndpoint":
-            return {"file": "src/matrix.py", "platform": "python"}
         if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
             return {"channel": "permission-matrix"}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
@@ -1668,27 +1657,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "title": "Permission matrix dashboard mutation"
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
-            ("OrganizationCodeMappingsEndpoint", "POST"): {
-                "integrationId": self._resource("codeowners_integration").id,
-                "repositoryId": self._resource("scm_repository").id,
-                "projectId": self.project.id,
-                "stackRoot": "/app/",
-                "sourceRoot": "src/",
-                "defaultBranch": "main",
-            },
-            ("OrganizationCodeMappingDetailsEndpoint", "PUT"): {
-                "repositoryId": self._resource("scm_repository").id,
-                "projectId": self.project.id,
-                "stackRoot": "/app/",
-                "sourceRoot": "src/",
-                "defaultBranch": "main",
-            },
-            ("OrganizationCodeMappingsBulkEndpoint", "POST"): {
-                "project": self.project.slug,
-                "repository": self._resource("scm_repository").name,
-                "defaultBranch": "main",
-                "mappings": [{"stackRoot": "/app/", "sourceRoot": "src/"}],
-            },
             ("OrganizationDeriveCodeMappingsEndpoint", "POST"): {
                 "projectId": self.project.id,
                 "repoName": self._resource("scm_repository").name,
@@ -1706,11 +1674,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "timeFilters": {"period": "14d"},
             },
             ("OrganizationReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
-            ("OrganizationRepositorySettingsEndpoint", "PUT"): {
-                "repositoryIds": [self._resource("scm_repository").id],
-                "enabledCodeReview": True,
-            },
-            ("OrganizationSeerProjectSettingsEndpoint", "PUT"): {"scannerAutomation": True},
             ("OrganizationStarredServiceSpansEndpoint", "POST"): {
                 "service_span": "permission-matrix-span",
                 "project_id": self.project.id,
@@ -1855,18 +1818,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 }
             },
             ("ProjectRepoEndpoint", "POST"): {"repositoryId": self._resource("repository").id},
-            ("ProjectRepoPathParsingEndpoint", "POST"): {
-                "stackPath": "matrix.py",
-                "sourceUrl": f"{self._resource('scm_repository').url}/blob/main/src/matrix.py",
-                "platform": "python",
-            },
-            ("ProjectSeerReposEndpoint", "POST"): {
-                "repos": [{"repositoryId": self._resource("scm_repository").id}],
-            },
-            ("ProjectSeerReposEndpoint", "PUT"): {
-                "repos": [{"repositoryId": self._resource("scm_repository").id}],
-            },
-            ("ProjectSeerSettingsEndpoint", "PUT"): {"scannerAutomation": True},
             ("ProjectSymbolSourcesEndpoint", "POST"): {
                 "name": "Permission matrix new source",
                 "layout": {"type": "native"},
@@ -2091,20 +2042,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     headers={},
                 ),
             )
-        elif endpoint.endpoint_name == "OrganizationCodeMappingRepoPrefixesEndpoint":
-            downstream_scope = patch(
-                "sentry.integrations.github.integration.GitHubIntegration.get_repo_files_from_cache",
-                return_value=["src/matrix.py"],
-            )
-        elif endpoint.endpoint_name == "OrganizationCodeMappingCodeOwnersEndpoint":
-            downstream_scope = patch(
-                "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
-                return_value={
-                    "filepath": "CODEOWNERS",
-                    "html_url": "https://github.com/permission-matrix/repo/blob/main/CODEOWNERS",
-                    "raw": "* @permission-matrix\n",
-                },
-            )
         elif endpoint.endpoint_name == "OrganizationDeriveCodeMappingsEndpoint":
             repo = self._resource("scm_repository")
             downstream_scope = patch(
@@ -2244,11 +2181,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             downstream_scope = patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=[{"name": repo.name, "external_id": repo.external_id}],
-            )
-        elif endpoint.endpoint_name == "OrganizationIntegrationRepoSyncEndpoint":
-            downstream_scope = patch(
-                "sentry.integrations.api.endpoints.organization_integration_repo_sync."
-                "sync_repos_for_org.apply_async",
             )
         else:
             downstream_scope = nullcontext()
