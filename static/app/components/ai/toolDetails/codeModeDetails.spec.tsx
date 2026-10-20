@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {CodeModeDetails} from './codeModeDetails';
 
@@ -21,7 +21,15 @@ it('shows the summary above the code and sends the original snippet', async () =
   render(<CodeModeDetails projectId={1} code={CODE} language="python" />);
 
   expect(screen.getByRole('button', {name: 'Copy snippet'})).toBeInTheDocument();
+  expect(screen.getByRole('region', {name: 'Summary'})).toHaveAttribute(
+    'aria-busy',
+    'true'
+  );
   expect(await screen.findByText('Print a number')).toBeInTheDocument();
+  expect(screen.getByRole('region', {name: 'Summary'})).toHaveAttribute(
+    'aria-busy',
+    'false'
+  );
   expect(screen.getByRole('heading', {name: 'Summary'})).toBeInTheDocument();
   expect(request).toHaveBeenCalledWith(
     URL,
@@ -65,7 +73,8 @@ it('keeps code available when generation fails', async () => {
 
   render(<CodeModeDetails projectId={1} code={CODE} language="python" />);
 
-  await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+  await waitForElementToBeRemoved(() => screen.queryByRole('region', {name: 'Summary'}));
+  expect(request).toHaveBeenCalledTimes(1);
   expect(screen.getByRole('button', {name: 'Copy snippet'})).toBeInTheDocument();
   expect(screen.queryByRole('heading', {name: 'Summary'})).not.toBeInTheDocument();
 });

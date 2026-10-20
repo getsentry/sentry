@@ -21,7 +21,7 @@ export function CodeModeDetails({code, language, projectId}: Props) {
     code.length <= 4_000 &&
     code.trim().length > 0 &&
     requestLanguage.length <= 64;
-  const {data} = useQuery({
+  const {data, isLoading} = useQuery({
     ...apiOptions.as<{summary: string}>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/ai/code-explanation/',
       {
@@ -41,6 +41,7 @@ export function CodeModeDetails({code, language, projectId}: Props) {
       code={code}
       language={language}
       summary={canExplain ? data?.summary : undefined}
+      isSummaryLoading={canExplain && isLoading}
     />
   );
 }
