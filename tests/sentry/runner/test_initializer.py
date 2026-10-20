@@ -228,7 +228,9 @@ def test_bootstrap_options_promotes_mail_prefix(settings, prefix, source) -> Non
 
 
 @pytest.mark.parametrize("prefix", ["[Custom]", ""])
-def test_bootstrap_options_config_mail_prefix_precedes_settings(settings, config_yml, prefix) -> None:
+def test_bootstrap_options_config_mail_prefix_precedes_settings(
+    settings, config_yml, prefix
+) -> None:
     settings.EMAIL_SUBJECT_PREFIX = "[Setting]"
     settings.SENTRY_OPTIONS["mail.subject-prefix"] = "[Option]"
     config_yml.write(f"mail.subject-prefix: '{prefix}'\n")
