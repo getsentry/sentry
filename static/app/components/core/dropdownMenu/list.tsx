@@ -17,7 +17,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {minCssLength} from 'sentry/utils/cssLength';
+import {minHeight} from 'sentry/utils/minHeight';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
@@ -531,7 +531,7 @@ function DropdownSubmenu({
     triggerRef
   );
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const maxHeight = minCssLength(options.maxMenuHeight, overlayProps.style?.maxHeight);
+  const maxHeight = minHeight(options.maxMenuHeight, overlayProps.style?.maxHeight);
 
   return (
     <Container as="li" display="contents" role="presentation">

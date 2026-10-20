@@ -19,7 +19,7 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {minCssLength, withUnits} from 'sentry/utils/cssLength';
+import {minHeight} from 'sentry/utils/minHeight';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -647,6 +647,9 @@ export const ClearButton = styled(Button)`
   margin: 0 -${p => p.theme.space.xs};
 `;
 
+const withUnits = (value: string | number) =>
+  typeof value === 'number' ? `${value}px` : value;
+
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => isPropValid(prop),
 })<{
@@ -679,7 +682,7 @@ const StyledOverlay = styled(Overlay, {
       min-width: ${withUnits(p.minWidth)};
     `}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : '100%')};
-  max-height: ${p => minCssLength(p.maxHeight, p.maxHeightProp)};
+  max-height: ${p => minHeight(p.maxHeight, p.maxHeightProp)};
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {
