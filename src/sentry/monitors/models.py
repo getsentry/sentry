@@ -283,10 +283,6 @@ class Monitor(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            # No lock: if a concurrent create commits the same slug first, our insert fails
-            # and save_with_unique_slug picks a new slug. The unique constraint is per project,
-            # so two monitors in different projects of an organization can get the same slug.
-            # This is expected, see get_monitor_by_org_id_or_slug.
             return save_with_unique_slug(
                 self,
                 pick_slug=lambda: slugify_instance(

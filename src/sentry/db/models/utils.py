@@ -51,20 +51,8 @@ def save_with_unique_slug(
     save_callback: Callable[[], object],
 ) -> None:
     """
-    Set a slug on `inst` with `pick_slug`, then insert the row with `save_callback`. This
-    needs no lock.
-
-    Two concurrent creates can pick the same slug, because neither one sees the row of the
-    other before it commits. The unique constraint on the slug catches this: Postgres makes
-    the second insert wait until the first transaction ends, and fails it if the first
-    transaction commits. The first slug is then visible, so we pick again and retry.
-
-    If the new pick gives the same slug, the slug was not the cause of the error, so we
-    raise it.
-
-    For a model with snowflake IDs, call this inside the `save_callback` of
-    `save_with_snowflake_id`, not around it. `save_with_snowflake_id` retries every
-    IntegrityError with a new ID, so it would hide a slug collision from this function.
+    Handles the situation where two concurrent creates pick the same slug; unique constraint fails,
+    and we retry with a newly picked slug.
     """
     using = router.db_for_write(type(inst))
     pick_slug()

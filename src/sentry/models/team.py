@@ -153,8 +153,6 @@ class Team(ReplicatedCellModel):
             self._save_team(save_callback)
             return
 
-        # No lock: if a concurrent create commits the same slug first, our insert fails and
-        # save_with_unique_slug picks a new slug.
         self._save_team(
             lambda: save_with_unique_slug(
                 self,

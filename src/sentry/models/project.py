@@ -412,8 +412,6 @@ class Project(Model):
             self._save_project(save_callback)
             return
 
-        # No lock: if a concurrent create commits the same slug first, our insert fails and
-        # save_with_unique_slug picks a new slug.
         self._save_project(
             lambda: save_with_unique_slug(
                 self,

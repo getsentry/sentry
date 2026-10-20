@@ -232,8 +232,7 @@ class TransactionCheckingRedisTest(SentryTestCase):
             "sentry.new_code.create_monitor",
         )
 
-        # Example entries, so that the test does not depend on the real allowlist, which only gets
-        # shorter.
+        # Example entries so that the test does not depend on the real allowlist
         allowlist = frozenset(
             {
                 ("sentry.models.project.Project.save",),

@@ -252,8 +252,7 @@ class Organization(ReplicatedCellModel):
             return
 
         target = slugify_target.lower().replace("_", "-").strip("-")
-        # No lock: if a concurrent create commits the same slug first, our insert fails and
-        # save_with_unique_slug picks a new slug.
+
         self._save_organization(
             lambda: save_with_unique_slug(
                 self,

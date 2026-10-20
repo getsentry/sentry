@@ -20,9 +20,7 @@ def create_concurrently(using: str, create: Callable[[], Any]) -> tuple[Any, Any
     """
     Run `create` two times in two threads, each time in its own transaction.
 
-    The first transaction stays open until the second create waits for a database lock,
-    then it commits. This is the order where a slug lock that ends before the commit does
-    not help: the second create cannot see the slug of the first create when it starts.
+    The first transaction stays open until the second create waits for a database lock, then it commits.
     """
     results: dict[str, Any] = {}
     errors: list[BaseException] = []
