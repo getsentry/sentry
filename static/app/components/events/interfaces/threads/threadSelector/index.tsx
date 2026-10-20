@@ -1,11 +1,12 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/arrow';
 
 import {CompactSelect, type SelectOptionOrSection} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {SortDirection} from 'sentry/components/tables/sortableHeaderCell';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -14,8 +15,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {getThreadInfo, type ThreadInfo} from './getThreadInfo';
-import {Option} from './option';
-import {ThreadSelectorGrid, ThreadSelectorGridCell} from './styles';
+import {getThreadSelectorColumns, Option} from './option';
 import {getMappedThreadState} from './threadStates';
 
 type Props = {
@@ -115,12 +115,14 @@ export function ThreadSelector({
     hasThreadStates,
   ]);
 
-  const sortIcon = (
-    <IconArrow
-      direction={isSortAscending ? 'down' : 'up'}
-      style={{height: 10, width: 10}}
-    />
-  );
+  const sortableColumns = [
+    {attribute: SortAttribute.ID, label: t('ID')},
+    {attribute: SortAttribute.NAME, label: t('Name')},
+    {attribute: SortAttribute.LABEL, label: t('Label')},
+    ...(hasThreadStates ? [{attribute: SortAttribute.STATE, label: t('State')}] : []),
+  ];
+
+  const sortDirection: SortDirection = isSortAscending ? 'asc' : 'desc';
 
   return (
     <CompactSelect
@@ -135,7 +137,7 @@ export function ThreadSelector({
       }}
       value={activeThread.id}
       options={items}
-      menuWidth={450}
+      menuWidth={500}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} size="xs">
           <ThreadName>
@@ -150,63 +152,34 @@ export function ThreadSelector({
         </OverlayTrigger.Button>
       )}
       menuBody={
-        <StyledGrid hasThreadStates={hasThreadStates}>
-          <ThreadSelectorGridCell />
-          <SortableThreadSelectorGridCell
-            onClick={() => {
-              setSortAttribute(SortAttribute.ID);
-              setIsSortAscending(
-                sortAttribute === SortAttribute.ID ? !isSortAscending : true
-              );
-            }}
+        <Container padding="0 3xl xs">
+          <SimpleTable
+            aria-label={t('Sort threads')}
+            columns={getThreadSelectorColumns(hasThreadStates)}
+            customSections
+            density="compressed"
           >
-            <HeaderText>
-              {t('ID')}
-              {sortAttribute === SortAttribute.ID && sortIcon}
-            </HeaderText>
-          </SortableThreadSelectorGridCell>
-          <SortableThreadSelectorGridCell
-            onClick={() => {
-              setSortAttribute(SortAttribute.NAME);
-              setIsSortAscending(
-                sortAttribute === SortAttribute.NAME ? !isSortAscending : true
-              );
-            }}
-          >
-            <HeaderText>
-              {t('Name')}
-              {sortAttribute === SortAttribute.NAME && sortIcon}
-            </HeaderText>
-          </SortableThreadSelectorGridCell>
-          <SortableThreadSelectorGridCell
-            onClick={() => {
-              setSortAttribute(SortAttribute.LABEL);
-              setIsSortAscending(
-                sortAttribute === SortAttribute.LABEL ? !isSortAscending : true
-              );
-            }}
-          >
-            <HeaderText>
-              {t('Label')}
-              {sortAttribute === SortAttribute.LABEL && sortIcon}
-            </HeaderText>
-          </SortableThreadSelectorGridCell>
-          {hasThreadStates && (
-            <SortableThreadSelectorGridCell
-              onClick={() => {
-                setSortAttribute(SortAttribute.STATE);
-                setIsSortAscending(
-                  sortAttribute === SortAttribute.STATE ? !isSortAscending : true
-                );
-              }}
-            >
-              <HeaderText>
-                {t('State')}
-                {sortAttribute === SortAttribute.STATE && sortIcon}
-              </HeaderText>
-            </SortableThreadSelectorGridCell>
-          )}
-        </StyledGrid>
+            <SimpleTable.Head>
+              <SimpleTable.HeaderRow>
+                <HeaderCell />
+                {sortableColumns.map(({attribute, label}) => (
+                  <HeaderCell
+                    key={attribute}
+                    sort={sortAttribute === attribute ? sortDirection : undefined}
+                    handleSortClick={() => {
+                      setSortAttribute(attribute);
+                      setIsSortAscending(
+                        sortAttribute === attribute ? !isSortAscending : true
+                      );
+                    }}
+                  >
+                    {label}
+                  </HeaderCell>
+                ))}
+              </SimpleTable.HeaderRow>
+            </SimpleTable.Head>
+          </SimpleTable>
+        </Container>
       }
       onChange={selected => {
         const threadIndex = threads.findIndex(th => th.id === selected.value);
@@ -248,34 +221,8 @@ const ActiveThreadName = styled('span')`
   text-overflow: ellipsis;
 `;
 
-const StyledGrid = styled(ThreadSelectorGrid)`
-  padding-left: 36px;
-  padding-right: 20px;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-bottom: ${p => p.theme.space.xs};
-`;
-
-const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
-  margin-bottom: ${p => p.theme.space.xs};
-  cursor: pointer;
-  user-select: none;
-  border-radius: ${p => p.theme.radius.md};
-  &:hover {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-  &:active {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.active};
-  }
-`;
-
-const HeaderText = styled(Flex)`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: ${p => p.theme.space.xs};
+// Compressed SimpleTable header padding leaves too little room for a sorted
+// label and its arrow in this narrow menu, so cells match the option padding.
+const HeaderCell = styled(SimpleTable.HeaderCell)`
   padding: 0 ${p => p.theme.space.xs};
 `;
