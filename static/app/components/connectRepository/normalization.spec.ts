@@ -40,6 +40,14 @@ describe('resolveBranch', () => {
     expect(resolveBranch('', 'master')).toBe('master');
   });
 
+  it('returns the default branch for undefined', () => {
+    expect(resolveBranch(undefined)).toBe('main');
+  });
+
+  it('uses a custom fallback when branch is undefined', () => {
+    expect(resolveBranch(undefined, 'master')).toBe('master');
+  });
+
   it('replaces spaces with dashes', () => {
     expect(resolveBranch('my branch')).toBe('my-branch');
   });
