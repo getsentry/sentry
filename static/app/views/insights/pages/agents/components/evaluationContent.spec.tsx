@@ -1,19 +1,37 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
-  EvaluatedText,
+  EvaluatedContent,
   EvaluationAnswers,
   EvaluationQuestions,
   EvaluationResultSummary,
 } from 'sentry/views/insights/pages/agents/components/evaluationContent';
 
-describe('EvaluatedText', () => {
+describe('EvaluatedContent', () => {
   it('renders the text without a Pretty/Raw toggle', async () => {
-    render(<EvaluatedText state="I cannot log in." />);
+    render(
+      <EvaluatedContent state={[{parts: [{kind: 'text', text: 'I cannot log in.'}]}]} />
+    );
 
     await userEvent.hover(screen.getByText('I cannot log in.'));
 
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+  });
+
+  it('renders message text with a placeholder for each image', () => {
+    render(
+      <EvaluatedContent
+        state={[
+          {
+            role: 'user',
+            parts: [{kind: 'text', text: 'Is this image mostly red?'}, {kind: 'image'}],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Is this image mostly red?')).toBeInTheDocument();
+    expect(screen.getByText('Image')).toBeInTheDocument();
   });
 });
 
