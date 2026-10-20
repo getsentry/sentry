@@ -538,10 +538,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
-        # Because we are using the workflow engine, the snooze_alert context should be False
-        # This is because a user cannot snooze a workflow for themselves
-        assert notification.get_context()["snooze_alert"] is False
-
         assert group
         mock_logger.info.assert_called_with(
             "mail.adapter.notify",

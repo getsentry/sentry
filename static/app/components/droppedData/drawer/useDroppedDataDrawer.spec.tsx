@@ -53,7 +53,12 @@ function mockMultiOutcomeDroppedData() {
           reason: 'network_error',
           count: 6,
         }),
-        DroppedEventFixture({outcome: 'filtered', reason: 'ignore_spans', count: 30}),
+        DroppedEventFixture({
+          outcome: 'filtered',
+          reason: 'ignore_spans',
+          count: 30,
+          tags: ['intentional'],
+        }),
       ],
       acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
     },
@@ -294,6 +299,31 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
       // Shares stay relative to all events, not just the selected outcomes.
       expect(screen.getByText('10%')).toBeInTheDocument();
+    });
+
+    it('lists intentional drops under Configured Drops', async () => {
+      mockMultiOutcomeDroppedData();
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      const heading = await screen.findByRole('heading', {name: 'Configured Drops'});
+      const isAfterHeading = (text: string) =>
+        Boolean(
+          heading.compareDocumentPosition(screen.getByText(text)) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        );
+      expect(isAfterHeading('Dropped by before send')).toBe(false);
+      expect(isAfterHeading('Dropped by ignored spans')).toBe(true);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+
+      expect(
+        screen.queryByRole('heading', {name: 'Configured Drops'})
+      ).not.toBeInTheDocument();
     });
 
     it('shows an empty state when every outcome is deselected', async () => {

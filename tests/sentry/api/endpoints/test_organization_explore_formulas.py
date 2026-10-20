@@ -113,6 +113,7 @@ class TestFormulaDetails(BaseFormulaTest):
             )
             assert response.status_code == 200, response.content
         assert response.data["name"] == "formula.hello"
+        assert response.data["updatedBy"]["email"] == self.user.email
         assert response.data["formula"] == "count() + count()"
         assert response.data["dataset"] == "logs"
 
@@ -468,6 +469,7 @@ class TestFormulas(BaseFormulaTest):
         formula_names = [row["name"] for row in response.data]
         assert "formula.apdex" in formula_names
         assert "formula.user_misery" in formula_names
+        assert response.data[0]["createdBy"] is None
         assert response.data[0]["prebuilt"]
         assert response.data[0]["references"][0] == {
             "name": "count_satisfied",
