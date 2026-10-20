@@ -444,6 +444,35 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
 
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
+    def test_subgroup_integration_after_parent_group_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            subgroup_integration = self.create_provider_integration(
+                provider="gitlab",
+                name="getsentry/sdks",
+                external_id="5678",
+                metadata={
+                    "base_url": "https://gitlab.com",
+                    "domain_name": "gitlab.com/getsentry/sdks",
+                },
+            )
+            subgroup_integration.add_organization(self.org, self.user)
+        subgroup_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sdks/sentry-python",
+            provider="integrations:gitlab",
+            integration_id=subgroup_integration.id,
+            url="https://gitlab.com/getsentry/sdks/sentry-python",
+        )
+        source_url = (
+            "https://gitlab.com/getsentry/sdks/sentry-python/-/blob/master/sentry_sdk/client.py"
+        )
+        stack_path = "sentry_sdk/client.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data["integrationId"] == subgroup_integration.id
+        assert resp.data["repositoryId"] == subgroup_repo.id
+
     def test_strips_query_params_from_source_url(self) -> None:
         source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py?ref_type=heads"
         stack_path = "sentry/api/endpoints/project_stacktrace_link.py"

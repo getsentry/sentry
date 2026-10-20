@@ -108,19 +108,25 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
         if not matching_integrations:
             raise serializers.ValidationError("Could not find integration")
 
-        self.integration = matching_integrations[0]
-
         # now find the matching repo
         repos = Repository.objects.filter(
-            organization_id=self.org_id, integration_id=self.integration.id, url__isnull=False
+            organization_id=self.org_id,
+            integration_id__in=[integration.id for integration in matching_integrations],
+            url__isnull=False,
         )
         matching_repos = list(filter(repo_match, repos))
-        if not matching_repos:
-            raise serializers.ValidationError("Could not find repo")
 
-        # store the repo we found
-        self.repo = matching_repos[0]
-        return source_url
+        # Several integrations can claim one link, such as Bitbucket Cloud ones for two
+        # workspaces, or GitLab ones for a group and its subgroup. Take the first one
+        # that has the repo.
+        for integration in matching_integrations:
+            for repo in matching_repos:
+                if repo.integration_id == integration.id:
+                    self.integration = integration
+                    self.repo = repo
+                    return source_url
+
+        raise serializers.ValidationError("Could not find repo")
 
 
 class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
