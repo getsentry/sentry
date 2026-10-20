@@ -63,6 +63,7 @@ export interface DropdownMenuListProps
     onChange: (value: string) => void;
     value: string;
     placeholder?: string;
+    showIcon?: boolean;
     size?: 'xs' | 'sm' | 'md';
   };
   size?: MenuItemProps['size'];
@@ -284,6 +285,7 @@ function DropdownMenuList({
                 {menuTitle && <Menu.Title padding="sm lg">{menuTitle}</Menu.Title>}
                 {search && (
                   <Menu.Search
+                    showIcon={search.showIcon}
                     size={search.size}
                     aria-label={search.placeholder ?? 'Search'}
                     placeholder={search.placeholder ?? 'Search…'}
@@ -470,6 +472,7 @@ function SearchableDropdownSubmenuContent({
 }: Omit<DropdownMenuContentProps, 'search'> & {
   searchOptions?: {
     placeholder?: string;
+    showIcon?: boolean;
     size?: 'xs' | 'sm' | 'md';
   };
 }) {
