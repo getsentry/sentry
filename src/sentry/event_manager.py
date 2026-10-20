@@ -136,7 +136,6 @@ from sentry.receivers.onboarding import record_release_received
 from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
-from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
@@ -151,7 +150,6 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
@@ -1140,20 +1138,11 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         # We only care about `unprocessed` for error events
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
             unprocessed = job.get("unprocessed")
-            unprocessed_source = "inline"
-            if unprocessed is None:
-                # Clean up after `store.enable-inline-payloads` is 1.0 and
-                # `store.disable-processing-store` is `True`
-                unprocessed_source = "processing_store"
-                unprocessed = event_processing_store.get(
-                    cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
-                    unprocessed=True,
-                )
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
                 metrics.incr(
                     "events.unprocessed_copy.promoted",
-                    tags={"source": unprocessed_source},
+                    tags={"source": "inline"},
                     sample_rate=1.0,
                 )
 

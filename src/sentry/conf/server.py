@@ -3385,8 +3385,6 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "attachments-store": {"redis": "default"},
-    "processing-store": {},  # "redis": "processing"},
-    "processing-store-transactions": {},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},
 }

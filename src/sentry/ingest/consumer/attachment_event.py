@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def decode_and_process_chunks(
-    raw_message: Message[KafkaPayload], consumer_type: str, reprocess_only_stuck_events: bool
+    raw_message: Message[KafkaPayload], consumer_type: str
 ) -> IngestMessage | None:
     """
     The first pass for the `attachments` topic:
@@ -45,11 +45,7 @@ def decode_and_process_chunks(
         message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
         if message["type"] == "attachment_chunk":
-            # Stuck events already have their chunks assembled in the cache, so we skip re-storing
-            # them. When reprocessing events missing from nodestore however, we *do* need to store
-            # the chunks again, as the (re)processed event depends on them being present.
-            if not reprocess_only_stuck_events:
-                process_attachment_chunk(message)
+            process_attachment_chunk(message)
             return None
 
         return message
@@ -65,7 +61,6 @@ def decode_and_process_chunks(
 
 def process_attachments_and_events(
     raw_message: Message[IngestMessage],
-    reprocess_only_stuck_events: bool,
     reprocess_only_events_not_in_nodestore: bool,
 ) -> None:
     """
@@ -76,9 +71,8 @@ def process_attachments_and_events(
     This will:
     - Decode the actual event payload which is in JSON format and perform some
       initial loadshedding on it.
-    - Store the JSON payload in the event processing store, and pass it on to
-      `preprocess_event`, which will schedule a followup task such as
-      `symbolicate_event` or `process_event`.
+    - Pass the JSON payload to `preprocess_event`, which will schedule a followup
+      task such as `symbolicate_event` or `process_event`.
     """
     message = raw_message.payload
     message_type = message["type"]
@@ -93,16 +87,15 @@ def process_attachments_and_events(
 
     try:
         if message_type == "attachment":
-            # Individual attachments are not idempotent, so we skip them in either reprocessing
+            # Individual attachments are not idempotent, so we skip them in reprocessing
             # mode to avoid duplicating attachments for events that were already handled.
-            if not reprocess_only_stuck_events and not reprocess_only_events_not_in_nodestore:
+            if not reprocess_only_events_not_in_nodestore:
                 process_individual_attachment(message, project)
         elif message_type == "event":
             process_event(
                 ConsumerType.Events,
                 message,
                 project,
-                reprocess_only_stuck_events,
                 reprocess_only_events_not_in_nodestore,
             )
         elif message_type == "user_report":

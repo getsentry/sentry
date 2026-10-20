@@ -25,7 +25,6 @@ INLINE_SAVE_EVENT_TRANSACTION_OPTION = "store.ingest-events-raw-task.inline-save
 def process_simple_event_message(
     raw_message: Message[KafkaPayload],
     consumer_type: str,
-    reprocess_only_stuck_events: bool,
     reprocess_only_events_not_in_nodestore: bool,
 ) -> None:
     """
@@ -37,8 +36,7 @@ def process_simple_event_message(
     - Fetch the corresponding Project from cache.
     - Decode the actual event payload which is in JSON format and perform some
       initial loadshedding on it.
-    - Store the JSON payload in the event processing store, and pass it on to
-      `preprocess_event`, which will schedule a followup task such as
+    - Pass the JSON payload to `preprocess_event`, which will schedule a followup task such as
       `symbolicate_event` or `process_event`.
     """
 
@@ -69,7 +67,6 @@ def process_simple_event_message(
             consumer_type,
             message,
             project,
-            reprocess_only_stuck_events,
             reprocess_only_events_not_in_nodestore,
         )
 
@@ -125,7 +122,6 @@ def process_event_from_kafka(message_bytes: bytes) -> None:
         ConsumerType.Events,
         message,
         project,
-        reprocess_only_stuck_events=False,
         inline_save_event=options.get(INLINE_SAVE_EVENT_OPTION),
         inline_save_event_transaction=options.get(INLINE_SAVE_EVENT_TRANSACTION_OPTION),
     )

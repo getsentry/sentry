@@ -92,7 +92,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal, overload
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import router
@@ -100,10 +99,9 @@ from django.utils import timezone
 from objectstore_client import TimeToLive
 from sentry_sdk import traces
 
-from sentry import models, nodestore, options, quotas
+from sentry import models, nodestore, quotas
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
-from sentry.ingest.event_payload import get_event_payload_transport
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
@@ -113,7 +111,6 @@ from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.services.eventstore.processing import event_processing_store
 from sentry.services.eventstore.reprocessing import reprocessing_store
 from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
@@ -162,29 +159,6 @@ CannotReprocessReason = Literal[
 class CannotReprocess(Exception):
     def __init__(self, reason: CannotReprocessReason):
         Exception.__init__(self, reason)
-
-
-def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
-    """
-    Backup unprocessed event payload into redis. Only call if event should be
-    able to be reprocessed.
-    """
-
-    if options.get("store.reprocessing-force-disable"):
-        return
-
-    data = dict(data)
-    try:
-        metrics.distribution(
-            "events.size.unprocessed",
-            len(orjson.dumps(data)),
-            tags={"platform": data.get("platform") or "null"},
-            unit="byte",
-        )
-    except Exception:
-        logger.warning("reprocessing2.unprocessed_size_metric_failed", exc_info=True)
-
-    event_processing_store.store(data, unprocessed=True)
 
 
 @dataclass
@@ -272,17 +246,13 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     if attachment_objects:
         store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
 
-    # Step 2: Fix up the event payload for reprocessing and put it in event
-    # cache/event_processing_store
+    # Step 2: Fix up the event payload for reprocessing.
     set_path(data, "contexts", "reprocessing", "original_issue_id", value=event.group_id)
     set_path(
         data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
     )
-    transport = get_event_payload_transport(data["event_id"])
-    cache_key = event_processing_store.store(data) if transport.cache else None
 
     preprocess_event_from_reprocessing(
-        cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         data=data,
