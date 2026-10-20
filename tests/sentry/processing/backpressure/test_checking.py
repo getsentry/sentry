@@ -75,6 +75,32 @@ def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
         "backpressure.status_ttl": 60,
     }
 )
+def test_backpressure_ignores_removed_attachments_store(preprocess_event: MagicMock) -> None:
+    # Deployments may still configure `attachments-store` until their settings
+    # are cleaned up. Its health must no longer gate ingest consumers.
+    record_consumer_health(
+        {
+            "attachments-store": Exception("Couldn't check attachments-store"),
+            "processing-store": [],
+            "processing-store-transactions": [],
+            "processing-locks": [],
+            "post-process-locks": [],
+        }
+    )
+    process_one_message(payload=EVENTS_MSG)
+
+    preprocess_event.assert_called_once()
+
+
+@patch("sentry.ingest.consumer.factory.maybe_multiprocess_step")
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
+        "backpressure.status_ttl": 60,
+    }
+)
 def test_backpressure_unhealthy_recovery_consumer(preprocess_event: MagicMock) -> None:
     record_consumer_health(
         {

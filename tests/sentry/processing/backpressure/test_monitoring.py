@@ -12,7 +12,6 @@ from sentry.processing.backpressure.monitor import (
     Redis,
     assert_all_services_defined,
     check_service_health,
-    filter_known_services,
     load_service_definitions,
 )
 from sentry.testutils.helpers.options import override_options
@@ -33,24 +32,6 @@ def test_loading_definitions() -> None:
                 "post-process-locks": None,
             }
         )
-
-
-def test_filter_known_services() -> None:
-    services = filter_known_services(
-        {
-            "attachments-store": None,
-            "processing-store": None,
-            "processing-store-transactions": None,
-            "processing-locks": None,
-            "post-process-locks": None,
-        }
-    )
-    assert set(services) == {
-        "processing-store",
-        "processing-store-transactions",
-        "processing-locks",
-        "post-process-locks",
-    }
 
 
 def test_check_redis_health() -> None:
