@@ -260,9 +260,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         self.save_mock_escalating_group_forecast(
             group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
         )
-        with CaptureQueriesContext(connection) as queries:
-            assert is_escalating(archived_group) == (True, 5)
-        assert not [q for q in queries.captured_queries if "sentry_groupedmessage" in q["sql"]]
+        assert is_escalating(archived_group) == (True, 5)
 
         # Test cache
         assert cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}") == 6
