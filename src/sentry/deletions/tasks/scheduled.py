@@ -39,7 +39,10 @@ MAX_RETRIES = 5
 
 
 def scheduled_deletion_viewer_context(
-    deletion: BaseScheduledDeletion, instance: Any
+    deletion: BaseScheduledDeletion,
+    instance: Any,
+    *,
+    origin_context: ViewerContext | None = None,
 ) -> AbstractContextManager[None]:
     """Apply the recorded actor and target scope while executing a scheduled deletion."""
     if not isinstance(instance, (Organization, Project)):
@@ -48,7 +51,7 @@ def scheduled_deletion_viewer_context(
     viewer_context = (
         ViewerContext(user_id=deletion.actor_id, actor_type=ActorType.USER)
         if deletion.actor_id is not None
-        else get_viewer_context()
+        else origin_context or get_viewer_context()
     )
     if viewer_context is None:
         return nullcontext()

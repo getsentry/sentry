@@ -6,7 +6,7 @@ import click
 
 from sentry.deletions.tasks.scheduled import scheduled_deletion_viewer_context
 from sentry.runner.decorators import configuration
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import ActorType, ViewerContext
 
 if TYPE_CHECKING:
     from sentry.deletions.models.scheduleddeletion import BaseScheduledDeletion
@@ -93,23 +93,6 @@ def run_deletions(
     """
     Run pending scheduled deletions synchronously.
     """
-    with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
-        _run_deletions(
-            deletion_id=deletion_id,
-            cell_deletion_id=cell_deletion_id,
-            model=model,
-            run_all=run_all,
-            verbose=verbose,
-        )
-
-
-def _run_deletions(
-    deletion_id: int | None,
-    cell_deletion_id: int | None,
-    model: str | None,
-    run_all: bool,
-    verbose: bool,
-) -> None:
     from django.utils import timezone
 
     if not any([deletion_id, cell_deletion_id, model, run_all]):
@@ -175,7 +158,11 @@ def _run_one(*, deletion: BaseScheduledDeletion, verbose: bool = False) -> None:
         deletion.delete()
         return
 
-    with scheduled_deletion_viewer_context(deletion, instance):
+    with scheduled_deletion_viewer_context(
+        deletion,
+        instance,
+        origin_context=ViewerContext(actor_type=ActorType.SYSTEM),
+    ):
         task = deletions_module.get(
             model=deletion.get_model(),
             query={"id": deletion.object_id},
