@@ -285,9 +285,12 @@ def translate_wildcard(pat: str) -> str:
         # fnmatch.translate has no way to handle escaping metacharacters.
         # Applied this basic patch to handle it:
         # https://bugs.python.org/file27570/issue8402.1.patch
-        if c == "\\" and i < n:
-            res += re.escape(pat[i])
-            i += 1
+        if c == "\\":
+            if i < n:
+                res += re.escape(pat[i])
+                i += 1
+            elif i == n:
+                raise InvalidSearchQuery("Search terms cannot end with an escape character")
         elif c == "*":
             res += ".*"
         elif c in "()[]?*+-|^$\\.&~# \t\n\r\v\f":
@@ -311,11 +314,14 @@ def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
     while i < n:
         c = pattern[i]
         i += 1
-        if c == "\\" and i < n:
-            c = pattern[i]
-            if c not in {"*", "\\"}:
-                raise InvalidSearchQuery(f"Unexpected escape character: {c}")
-            chars.append(c)
+        if c == "\\":
+            if i < n:
+                c = pattern[i]
+                if c not in {"*", "\\"}:
+                    raise InvalidSearchQuery(f"Unexpected escape character: {c}")
+                chars.append(c)
+            elif i == n:
+                raise InvalidSearchQuery("Search terms cannot end with an escape character")
             i += 1
         elif c == "*":
             # sql uses % as the wildcard character

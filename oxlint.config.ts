@@ -10,7 +10,10 @@ const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}']
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
-  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  rules: {
+    '@sentry/scraps/prefer-primitives': 'error',
+    '@sentry/scraps/prefer-container-responsive-props': 'error',
+  },
   overrides: [
     {
       files: coreComponentFiles,
@@ -25,18 +28,6 @@ export const incubator = defineConfig({
     },
   ],
 });
-
-const IS_PRECOMMIT =
-  process.env.SENTRY_PRECOMMIT !== undefined &&
-  Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
-const IS_CI = process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
-const enableTypeAwareLinting = (() => {
-  if (process.env.SENTRY_OXLINT_TYPEAWARE !== undefined) {
-    return Boolean(JSON.parse(process.env.SENTRY_OXLINT_TYPEAWARE));
-  }
-
-  return IS_PRECOMMIT ? IS_CI : true;
-})();
 
 /**
  * Oxlint configuration reference:
@@ -327,11 +318,8 @@ const config = defineConfig({
     correctness: 'off',
   },
   options: {
-    typeAware: enableTypeAwareLinting,
-    // Only report unused directives when the full rule set runs. Without
-    // type-aware linting the type-aware rules never fire, so the suppressions
-    // that silence them look unused and `--fix` would delete live ones.
-    reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
+    typeAware: true,
+    reportUnusedDisableDirectives: 'error',
   },
   env: {
     builtin: true,
@@ -1857,6 +1845,13 @@ const config = defineConfig({
           },
         ],
       },
+    },
+    {
+      files: [
+        'static/packages/scraps/src/**/*.spec.{ts,tsx}',
+        'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
+      ],
+      rules: {'import/no-relative-parent-imports': 'off'},
     },
     {
       files: ['**/*.stories.tsx'],

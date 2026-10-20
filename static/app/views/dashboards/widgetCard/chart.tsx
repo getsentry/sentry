@@ -44,6 +44,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex.ts';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
@@ -93,8 +94,9 @@ type TableComponentProps = Pick<
   onWidgetTableSort?: (sort: Sort) => void;
 };
 
-type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'> &
-  TableComponentProps & {
+type WidgetCardChartProps = {
+  timeseriesResults?: WidgetTimeSeries[];
+} & TableComponentProps & {
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
@@ -520,12 +522,7 @@ function ServerTreeComponent({
     filter => filter.tag.key === 'transaction' && filter.dataset === WidgetType.SPANS
   );
 
-  return (
-    <ServerTreeWidgetVisualization
-      noVisualizationPadding
-      query={transactionFilter?.value}
-    />
-  );
+  return <ServerTreeWidgetVisualization query={transactionFilter?.value} />;
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {

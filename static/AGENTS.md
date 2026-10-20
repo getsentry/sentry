@@ -31,7 +31,8 @@
 
 - Routes defined in `static/app/router/routes.tsx`
 - Local development and deploy previews run React Router V8. Production remains
-  on V6. Application tests and typechecks run against both versions.
+  on V6. Application tests and typechecks run against both versions; set
+  `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run `test-ci` or `typecheck` against one.
   `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
 - Use V8 import paths: import router APIs and types from `react-router`, and
   `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
@@ -54,6 +55,10 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 4. ALWAYS use TypeScript
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
+
+## Linting
+
+Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. Each workspace's `oxlint-suppressions.json` uses project-relative paths and caps existing debt per file and rule. Missing files mean empty budgets. Successful fixes lower counts automatically. Run `pnpm run lint:js --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
 
 ## Refs
 
@@ -92,7 +97,8 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 - **Layout**: use `Flex`, `Grid`, `Stack`, `Container` — never styled `display: flex/grid`.
 - **Typography**: use `Text` and `Heading` — never raw `<p>`, `<span>`, `<div>`, or `<h1>`–`<h6>`.
 - Prefer component props over the `style` attribute; use `gap`/padding over `margin`.
-- Use responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries.
+- Use container responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries. Do not add viewport `screen:` keys; preserve existing viewport behavior with a lint suppression when a container query would change it.
+- Do not add layout `@media` or `@container` queries to Emotion styles, including tests. Use responsive primitive props. `@media` is allowed for modal sizing in `modalCss`, viewport sizing or placement in the core drawer shell, and non-layout features such as reduced motion, hover, pointer, and color scheme.
 - Split layout from typography — compose `Flex`/`Grid` with `Text`/`Heading`; don't couple them in one styled component.
 - Prefer `InfoTip`/`InfoText` over a raw `Tooltip`.
 - Add `*.stories.mdx` stories for new components.

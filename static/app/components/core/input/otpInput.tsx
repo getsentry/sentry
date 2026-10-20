@@ -55,6 +55,8 @@ export interface OTPInputProps<Format extends string> {
    */
   format: OTPFormat<Format>;
   onComplete: (value: string) => void;
+  'aria-label'?: string;
+  defaultValue?: string;
   disabled?: boolean;
   /** Converts alphanumeric input to uppercase as it is entered. */
   uppercase?: boolean;
@@ -62,13 +64,15 @@ export interface OTPInputProps<Format extends string> {
 
 /** @public */
 export function OTPInput<const Format extends string>({
+  'aria-label': ariaLabel,
   format,
   onComplete,
   disabled = false,
+  defaultValue = '',
   uppercase = false,
 }: OTPInputProps<Format>) {
   const {t} = useTranslation();
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(defaultValue);
   const normalizeValue = (newValue: string) =>
     uppercase ? newValue.toUpperCase() : newValue;
   const formatCharacters = [...format];
@@ -77,7 +81,7 @@ export function OTPInput<const Format extends string>({
 
   return (
     <OTPInputPrimitive
-      aria-label={t('One-time password')}
+      aria-label={ariaLabel ?? t('One-time password')}
       autoComplete="one-time-code"
       disabled={disabled}
       inputMode={isAlphanumeric ? 'text' : 'numeric'}

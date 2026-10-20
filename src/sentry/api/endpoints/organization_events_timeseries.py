@@ -37,6 +37,7 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.status import IngestionDelayStatus
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -81,6 +82,11 @@ TOP_EVENTS_DATASETS = {
     TraceMetrics,
     errors,
     transactions,
+}
+DATASET_TO_FORMULA_DATASET = {
+    Spans: ExploreSavedQueryDataset.SPANS,
+    OurLogs: ExploreSavedQueryDataset.OURLOGS,
+    TraceMetrics: ExploreSavedQueryDataset.METRICS,
 }
 
 logger = logging.getLogger(__name__)
@@ -308,6 +314,20 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             actor=request.user,
         )
 
+        if dataset in DATASET_TO_FORMULA_DATASET and features.has(
+            "organizations:explore-saved-formulas", organization, actor=request.user
+        ):
+            saved_formulas = {
+                formula.name: formula
+                for formula in ExploreSavedFormula.objects.filter(
+                    organization=organization,
+                    dataset=DATASET_TO_FORMULA_DATASET[dataset],
+                    prebuilt_deleted=False,
+                ).prefetch_related("variables")
+            }
+        else:
+            saved_formulas = None
+
         if dataset == TraceMetrics:
             # tracemetrics uses aggregate conditions
             return TraceMetricsSearchResolverConfig(
@@ -317,6 +337,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                saved_formulas=saved_formulas,
             )
         elif dataset == PreprodSize:
             return PreprodSizeSearchResolverConfig(
@@ -341,6 +362,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         actor=request.user,
                     )
                 ),
+                saved_formulas=saved_formulas if dataset in [Spans, OurLogs] else None,
             )
 
     def get_event_stats(
@@ -584,10 +606,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 processed_timeseries.sampling_rate,
                 processed_timeseries.confidence,
             ):
-                value["sampleCount"] = count[axis]
+                value["sampleCount"] = count.get(axis)
                 # We want to null sample rates that are 0 since that means we received no data during this bucket
-                value["sampleRate"] = null_zero(rate[axis])
-                value["confidence"] = confidence[axis]
+                value["sampleRate"] = null_zero(rate.get(axis))
+                value["confidence"] = confidence.get(axis)
 
         timeseries["values"] = timeseries_values
 
