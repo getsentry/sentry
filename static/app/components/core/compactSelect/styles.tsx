@@ -128,7 +128,7 @@ export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
   return (
     <Stack
       as="li"
-      data-section-separator=""
+      data-section-separator
       justify="center"
       height="8px"
       padding="0 lg 0 xl"
