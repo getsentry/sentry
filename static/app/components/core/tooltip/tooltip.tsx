@@ -126,7 +126,8 @@ function stopPropagation(e: React.SyntheticEvent) {
   e.stopPropagation();
 }
 
-const TooltipContent = styled(Overlay, {
+/** @internal */
+export const TooltipContent = styled(Overlay, {
   shouldForwardProp: prop => prop !== 'maxWidth',
 })<{maxWidth?: number | 'none'}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};

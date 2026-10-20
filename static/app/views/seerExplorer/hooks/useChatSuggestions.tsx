@@ -109,7 +109,6 @@ export function useChatSuggestions({
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const capturePageContext = usePageContextCapture();
-  const isPageReady = usePageContextReady(route);
 
   const queryKey = [
     'seer-chat-suggestions',
@@ -120,6 +119,7 @@ export function useChatSuggestions({
     allowStructuredContext,
   ];
   const serializedQueryKey = JSON.stringify(queryKey);
+  const isPageReady = usePageContextReady(route, serializedQueryKey);
 
   // Latched so a late response doesn't swap out suggestions the user is reading.
   const [timeoutReason, setTimeoutReason] = useState<TimeoutReason | null>(null);

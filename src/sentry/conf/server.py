@@ -396,6 +396,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
+    "sentry.middleware.notification_tracking.NotificationTrackingMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -3289,7 +3290,7 @@ SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
 SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
-    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "path": "sentry.utils.locking.backends.redis.RedisClusterLockBackend",
     "options": {"cluster": "default"},
 }
 

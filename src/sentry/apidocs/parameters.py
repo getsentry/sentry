@@ -1505,3 +1505,60 @@ Available fields are:
 - `myqueries`
         """,
     )
+
+
+class InvestigationParams:
+    BLOCK_ID = OpenApiParameter(
+        name="block_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an active block in this investigation.",
+    )
+    COMMENT_ID = OpenApiParameter(
+        name="comment_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of a comment in this investigation.",
+    )
+    EXECUTION_ID = OpenApiParameter(
+        name="execution_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an execution belonging to this block.",
+    )
+    INVESTIGATION_ID = OpenApiParameter(
+        name="investigation_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an investigation in this organization.",
+    )
+    CURSOR = OpenApiParameter(
+        name="cursor",
+        location="query",
+        type=str,
+        description="Pagination cursor from the previous response's Link header.",
+    )
+    PER_PAGE = OpenApiParameter(
+        name="per_page",
+        location="query",
+        type=int,
+        description="Maximum results per page, up to 100. Defaults to 100.",
+    )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        type=str,
+        description="Case-insensitive substring to match against investigation titles.",
+    )
+    STATUS = OpenApiParameter(
+        name="status",
+        location="query",
+        type=str,
+        enum=["active", "archived"],
+        default="active",
+        description="Return investigations with this status. Defaults to active.",
+    )

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed
+from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed, serialize_group_notes
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
@@ -19,14 +19,13 @@ from sentry.issues.action_log.types import (
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
     CommentAction,
-    CommentDeleteAction,
-    CommentEditAction,
     FirstSeenAction,
     GroupActionType,
     GroupActorType,
 )
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.pullrequest import PullRequest
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
@@ -47,8 +46,6 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 logger = logging.getLogger(__name__)
-
-MAX_ACTIVITY_REFETCHES = 3
 
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
@@ -109,50 +106,6 @@ def _serialized_comment_id(obj: GroupActionLogEntry) -> str | None:
     return None
 
 
-def _fold_comment_mutations(
-    entries: Sequence[GroupActionLogEntry],
-) -> tuple[list[GroupActionLogEntry], dict[int, str | None]]:
-    """
-    Resolve COMMENT_EDIT and COMMENT_DELETE against the comments they supersede.
-
-    The log is append-only, so editing or deleting a comment appends an entry rather than
-    rewriting the COMMENT. Returns the entries to serialize — mutations dropped, deleted
-    comments removed — and the current text of each edited comment, keyed by the id of the
-    COMMENT itself, which is what a mutation's ``comment_id`` points at.
-    """
-    latest_text_by_comment: dict[int, str | None] = {}
-    deleted_comment_ids: set[int] = set()
-    for entry in entries:
-        if entry.type not in COMMENT_MUTATION_ACTION_TYPES:
-            continue
-        match entry.action:
-            case CommentEditAction(comment_id=comment_id, text=text):
-                # Entries arrive newest-first, so the first edit seen wins.
-                latest_text_by_comment.setdefault(comment_id, text)
-            case CommentDeleteAction(comment_id=comment_id):
-                deleted_comment_ids.add(comment_id)
-
-    kept = [
-        entry
-        for entry in entries
-        if entry.type not in COMMENT_MUTATION_ACTION_TYPES and entry.id not in deleted_comment_ids
-    ]
-    return kept, latest_text_by_comment
-
-
-def _fold_activity_entries(
-    entries: Sequence[GroupActionLogEntry],
-) -> tuple[list[GroupActionLogEntry], dict[int, str | None]]:
-    """
-    Fold comment mutations and drop FIRST_SEEN entries, which are served separately as a
-    single first-seen item. Dropping them here lets the refetch loop count only entries
-    that will fill the page.
-    """
-    kept, latest_text_by_comment = _fold_comment_mutations(entries)
-    kept = [entry for entry in kept if entry.type != GroupActionType.FIRST_SEEN.value]
-    return kept, latest_text_by_comment
-
-
 def get_serialized_activity_items(
     group: "Group",
     user: User | RpcUser | AnonymousUser | None,
@@ -161,11 +114,10 @@ def get_serialized_activity_items(
     limit: int = 99,
 ) -> list[dict[str, Any]] | None:
     """
-    Activity-shaped items for a group, read from the action log.
+    Merge live Activity comments with non-comment log entries, then append one first-seen.
 
-    Comment edits and deletes are folded into the comments they supersede. Expand the fetch
-    window as needed to fill the page with surviving entries, then append exactly one
-    first-seen item.
+    Each source supplies at most limit candidates. Order by creation time descending,
+    comments before actions on ties, and numeric ID descending within each source.
 
     Returns None when the log can't back the response — either the gate is closed or it's
     open and the log is empty — and the caller should fall back to Activity. Reports the
@@ -174,10 +126,11 @@ def get_serialized_activity_items(
     if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
         return None
 
-    # Start with 25% headroom to absorb a few mutations without a refetch.
-    fetch_limit = limit + (limit // 4)
-    action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)
-    if not action_log:
+    action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
+    # Inspect the whole visible log, not just non-comment entries: a comment-only
+    # log is valid. This also identifies the original first-seen after merges.
+    oldest_entry = action_log.order_by("date_added", "id").first()
+    if oldest_entry is None:
         record_activity_read(
             endpoint, ActivityReadResult.FELL_BACK, ActivityReadFallbackReason.EMPTY_LOG
         )
@@ -187,32 +140,47 @@ def get_serialized_activity_items(
         )
         return None
 
-    entries, latest_text_by_comment = _fold_activity_entries(action_log)
-    for _ in range(MAX_ACTIVITY_REFETCHES):
-        if len(entries) >= limit or len(action_log) < fetch_limit:
-            break
-        # A full raw window may have displaced entries with rows that the fold drops.
-        # Refetch a larger window within the budget above.
-        # Refold the entire window rather than combining rows from separate reads.
-        fetch_limit *= 2
-        action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)
-        entries, latest_text_by_comment = _fold_activity_entries(action_log)
+    entries = list(
+        action_log.exclude(
+            type__in=[
+                GroupActionType.COMMENT.value,
+                *COMMENT_MUTATION_ACTION_TYPES,
+                GroupActionType.FIRST_SEEN.value,
+            ]
+        ).order_by("-date_added", "-id")[:limit]
+    )
+    notes = list(
+        Activity.objects.filter(group=group, type=ActivityType.NOTE.value).order_by(
+            "-datetime", "-id"
+        )[:limit]
+    )
+    candidates: list[Activity | GroupActionLogEntry] = [*notes, *entries]
+    page = sorted(
+        candidates,
+        key=lambda item: (
+            item.datetime if isinstance(item, Activity) else item.date_added,
+            isinstance(item, Activity),
+            item.id,
+        ),
+        reverse=True,
+    )[:limit]
 
-    # Merges can carry other groups' FIRST_SEEN entries into this log. Only an entry that
-    # is the oldest in the whole log represents this group; when the window doesn't reach
-    # the start of the log, we can't tell, so synthesize as for groups without one.
-    first_seen_entry = None
-    if len(action_log) < fetch_limit and action_log[-1].type == GroupActionType.FIRST_SEEN.value:
-        first_seen_entry = action_log[-1]
-    entries = entries[:limit]
+    # Serialize only the selected rows, batching each model's related-data lookups.
+    notes = [item for item in page if isinstance(item, Activity)]
+    entries = [item for item in page if isinstance(item, GroupActionLogEntry)]
+    serialized: dict[Activity | GroupActionLogEntry, dict[str, Any]] = {
+        note: dict(item) for note, item in zip(notes, serialize_group_notes(group, notes, user))
+    }
+    serialized.update(zip(entries, serialize(entries, user)))
 
-    items = serialize(entries, user)
-    for entry, item in zip(entries, items):
-        if entry.id in latest_text_by_comment:
-            item["data"] = {**item["data"], "text": latest_text_by_comment[entry.id]}
+    first_seen_entry = (
+        oldest_entry if oldest_entry.type == GroupActionType.FIRST_SEEN.value else None
+    )
 
     record_activity_read(endpoint, ActivityReadResult.GAL)
-    return [*items, serialize_first_seen_entry(group, first_seen_entry)]
+    return [serialized[item] for item in page] + [
+        dict(serialize_first_seen_entry(group, first_seen_entry))
+    ]
 
 
 @register(GroupActionLogEntry)

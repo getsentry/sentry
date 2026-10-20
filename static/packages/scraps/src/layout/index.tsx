@@ -12,6 +12,7 @@ export {Stack, type StackProps} from './stack';
  * @TODO: these should probably be private to scraps
  */
 export {
+  ContainerQueryContext,
   ContainerQueryProvider,
   rc,
   type Responsive,

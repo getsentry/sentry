@@ -144,8 +144,8 @@ export type ReadableSavedQuery = {
   end?: string;
   environment?: string[];
   isPrebuilt?: boolean;
-  range?: string;
   start?: string;
+  statsPeriod?: string;
 };
 
 export class SavedQuery {
@@ -168,8 +168,8 @@ export class SavedQuery {
   end?: string | DateString;
   environment?: string[];
   isPrebuilt?: boolean;
-  range?: string;
   start?: string | DateString;
+  statsPeriod?: string;
 
   constructor(savedQuery: ReadableSavedQuery) {
     this.agent = savedQuery.agent;
@@ -192,7 +192,7 @@ export class SavedQuery {
     this.end = savedQuery.end;
     this.environment = savedQuery.environment;
     this.isPrebuilt = savedQuery.isPrebuilt;
-    this.range = savedQuery.range;
+    this.statsPeriod = savedQuery.statsPeriod;
     this.start = savedQuery.start;
     this.dataset = savedQuery.dataset;
   }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from pydantic import Field
 
@@ -289,6 +289,12 @@ class SeerInvestigationHypothesis(TypedDict):
     detail: str
 
 
+class SeerInvestigationProgress(TypedDict):
+    title: str
+    status: Literal["in_progress", "complete", "error"]
+    detail: str
+
+
 class SeerInvestigationStatus(NotificationData):
     """Live status of a Seer investigation, edited in place in the alert's Slack thread."""
 
@@ -296,6 +302,7 @@ class SeerInvestigationStatus(NotificationData):
     investigation_url: str
     subtitle: str | None = None
     hypotheses: list[SeerInvestigationHypothesis] = Field(default_factory=list)
+    progress: SeerInvestigationProgress | None = None
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STATUS
 
 
@@ -324,6 +331,11 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
                 detail="Third-party script timings did not change during the breach window.",
             ),
         ],
+        progress=SeerInvestigationProgress(
+            title="Verifying hypotheses",
+            status="in_progress",
+            detail="Checking the remaining explanations against related telemetry.",
+        ),
     )
     hide_from_debugger = True
 
@@ -333,6 +345,43 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
             body=[
                 ParagraphSection(blocks=[PlainTextBlock(text=f"{h['statement']}: {h['label']}")])
                 for h in data.hypotheses
+            ],
+            actions=[
+                NotificationRenderedAction(
+                    label="View full investigation", link=data.investigation_url
+                )
+            ],
+        )
+
+
+class SeerInvestigationConclusion(NotificationData):
+    """The report text of a finished Seer investigation, posted in the alert's Slack thread."""
+
+    sections: list[str]
+    investigation_url: str
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_CONCLUSION
+
+
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_CONCLUSION)
+class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigationConclusion]):
+    category = NotificationCategory.SEER
+    example_data = SeerInvestigationConclusion(
+        organization_id=1,
+        sections=[
+            "## Summary\n\nA frontend release added a render-blocking font file, "
+            "which delayed the first paint on organization login pages.",
+            "## Next steps\n\n- Preload the font file or load it asynchronously.\n"
+            "- Add a performance budget for render-blocking assets.",
+        ],
+        investigation_url="https://sentry.io/organizations/example/explore/investigations/1/",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerInvestigationConclusion) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer investigation conclusion",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=section)]) for section in data.sections
             ],
             actions=[
                 NotificationRenderedAction(

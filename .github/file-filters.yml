@@ -48,7 +48,8 @@ frontend_all: &frontend_all
   - added|deleted|modified: 'pnpm-workspace.yaml'
   - added|modified: 'oxlint.config.ts'
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs,pegjs}'
-  - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
+  - added|modified: 'static/**/*.{less,yml,md,mdx}'
+  - added|modified: 'static/**/!(oxlint-suppressions).json'
   - added|modified: '{vercel,tsconfig,biome,package}.json'
 
 frontend_lint:
@@ -62,7 +63,7 @@ frontend_lint:
   - added|deleted|modified: '**/tsconfig*.json'
   - added|deleted|modified: '.node-version'
   - added|deleted|modified: '**/.{git,eslint,oxlint}ignore'
-  - added|deleted|modified: 'oxlint-suppressions.json'
+  - added|deleted|modified: '**/oxlint-suppressions.json'
 
 api_url_codegen:
   - added|modified: 'static/app/utils/api/knownSentryApiUrls.generated.ts'

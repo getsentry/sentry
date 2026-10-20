@@ -11,6 +11,7 @@
     "./activityFeed": "./fixtures/activityFeed.ts",
     "./actor": "./fixtures/actor.ts",
     "./agenticProgressRun": "./fixtures/agenticProgressRun.ts",
+    "./aiTraceSpanNode": "./fixtures/aiTraceSpanNode.ts",
     "./apiApplication": "./fixtures/apiApplication.ts",
     "./apiToken": "./fixtures/apiToken.ts",
     "./auditLogs": "./fixtures/auditLogs.ts",
