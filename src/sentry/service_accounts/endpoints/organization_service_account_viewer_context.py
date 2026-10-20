@@ -37,7 +37,6 @@ from sentry.models.organization import Organization
 from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.service_accounts.endpoints.organization_service_accounts import (
     FEATURE_FLAG,
-    MOCK_SERVICE_ACCOUNT_SCOPES,
     SERVICE_ACCOUNT_ID,
 )
 from sentry.viewer_context import (
@@ -46,6 +45,8 @@ from sentry.viewer_context import (
     ViewerContext,
     encode_viewer_context,
 )
+
+MOCK_SERVICE_ACCOUNT_SCOPES = ["event:read", "org:read", "project:read"]
 
 
 class ServiceAccountViewerContextResponse(TypedDict):
