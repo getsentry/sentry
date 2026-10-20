@@ -200,7 +200,11 @@ from sentry.seer.models.run import (
     SeerRunPullRequest,
     SeerRunType,
 )
-from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowRunExecution
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+)
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -3389,6 +3393,11 @@ class Factories:
             agent_session_id=session_id,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config(organization, **kwargs) -> SeerWorkflowConfig:
+        return SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

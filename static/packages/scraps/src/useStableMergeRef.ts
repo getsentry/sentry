@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useMemo} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 

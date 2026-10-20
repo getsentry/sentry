@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useMemo} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 

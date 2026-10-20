@@ -1,13 +1,12 @@
+import type * as React from 'react';
 import styled from '@emotion/styled';
 import type {Placement} from '@floating-ui/react-dom';
 import type {HTMLMotionProps, MotionProps, MotionStyle} from 'framer-motion';
 import {motion, useIsPresent} from 'framer-motion';
 
-import type {OverlayArrowProps} from 'sentry/components/overlayArrow';
-import {OverlayArrow} from 'sentry/components/overlayArrow';
-import {NODE_ENV} from 'sentry/constants/env';
-import {defined} from 'sentry/utils/defined';
-import {PanelProvider} from 'sentry/utils/panelProvider';
+import type {OverlayArrowProps} from '@sentry/scraps/overlayArrow';
+import {OverlayArrow} from '@sentry/scraps/overlayArrow';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 
 type OriginPoint = Partial<{x: number; y: number}>;
 
@@ -99,7 +98,7 @@ export function Overlay({
   style,
   ...props
 }: OverlayProps) {
-  const isTestEnv = NODE_ENV === 'test';
+  const isTestEnv = process.env.NODE_ENV === 'test';
   const animationProps =
     !isTestEnv && animated
       ? {
@@ -119,7 +118,9 @@ export function Overlay({
       ref={ref}
       placement={placement}
     >
-      {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
+      {arrowProps !== undefined && arrowProps !== null && (
+        <OverlayArrow {...arrowProps} />
+      )}
       <PanelProvider>{children}</PanelProvider>
     </OverlayInner>
   );

@@ -393,6 +393,23 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
             assert [run["id"] for run in response.data] == [str(newer.id), str(older.id)]
 
+    def test_history_ignores_runs_of_configurable_strategies(self) -> None:
+        v2_config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        Factories.create_seer_workflow_run(self.organization, workflow_config=v2_config)
+        legacy = Factories.create_seer_workflow_run(
+            self.organization,
+            workflow_config=SeerWorkflowConfig.get_or_create_for_strategy(
+                self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
+            ),
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert [run["id"] for run in response.data] == [str(legacy.id)]
+
     def test_history_hides_runs_outside_user_access(self) -> None:
         project = self.project
         workflow = self.create_agent_workflow(
