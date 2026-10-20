@@ -7,6 +7,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
+import {Count} from 'sentry/components/count';
 import type {
   OutcomeSection,
   ReasonRow,
@@ -59,7 +60,7 @@ function ReasonTableRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" padding="md xl">
         <Text size="md" variant="muted" tabular>
-          {row.events.toLocaleString()}
+          <Count value={row.events} />
         </Text>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" padding="md xl">
@@ -135,7 +136,7 @@ function OutcomeSectionRow({
         </Flex>
         <Flex justify="end" padding="md xl">
           <Text size="md" variant="muted" tabular>
-            {section.events.toLocaleString()}
+            <Count value={section.events} />
           </Text>
         </Flex>
         <Flex justify="end" padding="md xl">

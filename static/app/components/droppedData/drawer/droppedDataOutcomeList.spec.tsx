@@ -84,11 +84,11 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
-    expect(screen.getByText('4,000')).toBeInTheDocument();
+    expect(screen.getByText('4K')).toHaveAttribute('title', '4,000');
     expect(screen.getByText('40%')).toBeInTheDocument();
-    expect(screen.getByText('3,000')).toBeInTheDocument();
+    expect(screen.getByText('3K')).toBeInTheDocument();
     expect(screen.getByText('30%')).toBeInTheDocument();
-    expect(screen.getByText('1,000')).toBeInTheDocument();
+    expect(screen.getByText('1K')).toBeInTheDocument();
     expect(screen.getByText('10%')).toBeInTheDocument();
     expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
   });
