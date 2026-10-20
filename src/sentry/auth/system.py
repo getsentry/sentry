@@ -26,10 +26,10 @@ def is_internal_ip(request: HttpRequest) -> bool:
 
 
 def get_system_token() -> str:
-    token = options.get_state("sentry:system-token")
+    token = options.get("sentry:system-token")
     if not token:
         token = secrets.token_hex()
-        options.set_state("sentry:system-token", token)
+        options.set("sentry:system-token", token, channel=options.UpdateChannel.APPLICATION)
     return token
 
 

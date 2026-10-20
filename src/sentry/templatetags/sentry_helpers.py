@@ -264,7 +264,7 @@ def get_sentry_version(context):
 
     current = sentry.VERSION
 
-    latest = options.get_state("sentry:latest_version") or current
+    latest = options.get("sentry:latest_version") or current
     update_available = parse_version(latest) > parse_version(current)
     build = sentry.__build__ or current
 

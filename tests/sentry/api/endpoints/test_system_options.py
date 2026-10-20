@@ -13,7 +13,6 @@ from sentry.web.client_config import get_client_config
 class SystemOptionsTest(APITestCase):
     url = reverse("sentry-api-0-system-options")
 
-    # Keep real store reads so this verifies the API write reaches client configuration.
     def test_support_email_update_is_visible_in_client_config(self) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
@@ -25,7 +24,8 @@ class SystemOptionsTest(APITestCase):
             response = self.client.put(self.url, {"system.support-email": "support@example.com"})
 
             assert response.status_code == 200
-            assert get_client_config()["supportEmail"] == "support@example.com"
+            with patch("sentry.web.client_config._get_version_info"):
+                assert get_client_config()["supportEmail"] == "support@example.com"
 
     def test_without_superuser(self) -> None:
         self.login_as(user=self.user, superuser=False)
@@ -34,10 +34,14 @@ class SystemOptionsTest(APITestCase):
 
     def test_setup_records_configured_version(self) -> None:
         self.login_as(user=self.user, superuser=True)
-        options.delete_state("sentry:version-configured")
+        options.delete("sentry:version-configured")
         response = self.client.put(self.url, {}, format="json")
         assert response.status_code == 200
-        assert options.get_state("sentry:version-configured") == sentry.get_version()
+        assert options.get("sentry:version-configured") == sentry.get_version()
+        assert (
+            options.get_last_update_channel("sentry:version-configured")
+            == options.UpdateChannel.APPLICATION
+        )
 
     def test_simple(self) -> None:
         self.login_as(user=self.user, superuser=True)

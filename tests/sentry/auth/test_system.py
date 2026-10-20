@@ -17,8 +17,8 @@ class TestSystemAuth(TestCase):
 
 @django_db_all
 @control_silo_test
-def test_system_token_state() -> None:
-    options.delete_state("sentry:system-token")
+def test_system_token_lifecycle() -> None:
+    options.delete("sentry:system-token")
     try:
         with patch(
             "sentry.auth.system.secrets.token_hex", return_value="generated-system-token"
@@ -30,7 +30,7 @@ def test_system_token_state() -> None:
         assert row.value == "generated-system-token"
         assert row.last_updated_by == options.UpdateChannel.APPLICATION.value
     finally:
-        options.delete_state("sentry:system-token")
+        options.delete("sentry:system-token")
 
 
 @django_db_all
@@ -43,4 +43,4 @@ def test_system_token_preserves_existing_value() -> None:
         row = options.default_store.model.objects.get(key="sentry:system-token")
         assert row.value == "existing-system-token"
     finally:
-        options.delete_state("sentry:system-token")
+        options.delete("sentry:system-token")

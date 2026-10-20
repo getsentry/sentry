@@ -128,12 +128,16 @@ when the deprecated writers and SaaS credential remaps are retired.
 
 ## Deployment prerequisites
 
-Deploy this setting support and the application state API before GetSentry
-changes its deployment writers or newsletter state consumer. GetSentry's normal
-Sentry dependency bump must include both parts of this readiness change.
+The six application-state keys (`sentry:system-token`, `sentry:install-id`,
+`sentry:latest_version`, `sentry:last_worker_ping`,
+`sentry:last_worker_version`, and `sentry:version-configured`) remain on the
+existing `options.get()`, `options.set()`, and `options.delete()` APIs and their
+Option/ControlOption storage. This deployment settings mapping does not move or
+retype those values.
+
 Preserve the legacy option registrations and explicit option promotion during
-that rollout. Verify effective-value equality for every mapped key in every
-serving workload before deploying the consumer cutover. Compare the currently served option value
+the settings rollout. Verify effective-value equality for every mapped key in
+every serving workload before deploying the consumer cutover. Compare the currently served option value
 with the candidate setting from the actual cutover image and its full bootstrap,
 including intentionally empty and false values, old aliases, database precedence
 and credential rotations. Preparation promotion can mask differences that the
@@ -152,24 +156,3 @@ namespace delivery remains active. Source merges do not prove serving rollout.
 Deploy runtime schema coverage and preserved values before the later
 authoritative read cutover. Runtime registration changes that need new schemas
 belong to that cutover after schema deployment.
-
-## Application state readiness
-
-Global state has an explicit six-key API over the existing Option/ControlOption
-store and cache. `sentry:system-token`, `sentry:install-id`,
-`sentry:latest_version`, `sentry:last_worker_version`, and
-`sentry:version-configured` require strings. `sentry:last_worker_ping` reads
-numeric timestamps or legacy string fallbacks; booleans are invalid timestamps.
-Writes require a string for the five string keys or a numeric timestamp for the
-heartbeat, and record the `APPLICATION` update channel. State never uses the
-runtime option read hook. Existing rows, cache keys, fallback behavior and token
-generation are preserved, and legacy prefix lookup remains until GetSentry
-consumers have migrated.
-
-Before deployment, audit non-null values in both Option tables and explicit
-configuration fallbacks for all six keys against those types. A stored null is a
-miss; an explicitly configured null is invalid. Invalid stored or configured
-read values raise `TypeError` without disclosing the value. Remediation requires
-an owner decision; the API neither coerces nor rewrites invalid values. Verify
-state cache repair and every serving and operational caller before retiring
-legacy prefix lookup in the later cutover.

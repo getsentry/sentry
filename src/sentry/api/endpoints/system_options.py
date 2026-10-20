@@ -151,8 +151,11 @@ class SystemOptionsEndpoint(Endpoint):
                     },
                     status=400,
                 )
-        options.set_state(
+        # TODO(dcramer): this has nothing to do with configuring options and
+        # should not be set here
+        options.set(
             "sentry:version-configured",
             sentry.get_version(),
+            channel=options.UpdateChannel.APPLICATION,
         )
         return Response(status=200)

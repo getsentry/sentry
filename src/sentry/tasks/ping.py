@@ -11,5 +11,5 @@ from sentry.taskworker.namespaces import selfhosted_tasks
     namespace=selfhosted_tasks,
 )
 def send_ping() -> None:
-    options.set_state("sentry:last_worker_ping", time())
-    options.set_state("sentry:last_worker_version", sentry.VERSION)
+    options.set("sentry:last_worker_ping", time())
+    options.set("sentry:last_worker_version", sentry.VERSION)

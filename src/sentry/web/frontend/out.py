@@ -14,7 +14,7 @@ class OutView(View):
         if not is_self_hosted():
             raise Http404
 
-        install_id = options.get_state("sentry:install-id")
+        install_id = options.get("sentry:install-id")
         if install_id:
             query = "?install_id=" + install_id
         else:
