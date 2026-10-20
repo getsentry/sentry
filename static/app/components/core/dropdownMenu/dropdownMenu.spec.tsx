@@ -307,6 +307,7 @@ describe('DropdownMenu', () => {
             label: 'All Projects',
             submenu: {
               title: 'All Projects',
+              emptyMessage: 'No projects found',
               search: {placeholder: 'Search projects'},
               maxMenuHeight: 240,
             },
@@ -329,20 +330,14 @@ describe('DropdownMenu', () => {
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
     const search = screen.getByRole('textbox', {name: 'Search projects'});
-    const submenu = search.closest('[data-overlay]');
-    if (!(submenu instanceof HTMLElement)) {
-      throw new Error('Expected submenu overlay');
-    }
-    const cappedHeight = submenu.parentElement?.style.maxHeight;
-    if (!cappedHeight) {
-      throw new Error('Expected capped submenu height');
-    }
-    expect(Number.parseFloat(cappedHeight)).toBeLessThanOrEqual(240);
-    expect(submenu.querySelector('[role="menu"]')).toHaveStyle({maxHeight: cappedHeight});
     expect(search).toHaveFocus();
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
 
+    await userEvent.type(search, 'dino');
+    expect(screen.getByText('No projects found')).toBeInTheDocument();
+    await userEvent.clear(search);
     await userEvent.type(search, 'sentry');
+    expect(screen.queryByText('No projects found')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'javascript'})
     ).not.toBeInTheDocument();

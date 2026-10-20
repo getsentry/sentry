@@ -63,11 +63,15 @@ export interface MenuItemProps extends ListItemProps {
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
    * `maxMenuHeight` limits the scrollable list while keeping the header visible.
+   * `minMenuHeight` keeps the menu from shrinking as search results change.
    */
   submenu?:
     | boolean
     | {
+        emptyMessage?: React.ReactNode;
         maxMenuHeight?: number;
+        menuWidth?: number | string;
+        minMenuHeight?: number;
         position?: UseOverlayProps['position'];
         search?: {placeholder?: string; showIcon?: boolean; size?: 'xs' | 'sm' | 'md'};
         title?: string;

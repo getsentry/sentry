@@ -16,6 +16,8 @@ import type {LocationDescriptor} from 'history';
 import {minHeight} from '@sentry/scraps/compactSelect/utils';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
+import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -52,6 +54,7 @@ export interface DropdownMenuListProps
    * Prevent users from highlighting text inside the menu.
    */
   disableTextSelection?: boolean;
+  emptyMessage?: React.ReactNode;
   /**
    * To be displayed below the menu items
    */
@@ -60,6 +63,8 @@ export interface DropdownMenuListProps
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
+  menuWidth?: number | string;
+  minMenuHeight?: number | string;
   search?: {
     onChange: (value: string) => void;
     value: string;
@@ -195,10 +200,13 @@ function DropdownMenuCollection({
 
 function DropdownMenuList({
   closeOnSelect = true,
+  emptyMessage,
   onClose,
   size,
   menuTitle,
   menuFooter,
+  menuWidth,
+  minMenuHeight,
   search,
   disableTextSelection,
   overlayState,
@@ -206,6 +214,7 @@ function DropdownMenuList({
   zIndex,
   ...props
 }: DropdownMenuListProps) {
+  const {t} = useTranslation();
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
   const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
@@ -280,7 +289,15 @@ function DropdownMenuList({
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
-          <StyledOverlay>
+          <StyledOverlay
+            style={{
+              minHeight: minMenuHeight,
+              width: menuWidth,
+              maxWidth: menuWidth
+                ? (overlayPositionProps.style?.maxWidth ?? 'calc(100vw - 16px)')
+                : undefined,
+            }}
+          >
             {(menuTitle || search) && (
               <Menu.Header>
                 {menuTitle && <Menu.Title padding="sm lg">{menuTitle}</Menu.Title>}
@@ -306,6 +323,7 @@ function DropdownMenuList({
             )}
             <DropdownMenuListWrap
               ref={menuRef}
+              hasEmptyMessage={!!search?.value.trim() && stateCollection.length === 0}
               hasTitle={!!menuTitle}
               disableTextSelection={disableTextSelection}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
@@ -322,6 +340,18 @@ function DropdownMenuList({
                 size={size}
                 state={state}
               />
+              {search?.value.trim() && stateCollection.length === 0 && (
+                <Stack
+                  as="li"
+                  role="presentation"
+                  align="center"
+                  justify="center"
+                  flex={1}
+                  padding="md lg"
+                >
+                  <Text variant="muted">{emptyMessage ?? t('No results found')}</Text>
+                </Stack>
+              )}
             </DropdownMenuListWrap>
             {menuFooter}
           </StyledOverlay>
@@ -516,6 +546,7 @@ function DropdownSubmenu({
     offset: -4,
     flipOptions: {
       boundary: document.body,
+      altAxis: false,
       ...(options.position
         ? {}
         : {fallbackPlacements: ['bottom-start', 'left-start', 'top-start']}),
@@ -532,6 +563,10 @@ function DropdownSubmenu({
   );
   const isFocused = state.selectionManager.focusedKey === node.key;
   const maxHeight = minHeight(options.maxMenuHeight, overlayProps.style?.maxHeight);
+  const minimumHeight =
+    options.minMenuHeight === undefined
+      ? undefined
+      : minHeight(options.minMenuHeight, maxHeight);
 
   return (
     <Container as="li" display="contents" role="presentation">
@@ -561,6 +596,9 @@ function DropdownSubmenu({
           closeOnSelect={closeOnSelect}
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
+          emptyMessage={options.emptyMessage}
+          minMenuHeight={minimumHeight}
+          menuWidth={options.menuWidth}
           searchOptions={options.search}
           size={size}
           {...menuProps}
@@ -587,6 +625,7 @@ const StyledOverlay = styled(Overlay)`
 `;
 
 const DropdownMenuListWrap = styled('ul')<{
+  hasEmptyMessage: boolean;
   hasTitle: boolean;
   disableTextSelection?: boolean;
 }>`
@@ -596,6 +635,14 @@ const DropdownMenuListWrap = styled('ul')<{
   overflow-x: hidden;
   overflow-y: auto;
   min-height: 0;
+
+  ${p =>
+    p.hasEmptyMessage &&
+    css`
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    `}
 
   ${p =>
     p.disableTextSelection &&

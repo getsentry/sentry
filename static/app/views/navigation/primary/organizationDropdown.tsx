@@ -98,6 +98,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         zIndex={theme.zIndex.modal}
         trigger={trigger}
         minMenuWidth={258}
+        menuWidth={258}
         menuTitle={
           <NavigationMenuHeader
             organization={organization}
@@ -162,8 +163,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 leadingItems: <span aria-hidden="true" />,
                 submenu: {
                   title: t('All Projects'),
+                  emptyMessage: t('No projects found'),
                   search: {placeholder: t('Search'), showIcon: false, size: 'sm'},
                   maxMenuHeight: 240,
+                  minMenuHeight: 240,
+                  menuWidth: 258,
                 },
                 hidden: projects.length === 0,
                 children: [

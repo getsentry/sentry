@@ -31,12 +31,12 @@ const SIMPLE_CSS_IDENTIFIER = /^-?(?!\d)\w[-\w]*$/;
 export function minHeight(
   first: string | number | undefined,
   second: string | number | undefined
-): string | number | undefined {
+): string | undefined {
   if (first === undefined) {
-    return second;
+    return typeof second === 'number' ? `${second}px` : second;
   }
   if (second === undefined) {
-    return first;
+    return typeof first === 'number' ? `${first}px` : first;
   }
   const firstHeight = typeof first === 'number' ? `${first}px` : first;
   const secondHeight = typeof second === 'number' ? `${second}px` : second;
