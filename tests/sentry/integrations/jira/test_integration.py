@@ -2456,7 +2456,10 @@ class JiraApiPipelineTest(APITestCase):
         assert resp.status_code == 400
         assert not Integration.objects.filter(provider=self.provider.key).exists()
 
+    @responses.activate
     def test_install(self) -> None:
+        # The install response serializes the org config, which fetches Jira projects.
+        responses.add(responses.GET, "https://example.atlassian.net/rest/api/2/project", status=401)
         resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
         pipeline_signature = resp.data["data"]["state"]
 

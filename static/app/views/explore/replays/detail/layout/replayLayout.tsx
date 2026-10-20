@@ -1,7 +1,13 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
+import {
+  Stack,
+  type Responsive,
+  useResponsivePropValue,
+  Flex,
+  Grid,
+} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
@@ -101,13 +107,13 @@ function ReplayLayoutBody({
     isLoading || replayRecord?.is_archived ? (
       <Placeholder width="100%" height="100%" />
     ) : (
-      <FluidContainer>
+      <Grid as="section" gap="md" height="100%" rows="max-content 1fr">
         <FocusTabs isVideoReplay={isVideoReplay} />
 
         <ErrorBoundary mini>
           <FocusArea isVideoReplay={isVideoReplay} />
         </ErrorBoundary>
-      </FluidContainer>
+      </Grid>
     );
 
   const hasSize = width + height > 0;
@@ -123,7 +129,11 @@ function ReplayLayoutBody({
     return (
       <BodyGrid>
         <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-          {hasSize ? <PanelContainer>{focusArea}</PanelContainer> : null}
+          {hasSize ? (
+            <Flex flexGrow={1} position="relative">
+              {focusArea}
+            </Flex>
+          ) : null}
         </Stack>
       </BodyGrid>
     );
@@ -160,7 +170,9 @@ function ReplayLayoutBody({
                 paddingRight={isHorizontal ? 'md' : undefined}
                 paddingBottom={isHorizontal ? undefined : 'md'}
               >
-                <PanelContainer>{video}</PanelContainer>
+                <Flex flexGrow={1} position="relative">
+                  {video}
+                </Flex>
               </Stack>
             }
             fill={
@@ -183,13 +195,6 @@ function ReplayLayoutBody({
     </BodyGrid>
   );
 }
-
-const FluidContainer = styled('section')`
-  display: grid;
-  grid-template-rows: max-content 1fr;
-  height: 100%;
-  gap: ${p => p.theme.space.md};
-`;
 
 const BodyGrid = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
@@ -218,10 +223,4 @@ const VideoSection = styled('div')`
   :fullscreen {
     padding: ${p => p.theme.space.md};
   }
-`;
-
-const PanelContainer = styled('div')`
-  position: relative;
-  display: flex;
-  flex-grow: 1;
 `;

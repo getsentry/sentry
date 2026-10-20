@@ -308,6 +308,7 @@ class SeerAgentClient:
             code_review_enabled: Expose the review_code_changes tool, which spawns a reviewer agent to check accumulated code edits before finalizing. Only useful alongside enable_coding. Default is False.
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
             enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
+            enable_investigation_tools: Let Code Mode read and change investigations: notebooks, cells and their runs, the agent workflow, and comments. Only takes effect where the investigation endpoints themselves would answer, i.e. with the organizations:investigations feature and open membership. Default is False.
     """
 
     def __init__(
@@ -333,6 +334,7 @@ class SeerAgentClient:
         max_iterations: int | None = None,
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
+        enable_investigation_tools: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -367,6 +369,13 @@ class SeerAgentClient:
 
         self.enable_pr_context_tools = enable_pr_context_tools
         self.enable_write_pull_request = enable_write_pull_request
+        # The same gate the investigation endpoints apply, so Code Mode isn't handed
+        # operations that would only 404.
+        self.enable_investigation_tools = (
+            enable_investigation_tools
+            and features.has("organizations:investigations", organization, actor=user)
+            and bool(organization.flags.allow_joinleave)
+        )
 
         self.viewer_context = self._build_viewer_context()
 
@@ -439,6 +448,7 @@ class SeerAgentClient:
             "enable_pr_context_tools": self.enable_pr_context_tools,
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
+            "enable_investigation_tools": self.enable_investigation_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -792,6 +802,7 @@ class SeerAgentClient:
             "enable_pr_context_tools": self.enable_pr_context_tools,
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
+            "enable_investigation_tools": self.enable_investigation_tools,
             "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 

@@ -9,12 +9,6 @@ if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
 
 
-_CHECK_COMMAND_SOURCES = (
-    "Take the commands from the repository itself — its README/contributing docs, Makefile,"
-    " package.json scripts, tox/pyproject config, or CI workflow files — rather than guessing."
-)
-
-
 class PromptBuilder(Protocol):
     """Signature shared by all autofix step prompt builders."""
 
@@ -63,36 +57,7 @@ def code_changes_prompt(
     run_state: "SeerRunState | None" = None,
     should_run_repo_checks: bool = False,
 ) -> str:
-    prompt = dedent(
-        f"""\
-        Implement the fix for issue {short_id}: "{title}" (culprit: {culprit})
-
-        Based on the root cause and solution plan, implement the actual code changes.
-
-        Steps:
-        1. Review the root cause and solution plan from the previous analysis
-        2. Use the code editing tools to make the necessary changes
-        3. Ensure changes are minimal and focused on fixing the issue
-
-        If code changes were previously made, disregard them and implement the fix again from scratch.
-
-        Use your coding tools to make changes directly to the codebase.
-        """
-    )
-
-    if should_run_repo_checks:
-        prompt += dedent(
-            f"""
-            Before you finish, verify your changes with the repository's own tooling:
-            - Set the repository up first. The checkout has no dependencies installed, so run the project's install/setup commands (e.g. `npm install`, `yarn install`, `pip install -e .`, `make bootstrap`) before running any checks.
-            - Run the linter/formatter over the files you changed.
-            - Run the tests covering the code you changed, scoping the run to the affected area when the suite is large.
-            - Fix any failures your changes introduced, then re-run until they pass.
-
-            {_CHECK_COMMAND_SOURCES} If a check cannot be run, report that instead of claiming it passed."""
-        )
-
-    return prompt
+    raise RuntimeError("Code changes prompts must run through the Seer Autofix feature")
 
 
 def pr_iteration_prompt(

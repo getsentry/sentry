@@ -8,6 +8,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -466,7 +467,7 @@ export function GiftRecurringCredits() {
           onChange={e => setOrgTokens(e.target.value)}
           placeholder={'12345\nacme-corp'}
         />
-        <UploadRow>
+        <Flex align="center" gap="md">
           <UploadInput
             name="csv"
             type="file"
@@ -503,7 +504,7 @@ export function GiftRecurringCredits() {
               wins when both are set).
             </UploadHint>
           )}
-        </UploadRow>
+        </Flex>
         <Button
           variant="primary"
           type="submit"
@@ -514,7 +515,7 @@ export function GiftRecurringCredits() {
         </Button>
       </Column>
       {results && (
-        <ResultsSection data-test-id="results">
+        <Container marginTop="xl" data-test-id="results">
           <h4>Results</h4>
           {notInRegionOrgs.length > 0 && (
             <Alert.Container>
@@ -577,7 +578,7 @@ export function GiftRecurringCredits() {
               })}
             </tbody>
           </ResultsTable>
-        </ResultsSection>
+        </Container>
       )}
     </div>
   );
@@ -655,18 +656,8 @@ const UploadInput = styled('input')`
   opacity: 0;
 `;
 
-const UploadRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-`;
-
 const UploadHint = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const ResultsSection = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
 `;
 
 const ResultsTable = styled('table')`

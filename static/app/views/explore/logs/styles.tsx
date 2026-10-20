@@ -258,10 +258,9 @@ export const LogDetailTableActionsCell = styled(SimpleTable.RowCell)`
     padding: ${p => p.theme.space.xs} 0;
   }
 `;
-export const LogDetailTableActionsButtonBar = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-`;
+export function LogDetailTableActionsButtonBar(props: FlexProps) {
+  return <Flex gap="md" {...props} />;
+}
 
 export const DetailsWrapper = styled('tr')`
   align-items: center;

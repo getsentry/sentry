@@ -20,10 +20,12 @@ type Props = {
   event: Event;
   group: Group | undefined;
   projectSlug: Project['slug'];
+  collapseAll?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
 };
 
 export function Exception({
+  collapseAll,
   event,
   data,
   projectSlug,
@@ -52,6 +54,7 @@ export function Exception({
 
   return (
     <StacktraceContext
+      collapseAll={collapseAll}
       projectSlug={projectSlug}
       forceFullStackTrace={hasNonAppFrames ? !data.hasSystemFrames : true}
       defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
