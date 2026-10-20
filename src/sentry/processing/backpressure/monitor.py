@@ -14,7 +14,7 @@ from sentry.processing.backpressure.health import UnhealthyReasons, record_consu
 
 # from sentry import options
 from sentry.processing.backpressure.memory import Cluster, ServiceMemory, iter_cluster_memory_usage
-from sentry.processing.backpressure.topology import ProcessingServices
+from sentry.processing.backpressure.topology import ProcessingServices, get_all_services
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,15 @@ def assert_all_services_defined(services: dict[str, Service]) -> None:
             raise ValueError(
                 f"The `{name.value}` Service is missing from `settings.SENTRY_PROCESSING_SERVICES`."
             )
+
+
+def filter_known_services(services: dict[str, Service]) -> dict[str, Service]:
+    # Deployments can still configure services that were removed from the topology.
+    # Checking them would keep a connection to infrastructure nothing depends on.
+    known = set(get_all_services())
+    for name in services.keys() - known:
+        logger.warning("Ignoring service `%s` that is not part of the topology", name)
+    return {name: service for name, service in services.items() if name in known}
 
 
 def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str, UnhealthyReasons]:
@@ -106,6 +115,7 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
 def start_service_monitoring() -> None:
     services = load_service_definitions()
     assert_all_services_defined(services)
+    services = filter_known_services(services)
 
     while True:
         if not options.get("backpressure.monitoring.enabled"):

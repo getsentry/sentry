@@ -2859,6 +2859,8 @@ register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The high-watermark levels per-service which will mark a service as unhealthy.
 # This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
+# `attachments-store` is no longer monitored. It stays registered until the
+# options automator stops setting it.
 register(
     "backpressure.high_watermarks.attachments-store",
     default=0.8,

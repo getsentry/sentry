@@ -33,8 +33,7 @@ EVENTS_MSG = json.dumps(
 def test_backpressure_unhealthy_events() -> None:
     record_consumer_health(
         {
-            "attachments-store": Exception("Couldn't check attachments-store"),
-            "processing-store": [],
+            "processing-store": Exception("Couldn't check processing-store"),
             "processing-store-transactions": [],
             "processing-locks": [],
             "post-process-locks": [],
@@ -56,7 +55,6 @@ def test_backpressure_unhealthy_events() -> None:
 def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
     record_consumer_health(
         {
-            "attachments-store": [],
             "processing-store": [],
             "processing-store-transactions": [],
             "processing-locks": [],
@@ -80,8 +78,7 @@ def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
 def test_backpressure_unhealthy_recovery_consumer(preprocess_event: MagicMock) -> None:
     record_consumer_health(
         {
-            "attachments-store": Exception("Couldn't check attachments-store"),
-            "processing-store": [],
+            "processing-store": Exception("Couldn't check processing-store"),
             "processing-store-transactions": [],
             "processing-locks": [],
             "post-process-locks": [],
