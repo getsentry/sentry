@@ -96,12 +96,29 @@ describe('useDroppedDataDrawer', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
     expect(router.location.query.droppedData).toBe('true');
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide('Dropped Events');
+    await waitForDrawerToHide('Dropped and Filtered Events');
     await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
+  });
+
+  it('shows the dropped total as a heading above a description', async () => {
+    mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByRole('heading', {name: '10 dropped and filtered events'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your filtered events are broken down by category below/)
+    ).toBeInTheDocument();
   });
 
   it('shows an error with retry when the request fails', async () => {
@@ -126,7 +143,7 @@ describe('useDroppedDataDrawer', () => {
     mockDroppedData(10, '14d');
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
 
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
   });
 
   it('opens when the URL already has the drawer param', async () => {
@@ -139,7 +156,7 @@ describe('useDroppedDataDrawer', () => {
       },
     });
 
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
   });
 
   it('does not open from the URL param when disabled', async () => {
@@ -156,7 +173,7 @@ describe('useDroppedDataDrawer', () => {
       await screen.findByRole('button', {name: 'Open dropped data'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('complementary', {name: 'Dropped Events'})
+      screen.queryByRole('complementary', {name: 'Dropped and Filtered Events'})
     ).not.toBeInTheDocument();
     expect(droppedDataRequest).not.toHaveBeenCalled();
   });
@@ -177,10 +194,10 @@ describe('useDroppedDataDrawer', () => {
       }
     );
 
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
-    expect(screen.getAllByRole('complementary', {name: 'Dropped Events'})).toHaveLength(
-      1
-    );
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('complementary', {name: 'Dropped and Filtered Events'})
+    ).toHaveLength(1);
   });
 
   it('closes when navigating back', async () => {
@@ -192,10 +209,10 @@ describe('useDroppedDataDrawer', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
 
     router.navigate(-1);
-    await waitForDrawerToHide('Dropped Events');
+    await waitForDrawerToHide('Dropped and Filtered Events');
   });
 
   it('stays open and refreshes when zooming changes the time range', async () => {
@@ -208,14 +225,14 @@ describe('useDroppedDataDrawer', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
 
     act(() => {
       router.navigate('/explore/traces/?droppedData=true&statsPeriod=1h');
       PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: false});
     });
 
-    expect(await screen.findByText('3 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('3 dropped and filtered events')).toBeInTheDocument();
   });
 
   it('fetches with the interval passed by the chart', async () => {
@@ -227,7 +244,7 @@ describe('useDroppedDataDrawer', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
     expect(droppedDataRequest).toHaveBeenLastCalledWith(
       expect.any(String),
       expect.objectContaining({query: expect.objectContaining({interval: '1d'})})
@@ -243,7 +260,7 @@ describe('useDroppedDataDrawer', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
 
     rerender(<DroppedDataTrigger interval="4h" />);
 
@@ -254,7 +271,7 @@ describe('useDroppedDataDrawer', () => {
       )
     );
     expect(
-      screen.getByRole('complementary', {name: 'Dropped Events'})
+      screen.getByRole('complementary', {name: 'Dropped and Filtered Events'})
     ).toBeInTheDocument();
   });
 
@@ -267,10 +284,10 @@ describe('useDroppedDataDrawer', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
 
     router.navigate('/issues/');
-    await waitForDrawerToHide('Dropped Events');
+    await waitForDrawerToHide('Dropped and Filtered Events');
   });
 
   describe('legend filtering', () => {
@@ -292,7 +309,9 @@ describe('useDroppedDataDrawer', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
       await userEvent.click(await screen.findByRole('radio', {name: 'All'}));
-      expect(await screen.findByText('40 Dropped Events')).toBeInTheDocument();
+      expect(
+        await screen.findByText('40 dropped and filtered events')
+      ).toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
       expect(screen.getByText('10%')).toBeInTheDocument();
@@ -300,7 +319,7 @@ describe('useDroppedDataDrawer', () => {
       await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
 
       expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).not.toBeChecked();
-      expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('10 dropped and filtered events')).toBeInTheDocument();
       expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
       // Shares stay relative to all events, not just the selected outcomes.
@@ -348,19 +367,21 @@ describe('useDroppedDataDrawer', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
       await userEvent.click(await screen.findByRole('radio', {name: 'All'}));
-      expect(await screen.findByText('40 Dropped Events')).toBeInTheDocument();
+      expect(
+        await screen.findByText('40 dropped and filtered events')
+      ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Client Discard'}));
       await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
 
-      expect(screen.getByText('0 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('0 dropped and filtered events')).toBeInTheDocument();
       expect(screen.getByText('No outcomes selected.')).toBeInTheDocument();
       expect(screen.queryByText('Dropped by before send')).not.toBeInTheDocument();
       expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Client Discard'}));
 
-      expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('10 dropped and filtered events')).toBeInTheDocument();
       expect(screen.queryByText('No outcomes selected.')).not.toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
     });
@@ -384,7 +405,9 @@ describe('useDroppedDataDrawer', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-      expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+      expect(
+        await screen.findByText('10 dropped and filtered events')
+      ).toBeInTheDocument();
       expect(screen.getByRole('radio', {name: 'Unexpected'})).toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'Client Discard'})).toBeInTheDocument();
       expect(
@@ -413,7 +436,7 @@ describe('useDroppedDataDrawer', () => {
 
       await userEvent.click(screen.getByRole('radio', {name: 'All'}));
 
-      expect(screen.getByText('40 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('40 dropped and filtered events')).toBeInTheDocument();
       expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Expected Drops'})).toBeInTheDocument();
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
@@ -423,7 +446,7 @@ describe('useDroppedDataDrawer', () => {
 
       await userEvent.click(screen.getByRole('radio', {name: 'Unexpected'}));
 
-      expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('10 dropped and filtered events')).toBeInTheDocument();
       expect(screen.getByText('14.29%')).toBeInTheDocument();
       expect(
         screen.queryByRole('heading', {name: 'Expected Drops'})
@@ -459,13 +482,15 @@ describe('useDroppedDataDrawer', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-      expect(await screen.findByText('30 Dropped Events')).toBeInTheDocument();
+      expect(
+        await screen.findByText('30 dropped and filtered events')
+      ).toBeInTheDocument();
       // 10 client discards out of 40 accepted + 30 unintentional drops.
       expect(screen.getAllByText('14.29%')).toHaveLength(2);
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Rate Limited'}));
 
-      expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('10 dropped and filtered events')).toBeInTheDocument();
       expect(screen.getAllByText('14.29%')).toHaveLength(2);
     });
   });
@@ -519,7 +544,7 @@ describe('useDroppedDataDrawer', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Ask Seer'}));
 

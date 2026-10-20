@@ -21,6 +21,7 @@ interface StackTraceContextOptions {
    */
   hasSystemFrames: boolean;
   projectSlug: string;
+  collapseAll?: boolean;
   /**
    * Override the default newest frames first
    * @default true
@@ -78,6 +79,7 @@ interface StacktraceContextType {
    * Derrived from display options
    */
   stackView: StackView;
+  collapseAll?: boolean;
 }
 
 const IssueStacktraceContext = createContext<StacktraceContextType>({
@@ -95,6 +97,7 @@ const IssueStacktraceContext = createContext<StacktraceContextType>({
 
 export function StacktraceContext({
   children,
+  collapseAll = false,
   projectSlug,
   hasSystemFrames,
   forceFullStackTrace = false,
@@ -130,6 +133,7 @@ export function StacktraceContext({
 
   const value = useMemo(
     (): StacktraceContextType => ({
+      collapseAll,
       isFullStackTrace: isFullStackTrace || forceFullStackTrace,
       setIsFullStackTrace,
       isNewestFramesFirst,
@@ -142,6 +146,7 @@ export function StacktraceContext({
       forceFullStackTrace,
     }),
     [
+      collapseAll,
       isFullStackTrace,
       forceFullStackTrace,
       isNewestFramesFirst,

@@ -71,7 +71,7 @@ export function useDroppedDataDrawer(
         <DroppedDataDrawer dataset={dataset} interval={interval} onAskSeer={onAskSeer} />
       ),
       {
-        ariaLabel: t('Dropped Events'),
+        ariaLabel: t('Dropped and Filtered Events'),
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
           decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== 'true',
