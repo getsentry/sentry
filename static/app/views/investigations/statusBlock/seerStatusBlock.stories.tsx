@@ -204,6 +204,26 @@ export default Storybook.story('Investigations — Seer status block', story => 
               },
             ]}
           />
+          <SeerStatusBlock
+            variant="running"
+            title="Seer is bringing the findings together"
+            description="Organizing the explanation, supporting evidence, and next steps. No input needed."
+            elapsed="148.2s"
+            toolActivity={[
+              {
+                id: 'tool-4',
+                kind: 'tool',
+                status: 'completed',
+                title: 'Summarized cache hit rate by release',
+              },
+              {
+                id: 'tool-5',
+                kind: 'api',
+                status: 'failed',
+                title: 'Fetched deploy history',
+              },
+            ]}
+          />
         </Stack>
       </Storybook.Demo>
     </Fragment>
