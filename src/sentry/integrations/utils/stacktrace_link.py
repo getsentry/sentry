@@ -104,11 +104,11 @@ def get_stacktrace_config(
             sdk_name=ctx["sdk_name"],
             code_mapping=config,
         )
-        result["src_path"] = src_path
         if not src_path:
             result["error"] = "stack_root_mismatch"
             continue
 
+        result["src_path"] = src_path
         outcome = get_link(
             config,
             src_path,

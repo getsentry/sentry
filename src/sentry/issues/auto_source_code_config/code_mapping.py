@@ -452,60 +452,31 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     Returns the code mapping config list for a project sorted based on precedence.
     User generated code mappings are evaluated before Sentry generated code mappings.
     Code mappings with absolute path stack roots are evaluated before relative path stack roots.
-    Code mappings with more defined stack trace roots are evaluated before less defined stack trace
-    roots.
+    Code mappings with longer, more defined stack roots are evaluated before shorter ones.
+    Ties are broken by id so the order does not depend on the order the configs are read in.
 
     `project`: The project to get the list of sorted code mapping configs for
     """
 
-    # xxx(meredith): if there are ever any changes to this query, make
-    # sure that we are still ordering by `id` because we want to make sure
-    # the ordering is deterministic
     # codepath mappings must have an associated integration for stacktrace linking.
-    configs = (
-        RepositoryProjectPathConfig.objects.filter(
-            project_repository__project=project,
-            organization_integration_id__isnull=False,
-        )
-        .select_related(
-            "project_repository",
-            "project_repository__project",
-            "project_repository__repository",
-        )
-        .order_by("id")
+    configs = RepositoryProjectPathConfig.objects.filter(
+        project_repository__project=project,
+        organization_integration_id__isnull=False,
+    ).select_related(
+        "project_repository",
+        "project_repository__project",
+        "project_repository__repository",
     )
 
-    sorted_configs: list[RepositoryProjectPathConfig] = []
-
-    try:
-        for config in configs:
-            inserted = False
-            for index, sorted_config in enumerate(sorted_configs):
-                # This check will ensure that all user defined code mappings will come before Sentry generated ones
-                if (
-                    (sorted_config.automatically_generated and not config.automatically_generated)
-                    or (  # Insert absolute paths before relative paths
-                        not sorted_config.stack_root.startswith("/")
-                        and config.stack_root.startswith("/")
-                    )
-                    or (  # Insert more defined stack roots before less defined ones
-                        (sorted_config.automatically_generated == config.automatically_generated)
-                        and config.stack_root.startswith(sorted_config.stack_root)
-                    )
-                ):
-                    sorted_configs.insert(index, config)
-                    inserted = True
-                    break
-            if not inserted:
-                # Insert the code mapping at the back if it's Sentry generated or at the front if it is user defined
-                if config.automatically_generated:
-                    sorted_configs.insert(len(sorted_configs), config)
-                else:
-                    sorted_configs.insert(0, config)
-    except Exception:
-        logger.exception("There was a failure sorting the code mappings")
-
-    return sorted_configs
+    return sorted(
+        configs,
+        key=lambda config: (
+            config.automatically_generated,
+            not config.stack_root.startswith("/"),
+            -len(config.stack_root),
+            config.id,
+        ),
+    )
 
 
 def find_roots(

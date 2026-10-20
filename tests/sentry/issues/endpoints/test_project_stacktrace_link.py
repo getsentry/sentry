@@ -196,6 +196,17 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
+    def test_source_path_from_attempted_code_mapping(self) -> None:
+        """A later code mapping that doesn't match the file keeps the attempted mapping's source path"""
+        self._create_code_mapping(stack_root="other/", source_root="")
+        cm = self._create_code_mapping(stack_root="usr/src/getsentry/", source_root="")
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+        )
+        assert response.data["config"] == self.expected_configurations(cm)
+        assert response.data["error"] == "file_not_found"
+        assert response.data["sourcePath"] == "src/sentry/src/sentry/utils/safe.py"
+
     def test_config_and_source_url(self) -> None:
         """Having a different source url should also work"""
         with patch.object(

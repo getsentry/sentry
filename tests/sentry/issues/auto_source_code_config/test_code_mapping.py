@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
@@ -1050,3 +1051,45 @@ class TestGetSortedCodeMappingConfigs(TestCase):
 
         sorted_configs = get_sorted_code_mapping_configs(self.project)
         assert sorted_configs == expected_config_order
+
+    def _create_code_mapping(
+        self, stack_root: str, automatically_generated: bool
+    ) -> RepositoryProjectPathConfig:
+        return self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root=stack_root,
+            source_root="",
+            automatically_generated=automatically_generated,
+        )
+
+    def test_get_sorted_code_mapping_configs_ignores_creation_order(self) -> None:
+        # The same code mappings as above, created in an order that used to sort the
+        # broader "usr/src/" and "" stack roots ahead of "usr/src/getsentry/"
+        code_mapping3 = self._create_code_mapping("usr/src/getsentry/", False)
+        code_mapping1 = self._create_code_mapping("", False)
+        code_mapping2 = self._create_code_mapping("usr/src/getsentry/src/", True)
+        code_mapping4 = self._create_code_mapping("usr/src/", False)
+        code_mapping5 = self._create_code_mapping("usr/src/getsentry/src/sentry/", True)
+        code_mapping6 = self._create_code_mapping(
+            "/Users/User/code/src/getsentry/src/sentry/", False
+        )
+
+        assert get_sorted_code_mapping_configs(self.project) == [
+            code_mapping6,
+            code_mapping3,
+            code_mapping4,
+            code_mapping1,
+            code_mapping5,
+            code_mapping2,
+        ]
+
+    def test_get_sorted_code_mapping_configs_user_before_newer_absolute_automatic(self) -> None:
+        user_code_mapping = self._create_code_mapping("src/", False)
+        automatic_code_mapping = self._create_code_mapping("/usr/src/", True)
+
+        assert get_sorted_code_mapping_configs(self.project) == [
+            user_code_mapping,
+            automatic_code_mapping,
+        ]
