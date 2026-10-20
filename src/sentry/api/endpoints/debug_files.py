@@ -409,9 +409,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
                     )
             q &= file_format_q
 
-        queryset = None
-        qs = []
-        if debug_id and code_id:
+        # If we have at least one of debug_id or code_id, use them to build the queryset
+        if debug_id or code_id:
             # Be lenient when searching for debug files, check either for a matching debug id
             # or a matching code id. We only fallback to code id if there is no debug id match.
             # While both identifiers should be unique, in practice they are not and the debug id
@@ -420,29 +419,30 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # Ideally debug- and code-id yield the same files, but especially on Windows it is possible
             # that the debug id does not perfectly match due to 'age' differences, but the code-id
             # will match.
-            debug_id_qs = ProjectDebugFile.objects.none()
-            for query in debug_id_queries(debug_id):
-                debug_id_qs = debug_id_qs.union(
-                    ProjectDebugFile.objects.filter(query & q).select_related("file")
-                )
+            debug_id_qs = ProjectDebugFile.objects.none().select_related("file")
+            if debug_id:
+                for debug_id_q in debug_id_queries(debug_id):
+                    debug_id_qs = debug_id_qs.union(
+                        ProjectDebugFile.objects.filter(debug_id_q & q).select_related("file")
+                    )
 
-            code_id_qs = ProjectDebugFile.objects.none()
-            for query in code_id_queries(code_id):
-                code_id_qs = code_id_qs.union(
-                    ProjectDebugFile.objects.filter(
-                        query
-                        & q
-                        # Only return any code id matches if there are *no* debug id matches.
-                        # .filter(~Exists(debug_id_qs))
-                        & ~Exists(debug_id_qs)
-                    ).select_related("file")
-                )
+            code_id_qs = ProjectDebugFile.objects.none().select_related("file")
+            if code_id:
+                for code_id_q in code_id_queries(code_id):
+                    code_id_qs = code_id_qs.union(
+                        ProjectDebugFile.objects.filter(
+                            code_id_q
+                            & q
+                            # Only return any code id matches if there are *no* debug id matches.
+                            # .filter(~Exists(debug_id_qs))
+                            #
+                            # If we have no debug_id, debug_id_qs is the empty qs, so this always
+                            # succeeds.
+                            & ~Exists(debug_id_qs)
+                        ).select_related("file")
+                    )
 
             queryset = debug_id_qs.union(code_id_qs)
-        elif debug_id:
-            qs = [q & debug_id_query for debug_id_query in debug_id_queries(debug_id)]
-        elif code_id:
-            qs = [q & code_id_query for code_id_query in code_id_queries(code_id)]
         elif query:
             query_q = (
                 Q(object_name__icontains=query)
@@ -461,12 +461,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
                     content_type__icontains=known_file_format
                 )
 
-            qs = [q & query_q]
-
-        if queryset is None:
-            queryset = ProjectDebugFile.objects.none()
-            for q in qs:
-                queryset = queryset.union(ProjectDebugFile.objects.filter(q).select_related("file"))
+            queryset = ProjectDebugFile.objects.filter(query_q & q).select_related("file")
+        else:
+            queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
         def on_results(difs: Sequence[ProjectDebugFile]):
             # NOTE: we are only refreshing files if there is direct query for specific files
