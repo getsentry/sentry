@@ -467,14 +467,75 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             % self.gitlab_id,
             json=orjson.loads(COMMIT_DIFF_RESPONSE),
         )
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/%s/repository/commits/8b090c1b79a14f2bd9e8a738f717824ff53aebad"
+            % self.gitlab_id,
+            json={
+                "id": "8b090c1b79a14f2bd9e8a738f717824ff53aebad",
+                "title": "Fix dmitriy mistake",
+                "message": "Fix dmitriy mistake\n\nFixes PROJ-2",
+                "author_name": "Sally",
+                "author_email": "sally@example.com",
+                "created_at": "2014-02-27T10:27:00+02:00",
+            },
+        )
         response = self.create_repository(self.default_repository_config, self.integration.id)
         repo = self.get_repository(pk=response.data["id"])
         commits = self.provider.compare_commits(repo, "abc", "xyz")
         assert 2 == len(commits)
         assert commits[0]["message"] == "JS fix\n\nFixes PROJ-1"
-        assert commits[1]["message"] == "Fix dmitriy mistake"
+        assert commits[1]["message"] == "Fix dmitriy mistake\n\nFixes PROJ-2"
         for commit in commits:
             assert_commit_shape(commit)
+
+    @responses.activate
+    def test_compare_commits_preserves_empty_message(self) -> None:
+        compare_response = orjson.loads(COMPARE_RESPONSE)
+        compare_response["commits"] = [compare_response["commits"][0]]
+        compare_response["commits"][0]["message"] = ""
+        commit_id = compare_response["commits"][0]["id"]
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/%s/repository/compare?from=abc&to=xyz"
+            % self.gitlab_id,
+            json=compare_response,
+        )
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/%s/repository/commits/%s/diff"
+            % (self.gitlab_id, commit_id),
+            json=orjson.loads(COMMIT_DIFF_RESPONSE),
+        )
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        repo = self.get_repository(pk=response.data["id"])
+
+        commits = self.provider.compare_commits(repo, "abc", "xyz")
+
+        assert commits[0]["message"] == ""
+
+    @responses.activate
+    def test_compare_commits_fails_without_complete_message(self) -> None:
+        compare_response = orjson.loads(COMPARE_RESPONSE)
+        compare_response["commits"] = [compare_response["commits"][1]]
+        commit_id = compare_response["commits"][0]["id"]
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/%s/repository/compare?from=abc&to=xyz"
+            % self.gitlab_id,
+            json=compare_response,
+        )
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/%s/repository/commits/%s"
+            % (self.gitlab_id, commit_id),
+            json=compare_response["commits"][0],
+        )
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        repo = self.get_repository(pk=response.data["id"])
+
+        with pytest.raises(IntegrationError, match="did not return a complete message"):
+            self.provider.compare_commits(repo, "abc", "xyz")
 
     @responses.activate
     def test_compare_commits_start_and_end_gitlab_failure(self) -> None:
