@@ -2,11 +2,11 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
-from django.db import router, transaction
+from django.db import connections, router, transaction
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -46,36 +46,43 @@ class TestEnsureDefaultDetectors(TestCase):
         assert issue_stream_detector.project_id == project.id
         assert issue_stream_detector.type == IssueStreamGroupType.slug
 
+    def _project_row_locks(self, queries: CaptureQueriesContext) -> list[str]:
+        return [
+            q["sql"]
+            for q in queries.captured_queries
+            if 'FROM "sentry_project"' in q["sql"] and "FOR NO KEY UPDATE" in q["sql"]
+        ]
+
     def test_ensure_default_detector__already_exists(self) -> None:
         project = self.create_project()
         existing = Detector.objects.filter(project=project)
 
-        with patch("sentry.workflow_engine.defaults.detectors.locks.get") as mock_lock:
+        with CaptureQueriesContext(connections[router.db_for_write(Project)]) as queries:
             default_detectors = ensure_default_detectors(project)
-            assert {d.id for d in default_detectors.values()} == {d.id for d in existing}
-            # No lock if it already exists.
-            mock_lock.assert_not_called()
+        assert {d.id for d in default_detectors.values()} == {d.id for d in existing}
+        # No lock if it already exists.
+        assert self._project_row_locks(queries) == []
 
-    def test_ensure_default_detector__lock_fails(self) -> None:
+    def test_ensure_default_detector__locks_project_row(self) -> None:
         project = self.create_project(create_default_detectors=False)
-        with patch("sentry.workflow_engine.defaults.detectors.locks.get") as mock_lock:
-            mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
-            with pytest.raises(UnableToAcquireLockApiError):
-                ensure_default_detectors(project)
 
-    def test_ensure_default_detector__project_not_yet_visible_does_not_lock(self) -> None:
-        project = self.create_project(create_default_detectors=False)
-        # Another process holds the lock. A project that is not yet visible must not wait for it.
-        held_lock = locks.get(
-            f"workflow-engine-project-{ErrorGroupType.slug}-detector:{project.id}",
-            duration=10,
-            name="test",
+        with CaptureQueriesContext(connections[router.db_for_write(Project)]) as queries:
+            ensure_default_detectors(project)
+
+        # One row lock for each detector that is created.
+        assert len(self._project_row_locks(queries)) == len(self.slugs)
+        assert set(Detector.objects.filter(project=project).values_list("type", flat=True)) == set(
+            self.slugs
         )
-        with held_lock.acquire():
-            detectors = ensure_default_detectors(project, project_not_yet_visible=True)
 
-        assert detectors[ErrorGroupType.slug].project_id == project.id
-        assert detectors[IssueStreamGroupType.slug].project_id == project.id
+    def test_ensure_default_detector__does_not_duplicate(self) -> None:
+        project = self.create_project(create_default_detectors=False)
+
+        first = ensure_default_detectors(project)
+        second = ensure_default_detectors(project)
+
+        assert {d.id for d in first.values()} == {d.id for d in second.values()}
+        assert Detector.objects.filter(project=project).count() == len(self.slugs)
 
     def test_project_create_in_transaction_creates_detectors(self) -> None:
         organization = self.create_organization()

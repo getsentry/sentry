@@ -17,7 +17,7 @@ def create_default_workflows(
         return
 
     with transaction.atomic(router.db_for_write(Workflow)):
-        ensure_default_workflows(project, project_not_yet_visible=True)
+        ensure_default_workflows(project)
 
 
 project_created.connect(

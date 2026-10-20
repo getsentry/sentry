@@ -1,6 +1,5 @@
 import pytest
 
-from sentry.locks import locks
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -203,16 +202,9 @@ class TestEnsureDefaultWorkflows(TestCase):
         assert isinstance(workflows, list)
         assert all(isinstance(w, Workflow) for w in workflows)
 
-    def test_project_created_receiver_does_not_lock(self) -> None:
+    def test_project_created_receiver_connects_issue_stream_detector(self) -> None:
         project = self.create_project(create_default_detectors=False)
-        # Another process holds the lock. The receiver for a new project must not wait for it.
-        held_lock = locks.get(
-            f"workflow-engine-project-{IssueStreamGroupType.slug}-detector:{project.id}",
-            duration=10,
-            name="test",
-        )
-        with held_lock.acquire():
-            create_default_workflows(project)
+        create_default_workflows(project)
 
         connection = DetectorWorkflow.objects.get(
             workflow__organization=project.organization, detector__project=project
