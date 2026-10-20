@@ -26,3 +26,14 @@ it('shows Python without applying a JavaScript formatter', () => {
     )
   ).toBeInTheDocument();
 });
+
+it('keeps the source as-is when no language is given', () => {
+  const code = 'for x in range(3):\n    if x:\n        print(x)';
+  render(<CodeModeInput code={code} />);
+  expect(screen.getByText('code')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      (_, element) => element?.tagName === 'CODE' && element.textContent === code
+    )
+  ).toBeInTheDocument();
+});
