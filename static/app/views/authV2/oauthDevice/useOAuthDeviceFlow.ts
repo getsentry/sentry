@@ -158,7 +158,7 @@ export function useOAuthDeviceFlow() {
         context: undefined,
         status: 'code-entry',
         userCode,
-        isPreparingCode: false,
+        isPreparingCode: contextQuery.isFetching,
         message: getRequestErrorUserMessage(contextQuery.error),
       } as const,
       actions,
@@ -190,7 +190,7 @@ export function useOAuthDeviceFlow() {
         ...shared,
         status: 'error',
         message: getRequestErrorUserMessage(decision.error ?? consentQuery.error),
-        canRetry: canRetryOAuthRequest(decision.error ?? consentQuery.error),
+        canRetry: decision.isError || canRetryOAuthRequest(consentQuery.error),
       } as const,
       actions,
     };
