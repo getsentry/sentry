@@ -93,54 +93,6 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
   });
 
-  it('shows the short description when hovering the reason title', async () => {
-    render(
-      <OutcomeList
-        droppedEvents={[
-          DroppedEventFixture({
-            outcome: 'filtered',
-            reason: 'web-crawlers',
-            start: 0,
-            end: 60_000,
-            count: 5,
-          }),
-        ]}
-        acceptedEvents={[]}
-      />
-    );
-
-    const description = "User agent matched Sentry's known crawler list.";
-    expect(screen.queryByText(description)).not.toBeInTheDocument();
-
-    await userEvent.hover(screen.getByText('Web crawler filter'));
-
-    expect(await screen.findByText(description)).toBeInTheDocument();
-  });
-
-  it('fills the data type into the description from the event category', async () => {
-    render(
-      <OutcomeList
-        droppedEvents={[
-          DroppedEventFixture({
-            category: 'log_item',
-            outcome: 'abuse',
-            reason: 'project_abuse_limit',
-            start: 0,
-            end: 60_000,
-            count: 5,
-          }),
-        ]}
-        acceptedEvents={[]}
-      />
-    );
-
-    await userEvent.hover(screen.getByText('Project abuse limit'));
-
-    expect(
-      await screen.findByText('Your log events exceeded the project abuse limit.')
-    ).toBeInTheDocument();
-  });
-
   it('opens the reason actions menu with docs and troubleshoot entries', async () => {
     const onTroubleshoot = jest.fn();
     render(

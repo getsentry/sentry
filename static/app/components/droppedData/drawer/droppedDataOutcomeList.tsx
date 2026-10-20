@@ -2,7 +2,6 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -12,11 +11,7 @@ import type {
   OutcomeSection,
   ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  formatDroppedShare,
-  reasonDescription,
-  reasonTitle,
-} from 'sentry/components/droppedData/outcomes';
+import {formatDroppedShare, reasonTitle} from 'sentry/components/droppedData/outcomes';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
@@ -90,9 +85,7 @@ function ReasonTableRow({
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell padding="md xl">
-        <InfoText size="md" title={reasonDescription(row.reason, row.category)}>
-          {reasonTitle(row.reason)}
-        </InfoText>
+        <Text size="md">{reasonTitle(row.reason)}</Text>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" padding="md xl">
         <Text size="md" variant="muted" tabular>

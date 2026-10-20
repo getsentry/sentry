@@ -1,7 +1,6 @@
 import type {Theme} from '@emotion/react';
 
 import {REASON_INFO} from 'sentry/components/droppedData/reasonInfo';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -41,34 +40,16 @@ export function reasonTitle(reason: string): string {
   return REASON_INFO[normalizeReason(reason)]?.title ?? reason;
 }
 
-function dataCategoryInfo(category: string) {
-  return Object.values(DATA_CATEGORY_INFO).find(info => info.name === category);
-}
-
-export function reasonDescription(reason: string, category: string): string | undefined {
-  const short = REASON_INFO[normalizeReason(reason)]?.short;
-  if (typeof short !== 'function') {
-    return short;
-  }
-  const dataType = dataCategoryInfo(category)?.displayName;
-  return dataType ? short(dataType) : undefined;
-}
-
 export function buildTroubleshootPrompt(args: {
-  category: string;
   dataset: DiscoverDatasets;
   outcome: string;
   reason: string;
 }): string {
-  const outcome = outcomeLabel(args.outcome);
-  const reason = reasonTitle(args.reason);
-  const detail = reasonDescription(args.reason, args.category);
   return t(
-    'My %s data is being dropped as "%s" (%s).%s Why is this happening and how do I fix it?',
+    'My %s data is being dropped as "%s" (%s). Why is this happening and how do I fix it?',
     args.dataset,
-    outcome,
-    reason,
-    detail ? ` ${detail}` : ''
+    outcomeLabel(args.outcome),
+    reasonTitle(args.reason)
   );
 }
 
