@@ -94,9 +94,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     label: project.slug,
     leadingItems: <ProjectAvatar project={project} size={16} />,
     trailingItems: (
-      <span onClick={event => event.stopPropagation()}>
-        <BookmarkStar project={project} organization={organization} />
-      </span>
+      <BookmarkStar
+        project={project}
+        organization={organization}
+        onClick={event => event.stopPropagation()}
+      />
     ),
     onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
   });

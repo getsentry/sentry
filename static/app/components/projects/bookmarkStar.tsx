@@ -24,6 +24,7 @@ export function BookmarkStar({
   organization,
   project,
   onToggle,
+  onClick,
   tooltipProps,
   ...props
 }: BookmarkStarProps) {
@@ -57,7 +58,10 @@ export function BookmarkStar({
       aria-label={isBookmarked ? t('Remove Bookmark') : t('Bookmark')}
       aria-pressed={isBookmarked}
       busy={isBookmarking}
-      onClick={() => handleBookmarkToggle({isBookmarked: !isBookmarked})}
+      onClick={event => {
+        onClick?.(event);
+        handleBookmarkToggle({isBookmarked: !isBookmarked});
+      }}
       size="zero"
       variant="transparent"
       icon={
