@@ -513,8 +513,6 @@ def trigger_autofix_agent(
                 },
             )
             iteration_index = step_args.iteration_index
-        else:
-            raise ValueError(f"invalid step: {step}")
 
         args = AutofixFeatureArgs(
             step=step,
