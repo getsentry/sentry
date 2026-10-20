@@ -624,6 +624,8 @@ def _do_save_event(
         attachments = []
         project = None
         try:
+            project = resolve_project(project_id)
+
             if has_attachments:
                 # Attachment cache keys are carried in _attachments, independently
                 # of whether the event payload itself is in the processing store.
@@ -631,16 +633,19 @@ def _do_save_event(
                 # we won’t be needing the transient attachments after this anymore
                 data.pop("_attachments", None)
                 attachments = [a for a in all_attachments if not a.rate_limited]
-                # Relay already tracked the rate limited outcome, so only record on the event
-                # that attachments were dropped for exceeding the quota.
-                if any(
-                    a.rate_limited in ATTACHMENT_QUOTA_EXCEEDED_REASONS for a in all_attachments
+
+                if features.has(
+                    "organizations:attachments-quota-exceeded-notice", project.organization
                 ):
-                    data["metadata"] = {
-                        **(data.get("metadata") or {}),
-                        "attachments_quota_exceeded": True,
-                    }
-            project = resolve_project(project_id)
+                    # Relay already tracked the rate limited outcome, so only record on the event
+                    # that attachments were dropped for exceeding the quota.
+                    if any(
+                        a.rate_limited in ATTACHMENT_QUOTA_EXCEEDED_REASONS for a in all_attachments
+                    ):
+                        data["metadata"] = {
+                            **(data.get("metadata") or {}),
+                            "attachments_quota_exceeded": True,
+                        }
 
             with viewer_context_scope(
                 ViewerContext(

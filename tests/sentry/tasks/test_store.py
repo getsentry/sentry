@@ -588,6 +588,7 @@ def _event_with_rate_limited_minidump(
 
 
 @django_db_all
+@with_feature("organizations:attachments-quota-exceeded-notice")
 @pytest.mark.parametrize(
     "rate_limited",
     ("attachment_usage_exceeded", "project_quota_attachment_usage_exceeded", "usage_exceeded"),
@@ -607,6 +608,7 @@ def test_save_event_flags_attachments_dropped_for_quota(default_project, rate_li
 
 
 @django_db_all
+@with_feature("organizations:attachments-quota-exceeded-notice")
 @pytest.mark.parametrize("rate_limited", ("smart_rate_limit", "key_quota", True))
 def test_save_event_does_not_flag_attachments_dropped_for_other_rate_limits(
     default_project, rate_limited
@@ -616,6 +618,24 @@ def test_save_event_does_not_flag_attachments_dropped_for_other_rate_limits(
     with mock.patch("sentry.attachments.get_session"):
         save_event_attachments(data=data, project_id=default_project.id, start_time=time())
 
+    event = Event(project_id=default_project.id, event_id=EVENT_ID)
+    assert "attachments_quota_exceeded" not in event.data["metadata"]
+    group = Group.objects.get(project=default_project)
+    assert "attachments_quota_exceeded" not in group.data["metadata"]
+
+
+@django_db_all
+def test_save_event_does_not_flag_attachments_dropped_for_quota_without_feature(
+    default_project,
+) -> None:
+    data = _event_with_rate_limited_minidump(default_project.id, "attachment_usage_exceeded")
+
+    with mock.patch("sentry.attachments.get_session") as get_session:
+        save_event_attachments(data=data, project_id=default_project.id, start_time=time())
+
+    # Rate-limited attachments are still cleaned up and never persisted; only the flag is gated.
+    get_session.return_value.delete.assert_called_once_with("stored-minidump")
+    assert not EventAttachment.objects.filter(event_id=EVENT_ID).exists()
     event = Event(project_id=default_project.id, event_id=EVENT_ID)
     assert "attachments_quota_exceeded" not in event.data["metadata"]
     group = Group.objects.get(project=default_project)
