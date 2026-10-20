@@ -10,8 +10,8 @@ import type {LocationDescriptor} from 'history';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
+import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
-import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './context';

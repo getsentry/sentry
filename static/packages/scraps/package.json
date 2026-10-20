@@ -11,9 +11,13 @@
   ],
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./code/inlineCode": {
+      "types": "./dist/code/inlineCode.d.ts",
+      "import": "./dist/code/inlineCode.js"
+    },
+    "./hotkey/kbd": {
+      "types": "./dist/hotkey/kbd.d.ts",
+      "import": "./dist/hotkey/kbd.js"
     },
     "./theme": {
       "types": "./dist/theme/index.d.ts",
@@ -90,6 +94,70 @@
     "./useScrollLock": {
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
+    },
+    "./link": {
+      "types": "./dist/link/index.d.ts",
+      "import": "./dist/link/index.js"
+    },
+    "./trackingContext": {
+      "types": "./dist/trackingContext.d.ts",
+      "import": "./dist/trackingContext.js"
+    },
+    "./image": {
+      "types": "./dist/image/index.d.ts",
+      "import": "./dist/image/index.js"
+    },
+    "./descriptionList": {
+      "types": "./dist/descriptionList/index.d.ts",
+      "import": "./dist/descriptionList/index.js"
+    },
+    "./interactionStateLayer": {
+      "types": "./dist/interactionStateLayer/index.d.ts",
+      "import": "./dist/interactionStateLayer/index.js"
+    },
+    "./radio": {
+      "types": "./dist/radio/index.d.ts",
+      "import": "./dist/radio/index.js"
+    },
+    "./statusIndicator": {
+      "types": "./dist/statusIndicator/index.d.ts",
+      "import": "./dist/statusIndicator/index.js"
+    },
+    "./hotkey": {
+      "types": "./dist/hotkey/index.d.ts",
+      "import": "./dist/hotkey/index.js"
+    },
+    "./overlay": {
+      "types": "./dist/overlay.d.ts",
+      "import": "./dist/overlay.js"
+    },
+    "./overlayArrow": {
+      "types": "./dist/overlayArrow.d.ts",
+      "import": "./dist/overlayArrow.js"
+    },
+    "./panelProvider": {
+      "types": "./dist/panelProvider.d.ts",
+      "import": "./dist/panelProvider.js"
+    },
+    "./useStableMergeRef": {
+      "types": "./dist/useStableMergeRef.d.ts",
+      "import": "./dist/useStableMergeRef.js"
+    },
+    "./useOverlay": {
+      "types": "./dist/useOverlay.d.ts",
+      "import": "./dist/useOverlay.js"
+    },
+    "./useHoverOverlay": {
+      "types": "./dist/useHoverOverlay.d.ts",
+      "import": "./dist/useHoverOverlay.js"
+    },
+    "./tooltip": {
+      "types": "./dist/tooltip/index.d.ts",
+      "import": "./dist/tooltip/index.js"
+    },
+    "./overlayPositioning": {
+      "types": "./dist/overlayPositioning.d.ts",
+      "import": "./dist/overlayPositioning.js"
     }
   },
   "publishConfig": {
@@ -105,15 +173,20 @@
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
+    "@floating-ui/react-dom": "^2.1.9",
+    "@react-aria/button": "3.15.1",
     "@react-aria/i18n": "3.13.1",
+    "@react-aria/overlays": "3.32.1",
     "@react-aria/slider": "3.9.1",
     "@react-aria/utils": "3.34.1",
     "@react-aria/visually-hidden": "3.9.1",
+    "@react-stately/overlays": "3.7.1",
     "@react-stately/slider": "3.8.1",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
     "@types/react": "19.3.0",
-    "framer-motion": "12.38.0"
+    "framer-motion": "12.38.0",
+    "query-string": "7.0.1"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",

@@ -5,7 +5,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {buildTroubleshootPrompt} from 'sentry/components/droppedData/outcomes';
+import {buildAskSeerPrompt} from 'sentry/components/droppedData/outcomes';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -43,22 +43,19 @@ export function useDroppedDataDrawer(
   useEffect(() => {
     openSeerExplorerRef.current = openSeerExplorer;
   });
-  const handleTroubleshoot = useCallback(
+  const handleAskSeer = useCallback(
     (row: ReasonRow) => {
       openSeerExplorerRef.current({
-        initialQuery: buildTroubleshootPrompt({
+        initialQuery: buildAskSeerPrompt({
           dataset,
           outcome: row.outcome,
           reason: row.reason,
-          category: row.category,
         }),
       });
     },
     [dataset]
   );
-  const onTroubleshoot = isSeerExplorerEnabled(organization)
-    ? handleTroubleshoot
-    : undefined;
+  const onAskSeer = isSeerExplorerEnabled(organization) ? handleAskSeer : undefined;
 
   useEffect(() => {
     if (!enabled || !isDrawerInUrl) {
@@ -71,14 +68,10 @@ export function useDroppedDataDrawer(
     renderedIntervalRef.current = interval;
     openDrawer(
       () => (
-        <DroppedDataDrawer
-          dataset={dataset}
-          interval={interval}
-          onTroubleshoot={onTroubleshoot}
-        />
+        <DroppedDataDrawer dataset={dataset} interval={interval} onAskSeer={onAskSeer} />
       ),
       {
-        ariaLabel: t('Dropped Data'),
+        ariaLabel: t('Dropped Events'),
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
           decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== 'true',
@@ -95,7 +88,7 @@ export function useDroppedDataDrawer(
     openDrawer,
     dataset,
     interval,
-    onTroubleshoot,
+    onAskSeer,
     pathname,
     setIsDrawerInUrl,
   ]);

@@ -10,22 +10,22 @@ describe('hasDroppedData', () => {
     );
   }
 
-  it('is true when there is at least one dropped event', () => {
-    expect(hasDroppedData([DroppedEventFixture()])).toBe(true);
+  it('is true when any drop is unintentional', () => {
+    expect(
+      hasDroppedData([
+        DroppedEventFixture({tags: ['intentional']}),
+        DroppedEventFixture({tags: ['unintentional']}),
+      ])
+    ).toBe(true);
+  });
+
+  it('is false when every drop is intentional', () => {
+    expect(hasDroppedData([DroppedEventFixture({tags: ['intentional']})])).toBe(false);
   });
 
   it('is false for missing or empty events', () => {
     expect(hasDroppedData(undefined)).toBe(false);
     expect(hasDroppedData([])).toBe(false);
-  });
-
-  it('is false when every drop is configured', () => {
-    expect(
-      hasDroppedData([
-        DroppedEventFixture({outcome: 'client_discard', reason: 'sample_rate'}),
-        DroppedEventFixture({outcome: 'filtered', reason: 'web-crawlers'}),
-      ])
-    ).toBe(false);
   });
 
   it('is true only when a bucket has dropped events', () => {
@@ -72,49 +72,28 @@ describe('groupIntoBuckets', () => {
     expect(buckets.map(bucket => bucket.dropped.count)).toEqual([10, 20]);
   });
 
-  it.each([
-    ['client_discard', 'before_send'],
-    ['client_discard', 'event_processor'],
-    ['client_discard', 'ignored'],
-    ['client_discard', 'no_parent_span'],
-    ['client_discard', 'sample_rate'],
-    ['client_sampled', 'sample_rate'],
-    ['filtered', 'web-crawlers'],
-    ['filtered', 'custom-inbound-filter:123'],
-    ['invalid', 'cors'],
-    ['invalid', 'missing_signature'],
-    ['invalid', 'transaction_sampled'],
-    ['rate_limited', 'key_quota'],
-  ])('excludes configured %s drops with reason %s', (outcome, reason) => {
-    expect(groupIntoBuckets([DroppedEventFixture({outcome, reason})])).toEqual([
+  it('excludes intentional drops', () => {
+    expect(groupIntoBuckets([DroppedEventFixture({tags: ['intentional']})])).toEqual([
       expect.objectContaining({dropped: {count: 0}, events: [], ratio: 0}),
     ]);
   });
 
-  it.each([
-    ['client_discard', 'queue_overflow'],
-    ['client_discard', 'network_error'],
-    ['invalid', 'timestamp'],
-    ['invalid', 'too_large:transaction'],
-    ['rate_limited', 'generic'],
-    ['rate_limited', 'span_usage_exceeded'],
-  ])('keeps unintentional %s drops with reason %s', (outcome, reason) => {
-    const buckets = groupIntoBuckets([DroppedEventFixture({outcome, reason, count: 7})]);
+  it('counts only unintentional drops when a bucket has both', () => {
+    const buckets = groupIntoBuckets(
+      [
+        DroppedEventFixture({count: 10, tags: ['unintentional']}),
+        DroppedEventFixture({count: 30, tags: ['intentional']}),
+      ],
+      [DroppedEventFixture({count: 90, outcome: 'accepted', tags: []})]
+    );
 
-    expect(buckets).toHaveLength(1);
-    expect(buckets[0]!.dropped.count).toBe(7);
-  });
-
-  it('keeps an unrecognized reason under a server-side outcome', () => {
-    const buckets = groupIntoBuckets([
-      DroppedEventFixture({
-        outcome: 'invalid',
-        reason: 'some_new_reason',
-        count: 4,
+    expect(buckets).toEqual([
+      expect.objectContaining({
+        dropped: {count: 10},
+        events: [expect.objectContaining({tags: ['unintentional']})],
+        ratio: 0.1,
       }),
     ]);
-
-    expect(buckets[0]!.dropped.count).toBe(4);
   });
 
   it('subtotals dropped volume by outcome, largest first', () => {
@@ -164,8 +143,7 @@ describe('groupIntoBuckets', () => {
         DroppedEventFixture({
           start: 120_000,
           end: 180_000,
-          outcome: 'filtered',
-          reason: 'web-crawlers',
+          tags: ['intentional'],
         }),
       ],
       [

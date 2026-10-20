@@ -263,7 +263,7 @@ export function ToolbarSaveAs() {
         (pageFilters.selection.datetime.end
           ? new Date(pageFilters.selection.datetime.end).getTime()
           : null),
-      (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+      (savedQuery.statsPeriod ?? null) !== pageFilters.selection.datetime.period,
     ];
     return hasChangesArray.some(Boolean);
   }, [

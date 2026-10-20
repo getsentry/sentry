@@ -1,3 +1,4 @@
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {
   AutofixRootCauseArtifactFixture,
   ExplorerAutofixBlockFixture,
@@ -24,7 +25,12 @@ import {
 import {clearIndicators} from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
-import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  GroupStatus,
+  ProgressState,
+  type Group,
+} from 'sentry/types/group';
 import type {LinkedPullRequest} from 'sentry/types/integrations';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
@@ -327,6 +333,9 @@ describe('IssuePreview', () => {
     expect(
       within(rootCause).getByText('The issue was caused by an unexpected value.')
     ).toBeVisible();
+    expect(screen.getByRole('region', {name: 'Issue Timeline'})).not.toContainElement(
+      rootCause
+    );
     const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
     await userEvent.click(
@@ -359,7 +368,9 @@ describe('IssuePreview', () => {
     ).not.toBeInTheDocument();
 
     setup.resolve();
-    expect(await screen.findByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Issue Timeline'})
+    ).toBeInTheDocument();
   });
 
   it('links to an open pull request alongside the Seer action', async () => {
@@ -394,6 +405,87 @@ describe('IssuePreview', () => {
     );
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', {name: 'Issue Timeline'})).getByRole('list', {
+        name: 'Other linked pull requests',
+      })
+    ).toBeVisible();
+  });
+
+  it('embeds PR cards alongside Seer results without duplicating linked PR activity', async () => {
+    const seerPullRequest = {
+      ...linkedPullRequest,
+      title: 'Fix the null lookup',
+      dateLinked: '2024-01-01T00:01:00Z',
+      status: 'merged',
+    } satisfies LinkedPullRequest;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: GroupFixture({
+        ...group,
+        activity: [
+          ActivityFeedFixture({
+            id: 'pr-merged',
+            type: GroupActivityType.PULL_REQUEST_MERGED,
+            dateCreated: '2024-01-01T00:02:00Z',
+            data: {pullRequest: seerPullRequest},
+          }),
+          ActivityFeedFixture({
+            id: 'seer-reference',
+            type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+            dateCreated: '2024-01-01T00:01:00Z',
+            data: {pullRequest: seerPullRequest},
+          }),
+          ActivityFeedFixture({
+            id: 'seer-created',
+            type: GroupActivityType.SEER_PR_CREATED,
+            dateCreated: '2024-01-01T00:01:00Z',
+            data: {
+              run_id: 42,
+              pull_requests: [
+                {
+                  provider: 'github',
+                  repo_name: seerPullRequest.repository.name,
+                  pull_request: {pr_number: 10, pr_url: seerPullRequest.externalUrl},
+                },
+              ],
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          blocks: [
+            ExplorerAutofixBlockFixture({
+              artifacts: [],
+              message: {
+                role: 'assistant',
+                content: 'Code changes complete',
+                metadata: {step: 'code_changes'},
+              },
+            }),
+          ],
+        }),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: [seerPullRequest]},
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    const pullRequestCard = screen.getByRole('link', {name: /Fix the null lookup$/});
+    expect(timeline).toContainElement(pullRequestCard);
+    expect(pullRequestCard).toHaveAttribute('href', seerPullRequest.externalUrl);
+    expect(within(timeline).getByRole('region', {name: 'Code Changes'})).toBeVisible();
+    expect(within(timeline).getByText('Referenced in pull request')).toAppearBefore(
+      pullRequestCard
+    );
   });
 
   it('labels and links current PRs alongside Seer actions', async () => {
@@ -907,13 +999,27 @@ describe('IssuePreview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps previous Seer analysis readable without quota and disables rerunning it', async () => {
+  it('keeps matched Seer analysis readable without quota and disables rerunning it', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
-      body: GroupFixture({
-        ...group,
-        derivedData: {...fixAppliedGroup.derivedData!, progress: ProgressState.DIAGNOSED},
-      }),
+      body: {
+        ...GroupFixture({
+          ...group,
+          derivedData: {
+            ...fixAppliedGroup.derivedData!,
+            progress: ProgressState.DIAGNOSED,
+          },
+        }),
+        activity: [
+          {
+            ...ActivityFeedFixture({
+              type: GroupActivityType.SEER_RCA_COMPLETED,
+              dateCreated: '2024-01-01T00:01:00Z',
+            }),
+            data: {run_id: '42'},
+          },
+        ],
+      },
     });
     const description = 'The user lookup returned an unexpected null value.';
     MockApiClient.addMockResponse({
@@ -945,7 +1051,10 @@ describe('IssuePreview', () => {
     expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
     expect(await screen.findByText(description)).toBeVisible();
-    const rootCause = screen.getByRole('region', {name: 'Root Cause'});
+    const rootCause = within(
+      screen.getByRole('region', {name: 'Issue Timeline'})
+    ).getByRole('region', {name: 'Root Cause'});
+    expect(screen.getAllByRole('region', {name: 'Root Cause'})).toHaveLength(1);
     expect(within(rootCause).getByRole('button', {name: 'Re-run step'})).toHaveAttribute(
       'aria-disabled',
       'true'
