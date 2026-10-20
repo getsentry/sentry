@@ -173,6 +173,7 @@
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
+    "@floating-ui/react-dom": "^2.1.9",
     "@react-aria/button": "3.15.1",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/overlays": "3.32.1",
@@ -185,8 +186,7 @@
     "@sentry/react": "11.7.0",
     "@types/react": "19.3.0",
     "framer-motion": "12.38.0",
-    "query-string": "7.0.1",
-    "@floating-ui/react-dom": "^2.1.9"
+    "query-string": "7.0.1"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",

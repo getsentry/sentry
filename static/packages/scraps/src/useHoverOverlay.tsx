@@ -21,8 +21,6 @@ import {
 import {mergeProps} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
-import type {Theme} from '@sentry/scraps/theme';
-
 import type {OverlayAnchor, OverlayPlacement} from '@sentry/scraps/overlayPositioning';
 import {
   anchoredStyles,
@@ -31,6 +29,7 @@ import {
   placementMiddleware,
   shiftOverlay,
 } from '@sentry/scraps/overlayPositioning';
+import type {Theme} from '@sentry/scraps/theme';
 
 import {useStableMergeRef} from './useStableMergeRef';
 

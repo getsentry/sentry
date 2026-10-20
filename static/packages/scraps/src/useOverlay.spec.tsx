@@ -1,5 +1,4 @@
 import {autoUpdate, useFloating} from '@floating-ui/react-dom';
-
 import {renderHook} from '@testing-library/react';
 
 import {useOverlay} from '@sentry/scraps/useOverlay';

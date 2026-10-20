@@ -118,7 +118,9 @@ export function Overlay({
       ref={ref}
       placement={placement}
     >
-      {arrowProps != null && <OverlayArrow {...arrowProps} />}
+      {arrowProps !== undefined && arrowProps !== null && (
+        <OverlayArrow {...arrowProps} />
+      )}
       <PanelProvider>{children}</PanelProvider>
     </OverlayInner>
   );

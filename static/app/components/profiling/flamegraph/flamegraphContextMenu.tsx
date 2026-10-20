@@ -10,6 +10,7 @@ import {IconProfiling} from '@sentry/icons/profiling';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
@@ -30,7 +31,6 @@ import type {
 } from 'sentry/utils/analytics/profilingAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
-import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import type {
   FlamegraphColorCodings,
   FlamegraphSorting,
