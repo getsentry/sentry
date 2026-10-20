@@ -330,6 +330,83 @@ describe('useOAuthDeviceFlow', () => {
     );
   });
 
+  it.each(['enterCode', 'retry'] as const)(
+    'shows code preparation while %s retries a failed context request',
+    async action => {
+      MockApiClient.addMockResponse({
+        url: '/auth/oauth/device/context/',
+        statusCode: 400,
+        body: {detail: 'Invalid or expired code.'},
+      });
+      const {result} = renderHookWithProviders(useOAuthDeviceFlow, {
+        initialRouterConfig: {location},
+      });
+
+      await waitFor(() =>
+        expect(result.current.state).toMatchObject({message: 'Invalid or expired code.'})
+      );
+
+      const delay = Promise.withResolvers<void>();
+      MockApiClient.addMockResponse({
+        url: '/auth/oauth/device/context/',
+        body: {...OAuthContextFixture(), userCode: 'ABCD-EFGH'},
+        asyncDelay: delay.promise,
+      });
+
+      act(() => result.current.actions[action]('ABCD-EFGH'));
+
+      await waitFor(() =>
+        expect(result.current.state).toMatchObject({
+          status: 'code-entry',
+          isPreparingCode: true,
+        })
+      );
+
+      await act(() => {
+        delay.resolve();
+        return delay.promise;
+      });
+
+      await waitFor(() => expect(result.current.state.status).toBe('consent'));
+    }
+  );
+
+  it('prepares fresh consent after a rejected decision with a valid code', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Please start over.'},
+    });
+    const {result} = renderHookWithProviders(useOAuthDeviceFlow, {
+      initialRouterConfig: {location},
+    });
+
+    await waitFor(() => expect(result.current.state.status).toBe('consent'));
+
+    act(() => result.current.actions.decide('approve'));
+
+    await waitFor(() =>
+      expect(result.current.state).toMatchObject({
+        status: 'error',
+        canRetry: true,
+        message: 'Please start over.',
+      })
+    );
+
+    const prepare = MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      body: consent,
+    });
+
+    act(() => result.current.actions.retry());
+
+    await waitFor(() =>
+      expect(result.current.state).toMatchObject({status: 'consent', consent})
+    );
+    expect(prepare).toHaveBeenCalledTimes(1);
+  });
+
   it('retries a transient consent failure without asking for the code again', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/oauth/device/',
