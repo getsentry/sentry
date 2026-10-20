@@ -18,6 +18,7 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -497,7 +498,9 @@ describe('useDroppedDataDrawer', () => {
           <PictureInPictureProvider>
             <GlobalDrawer>
               <SeerExplorerContextProvider>
-                <DroppedDataTrigger />
+                <SeerExplorerSidebarLayout>
+                  <DroppedDataTrigger />
+                </SeerExplorerSidebarLayout>
               </SeerExplorerContextProvider>
             </GlobalDrawer>
           </PictureInPictureProvider>
@@ -515,15 +518,8 @@ describe('useDroppedDataDrawer', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Troubleshoot'}));
 
-    expect(
-      await screen.findByRole('complementary', {name: 'Seer Explorer Drawer'})
-    ).toBeInTheDocument();
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
-    expect(
-      screen.getByRole('complementary', {name: 'Seer Explorer Drawer'})
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('complementary', {name: 'Dropped Events'})
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
   });
 });
