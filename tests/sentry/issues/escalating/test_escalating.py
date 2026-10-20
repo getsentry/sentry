@@ -7,8 +7,6 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from django.db import connection
-from django.test.utils import CaptureQueriesContext
 
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
