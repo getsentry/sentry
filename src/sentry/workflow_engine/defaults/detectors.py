@@ -99,13 +99,9 @@ def _ensure_detector(
     If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
     and UnableToAcquireLockApiError if that fails.
 
-    Set `project_not_yet_visible` only when no other process can find the project yet, so no
-    other process can create its detectors (for example in the post_save signal of the
-    project). Then we do not take the lock. If a transaction is open, the project is not
-    visible until the commit. If no transaction is open, another process can only create the
-    same detector if it finds the project in the short time before this call. Also, a Redis
-    lock inside a transaction is released before the commit, so it does not protect this case.
-    Do not set it for a project that other code can already find.
+    Set `project_not_yet_visible` only when no other process can find the project yet - as
+    in the case where a transaction is open - so no other process can create its detectors.
+    In that case only, we do not take the lock. Do not set it for a project that other code can already find.
     """
     group_type = grouptype.registry.get_by_slug(type)
     if not group_type:

@@ -55,8 +55,6 @@ def create_project_detectors(
 ) -> None:
     if created:
         try:
-            # The project was inserted just now, so other processes cannot find it yet and we
-            # do not need a lock to prevent duplicate detectors. See `_ensure_detector`.
             ensure_default_detectors(instance, project_not_yet_visible=True)
         except UnableToAcquireLockApiError as e:
             sentry_sdk.capture_exception(e)
