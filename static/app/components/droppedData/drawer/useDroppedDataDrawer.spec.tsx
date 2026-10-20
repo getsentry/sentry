@@ -307,7 +307,7 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByText('10%')).toBeInTheDocument();
     });
 
-    it('lists intentional drops under Configured Drops', async () => {
+    it('lists unintentional and intentional drops under their headings', async () => {
       mockMultiOutcomeDroppedData();
 
       render(<DroppedDataTrigger />, {
@@ -317,19 +317,24 @@ describe('useDroppedDataDrawer', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
       await userEvent.click(await screen.findByRole('radio', {name: 'All'}));
-      const heading = await screen.findByRole('heading', {name: 'Configured Drops'});
-      const isAfterHeading = (text: string) =>
+      const unexpectedHeading = await screen.findByRole('heading', {
+        name: 'Unexpected Drops',
+      });
+      const expectedHeading = screen.getByRole('heading', {name: 'Expected Drops'});
+      const isAfter = (heading: HTMLElement, text: string) =>
         Boolean(
           heading.compareDocumentPosition(screen.getByText(text)) &
           Node.DOCUMENT_POSITION_FOLLOWING
         );
-      expect(isAfterHeading('Dropped by before send')).toBe(false);
-      expect(isAfterHeading('Dropped by ignored spans')).toBe(true);
+      expect(isAfter(unexpectedHeading, 'Dropped by before send')).toBe(true);
+      expect(isAfter(expectedHeading, 'Dropped by before send')).toBe(false);
+      expect(isAfter(expectedHeading, 'Dropped by ignored spans')).toBe(true);
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
 
+      expect(screen.getByRole('heading', {name: 'Unexpected Drops'})).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Configured Drops'})
+        screen.queryByRole('heading', {name: 'Expected Drops'})
       ).not.toBeInTheDocument();
     });
 
@@ -387,8 +392,9 @@ describe('useDroppedDataDrawer', () => {
       ).not.toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
       expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Unexpected Drops'})).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Configured Drops'})
+        screen.queryByRole('heading', {name: 'Expected Drops'})
       ).not.toBeInTheDocument();
       // 10 unintentional drops out of 60 accepted + 10 dropped.
       expect(screen.getByText('14.29%')).toBeInTheDocument();
@@ -409,7 +415,7 @@ describe('useDroppedDataDrawer', () => {
 
       expect(screen.getByText('40 Dropped Events')).toBeInTheDocument();
       expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).toBeInTheDocument();
-      expect(screen.getByRole('heading', {name: 'Configured Drops'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Expected Drops'})).toBeInTheDocument();
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
       // 10 unintentional drops out of 60 accepted + 40 dropped.
       expect(screen.getByText('10%')).toBeInTheDocument();
@@ -420,7 +426,7 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
       expect(screen.getByText('14.29%')).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Configured Drops'})
+        screen.queryByRole('heading', {name: 'Expected Drops'})
       ).not.toBeInTheDocument();
     });
 
