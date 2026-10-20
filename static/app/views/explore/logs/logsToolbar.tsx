@@ -24,6 +24,7 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -335,6 +336,12 @@ function VisualizeDropdown({
       onSearch={onSearch}
       loading={loading}
       fieldDefinitionType="log"
+      transformationControls={
+        <VisualizeTransformations
+          transformations={visualize.transformations}
+          onChange={transformations => onReplace(visualize.replace({transformations}))}
+        />
+      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar

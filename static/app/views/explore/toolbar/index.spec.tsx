@@ -120,6 +120,68 @@ describe('ExploreToolbar', () => {
     });
   });
 
+  it('edits transformations in the URL for one span series and excludes equations', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      }),
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            aggregateField: [
+              {groupBy: 'span.op'},
+              {yAxes: ['count(span.duration)'], transformations: ['fill(locf)']},
+              {yAxes: ['avg(span.duration)']},
+              {yAxes: ['equation|$a + $b']},
+            ].map(field => JSON.stringify(field)),
+          },
+        },
+      },
+    });
+
+    const addButtons = screen.getAllByRole('button', {name: 'Add Transformation'});
+    expect(addButtons).toHaveLength(2);
+    await userEvent.click(addButtons[1]!);
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Smoothing method'}));
+    await userEvent.click(screen.getByRole('option', {name: 'EMA'}));
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'span.op'}),
+        JSON.stringify({
+          yAxes: ['count(span.duration)'],
+          transformations: ['fill(locf)'],
+        }),
+        JSON.stringify({
+          yAxes: ['avg(span.duration)'],
+          transformations: ['smooth(ema,10,0.25)'],
+        }),
+        JSON.stringify({yAxes: ['equation|$a + $b']}),
+      ])
+    );
+
+    const row = screen.getAllByRole('group', {name: 'Transformation 1'})[0]!;
+    expect(within(row).getByRole('button', {name: 'Fill method'})).toHaveTextContent(
+      'Previous value'
+    );
+    const removeButtons = screen.getAllByRole('button', {name: 'Remove transformation'});
+    await userEvent.click(removeButtons[1]!);
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'span.op'}),
+        JSON.stringify({
+          yAxes: ['count(span.duration)'],
+          transformations: ['fill(locf)'],
+        }),
+        JSON.stringify({yAxes: ['avg(span.duration)']}),
+        JSON.stringify({yAxes: ['equation|$a + $b']}),
+      ])
+    );
+  });
+
   it('disables changing visualize fields for count', async () => {
     let visualizes: any;
     function Component() {
@@ -134,6 +196,9 @@ describe('ExploreToolbar', () => {
 
     // this is the default
     expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+    expect(
+      within(section).queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
 
     expect(await within(section).findByRole('button', {name: 'spans'})).toBeDisabled();
   });

@@ -22,6 +22,7 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -294,6 +295,14 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
+      transformationControls={
+        isVisualizeFunction(visualize) ? (
+          <VisualizeTransformations
+            transformations={visualize.transformations}
+            onChange={transformations => onReplace(visualize.replace({transformations}))}
+          />
+        ) : undefined
+      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar

@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {initializeLogsTest} from 'sentry-fixture/log';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -104,6 +105,52 @@ describe('LogsToolbar', () => {
   });
 
   describe('visualize section', () => {
+    it('restores and edits per-series transformations through the log URL', async () => {
+      const {router} = render(<LogsToolbar />, {
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        }),
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/logs/',
+            query: {
+              aggregateField: [
+                {groupBy: 'severity'},
+                {yAxes: ['count(message)'], transformations: ['fill(zero)']},
+                {yAxes: ['avg(foo)'], transformations: ['smooth(asap,10)']},
+              ].map(field => JSON.stringify(field)),
+            },
+          },
+        },
+      });
+
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+      expect(screen.getByRole('button', {name: 'Max Window Size'})).toHaveTextContent(
+        '10'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
+      await userEvent.click(screen.getByRole('option', {name: '3'}));
+      await waitFor(() =>
+        expect(router.location.query.aggregateField).toEqual([
+          JSON.stringify({groupBy: 'severity'}),
+          JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
+          JSON.stringify({yAxes: ['avg(foo)'], transformations: ['smooth(asap,3)']}),
+        ])
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Fill method'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Linear'}));
+      await waitFor(() =>
+        expect(router.location.query.aggregateField).toEqual([
+          JSON.stringify({groupBy: 'severity'}),
+          JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(linear)']}),
+          JSON.stringify({yAxes: ['avg(foo)'], transformations: ['smooth(asap,3)']}),
+        ])
+      );
+    });
+
     it('options disabled', async () => {
       render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
 
