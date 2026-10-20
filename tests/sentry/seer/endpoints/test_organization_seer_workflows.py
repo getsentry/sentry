@@ -739,7 +739,8 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
     def test_seeds_default_automation(self) -> None:
         response = self.get_success_response(self.organization.slug)
 
-        (config,) = response.data
+        assert 'rel="next"' in response.headers["Link"]
+        (config,) = response.data["configs"]
         assert config["strategy"] == "agentic_triage_v2"
         assert config["enabled"] is False
         assert config["projects"] == [-1]
@@ -766,8 +767,8 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
 
-        assert [item["id"] for item in response.data] == [str(config.id), str(empty.id)]
-        assert response.data[0] == {
+        assert [item["id"] for item in response.data["configs"]] == [str(config.id), str(empty.id)]
+        assert response.data["configs"][0] == {
             "id": str(config.id),
             "strategy": "agentic_triage_v2",
             "enabled": False,
@@ -781,7 +782,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
         }
-        assert response.data[1]["projects"] == []
+        assert response.data["configs"][1]["projects"] == []
 
     def test_scope_only_includes_accessible_active_projects(self) -> None:
         self.organization.flags.allow_joinleave = False
@@ -800,8 +801,8 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
 
-        assert len(response.data) == 1
-        assert response.data[0]["projects"] == [accessible.id]
+        assert len(response.data["configs"]) == 1
+        assert response.data["configs"][0]["projects"] == [accessible.id]
 
     def create_config(self, **kwargs) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(

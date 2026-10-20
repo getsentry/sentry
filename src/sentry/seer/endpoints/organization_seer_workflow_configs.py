@@ -42,6 +42,10 @@ class SeerWorkflowConfigResponse(TypedDict):
     dateUpdated: datetime
 
 
+class SeerWorkflowConfigsResponse(TypedDict):
+    configs: list[SeerWorkflowConfigResponse]
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
@@ -52,11 +56,12 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List Seer automation workflows",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
-        responses={200: list[SeerWorkflowConfigResponse]},
+        responses={200: SeerWorkflowConfigsResponse},
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """List saved Seer automation workflows, seeding missing defaults on first access.
 
+        The ``configs`` list contains the current page; pagination links are in headers.
         ``projects`` is ``[-1]`` for all projects, ``[]`` for no projects, or a list
         of selected active project IDs accessible to the caller. An empty
         ``environments`` list means all environments; otherwise it contains names.
@@ -86,7 +91,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
 def serialize_workflow_configs(
     configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
-) -> list[SeerWorkflowConfigResponse]:
+) -> SeerWorkflowConfigsResponse:
     selected_projects: dict[int, list[int]] = defaultdict(list)
     links = SeerWorkflowConfigProject.objects.filter(
         config__in=configs, project_id__in=accessible_project_ids
@@ -125,4 +130,4 @@ def serialize_workflow_configs(
                 "dateUpdated": config.date_updated,
             }
         )
-    return results
+    return {"configs": results}
