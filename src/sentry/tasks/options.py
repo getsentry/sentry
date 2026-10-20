@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.options import default_manager, default_store
+from sentry import options
 from sentry.options.manager import UnknownOption
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -39,10 +39,12 @@ def _sync_options(cutoff):
     though it will correct itself in the next update window.
     """
     cutoff_dt = timezone.now() - timedelta(seconds=cutoff)
-    # TODO(dcramer): this doesnt handle deleted options (which shouldn't be allowed)
-    for option in default_store.model.objects.filter(last_updated__gte=cutoff_dt).iterator():
+    for option in options.default_store.model.objects.filter(
+        last_updated__gte=cutoff_dt
+    ).iterator():
         try:
-            opt = default_manager.lookup_key(option.key)
-            default_manager.store.set_cache(opt, option.value)
+            opt = options.default_manager.lookup_key(option.key)
         except UnknownOption as e:
             logger.exception(str(e))
+        else:
+            options.default_store.set_cache(opt, option.value)
