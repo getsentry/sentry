@@ -91,11 +91,13 @@ export function DroppedDataDrawer({
               selection={outcomeSelection}
               onSelectionChange={setOutcomeSelection}
             />
-            <DroppedDataOutcomeList
-              sections={selectedGroups.unintentional}
-              colors={outcomeColors}
-              onTroubleshoot={onTroubleshoot}
-            />
+            {selectedGroups.unintentional.length > 0 && (
+              <DroppedDataOutcomeList
+                sections={selectedGroups.unintentional}
+                colors={outcomeColors}
+                onTroubleshoot={onTroubleshoot}
+              />
+            )}
             {selectedGroups.intentional.length > 0 && (
               <Stack gap="md">
                 <Stack gap="xl" padding="0 xl">
