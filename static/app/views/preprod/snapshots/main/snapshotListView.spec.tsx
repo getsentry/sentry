@@ -130,6 +130,35 @@ describe('SnapshotListView', () => {
     };
   }
 
+  function siblingGroup(
+    name: string,
+    count = 3
+  ): Extract<SidebarItem, {type: 'changed'}> {
+    const group = changedGroup(count);
+    return {
+      ...group,
+      key: `changed:${name}`,
+      name,
+      pairs: group.pairs.map(pair => ({
+        ...pair,
+        head_image: {
+          ...pair.head_image,
+          image_file_name: `${name}/${pair.head_image.image_file_name}`,
+          display_name: `${name}/${pair.head_image.display_name}`,
+        },
+      })),
+    };
+  }
+
+  function storeViewed(pairs: SnapshotDiffPair[]) {
+    localStorage.setItem(
+      VIEWED_SNAPSHOTS_STORAGE_KEY,
+      JSON.stringify(
+        Object.fromEntries(pairs.map(pair => [viewedKeyForPair(pair), Date.now()]))
+      )
+    );
+  }
+
   it('renders every card in a large single group (per-card rows) plus one header', () => {
     render(<ExampleSnapshotListView items={[changedGroup(6)]} />);
 
@@ -237,17 +266,42 @@ describe('SnapshotListView', () => {
   });
 
   it('collapses a card when it is marked viewed and expands it when unmarked', async () => {
-    render(<ExampleSnapshotListView items={[changedGroup(1)]} />);
+    render(<ExampleSnapshotListView items={[changedGroup(2)]} />);
+    const zoomButtons = screen.getAllByRole('button', {name: 'Zoom in'}).length;
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
     expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toBeChecked();
-    expect(screen.queryByRole('button', {name: 'Zoom in'})).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Zoom in'})).toHaveLength(
+      zoomButtons / 2
+    );
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
     expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).not.toBeChecked();
-    expect(screen.getAllByRole('button', {name: 'Zoom in'}).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', {name: 'Zoom in'})).toHaveLength(zoomButtons);
+  });
+
+  it('skips fully viewed groups with the arrow keys', () => {
+    const viewedGroup = siblingGroup('B');
+    storeViewed(viewedGroup.pairs);
+    const onSelectSnapshot = jest.fn();
+    render(
+      <SnapshotListView
+        items={[siblingGroup('A'), viewedGroup, siblingGroup('C')]}
+        imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
+        selectedSnapshotKey="B/s1.png"
+        onSelectSnapshot={onSelectSnapshot}
+      />
+    );
+
+    expect(screen.queryByText('B/Screen 1')).not.toBeInTheDocument();
+
+    fireEvent.keyDown(document.body, {key: 'ArrowDown'});
+    expect(onSelectSnapshot).toHaveBeenLastCalledWith('C/s0.png');
+
+    fireEvent.keyDown(document.body, {key: 'ArrowUp'});
+    expect(onSelectSnapshot).toHaveBeenLastCalledWith('A/s2.png');
   });
 
   describe('viewed scroll anchoring', () => {
@@ -269,10 +323,11 @@ describe('SnapshotListView', () => {
           if (!this.hasAttribute('data-index')) {
             return 600;
           }
-          if (this.querySelector('h3')) {
-            return 44;
-          }
-          const height = this.querySelector('[aria-label="Zoom in"]') ? 400 : 80;
+          const height = this.querySelector('h3')
+            ? 44
+            : this.querySelector('[aria-label="Zoom in"]')
+              ? 400
+              : 80;
           return height + (this.hasAttribute('data-last-in-group') ? 16 : 0);
         });
       jest
@@ -305,21 +360,16 @@ describe('SnapshotListView', () => {
       jest.restoreAllMocks();
     });
 
-    function siblingGroup(name: string): SidebarItem {
-      const group = changedGroup(3);
-      return {
-        ...group,
-        key: `changed:${name}`,
-        name,
-        pairs: group.pairs.map(pair => ({
-          ...pair,
-          head_image: {
-            ...pair.head_image,
-            image_file_name: `${name}/${pair.head_image.image_file_name}`,
-            display_name: `${name}/${pair.head_image.display_name}`,
-          },
-        })),
-      };
+    function rowTop(scroller: HTMLElement, element: HTMLElement) {
+      const row = element.closest<HTMLElement>('[data-index]')!;
+      const translateY = Number(row.style.transform.match(/translateY\((.*)px\)/)![1]);
+      return translateY + 16 - scroller.scrollTop;
+    }
+
+    function inListHeader() {
+      return screen
+        .getAllByRole('heading', {name: 'Screens'})
+        .find(heading => heading.closest('[data-index]'))!;
     }
 
     async function scrollList(scroller: HTMLElement, top: number) {
@@ -336,30 +386,51 @@ describe('SnapshotListView', () => {
       });
     }
 
-    it('shrinks measured off-screen cards when their group is marked viewed', async () => {
-      render(
-        <ExampleSnapshotListView
-          items={[siblingGroup('Before'), changedGroup(45), siblingGroup('After')]}
-        />
-      );
+    it('drops collapsed heights of cards that come back when their group is unviewed', async () => {
+      const screens = changedGroup(45);
+      storeViewed(screens.pairs.slice(0, 44));
+      render(<ExampleSnapshotListView items={[screens]} />);
       const spacer = document.querySelector<HTMLElement>('[data-index]')!.parentElement!;
       const scroller = spacer.parentElement!;
-      for (let top = 0; top < 19000; top += 2000) {
+      for (let top = 0; top < 5000; top += 1000) {
         await scrollList(scroller, top);
       }
-      await scrollList(scroller, 44 + 3 * 400 + 16);
+      await scrollList(scroller, 0);
+      const groupCheckbox = screen.getByRole('checkbox', {name: 'All in Screens viewed'});
+
+      await userEvent.click(groupCheckbox);
+      await settleLayout();
+      await userEvent.click(groupCheckbox);
+      await settleLayout();
+
+      expect(parseFloat(spacer.style.height)).toBeGreaterThan(44 + 45 * 300);
+    });
+
+    it('keeps collapsed groups above in place when a group below them is unviewed', async () => {
+      const before = siblingGroup('Before');
+      const screens = changedGroup(45);
+      storeViewed([...before.pairs, ...screens.pairs]);
+      render(
+        <ExampleSnapshotListView items={[before, screens, siblingGroup('After')]} />
+      );
+      const scroller =
+        document.querySelector<HTMLElement>('[data-index]')!.parentElement!
+          .parentElement!;
+      await scrollList(scroller, 20);
+      const headerTop = rowTop(scroller, inListHeader());
 
       await userEvent.click(
-        screen.getAllByRole('checkbox', {name: 'All in Screens viewed'})[0]!
+        screen.getByRole('checkbox', {name: 'All in Screens viewed'})
       );
       await settleLayout();
 
-      expect(parseFloat(spacer.style.height)).toBeLessThan(
-        3 * 44 + 51 * 80 + 3 * 16 + 6 * 400
+      expect(rowTop(scroller, inListHeader())).toBe(headerTop);
+      expect(rowTop(scroller, screen.getByLabelText('Screen 0 viewed'))).toBe(
+        headerTop + 44
       );
     });
 
-    it('keeps the same card visible through repeated group toggles from the middle', async () => {
+    it('keeps the group header in place through repeated toggles from the sticky header', async () => {
       render(
         <ExampleSnapshotListView
           items={[siblingGroup('Before'), changedGroup(45), siblingGroup('After')]}
@@ -369,38 +440,28 @@ describe('SnapshotListView', () => {
         document.querySelector<HTMLElement>('[data-index]')!.parentElement!
           .parentElement!;
       await scrollList(scroller, 6500);
-      const rowTop = () => {
-        const card = screen
-          .getByLabelText('Screen 15 viewed')
-          .closest<HTMLElement>('[data-index]')!;
-        return Number(card.style.transform.match(/translateY\((.*)px\)/)![1]);
-      };
-      await scrollList(scroller, rowTop() + 16 - 44);
       const groupCheckbox = screen.getByRole('checkbox', {name: 'All in Screens viewed'});
 
       for (let cycle = 0; cycle < 2; cycle++) {
         await userEvent.click(groupCheckbox);
         await settleLayout();
-        expect(screen.getByLabelText('Screen 15 viewed')).toBeChecked();
+        expect(screen.queryByLabelText('Screen 15 viewed')).not.toBeInTheDocument();
+        expect(groupCheckbox).toBeChecked();
         expect(groupCheckbox).toHaveFocus();
-        expect(rowTop() + 16 - scroller.scrollTop).toBe(44);
+        expect(rowTop(scroller, inListHeader())).toBe(0);
 
         await userEvent.click(groupCheckbox);
         await settleLayout();
-        expect(screen.getByLabelText('Screen 15 viewed')).not.toBeChecked();
-        expect(rowTop() + 16 - scroller.scrollTop).toBe(44);
+        expect(groupCheckbox).not.toBeChecked();
+        expect(rowTop(scroller, inListHeader())).toBe(0);
+        expect(rowTop(scroller, screen.getByLabelText('Screen 0 viewed'))).toBe(44);
       }
     });
   });
 
   it('restores stored marks, drops changed images, and toggles the whole group', async () => {
     const group = changedGroup(2);
-    localStorage.setItem(
-      VIEWED_SNAPSHOTS_STORAGE_KEY,
-      JSON.stringify(
-        Object.fromEntries(group.pairs.map(pair => [viewedKeyForPair(pair), Date.now()]))
-      )
-    );
+    storeViewed(group.pairs);
     const [first, second] = group.pairs;
     render(
       <ExampleSnapshotListView
@@ -422,10 +483,17 @@ describe('SnapshotListView', () => {
     expect(screen.getByRole('checkbox', {name: 'Screen 1 viewed'})).not.toBeChecked();
 
     await userEvent.click(groupCheckbox);
-    expect(screen.queryAllByRole('checkbox', {checked: false})).toHaveLength(0);
+    expect(groupCheckbox).toBeChecked();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Screen 0 viewed'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Screen 1 viewed'})
+    ).not.toBeInTheDocument();
 
     await userEvent.click(groupCheckbox);
     expect(screen.queryAllByRole('checkbox', {checked: true})).toHaveLength(0);
+    expect(screen.getByRole('checkbox', {name: 'Screen 1 viewed'})).toBeInTheDocument();
   });
 
   it('ignores shortcuts while a modal is open', () => {

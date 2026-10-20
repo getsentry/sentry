@@ -48,7 +48,7 @@ export function SnapshotGroupHeader({
       justify="between"
       gap="md"
       padding="lg xl"
-      borderBottom="secondary"
+      borderBottom={isViewed === true ? undefined : 'secondary'}
       background="primary"
     >
       <Heading as="h3" size="md" ellipsis>

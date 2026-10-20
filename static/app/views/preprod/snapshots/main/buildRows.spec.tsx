@@ -1,6 +1,7 @@
 import type {SidebarItem, SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {buildRowIndex, buildRows, rowFrameEdges} from './snapshotListView';
+import {viewedKeyForPair} from './useViewedSnapshots';
 
 const mockZoom = {
   containerRef: {current: null},
@@ -219,6 +220,71 @@ describe('rowFrameEdges', () => {
       frameBottom: true,
       separator: false,
     });
+  });
+});
+
+describe('viewed groups', () => {
+  const pair = (name: string) => ({
+    base_image: image({image_file_name: `${name}.base.png`}),
+    head_image: image({image_file_name: `${name}.png`}),
+    diff: null,
+    diff_image_key: null,
+  });
+  const viewedPairs = [pair('b'), pair('c')];
+  const items: SidebarItem[] = [
+    {
+      key: 'changed:First',
+      name: 'First',
+      displayName: 'First',
+      type: 'changed',
+      pairs: [pair('a')],
+    },
+    {
+      key: 'changed:Viewed',
+      name: 'Viewed',
+      displayName: 'Viewed',
+      type: 'changed',
+      pairs: viewedPairs,
+    },
+    {
+      key: 'changed:Last',
+      name: 'Last',
+      displayName: 'Last',
+      type: 'changed',
+      pairs: [pair('d')],
+    },
+  ];
+  const viewed = Object.fromEntries(viewedPairs.map(p => [viewedKeyForPair(p), 1]));
+
+  it('collapses a fully viewed group to a header that closes its frame', () => {
+    const rows = buildRows(items, 900, viewed);
+    expect(rows.map(r => r.id)).toEqual([
+      'h:changed:First',
+      'c:changed:First:a.png',
+      'h:changed:Viewed',
+      'h:changed:Last',
+      'c:changed:Last:d.png',
+    ]);
+    const header = rows[2]!;
+    expect(header).toMatchObject({kind: 'header', isViewed: true, estimatedHeight: 60});
+    expect(rowFrameEdges(header)).toEqual({
+      frameTop: true,
+      frameBottom: true,
+      separator: false,
+    });
+  });
+
+  it('indexes hidden cards against their header and the next visible card', () => {
+    const idx = buildRowIndex(buildRows(items, 900, viewed));
+    expect(idx.order).toEqual(['a.png', 'd.png']);
+    expect(idx.rowIndexByKey.get('c.png')).toBe(2);
+    expect(idx.nextPositionByHiddenKey.get('c.png')).toBe(1);
+    expect([...idx.ordinalByKey]).toEqual([
+      ['a.png', 0],
+      ['b.png', 1],
+      ['c.png', 2],
+      ['d.png', 3],
+    ]);
   });
 });
 

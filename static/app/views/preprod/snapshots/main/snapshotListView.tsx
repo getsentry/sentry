@@ -124,6 +124,7 @@ export type ListRow =
   | {
       estimatedHeight: number;
       groupName: string;
+      hiddenCards: GroupCard[];
       id: string;
       isViewed: boolean | 'indeterminate';
       itemKey: string;
@@ -203,20 +204,26 @@ export function buildRows(
         card.viewedKey === null ? [] : [card.viewedKey]
       );
       const viewedCount = viewedKeys.filter(key => key in viewed).length;
+      const isViewed =
+        viewedCount === 0
+          ? false
+          : viewedCount === viewedKeys.length
+            ? true
+            : 'indeterminate';
       rows.push({
         kind: 'header',
         id: `h:${item.key}`,
         itemKey: item.key,
         groupName: item.name,
         viewedKeys,
-        isViewed:
-          viewedCount === 0
-            ? false
-            : viewedCount === viewedKeys.length
-              ? true
-              : 'indeterminate',
-        estimatedHeight: SNAPSHOT_GROUP_HEADER_HEIGHT,
+        isViewed,
+        hiddenCards: isViewed === true ? cards : [],
+        estimatedHeight:
+          SNAPSHOT_GROUP_HEADER_HEIGHT + (isViewed === true ? ROW_PADDING_BOTTOM : 0),
       });
+      if (isViewed === true) {
+        continue;
+      }
     }
     cards.forEach((card, i) => {
       const isLast = i === cards.length - 1;
@@ -242,7 +249,9 @@ export function buildRows(
 export interface RowIndex {
   firstRowByItemKey: Map<string, number>;
   lastRowByItemKey: Map<string, number>;
+  nextPositionByHiddenKey: Map<string, number>;
   order: string[];
+  ordinalByKey: Map<string, number>;
   positionByKey: Map<string, number>;
   rowIndexByKey: Map<string, number>;
 }
@@ -250,9 +259,12 @@ export interface RowIndex {
 export function buildRowIndex(rows: ListRow[]): RowIndex {
   const order: string[] = [];
   const positionByKey = new Map<string, number>();
+  const ordinalByKey = new Map<string, number>();
   const rowIndexByKey = new Map<string, number>();
+  const nextPositionByHiddenKey = new Map<string, number>();
   const firstRowByItemKey = new Map<string, number>();
   const lastRowByItemKey = new Map<string, number>();
+  let ordinal = 0;
   rows.forEach((row, rowIdx) => {
     if (!firstRowByItemKey.has(row.itemKey)) {
       firstRowByItemKey.set(row.itemKey, rowIdx);
@@ -261,11 +273,27 @@ export function buildRowIndex(rows: ListRow[]): RowIndex {
     if (row.kind === 'card') {
       const key = snapshotKeyFor(row.card);
       positionByKey.set(key, order.length);
+      ordinalByKey.set(key, ordinal++);
       order.push(key);
+      rowIndexByKey.set(key, rowIdx);
+      return;
+    }
+    for (const card of row.hiddenCards) {
+      const key = snapshotKeyFor(card);
+      nextPositionByHiddenKey.set(key, order.length);
+      ordinalByKey.set(key, ordinal++);
       rowIndexByKey.set(key, rowIdx);
     }
   });
-  return {order, positionByKey, rowIndexByKey, firstRowByItemKey, lastRowByItemKey};
+  return {
+    order,
+    positionByKey,
+    ordinalByKey,
+    rowIndexByKey,
+    nextPositionByHiddenKey,
+    firstRowByItemKey,
+    lastRowByItemKey,
+  };
 }
 
 function isGroupedRow(row: ListRow): boolean {
@@ -278,7 +306,7 @@ export function rowFrameEdges(row: ListRow): {
   separator: boolean;
 } {
   if (row.kind === 'header') {
-    return {frameTop: true, frameBottom: false, separator: false};
+    return {frameTop: true, frameBottom: row.isViewed === true, separator: false};
   }
   return {
     frameTop: row.isFirstInGroup && row.isUngrouped,
@@ -363,6 +391,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   const viewedScrollAnchor = useRef<{
     id: string;
     imageBaseUrl: string;
+    itemKey: string;
     items: SidebarItem[];
     offset: number;
   } | null>(null);
@@ -393,13 +422,18 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
           firstRow && isGroupedRow(firstRow) ? SNAPSHOT_GROUP_HEADER_HEIGHT : 0;
         const anchor = headerIsVisible
           ? first
-          : visible.find(
-              item => item.end > top + stickyHeight && rows[item.index]?.kind === 'card'
-            );
+          : visible.find(item => {
+              const row = rows[item.index];
+              return (
+                item.end > top + stickyHeight &&
+                (row?.kind === 'card' || row?.isViewed === true)
+              );
+            });
         if (anchor) {
           const anchorRow = rows[anchor.index]!;
           viewedScrollAnchor.current = {
             id: anchorRow.id,
+            itemKey: anchorRow.itemKey,
             offset: anchor.start - top,
             items,
             imageBaseUrl,
@@ -422,7 +456,11 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     if (!anchor || !el) {
       return;
     }
-    const index = rows.findIndex(row => row.id === anchor.id);
+    const anchorIndex = rows.findIndex(row => row.id === anchor.id);
+    const index =
+      anchorIndex === -1
+        ? (rowIndex.firstRowByItemKey.get(anchor.itemKey) ?? -1)
+        : anchorIndex;
     if (anchor.items !== items || anchor.imageBaseUrl !== imageBaseUrl || index === -1) {
       cancelViewedScroll();
       return;
@@ -432,9 +470,11 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     const measurement = virtualizer.measurementsCache[index]!;
     const paddingTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
     const offset =
-      row.kind === 'card' && row.isViewed
-        ? Math.max(anchor.offset, row.isUngrouped ? 0 : SNAPSHOT_GROUP_HEADER_HEIGHT)
-        : anchor.offset;
+      anchorIndex === -1
+        ? 0
+        : row.kind === 'card' && row.isViewed
+          ? Math.max(anchor.offset, row.isUngrouped ? 0 : SNAPSHOT_GROUP_HEADER_HEIGHT)
+          : anchor.offset;
     const target = Math.max(
       0,
       Math.min(measurement.start + paddingTop - offset, el.scrollHeight - el.clientHeight)
@@ -443,14 +483,22 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       virtualizer.scrollToOffset(target, {behavior: 'auto'});
     }
     setScrollTop(el.scrollTop);
-  }, [rows, items, imageBaseUrl, cancelViewedScroll, virtualizer]);
+  }, [rows, rowIndex, items, imageBaseUrl, cancelViewedScroll, virtualizer]);
 
   useLayoutEffect(() => {
     if (previousRows.current !== rows) {
       const previous = new Map(previousRows.current.map(row => [row.id, row]));
+      const previouslyHidden = new Set(
+        previousRows.current.flatMap(row =>
+          row.kind === 'header' ? row.hiddenCards.map(card => card.id) : []
+        )
+      );
       rows.forEach((row, index) => {
         const before = previous.get(row.id);
-        if (row.kind === 'card' && before && before.isViewed !== row.isViewed) {
+        if (
+          previouslyHidden.has(row.id) ||
+          (row.kind === 'card' && before && before.isViewed !== row.isViewed)
+        ) {
           virtualizer.resizeItem(index, row.estimatedHeight);
         }
       });
@@ -554,7 +602,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         const topCardRow = topCardItem ? rowsRef.current[topCardItem.index] : undefined;
         const key =
           topCardRow?.kind === 'card' ? snapshotKeyFor(topCardRow.card) : undefined;
-        const ordinal = key ? (rowIndexRef.current.positionByKey.get(key) ?? 0) : 0;
+        const ordinal = key ? (rowIndexRef.current.ordinalByKey.get(key) ?? 0) : 0;
         onScrollProgressRef.current(progress, ordinal);
       }
     });
@@ -741,15 +789,20 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
 
       const lastPos = idx.order.length - 1;
       const currentPos = currentKey ? (idx.positionByKey.get(currentKey) ?? -1) : -1;
+      const hiddenNextPos = currentKey
+        ? idx.nextPositionByHiddenKey.get(currentKey)
+        : undefined;
       const isDown = e.key === 'ArrowDown';
       let nextPos: number;
-      if (currentPos === -1) {
+      if (hiddenNextPos !== undefined) {
+        nextPos = isDown ? hiddenNextPos : hiddenNextPos - 1;
+      } else if (currentPos === -1) {
         nextPos = isDown ? 0 : lastPos;
       } else {
         nextPos = Math.max(0, Math.min(lastPos, currentPos + (isDown ? 1 : -1)));
       }
       e.preventDefault();
-      if (nextPos === currentPos) {
+      if (nextPos === currentPos || nextPos < 0 || nextPos > lastPos) {
         return;
       }
       const nextKey = idx.order[nextPos]!;
