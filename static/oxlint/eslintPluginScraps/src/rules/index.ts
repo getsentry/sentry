@@ -1,4 +1,5 @@
 import {noCoreImport} from './noCoreImport.ts';
+import {noDomCoupling} from './noDomCoupling.ts';
 import {noDoubleDollarInterpolation} from './noDoubleDollarInterpolation.ts';
 import {noRestrictedModuleMocks} from './noRestrictedModuleMocks.ts';
 import {noTokenImport} from './noTokenImport.ts';
@@ -13,6 +14,7 @@ import {useSemanticToken} from './useSemanticToken.ts';
 
 export const rules = {
   'no-core-import': noCoreImport,
+  'no-dom-coupling': noDomCoupling,
   'no-double-dollar-interpolation': noDoubleDollarInterpolation,
   'no-restricted-module-mocks': noRestrictedModuleMocks,
   'no-token-import': noTokenImport,

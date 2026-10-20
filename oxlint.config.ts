@@ -11,13 +11,17 @@ const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}']
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/scraps/no-dom-coupling': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
     '@sentry/scraps/prefer-container-responsive-props': 'error',
   },
   overrides: [
     {
       files: coreComponentFiles,
-      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+      rules: {
+        '@sentry/scraps/no-dom-coupling': 'off',
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
     },
     {
       files: testFiles,
