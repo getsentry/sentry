@@ -94,17 +94,51 @@ describe('parseEvaluationInput', () => {
     ]);
   });
 
+  it('parses score level descriptions', () => {
+    const raw = JSON.stringify([
+      {
+        type: 'evaluation',
+        state: 'I was charged twice.',
+        questions: {
+          urgency: {
+            type: 'score',
+            criteria: ['low', 'medium', 'high'],
+            descriptions: {1: 'Needs a reply today', 2: 'Blocks the customer'},
+          },
+        },
+      },
+    ]);
+
+    expect(parseEvaluationInput(raw)?.questions).toEqual([
+      {
+        key: 'urgency',
+        kind: 'question',
+        type: 'score',
+        criteria: ['low', 'medium', 'high'],
+        descriptions: {1: 'Needs a reply today', 2: 'Blocks the customer'},
+      },
+    ]);
+  });
+
   it('keeps malformed questions as raw values', () => {
     const raw = JSON.stringify([
       {
         type: 'evaluation',
         state: 'text',
-        questions: {urgency: {type: 'score', criteria: 'low'}},
+        questions: {
+          urgency: {type: 'score', criteria: 'low'},
+          severity: {type: 'score', criteria: ['low'], descriptions: ['Minor']},
+        },
       },
     ]);
 
     expect(parseEvaluationInput(raw)?.questions).toEqual([
       {key: 'urgency', kind: 'invalid', value: {type: 'score', criteria: 'low'}},
+      {
+        key: 'severity',
+        kind: 'invalid',
+        value: {type: 'score', criteria: ['low'], descriptions: ['Minor']},
+      },
     ]);
   });
 
