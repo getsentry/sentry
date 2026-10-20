@@ -290,13 +290,9 @@ function DropdownMenuList({
       >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay
-            style={{
-              minHeight: minMenuHeight,
-              width: menuWidth,
-              maxWidth: menuWidth
-                ? (overlayPositionProps.style?.maxWidth ?? 'calc(100vw - 16px)')
-                : undefined,
-            }}
+            minMenuHeight={minMenuHeight}
+            menuWidth={menuWidth}
+            maxWidthProp={overlayPositionProps.style?.maxWidth}
           >
             {(menuTitle || search) && (
               <Menu.Header>
@@ -322,8 +318,9 @@ function DropdownMenuList({
               </Menu.Header>
             )}
             <DropdownMenuListWrap
+              as="ul"
               ref={menuRef}
-              hasEmptyMessage={!!search?.value.trim() && stateCollection.length === 0}
+              flex={search?.value.trim() && stateCollection.length === 0 ? 1 : undefined}
               hasTitle={!!menuTitle}
               disableTextSelection={disableTextSelection}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
@@ -618,14 +615,27 @@ function DropdownSubmenu({
   );
 }
 
-const StyledOverlay = styled(Overlay)`
+const StyledOverlay = styled(Overlay, {
+  shouldForwardProp: prop =>
+    !['minMenuHeight', 'menuWidth', 'maxWidthProp'].includes(prop),
+})<{
+  maxWidthProp?: number | string;
+  menuWidth?: number | string;
+  minMenuHeight?: number | string;
+}>`
   display: flex;
   flex-direction: column;
   max-height: inherit;
+  min-height: ${p => p.minMenuHeight && withUnits(p.minMenuHeight)};
+  width: ${p => p.menuWidth && withUnits(p.menuWidth)};
+  max-width: ${p =>
+    p.menuWidth && (p.maxWidthProp ? withUnits(p.maxWidthProp) : 'calc(100vw - 16px)')};
 `;
 
-const DropdownMenuListWrap = styled('ul')<{
-  hasEmptyMessage: boolean;
+const withUnits = (value: string | number) =>
+  typeof value === 'number' ? `${value}px` : value;
+
+const DropdownMenuListWrap = styled(Stack)<{
   hasTitle: boolean;
   disableTextSelection?: boolean;
 }>`
@@ -635,14 +645,6 @@ const DropdownMenuListWrap = styled('ul')<{
   overflow-x: hidden;
   overflow-y: auto;
   min-height: 0;
-
-  ${p =>
-    p.hasEmptyMessage &&
-    css`
-      display: flex;
-      flex-direction: column;
-      flex-grow: 1;
-    `}
 
   ${p =>
     p.disableTextSelection &&
