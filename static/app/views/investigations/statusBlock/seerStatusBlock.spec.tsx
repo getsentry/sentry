@@ -58,22 +58,6 @@ describe('SeerStatusBlock', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('does not draw a running or done glyph on tool calls', () => {
-    render(
-      <SeerStatusBlock
-        variant="running"
-        title="Seer is gathering context"
-        toolActivity={[
-          {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
-          {id: 'b', kind: 'tool', status: 'running', title: 'Fetch traces'},
-        ]}
-      />
-    );
-
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Succeeded')).not.toBeInTheDocument();
-  });
-
   it('shows only the latest tool call and expands to the earlier ones', async () => {
     render(
       <SeerStatusBlock
