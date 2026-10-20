@@ -74,7 +74,7 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
 
 function ToolCallTitle({activity}: {activity: InvestigationToolActivity}) {
   return (
-    <Flex as="span" align="center" gap="sm" minWidth="0">
+    <Flex as="span" align="baseline" gap="sm" minWidth="0">
       <Text size="sm" variant="secondary" monospace ellipsis>
         {activity.title}
       </Text>

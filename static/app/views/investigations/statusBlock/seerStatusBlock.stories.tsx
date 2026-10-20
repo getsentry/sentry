@@ -153,8 +153,10 @@ export default Storybook.story('Investigations — Seer status block', story => 
       <p>
         While the agent is working, <code>toolActivity</code> carries the calls behind the
         current phase — the broad scan, the hypotheses still under investigation, or the
-        report block being written. Each is drawn with the same <code>ToolCall</code> the
-        Seer agent uses, but only the latest is shown: it says what the agent is doing
+        report block being written. Each call is a plain line of text with no spinner or
+        checkmark of its own: the block's icon already says the agent is working, and a
+        second loading state beside it would compete. A failed call is marked{' '}
+        <code>Failed</code>. Only the latest is shown: it says what the agent is doing
         right now, and the title is still the sentence to read. When there is history
         behind it, the latest call is the toggle, and opening it lists the earlier calls
         newest first. A stopped run leaves them out, since its last calls are history, not
