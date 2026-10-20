@@ -181,6 +181,7 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
         provider="anthropic",
         model="opus",
         referrer="sentry.autofix_issue_data.judge",
+        feature="model_training",
         prompt=json.dumps(
             {
                 key: value

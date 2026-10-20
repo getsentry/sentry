@@ -373,7 +373,9 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             actor_type=ActorType.SYSTEM,
         )
         assert get_viewer_context() is None
-        prompt = json.loads(orjson.loads(mock_urlopen.call_args.kwargs["body"])["prompt"])
+        request_body = orjson.loads(mock_urlopen.call_args.kwargs["body"])
+        assert request_body["feature"] == "model_training"
+        prompt = json.loads(request_body["prompt"])
         assert prompt == {
             "event_id": event_id,
             "event": {"entries": []},
