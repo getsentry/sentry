@@ -73,6 +73,8 @@ class BaseQuerySet(QuerySet[M, R]):
         with transaction.mark_for_rollback_on_error(using=self.db):
             try:
                 query_sql, query_params = query.get_compiler(self.db).as_sql()
+                if not query_sql:
+                    raise EmptyResultSet
                 query_sql += f" RETURNING {', '.join(returned_fields)} "
                 using = router.db_for_write(self.model)
 

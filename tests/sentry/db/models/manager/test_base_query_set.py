@@ -58,6 +58,16 @@ class TestUpdateWithReturning(TestCase):
             returned_fields=["id"], message="hi"
         )
 
+    def test_no_values_to_update(self) -> None:
+        queryset = Group.objects.filter(id=self.group.id).with_post_update_signal(True)
+
+        with catch_signal(post_update) as handler:
+            returned = queryset.update_with_returning(returned_fields=["id"])
+
+        assert returned == []
+
+        assert not handler.called
+
     def test_raises_when_no_fields_returned(self) -> None:
         original_message = self.group.message
 
