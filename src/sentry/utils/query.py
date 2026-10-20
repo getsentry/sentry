@@ -333,8 +333,11 @@ def bulk_delete_objects(
     logger: logging.Logger | None = None,
     **filters: Any,
 ) -> bool:
-    # Sort IDs first to ensure consistent lock ordering across concurrent workers, preventing deadlocks.
-    ids = sorted(model.objects.filter(**filters).values_list("id", flat=True)[:limit])
+    # Materialize IDs with ORDER BY before issuing the DELETE to break the self-join subquery
+    # pattern that causes deadlocks under concurrent workers. Pushing ORDER BY into the SELECT
+    # means PostgreSQL returns IDs in a consistent order; while the DELETE's internal scan order
+    # is still up to the planner, eliminating the two-phase self-join lock is the primary fix.
+    ids = list(model.objects.filter(**filters).order_by("id").values_list("id", flat=True)[:limit])
     if not ids:
         return False
 
