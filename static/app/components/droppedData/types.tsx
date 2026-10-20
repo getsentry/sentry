@@ -1,3 +1,5 @@
+type DroppedEventTag = 'intentional' | 'unintentional';
+
 export interface DroppedEventsBucket {
   category: string;
   count: number;
@@ -5,6 +7,7 @@ export interface DroppedEventsBucket {
   outcome: string;
   reason: string;
   start: number;
+  tags: DroppedEventTag[];
   type: string;
 }
 
