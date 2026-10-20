@@ -7,7 +7,6 @@ import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterCont
 import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
-import {Flex} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
 
 import {GridListOption, type GridListOptionProps} from './option';
@@ -50,20 +49,19 @@ export function GridListSection<T extends ListItemBase>({
           : {'aria-labelledby': titleId})}
       >
         {(node.rendered || showToggleAllButton) && (
-          <Flex
-            data-section-header
-            justify="between"
-            align="center"
-            minHeight="1.5em"
-            padding="2xs lg"
+          <Menu.SectionHeader
+            trailingItem={
+              showToggleAllButton ? (
+                <SectionToggle item={node} listState={listState} />
+              ) : null
+            }
           >
             {node.rendered && (
               <Menu.SectionLabel id={titleId} aria-hidden>
                 {node.rendered}
               </Menu.SectionLabel>
             )}
-            {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
-          </Flex>
+          </Menu.SectionHeader>
         )}
         <Menu.SectionList>
           {childNodes.map(child => (

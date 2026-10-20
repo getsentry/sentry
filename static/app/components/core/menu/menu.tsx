@@ -52,6 +52,27 @@ export function MenuSectionLabel({
   );
 }
 
+/** Layout for a menu section heading and an optional action beside it. */
+export function MenuSectionHeader({
+  children,
+  trailingItem,
+  ...props
+}: FlexProps & {trailingItem?: React.ReactNode}) {
+  return (
+    <Flex
+      data-section-header
+      justify="between"
+      align="center"
+      minHeight="1.5em"
+      padding="2xs lg"
+      {...props}
+    >
+      {children}
+      {trailingItem}
+    </Flex>
+  );
+}
+
 /** Divider between menu sections. */
 export function MenuSectionSeparator() {
   return <Separator orientation="horizontal" border="muted" />;
