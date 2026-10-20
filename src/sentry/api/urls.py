@@ -806,10 +806,6 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
-from .endpoints.organization_events_facets_performance import (
-    OrganizationEventsFacetsPerformanceEndpoint,
-    OrganizationEventsFacetsPerformanceHistogramEndpoint,
-)
 from .endpoints.organization_events_has_measurements import (
     OrganizationEventsHasMeasurementsEndpoint,
 )
@@ -1940,16 +1936,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-facets/$",
         OrganizationEventsFacetsEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance/$",
-        OrganizationEventsFacetsPerformanceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-performance",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance-histogram/$",
-        OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-performance-histogram",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-span-ops/$",
