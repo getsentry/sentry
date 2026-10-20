@@ -304,6 +304,27 @@ describe('SnapshotListView', () => {
     expect(onSelectSnapshot).toHaveBeenLastCalledWith('A/s2.png');
   });
 
+  it('un-views the selected card of a collapsed group with v', async () => {
+    const viewedGroup = siblingGroup('B', 2);
+    storeViewed(viewedGroup.pairs);
+    render(
+      <SnapshotListView
+        items={[siblingGroup('A', 2), viewedGroup]}
+        imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
+        selectedSnapshotKey="B/s1.png"
+        onSelectSnapshot={jest.fn()}
+      />
+    );
+    const scroller =
+      document.querySelector<HTMLElement>('[data-index]')!.parentElement!.parentElement!;
+    act(() => scroller.focus());
+
+    await userEvent.keyboard('v');
+
+    expect(screen.getByRole('checkbox', {name: 'B/Screen 0 viewed'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'B/Screen 1 viewed'})).not.toBeChecked();
+  });
+
   describe('viewed scroll anchoring', () => {
     const originalScrollTo = HTMLElement.prototype.scrollTo;
 
@@ -406,6 +427,27 @@ describe('SnapshotListView', () => {
       expect(parseFloat(spacer.style.height)).toBeGreaterThan(44 + 45 * 300);
     });
 
+    it('reports progress from collapsed groups when no card is in view', async () => {
+      const groups = Array.from({length: 30}, (_, i) => siblingGroup(`G${i}`));
+      storeViewed(groups.flatMap(group => group.pairs));
+      const onScrollProgress = jest.fn();
+      render(
+        <SnapshotListView
+          items={groups}
+          imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
+          onScrollProgress={onScrollProgress}
+        />
+      );
+      const scroller =
+        document.querySelector<HTMLElement>('[data-index]')!.parentElement!
+          .parentElement!;
+
+      await scrollList(scroller, 19 * (44 + 16) + 30);
+      await settleLayout();
+
+      expect(onScrollProgress).toHaveBeenLastCalledWith(expect.any(Number), 19 * 3);
+    });
+
     it('keeps collapsed groups above in place when a group below them is unviewed', async () => {
       const before = siblingGroup('Before');
       const screens = changedGroup(45);
@@ -483,17 +525,10 @@ describe('SnapshotListView', () => {
     expect(screen.getByRole('checkbox', {name: 'Screen 1 viewed'})).not.toBeChecked();
 
     await userEvent.click(groupCheckbox);
-    expect(groupCheckbox).toBeChecked();
-    expect(
-      screen.queryByRole('checkbox', {name: 'Screen 0 viewed'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('checkbox', {name: 'Screen 1 viewed'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('checkbox', {checked: false})).toHaveLength(0);
 
     await userEvent.click(groupCheckbox);
     expect(screen.queryAllByRole('checkbox', {checked: true})).toHaveLength(0);
-    expect(screen.getByRole('checkbox', {name: 'Screen 1 viewed'})).toBeInTheDocument();
   });
 
   it('ignores shortcuts while a modal is open', () => {

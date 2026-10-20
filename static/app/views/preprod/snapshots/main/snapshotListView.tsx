@@ -300,6 +300,10 @@ function isGroupedRow(row: ListRow): boolean {
   return row.kind === 'header' || !row.isUngrouped;
 }
 
+function firstCardOf(row: ListRow | undefined): GroupCard | undefined {
+  return row?.kind === 'card' ? row.card : row?.hiddenCards[0];
+}
+
 export function rowFrameEdges(row: ListRow): {
   frameBottom: boolean;
   frameTop: boolean;
@@ -597,12 +601,14 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         const maxScroll = el.scrollHeight - el.clientHeight;
         const progress = maxScroll > 0 ? (top / maxScroll) * 100 : 0;
         const topCardItem = virtualRows.find(
-          vi => vi.end > anchor && rowsRef.current[vi.index]?.kind === 'card'
+          vi => vi.end > anchor && firstCardOf(rowsRef.current[vi.index])
         );
-        const topCardRow = topCardItem ? rowsRef.current[topCardItem.index] : undefined;
-        const key =
-          topCardRow?.kind === 'card' ? snapshotKeyFor(topCardRow.card) : undefined;
-        const ordinal = key ? (rowIndexRef.current.ordinalByKey.get(key) ?? 0) : 0;
+        const topCard = firstCardOf(
+          topCardItem ? rowsRef.current[topCardItem.index] : undefined
+        );
+        const ordinal = topCard
+          ? (rowIndexRef.current.ordinalByKey.get(snapshotKeyFor(topCard)) ?? 0)
+          : 0;
         onScrollProgressRef.current(progress, ordinal);
       }
     });
@@ -872,12 +878,17 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       ? rowIndex.rowIndexByKey.get(selectedSnapshotKey)
       : undefined;
     const row = rowIdx === undefined ? undefined : rows[rowIdx];
-    if (row?.kind !== 'card' || row.card.viewedKey === null) {
+    const card =
+      row?.kind === 'card'
+        ? row.card
+        : row?.hiddenCards.find(hidden => snapshotKeyFor(hidden) === selectedSnapshotKey);
+    if (!row || !card || card.viewedKey === null) {
       return;
     }
+    const isViewed = row.kind === 'header' || row.isViewed;
     e.preventDefault();
-    handleSetViewed([row.card.viewedKey], !row.isViewed);
-    trackImageViewedToggled(organization, row.card, !row.isViewed);
+    handleSetViewed([card.viewedKey], !isViewed);
+    trackImageViewedToggled(organization, card, !isViewed);
   };
 
   if (items.length === 0) {
