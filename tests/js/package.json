@@ -91,6 +91,7 @@
     "./nuqsTestingAdapter": "./sentry-test/nuqsTestingAdapter.tsx",
     "./onboarding/renderWithOnboardingLayout": "./sentry-test/onboarding/renderWithOnboardingLayout.tsx",
     "./opsgenieIntegrationProvider": "./fixtures/opsgenieIntegrationProvider.ts",
+    "./oauth": "./fixtures/oauth.ts",
     "./organization": "./fixtures/organization.ts",
     "./organizationIntegrations": "./fixtures/organizationIntegrations.ts",
     "./organizations": "./fixtures/organizations.ts",
