@@ -50,7 +50,8 @@ from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
 
-# Reason codes Relay reports for attachments dropped because the attachment quota was exceeded.
+# Reason codes Relay reports in `rate_limited` for attachments dropped because the attachment
+# quota was exceeded.
 # Other reasons, such as spike protection or DSN rate limits, are not quota related.
 ATTACHMENT_QUOTA_EXCEEDED_REASONS = frozenset(
     (
@@ -633,8 +634,7 @@ def _do_save_event(
                 # Relay already tracked the rate limited outcome, so only record on the event
                 # that attachments were dropped for exceeding the quota.
                 if any(
-                    a.rate_limited and a.rate_limit_reason in ATTACHMENT_QUOTA_EXCEEDED_REASONS
-                    for a in all_attachments
+                    a.rate_limited in ATTACHMENT_QUOTA_EXCEEDED_REASONS for a in all_attachments
                 ):
                     data["metadata"] = {
                         **(data.get("metadata") or {}),

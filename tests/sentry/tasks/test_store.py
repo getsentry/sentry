@@ -558,7 +558,7 @@ def test_discard_event_cleans_up_attachments_with_optional_cache_key(
     assert "_attachments" not in data
 
 
-def _event_with_rate_limited_minidump(project_id: int, rate_limit_reason: str | None) -> dict:
+def _event_with_rate_limited_minidump(project_id: int, rate_limited: bool | str) -> dict:
     manager = EventManager(
         {
             "platform": "native",
@@ -577,8 +577,7 @@ def _event_with_rate_limited_minidump(project_id: int, rate_limit_reason: str | 
             "name": "minidump.dmp",
             "type": "event.minidump",
             "stored_id": "stored-minidump",
-            "rate_limited": True,
-            "rate_limit_reason": rate_limit_reason,
+            "rate_limited": rate_limited,
         }
     ]
     return data
@@ -586,11 +585,11 @@ def _event_with_rate_limited_minidump(project_id: int, rate_limit_reason: str | 
 
 @django_db_all
 @pytest.mark.parametrize(
-    "rate_limit_reason",
+    "rate_limited",
     ("attachment_usage_exceeded", "project_quota_attachment_usage_exceeded", "usage_exceeded"),
 )
-def test_save_event_flags_attachments_dropped_for_quota(default_project, rate_limit_reason) -> None:
-    data = _event_with_rate_limited_minidump(default_project.id, rate_limit_reason)
+def test_save_event_flags_attachments_dropped_for_quota(default_project, rate_limited) -> None:
+    data = _event_with_rate_limited_minidump(default_project.id, rate_limited)
 
     with mock.patch("sentry.attachments.get_session") as get_session:
         save_event_attachments(data=data, project_id=default_project.id, start_time=time())
@@ -604,11 +603,11 @@ def test_save_event_flags_attachments_dropped_for_quota(default_project, rate_li
 
 
 @django_db_all
-@pytest.mark.parametrize("rate_limit_reason", ("smart_rate_limit", "key_quota", None))
+@pytest.mark.parametrize("rate_limited", ("smart_rate_limit", "key_quota", True))
 def test_save_event_does_not_flag_attachments_dropped_for_other_rate_limits(
-    default_project, rate_limit_reason
+    default_project, rate_limited
 ) -> None:
-    data = _event_with_rate_limited_minidump(default_project.id, rate_limit_reason)
+    data = _event_with_rate_limited_minidump(default_project.id, rate_limited)
 
     with mock.patch("sentry.attachments.get_session"):
         save_event_attachments(data=data, project_id=default_project.id, start_time=time())
