@@ -139,7 +139,7 @@ export function useMultiMetricsQueryParams() {
   return metricQueries;
 }
 
-export function useMetricsHasTransformations(): boolean {
+export function useMetricsQueryParamsHasTransformations(): boolean {
   return useMultiMetricsQueryParams().some(query =>
     hasVisualizeTransformations(query.queryParams.visualizes)
   );

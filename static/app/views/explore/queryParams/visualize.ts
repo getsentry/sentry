@@ -20,11 +20,8 @@ interface VisualizeOptions {
   // equations so we can properly update the correct references when
   // dependencies change
   internalExpression?: string;
-  visible?: boolean;
-}
-
-interface VisualizeFunctionOptions extends VisualizeOptions {
   transformations?: readonly string[];
+  visible?: boolean;
 }
 
 export abstract class Visualize {
@@ -97,7 +94,7 @@ export class VisualizeFunction extends Visualize {
   readonly parsedFunction: ParsedFunction | null;
   readonly transformations: readonly string[];
 
-  constructor(yAxis: string, options?: VisualizeFunctionOptions) {
+  constructor(yAxis: string, options?: VisualizeOptions) {
     super(yAxis, options);
     this.parsedFunction = parseFunction(yAxis);
     this.transformations = [...(options?.transformations ?? [])];

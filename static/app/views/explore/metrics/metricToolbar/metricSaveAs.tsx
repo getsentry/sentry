@@ -4,7 +4,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useMetricsHasTransformations} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {useMetricsQueryParamsHasTransformations} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {useSaveAsMetricItems} from 'sentry/views/explore/metrics/useSaveAsMetricItems';
 
 interface MetricSaveAsProps {
@@ -14,7 +14,7 @@ interface MetricSaveAsProps {
 export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
   const [interval] = useChartInterval();
   const items = useSaveAsMetricItems({interval});
-  const hasTransformations = useMetricsHasTransformations();
+  const hasTransformations = useMetricsQueryParamsHasTransformations();
   const tooltipProps = hasTransformations
     ? {title: t('Queries with transformations cannot be saved yet.')}
     : undefined;

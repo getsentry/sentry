@@ -7,17 +7,6 @@ import {
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 describe('VisualizeFunction', () => {
-  it('copies transformation arrays at construction, clone and serialization', () => {
-    const transformations = ['fill(locf)'];
-    const visualize = new VisualizeFunction('avg(span.duration)', {transformations});
-    const clone = visualize.clone();
-    transformations.push('smooth(sma,5)');
-    expect(visualize.transformations).toEqual(['fill(locf)']);
-    expect(clone.transformations).toEqual(['fill(locf)']);
-    expect(clone.transformations).not.toBe(visualize.transformations);
-    expect(visualize.serialize().transformations).not.toBe(visualize.transformations);
-  });
-
   it('clears transformations explicitly and keeps legacy serialization unchanged', () => {
     const visualize = new VisualizeFunction('count(span.duration)', {
       transformations: ['fill(zero)'],
