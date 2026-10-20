@@ -46,10 +46,12 @@ export function buildTroubleshootPrompt(args: {
   reason: string;
 }): string {
   return t(
-    'My %s data is being dropped as "%s" (%s). Why is this happening and how do I fix it?',
-    args.dataset,
-    outcomeLabel(args.outcome),
-    reasonTitle(args.reason)
+    'My %(dataset)s data is being dropped as "%(outcome)s" (%(reason)s). Why is this happening and how do I fix it?',
+    {
+      dataset: args.dataset,
+      outcome: outcomeLabel(args.outcome),
+      reason: reasonTitle(args.reason),
+    }
   );
 }
 
