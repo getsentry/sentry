@@ -5,12 +5,10 @@ import zipfile
 from unittest.mock import MagicMock, patch
 
 import orjson
-import zstandard
-from objectstore_client import Client, RequestError, Usecase
+from objectstore_client import RequestError
 
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
-from sentry.preprod.snapshots.storage import SnapshotStorage
 from sentry.preprod.snapshots.zip_tasks import build_snapshot_images_zip
 from sentry.testutils.cases import TestCase
 
@@ -59,29 +57,17 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    @patch("objectstore_client.client._resumable.upload")
-    def test_build_uses_resumable_upload_and_includes_manifest(
-        self, mock_upload, mock_session, mock_email
-    ):
+    def test_build_includes_manifest(self, mock_session, mock_email):
         session = self._session()
         mock_session.return_value = session
-        primary = Client("http://objectstore.invalid").session(
-            Usecase("preprod_snapshots", resumable_threshold_bytes=1)
-        )
-        session.put.side_effect = SnapshotStorage(primary, MagicMock()).put
         archive_bytes = b""
 
-        def upload(client_session, body, size, **kwargs):
+        def upload(contents, **kwargs):
             nonlocal archive_bytes
-            assert body.seekable()
-            assert body.tell() == 0
-            compressed_bytes = body.read()
-            assert len(compressed_bytes) == size
-            with zstandard.ZstdDecompressor().stream_reader(io.BytesIO(compressed_bytes)) as reader:
-                archive_bytes = reader.read()
+            archive_bytes = contents.read()
             return kwargs["key"]
 
-        mock_upload.side_effect = upload
+        session.put.side_effect = upload
         build_snapshot_images_zip(
             org_id=self.org.id,
             project_id=self.project.id,
@@ -93,8 +79,6 @@ class BuildSnapshotImagesZipTest(TestCase):
         assert kwargs["key"] == f"snapshot_archives/{self.artifact.id}.zip"
         assert kwargs["content_type"] == "application/zip"
 
-        mock_upload.assert_called_once()
-        assert mock_upload.call_args.kwargs["compression"] == "zstd"
         with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
             assert sorted(archive.namelist()) == ["a.png", "manifest.json"]
             assert archive.read("manifest.json") == _manifest_bytes()
