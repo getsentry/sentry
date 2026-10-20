@@ -3,6 +3,7 @@ from unittest import mock
 
 from django.core import mail
 from django.db.models import F
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -155,7 +156,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
     @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
-    @override_options({"sms.twilio-account": "twilio-account"})
+    @override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account")
     def test_sms_can_enroll(self, send_text: mock.MagicMock, validate_otp: mock.MagicMock) -> None:
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
@@ -186,14 +187,13 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         assert_security_email_sent("mfa-added")
 
-    @override_options(
-        {"sms.twilio-account": "test-twilio-account", "sms.disallow-new-enrollment": True}
-    )
+    @override_options({"sms.disallow-new-enrollment": True})
+    @override_settings(SENTRY_SMS_TWILIO_ACCOUNT="test-twilio-account")
     def test_sms_disallow_new_enrollment(self) -> None:
         form_data = {"phone": "+12345678901"}
         self.get_error_response("me", "sms", method="post", status_code=403, **form_data)
 
-    @override_options({"sms.twilio-account": "twilio-account"})
+    @override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account")
     def test_sms_invalid_otp(self) -> None:
         # OTP as None
         self.get_error_response(
@@ -212,7 +212,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
             **{"secret": "secret12", "phone": "1231234", "otp": ""},
         )
 
-    @override_options({"sms.twilio-account": "twilio-account"})
+    @override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account")
     def test_sms_no_verified_email(self) -> None:
         user = self.create_user()
         UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
@@ -464,7 +464,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
     @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
-    @override_options({"sms.twilio-account": "twilio-account"})
+    @override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account")
     def test_invite_remains_pending_after_sms_enrollment(
         self, send_text: mock.MagicMock, validate_otp: mock.MagicMock
     ) -> None:

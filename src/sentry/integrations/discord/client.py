@@ -6,10 +6,10 @@ from typing import Any
 from urllib.parse import urlencode
 
 import orjson
+from django.conf import settings
 from requests.models import Response
 from rest_framework import status
 
-from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
@@ -54,9 +54,9 @@ class DiscordClient(ApiClient):
 
     def __init__(self):
         super().__init__()
-        self.application_id = options.get("discord.application-id")
-        self.client_secret = options.get("discord.client-secret")
-        self.bot_token = options.get("discord.bot-token")
+        self.application_id = settings.SENTRY_DISCORD_APPLICATION_ID
+        self.client_secret = settings.SENTRY_DISCORD_CLIENT_SECRET
+        self.bot_token = settings.SENTRY_DISCORD_BOT_TOKEN
 
     def prepare_auth_header(self) -> dict[str, str]:
         return {"Authorization": f"Bot {self.bot_token}"}

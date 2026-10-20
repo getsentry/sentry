@@ -5,13 +5,13 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
 import orjson
+from django.conf import settings
 from django.db import router, transaction
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.fields import CharField
 
-from sentry import options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
@@ -209,7 +209,7 @@ class PagerDutyInstallationApiStep:
     step_name = "installation_redirect"
 
     def _get_app_url(self) -> str:
-        app_id = options.get("pagerduty.app-id")
+        app_id = settings.SENTRY_PAGERDUTY_APP_ID
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
         return f"https://app.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 

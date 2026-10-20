@@ -15,7 +15,6 @@ from django.conf import settings
 from django.db.utils import IntegrityError
 from google.api_core.exceptions import TooManyRequests
 
-from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.objectstore.metrics import measure_storage_operation
@@ -227,9 +226,9 @@ class SimpleStorageBlob:
             storage.client
 
     def _make_storage_options(self) -> dict | None:
-        backend = options.get("replay.storage.backend")
+        backend = settings.SENTRY_REPLAY_STORAGE_BACKEND
         if backend:
-            return {"backend": backend, "options": options.get("replay.storage.options")}
+            return {"backend": backend, "options": settings.SENTRY_REPLAY_STORAGE_OPTIONS}
         else:
             return None
 

@@ -4,8 +4,8 @@ import logging
 from typing import Any
 
 import orjson
+from django.conf import settings
 
-from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import (
@@ -55,10 +55,10 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     )
 
     def get_oauth_client_id(self) -> str:
-        return options.get("gcp.client-id")
+        return settings.SENTRY_GCP_CLIENT_ID
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("gcp.client-secret")
+        return settings.SENTRY_GCP_CLIENT_SECRET
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [

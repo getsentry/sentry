@@ -7,6 +7,7 @@ from random import randint
 from urllib.parse import quote, urlencode
 
 from django import template
+from django.conf import settings
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone as django_timezone
 from django.utils.safestring import mark_safe
@@ -178,7 +179,7 @@ def system_origin():
 
 @register.simple_tag
 def security_contact():
-    return options.get("system.security-email") or options.get("system.admin-email")
+    return settings.SENTRY_SYSTEM_SECURITY_EMAIL or options.get("system.admin-email")
 
 
 @register.filter
