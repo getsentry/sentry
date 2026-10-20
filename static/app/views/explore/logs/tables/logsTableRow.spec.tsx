@@ -32,6 +32,7 @@ import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
+import {LOGS_PINNED_KEY} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
@@ -1143,7 +1144,7 @@ describe('logsTableRow', () => {
               [LOGS_QUERY_KEY]: 'severity:info',
               [ID_KEY]: '123',
               [TITLE_KEY]: 'Saved query',
-              statsPeriod: '1h',
+              [LOGS_PINNED_KEY]: 'abc,def',
             },
           },
         },
@@ -1155,16 +1156,18 @@ describe('logsTableRow', () => {
     await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
     const link = (await screen.findByText('View in context')).closest('a')!;
 
-    const url = new URL(link.getAttribute('href')!);
+    const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
     expect(link).toHaveAttribute('target', '_blank');
     expect(url.pathname).toBe(`/organizations/${organization.slug}/explore/logs/`);
     expect(Array.from(url.searchParams).sort()).toEqual([
       [LOGS_ANCHOR_TIMESTAMP_KEY, String(rowData[OurLogKnownFieldKey.TIMESTAMP_PRECISE])],
       [LOGS_FIELDS_KEY, 'message'],
       [LOGS_FIELDS_KEY, 'timestamp'],
+      [LOGS_PINNED_KEY, 'abc,def'],
       [LOGS_ROW_ID_KEY, '1'],
       [LOGS_SORT_BYS_KEY, '-timestamp'],
-      ['statsPeriod', '1h'],
+      ['project', project.id],
+      ['statsPeriod', '14d'],
     ]);
   });
 
@@ -1199,9 +1202,11 @@ describe('logsTableRow', () => {
     await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
     const link = (await screen.findByText('View in context')).closest('a')!;
 
-    expect(new URL(link.getAttribute('href')!).searchParams.get(LOGS_SORT_BYS_KEY)).toBe(
-      '-timestamp'
-    );
+    expect(
+      new URL(link.getAttribute('href')!, 'https://sentry.io').searchParams.get(
+        LOGS_SORT_BYS_KEY
+      )
+    ).toBe('-timestamp');
   });
 
   it('links to the log with a timestamp column when the table is not sorted by time and hides the timestamp', async () => {
@@ -1235,7 +1240,7 @@ describe('logsTableRow', () => {
     await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
     const link = (await screen.findByText('View in context')).closest('a')!;
 
-    const url = new URL(link.getAttribute('href')!);
+    const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
     expect(url.searchParams.getAll(LOGS_FIELDS_KEY)).toEqual([
       'timestamp',
       'message',
