@@ -29,14 +29,6 @@ export const incubator = defineConfig({
   ],
 });
 
-const enableTypeAwareLinting = (() => {
-  if (process.env.SENTRY_OXLINT_TYPEAWARE !== undefined) {
-    return Boolean(JSON.parse(process.env.SENTRY_OXLINT_TYPEAWARE));
-  }
-
-  return true;
-})();
-
 /**
  * Oxlint configuration reference:
  * https://oxc.rs/docs/guide/usage/linter/config.html
@@ -326,11 +318,8 @@ const config = defineConfig({
     correctness: 'off',
   },
   options: {
-    typeAware: enableTypeAwareLinting,
-    // Only report unused directives when the full rule set runs. Without
-    // type-aware linting the type-aware rules never fire, so the suppressions
-    // that silence them look unused and `--fix` would delete live ones.
-    reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
+    typeAware: true,
+    reportUnusedDisableDirectives: 'error',
   },
   env: {
     builtin: true,
