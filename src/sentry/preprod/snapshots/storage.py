@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import IO, Literal
+from typing import IO
 
 from objectstore_client import Compression, GetResponse, Metadata, RequestError, Session
-from objectstore_client.multipart import MultipartUpload
 from urllib3.exceptions import HTTPError
 
 from sentry.models.project import Project
@@ -48,15 +47,15 @@ class SnapshotStorage:
             },
         )
 
-    def put(self, contents: bytes | IO[bytes], *, key: str, content_type: str | None = None) -> str:
-        return self._primary.put(contents, key=key, content_type=content_type)
-
-    def initiate_multipart_upload(
-        self, *, key: str, compression: Compression | Literal["none"], content_type: str
-    ) -> MultipartUpload:
-        return self._primary.initiate_multipart_upload(
-            key=key, compression=compression, content_type=content_type
-        )
+    def put(
+        self,
+        contents: bytes | IO[bytes],
+        *,
+        key: str,
+        compress: Compression | None = None,
+        content_type: str | None = None,
+    ) -> str:
+        return self._primary.put(contents, key=key, compress=compress, content_type=content_type)
 
     def delete(self, key: str) -> None:
         error: RequestError | HTTPError | None = None
