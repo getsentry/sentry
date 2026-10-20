@@ -100,7 +100,7 @@ describe('useDroppedDataDrawer', () => {
     expect(router.location.query.droppedData).toBe('true');
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide('Dropped Events');
+    await waitForDrawerToHide('Dropped and Filtered Events');
     await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
   });
 
@@ -156,7 +156,7 @@ describe('useDroppedDataDrawer', () => {
       await screen.findByRole('button', {name: 'Open dropped data'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('complementary', {name: 'Dropped Events'})
+      screen.queryByRole('complementary', {name: 'Dropped and Filtered Events'})
     ).not.toBeInTheDocument();
     expect(droppedDataRequest).not.toHaveBeenCalled();
   });
@@ -178,9 +178,9 @@ describe('useDroppedDataDrawer', () => {
     );
 
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
-    expect(screen.getAllByRole('complementary', {name: 'Dropped Events'})).toHaveLength(
-      1
-    );
+    expect(
+      screen.getAllByRole('complementary', {name: 'Dropped and Filtered Events'})
+    ).toHaveLength(1);
   });
 
   it('closes when navigating back', async () => {
@@ -195,7 +195,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
 
     router.navigate(-1);
-    await waitForDrawerToHide('Dropped Events');
+    await waitForDrawerToHide('Dropped and Filtered Events');
   });
 
   it('stays open and refreshes when zooming changes the time range', async () => {
@@ -254,7 +254,7 @@ describe('useDroppedDataDrawer', () => {
       )
     );
     expect(
-      screen.getByRole('complementary', {name: 'Dropped Events'})
+      screen.getByRole('complementary', {name: 'Dropped and Filtered Events'})
     ).toBeInTheDocument();
   });
 
@@ -270,7 +270,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
 
     router.navigate('/issues/');
-    await waitForDrawerToHide('Dropped Events');
+    await waitForDrawerToHide('Dropped and Filtered Events');
   });
 
   describe('legend filtering', () => {
