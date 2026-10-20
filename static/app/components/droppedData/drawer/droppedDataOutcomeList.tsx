@@ -1,27 +1,17 @@
-import {useId, useState} from 'react';
-import {IconChevron} from '@sentry/icons/chevron';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {Button} from '@sentry/scraps/button';
 import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {CircleIndicator} from 'sentry/components/circleIndicator';
 import type {
   OutcomeSection,
   ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  formatDroppedShare,
-  reasonDescription,
-  reasonTitle,
-  type OutcomeColors,
-} from 'sentry/components/droppedData/outcomes';
+import {formatDroppedShare, reasonTitle} from 'sentry/components/droppedData/outcomes';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
@@ -95,9 +85,7 @@ function ReasonTableRow({
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell padding="md xl">
-        <InfoText size="md" title={reasonDescription(row.reason, row.category)}>
-          {reasonTitle(row.reason)}
-        </InfoText>
+        <Text size="md">{reasonTitle(row.reason)}</Text>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" padding="md xl">
         <Text size="md" variant="muted" tabular>
@@ -125,17 +113,14 @@ function ColumnHeading({children}: {children: React.ReactNode}) {
 }
 
 function ReasonTable({
-  id,
   reasons,
   onTroubleshoot,
 }: {
-  id: string;
   reasons: ReasonRow[];
   onTroubleshoot?: (row: ReasonRow) => void;
 }) {
   return (
     <SimpleTable
-      id={id}
       columns={TABLE_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
@@ -165,22 +150,15 @@ function ReasonTable({
 
 function OutcomeSectionRow({
   section,
-  color,
   onTroubleshoot,
 }: {
-  color: string | undefined;
   section: OutcomeSection;
   onTroubleshoot?: (row: ReasonRow) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const reasonTableId = useId();
-  const toggle = () => setExpanded(value => !value);
-
   return (
     <Stack gap="md">
-      <Grid columns={HEADER_COLUMNS} align="center" onClick={toggle} cursor="pointer">
-        <Flex align="center" gap="md" padding="md xl">
-          <CircleIndicator color={color} size={12} />
+      <Grid columns={HEADER_COLUMNS} align="center">
+        <Flex align="center" padding="md xl">
           <Text size="lg" bold>
             {section.label}
           </Text>
@@ -195,41 +173,19 @@ function OutcomeSectionRow({
             {formatDroppedShare(section.shareRatio)}
           </Text>
         </Flex>
-        <Flex align="center" justify="center">
-          <Button
-            size="xs"
-            variant="transparent"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="md" />}
-            aria-label={t('%s reasons', section.label)}
-            aria-expanded={expanded}
-            aria-controls={expanded ? reasonTableId : undefined}
-            onClick={event => {
-              event.stopPropagation();
-              toggle();
-            }}
-          />
-        </Flex>
       </Grid>
-      {expanded && (
-        <ReasonTable
-          id={reasonTableId}
-          reasons={section.reasons}
-          onTroubleshoot={onTroubleshoot}
-        />
-      )}
+      <ReasonTable reasons={section.reasons} onTroubleshoot={onTroubleshoot} />
     </Stack>
   );
 }
 
 interface DroppedDataOutcomeListProps {
-  colors: OutcomeColors;
   sections: OutcomeSection[];
   onTroubleshoot?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataOutcomeList({
   sections,
-  colors,
   onTroubleshoot,
 }: DroppedDataOutcomeListProps) {
   return (
@@ -238,7 +194,6 @@ export function DroppedDataOutcomeList({
         <OutcomeSectionRow
           key={section.outcome}
           section={section}
-          color={colors[section.outcome]}
           onTroubleshoot={onTroubleshoot}
         />
       ))}

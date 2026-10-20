@@ -1,6 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {getOutcomeColors, reasonDescription, reasonTitle} from './outcomes';
+import {getOutcomeColors, reasonTitle} from './outcomes';
 
 describe('getOutcomeColors', () => {
   it('assigns the same colors regardless of input order', () => {
@@ -40,57 +40,17 @@ describe('reasonTitle', () => {
 
   it("maps the JavaScript SDK's ignored reason to the ignored spans title", () => {
     expect(reasonTitle('ignored')).toBe('Dropped by ignored spans');
-    expect(reasonDescription('ignored', 'span')).toBe(
-      'Span dropped by your ignored spans configuration.'
-    );
   });
 
-  it('falls back to the raw code for an unknown reason', () => {
-    expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
-  });
-});
-
-describe('reasonDescription', () => {
-  it('returns the short description for a known reason', () => {
-    expect(reasonDescription('queue_overflow', 'span')).toBe(
-      "SDK's send queue was full."
-    );
-  });
-
-  it('names the data type from the event category', () => {
-    expect(reasonDescription('project_abuse_limit', 'log_item')).toBe(
-      'Your log events exceeded the project abuse limit.'
-    );
-    expect(reasonDescription('usage_exceeded', 'trace_metric')).toBe(
-      'Your organization hit its quota for the application metric event type.'
-    );
-  });
-
-  it('describes category-prefixed quota reasons', () => {
-    expect(reasonDescription('span_usage_exceeded', 'span')).toBe(
-      'Your organization hit its quota for the span event type.'
-    );
-  });
-
-  it('returns undefined when a dynamic reason has no resolvable data type', () => {
-    expect(reasonDescription('too_large:event', 'unknown')).toBeUndefined();
-  });
-
-  it('returns undefined for an unknown reason', () => {
-    expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
-  });
-
-  it('describes the cors reason', () => {
+  it('titles the cors reason', () => {
     expect(reasonTitle('cors')).toBe('Disallowed origin');
-    expect(reasonDescription('cors', 'span')).toBe(
-      "Origin not in project's Allowed Domains."
-    );
   });
 
   it('maps dynamic-sampling reasons that carry a rule-id suffix', () => {
     expect(reasonTitle('Sampled:3000')).toBe('Dynamic sampling');
-    expect(reasonDescription('Sampled:0', 'span')).toBe(
-      'Dropped by a dynamic sampling rule.'
-    );
+  });
+
+  it('falls back to the raw code for an unknown reason', () => {
+    expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
   });
 });

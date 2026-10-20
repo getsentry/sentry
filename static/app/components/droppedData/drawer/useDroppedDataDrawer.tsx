@@ -50,7 +50,6 @@ export function useDroppedDataDrawer(
           dataset,
           outcome: row.outcome,
           reason: row.reason,
-          category: row.category,
         }),
       });
     },

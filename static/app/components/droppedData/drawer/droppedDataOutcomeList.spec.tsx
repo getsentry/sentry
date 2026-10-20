@@ -1,6 +1,6 @@
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
@@ -19,7 +19,6 @@ function OutcomeList({
   return (
     <DroppedDataOutcomeList
       sections={droppedEventsToOutcomeSections(droppedEvents, acceptedEvents)}
-      colors={{}}
       onTroubleshoot={onTroubleshoot}
     />
   );
@@ -92,109 +91,6 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.getByText('1,000')).toBeInTheDocument();
     expect(screen.getByText('10%')).toBeInTheDocument();
     expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
-  });
-
-  it('shows the short description when hovering the reason title', async () => {
-    render(
-      <OutcomeList
-        droppedEvents={[
-          DroppedEventFixture({
-            outcome: 'filtered',
-            reason: 'web-crawlers',
-            start: 0,
-            end: 60_000,
-            count: 5,
-          }),
-        ]}
-        acceptedEvents={[]}
-      />
-    );
-
-    const description = "User agent matched Sentry's known crawler list.";
-    expect(screen.queryByText(description)).not.toBeInTheDocument();
-
-    await userEvent.hover(screen.getByText('Web crawler filter'));
-
-    expect(await screen.findByText(description)).toBeInTheDocument();
-  });
-
-  it('fills the data type into the description from the event category', async () => {
-    render(
-      <OutcomeList
-        droppedEvents={[
-          DroppedEventFixture({
-            category: 'log_item',
-            outcome: 'abuse',
-            reason: 'project_abuse_limit',
-            start: 0,
-            end: 60_000,
-            count: 5,
-          }),
-        ]}
-        acceptedEvents={[]}
-      />
-    );
-
-    await userEvent.hover(screen.getByText('Project abuse limit'));
-
-    expect(
-      await screen.findByText('Your log events exceeded the project abuse limit.')
-    ).toBeInTheDocument();
-  });
-
-  it('collapses and expands a section when the header is clicked', async () => {
-    render(
-      <OutcomeList
-        droppedEvents={[
-          DroppedEventFixture({
-            outcome: 'invalid',
-            reason: 'invalid_json',
-            start: 0,
-            end: 60_000,
-            count: 10,
-          }),
-        ]}
-        acceptedEvents={[]}
-      />
-    );
-
-    expect(screen.getByText('Malformed JSON payload')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('Invalid or Malformed'));
-    expect(screen.queryByText('Malformed JSON payload')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('Invalid or Malformed'));
-    expect(screen.getByText('Malformed JSON payload')).toBeInTheDocument();
-  });
-
-  it('toggles a section from the keyboard via its chevron button', async () => {
-    render(
-      <OutcomeList
-        droppedEvents={[
-          DroppedEventFixture({
-            outcome: 'invalid',
-            reason: 'invalid_json',
-            start: 0,
-            end: 60_000,
-            count: 10,
-          }),
-        ]}
-        acceptedEvents={[]}
-      />
-    );
-
-    const toggle = screen.getByRole('button', {name: 'Invalid or Malformed reasons'});
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('table')).toHaveAttribute(
-      'id',
-      toggle.getAttribute('aria-controls')
-    );
-
-    act(() => toggle.focus());
-    await userEvent.keyboard('{Enter}');
-
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('opens the reason actions menu with docs and troubleshoot entries', async () => {
