@@ -119,7 +119,11 @@ export function DroppedDataChart({
       />
       <Container height={CHART_HEIGHT}>
         {plottables.length > 0 ? (
-          <TimeSeriesWidgetVisualization plottables={plottables} showLegend="never" />
+          <TimeSeriesWidgetVisualization
+            plottables={plottables}
+            showLegend="never"
+            disableZoom
+          />
         ) : legendItems.length > 0 ? (
           <Flex height="100%" align="center">
             <EmptyState
