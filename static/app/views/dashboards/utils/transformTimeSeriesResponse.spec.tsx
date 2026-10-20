@@ -3,9 +3,13 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {SizeUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-import {transformTimeSeriesResponse} from './transformTimeSeriesResponse';
+import {
+  combineIngestionMeta,
+  transformTimeSeriesResponse,
+} from './transformTimeSeriesResponse';
 
 function makeTimeSeries(
   yAxis: string,
@@ -43,6 +47,20 @@ describe('transformTimeSeriesResponse', () => {
     ]);
     expect(result.every(item => item.widgetQuery === widget.queries[0])).toBe(true);
     expect(result.every(item => item.queryIndex === 0)).toBe(true);
+  });
+
+  it('uses a custom series name', () => {
+    const [result] = transformTimeSeriesResponse(
+      {timeSeries: [makeTimeSeries('count()')]},
+      WidgetFixture({queries: [WidgetQueryFixture({name: 'Alias'})]}),
+      0,
+      {
+        getSeriesName: (timeSeries, widgetQuery) =>
+          `${widgetQuery.name}-${timeSeries.yAxis}`,
+      }
+    );
+
+    expect(result!.seriesName).toBe('Alias-count()');
   });
 
   it('returns nothing for a missing query', () => {
@@ -155,5 +173,26 @@ describe('transformTimeSeriesResponse', () => {
         expect(result.map(({seriesName}) => seriesName)).toEqual(expected);
       }
     );
+  });
+});
+
+describe('combineIngestionMeta', () => {
+  const meta = {dataset: DiscoverDatasets.SPANS, start: 0, end: 0};
+
+  it('keeps the meta with the earliest completeThrough', () => {
+    const slow = {status: 'healthy' as const, completeThrough: 1000};
+    const fast = {status: 'healthy' as const, completeThrough: 2000};
+
+    expect(
+      combineIngestionMeta([
+        {timeSeries: [], meta: {...meta, ingestion: fast}},
+        undefined,
+        {timeSeries: [], meta: {...meta, ingestion: slow}},
+      ])
+    ).toBe(slow);
+  });
+
+  it('returns undefined when no response measured ingestion', () => {
+    expect(combineIngestionMeta([{timeSeries: []}, undefined])).toBeUndefined();
   });
 });

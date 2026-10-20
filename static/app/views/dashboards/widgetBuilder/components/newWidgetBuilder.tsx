@@ -156,7 +156,7 @@ export function WidgetBuilderV2({
               }
             >
               <WidgetBuilderContainer>
-                <SlideoutContainer>
+                <Container height="100%">
                   <WidgetBuilderSlideout
                     onClose={() => {
                       onClose();
@@ -174,7 +174,7 @@ export function WidgetBuilderV2({
                     onDataFetched={handleWidgetDataFetched}
                     thresholdMetaState={thresholdMetaState}
                   />
-                </SlideoutContainer>
+                </Container>
                 {(!isSmallScreen || isPreviewDraggable) && (
                   <DndContext
                     onDragEnd={handleDragEnd}
@@ -218,8 +218,4 @@ const WidgetBuilderContainer = styled('div')`
   align-items: center;
   position: absolute;
   inset: 0;
-`;
-
-const SlideoutContainer = styled('div')`
-  height: 100%;
 `;

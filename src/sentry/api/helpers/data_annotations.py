@@ -62,6 +62,17 @@ def record_dropped_events_telemetry(
 DROPPED_OUTCOMES: tuple[Outcome, ...] = tuple(o for o in Outcome if o is not Outcome.ACCEPTED)
 
 
+INTENTIONAL = "intentional"
+UNINTENTIONAL = "unintentional"
+
+_INTENTIONAL_REASONS = frozenset({"sample_rate"})
+
+
+def classify_drop(outcome: str, reason: str) -> str:
+    """Tag a drop as intentional (user-configured) or unintentional."""
+    return INTENTIONAL if reason in _INTENTIONAL_REASONS else UNINTENTIONAL
+
+
 DEFAULT_DROP_THRESHOLD = 1
 
 DATASET_TO_CATEGORY: dict[object, DataCategory] = {
