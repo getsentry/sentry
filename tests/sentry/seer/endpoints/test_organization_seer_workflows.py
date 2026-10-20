@@ -736,16 +736,12 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
-    def test_seeds_default_automation(self) -> None:
+    def test_empty_organization_does_not_seed_defaults(self) -> None:
         response = self.get_success_response(self.organization.slug)
 
         assert 'rel="next"' in response.headers["Link"]
-        (config,) = response.data["configs"]
-        assert config["strategy"] == "agentic_triage_v2"
-        assert config["enabled"] is False
-        assert config["projects"] == [-1]
-        assert config["environments"] == []
-        assert config["seededDefault"] == "agentic_triage_v2"
+        assert response.data == {"configs": []}
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
     def test_lists_saved_configs_for_organization(self) -> None:
         project = self.create_project()
@@ -754,6 +750,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             version=4,
             filters={"environments": ["production"], "min_event_count": 10},
             output_policy={"review_mode": "manual"},
+            extras={"seeded_default": "agentic_triage_v2"},
         )
         Factories.create_seer_workflow_config_project(config, project)
         empty = self.create_config()
@@ -778,7 +775,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "environments": ["production"],
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
-            "seededDefault": None,
+            "seededDefault": "agentic_triage_v2",
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
         }

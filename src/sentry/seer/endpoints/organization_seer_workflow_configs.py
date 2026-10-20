@@ -59,7 +59,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         responses={200: SeerWorkflowConfigsResponse},
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        """List saved Seer automation workflows, seeding missing defaults on first access.
+        """List saved Seer automation workflows.
 
         The ``configs`` list contains the current page; pagination links are in headers.
         ``projects`` is ``[-1]`` for all projects, ``[]`` for no projects, or a list
@@ -73,8 +73,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             raise NotFound
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
-        # TODO: Move default seeding to an explicit Seer automation onboarding step.
-        SeerWorkflow.ensure_defaults(organization.id)
         configs = SeerWorkflowConfig.objects.filter(
             organization=organization, strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES
         )
