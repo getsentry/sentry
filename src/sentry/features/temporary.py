@@ -283,7 +283,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-smart-assignment-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display the Seer agentic triage UI
     manager.add("organizations:seer-night-shift-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:autofix-pr-iteration-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Run Seer Autofix with only the code mode tools
     manager.add("organizations:seer-autofix-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
