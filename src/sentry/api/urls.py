@@ -2624,9 +2624,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-runs",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/runs/$",
         OrganizationSeerWorkflowsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-workflows",
+        name="sentry-api-0-organization-seer-workflow-runs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
