@@ -54,6 +54,7 @@ export function toDraft(formula: SavedFormula | undefined): FormulaDraft {
   if (!formula) {
     return {
       name: '',
+      description: null,
       dataset: 'spans',
       unit: null,
       formula: '',
@@ -65,6 +66,7 @@ export function toDraft(formula: SavedFormula | undefined): FormulaDraft {
   return {
     id: formula.id,
     name: stripNamePrefix(formula.name),
+    description: formula.description,
     dataset: formula.dataset,
     unit: formula.unit,
     formula: stripVariableBraces(formula.formula),
