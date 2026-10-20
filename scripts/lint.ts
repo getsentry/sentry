@@ -152,7 +152,7 @@ if (inspect) {
         language === 'css'
           ? ['exec', 'stylelint', '--allow-empty-input']
           : ['run', 'lint:js'];
-      const result = run([...command, ...packageArgs, ...files], project);
+      const result = run([...command, ...lintArgs(files)], project);
       status ||= result;
     }
   }

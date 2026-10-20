@@ -122,6 +122,7 @@ test('native option values reach package tasks without root file paths', t => {
   assert.equal(result.runs.length, 1);
   for (const run of result.runs) {
     assert.deepEqual(run.args, [
+      '--no-error-on-unmatched-pattern',
       '--format',
       'json',
       '--threads=1',
@@ -217,8 +218,12 @@ test('root failures stop before package tasks run', t => {
   ]);
 });
 
-for (const language of ['js', 'css']) {
-  test(`scoped ${language} fixes leave unselected files unchanged; package defaults scan all files`, t => {
+for (const [language, options] of [
+  ['js', []],
+  ['js', ['--quiet', '--no-error-on-unmatched-pattern']],
+  ['css', []],
+] as const) {
+  test(`scoped ${language} fixes with ${JSON.stringify(options)} leave unselected files unchanged; package defaults scan all files`, t => {
     const {directory, write, lint} = fixture(t);
     const extension = language === 'js' ? 'js' : 'tsx';
     const original =
@@ -247,7 +252,7 @@ for (const language of ['js', 'css']) {
       );
       write(
         `packages/${name}/.oxlintrc.json`,
-        JSON.stringify({rules: {'no-var': 'error'}})
+        JSON.stringify({ignorePatterns: ['ignored.js'], rules: {'no-var': 'error'}})
       );
       write(
         `packages/${name}/.stylelintrc.json`,
@@ -255,6 +260,9 @@ for (const language of ['js', 'css']) {
       );
       write(`packages/${name}/selected.${extension}`, original);
       write(`packages/${name}/unselected.${extension}`, original);
+      if (language === 'js') {
+        write(`packages/${name}/ignored.js`, original);
+      }
     }
     mkdirSync(path.join(directory, 'node_modules'));
     symlinkSync(
@@ -262,6 +270,7 @@ for (const language of ['js', 'css']) {
       path.join(directory, 'node_modules/.bin')
     );
     const result = lint(language, [
+      ...options,
       '--fix',
       `application.${extension}`,
       `packages/icons/selected.${extension}`,
@@ -278,7 +287,11 @@ for (const language of ['js', 'css']) {
     ]) {
       assert.equal(readFileSync(path.join(directory, file), 'utf8'), original);
     }
-    const full = spawnSync('pnpm', ['run', `lint:${language}`, '--fix'], {
+    if (language === 'js') {
+      const ignored = lint(language, [...options, 'packages/icons/ignored.js']);
+      assert.equal(ignored.status, 0, ignored.stdout + ignored.stderr);
+    }
+    const full = spawnSync('pnpm', ['run', `lint:${language}`, ...options, '--fix'], {
       cwd: path.join(directory, 'packages/icons'),
       encoding: 'utf8',
     });

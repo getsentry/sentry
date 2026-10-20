@@ -138,7 +138,7 @@
     "typecheck": "tsc --build tsconfig.test.json",
     "prepack": "pnpm run build",
     "lint": "pnpm run lint:js && pnpm run lint:css",
-    "lint:js": "oxlint --type-aware --report-unused-disable-directives --no-error-on-unmatched-pattern",
+    "lint:js": "oxlint --type-aware --report-unused-disable-directives",
     "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
