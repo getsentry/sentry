@@ -8,8 +8,10 @@ export const sanitizeBranch = (value: string) =>
     .replace(/\/{2,}/g, '/')
     .replace(/^[./]+/, '');
 
-export const resolveBranch = (branch: string | undefined, fallback: string = DEFAULT_BRANCH) =>
-  sanitizeBranch(branch ?? '').replace(/[./]+$/, '') || fallback;
+export const resolveBranch = (
+  branch: string | undefined,
+  fallback: string = DEFAULT_BRANCH
+) => sanitizeBranch(branch ?? '').replace(/[./]+$/, '') || fallback;
 
 // Mirrors the backend rule: Windows-only roots (no /) get \, everything else gets /.
 export const normalizeRoot = (root: string): string => {
