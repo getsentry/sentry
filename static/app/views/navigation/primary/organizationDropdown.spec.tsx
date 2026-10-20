@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -6,6 +7,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 
@@ -16,6 +18,10 @@ describe('OrganizationDropdown', () => {
 
   beforeEach(() => {
     ConfigStore.set('user', UserFixture());
+  });
+
+  afterEach(() => {
+    ProjectsStore.reset();
   });
 
   it('displays org info and links', async () => {
@@ -53,6 +59,64 @@ describe('OrganizationDropdown', () => {
     expect(screen.getAllByText('Organization Name')).toHaveLength(1);
     expect(screen.getByText('0 Projects')).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toBeInTheDocument();
+  });
+
+  it('filters projects in the settings v3 All Projects submenu', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'javascript', isMember: true, isBookmarked: true}),
+      ProjectFixture({id: '2', slug: 'python', isMember: true}),
+    ]);
+    const {router} = render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/`
+    );
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
+
+    const search = screen.getByRole('textbox', {name: 'Search'});
+    expect(search).toHaveFocus();
+    await userEvent.type(search, 'python');
+    expect(screen.getByRole('menuitemradio', {name: 'python'})).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(search).toHaveFocus();
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'python'}));
+    expect(router.location.pathname).toBe(
+      `/settings/${organization.slug}/projects/python/`
+    );
+  });
+
+  it('bookmarks a project without navigating away from the settings v3 menu', async () => {
+    const project = ProjectFixture({
+      id: '1',
+      slug: 'javascript',
+      isMember: true,
+      isBookmarked: true,
+    });
+    ProjectsStore.loadInitialData([project]);
+    const projectMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {...project, isBookmarked: false},
+    });
+    const {router} = render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    const row = screen.getByRole('menuitemradio', {name: 'javascript'});
+    await userEvent.click(within(row).getByRole('button', {name: 'Remove Bookmark'}));
+
+    expect(projectMock).toHaveBeenCalled();
+    expect(router.location.pathname).not.toBe(
+      `/settings/${organization.slug}/projects/${project.slug}/`
+    );
+    expect(
+      screen.getByRole('menuitemradio', {name: 'View All Projects'})
+    ).toBeInTheDocument();
   });
 
   it('can switch orgs', async () => {

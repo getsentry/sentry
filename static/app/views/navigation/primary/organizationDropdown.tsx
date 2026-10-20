@@ -6,7 +6,11 @@ import {IconSettings} from '@sentry/icons/settings';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {getOrganizationAvatarProps, OrganizationAvatar} from '@sentry/scraps/avatar';
+import {
+  getOrganizationAvatarProps,
+  OrganizationAvatar,
+  ProjectAvatar,
+} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {
   DropdownMenu,
@@ -19,6 +23,7 @@ import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
+import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -27,6 +32,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -63,6 +69,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
+  const canCreateProject = useCanCreateProject();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
   const avatarProps = getOrganizationAvatarProps(organization);
@@ -78,6 +85,30 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     />
   );
   const createOrganizationItem = makeCreateOrganizationMenuItem();
+  const projectMenuItem = (
+    project: (typeof projects)[number],
+    keyPrefix = 'project'
+  ): MenuItemProps => ({
+    key: `${keyPrefix}-${project.id}`,
+    label: project.slug,
+    leadingItems: <ProjectAvatar project={project} size={16} />,
+    trailingItems: (
+      <span onClick={event => event.stopPropagation()}>
+        <BookmarkStar project={project} organization={organization} />
+      </span>
+    ),
+    onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
+  });
+  const memberProjects = orderBy(
+    projects.filter(project => project.isMember),
+    ['isBookmarked', 'slug'],
+    ['desc', 'asc']
+  );
+  const otherProjects = orderBy(
+    projects.filter(project => !project.isMember),
+    ['isBookmarked', 'slug'],
+    ['desc', 'asc']
+  );
 
   if (settingsV3) {
     return (
@@ -132,6 +163,47 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 ],
               },
               createOrganizationItem,
+            ],
+          },
+          {
+            key: 'project-settings',
+            label: t('Project Settings'),
+            hidden: props.hideCurrentOrganizationLinks,
+            children: [
+              ...orderBy(
+                projects.filter(project => project.isBookmarked),
+                ['slug'],
+                ['asc']
+              )
+                .slice(0, 5)
+                .map(project => projectMenuItem(project, 'starred-project')),
+              {
+                key: 'view-all-projects',
+                label: t('View All Projects'),
+                submenu: {title: t('All Projects'), search: {placeholder: t('Search')}},
+                hidden: projects.length === 0,
+                children: [
+                  {
+                    key: 'my-projects',
+                    label: t('My Projects'),
+                    hidden: memberProjects.length === 0,
+                    children: memberProjects.map(project => projectMenuItem(project)),
+                  },
+                  {
+                    key: 'other-projects',
+                    label: t('Other Projects'),
+                    hidden: otherProjects.length === 0,
+                    children: otherProjects.map(project => projectMenuItem(project)),
+                  },
+                ],
+              },
+              {
+                key: 'create-project',
+                label: t('Create Project'),
+                leadingItems: <IconAdd />,
+                to: makeProjectsPathname({path: '/new/', organization}),
+                disabled: !canCreateProject,
+              },
             ],
           },
         ]}

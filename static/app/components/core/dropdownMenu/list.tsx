@@ -278,26 +278,30 @@ function DropdownMenuList({
       >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
-            {menuTitle && (
-              <Menu.Header padding="sm lg">
-                <Menu.Title>{menuTitle}</Menu.Title>
+            {(menuTitle || search) && (
+              <Menu.Header>
+                {menuTitle && (
+                  <Container padding="sm lg">
+                    <Menu.Title>{menuTitle}</Menu.Title>
+                  </Container>
+                )}
+                {search && (
+                  <Menu.Search
+                    aria-label={search.placeholder ?? 'Search'}
+                    placeholder={search.placeholder ?? 'Search…'}
+                    value={search.value}
+                    onChange={event => search.onChange(event.target.value)}
+                    onKeyDown={event => {
+                      if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        menuRef.current
+                          ?.querySelector<HTMLElement>('[role^="menuitem"]')
+                          ?.focus();
+                      }
+                    }}
+                  />
+                )}
               </Menu.Header>
-            )}
-            {search && (
-              <Menu.Search
-                aria-label={search.placeholder ?? 'Search'}
-                placeholder={search.placeholder ?? 'Search…'}
-                value={search.value}
-                onChange={event => search.onChange(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'ArrowDown') {
-                    event.preventDefault();
-                    menuRef.current
-                      ?.querySelector<HTMLElement>('[role^="menuitem"]')
-                      ?.focus();
-                  }
-                }}
-              />
             )}
             <DropdownMenuListWrap
               ref={menuRef}
