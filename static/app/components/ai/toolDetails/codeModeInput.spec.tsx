@@ -35,5 +35,16 @@ it('keeps the source as-is when no language is given', () => {
     screen.getByText(
       (_, element) => element?.tagName === 'CODE' && element.textContent === code
     )
-  ).toBeInTheDocument();
+  ).toHaveClass('language-python');
+});
+
+it('highlights unlabeled non-Python code as JavaScript without reformatting it', () => {
+  const code = 'const issues=await api.search({limit:5});\nreturn issues;';
+  render(<CodeModeInput code={code} />);
+  expect(screen.getByText('code')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      (_, element) => element?.tagName === 'CODE' && element.textContent === code
+    )
+  ).toHaveClass('language-javascript');
 });
