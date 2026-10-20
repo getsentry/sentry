@@ -63,6 +63,8 @@ export interface DropdownMenuListProps
     onChange: (value: string) => void;
     value: string;
     placeholder?: string;
+    showIcon?: boolean;
+    size?: 'xs' | 'sm' | 'md';
   };
   size?: MenuItemProps['size'];
   /**
@@ -280,13 +282,11 @@ function DropdownMenuList({
           <StyledOverlay>
             {(menuTitle || search) && (
               <Menu.Header>
-                {menuTitle && (
-                  <Container padding="sm lg">
-                    <Menu.Title>{menuTitle}</Menu.Title>
-                  </Container>
-                )}
+                {menuTitle && <Menu.Title padding="sm lg">{menuTitle}</Menu.Title>}
                 {search && (
                   <Menu.Search
+                    showIcon={search.showIcon}
+                    size={search.size}
                     aria-label={search.placeholder ?? 'Search'}
                     placeholder={search.placeholder ?? 'Search…'}
                     value={search.value}
@@ -470,7 +470,11 @@ function SearchableDropdownSubmenuContent({
   searchOptions,
   ...props
 }: Omit<DropdownMenuContentProps, 'search'> & {
-  searchOptions?: {placeholder?: string};
+  searchOptions?: {
+    placeholder?: string;
+    showIcon?: boolean;
+    size?: 'xs' | 'sm' | 'md';
+  };
 }) {
   const [search, setSearch] = useState('');
   return (
@@ -509,6 +513,12 @@ function DropdownSubmenu({
     disableTrigger: isDisabled,
     position: options.position ?? 'right-start',
     offset: -4,
+    flipOptions: {
+      boundary: document.body,
+      ...(options.position
+        ? {}
+        : {fallbackPlacements: ['bottom-start', 'left-start', 'top-start']}),
+    },
     preventOverflowOptions: {
       boundary: document.body,
       altAxis: true,
@@ -555,7 +565,13 @@ function DropdownSubmenu({
           items={items}
           autoFocus={false}
           overlayState={overlayState}
-          overlayPositionProps={overlayProps}
+          overlayPositionProps={{
+            ...overlayProps,
+            style: {
+              ...overlayProps.style,
+              maxHeight: options.maxMenuHeight ?? overlayProps.style?.maxHeight,
+            },
+          }}
         />
       )}
     </Container>

@@ -180,7 +180,12 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               {
                 key: 'view-all-projects',
                 label: t('View All Projects'),
-                submenu: {title: t('All Projects'), search: {placeholder: t('Search')}},
+                leadingItems: <span aria-hidden="true" />,
+                submenu: {
+                  title: t('All Projects'),
+                  search: {placeholder: t('Search'), showIcon: false, size: 'sm'},
+                  maxMenuHeight: 240,
+                },
                 hidden: projects.length === 0,
                 children: [
                   {

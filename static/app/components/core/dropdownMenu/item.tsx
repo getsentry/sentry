@@ -62,12 +62,14 @@ export interface MenuItemProps extends ListItemProps {
    * `children` is also defined). Pass `true` for the defaults, or an object to
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
+   * `maxMenuHeight` limits the scrollable list while keeping the header visible.
    */
   submenu?:
     | boolean
     | {
+        maxMenuHeight?: number;
         position?: UseOverlayProps['position'];
-        search?: {placeholder?: string};
+        search?: {placeholder?: string; showIcon?: boolean; size?: 'xs' | 'sm' | 'md'};
         title?: string;
       };
   /**

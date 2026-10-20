@@ -25,12 +25,20 @@ export function MenuHeaderLayout(props: FlexProps) {
 }
 
 /** Text style for the menu's main heading. */
-export function MenuHeading({children}: {children: React.ReactNode}) {
-  return (
+export function MenuHeading({
+  children,
+  padding,
+}: {
+  children: React.ReactNode;
+  padding?: ContainerProps['padding'];
+}) {
+  const heading = (
     <Text size="sm" density="fixed" bold tabular>
       {children}
     </Text>
   );
+
+  return padding ? <Container padding={padding}>{heading}</Container> : heading;
 }
 
 /** Text style for a heading within a menu section. */
@@ -95,19 +103,27 @@ export function MenuFooterLayout(props: FlexProps) {
 
 type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input> & {
   padding?: ContainerProps['padding'];
+  showIcon?: boolean;
 };
 
 /** Shared search field with a leading icon for menu controls. */
-export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
+export function SearchInput({
+  padding = 'xs',
+  showIcon = true,
+  size = 'xs',
+  ...props
+}: SearchInputProps) {
   return (
     <Container padding={padding}>
       <InputGroup>
-        <InputGroup.LeadingItems disablePointerEvents>
-          <Flex paddingLeft="2xs" align="center" justify="center">
-            <IconSearch size="xs" variant="muted" />
-          </Flex>
-        </InputGroup.LeadingItems>
-        <InputGroup.Input size="xs" {...props} />
+        {showIcon && (
+          <InputGroup.LeadingItems disablePointerEvents>
+            <Flex paddingLeft="2xs" align="center" justify="center">
+              <IconSearch size="xs" variant="muted" />
+            </Flex>
+          </InputGroup.LeadingItems>
+        )}
+        <InputGroup.Input size={size} {...props} />
       </InputGroup>
     </Container>
   );
