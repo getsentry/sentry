@@ -13,7 +13,6 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
-import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
 
@@ -488,21 +487,6 @@ function SearchableDropdownSubmenuContent({
   );
 }
 
-function capMenuHeight(
-  maxMenuHeight: number | undefined,
-  viewportMaxHeight: CSS['maxHeight']
-): CSS['maxHeight'] {
-  if (maxMenuHeight === undefined) {
-    return viewportMaxHeight;
-  }
-  if (viewportMaxHeight === undefined) {
-    return maxMenuHeight;
-  }
-  const viewportHeight =
-    typeof viewportMaxHeight === 'number' ? `${viewportMaxHeight}px` : viewportMaxHeight;
-  return `min(${maxMenuHeight}px, ${viewportHeight})`;
-}
-
 function DropdownSubmenu({
   items,
   node,
@@ -546,6 +530,13 @@ function DropdownSubmenu({
     triggerRef
   );
   const isFocused = state.selectionManager.focusedKey === node.key;
+  const viewportMaxHeight = overlayProps.style?.maxHeight;
+  const viewportHeight =
+    typeof viewportMaxHeight === 'number' ? `${viewportMaxHeight}px` : viewportMaxHeight;
+  const maxHeight =
+    options.maxMenuHeight !== undefined && viewportHeight !== undefined
+      ? `min(${options.maxMenuHeight}px, ${viewportHeight})`
+      : (options.maxMenuHeight ?? viewportMaxHeight);
 
   return (
     <Container as="li" display="contents" role="presentation">
@@ -585,10 +576,7 @@ function DropdownSubmenu({
             ...overlayProps,
             style: {
               ...overlayProps.style,
-              maxHeight: capMenuHeight(
-                options.maxMenuHeight,
-                overlayProps.style?.maxHeight
-              ),
+              maxHeight,
             },
           }}
         />
