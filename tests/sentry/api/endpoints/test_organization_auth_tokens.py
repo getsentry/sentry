@@ -272,7 +272,7 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
             method="POST",
             status_code=status.HTTP_201_CREATED,
             name="cli token",
-            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+            extra_headers=self.oauth_headers(["org:read", "org:tokens"]),
         )
         assert response.data["token"]
         assert response.data["scopes"] == ["org:ci"]
@@ -291,11 +291,11 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
         )
 
         response = self.get_success_response(
-            self.organization.slug, extra_headers=self.oauth_headers(["org:read", "org:ci"])
+            self.organization.slug, extra_headers=self.oauth_headers(["org:read", "org:tokens"])
         )
         assert [t["id"] for t in response.data] == [str(token.id)]
 
-    def test_create_requires_org_ci_scope(self) -> None:
+    def test_create_requires_org_tokens_scope(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             method="POST",
@@ -303,8 +303,30 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
             name="cli token",
             extra_headers=self.oauth_headers(["org:read", "project:write"]),
         )
-        assert response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:ci"'
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:tokens"'
+        )
         assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_denies_existing_org_ci_grant(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+        )
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:tokens"'
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_list_denies_existing_org_ci_grant(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+        )
 
     def test_create_requires_org_read_scope(self) -> None:
         self.get_error_response(
@@ -312,7 +334,7 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
             method="POST",
             status_code=status.HTTP_403_FORBIDDEN,
             name="cli token",
-            extra_headers=self.oauth_headers(["org:ci"]),
+            extra_headers=self.oauth_headers(["org:tokens"]),
         )
         assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
 
@@ -323,12 +345,14 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
             method="POST",
             status_code=status.HTTP_403_FORBIDDEN,
             name="cli token",
-            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+            extra_headers=self.oauth_headers(["org:read", "org:tokens"]),
         )
         assert not OrgAuthToken.objects.filter(organization_id=other_org.id).exists()
 
     def test_create_denies_personal_token(self) -> None:
-        personal_token = ApiToken.objects.create(user=self.user, scope_list=["org:read", "org:ci"])
+        personal_token = ApiToken.objects.create(
+            user=self.user, scope_list=["org:read", "org:tokens"]
+        )
         self.get_error_response(
             self.organization.slug,
             method="POST",
@@ -363,7 +387,7 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
         integration_token = self.create_internal_integration_token(
             user=self.user, internal_integration=internal_app
         )
-        integration_token.update(scope_list=["org:read", "org:ci"])
+        integration_token.update(scope_list=["org:read", "org:tokens"])
         self.get_error_response(
             self.organization.slug,
             method="POST",

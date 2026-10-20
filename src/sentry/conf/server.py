@@ -1892,6 +1892,7 @@ SENTRY_SCOPES = {
     "org:admin",
     "org:integrations",
     "org:ci",
+    "org:tokens",
     # "org:superuser",  Do not use for any type of superuser permission/access checks
     # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
     "member:invite",
@@ -1941,6 +1942,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
     "org:integrations": {"org:integrations"},
     "org:ci": {"org:ci"},
+    "org:tokens": {"org:tokens"},
     "member:invite": {"member:read", "member:invite"},
     "member:read": {"member:read"},
     "member:write": {"member:read", "member:invite", "member:write"},
@@ -1980,6 +1982,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
 SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     [
         "org:ci",  # CI workflows, releases, source maps, and code mappings
+        "org:tokens",  # OAuth consent to manage org auth tokens on the user's behalf
         "project:distribution",  # App distribution/preprod artifacts
     ]
 )
@@ -2017,6 +2020,12 @@ SENTRY_SCOPE_SETS = (
         (
             "org:ci",
             "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ),
+    ),
+    (
+        (
+            "org:tokens",
+            "Create, list, rename, and revoke organization auth tokens on your behalf.",
         ),
     ),
     (

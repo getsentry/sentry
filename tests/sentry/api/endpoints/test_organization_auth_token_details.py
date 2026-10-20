@@ -522,7 +522,7 @@ class OrganizationAuthTokenDetailsOAuthTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             self.org_token.id,
-            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+            extra_headers=self.oauth_headers(["org:read", "org:tokens"]),
         )
         assert response.data["id"] == str(self.org_token.id)
 
@@ -532,7 +532,7 @@ class OrganizationAuthTokenDetailsOAuthTest(APITestCase):
             self.org_token.id,
             method="DELETE",
             status_code=status.HTTP_204_NO_CONTENT,
-            extra_headers=self.oauth_headers(["org:write", "org:ci"]),
+            extra_headers=self.oauth_headers(["org:write", "org:tokens"]),
         )
         self.org_token.refresh_from_db()
         assert self.org_token.date_deactivated is not None
@@ -543,12 +543,12 @@ class OrganizationAuthTokenDetailsOAuthTest(APITestCase):
             self.org_token.id,
             method="DELETE",
             status_code=status.HTTP_403_FORBIDDEN,
-            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+            extra_headers=self.oauth_headers(["org:read", "org:tokens"]),
         )
         self.org_token.refresh_from_db()
         assert self.org_token.date_deactivated is None
 
-    def test_delete_requires_org_ci_scope(self) -> None:
+    def test_delete_requires_org_tokens_scope(self) -> None:
         self.get_error_response(
             self.organization.slug,
             self.org_token.id,

@@ -286,10 +286,11 @@ class OrgAuthTokenPermission(OrganizationPermission):
                 or getattr(request.user, "is_sentry_app", False)
             ):
                 return False
-            # Tokens managed here carry org:ci, so the OAuth grant must include it. Otherwise
-            # an app the user only granted read access could mint a token that writes releases.
-            if not request.auth.has_scope("org:ci"):
-                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:ci"})
+            # Token management needs its own consent scope. Reusing org:ci would let every
+            # existing org:ci grant mint new tokens, and an app only granted org:read could
+            # mint a token that writes releases.
+            if not request.auth.has_scope("org:tokens"):
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:tokens"})
                 return False
         return super().has_permission(request, view)
 
