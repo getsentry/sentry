@@ -32,20 +32,16 @@ For a read-only input that users can focus, select, and copy, use `field.Input` 
 
 Hint text appears below the term in a row and below the value when stacked. Use the `padding` prop when the parent does not provide row padding.
 
-<Storybook.Demo>
-  <Container containerType="inline-size" width="100%">
-    <DisplayField.Row label="Created" hintText="When the key was created.">
-      January 1, 2025
-    </DisplayField.Row>
-  </Container>
-</Storybook.Demo>
-
-```jsx
-<Container containerType="inline-size" width="100%">
+<Storybook.Demo resizable>
   <DisplayField.Row label="Created" hintText="When the key was created.">
     January 1, 2025
   </DisplayField.Row>
-</Container>
+</Storybook.Demo>
+
+```jsx
+<DisplayField.Row label="Created" hintText="When the key was created.">
+  January 1, 2025
+</DisplayField.Row>
 ```
 
 ## Stacked Layout
@@ -68,7 +64,7 @@ Hint text appears below the term in a row and below the value when stacked. Use 
 
 Set `variant="compact"` to show hint text in a tooltip on the term. This works with both layouts.
 
-<Storybook.Demo>
+<Storybook.Demo resizable>
   <DisplayField.Row
     label="Created"
     hintText="When the key was created."

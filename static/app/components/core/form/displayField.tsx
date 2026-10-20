@@ -3,6 +3,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {BaseLayout, LayoutLabel} from './layout/base';
 import {useStackedLayout} from './layout/useStackedLayout';
 
 interface DisplayFieldProps {
@@ -40,14 +41,10 @@ function DisplayLayout({
     ) : null;
 
   return (
-    <Container padding={padding}>
-      <DescriptionList
-        columns={stacked ? 'minmax(0, 1fr)' : '50% minmax(0, 1fr)'}
-        align={stacked ? 'start' : 'center'}
-        gap={stacked ? 'md' : 'xl'}
-      >
-        <DescriptionList.Term>
-          <Stack gap="xs">
+    <BaseLayout as="dl" stacked={stacked} padding={padding} margin="0">
+      <LayoutLabel stacked={stacked}>
+        {labelProps => (
+          <DescriptionList.Term {...labelProps}>
             <Text>
               {compact && hintText ? (
                 <InfoText title={hintText}>{label}</InfoText>
@@ -56,16 +53,20 @@ function DisplayLayout({
               )}
             </Text>
             {!stacked && hint}
-          </Stack>
-        </DescriptionList.Term>
-        <DescriptionList.Details>
-          <Stack gap="md">
-            {children}
-            {stacked && hint}
-          </Stack>
-        </DescriptionList.Details>
-      </DescriptionList>
-    </Container>
+          </DescriptionList.Term>
+        )}
+      </LayoutLabel>
+      <Container flexGrow={1}>
+        {valueProps => (
+          <DescriptionList.Details {...valueProps}>
+            <Stack gap="md">
+              {children}
+              {stacked && hint}
+            </Stack>
+          </DescriptionList.Details>
+        )}
+      </Container>
+    </BaseLayout>
   );
 }
 
