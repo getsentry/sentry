@@ -21,7 +21,7 @@ import {
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
-const COLUMN_WIDTHS = {reason: '1fr', dropped: '160px', share: '96px', actions: '48px'};
+const COLUMN_WIDTHS = {reason: '1fr', dropped: '96px', share: '88px', actions: '48px'};
 const TABLE_COLUMNS: TableColumnConfig[] = Object.entries(COLUMN_WIDTHS).map(
   ([key, width]) => ({key, width})
 );
@@ -155,17 +155,17 @@ function OutcomeSectionRow({
   return (
     <Stack gap="md">
       <Grid columns={HEADER_COLUMNS} align="center">
-        <Flex align="center" padding="md xl">
-          <Text size="lg" bold>
+        <Flex align="center" padding="0 xl">
+          <Text size="md" bold>
             {section.label}
           </Text>
         </Flex>
-        <Flex justify="end" padding="md xl">
+        <Flex justify="end" padding="0 xl">
           <Text size="md" variant="muted" tabular>
             <Count value={section.events} />
           </Text>
         </Flex>
-        <Flex justify="end" padding="md xl">
+        <Flex justify="end" padding="0 xl">
           <Text size="md" variant="muted" tabular>
             {formatDroppedShare(section.shareRatio)}
           </Text>
@@ -186,7 +186,7 @@ export function DroppedDataOutcomeList({
   onAskSeer,
 }: DroppedDataOutcomeListProps) {
   return (
-    <Stack gap="md">
+    <Stack gap="2xl">
       {sections.map(section => (
         <OutcomeSectionRow
           key={section.outcome}
