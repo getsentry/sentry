@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 
 import click
 
-from sentry.deletions.tasks.scheduled import scheduled_deletion_viewer_context
 from sentry.runner.decorators import configuration
 from sentry.viewer_context import ActorType, ViewerContext
 
@@ -148,6 +147,7 @@ def _run_one(*, deletion: BaseScheduledDeletion, verbose: bool = False) -> None:
     from django.core.exceptions import ObjectDoesNotExist
 
     from sentry import deletions as deletions_module
+    from sentry.deletions.tasks.scheduled import scheduled_deletion_viewer_context
     from sentry.signals import pending_delete
 
     click.echo(f"Running deletion {deletion.id} ({deletion.model_name} #{deletion.object_id})...")
