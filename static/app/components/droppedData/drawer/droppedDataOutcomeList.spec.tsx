@@ -139,4 +139,34 @@ describe('DroppedDataOutcomeList', () => {
 
     expect(screen.queryByRole('button', {name: 'Ask Seer'})).not.toBeInTheDocument();
   });
+
+  it("links a reason to its docs section and skips reasons it doesn't know", () => {
+    render(
+      <OutcomeList
+        droppedEvents={[
+          DroppedEventFixture({
+            outcome: 'rate_limited',
+            reason: 'smart_rate_limit',
+            start: 0,
+            end: 60_000,
+            count: 10,
+          }),
+          DroppedEventFixture({
+            outcome: 'rate_limited',
+            reason: 'some_new_reason',
+            start: 0,
+            end: 60_000,
+            count: 5,
+          }),
+        ]}
+        acceptedEvents={[]}
+      />
+    );
+
+    expect(screen.getAllByRole('button', {name: 'Go to docs'})).toHaveLength(1);
+    expect(screen.getByRole('button', {name: 'Go to docs'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/product/explore/dropped-data/#spike-protection'
+    );
+  });
 });

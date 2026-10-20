@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 import {IconSeer} from '@sentry/icons/seer';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawerContentContext} from '@sentry/scraps/drawer';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -12,7 +13,11 @@ import type {
   OutcomeSection,
   ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
-import {formatDroppedShare, reasonTitle} from 'sentry/components/droppedData/outcomes';
+import {
+  formatDroppedShare,
+  reasonDocsUrl,
+  reasonTitle,
+} from 'sentry/components/droppedData/outcomes';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
@@ -46,6 +51,20 @@ function ReasonAskSeerButton({
   );
 }
 
+function ReasonDocsLinkButton({href}: {href: string}) {
+  return (
+    <LinkButton
+      size="zero"
+      variant="transparent"
+      icon={<IconOpen size="xs" />}
+      aria-label={t('Go to docs')}
+      tooltipProps={{title: t('Go to docs')}}
+      href={href}
+      external
+    />
+  );
+}
+
 function ReasonTableRow({
   row,
   onAskSeer,
@@ -53,10 +72,13 @@ function ReasonTableRow({
   row: ReasonRow;
   onAskSeer?: (row: ReasonRow) => void;
 }) {
+  const docsUrl = reasonDocsUrl(row.reason);
+
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell padding="md xl">
+      <SimpleTable.RowCell padding="md xl" gap="sm">
         <Text size="md">{reasonTitle(row.reason)}</Text>
+        {docsUrl && <ReasonDocsLinkButton href={docsUrl} />}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" padding="md xl">
         <Text size="md" variant="muted" tabular>

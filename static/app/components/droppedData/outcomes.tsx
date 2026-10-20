@@ -1,10 +1,14 @@
 import type {Theme} from '@emotion/react';
 
-import {REASON_INFO} from 'sentry/components/droppedData/reasonInfo';
+import {
+  DROPPED_DATA_DOCS_URL,
+  REASON_INFO,
+} from 'sentry/components/droppedData/reasonInfo';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {slugify} from 'sentry/utils/slugify';
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
   [Outcome.CLIENT_DISCARD]: t('Client Discard'),
@@ -38,6 +42,11 @@ function normalizeReason(reason: string): string {
 
 export function reasonTitle(reason: string): string {
   return REASON_INFO[normalizeReason(reason)]?.title ?? reason;
+}
+
+export function reasonDocsUrl(reason: string): string | undefined {
+  const title = REASON_INFO[normalizeReason(reason)]?.title;
+  return title ? `${DROPPED_DATA_DOCS_URL}#${slugify(title)}` : undefined;
 }
 
 export function buildAskSeerPrompt(args: {

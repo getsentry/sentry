@@ -1,6 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {getOutcomeColors, reasonTitle} from './outcomes';
+import {getOutcomeColors, reasonDocsUrl, reasonTitle} from './outcomes';
 
 describe('getOutcomeColors', () => {
   it('assigns the same colors regardless of input order', () => {
@@ -50,7 +50,32 @@ describe('reasonTitle', () => {
     expect(reasonTitle('Sampled:3000')).toBe('Dynamic sampling');
   });
 
+  it('distinguishes legacy dynamic sampling from current dynamic sampling', () => {
+    expect(reasonTitle('transaction_sampled')).toBe('Dynamic sampling (legacy)');
+  });
+
   it('falls back to the raw code for an unknown reason', () => {
     expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
+  });
+});
+
+describe('reasonDocsUrl', () => {
+  const docsUrl = (anchor: string) =>
+    `https://docs.sentry.io/product/explore/dropped-data/#${anchor}`;
+
+  it('anchors to the slug of the reason title', () => {
+    expect(reasonDocsUrl('ratelimit_backoff')).toBe(docsUrl('sdk-rate-limit-backoff'));
+    expect(reasonDocsUrl('chunk-load-error')).toBe(docsUrl('chunkloaderror-filter'));
+    expect(reasonDocsUrl('transaction_sampled')).toBe(docsUrl('dynamic-sampling-legacy'));
+  });
+
+  it('normalizes reason codes before linking', () => {
+    expect(reasonDocsUrl('ignored')).toBe(docsUrl('dropped-by-ignored-spans'));
+    expect(reasonDocsUrl('Sampled:3000')).toBe(docsUrl('dynamic-sampling'));
+    expect(reasonDocsUrl('error_usage_exceeded')).toBe(docsUrl('quota-exceeded'));
+  });
+
+  it('has no docs link for an unknown reason', () => {
+    expect(reasonDocsUrl('some_new_reason')).toBeUndefined();
   });
 });
