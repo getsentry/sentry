@@ -114,7 +114,6 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.search_common import SearchType
-from sentry.models.serviceaccount import ServiceAccount, ServiceAccountProject
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.models.project_repository import (
@@ -123,6 +122,7 @@ from sentry.seer.models.project_repository import (
 )
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write

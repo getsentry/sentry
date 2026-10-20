@@ -42,8 +42,8 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.serviceaccount import ServiceAccount
 from sentry.organizations.services.organization import RpcCellUser, organization_service
+from sentry.service_accounts.models import ServiceAccount
 from sentry.types.cell import find_all_cell_names, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.lostpasswordhash import LostPasswordHash

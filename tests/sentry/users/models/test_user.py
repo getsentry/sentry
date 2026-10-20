@@ -38,9 +38,9 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule
 from sentry.models.search_common import SearchType
-from sentry.models.serviceaccount import ServiceAccount
 from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
+from sentry.service_accounts.models import ServiceAccount
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.backups import BackupTestCase

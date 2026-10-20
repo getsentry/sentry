@@ -143,14 +143,14 @@ register(
 )
 
 register(
-    "outbox_replication.sentry_serviceaccount.replication_version",
+    "outbox_replication.service_accounts_serviceaccount.replication_version",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
-    "outbox_replication.sentry_serviceaccountproject.replication_version",
+    "outbox_replication.service_accounts_serviceaccountproject.replication_version",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

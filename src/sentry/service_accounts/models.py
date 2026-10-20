@@ -69,12 +69,12 @@ class ServiceAccount(ControlOutboxProducingModel):
     date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_serviceaccount"
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccount"
         constraints = [
             models.UniqueConstraint(
                 fields=["organization_id", "name"],
-                name="sentry_serviceaccount_org_name_unique",
+                name="service_accounts_serviceaccount_org_name_unique",
             ),
         ]
 
@@ -101,16 +101,18 @@ class ServiceAccountProject(DefaultFieldsModel, ControlOutboxProducingModel):
 
     objects: ClassVar[ControlOutboxProducingManager[Self]] = ControlOutboxProducingManager()
 
-    service_account = FlexibleForeignKey("sentry.ServiceAccount", on_delete=models.CASCADE)
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccount", on_delete=models.CASCADE
+    )
     project_id = HybridCloudForeignKey("sentry.Project", null=False, on_delete="CASCADE")
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_serviceaccountproject"
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccountproject"
         constraints = [
             models.UniqueConstraint(
                 fields=["service_account", "project_id"],
-                name="sentry_serviceaccountproject_unique",
+                name="service_accounts_serviceaccountproject_unique",
             ),
         ]
 

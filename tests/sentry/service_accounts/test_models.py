@@ -8,7 +8,7 @@ from sentry import deletions
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.serviceaccount import (
+from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProject,
     validate_grantable_scopes,
