@@ -26,6 +26,7 @@ describe('VisualizeTransformations', () => {
   it.each([
     'smooth(sma,7)',
     'smooth(ema,6,0.75)',
+    'smooth(ema, 6, 0.75)',
     'smooth(ema,6)',
     'smooth(asap,3)',
     'smooth(asap)',
@@ -315,6 +316,24 @@ describe('VisualizeTransformations', () => {
     );
     expect(screen.getByRole('status')).toHaveTextContent(
       '["future(x)","smooth(ema,6)","smooth(asap)","fill(zero)"]'
+    );
+  });
+
+  it.each([
+    'future(sma,5)',
+    'smooth(sma,5',
+    'fill(zero,locf)',
+    'smooth(other,5)',
+    'smooth(ema,5,Infinity)',
+    'smooth(sma,avg(span.duration))',
+    'smooth()',
+  ])('preserves unsupported expression %s while editing a sibling', async raw => {
+    render(<Example initial={[raw, 'smooth(ema,4,0.75)']} />, {organization});
+    expect(screen.getByText('Unsupported transformation')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Window Size'}));
+    await userEvent.click(screen.getByRole('option', {name: '3'}));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      JSON.stringify([raw, 'smooth(ema,3,0.75)'])
     );
   });
 

@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FillMethod = 'zero' | 'locf' | 'linear';
@@ -43,13 +44,16 @@ const FACTOR_OPTIONS = [0.05, 0.25, 0.5, 0.75, 1].map(value => ({
 }));
 
 function parseTransformation(raw: string): Transformation | null {
-  const match = /^(fill|smooth)\(([^()]*)\)$/.exec(raw);
-  if (!match) {
+  const parsedFunction = parseFunction(raw);
+  if (
+    !parsedFunction ||
+    !KIND_OPTIONS.some(option => option.value === parsedFunction.name)
+  ) {
     return null;
   }
-  const args = match[2]!.split(',').map(argument => argument.trim());
+  const args = parsedFunction.arguments;
   const method = args[0];
-  if (match[1] === 'fill') {
+  if (parsedFunction.name === 'fill') {
     const option = FILL_OPTIONS.find(candidate => candidate.value === method);
     return args.length === 1 && option ? {kind: 'fill', method: option.value} : null;
   }
@@ -108,7 +112,7 @@ export function VisualizeTransformations({transformations, onChange}: Props) {
 
   const kindOptions = KIND_OPTIONS.map(option => ({
     ...option,
-    disabled: transformations.some(raw => raw.startsWith(`${option.value}(`)),
+    disabled: transformations.some(raw => parseFunction(raw)?.name === option.value),
   }));
 
   return (
@@ -146,7 +150,8 @@ export function VisualizeTransformations({transformations, onChange}: Props) {
                       }
                       const otherIndex = transformations.findIndex(
                         (candidate, candidateIndex) =>
-                          candidateIndex !== index && candidate.startsWith(`${value}(`)
+                          candidateIndex !== index &&
+                          parseFunction(candidate)?.name === value
                       );
                       const otherTransformation = transformations[otherIndex];
                       if (otherTransformation !== undefined) {
