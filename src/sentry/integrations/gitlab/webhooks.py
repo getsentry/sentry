@@ -21,6 +21,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.gitlab.commits import format_push_commit, format_sentry_commit
 from sentry.integrations.gitlab.types import GitLabIssueAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -37,7 +38,8 @@ from sentry.issues.action_log import ActionSource, action_context_scope
 from sentry.issues.action_log.request import resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
+from sentry.models.commitfilechange import post_bulk_create
+from sentry.models.commits import materialize_commit
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -697,10 +699,14 @@ class PushEventWebhook(GitlabWebhook):
         # more commits they provide a total count and require additional API
         # requests to fetch the commit details
         for commit in event.get("commits", []):
-            if IntegrationRepositoryProvider.should_ignore_commit(commit["message"]):
+            commit_data = format_sentry_commit(
+                repository=repo.name,
+                commit=format_push_commit(commit=commit),
+            )
+            if IntegrationRepositoryProvider.should_ignore_commit(commit_data["message"]):
                 continue
 
-            author_email = commit["author"]["email"]
+            author_email = commit_data["author_email"]
 
             # TODO(dcramer): we need to deal with bad values here, but since
             # its optional, lets just throw it out for now
@@ -710,7 +716,7 @@ class PushEventWebhook(GitlabWebhook):
                 authors[author_email] = author = CommitAuthor.objects.get_or_create(
                     organization_id=organization.id,
                     email=author_email,
-                    defaults={"name": commit["author"]["name"]},
+                    defaults={"name": commit_data["author_name"]},
                 )[0]
             else:
                 author = authors[author_email]
@@ -718,34 +724,24 @@ class PushEventWebhook(GitlabWebhook):
                 if author is not None:
                     author.preload_users()
                 with transaction.atomic(router.db_for_write(Commit)):
-                    commit_row = Commit.objects.create(
-                        repository_id=repo.id,
-                        organization_id=organization.id,
-                        key=commit["id"],
-                        message=commit["message"],
-                        author=author,
-                        date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
+                    # Serialize duplicate deliveries before checking which file changes are new.
+                    _locked_commit = (
+                        Commit.objects.select_for_update()
+                        .filter(
+                            organization_id=organization.id,
+                            repository_id=repo.id,
+                            key=commit_data["id"],
+                        )
+                        .first()
                     )
-                    file_changes_by_filename: dict[str, CommitFileChange] = {}
-                    for filenames, change_type in (
-                        (commit.get("added", []), "A"),
-                        (commit.get("removed", []), "D"),
-                        (commit.get("modified", []), "M"),
-                    ):
-                        for filename in filenames:
-                            file_changes_by_filename.setdefault(
-                                filename,
-                                CommitFileChange(
-                                    organization_id=organization.id,
-                                    commit_id=commit_row.id,
-                                    filename=filename,
-                                    type=change_type,
-                                ),
-                            )
-                    file_changes = list(file_changes_by_filename.values())
-                    if file_changes:
-                        CommitFileChange.objects.bulk_create(file_changes)
-                        post_bulk_create(file_changes)
+                    materialized = materialize_commit(
+                        organization_id=organization.id,
+                        repository=repo,
+                        author=author,
+                        data=commit_data,
+                    )
+                    if materialized.file_changes:
+                        post_bulk_create(materialized.file_changes)
             except IntegrityError:
                 pass
 

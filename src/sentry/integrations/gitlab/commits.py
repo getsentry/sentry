@@ -1,11 +1,36 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 from dateutil.parser import parse as parse_date
 from scm.types import CommitAuthor, CommitFile, CommitWithChanges, FileStatus
+
+
+def _format_commit(
+    *,
+    id: str,
+    author_email: str | None,
+    author_name: str,
+    message: str,
+    timestamp: datetime,
+    files: Sequence[CommitFile],
+) -> CommitWithChanges:
+    if message is None:
+        raise ValueError("GitLab commit message must be complete")
+    return CommitWithChanges(
+        id=id,
+        author=CommitAuthor(
+            email=author_email or "",
+            name=author_name,
+            date=timestamp,
+        ),
+        message=message,
+        additions=None,
+        deletions=None,
+        files=list(files),
+    )
 
 
 def format_api_commit(
@@ -14,21 +39,13 @@ def format_api_commit(
     patch_set: Sequence[CommitFile],
 ) -> CommitWithChanges:
     """Map a hydrated GitLab API commit to scm-platform's canonical shape."""
-    message = commit["message"]
-    if message is None:
-        raise ValueError("GitLab commit message must be complete")
-
-    return CommitWithChanges(
+    return _format_commit(
         id=commit["id"],
-        author=CommitAuthor(
-            email=commit["author_email"],
-            name=commit["author_name"],
-            date=parse_date(commit["created_at"]).astimezone(timezone.utc),
-        ),
-        message=message,
-        additions=None,
-        deletions=None,
-        files=list(patch_set),
+        author_email=commit["author_email"],
+        author_name=commit["author_name"],
+        message=commit["message"],
+        timestamp=parse_date(commit["created_at"]).astimezone(timezone.utc),
+        files=patch_set,
     )
 
 
@@ -50,6 +67,27 @@ def format_sentry_commit(*, repository: str, commit: CommitWithChanges) -> dict[
             for file in commit["files"] or ()
         ],
     }
+
+
+def format_push_commit(*, commit: Mapping[str, Any]) -> CommitWithChanges:
+    """Map a complete GitLab push payload commit to scm-platform's canonical shape."""
+    files: list[CommitFile] = []
+    change_fields: tuple[tuple[str, Literal["added", "modified", "removed"]], ...] = (
+        ("added", "added"),
+        ("removed", "removed"),
+        ("modified", "modified"),
+    )
+    for field_name, status in change_fields:
+        files.extend(_commit_file(path, status) for path in commit.get(field_name, ()))
+
+    return _format_commit(
+        id=commit["id"],
+        author_email=commit["author"].get("email"),
+        author_name=commit["author"]["name"],
+        message=commit["message"],
+        timestamp=parse_date(commit["timestamp"]).astimezone(timezone.utc),
+        files=files,
+    )
 
 
 def transform_api_patch_set(
