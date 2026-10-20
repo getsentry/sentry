@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
@@ -46,35 +46,24 @@ export function DroppedDataDrawer({
   });
 
   const [scope, setScope] = useState<DroppedDataScope>('contributing');
-  const scopedDroppedEvents = useMemo(
-    () => filterDroppedEventsByScope(droppedEvents ?? [], scope),
-    [droppedEvents, scope]
-  );
-  const groups = useMemo(
-    () => droppedEventsToOutcomeGroups(droppedEvents ?? [], acceptedEvents ?? [], scope),
-    [droppedEvents, acceptedEvents, scope]
+  const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
+
+  const scopedDroppedEvents = filterDroppedEventsByScope(droppedEvents ?? [], scope);
+  const groups = droppedEventsToOutcomeGroups(
+    droppedEvents ?? [],
+    acceptedEvents ?? [],
+    scope
   );
   // Colored from every outcome so colors stay stable when the scope changes.
-  const outcomeColors = useMemo(
-    () =>
-      getOutcomeColors(
-        (droppedEvents ?? []).map(event => event.outcome),
-        theme
-      ),
-    [droppedEvents, theme]
+  const outcomeColors = getOutcomeColors(
+    (droppedEvents ?? []).map(event => event.outcome),
+    theme
   );
-
-  const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
-  const selectedGroups = useMemo(
-    () => ({
-      unintentional: groups.unintentional.filter(section =>
-        isOutcomeSelected(outcomeSelection, section.outcome)
-      ),
-      intentional: groups.intentional.filter(section =>
-        isOutcomeSelected(outcomeSelection, section.outcome)
-      ),
-    }),
-    [groups, outcomeSelection]
+  const selectedUnintentional = groups.unintentional.filter(section =>
+    isOutcomeSelected(outcomeSelection, section.outcome)
+  );
+  const selectedIntentional = groups.intentional.filter(section =>
+    isOutcomeSelected(outcomeSelection, section.outcome)
   );
 
   return (
@@ -113,14 +102,14 @@ export function DroppedDataDrawer({
               selection={outcomeSelection}
               onSelectionChange={setOutcomeSelection}
             />
-            {selectedGroups.unintentional.length > 0 && (
+            {selectedUnintentional.length > 0 && (
               <DroppedDataOutcomeList
-                sections={selectedGroups.unintentional}
+                sections={selectedUnintentional}
                 colors={outcomeColors}
                 onTroubleshoot={onTroubleshoot}
               />
             )}
-            {selectedGroups.intentional.length > 0 && (
+            {selectedIntentional.length > 0 && (
               <Stack gap="md">
                 <Stack gap="xl">
                   <Separator orientation="horizontal" border="primary" />
@@ -131,7 +120,7 @@ export function DroppedDataDrawer({
                   </Container>
                 </Stack>
                 <DroppedDataOutcomeList
-                  sections={selectedGroups.intentional}
+                  sections={selectedIntentional}
                   colors={outcomeColors}
                   onTroubleshoot={onTroubleshoot}
                 />
