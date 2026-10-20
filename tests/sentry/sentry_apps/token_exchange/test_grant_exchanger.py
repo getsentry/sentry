@@ -7,6 +7,7 @@ from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExc
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
@@ -267,6 +268,21 @@ class TestGrantExchanger(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
+
+    def test_second_exchange_with_stale_grant_fails(self) -> None:
+        # The second request reads the grant before the first request deletes it.
+        second_exchanger = GrantExchanger(
+            install=self.install, client_id=self.client_id, code=self.code, user=self.user
+        )
+        assert second_exchanger.grant.id == self.install.api_grant_id
+
+        token = self.grant_exchanger.run()
+
+        with pytest.raises(SentryAppIntegratorError) as e:
+            second_exchanger.run()
+        assert e.value.message == "Could not find grant for given code"
+        assert e.value.status_code == 401
+        assert ApiToken.objects.filter(application=token.application).count() == 1
 
     @patch("sentry.analytics.record")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
