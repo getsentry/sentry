@@ -80,6 +80,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         borderBottom="primary"
         width="100%"
         height={`${PRIMARY_HEADER_HEIGHT}px`}
+        flexShrink={0}
         {...props}
       >
         {props.children}
