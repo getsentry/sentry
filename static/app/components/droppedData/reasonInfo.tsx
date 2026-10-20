@@ -8,8 +8,7 @@ export const DROPPED_DATA_DOCS_URL =
   'https://docs.sentry.io/product/explore/dropped-data/';
 
 // One entry per drop reason, keyed by the reason code Relay/Sentry emits.
-// `title` is the row heading. It must match the reason's heading on
-// DROPPED_DATA_DOCS_URL (case aside), since the docs link anchor is its slug.
+// `title` is the row heading.
 // Content mirrors the "Dropped Events Descriptions" registry.
 export const REASON_INFO: Record<string, ReasonInfo> = {
   before_send: {title: t('Dropped by before send')},
