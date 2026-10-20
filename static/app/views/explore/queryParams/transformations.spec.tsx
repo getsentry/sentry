@@ -34,10 +34,6 @@ const transformedField = {
   transformations: ['fill(locf)', 'smooth(sma,5)'],
 };
 
-function TraceWrapper({children}: {children: ReactNode}) {
-  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
-}
-
 function LogsWrapper({children}: {children: ReactNode}) {
   return (
     <LogsQueryParamsProvider
@@ -80,11 +76,11 @@ const metric = {
 const signalCases: Array<{
   query: Record<string, string[]>;
   signal: string;
-  wrapper: typeof TraceWrapper;
+  wrapper: typeof SpansQueryParamsProvider;
 }> = [
   {
     signal: 'traces',
-    wrapper: TraceWrapper,
+    wrapper: SpansQueryParamsProvider,
     query: {aggregateField: [JSON.stringify(transformedField)]},
   },
   {
@@ -95,56 +91,54 @@ const signalCases: Array<{
   {signal: 'metrics', wrapper: MetricsWrapper, query: {metric: [JSON.stringify(metric)]}},
 ];
 
-describe.each(signalCases)(
-  '$signal transformation URL state',
-  ({signal, wrapper, query}) => {
-    it('retains ordered transformations through a URL edit and clears them explicitly', async () => {
-      const {result} = renderHookWithProviders(
-        () => ({
-          visualizes: useQueryParamsVisualizes(),
-          setVisualizes: useSetQueryParamsVisualizes(),
-          hasTransformations: useQueryParamsHasTransformations(),
-        }),
-        {
-          additionalWrapper: wrapper,
-          initialRouterConfig: {
-            location: {pathname: `/organizations/org-slug/explore/${signal}/`, query},
-          },
-        }
-      );
+it.each(signalCases)(
+  '$signal retains ordered transformations through a URL edit and clears them explicitly',
+  async ({signal, wrapper, query}) => {
+    const {result} = renderHookWithProviders(
+      () => ({
+        visualizes: useQueryParamsVisualizes(),
+        setVisualizes: useSetQueryParamsVisualizes(),
+        hasTransformations: useQueryParamsHasTransformations(),
+      }),
+      {
+        additionalWrapper: wrapper,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/org-slug/explore/${signal}/`, query},
+        },
+      }
+    );
 
-      expect(result.current.visualizes[0]?.serialize()).toEqual(transformedField);
-      expect(result.current.hasTransformations).toBe(true);
-      act(() =>
-        result.current.setVisualizes([
-          result.current.visualizes[0]!.replace({chartType: ChartType.AREA}).serialize(),
-        ])
-      );
-      await waitFor(() =>
-        expect(result.current.visualizes[0]?.serialize()).toEqual({
-          ...transformedField,
-          chartType: ChartType.AREA,
-        })
-      );
+    expect(result.current.visualizes[0]?.serialize()).toEqual(transformedField);
+    expect(result.current.hasTransformations).toBe(true);
+    act(() =>
+      result.current.setVisualizes([
+        result.current.visualizes[0]!.replace({chartType: ChartType.AREA}).serialize(),
+      ])
+    );
+    await waitFor(() =>
+      expect(result.current.visualizes[0]?.serialize()).toEqual({
+        ...transformedField,
+        chartType: ChartType.AREA,
+      })
+    );
 
-      act(() =>
-        result.current.setVisualizes([
-          new VisualizeFunction('avg(span.duration)', {transformations: []}).serialize(),
-        ])
-      );
-      await waitFor(() =>
-        expect(result.current.visualizes[0]?.serialize()).toEqual({
-          yAxes: ['avg(span.duration)'],
-        })
-      );
-      expect(result.current.hasTransformations).toBe(false);
-    });
+    act(() =>
+      result.current.setVisualizes([
+        new VisualizeFunction('avg(span.duration)', {transformations: []}).serialize(),
+      ])
+    );
+    await waitFor(() =>
+      expect(result.current.visualizes[0]?.serialize()).toEqual({
+        yAxes: ['avg(span.duration)'],
+      })
+    );
+    expect(result.current.hasTransformations).toBe(false);
   }
 );
 
 it('disables trace saving when a hidden sibling has transformations', async () => {
   const {router} = render(
-    <TraceWrapper>
+    <SpansQueryParamsProvider>
       <ToolbarSaveAs />
       <ChartContextMenu
         interval="1h"
@@ -152,7 +146,7 @@ it('disables trace saving when a hidden sibling has transformations', async () =
         visualizeIndex={0}
         visualizeYAxes={[new VisualizeFunction('count(span.duration)')]}
       />
-    </TraceWrapper>,
+    </SpansQueryParamsProvider>,
     {
       organization: OrganizationFixture({
         features: ['visibility-explore-view', 'dashboards-edit'],
@@ -191,9 +185,9 @@ it('disables trace saving when a hidden sibling has transformations', async () =
 
 it('disables metric saving when a later metric row has transformations', () => {
   render(
-    <MetricsWrapper>
+    <MultiMetricsQueryParamsProvider>
       <MetricSaveAs />
-    </MetricsWrapper>,
+    </MultiMetricsQueryParamsProvider>,
     {
       organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
       initialRouterConfig: {

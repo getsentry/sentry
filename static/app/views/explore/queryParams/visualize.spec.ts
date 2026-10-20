@@ -18,18 +18,6 @@ describe('VisualizeFunction', () => {
     expect(visualize.serialize().transformations).not.toBe(visualize.transformations);
   });
 
-  it('preserves ordered transformations through URL state and unrelated edits', () => {
-    const [visualize] = parseVisualize({
-      yAxes: ['avg(span.duration)'],
-      transformations: ['fill(locf)', 'smooth(sma,5)'],
-    });
-    expect(visualize?.clone().replace({chartType: ChartType.AREA}).serialize()).toEqual({
-      yAxes: ['avg(span.duration)'],
-      chartType: ChartType.AREA,
-      transformations: ['fill(locf)', 'smooth(sma,5)'],
-    });
-  });
-
   it('clears transformations explicitly and keeps legacy serialization unchanged', () => {
     const visualize = new VisualizeFunction('count(span.duration)', {
       transformations: ['fill(zero)'],
@@ -97,10 +85,16 @@ describe('VisualizeFunction', () => {
   it('clones', () => {
     const vis1 = new VisualizeFunction('count(span.duration)', {
       chartType: ChartType.AREA,
+      transformations: ['fill(locf)', 'smooth(sma,5)'],
       visible: false,
     });
     const vis2 = vis1.clone();
-    expect(vis1).toEqual(vis2);
+    expect(vis2.serialize()).toEqual({
+      yAxes: ['count(span.duration)'],
+      chartType: ChartType.AREA,
+      transformations: ['fill(locf)', 'smooth(sma,5)'],
+      visible: false,
+    });
   });
 
   it('replaces yAxes', () => {
@@ -116,11 +110,14 @@ describe('VisualizeFunction', () => {
   it('replaces chart type', () => {
     const vis1 = new VisualizeFunction('count(span.duration)', {
       chartType: ChartType.AREA,
+      transformations: ['fill(locf)', 'smooth(sma,5)'],
     });
     const vis2 = vis1.replace({chartType: ChartType.LINE});
-    expect(vis2).toEqual(
-      new VisualizeFunction('count(span.duration)', {chartType: ChartType.LINE})
-    );
+    expect(vis2.serialize()).toEqual({
+      yAxes: ['count(span.duration)'],
+      chartType: ChartType.LINE,
+      transformations: ['fill(locf)', 'smooth(sma,5)'],
+    });
   });
 
   it('replaces visible', () => {
