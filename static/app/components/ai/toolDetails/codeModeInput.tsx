@@ -6,7 +6,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {t} from 'sentry/locale';
 import {useFormattedCode} from 'sentry/utils/useFormattedCode';
 
-export function CodeModeInput({code, language}: {code: string; language: string}) {
+export function CodeModeInput({code, language}: {code: string; language?: string}) {
   const {formattedCode} = useFormattedCode({
     code,
     language:
@@ -17,7 +17,7 @@ export function CodeModeInput({code, language}: {code: string; language: string}
     <Stack gap="sm" minWidth="0">
       <Flex align="center" justify="between" gap="sm">
         <Text size="sm" variant="muted">
-          {language}
+          {language ?? t('code')}
         </Text>
         <CopyToClipboardButton
           text={formattedCode}
