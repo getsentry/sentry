@@ -226,6 +226,45 @@ describe('ExploreToolbar', () => {
     );
   });
 
+  it.each([false, true])(
+    'aligns an unfiltered visualize row with transformations enabled=%s',
+    async enabled => {
+      render(<ExploreToolbar />, {
+        organization: OrganizationFixture({
+          ...organization,
+          features: enabled
+            ? [...organization.features, 'explore-interpolation-and-smoothing']
+            : organization.features,
+        }),
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({yAxes: ['epm()']}),
+              ],
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByRole('button', {name: 'epm'})).toBeInTheDocument();
+      const row = screen.getByRole('button', {name: 'Clear Visualize'}).parentElement;
+      expect(row?.style.alignItems).toBe(enabled ? 'flex-start' : '');
+      if (enabled) {
+        expect(
+          screen.getByRole('button', {name: 'Add Transformation'})
+        ).toBeInTheDocument();
+      } else {
+        expect(
+          screen.queryByRole('button', {name: 'Add Transformation'})
+        ).not.toBeInTheDocument();
+      }
+    }
+  );
+
   it('disables changing visualize fields for count', async () => {
     let visualizes: any;
     function Component() {
