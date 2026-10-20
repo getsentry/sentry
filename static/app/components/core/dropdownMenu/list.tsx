@@ -13,8 +13,9 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
+import {minHeight} from '@sentry/scraps/compactSelect/utils';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {Menu, minHeight} from '@sentry/scraps/menu';
+import {Menu} from '@sentry/scraps/menu';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

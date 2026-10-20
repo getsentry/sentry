@@ -26,4 +26,3 @@ export const Menu = {
 };
 
 export type {ListItemProps} from './menu';
-export {minHeight} from './minHeight';

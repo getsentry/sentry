@@ -12,7 +12,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Menu, minHeight} from '@sentry/scraps/menu';
+import {Menu} from '@sentry/scraps/menu';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
@@ -31,7 +31,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
 } from './types';
-import {getDisabledOptions, getHiddenOptions, getSearchConfig} from './utils';
+import {getDisabledOptions, getHiddenOptions, getSearchConfig, minHeight} from './utils';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
