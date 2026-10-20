@@ -12,6 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tct, tn} from 'sentry/locale';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -24,9 +25,11 @@ import {
 } from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getByteLength} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {isMemoryOperation} from 'sentry/views/insights/pages/agents/utils/memory';
 import {
   getIsAiAgentSpan,
+  getIsExecuteToolSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -219,6 +222,15 @@ function getAISpanAttributes({
     highlightedAttributes.push({
       name: t('Tool Name'),
       value: toolName,
+    });
+  }
+
+  const toolResult =
+    attributes['gen_ai.tool.call.result'] || attributes['gen_ai.tool.output'];
+  if (getIsExecuteToolSpan(genAiOpType) && toolResult) {
+    highlightedAttributes.push({
+      name: t('Result Size'),
+      value: formatBytesBase10(getByteLength(toolResult.toString())),
     });
   }
 

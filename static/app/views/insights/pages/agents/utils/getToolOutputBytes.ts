@@ -12,5 +12,9 @@ export function getToolOutputBytes(node: AITraceSpanNode): number {
     getStringAttr(node, 'gen_ai.tool.call.result') ||
     getStringAttr(node, 'gen_ai.tool.output') ||
     '';
-  return new TextEncoder().encode(output).length;
+  return getByteLength(output);
+}
+
+export function getByteLength(value: string): number {
+  return new TextEncoder().encode(value).length;
 }

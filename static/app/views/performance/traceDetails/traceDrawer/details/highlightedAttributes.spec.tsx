@@ -209,6 +209,48 @@ describe('getHighlightedSpanAttributes', () => {
     expect(result.find(attr => attr.name === 'Reasoning Level')).toBeUndefined();
   });
 
+  it('should include tool result size for tool spans', () => {
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes: {
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'search',
+        'gen_ai.tool.call.result': 'x'.repeat(4100),
+      },
+    });
+
+    expect(result.find(attr => attr.name === 'Result Size')?.value).toBe('4.1 kB');
+  });
+
+  it('should fall back to gen_ai.tool.output for tool result size', () => {
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes: {
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.output': 'héllo',
+      },
+    });
+
+    expect(result.find(attr => attr.name === 'Result Size')?.value).toBe('6 B');
+  });
+
+  it('should not include tool result size for non-tool spans or missing results', () => {
+    const nonTool = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes: {
+        'gen_ai.operation.type': 'ai_client',
+        'gen_ai.tool.call.result': 'ok',
+      },
+    });
+    const missing = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes: {'gen_ai.operation.type': 'tool'},
+    });
+
+    expect(nonTool.find(attr => attr.name === 'Result Size')).toBeUndefined();
+    expect(missing.find(attr => attr.name === 'Result Size')).toBeUndefined();
+  });
+
   it('should include tokens attribute when values are present', () => {
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
