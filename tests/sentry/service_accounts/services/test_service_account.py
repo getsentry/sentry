@@ -4,10 +4,7 @@ from django.db import router
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.service_accounts.services.service_account import RpcServiceAccount
-from sentry.service_accounts.services.service_account.service import (
-    get_service_account,
-    service_account_service,
-)
+from sentry.service_accounts.services.service_account.service import service_account_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
@@ -94,7 +91,7 @@ class CachedServiceAccountTest(TestCase):
         self.service_account_id = self.service_account.id
 
     def get_cached(self) -> RpcServiceAccount | None:
-        return get_service_account(self.service_account_id)
+        return service_account_service.get(service_account_id=self.service_account_id)
 
     def test_reads_from_cache(self) -> None:
         cached = self.get_cached()

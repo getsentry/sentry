@@ -23,6 +23,13 @@ class ServiceAccountService(RpcService):
 
         return DatabaseBackedServiceAccountService()
 
+    def get(self, *, service_account_id: int) -> RpcServiceAccount | None:
+        """
+        Get a service account through the cell cache. Prefer this over `get_service_account`,
+        which always calls control.
+        """
+        return get_service_account(service_account_id)
+
     @rpc_method
     @abstractmethod
     def get_service_account(self, *, service_account_id: int) -> RpcServiceAccount | None:
@@ -30,7 +37,7 @@ class ServiceAccountService(RpcService):
         Get a service account with the projects it is restricted to.
 
         This doesn't check the organization or `is_active`. Callers must check both against
-        the request. Cells should call the cached `get_service_account` function instead.
+        the request. Use `get` instead, which reads through the cell cache.
         """
 
 
