@@ -145,6 +145,8 @@ class PathMappingSerializerTest(TestCase):
 
 
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
+    endpoint = "sentry-api-0-project-repo-path-parsing"
+
     def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -195,6 +197,14 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.data == {
             "sourceUrl": ["Source code URL points to a different file than the stack trace"]
         }
+
+    def test_stack_path_requires_extension(self) -> None:
+        for stack_path in ("README", "/foo/bar/baz"):
+            filename = stack_path.rsplit("/", 1)[-1]
+            source_url = f"https://github.com/getsentry/sentry/blob/master/{filename}"
+            resp = self.make_post(source_url, stack_path)
+            assert resp.status_code == 400, resp.content
+            assert resp.data == {"detail": "Needs extension"}
 
     def test_no_integration(self) -> None:
         # create the integration but don't install it
@@ -249,6 +259,45 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "defaultBranch": "master",
         }
 
+    def test_snake_case_fields(self) -> None:
+        self.login_as(self.user)
+        resp = self.get_success_response(
+            self.org.slug,
+            self.project.slug,
+            method="post",
+            source_url="https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py",
+            stack_path="sentry/api/endpoints/project_stacktrace_link.py",
+        )
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "sentry/",
+            "sourceRoot": "src/sentry/",
+            "defaultBranch": "master",
+        }
+
+    def test_snake_case_java_fields(self) -> None:
+        self.login_as(self.user)
+        resp = self.get_success_response(
+            self.org.slug,
+            self.project.slug,
+            method="post",
+            source_url="https://github.com/getsentry/sentry/blob/master/src/com/example/foo/Bar.kt",
+            stack_path="Bar.kt",
+            abs_path="Bar.kt",
+            module="com.example.foo.Bar",
+            platform="java",
+        )
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "com/example/foo/",
+            "sourceRoot": "src/com/example/foo/",
+            "defaultBranch": "master",
+        }
+
     def test_percent_encoded_source_url(self) -> None:
         # URLs copied from GitHub encode characters that are legal in a filename,
         # e.g. the leading `+` of a SvelteKit route file
@@ -265,6 +314,42 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "sourceRoot": "src/routes/",
             "defaultBranch": "master",
         }
+
+    def test_java_requires_abs_path_and_module(self) -> None:
+        self.login_as(self.user)
+        frame_variants: list[dict[str, str | None]] = [
+            {},
+            {"absPath": "Example.java"},
+            {"module": "com.example.Example"},
+            {"absPath": None, "module": "com.example.Example"},
+            {"absPath": "Example.java", "module": None},
+            {"absPath": "", "module": "com.example.Example"},
+            {"absPath": "Example.java", "module": ""},
+        ]
+        for frame_fields in frame_variants:
+            response = self.get_error_response(
+                self.org.slug,
+                self.project.slug,
+                method="post",
+                sourceUrl="https://github.com/getsentry/sentry/blob/master/src/Example.java",
+                stackPath="Example.java",
+                platform="java",
+                **frame_fields,
+                status_code=400,
+            )
+            assert response.data == {"detail": "absPath and module are required for Java frames"}
+
+    def test_java_requires_package_naming_convention(self) -> None:
+        source_url = "https://github.com/getsentry/sentry/blob/master/src/Example.java"
+        resp = self.make_post(
+            source_url,
+            "Example.java",
+            module="Example",
+            abs_path="Example.java",
+            platform="java",
+        )
+        assert resp.status_code == 400, resp.content
+        assert resp.data == {"detail": "Module must follow Java package naming conventions"}
 
     def test_java_path(self) -> None:
         src_file = "src/com/example/foo/Bar.kt"

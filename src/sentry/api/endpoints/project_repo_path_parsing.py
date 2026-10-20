@@ -1,5 +1,5 @@
 from pathlib import PurePath, PureWindowsPath
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import unquote, urlparse, urlunparse
 
 from drf_spectacular.utils import extend_schema
@@ -7,6 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -25,10 +26,13 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import find_roots
 from sentry.issues.auto_source_code_config.errors import (
+    DoesNotFollowJavaPackageNamingConvention,
+    MissingModuleOrAbsPath,
+    NeedsExtension,
     UnexpectedPathException,
     UnsupportedFrameInfo,
 )
-from sentry.issues.auto_source_code_config.frame_info import FrameInfo, create_frame_info
+from sentry.issues.auto_source_code_config.frame_info import create_frame_info
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 
@@ -49,12 +53,38 @@ def unquote_source_url_path(source_url: str) -> str:
     return urlunparse(parsed._replace(path=unquote(parsed.path)))
 
 
-class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
+class PathMappingData(TypedDict):
+    stack_path: str
+    source_url: str
+    abs_path: NotRequired[str | None]
+    module: NotRequired[str | None]
+    platform: NotRequired[str | None]
+
+
+class PathMappingSerializer(CamelSnakeSerializer[PathMappingData]):
     stack_path = serializers.CharField(
         help_text="A file path as it appears in a stack trace frame."
     )
     source_url = serializers.URLField(
         help_text="The URL of the same file in the connected source code repository."
+    )
+    abs_path = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The absolute path of the file in the stack trace frame. Required and nonempty when platform is java.",
+    )
+    module = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The module containing the stack trace frame. Required and nonempty when platform is java.",
+    )
+    platform = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The platform of the event containing the stack trace frame.",
     )
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -137,12 +167,19 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
 @cell_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.CODING_WORKFLOWS
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
 
     @extend_schema(
-        operation_id="Parse a Repository Path Mapping",
+        operation_id="parseProjectRepositoryPathMapping",
+        summary="Parse a Repository Path Mapping",
+        description=(
+            "Derive the code-mapping settings that match a stack frame path to a file in the "
+            "connected source repository. When `platform` is `java`, both `absPath` and `module` "
+            "must be nonempty; otherwise the request returns 400."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=PathMappingSerializer,
         responses={
@@ -170,7 +207,26 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         data = serializer.validated_data
         source_url = data["source_url"]
         try:
-            frame_info = get_frame_info_from_request(request)
+            frame_info = create_frame_info(
+                {
+                    "abs_path": data.get("abs_path"),
+                    "filename": data["stack_path"],
+                    "module": data.get("module"),
+                },
+                data.get("platform"),
+            )
+        except MissingModuleOrAbsPath:
+            return self.respond(
+                {"detail": "absPath and module are required for Java frames"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except DoesNotFollowJavaPackageNamingConvention:
+            return self.respond(
+                {"detail": "Module must follow Java package naming conventions"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except NeedsExtension:
+            return self.respond({"detail": "Needs extension"}, status=status.HTTP_400_BAD_REQUEST)
         except UnsupportedFrameInfo:
             return self.respond(
                 {"detail": "Unsupported frame info"}, status=status.HTTP_400_BAD_REQUEST
@@ -210,12 +266,3 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
                 "defaultBranch": branch,
             }
         )
-
-
-def get_frame_info_from_request(request: Request) -> FrameInfo:
-    frame = {
-        "abs_path": request.data.get("absPath"),
-        "filename": request.data["stackPath"],
-        "module": request.data.get("module"),
-    }
-    return create_frame_info(frame, request.data.get("platform"))
