@@ -38,11 +38,12 @@ def validate_source_root(path: str) -> None:
         raise serializers.ValidationError(_(INVALID_SOURCE_ROOT_ERROR_MESSAGE))
 
 
-def gen_path_regex_field(*, validate_source: bool = False):
+def gen_path_regex_field(*, validate_source: bool = False, help_text: str | None = None):
     return serializers.RegexField(
         r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
         allow_blank=True,
+        help_text=help_text,
         validators=[validate_source_root] if validate_source else [],
         error_messages={"invalid": _("Path may not contain spaces or quotations")},
     )
@@ -52,14 +53,24 @@ BRANCH_NAME_ERROR_MESSAGE = "Branch name may only have letters, numbers, undersc
 
 
 class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
-    repository_id = serializers.IntegerField(required=True)
-    project_id = serializers.IntegerField(required=True)
-    stack_root = gen_path_regex_field()
-    source_root = gen_path_regex_field(validate_source=True)
+    repository_id = serializers.IntegerField(
+        required=True, help_text="The ID of a repository belonging to the installed integration."
+    )
+    project_id = serializers.IntegerField(
+        required=True, help_text="The ID of the project to associate with the code mapping."
+    )
+    stack_root = gen_path_regex_field(
+        help_text="The path prefix to replace in stack trace filenames."
+    )
+    source_root = gen_path_regex_field(
+        validate_source=True,
+        help_text="The repository path prefix to substitute for the stack trace prefix.",
+    )
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,  # Validated in validate_default_branch based on integration type
         allow_blank=True,  # Perforce allows empty streams
+        help_text="The default branch to use when resolving source files. May be empty for Perforce.",
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
     instance: RepositoryProjectPathConfig | None
