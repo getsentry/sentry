@@ -1,6 +1,9 @@
 import type {Theme} from '@emotion/react';
 
-import {REASON_INFO} from 'sentry/components/droppedData/reasonInfo';
+import {
+  DROPPED_DATA_DOCS_URL,
+  REASON_INFO,
+} from 'sentry/components/droppedData/reasonInfo';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -38,6 +41,11 @@ function normalizeReason(reason: string): string {
 
 export function reasonTitle(reason: string): string {
   return REASON_INFO[normalizeReason(reason)]?.title ?? reason;
+}
+
+export function reasonDocsUrl(reason: string): string {
+  const anchor = REASON_INFO[normalizeReason(reason)]?.docsAnchor;
+  return anchor ? `${DROPPED_DATA_DOCS_URL}#${anchor}` : DROPPED_DATA_DOCS_URL;
 }
 
 export function buildAskSeerPrompt(args: {
