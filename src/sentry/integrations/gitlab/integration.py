@@ -245,7 +245,11 @@ class GitlabIntegration(
             raise IntegrationConfigurationError(self.message_from_error(e)) from e
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+        # domain_name is "<host>/<group path>" and drops the scheme and any path
+        # prefix of the instance, so match from base_url like format_source_url does.
+        # The group path tells apart integrations for different groups on one instance.
+        group_path = self.model.metadata["domain_name"].partition("/")[2]
+        return url.startswith(f"{self.model.metadata['base_url']}/{group_path}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]
