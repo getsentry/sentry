@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -100,11 +100,13 @@ export function DroppedDataDrawer({
             )}
             {selectedGroups.intentional.length > 0 && (
               <Stack gap="md">
-                <Stack gap="xl" padding="0 xl">
+                <Stack gap="xl">
                   <Separator orientation="horizontal" border="primary" />
-                  <Heading as="h3" size="xl">
-                    {t('Configured Drops')}
-                  </Heading>
+                  <Container padding="0 xl">
+                    <Heading as="h3" size="xl">
+                      {t('Configured Drops')}
+                    </Heading>
+                  </Container>
                 </Stack>
                 <DroppedDataOutcomeList
                   sections={selectedGroups.intentional}
