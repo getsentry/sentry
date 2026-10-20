@@ -1092,7 +1092,7 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
-    def _s030_record(self, node: ast.AST, kind: str) -> None:
+    def _s030_record(self, node: ast.stmt | ast.expr, kind: str) -> None:
         function = self._function_stack[-1] if self._function_stack else _S030_MODULE_SCOPE
         self._s030_uses.append((node.lineno, node.col_offset, function, kind))
 
