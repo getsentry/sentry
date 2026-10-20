@@ -78,7 +78,7 @@ export function useDroppedDataDrawer(
         />
       ),
       {
-        ariaLabel: t('Dropped Data'),
+        ariaLabel: t('Dropped Events'),
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
           decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== 'true',

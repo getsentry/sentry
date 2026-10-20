@@ -28,6 +28,7 @@ import {
 import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import {combineIngestionMeta} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
@@ -165,6 +166,7 @@ export function useTraceMetricsSeriesQuery(
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
+      ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
   })();

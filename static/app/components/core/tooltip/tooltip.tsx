@@ -64,10 +64,7 @@ function TooltipComponent({
     arrowData,
     arrowProps,
     reset,
-    update,
   } = useHoverOverlay({...hoverOverlayProps});
-
-  const {forceVisible} = hoverOverlayProps;
 
   // Reset the visibility when the tooltip becomes disabled
   useLayoutEffect(() => {
@@ -75,16 +72,6 @@ function TooltipComponent({
       reset();
     }
   }, [reset, disabled, isOpen]);
-
-  // Reposition the tooltip when it is forced visible and the title changes
-  // size. Depending on `children` would re-fire every render because a
-  // ReactNode identity changes even when the rendered output does not.
-  useLayoutEffect(() => {
-    if (update && forceVisible) {
-      update();
-    }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [update, title, forceVisible]);
 
   if (disabled || !title) {
     return children;
@@ -139,7 +126,8 @@ function stopPropagation(e: React.SyntheticEvent) {
   e.stopPropagation();
 }
 
-const TooltipContent = styled(Overlay, {
+/** @internal */
+export const TooltipContent = styled(Overlay, {
   shouldForwardProp: prop => prop !== 'maxWidth',
 })<{maxWidth?: number | 'none'}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};

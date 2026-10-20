@@ -1,19 +1,19 @@
 ---
-title: Invitation Account Badge
-description: The signed-in account accepting an organization invitation.
+title: Account Badge
+description: The signed-in account completing an authentication flow.
 category: patterns
-source: sentry/views/authV2/acceptOrganizationInvite/invitationAccountBadge
+source: sentry/views/authV2/components/accountBadge
 ---
 
-import {InvitationAccountBadge} from 'sentry/views/authV2/acceptOrganizationInvite/invitationAccountBadge';
+import {AccountBadge} from 'sentry/views/authV2/components/accountBadge';
 import * as Storybook from 'sentry/stories';
 
-Show the signed-in account alongside an invitation so users can confirm which account will join the organization. The parent owns logout and invitation refetching.
+Show the signed-in account so users can confirm which account will complete the action. The parent owns logout and preparation for the new account.
 
 ## Signed-In Account
 
 <Storybook.Demo>
-  <InvitationAccountBadge
+  <AccountBadge
     user={{
       id: '1',
       name: 'Jane Doe',
@@ -26,14 +26,14 @@ Show the signed-in account alongside an invitation so users can confirm which ac
 </Storybook.Demo>
 
 ```tsx
-<InvitationAccountBadge user={user} onSwitchAccount={switchAccount} />
+<AccountBadge user={user} onSwitchAccount={switchAccount} />
 ```
 
 ## Props
 
 | Prop              | Type         | Description                             |
 | ----------------- | ------------ | --------------------------------------- |
-| `user`            | `AvatarUser` | The account accepting the invitation.   |
+| `user`            | `AvatarUser` | The account completing the action.      |
 | `onSwitchAccount` | `() => void` | Starts the parent-owned account switch. |
 
 ## Accessibility

@@ -532,8 +532,7 @@ class ExhaustiveFixtures(Fixtures):
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
         # Rule*
-        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
-        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
+        self.create_project_rule(project=project, owner_user_id=owner_id)
 
         # Environment*
         self.create_environment(project=project)
