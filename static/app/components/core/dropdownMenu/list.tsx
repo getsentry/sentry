@@ -462,6 +462,23 @@ interface DropdownSubmenuProps extends Pick<
   state: TreeState<MenuItemProps>;
 }
 
+function SearchableDropdownSubmenuContent({
+  searchOptions,
+  ...props
+}: Omit<DropdownMenuContentProps, 'search'> & {
+  searchOptions?: {placeholder?: string};
+}) {
+  const [search, setSearch] = useState('');
+  return (
+    <DropdownMenuContent
+      {...props}
+      search={
+        searchOptions ? {...searchOptions, value: search, onChange: setSearch} : undefined
+      }
+    />
+  );
+}
+
 function DropdownSubmenu({
   items,
   node,
@@ -474,7 +491,6 @@ function DropdownSubmenu({
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
-  const [search, setSearch] = useState('');
   const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
   const {
     isOpen,
@@ -524,16 +540,12 @@ function DropdownSubmenu({
         closeOnSelect={false}
       />
       {isOpen && (
-        <DropdownMenuContent
+        <SearchableDropdownSubmenuContent
           onClose={onClose}
           closeOnSelect={closeOnSelect}
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
-          search={
-            options.search
-              ? {...options.search, value: search, onChange: setSearch}
-              : undefined
-          }
+          searchOptions={options.search}
           size={size}
           {...menuProps}
           items={items}

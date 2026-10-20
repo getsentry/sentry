@@ -4,9 +4,10 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
-import {SectionHeader, SectionSeparator} from '@sentry/scraps/compactSelect/styles';
+import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
+import {Flex} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
 
 import {GridListOption, type GridListOptionProps} from './option';
@@ -49,14 +50,20 @@ export function GridListSection<T extends ListItemBase>({
           : {'aria-labelledby': titleId})}
       >
         {(node.rendered || showToggleAllButton) && (
-          <SectionHeader>
+          <Flex
+            data-section-header
+            justify="between"
+            align="center"
+            minHeight="1.5em"
+            padding="2xs lg"
+          >
             {node.rendered && (
               <Menu.SectionLabel id={titleId} aria-hidden>
                 {node.rendered}
               </Menu.SectionLabel>
             )}
             {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
-          </SectionHeader>
+          </Flex>
         )}
         <Menu.SectionList>
           {childNodes.map(child => (

@@ -1,7 +1,8 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
+import {Menu} from '@sentry/scraps/menu';
 
 import {t} from 'sentry/locale';
 import {seerAgentIntegrationsSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
@@ -33,7 +34,7 @@ export function PreferredAgentDropdownMenu({
         })) ?? []
       }
       menuFooter={
-        <DropdownMenuFooter>
+        <Menu.Footer>
           <Link
             to={{
               pathname: `/settings/${organization.slug}/integrations/`,
@@ -42,7 +43,7 @@ export function PreferredAgentDropdownMenu({
           >
             {t('Manage Coding Agents')}
           </Link>
-        </DropdownMenuFooter>
+        </Menu.Footer>
       }
     />
   );

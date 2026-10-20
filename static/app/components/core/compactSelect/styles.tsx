@@ -49,6 +49,14 @@ export const ListWrap = styled('ul')`
   :focus-visible {
     outline: none;
   }
+
+  /* The first section follows a hidden separator in a headerless menu. */
+  [data-menu-has-header='false']
+    &:first-of-type
+    li[role='presentation']:nth-of-type(2)
+    > [data-section-header] {
+    padding-top: 0;
+  }
 `;
 
 export const ListLabel = styled('p')`
@@ -72,24 +80,6 @@ export const ListSeparator = styled('div')`
 
   ul:empty + & {
     display: none;
-  }
-`;
-
-export const SectionHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: content-box;
-  height: 1.5em;
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.lg};
-
-  /* Remove top padding if this is the first section in a headerless menu (selected
-  with li:nth-of-type(2) because the first list item is a hidden separator) */
-  [data-menu-has-header='false']
-    ul:first-of-type
-    li[role='presentation']:nth-of-type(2)
-    > & {
-    padding-top: 0;
   }
 `;
 
