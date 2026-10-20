@@ -487,6 +487,24 @@ function SearchableDropdownSubmenuContent({
   );
 }
 
+function capMenuHeight(
+  maxMenuHeight: number | undefined,
+  viewportMaxHeight: NonNullable<
+    DropdownMenuListProps['overlayPositionProps']['style']
+  >['maxHeight']
+): NonNullable<DropdownMenuListProps['overlayPositionProps']['style']>['maxHeight'] {
+  if (maxMenuHeight === undefined) {
+    return viewportMaxHeight;
+  }
+  if (typeof viewportMaxHeight === 'number') {
+    return Math.min(maxMenuHeight, viewportMaxHeight);
+  }
+  if (typeof viewportMaxHeight === 'string') {
+    return `min(${maxMenuHeight}px, ${viewportMaxHeight})`;
+  }
+  return maxMenuHeight;
+}
+
 function DropdownSubmenu({
   items,
   node,
@@ -569,7 +587,10 @@ function DropdownSubmenu({
             ...overlayProps,
             style: {
               ...overlayProps.style,
-              maxHeight: options.maxMenuHeight ?? overlayProps.style?.maxHeight,
+              maxHeight: capMenuHeight(
+                options.maxMenuHeight,
+                overlayProps.style?.maxHeight
+              ),
             },
           }}
         />
@@ -581,6 +602,7 @@ function DropdownSubmenu({
 const StyledOverlay = styled(Overlay)`
   display: flex;
   flex-direction: column;
+  max-height: inherit;
 `;
 
 const DropdownMenuListWrap = styled('ul')<{
@@ -592,6 +614,7 @@ const DropdownMenuListWrap = styled('ul')<{
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
+  min-height: 0;
 
   ${p =>
     p.disableTextSelection &&

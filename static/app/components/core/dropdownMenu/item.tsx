@@ -1,4 +1,4 @@
-import {Fragment, useContext, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -113,6 +113,14 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
   submenuRef?: React.RefObject<HTMLElement | null>;
 }
 
+function isNestedControl(target: EventTarget | null, menuItem: HTMLElement | null) {
+  if (!(target instanceof Element) || !menuItem) {
+    return false;
+  }
+  const control = target.closest('button, a, input, select, textarea, [role="button"]');
+  return Boolean(control && control !== menuItem && menuItem.contains(control));
+}
+
 /**
  * A menu item with a label, optional details, leading and trailing elements.
  * Can also be used as a trigger button for a submenu. See:
@@ -130,6 +138,14 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
+  // useMenuItem can handle a press before a nested button's click handler runs.
+  const isNestedControlPress = useRef(false);
+  const markNestedControlPress = useCallback(
+    (event: React.SyntheticEvent<HTMLElement>) => {
+      isNestedControlPress.current = isNestedControl(event.target, innerWrapRef.current);
+    },
+    []
+  );
   const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
@@ -153,6 +169,9 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
   const actionHandler = () => {
+    if (isNestedControlPress.current) {
+      return;
+    }
     if (isLink) {
       // Close the menu after the click event has bubbled to the link
       // Only needed on links that do not unmount the menu
@@ -213,6 +232,9 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       key: node.key,
       onAction: actionHandler,
       onClose: () => {
+        if (isNestedControlPress.current) {
+          return;
+        }
         onClose?.();
         rootOverlayState?.close();
       },
@@ -249,6 +271,14 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const mergedMenuItemContentProps: React.HTMLAttributes<HTMLElement> = mergeProps(
     props,
     menuItemProps,
+    // oxlint-disable-next-line react/refs -- These handlers only read refs during input events.
+    {
+      onPointerDownCapture: markNestedControlPress,
+      onMouseDownCapture: markNestedControlPress,
+      onTouchStartCapture: markNestedControlPress,
+      onKeyDownCapture: markNestedControlPress,
+      onClickCapture: markNestedControlPress,
+    },
     hoverProps,
     keyboardProps,
     makeInnerWrapProps(),

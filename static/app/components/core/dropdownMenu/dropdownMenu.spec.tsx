@@ -5,6 +5,46 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 describe('DropdownMenu', () => {
+  it('keeps presses on a trailing button from selecting its menu item', async () => {
+    const originalPointerEvent = window.PointerEvent;
+    Object.defineProperty(window, 'PointerEvent', {
+      configurable: true,
+      value: MouseEvent,
+    });
+    const onAction = jest.fn();
+    const onTrailingClick = jest.fn();
+    try {
+      render(
+        <DropdownMenu
+          triggerLabel="Projects"
+          items={[
+            {
+              key: 'project',
+              label: 'Project',
+              onAction,
+              trailingItems: <button onClick={onTrailingClick}>Bookmark</button>,
+            },
+          ]}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Bookmark'}));
+
+      expect(onTrailingClick).toHaveBeenCalledTimes(1);
+      expect(onAction).not.toHaveBeenCalled();
+      expect(screen.getByRole('menuitemradio', {name: 'Project'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Project'}));
+      expect(onAction).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, 'PointerEvent', {
+        configurable: true,
+        value: originalPointerEvent,
+      });
+    }
+  });
+
   it.each(['click', '{Enter}', ' '])(
     'opens the menu with %s without activating the row',
     async activation => {
@@ -265,7 +305,11 @@ describe('DropdownMenu', () => {
           {
             key: 'all-projects',
             label: 'All Projects',
-            submenu: {title: 'All Projects', search: {placeholder: 'Search projects'}},
+            submenu: {
+              title: 'All Projects',
+              search: {placeholder: 'Search projects'},
+              maxMenuHeight: 240,
+            },
             children: [
               {
                 key: 'my-projects',
@@ -285,6 +329,16 @@ describe('DropdownMenu', () => {
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
     const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const submenu = search.closest('[data-overlay]');
+    if (!(submenu instanceof HTMLElement)) {
+      throw new Error('Expected submenu overlay');
+    }
+    const cappedHeight = submenu.parentElement?.style.maxHeight;
+    if (!cappedHeight) {
+      throw new Error('Expected capped submenu height');
+    }
+    expect(Number.parseFloat(cappedHeight)).toBeLessThanOrEqual(240);
+    expect(submenu.querySelector('[role="menu"]')).toHaveStyle({maxHeight: cappedHeight});
     expect(search).toHaveFocus();
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
 
