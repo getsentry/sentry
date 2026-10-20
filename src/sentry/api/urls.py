@@ -815,10 +815,7 @@ from .endpoints.organization_events_has_measurements import (
 )
 from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
-from .endpoints.organization_events_meta import (
-    OrganizationEventsMetaEndpoint,
-    OrganizationEventsRelatedIssuesEndpoint,
-)
+from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
@@ -1562,11 +1559,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/key-transactions-list/$",
         KeyTransactionListEndpoint.as_view(),
         name="sentry-api-0-organization-key-transactions-list",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/related-issues/$",
-        OrganizationEventsRelatedIssuesEndpoint.as_view(),
-        name="sentry-api-0-organization-related-issues",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/project-transaction-threshold-override/$",
