@@ -21,6 +21,7 @@ from slack_sdk.models.blocks import (
     RichTextQuoteElement,
     RichTextSectionElement,
     SectionBlock,
+    TaskCardBlock,
 )
 
 from sentry.notifications.platform.registry import renderer_registry
@@ -32,6 +33,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationConclusion,
     SeerInvestigationError,
     SeerInvestigationStarted,
     SeerInvestigationStatus,
@@ -106,6 +108,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         NotificationSource.SEER_INVESTIGATION_STARTED,
         NotificationSource.SEER_INVESTIGATION_ERROR,
         NotificationSource.SEER_INVESTIGATION_STATUS,
+        NotificationSource.SEER_INVESTIGATION_CONCLUSION,
     ],
 )
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -137,6 +140,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_investigation_error(data)
         elif isinstance(data, SeerInvestigationStatus):
             return cls._render_investigation_status(data, link_decorator)
+        elif isinstance(data, SeerInvestigationConclusion):
+            return cls._render_investigation_conclusion(data, link_decorator)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -306,6 +311,25 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
 
     @classmethod
+    def _render_progress(cls, data: SeerInvestigationStatus) -> list[Block]:
+        if not data.progress:
+            return []
+        return [
+            TaskCardBlock(
+                task_id="investigation-progress",
+                title=data.progress["title"],
+                status=data.progress["status"],
+                details=RichTextBlock(
+                    elements=[
+                        RichTextSectionElement(
+                            elements=[RichTextElementParts.Text(text=data.progress["detail"])]
+                        )
+                    ]
+                ),
+            )
+        ]
+
+    @classmethod
     def _render_investigation_status(
         cls, data: SeerInvestigationStatus, link_decorator: NotificationLinkDecorator
     ) -> SlackRenderable:
@@ -328,6 +352,28 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ]
             )
             blocks.append(RichTextBlock(elements=[quote]))
+        blocks.extend(cls._render_progress(data))
+        if not data.progress or data.progress["status"] != "complete":
+            blocks.append(DividerBlock())
+            blocks.append(
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="View full investigation",
+                            style="primary",
+                            url=link_decorator.decorate_url(data.investigation_url),
+                            value="link_clicked",
+                        )
+                    ]
+                )
+            )
+        return SlackRenderable(blocks=blocks, text=escape_slack_text(text))
+
+    @classmethod
+    def _render_investigation_conclusion(
+        cls, data: SeerInvestigationConclusion, link_decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
+        blocks: list[Block] = [MarkdownBlock(text=section) for section in data.sections]
         blocks.append(DividerBlock())
         blocks.append(
             ActionsBlock(
@@ -341,7 +387,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ]
             )
         )
-        return SlackRenderable(blocks=blocks, text=escape_slack_text(text))
+        return SlackRenderable(blocks=blocks, text="Seer finished the investigation")
 
     @classmethod
     def _render_agent_response(

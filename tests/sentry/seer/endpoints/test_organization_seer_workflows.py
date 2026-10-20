@@ -25,7 +25,7 @@ from sentry.testutils.factories import Factories
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerWorkflowsTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflows"
+    endpoint = "sentry-api-0-organization-seer-workflow-runs"
 
     def setUp(self) -> None:
         super().setUp()
@@ -549,7 +549,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerMonitorCleanupTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflows"
+    endpoint = "sentry-api-0-organization-seer-workflow-runs"
     method = "post"
 
     def setUp(self) -> None:
@@ -675,7 +675,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     @property
     def url(self):
-        return f"/api/0/organizations/{self.organization.slug}/seer/workflows/"
+        return f"/api/0/organizations/{self.organization.slug}/seer/workflows/runs/"
 
     def result(self):
         return {

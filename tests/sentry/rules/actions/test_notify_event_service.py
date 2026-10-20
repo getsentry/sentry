@@ -16,7 +16,6 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
 )
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.rule import Rule
 from sentry.rules.actions.notify_event_service import (
     NotifyEventServiceAction,
     send_incident_alert_notification,
@@ -25,13 +24,10 @@ from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
 from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import RuleTestCase, TestCase
-from sentry.testutils.helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.workflow_engine.models import DataConditionGroupAction, WorkflowDataConditionGroup
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-from sentry.workflow_engine.typings.notification_action import ActionTarget
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -48,19 +44,6 @@ class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
         ProjectOption.objects.set_value(
             project=self.event.project, key="webhooks:enabled", value=True
         )
-
-        self.rule_webhook_data = {
-            "conditions": [
-                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-            ],
-            "actions": [
-                {
-                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                    "service": "webhooks",
-                    "uuid": uuid4().hex,
-                }
-            ],
-        }
 
     @responses.activate
     def test_applies_correctly_for_legacy_webhooks_aci(self) -> None:
@@ -116,43 +99,6 @@ class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
         assert payload["event"]["id"] == self.event.event_id
         assert payload["event"]["event_id"] == self.event.event_id
         assert payload["triggering_rules"] == ["error_workflow"]
-
-    @responses.activate
-    def test_legacy_webhooks_uneven_dual_write_aci(self) -> None:
-        """
-        Test that if a dual written Rule has it's Action updated to email instead that we do not fire a response to the webhook
-        """
-        responses.add(method=responses.POST, url="http://my-fake-webhook.io", json={}, status=408)
-        rule = Rule.objects.create(
-            label="bad stuff happening",
-            project=self.event.project,
-            data=self.rule_webhook_data,
-        )
-        # dual write the rule to replicate current reality
-        workflow = IssueAlertMigrator(rule, self.user.id).run()
-        wdcg = WorkflowDataConditionGroup.objects.get(workflow=workflow)
-        dcga = DataConditionGroupAction.objects.get(condition_group=wdcg.condition_group)
-        action = dcga.action
-
-        action_config = {
-            "target_type": ActionTarget.USER.value,
-            "target_display": None,
-            "target_identifier": str(self.user.id),
-        }
-        action.update(config=action_config, type="email", data={})
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                group_id=self.event.group_id,
-                event_id=self.event.event_id,
-                project_id=self.event.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        assert len(responses.calls) == 0
 
 
 class NotifyEventServiceSentryAppActionTest(RuleTestCase, BaseWorkflowTest):

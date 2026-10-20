@@ -22,7 +22,6 @@ import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 
@@ -381,7 +380,7 @@ const zIndex = {
  * Keep the guide inside the viewport even when that means overlapping its
  * highlighted element, such as one that is taller than the viewport.
  */
-const keepGuideInViewport = {altAxis: true, tether: false};
+const keepGuideInViewport = {crossAxis: true, tether: false};
 
 export function TourGuide({
   children,
@@ -404,7 +403,7 @@ export function TourGuide({
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, triggerRef, overlayProps, arrowProps, update} = useOverlay({
+  const {triggerProps, triggerRef, overlayProps, arrowProps} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
@@ -422,13 +421,6 @@ export function TourGuide({
       triggerRef.current?.scrollIntoView?.({block: 'nearest', behavior: 'smooth'});
     }
   }, [isOpen, triggerRef]);
-
-  // Update the overlay positioning when the content changes
-  useEffectAfterFirstRender(() => {
-    if (isOpen && update && defined(title) && defined(description)) {
-      update();
-    }
-  }, [isOpen, update, title, description]);
 
   return (
     <Fragment>

@@ -90,6 +90,8 @@ const questionSchema = z.union([
       criteria: z
         .union([z.array(optionSchema), z.record(z.string(), z.string())])
         .optional(),
+      /** Descriptions of score values, e.g. `{"2": "Blocks the customer"}`. */
+      descriptions: z.record(z.string(), z.string()).optional(),
     })
     .transform(question => ({...question, kind: 'question' as const})),
   invalidEntrySchema,
@@ -108,9 +110,58 @@ export type ScoreAnswer = Extract<EvaluationAnswer, {kind: 'score'}>;
  */
 export type InvalidEvaluationEntry = Extract<EvaluationAnswer, {kind: 'invalid'}>;
 
+// A chat-style `state`, e.g. `[{role: 'user', content: [{type: 'input_text',
+// text: '...'}, {type: 'input_image', image_url: '...'}]}]`. It's normalized to a
+// message list: text parts render as text, image parts as a placeholder, and
+// anything unrecognized as raw JSON.
+export type EvaluatedContentPart =
+  | {kind: 'text'; text: string}
+  | {kind: 'image'}
+  | {kind: 'raw'; value: unknown};
+
+export interface EvaluatedMessage {
+  parts: EvaluatedContentPart[];
+  role?: string;
+}
+
+const textPartSchema = z
+  .object({type: z.literal('input_text'), text: z.string()})
+  .transform((part): EvaluatedContentPart => ({kind: 'text', text: part.text}));
+
+const imagePartSchema = z
+  .object({type: z.literal('input_image')})
+  .transform((): EvaluatedContentPart => ({kind: 'image'}));
+
+const contentPartSchema = z.union([textPartSchema, imagePartSchema]);
+
+const stateMessageSchema = z
+  .object({
+    role: z.string().optional(),
+    content: z.union([z.string(), z.array(contentPartSchema)]),
+  })
+  .transform((message): EvaluatedMessage => ({
+    role: message.role,
+    parts:
+      typeof message.content === 'string'
+        ? [{kind: 'text', text: message.content}]
+        : message.content,
+  }));
+
+// Every `state` normalizes to a message list: a plain string becomes one text
+// message, an unrecognized value one raw-JSON message. `undefined` is rejected so
+// an evaluation item without state doesn't match.
+const evaluatedStateSchema = z.union([
+  z.string().transform((text): EvaluatedMessage[] => [{parts: [{kind: 'text', text}]}]),
+  z.array(stateMessageSchema).min(1),
+  z
+    .unknown()
+    .refine(value => value !== undefined)
+    .transform((value): EvaluatedMessage[] => [{parts: [{kind: 'raw', value}]}]),
+]);
+
 export interface EvaluationInput {
   questions: EvaluationQuestionEntry[];
-  state: unknown;
+  state: EvaluatedMessage[];
   /** Set when `questions` isn't a map of questions, holding its raw value. */
   invalidQuestions?: {value: unknown};
 }
@@ -119,8 +170,8 @@ const questionsSchema = z.record(z.string(), questionSchema);
 
 const inputItemSchema = z.object({
   type: z.literal('evaluation'),
-  // The evaluated text is the core of the input, so it must be present.
-  state: z.unknown().refine(state => state !== undefined),
+  // The evaluated content is the core of the input, so it must be present.
+  state: evaluatedStateSchema,
   questions: z.unknown(),
 });
 
@@ -177,6 +228,26 @@ export function parseEvaluationInput(raw: unknown): EvaluationInput | null {
       ([key, question]): EvaluationQuestionEntry => ({key, ...question})
     ),
   };
+}
+
+/**
+ * A plain-text form of the evaluated `state` for previews and exports, with
+ * `[image]` standing in for each image part.
+ */
+export function evaluatedStateToText(state: EvaluatedMessage[]): string {
+  return state
+    .map(message =>
+      message.parts
+        .map(part =>
+          part.kind === 'text'
+            ? part.text
+            : part.kind === 'image'
+              ? '[image]'
+              : JSON.stringify(part.value)
+        )
+        .join('\n')
+    )
+    .join('\n');
 }
 
 /**

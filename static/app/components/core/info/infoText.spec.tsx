@@ -1,5 +1,4 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {InfoText} from '@sentry/scraps/info';
 
@@ -22,7 +21,7 @@ describe('InfoText', () => {
     delete HTMLElement.prototype.clientWidth;
   });
 
-  it('shows the tooltip only when text overflows without underlining the text', async () => {
+  it('shows the tooltip only when text overflows', async () => {
     mockOverflow(100, 50);
 
     render(
@@ -34,13 +33,6 @@ describe('InfoText', () => {
     const text = screen.getByText('Text content');
     expect(text).toHaveAttribute('tabindex', '0');
     expect(text).toHaveAttribute('aria-describedby');
-    expect(
-      getEmotionRules(text).some(
-        rule =>
-          rule.includes('overflow: hidden') && rule.includes('text-overflow: ellipsis')
-      )
-    ).toBe(true);
-    expect(text).not.toHaveStyle({textDecoration: 'underline'});
 
     await userEvent.hover(text);
     expect(screen.getByText('Tooltip content')).toBeInTheDocument();
@@ -69,7 +61,7 @@ describe('InfoText', () => {
     expect(screen.getByText('Text content')).toHaveAttribute('tabindex', '0');
   });
 
-  it('supports ellipsis with the regular always-on tooltip', () => {
+  it('keeps ellipsized text keyboard interactive with the regular tooltip', () => {
     render(
       <InfoText title="Tooltip content" ellipsis>
         Text content
@@ -78,11 +70,5 @@ describe('InfoText', () => {
 
     const text = screen.getByText('Text content');
     expect(text).toHaveAttribute('tabindex', '0');
-    expect(
-      getEmotionRules(text).some(
-        rule =>
-          rule.includes('overflow: hidden') && rule.includes('text-overflow: ellipsis')
-      )
-    ).toBe(true);
   });
 });

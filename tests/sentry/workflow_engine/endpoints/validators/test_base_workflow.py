@@ -1024,10 +1024,14 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group.conditions.count() == 1
         assert self.workflow.when_condition_group.conditions.first() == dc
 
-    def test_update__add_new_action(self, mock_action_validator: mock.MagicMock) -> None:
-        assert self.valid_saved_data["actionFilters"]
-        self.valid_saved_data["actionFilters"][0]["actions"].append(
+    def test_update__add_new_action_ignores_client_primary_key(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        data: dict[str, Any] = dict(self.valid_saved_data)
+        assert data["actionFilters"]
+        data["actionFilters"][0]["actions"].append(
             {
+                "pk": 2**62,
                 "type": Action.Type.SLACK,
                 "config": {
                     "targetIdentifier": "foo",
@@ -1039,9 +1043,12 @@ class TestWorkflowValidatorUpdate(TestCase):
             }
         )
 
-        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        validator = WorkflowValidator(data=data, context=self.context)
         assert validator.is_valid() is True
         validator.update(self.workflow, validator.validated_data)
+
+        assert Action.objects.count() == 2
+        assert not Action.objects.filter(id=2**62).exists()
 
     def test_update__modify_action(self, mock_action_validator: mock.MagicMock) -> None:
         workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()

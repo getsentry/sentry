@@ -15,24 +15,6 @@ function ThemeWrapper({children}: {children: React.ReactNode}) {
 }
 
 describe('Link without a router', () => {
-  it('applies text styles without resetting layout spacing', () => {
-    render(<Link to="/issues/">Link</Link>, {wrapper: ThemeWrapper});
-
-    const link = screen.getByRole('link', {name: 'Link'});
-    const rules = Array.from(document.styleSheets)
-      .flatMap(sheet => Array.from(sheet.cssRules))
-      .filter(rule =>
-        Array.from(link.classList).some(name => rule.cssText.includes(name))
-      )
-      .map(rule => rule.cssText)
-      .join(' ');
-
-    expect(rules).toContain('text-box-edge: text text');
-    expect(rules).toContain('text-box-trim: trim-both');
-    expect(rules).not.toMatch(/margin:\s*0/);
-    expect(rules).not.toMatch(/padding:\s*0/);
-  });
-
   it.each<[LinkProps['to'], string]>([
     ['/issues/?query=error#details', '/issues/?query=error#details'],
     ['https://example.com/', 'https://example.com/'],

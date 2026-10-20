@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 from typing import Any, Never, TypedDict
 
 import sentry_sdk
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
@@ -25,7 +25,10 @@ from sentry.integrations.base import (
     is_provider_enabled,
 )
 from sentry.integrations.manager import default_manager
-from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration import (
+    Integration,
+    OrganizationIntegrationDeletionInProgress,
+)
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -258,6 +261,21 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
 
         Raises IntegrationError on failure. Returns the created OrganizationIntegration.
         """
+        if not self.provider.reject_pending_deletion_reinstall:
+            return self._install_integration_transaction(data)
+
+        try:
+            with transaction.atomic(using=router.db_for_write(Integration)):
+                return self._install_integration_transaction(data)
+        except OrganizationIntegrationDeletionInProgress as error:
+            raise IntegrationError(
+                _(
+                    "This integration is already being removed. "
+                    "Removal is queued automatically; try installing it again in about 15 minutes."
+                )
+            ) from error
+
+    def _install_integration_transaction(self, data: IntegrationData) -> OrganizationIntegration:
         if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
@@ -348,9 +366,11 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             default_auth_id = identity_model.id
 
         org_integration = self.integration.add_organization(
-            self.organization, self.request.user, default_auth_id=default_auth_id
+            self.organization,
+            self.request.user,
+            default_auth_id=default_auth_id,
+            reject_pending_deletion=self.provider.reject_pending_deletion_reinstall,
         )
-
         if org_integration is None:
             raise IntegrationError("Could not create the integration for this organization.")
 
