@@ -450,6 +450,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/workflows/preview/'
   | '/projects/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/ai/code-explanation/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/$fileId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-lookup/'

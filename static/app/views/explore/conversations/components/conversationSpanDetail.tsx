@@ -10,7 +10,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
-import {CodeModeInput} from 'sentry/components/ai/toolDetails/codeModeInput';
+import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -352,7 +352,9 @@ function InputTab({
   const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
 
   if (codeInput) {
-    return <CodeModeInput key={node.id} {...codeInput} />;
+    return (
+      <CodeModeDetails key={node.id} projectId={node.value.project_id} {...codeInput} />
+    );
   }
   const embeddingsInput = getTraceNodeAttribute(
     'gen_ai.embeddings.input',

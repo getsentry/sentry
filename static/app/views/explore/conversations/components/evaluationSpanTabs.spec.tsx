@@ -17,13 +17,13 @@ describe('EvaluationInputTab', () => {
       <EvaluationInputTab
         raw={RAW_INPUT}
         input={{
-          state: 'I cannot log in.',
+          state: [{parts: [{kind: 'text', text: 'I cannot log in.'}]}],
           questions: [{key: 'authIssue', kind: 'question', type: 'boolean'}],
         }}
       />
     );
 
-    expect(screen.getByText('Evaluated Text')).toBeInTheDocument();
+    expect(screen.getByText('Evaluated Content')).toBeInTheDocument();
     expect(screen.getByText('I cannot log in.')).toBeInTheDocument();
     expect(screen.getByText('Questions')).toBeInTheDocument();
     expect(screen.getByText('authIssue')).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('EvaluationInputTab', () => {
       <EvaluationInputTab
         raw={RAW_INPUT}
         input={{
-          state: 'I cannot log in.',
+          state: [{parts: [{kind: 'text', text: 'I cannot log in.'}]}],
           questions: [],
           invalidQuestions: {value: ['authIssueRawValue']},
         }}
