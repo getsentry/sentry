@@ -108,7 +108,7 @@ export function DroppedDataDrawer({
                 onSelectionChange={setOutcomeSelection}
               />
             </Container>
-            <Stack flex="1" gap="2xl" background="secondary" padding="xl xl 2xl">
+            <Stack flex="1" gap="2xl" background="secondary" padding="2xl xl">
               {selectedUnintentional.length > 0 && (
                 <Stack gap="xl">
                   <Container padding="0 xl">
