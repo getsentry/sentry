@@ -1183,6 +1183,22 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 provider="segment",
                 config={"write_key": "matrix-key"},
             )
+        elif name == "scm_repository":
+            integration, _organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            resource = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id="123",
+                url="https://github.com/permission-matrix/repo",
+            )
         elif name == "flag_log":
             resource = FlagAuditLogModel.objects.create(
                 action=ActionEnum.UPDATED.value,
@@ -1513,6 +1529,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         return path
 
     def _query_params(self, endpoint: PublicGetEndpoint | PublicMutationEndpoint) -> dict[str, Any]:
+        if endpoint.endpoint_name == "OrganizationCodeMappingRepoPrefixesEndpoint":
+            return {"repositoryId": self._resource("scm_repository").id}
         if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
             return {"channel": "permission-matrix"}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
@@ -2281,6 +2299,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     data=b'{"metadata":{"version":""}}',
                     headers={},
                 ),
+            )
+        elif endpoint.endpoint_name == "OrganizationCodeMappingRepoPrefixesEndpoint":
+            downstream_scope = patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repo_files_from_cache",
+                return_value=["src/matrix.py"],
             )
         else:
             downstream_scope = nullcontext()
