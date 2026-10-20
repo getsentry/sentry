@@ -97,7 +97,8 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
             return False
 
         def repo_match(repo: Repository) -> bool:
-            return repo.url is not None and source_url.startswith(repo.url)
+            # End at a "/" so that "acme/app" doesn't claim "acme/app-v2" links.
+            return repo.url is not None and source_url.startswith(f"{repo.url.rstrip('/')}/")
 
         # now find the matching integration
         integrations = integration_service.get_integrations(

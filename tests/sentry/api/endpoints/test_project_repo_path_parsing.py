@@ -218,6 +218,20 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
+    def test_repo_with_shared_name_prefix(self) -> None:
+        sentry_native = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry-native",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            url="https://github.com/getsentry/sentry-native",
+        )
+        source_url = "https://github.com/getsentry/sentry-native/blob/master/src/app/main.py"
+        stack_path = "app/main.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+        assert resp.data["repositoryId"] == sentry_native.id
+
     def test_single_file_path(self) -> None:
         source_url = (
             "https://github.com/getsentry/sentry/blob/master/src/project_stacktrace_link.py"
