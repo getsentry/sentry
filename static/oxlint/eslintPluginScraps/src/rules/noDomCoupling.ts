@@ -60,11 +60,15 @@ export const noDomCoupling = defineRule({
         }
         return undefined;
       }
-      const definition = imports.resolveVariable(node)?.defs[0]?.node;
+      const variableDefinition = imports.resolveVariable(node)?.defs[0];
+      const definition = variableDefinition?.node;
       if (definition?.type === 'VariableDeclarator') {
         return definition.init ?? undefined;
       }
-      return definition?.type === 'FunctionDeclaration' ? definition : undefined;
+      return variableDefinition?.type === 'FunctionName' &&
+        definition?.type === 'FunctionDeclaration'
+        ? definition
+        : undefined;
     }
 
     function stringValue(
@@ -320,10 +324,20 @@ export const noDomCoupling = defineRule({
           return fn ? isNestedStyle(fn, seen) : false;
         }
       }
-      return (
-        node.type === 'ObjectExpression' ||
+      if (
         node.type === 'ArrowFunctionExpression' ||
         node.type === 'FunctionExpression' ||
+        node.type === 'FunctionDeclaration'
+      ) {
+        if (!node.body) {
+          return false;
+        }
+        return node.body.type === 'BlockStatement'
+          ? returnedValues(node.body).some(value => isNestedStyle(value, new Set(seen)))
+          : isNestedStyle(node.body, seen);
+      }
+      return (
+        node.type === 'ObjectExpression' ||
         (node.type === 'ArrayExpression' &&
           node.elements.some(
             element =>
@@ -440,12 +454,12 @@ export const noDomCoupling = defineRule({
         styles(node.left, config);
         styles(node.right, config);
       } else if (node.type === 'CallExpression') {
-        if (
-          getStyledCallInfo(node, imports) ||
+        const memo =
           imports.is(node.callee, 'react', 'useMemo') ||
-          imports.is(node.callee, 'react', 'useCallback')
-        ) {
-          for (const argument of node.arguments) {
+          imports.is(node.callee, 'react', 'useCallback');
+        if (getStyledCallInfo(node, imports) || memo) {
+          // Memo dependencies are data, not styles passed to Emotion.
+          for (const argument of memo ? node.arguments.slice(0, 1) : node.arguments) {
             if (argument.type !== 'SpreadElement') {
               styles(argument, config);
             }

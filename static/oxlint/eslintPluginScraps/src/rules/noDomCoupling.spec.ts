@@ -11,6 +11,62 @@ const errors = [{messageId: 'forbidden'}];
 ruleTester.run('no-dom-coupling', noDomCoupling, {
   valid: [
     {
+      name: 'style helper parameters are not function bindings',
+      code:
+        emotion +
+        'function makeStyles(width){return {width};} const C=css(makeStyles("100%"));',
+      filename,
+    },
+    {
+      name: 'Select style helper parameters are property values',
+      code:
+        emotion +
+        'import {Select} from "@sentry/scraps/select"; function makeStyles(width){return {menu:base=>({...base,width})};} const C=<Select styles={makeStyles("100%")}/>;',
+      filename,
+    },
+    {
+      name: 'useMemo dependency objects are not styles',
+      code:
+        emotion +
+        'import {useMemo} from "react"; const tokens={color:{primary:"red"},button:{size:12}}; const style=useMemo(()=>({color:tokens.color.primary}),[tokens]); const C=<div css={style}/>;',
+      filename,
+    },
+    {
+      name: 'useCallback dependency objects are not styles',
+      code:
+        emotion +
+        'import {useCallback as memoize} from "react"; const tokens={button:{color:"red"}}; const style=memoize(()=>({color:tokens.button.color}),[tokens]); const C=<div css={style}/>;',
+      filename,
+    },
+    {
+      name: 'namespace memo ignores dependency css text',
+      code:
+        emotion +
+        'import * as React from "react"; const text="button {color:red;}"; const style=React.useMemo(()=>({content:text}),[text]); const C=<div css={style}/>;',
+      filename,
+    },
+    {
+      name: 'property callbacks return scalar values',
+      code:
+        emotion +
+        'const C=styled.div({color:props=>props.theme.color,width:()=>"100%",height:()=>24,"--custom":()=>"red"});',
+      filename,
+    },
+    {
+      name: 'property callbacks with blocks return scalar values',
+      code:
+        emotion +
+        'function getColor(){if(active)return "red";return "blue";} const C=styled.div({color:getColor,width:()=>{return 24;}});',
+      filename,
+    },
+    {
+      name: 'property callbacks resolve aliases and conditional returns',
+      code:
+        emotion +
+        'const color=()=>active?"red":"blue"; const alias=color; const C=css({color:alias,width:()=>active&&"100%"});',
+      filename,
+    },
+    {
       name: 'escaped class punctuation remains scoped',
       code: emotion + 'const C=css`& > .foo\\\\:bar {color:red;}`;',
       filename,
@@ -273,6 +329,92 @@ ruleTester.run('no-dom-coupling', noDomCoupling, {
     },
   ],
   invalid: [
+    {
+      name: 'Emotion call arguments after the first are still styles',
+      code: emotion + 'const C=css({color:"red"},{button:{color:"blue"}});',
+      filename,
+      errors,
+    },
+    {
+      name: 'memo dependency used as a returned style is still checked',
+      code:
+        emotion +
+        'import {useMemo} from "react"; const shared={button:{color:"red"}}; const style=useMemo(()=>shared,[shared]); const C=<div css={style}/>;',
+      filename,
+      errors,
+    },
+    {
+      name: 'memoized selectors are still checked without walking dependencies',
+      code:
+        emotion +
+        'import {useMemo} from "react"; const tokens={button:{size:12}}; const style=useMemo(()=>({button:{width:tokens.button.size}}),[tokens]); const C=<div css={style}/>;',
+      filename,
+      errors,
+    },
+    {
+      name: 'callback styles still check returned selectors',
+      code:
+        emotion +
+        'import {useCallback} from "react"; const tokens={button:{size:12}}; const style=useCallback(()=>({"& > button":{width:tokens.button.size}}),[tokens]); const C=<div css={style}/>;',
+      filename,
+      errors,
+    },
+    {
+      name: 'nested selector callbacks return objects',
+      code: emotion + 'const C=styled.div({button:()=>({color:"red"})});',
+      filename,
+      errors,
+    },
+    {
+      name: 'nested selector callbacks with blocks return objects',
+      code:
+        emotion +
+        'function getStyles(){if(active)return {color:"red"};return {color:"blue"};} const C=css({button:getStyles});',
+      filename,
+      errors,
+    },
+    {
+      name: 'nested selector callbacks return serialized styles',
+      code: emotion + 'const C=css({button:()=>css({color:"red"})});',
+      filename,
+      errors,
+    },
+    {
+      name: 'malformed nth of argument does not crash',
+      code: emotion + 'const C=css`& > :nth-child(of [data-label=" of "]) {color:red;}`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'incomplete pseudo does not crash: & > :is',
+      code: emotion + 'const C=css`& > :is {color:red;}`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'incomplete pseudo does not crash: & > :where',
+      code: emotion + 'const C=css`& > :where {color:red;}`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'incomplete pseudo does not crash: & > :is()',
+      code: emotion + 'const C=css`& > :is() {color:red;}`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'incomplete pseudo does not crash: & > :nth-child(2n of :is)',
+      code: emotion + 'const C=css`& > :nth-child(2n of :is) {color:red;}`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'incomplete pseudo does not crash: & > :nth-child(2n of )',
+      code: emotion + 'const C=css`& > :nth-child(2n of ) {color:red;}`;',
+      filename,
+      errors,
+    },
     {
       name: 'escaped selector text retains source locations',
       code: emotion + 'const C=css`& > .foo\\\\ bar {color:red;}\nbutton {color:red;}`;',

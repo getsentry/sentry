@@ -27,16 +27,22 @@ function isScoped(nodes: readonly selectorParser.Node[]): boolean {
     if (node.type !== 'pseudo') {
       return false;
     }
-    let alternatives = node.nodes;
+    const alternatives = node.nodes;
     if (/^:nth-(?:last-)?child$/.test(node.value)) {
       const of = /\s+of\s+/i.exec(node.toString());
       if (!of) {
         return false;
       }
-      alternatives = selectorParser().astSync(
-        node.toString().slice(of.index + of[0].length, -1)
-      ).nodes;
-    } else if (node.value !== ':is' && node.value !== ':where') {
+      const start = node.sourceIndex + of.index + of[0].length;
+      // Reuse the parsed arguments. Re-parsing a slice can throw for incomplete CSS.
+      return (
+        alternatives.length > 0 &&
+        alternatives.every(selector =>
+          isScoped(selector.nodes.filter(argument => argument.sourceIndex >= start))
+        )
+      );
+    }
+    if (node.value !== ':is' && node.value !== ':where') {
       return false;
     }
     return (
