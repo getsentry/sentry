@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TypedDict
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,7 +14,14 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
 )
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -110,30 +117,39 @@ def _get_repo_prefixes(
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingRepoPrefixesEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ISSUES
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    owner = ApiOwner.CODING_WORKFLOWS
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     @extend_schema(
         operation_id="listRepoCodeMappingPrefixes",
-        summary="List repository directory prefixes for code mapping autocomplete",
+        summary="List Repository Directory Prefixes for Code Mapping Autocomplete",
+        description=(
+            "Return ranked directory prefixes from the repository's files to help configure "
+            "a code mapping."
+        ),
         parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
                 name="repositoryId",
                 description="The numeric ID of the repository.",
                 required=True,
                 type=int,
                 location=OpenApiParameter.QUERY,
-            )
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer("RepoPrefixesResponse", RepoPrefixesResponse),
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            502: OpenApiResponse(description="The repository provider could not return its files."),
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[RepoPrefixesResponse] | Response[DetailResponse]:
         raw_id = request.GET.get("repositoryId")
         if not raw_id:
             return self.respond({"detail": "repositoryId is required."}, status=400)
