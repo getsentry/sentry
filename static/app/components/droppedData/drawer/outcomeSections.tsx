@@ -50,7 +50,11 @@ export function droppedEventsToOutcomeGroups(
   const unintentional: DroppedEventsBucket[] = [];
   const intentional: DroppedEventsBucket[] = [];
   for (const event of droppedEvents) {
-    (event.tags.includes('unintentional') ? unintentional : intentional).push(event);
+    if (event.tags.includes('unintentional')) {
+      unintentional.push(event);
+    } else {
+      intentional.push(event);
+    }
   }
 
   return {
