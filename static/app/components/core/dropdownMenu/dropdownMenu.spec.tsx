@@ -298,6 +298,35 @@ describe('DropdownMenu', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a searchable submenu open when moving the search caret left', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            submenu: {search: {placeholder: 'Search projects'}},
+            children: [{key: 'sentry', label: 'sentry'}],
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+
+    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    await userEvent.type(search, 'sentry');
+    search.setSelectionRange(3, 3);
+    await userEvent.keyboard('{ArrowLeft}');
+
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue('sentry');
+    expect(search).toHaveProperty('selectionStart', 2);
+    expect(screen.getByRole('menuitemradio', {name: 'sentry'})).toBeInTheDocument();
+  });
+
   it.each(['right', 'left'] as const)(
     'keeps a %s submenu open while crossing a sibling diagonally',
     async side => {

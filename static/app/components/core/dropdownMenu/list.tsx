@@ -296,8 +296,6 @@ function DropdownMenuList({
                       menuRef.current
                         ?.querySelector<HTMLElement>('[role^="menuitem"]')
                         ?.focus();
-                    } else if (event.key === 'ArrowLeft' && parentMenuState) {
-                      parentMenuState.selectionManager.clearSelection();
                     }
                   }}
                 />
