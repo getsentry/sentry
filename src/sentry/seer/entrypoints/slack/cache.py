@@ -55,8 +55,8 @@ class SlackSeerAgentMessageCache:
 
 class SlackSeerAgentReply(TypedDict):
     message_ts: str
-    # Hash of the PR pushes an answer shows, to tell when it needs redrawing.
-    pushes_hash: NotRequired[str]
+    # Hash of the repo statuses currently displayed under this reply.
+    pr_status_hash: NotRequired[str]
     # The scope link an answer was posted with; it's only looked up once per thread.
     missing_scope_settings_url: NotRequired[str | None]
 

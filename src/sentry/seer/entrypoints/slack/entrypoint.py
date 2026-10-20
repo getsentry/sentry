@@ -38,9 +38,8 @@ from sentry.notifications.platform.types import NotificationData, NotificationPr
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import (
-    AgentTurn,
     PendingUserInput,
-    PushLogEntry,
+    RepoPRState,
     SeerRunState,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
@@ -686,19 +685,29 @@ class SlackAgentEntrypoint(
             if message_ts:
                 reply = SlackSeerAgentReply(message_ts=message_ts)
                 if isinstance(data, SeerAgentResponse):
-                    reply["pushes_hash"] = _hash_pushes(data.pushes)
+                    reply["pr_status_hash"] = _hash_pr_status(data.repo_pr_states)
                     reply["missing_scope_settings_url"] = data.missing_scope_settings_url
                 SlackSeerAgentReplyCache.set(run_id=run_id, key=key, reply=reply)
 
-        # Redraw answers whose PR pushes changed, rebuilt from the run state.
-        for turn in state.get_turns():
-            answer = turn.answer
-            posted = replies.get(answer.id) if answer else None
-            if answer is None or posted is None or "pushes_hash" not in posted:
+        replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+        answers = [answer for turn in state.get_turns() if (answer := turn.answer) is not None]
+        latest = next(
+            (
+                answer
+                for answer in reversed(answers)
+                if "pr_status_hash" in replies.get(answer.id, {})
+            ),
+            None,
+        )
+        repo_pr_states = _get_repo_pr_states(state)
+        for answer in answers:
+            posted = replies.get(answer.id)
+            if posted is None or "pr_status_hash" not in posted:
                 continue
-            pushes = _get_turn_pushes(state, turn)
-            pushes_hash = _hash_pushes(pushes)
-            if pushes_hash == posted["pushes_hash"]:
+            # Only the latest posted answer owns the thread's current PR status.
+            prs = repo_pr_states if answer is latest else []
+            status_hash = _hash_pr_status(prs)
+            if status_hash == posted["pr_status_hash"]:
                 continue
             edit_thread_message(
                 install=install,
@@ -708,28 +717,29 @@ class SlackAgentEntrypoint(
                     run_id=state.run_id,
                     organization_id=organization_id,
                     summary=answer.message.content or "",
-                    pushes=pushes,
+                    repo_pr_states=prs,
                     missing_scope_settings_url=posted.get("missing_scope_settings_url"),
                 ),
             )
             SlackSeerAgentReplyCache.set(
-                run_id=run_id, key=answer.id, reply={**posted, "pushes_hash": pushes_hash}
+                run_id=run_id, key=answer.id, reply={**posted, "pr_status_hash": status_hash}
             )
 
 
-def _get_turn_pushes(state: SeerRunState, turn: AgentTurn) -> list[PushLogEntry]:
-    """The PR pushes the turn queued, in call order."""
-    push_log = state.get_push_log_index()
-    return [
-        push
-        for call in turn.get_code_mode_calls()
-        if (push := push_log.get(call.params.get("idempotency_key", "")))
-    ]
+def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
+    return [state.repo_pr_states[repo] for repo in sorted(state.repo_pr_states)]
 
 
-def _hash_pushes(pushes: Sequence[PushLogEntry]) -> str:
-    """A stable hash of the pushes, to tell when an answer needs redrawing."""
-    payload = orjson.dumps([push.dict() for push in pushes], option=orjson.OPT_SORT_KEYS)
+def _hash_pr_status(prs: Sequence[RepoPRState]) -> str:
+    payload = orjson.dumps(
+        [
+            pr.dict(
+                include={"repo_name", "pr_number", "pr_url", "pr_creation_status", "commit_sha"}
+            )
+            for pr in prs
+        ],
+        option=orjson.OPT_SORT_KEYS,
+    )
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -794,7 +804,7 @@ def _next_agent_reply(
             f"<@{slack_user_id}> I need your approval to make changes in Sentry. "
             "I sent you a message."
         )
-        pushes: list[PushLogEntry] = []
+        repo_pr_states: list[RepoPRState] = []
     else:
         turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
         if turn is None or turn.answer is None:
@@ -805,13 +815,13 @@ def _next_agent_reply(
         if key in replies:
             return None
         summary = turn.answer.message.content or ""
-        pushes = _get_turn_pushes(state, turn)
+        repo_pr_states = _get_repo_pr_states(state)
 
     return key, SeerAgentResponse(
         run_id=state.run_id,
         organization_id=organization_id,
         summary=summary,
-        pushes=pushes,
+        repo_pr_states=repo_pr_states,
         missing_scope_settings_url=_get_missing_scope_settings_url(
             integration_id=integration_id,
             organization_id=organization_id,
