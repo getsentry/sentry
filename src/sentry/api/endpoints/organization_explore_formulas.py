@@ -166,16 +166,17 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
 
 
 class ExploreSavedFormulaResponse(TypedDict):
+    createdBy: UserSerializerResponse | None
+    dataset: str
+    description: str | None
     formula: str
     id: str
     name: str
     params: list[ExploreSavedParam]
+    prebuilt: bool
     references: list[ExploreSavedReference]
-    dataset: str
     type: str
     unit: str | None
-    prebuilt: bool
-    createdBy: UserSerializerResponse | None
     updatedBy: UserSerializerResponse | None
 
 
@@ -262,6 +263,7 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             "id": str(obj.id),
             "name": obj.name,
             "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
+            "description": obj.description,
             "params": serialize(params, user, serializer=ExploreSavedParamsSerializer()),
             "references": serialize(
                 references, user, serializer=ExploreSavedReferencesSerializer()
@@ -289,6 +291,7 @@ class FormulaReferenceData(TypedDict):
 
 class FormulaData(TypedDict):
     formula: str
+    description: str | None
     name: str
     unit: SizeUnit | DurationUnit | None
     params: list[FormulaParamData]
@@ -332,6 +335,7 @@ class ParamSerializer(ReferenceSerializer):
 class FormulaSerializer(RequestSerializer):
     formula = CharField(max_length=2500)
     name = CharField(max_length=200)
+    description = CharField(max_length=280, allow_null=True)
     unit = ChoiceField(
         choices=list(SIZE_UNITS.keys()) + list(DURATION_UNITS.keys()),
         allow_null=True,
@@ -473,6 +477,7 @@ def sync_prebuilt_formulas(organization: Organization) -> None:
                         organization=organization,
                         name=data["name"],
                         formula=data["formula"],
+                        description=data["description"],
                         dataset=data["dataset"],
                         created_by_id=None,
                         prebuilt_id=prebuilt_formula["prebuilt_id"],
@@ -594,6 +599,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
                 organization=organization,
                 created_by_id=request.user.id,
                 formula=data["formula"],
+                description=data["description"],
                 name=data["name"],
                 unit=data["unit"],
                 dataset=data["dataset"],
@@ -703,6 +709,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
             formula.update(
                 formula=data["formula"],
                 name=data["name"],
+                description=data["description"],
                 unit=data["unit"],
                 dataset=data["dataset"],
                 updated_by_id=request.user.id,

@@ -2603,6 +2603,7 @@ class Factories:
             {
                 "name": "formula.custom_apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
+                "description": "A custom version of apdex for testing",
                 "unit": None,
                 "dataset": "spans",
                 "references": [
