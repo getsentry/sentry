@@ -319,6 +319,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   // The "Investigation details" heading only appears below a summary.
   const showDetailsHeading =
     hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
+  const showActivity = isInvestigationRunDone(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -374,7 +375,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             },
           ]}
         />
-        <Container as="header" width="100%" padding="xl xl 3xl">
+        <Container as="header" width="100%" padding="xl xl 2xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
               columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
@@ -424,11 +425,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     date: <DateTime date={investigation.dateUpdated} year />,
                   })}
                 </Text>
-                {investigation.status === 'archived' && commentCount === 0 ? null : (
+                {!showActivity ||
+                (investigation.status === 'archived' && commentCount === 0) ? null : (
                   <Fragment>
                     <MetaDivider />
                     <Button
-                      size="zero"
+                      size="sm"
                       variant="link"
                       icon={<IconChat size="xs" />}
                       onClick={() => {
@@ -537,11 +539,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   </DetailsBody>
                 </Stack>
               ) : null}
-              <InvestigationActivity
-                investigation={investigation}
-                composerRef={composerRef}
-                ref={activityRef}
-              />
+              {showActivity ? (
+                <InvestigationActivity
+                  investigation={investigation}
+                  composerRef={composerRef}
+                  ref={activityRef}
+                />
+              ) : null}
               <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
@@ -575,6 +579,16 @@ function isAwaitingReportCell(investigation: InvestigationDetail) {
   // cancelled is done, and more are still coming.
   return !(investigation.blocks ?? []).some(isBlockWorking);
 }
+
+// The activity feed waits for an agentic run to stop, so it doesn't compete with
+// the run for attention while Seer is still working. Manual and template
+// investigations have no run, so their feed always shows.
+function isInvestigationRunDone(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  return !orchestration || RUN_DONE_STATUSES.has(orchestration.status);
+}
+
+const RUN_DONE_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
 
 function isTitleGenerationActive(status: string | null | undefined) {
   return status === 'pending' || status === 'running';
@@ -632,7 +646,9 @@ const NotebookTitleInput = styled(Input)`
   border-color: transparent;
   border-radius: ${p => p.theme.radius.sm};
   box-shadow: none;
-  font-size: ${p => p.theme.font.size['2xl']};
+  /* The base input's form min-height would pad the title out below its text. */
+  min-height: 0;
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.25;
 

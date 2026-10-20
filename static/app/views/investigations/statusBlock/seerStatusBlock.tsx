@@ -1,17 +1,13 @@
-import type {ReactNode} from 'react';
+import {useId, useState, type ReactNode} from 'react';
+import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
 import {IconCircleDashed} from '@sentry/icons/circleDashed';
 import {IconFatal} from '@sentry/icons/fatal';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconWarning} from '@sentry/icons/warning';
 
-import {
-  getToolCallStatusLabel,
-  ToolCall,
-  ToolCallIndicator,
-  type ToolCallStatus,
-} from '@sentry/scraps/chat';
-import {Disclosure} from '@sentry/scraps/disclosure';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -76,90 +72,95 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
   }
 }
 
-/**
- * An investigation call's status in the chat's tool-call vocabulary, so it gets
- * the same glyph and label as a call in the Seer agent. The agent works its
- * statuses out from its own blocks and call records, so this projection's
- * statuses have no other mapping to reuse. A queued call, or a status Seer adds
- * before this code knows the name, is shown as waiting: the call exists but
- * nothing has come of it yet.
- */
-function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCallStatus {
-  switch (status) {
-    case 'running':
-      return 'loading';
-    case 'completed':
-      return 'success';
-    case 'failed':
-      return 'failure';
-    default:
-      return 'pending';
-  }
+function ToolCallTitle({activity}: {activity: InvestigationToolActivity}) {
+  return (
+    <Flex as="span" align="center" gap="sm" minWidth="0">
+      <Text size="sm" variant="secondary" monospace ellipsis>
+        {activity.title}
+      </Text>
+      {activity.status === 'failed' ? (
+        <Text size="sm" variant="danger" wrap="nowrap">
+          {t('Failed')}
+        </Text>
+      ) : null}
+    </Flex>
+  );
 }
 
 /**
- * The calls behind the current phase, drawn the way the Seer agent draws them.
+ * The calls behind the current phase.
  *
  * Only the latest is shown: it says what the agent is doing right now, and the
  * block's title is still the sentence to read. When there is history behind it,
  * the latest call becomes the toggle, and opening it lists the earlier calls
  * newest first, so the list reads back in time from what is happening now.
+ *
+ * The calls carry no running or done glyph. The block's own icon already says
+ * the run is working, and a second spinner beside it would show two loading
+ * states in one place. Each row is a bare line of text with no button padding,
+ * so the calls sit at the same spacing as the title and description above them.
  */
 function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivity[]}) {
+  const [expanded, setExpanded] = useState(false);
+  const listId = useId();
   const latest = toolActivity[toolActivity.length - 1];
   if (!latest) {
     return null;
   }
-  const latestStatus = getToolCallStatus(latest.status);
   const earlier = toolActivity.slice(0, -1).reverse();
 
   if (!earlier.length) {
     return (
-      <Container data-test-id="seer-status-block-tool-activity">
-        <ToolCall title={latest.title} status={latestStatus} />
-      </Container>
+      <Flex data-test-id="seer-status-block-tool-activity" minWidth="0">
+        <ToolCallTitle activity={latest} />
+      </Flex>
     );
   }
 
   return (
-    <Container data-test-id="seer-status-block-tool-activity">
-      <Disclosure size="xs">
-        <Disclosure.Title
-          leadingItems={
-            // A bare glyph, so it borrows `ToolCall`'s label: the indicator's
-            // default would announce a waiting call as awaiting approval.
-            <ToolCallIndicator
-              status={latestStatus}
-              aria-label={getToolCallStatusLabel(latestStatus, t)}
-            />
-          }
+    <Stack data-test-id="seer-status-block-tool-activity" gap="xs" minWidth="0">
+      <Flex minWidth="0">
+        <ToolCallToggle
+          size="zero"
+          variant="link"
+          aria-expanded={expanded}
+          aria-controls={expanded ? listId : undefined}
+          onClick={() => setExpanded(current => !current)}
         >
-          <Text size="sm" variant="secondary" monospace ellipsis>
-            {latest.title}
-          </Text>
-        </Disclosure.Title>
-        <Disclosure.Content>
-          <Stack
-            as="ul"
-            gap="xs"
-            margin="0"
-            padding="0"
-            aria-label={t('Earlier tool calls')}
-          >
-            {earlier.map(activity => (
-              <Flex as="li" key={activity.id} minWidth="0">
-                <ToolCall
-                  title={activity.title}
-                  status={getToolCallStatus(activity.status)}
-                />
-              </Flex>
-            ))}
-          </Stack>
-        </Disclosure.Content>
-      </Disclosure>
-    </Container>
+          <Flex as="span" align="center" gap="xs" minWidth="0">
+            <ToolCallTitle activity={latest} />
+            <IconChevron
+              size="xs"
+              variant="muted"
+              direction={expanded ? 'down' : 'right'}
+            />
+          </Flex>
+        </ToolCallToggle>
+      </Flex>
+      {expanded ? (
+        <Stack
+          id={listId}
+          as="ul"
+          gap="xs"
+          margin="0"
+          padding="0"
+          aria-label={t('Earlier tool calls')}
+        >
+          {earlier.map(activity => (
+            <Flex as="li" key={activity.id} minWidth="0">
+              <ToolCallTitle activity={activity} />
+            </Flex>
+          ))}
+        </Stack>
+      ) : null}
+    </Stack>
   );
 }
+
+const ToolCallToggle = styled(Button)`
+  max-width: 100%;
+  min-width: 0;
+`;
 
 type SeerStatusBlockProps = {
   /** The sentence the block leads with, in the agent's voice. */
