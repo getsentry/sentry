@@ -80,20 +80,20 @@ export function DroppedDataDrawer({
   return (
     <Fragment>
       <DrawerHeader>
-        <Flex flex="1" align="center" justify="between" gap="md">
+        <Flex flex="1" align="center" justify="between" gap="md" paddingRight="lg">
           <Text size="md" variant="muted">
             {t('Dropped Events')}
           </Text>
           <SegmentedControl
-            aria-label={t('Filter by contribution')}
+            aria-label={t('Filter dropped events')}
             size="xs"
             value={scope}
             onChange={setScope}
           >
             <SegmentedControl.Item key="contributing">
-              {t('Contributing values')}
+              {t('Unexpected')}
             </SegmentedControl.Item>
-            <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
           </SegmentedControl>
         </Flex>
       </DrawerHeader>

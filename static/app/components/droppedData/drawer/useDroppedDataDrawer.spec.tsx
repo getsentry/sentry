@@ -290,7 +290,7 @@ describe('useDroppedDataDrawer', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-      await userEvent.click(await screen.findByRole('radio', {name: 'All values'}));
+      await userEvent.click(await screen.findByRole('radio', {name: 'All'}));
       expect(await screen.findByText('40 Dropped Events')).toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
@@ -315,7 +315,7 @@ describe('useDroppedDataDrawer', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-      await userEvent.click(await screen.findByRole('radio', {name: 'All values'}));
+      await userEvent.click(await screen.findByRole('radio', {name: 'All'}));
       const heading = await screen.findByRole('heading', {name: 'Configured Drops'});
       const isAfterHeading = (text: string) =>
         Boolean(
@@ -341,7 +341,7 @@ describe('useDroppedDataDrawer', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-      await userEvent.click(await screen.findByRole('radio', {name: 'All values'}));
+      await userEvent.click(await screen.findByRole('radio', {name: 'All'}));
       expect(await screen.findByText('40 Dropped Events')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Client Discard'}));
@@ -360,7 +360,7 @@ describe('useDroppedDataDrawer', () => {
     });
   });
 
-  describe('contributing and all values', () => {
+  describe('unexpected and all toggle', () => {
     beforeEach(() => {
       jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
     });
@@ -379,7 +379,7 @@ describe('useDroppedDataDrawer', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
       expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
-      expect(screen.getByRole('radio', {name: 'Contributing values'})).toBeChecked();
+      expect(screen.getByRole('radio', {name: 'Unexpected'})).toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'Client Discard'})).toBeInTheDocument();
       expect(
         screen.queryByRole('checkbox', {name: 'Inbound Filter'})
@@ -404,7 +404,7 @@ describe('useDroppedDataDrawer', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
       expect(await screen.findByText('14.29%')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('radio', {name: 'All values'}));
+      await userEvent.click(screen.getByRole('radio', {name: 'All'}));
 
       expect(screen.getByText('40 Dropped Events')).toBeInTheDocument();
       expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).toBeInTheDocument();
@@ -414,7 +414,7 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByText('10%')).toBeInTheDocument();
       expect(screen.queryByText('14.29%')).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('radio', {name: 'Contributing values'}));
+      await userEvent.click(screen.getByRole('radio', {name: 'Unexpected'}));
 
       expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
       expect(screen.getByText('14.29%')).toBeInTheDocument();
