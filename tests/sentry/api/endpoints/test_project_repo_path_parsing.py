@@ -2,7 +2,11 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
+from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -444,9 +448,17 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
 
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
-    def test_subgroup_integration_after_parent_group_integration(self) -> None:
+    subgroup_source_url = (
+        "https://gitlab.com/getsentry/sdks/sentry-python/-/blob/master/sentry_sdk/client.py"
+    )
+
+    def create_subgroup_integration(
+        self,
+    ) -> tuple[Integration, OrganizationIntegration, Repository]:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            subgroup_integration = self.create_provider_integration(
+            integration, org_integration = self.create_provider_integration_for(
+                self.org,
+                self.user,
                 provider="gitlab",
                 name="getsentry/sdks",
                 external_id="5678",
@@ -455,23 +467,40 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
                     "domain_name": "gitlab.com/getsentry/sdks",
                 },
             )
-            subgroup_integration.add_organization(self.org, self.user)
-        subgroup_repo = self.create_repo(
+        repo = self.create_repo(
             project=self.project,
             name="getsentry/sdks/sentry-python",
             provider="integrations:gitlab",
-            integration_id=subgroup_integration.id,
+            integration_id=integration.id,
             url="https://gitlab.com/getsentry/sdks/sentry-python",
         )
-        source_url = (
-            "https://gitlab.com/getsentry/sdks/sentry-python/-/blob/master/sentry_sdk/client.py"
-        )
-        stack_path = "sentry_sdk/client.py"
-        resp = self.make_post(source_url, stack_path)
+        return integration, org_integration, repo
+
+    def test_subgroup_integration_after_parent_group_integration(self) -> None:
+        subgroup_integration, _, subgroup_repo = self.create_subgroup_integration()
+        resp = self.make_post(self.subgroup_source_url, "sentry_sdk/client.py")
         assert resp.status_code == 200, resp.content
 
         assert resp.data["integrationId"] == subgroup_integration.id
         assert resp.data["repositoryId"] == subgroup_repo.id
+
+    def test_skips_disabled_integration(self) -> None:
+        subgroup_integration, _, _ = self.create_subgroup_integration()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            subgroup_integration.update(status=ObjectStatus.DISABLED)
+        resp = self.make_post(self.subgroup_source_url, "sentry_sdk/client.py")
+        assert resp.status_code == 400, resp.content
+
+        assert resp.data == {"sourceUrl": ["Could not find repo"]}
+
+    def test_skips_integration_disabled_for_organization(self) -> None:
+        _, subgroup_org_integration, _ = self.create_subgroup_integration()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            subgroup_org_integration.update(status=ObjectStatus.DISABLED)
+        resp = self.make_post(self.subgroup_source_url, "sentry_sdk/client.py")
+        assert resp.status_code == 400, resp.content
+
+        assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
     def test_strips_query_params_from_source_url(self) -> None:
         source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py?ref_type=heads"

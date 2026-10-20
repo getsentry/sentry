@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -101,7 +102,10 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
 
         # now find the matching integration
         integrations = integration_service.get_integrations(
-            organization_id=self.org_id, providers=self.providers
+            organization_id=self.org_id,
+            providers=self.providers,
+            status=ObjectStatus.ACTIVE,
+            org_integration_status=ObjectStatus.ACTIVE,
         )
 
         matching_integrations = list(filter(integration_match, integrations))
