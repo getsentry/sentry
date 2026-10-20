@@ -7,8 +7,11 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
 # Created by `db_index=True` on `Group.level`. Nothing queries `Group` by `level` in Postgres.
-# `IF EXISTS` keeps this a no-op on any database where the index is absent.
+# `IF EXISTS` keeps these drops a no-op on any database where an index is absent.
 LEVEL_INDEX = "sentry_groupedmessage_level_c2574e37"
+# South-era name for the same index, which may still exist on databases created before Django
+# migrations.
+LEGACY_LEVEL_INDEX = "sentry_groupedmessage_level"
 
 
 class Migration(CheckedMigration):
@@ -44,6 +47,13 @@ class Migration(CheckedMigration):
                     hints={"tables": ["sentry_groupedmessage"]},
                     # The drop waits for open transactions on a hot table, which can outlast
                     # the statement timeout.
+                    use_statement_timeout=False,
+                ),
+                SafeRunSQL(
+                    f'DROP INDEX CONCURRENTLY IF EXISTS "{LEGACY_LEVEL_INDEX}"',
+                    # Reversing the first drop recreates the index under its current name.
+                    reverse_sql=migrations.RunSQL.noop,
+                    hints={"tables": ["sentry_groupedmessage"]},
                     use_statement_timeout=False,
                 ),
             ],
