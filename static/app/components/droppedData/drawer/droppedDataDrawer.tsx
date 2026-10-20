@@ -108,9 +108,9 @@ export function DroppedDataDrawer({
                 onSelectionChange={setOutcomeSelection}
               />
             </Container>
-            <Stack flex="1" gap="xl" background="secondary" padding="xl xl 2xl">
+            <Stack flex="1" gap="2xl" background="secondary" padding="xl xl 2xl">
               {selectedUnintentional.length > 0 && (
-                <Stack gap="md">
+                <Stack gap="xl">
                   <Container padding="0 xl">
                     <Heading as="h3" size="xl">
                       {t('Unexpected Drops')}
@@ -123,8 +123,8 @@ export function DroppedDataDrawer({
                 </Stack>
               )}
               {selectedIntentional.length > 0 && (
-                <Stack gap="md">
-                  <Stack gap="xl">
+                <Stack gap="xl">
+                  <Stack gap="2xl">
                     <Separator orientation="horizontal" border="primary" />
                     <Container padding="0 xl">
                       <Heading as="h3" size="xl">
