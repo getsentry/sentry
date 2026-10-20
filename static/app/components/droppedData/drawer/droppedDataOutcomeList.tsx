@@ -1,8 +1,5 @@
-import {useId, useState} from 'react';
-import {IconChevron} from '@sentry/icons/chevron';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {Button} from '@sentry/scraps/button';
 import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
@@ -125,17 +122,14 @@ function ColumnHeading({children}: {children: React.ReactNode}) {
 }
 
 function ReasonTable({
-  id,
   reasons,
   onTroubleshoot,
 }: {
-  id: string;
   reasons: ReasonRow[];
   onTroubleshoot?: (row: ReasonRow) => void;
 }) {
   return (
     <SimpleTable
-      id={id}
       columns={TABLE_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
@@ -172,13 +166,9 @@ function OutcomeSectionRow({
   section: OutcomeSection;
   onTroubleshoot?: (row: ReasonRow) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const reasonTableId = useId();
-  const toggle = () => setExpanded(value => !value);
-
   return (
     <Stack gap="md">
-      <Grid columns={HEADER_COLUMNS} align="center" onClick={toggle} cursor="pointer">
+      <Grid columns={HEADER_COLUMNS} align="center">
         <Flex align="center" gap="md" padding="md xl">
           <CircleIndicator color={color} size={12} />
           <Text size="lg" bold>
@@ -195,28 +185,8 @@ function OutcomeSectionRow({
             {formatDroppedShare(section.shareRatio)}
           </Text>
         </Flex>
-        <Flex align="center" justify="center">
-          <Button
-            size="xs"
-            variant="transparent"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="md" />}
-            aria-label={t('%s reasons', section.label)}
-            aria-expanded={expanded}
-            aria-controls={expanded ? reasonTableId : undefined}
-            onClick={event => {
-              event.stopPropagation();
-              toggle();
-            }}
-          />
-        </Flex>
       </Grid>
-      {expanded && (
-        <ReasonTable
-          id={reasonTableId}
-          reasons={section.reasons}
-          onTroubleshoot={onTroubleshoot}
-        />
-      )}
+      <ReasonTable reasons={section.reasons} onTroubleshoot={onTroubleshoot} />
     </Stack>
   );
 }
