@@ -422,14 +422,6 @@ def _create_pull_request_activities(
         groups = list(
             Group.objects.filter(id__in=group_ids).select_related("project__organization")
         )
-        # PULL_REQUEST_CLOSED predates the pr-lifecycle-activity flag and is always
-        # emitted. The other lifecycle events are gated behind the flag.
-        if activity_type != ActivityType.PULL_REQUEST_CLOSED:
-            groups = [
-                group
-                for group in groups
-                if features.has("organizations:pr-lifecycle-activity", group.project.organization)
-            ]
         if not groups:
             return
 
