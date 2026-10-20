@@ -76,8 +76,6 @@ def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
     }
 )
 def test_backpressure_ignores_removed_attachments_store(preprocess_event: MagicMock) -> None:
-    # Deployments may still configure `attachments-store` until their settings
-    # are cleaned up. Its health must no longer gate ingest consumers.
     record_consumer_health(
         {
             "attachments-store": Exception("Couldn't check attachments-store"),
