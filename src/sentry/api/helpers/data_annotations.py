@@ -65,12 +65,26 @@ DROPPED_OUTCOMES: tuple[Outcome, ...] = tuple(o for o in Outcome if o is not Out
 INTENTIONAL = "intentional"
 UNINTENTIONAL = "unintentional"
 
-_INTENTIONAL_REASONS = frozenset({"sample_rate"})
+_INTENTIONAL_REASONS_BY_OUTCOME: dict[str, frozenset[str]] = {
+    Outcome.CLIENT_DISCARD.api_name(): frozenset(
+        {"before_send", "event_processor", "ignored", "no_parent_span", "sample_rate"}
+    ),
+    Outcome.INVALID.api_name(): frozenset({"cors", "missing_signature", "transaction_sampled"}),
+    Outcome.RATE_LIMITED.api_name(): frozenset({"key_quota"}),
+}
 
 
 def classify_drop(outcome: str, reason: str) -> str:
-    """Tag a drop as intentional (user-configured) or unintentional."""
-    return INTENTIONAL if reason in _INTENTIONAL_REASONS else UNINTENTIONAL
+    """Tag a drop as intentional (user-configured) or unintentional.
+
+    Every ``filtered`` drop is intentional because inbound filters are project
+    settings. Unrecognized drops default to unintentional so they stay visible.
+    """
+    if outcome == Outcome.FILTERED.api_name():
+        return INTENTIONAL
+    if reason in _INTENTIONAL_REASONS_BY_OUTCOME.get(outcome, frozenset()):
+        return INTENTIONAL
+    return UNINTENTIONAL
 
 
 DEFAULT_DROP_THRESHOLD = 1

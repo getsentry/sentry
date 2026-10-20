@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
@@ -54,7 +55,6 @@ import {
   IssuePreviewHeaderActions,
   OpenIssueButton,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
-import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
   IssuePreviewSeerProvider,
@@ -324,18 +324,27 @@ function IssuePreviewContent() {
           )}
           <Stack gap="2xl" borderTop="muted" paddingTop="xl">
             {linkedPullRequests.data?.pullRequests.length ? (
-              <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
-                <IssuePreviewSection.Title>
-                  {t('Pull Requests')}
-                </IssuePreviewSection.Title>
-                <IssuePreviewSection.Content>
-                  <LinkedPullRequests
-                    collapseBeforeLatestRegression
-                    group={group}
-                    showEmptyState={false}
-                  />
-                </IssuePreviewSection.Content>
-              </IssuePreviewSection>
+              <Container>
+                <Disclosure
+                  as="section"
+                  aria-label={t('Pull Requests')}
+                  size="md"
+                  defaultExpanded
+                >
+                  <Disclosure.Title>
+                    <Heading as="h3" size="md">
+                      {t('Pull Requests')}
+                    </Heading>
+                  </Disclosure.Title>
+                  <Disclosure.Content>
+                    <LinkedPullRequests
+                      collapseBeforeLatestRegression
+                      group={group}
+                      showEmptyState={false}
+                    />
+                  </Disclosure.Content>
+                </Disclosure>
+              </Container>
             ) : null}
             <IssuePreviewSeerContent
               key={group.id}

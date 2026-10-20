@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconImage} from '@sentry/icons/image';
 import round from 'lodash/round';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -15,6 +16,8 @@ import {
   findQuestion,
   getAnswerLabel,
   getScoreName,
+  type EvaluatedContentPart,
+  type EvaluatedMessage,
   type EvaluationAnswer,
   type EvaluationQuestion,
   type EvaluationQuestionEntry,
@@ -27,19 +30,86 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 // Pretty/Raw toggle, since surfaces offer a raw view of the whole message.
 
 /**
- * The text that was evaluated. Plain strings render as formatted text, anything
- * else as JSON. Long content is clipped behind "Show More" by default so it
- * doesn't push the questions and answers out of view.
+ * The content that was evaluated, as a message list. Text parts render as
+ * formatted text, image parts as a placeholder, and raw parts as JSON. A single
+ * message renders without its role; multiple messages are each labelled. Long
+ * content is clipped behind "Show More" by default so it doesn't push the
+ * questions and answers out of view.
  */
-export function EvaluatedText({state, clip = true}: {state: unknown; clip?: boolean}) {
-  if (typeof state === 'string') {
-    return (
-      <TraceDrawerComponents.MultilineText mode="pretty" clip={clip}>
-        {state}
-      </TraceDrawerComponents.MultilineText>
-    );
+export function EvaluatedContent({
+  state,
+  clip = true,
+}: {
+  state: EvaluatedMessage[];
+  clip?: boolean;
+}) {
+  const [firstMessage] = state;
+  if (firstMessage && state.length === 1) {
+    return <MessageParts parts={firstMessage.parts} clip={clip} />;
   }
-  return <TraceDrawerComponents.MultilineJSON value={state} clip={clip} mode="pretty" />;
+  return (
+    <Stack gap="md">
+      {state.map((message, index) => (
+        <Stack key={index} gap="xs">
+          {message.role ? (
+            <Text size="sm" variant="muted">
+              {message.role}
+            </Text>
+          ) : null}
+          <MessageParts parts={message.parts} clip={clip} />
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
+function MessageParts({parts, clip}: {clip: boolean; parts: EvaluatedContentPart[]}) {
+  return (
+    <MessagePartsStack gap="sm">
+      {parts.map((part, index) => {
+        if (part.kind === 'text') {
+          return (
+            <TraceDrawerComponents.MultilineText key={index} mode="pretty" clip={clip}>
+              {part.text}
+            </TraceDrawerComponents.MultilineText>
+          );
+        }
+        if (part.kind === 'image') {
+          return <ImagePlaceholder key={index} />;
+        }
+        return (
+          <TraceDrawerComponents.MultilineJSON
+            key={index}
+            value={part.value}
+            clip={clip}
+            mode="pretty"
+          />
+        );
+      })}
+    </MessagePartsStack>
+  );
+}
+
+// TODO(aknaus): Drop MultilineText's own bottom margin so the parts can be
+// spaced by the Stack gap alone, and remove this override.
+const MessagePartsStack = styled(Stack)`
+  && > * {
+    margin-bottom: 0;
+  }
+`;
+
+/**
+ * Stands in for an image part; the image itself is never rendered.
+ */
+function ImagePlaceholder() {
+  return (
+    <Flex align="center" gap="sm" background="secondary" radius="md" padding="md">
+      <IconImage size="sm" variant="muted" />
+      <Text size="sm" variant="muted">
+        {t('Image')}
+      </Text>
+    </Flex>
+  );
 }
 
 /**
@@ -190,23 +260,31 @@ function Card({
 }
 
 function QuestionOptions({question}: {question: EvaluationQuestion}) {
-  const {criteria} = question;
+  const {criteria, descriptions} = question;
 
   // A scale, e.g. `["low", "medium", "high"]`, where the index is the value.
   if (Array.isArray(criteria)) {
-    return criteria.length > 0 ? (
+    const options = criteria.map((label, index): [string, string] => [
+      question.type === 'score' ? `${index} · ${label}` : label,
+      descriptions?.[index] ?? '',
+    ]);
+    if (options.some(([, description]) => description)) {
+      return <DescribedOptions options={options} />;
+    }
+    return options.length > 0 ? (
       <Flex wrap="wrap" gap="xs">
-        {criteria.map((label, index) => (
-          <TruncatedTag key={index}>
-            {question.type === 'score' ? `${index} · ${label}` : label}
-          </TruncatedTag>
+        {options.map(([label], index) => (
+          <TruncatedTag key={index}>{label}</TruncatedTag>
         ))}
       </Flex>
     ) : null;
   }
 
   // Described options, e.g. `{"billing": "Charges and refunds"}`.
-  const options = Object.entries(criteria ?? {});
+  return <DescribedOptions options={Object.entries(criteria ?? {})} />;
+}
+
+function DescribedOptions({options}: {options: Array<[string, string]>}) {
   if (options.length === 0) {
     return null;
   }
@@ -217,11 +295,11 @@ function QuestionOptions({question}: {question: EvaluationQuestion}) {
       align="baseline"
       paddingTop="xs"
     >
-      {options.map(([label, description]) => [
-        <Container key={`${label}:label`} minWidth="0">
+      {options.map(([label, description], index) => [
+        <Container key={`${index}:label`} minWidth="0">
           <TruncatedTag>{label}</TruncatedTag>
         </Container>,
-        <Text key={`${label}:description`} size="sm" variant="muted">
+        <Text key={`${index}:description`} size="sm" variant="muted">
           {description}
         </Text>,
       ])}

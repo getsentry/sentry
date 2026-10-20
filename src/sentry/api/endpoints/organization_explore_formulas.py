@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Any, Mapping, TypedDict
@@ -51,8 +51,10 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.locking import UnableToAcquireLock
 
 DATASETS = {
@@ -173,6 +175,8 @@ class ExploreSavedFormulaResponse(TypedDict):
     type: str
     unit: str | None
     prebuilt: bool
+    createdBy: UserSerializerResponse | None
+    updatedBy: UserSerializerResponse | None
 
 
 class ExploreSavedReferencesSerializer(Serializer[ExploreSavedReference]):
@@ -206,6 +210,35 @@ class ExploreSavedParamsSerializer(Serializer[ExploreSavedParam]):
 
 
 class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[ExploreSavedFormula],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> MutableMapping[ExploreSavedFormula, dict[str, Any]]:
+        user_ids = set()
+        for formula in item_list:
+            for uid in (formula.created_by_id, formula.updated_by_id):
+                if uid:
+                    user_ids.add(uid)
+
+        if user_ids:
+            service_serialized = user_service.serialize_many(
+                filter={"user_ids": list(user_ids)},
+                as_user=user if user.id else None,
+            )
+            serialized_users = {user["id"]: user for user in service_serialized}
+        else:
+            serialized_users = {}
+
+        return {
+            formula: {
+                "createdBy": serialized_users.get(str(formula.created_by_id)),
+                "updatedBy": serialized_users.get(str(formula.updated_by_id)),
+            }
+            for formula in item_list
+        }
+
     def serialize(
         self,
         obj: ExploreSavedFormula,
@@ -223,6 +256,7 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             (var for var in variables if var.kind == KindItemTypes.REFERENCE),
             key=lambda var: var.name,
         )
+
         data: ExploreSavedFormulaResponse = {
             "formula": obj.formula,
             "id": str(obj.id),
@@ -235,6 +269,8 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             "type": obj.formula_type,
             "unit": obj.unit,
             "prebuilt": obj.prebuilt_id is not None,
+            "updatedBy": attrs.get("updatedBy"),
+            "createdBy": attrs.get("createdBy"),
         }
         return data
 

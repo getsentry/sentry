@@ -2118,7 +2118,6 @@ tests/sentry/models/test_releaseprojectenvironment.py
 tests/sentry/models/test_repository.py
 tests/sentry/models/test_repositorysettings.py
 tests/sentry/models/test_rule.py
-tests/sentry/models/test_rulesnooze.py
 tests/sentry/models/test_statistical_detectors.py
 tests/sentry/models/test_team.py
 tests/sentry/models/test_teamkeytransaction.py

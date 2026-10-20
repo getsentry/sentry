@@ -14,6 +14,7 @@ import {
   type DataUnit,
 } from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -61,6 +62,7 @@ export type GenericWidgetQueriesResult = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  ingestion?: IngestionMeta;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
