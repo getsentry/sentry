@@ -139,10 +139,10 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2026.4.22"
+version = "2026.10.19"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/certifi-2026.4.22-py3-none-any.whl", hash = "sha256:3cb2210c8f88ba2318d29b0388d1023c8492ff72ecdde4ebdaddbb13a31b1c4a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/certifi-2026.10.19-py3-none-any.whl", hash = "sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b" },
 ]
 
 [[package]]
