@@ -44,13 +44,13 @@ def _scheduled_deletion_viewer_context(
     if not isinstance(instance, (Organization, Project)):
         return nullcontext()
 
-    viewer_context: ViewerContext | None
-    if deletion.actor_id is not None:
-        viewer_context = ViewerContext(user_id=deletion.actor_id, actor_type=ActorType.USER)
-    else:
-        viewer_context = get_viewer_context()
-        if viewer_context is None:
-            return nullcontext()
+    viewer_context = (
+        ViewerContext(user_id=deletion.actor_id, actor_type=ActorType.USER)
+        if deletion.actor_id is not None
+        else get_viewer_context()
+    )
+    if viewer_context is None:
+        return nullcontext()
 
     if isinstance(instance, Project):
         viewer_context = replace(
