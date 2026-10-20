@@ -124,7 +124,7 @@ class StepConfig:
 
 # Step configurations mapping step to its artifact schema and prompt
 STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
-    # RCA runs through Seer, see autofix_rca/feature.py in seer for changing behavior
+    # RCA runs through Seer, see autofix/feature.py in seer for changing behavior
     AutofixStep.ROOT_CAUSE: StepConfig(
         artifact_schema=RootCauseArtifact,
         prompt_fn=root_cause_prompt,
@@ -133,14 +133,14 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
         completed_event=AiAutofixRootCauseCompletedEvent,
     ),
     AutofixStep.SOLUTION: StepConfig(
-        # Solution runs through Seer, see autofix_rca/feature.py in seer for changing behavior
+        # Solution runs through Seer, see autofix/feature.py in seer for changing behavior
         artifact_schema=SolutionArtifact,
         prompt_fn=solution_prompt,
         started_event=AiAutofixSolutionStartedEvent,
         completed_event=AiAutofixSolutionCompletedEvent,
     ),
     AutofixStep.CODE_CHANGES: StepConfig(
-        # Code changes run through Seer, see autofix_rca/feature.py in seer for changing behavior
+        # Code changes run through Seer, see autofix/feature.py in seer for changing behavior
         artifact_schema=None,  # Code changes read from file_patches
         prompt_fn=code_changes_prompt,
         enable_coding=True,
