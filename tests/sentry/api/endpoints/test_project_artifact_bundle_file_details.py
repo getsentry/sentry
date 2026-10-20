@@ -208,3 +208,20 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.get(url)
         assert response.status_code == 400, response.content
+
+    def test_archive_download_with_invalid_bundle_id(self) -> None:
+        project = self.create_project(name="foo")
+
+        url = reverse(
+            "sentry-api-0-project-artifact-bundle-file-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "bundle_id": "i",
+                "file_id": base64.urlsafe_b64encode(b"files/_/_/index.js").decode("utf-8"),
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+        assert response.status_code == 400, response.content

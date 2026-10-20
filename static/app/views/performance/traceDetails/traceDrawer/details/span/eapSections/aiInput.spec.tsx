@@ -108,4 +108,24 @@ describe('AIInputSection', () => {
       screen.getByText('You are Seer, a powerful AI assistant built by Sentry.')
     ).toBeVisible();
   });
+
+  it('renders Code Mode tool arguments as code', () => {
+    const code = 'for x in range(3):\n    print(x)';
+    render(
+      <AIInputSection
+        node={makeAiNodeWithAttributes({
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': 'execute_code',
+          'gen_ai.tool.call.arguments': JSON.stringify({code, language: 'python'}),
+        })}
+      />
+    );
+
+    expect(screen.getByText('python')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) => element?.tagName === 'CODE' && element.textContent === code
+      )
+    ).toBeInTheDocument();
+  });
 });

@@ -793,9 +793,6 @@ class Fixtures:
     def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
-    def snooze_rule(self, *args, **kwargs):
-        return Factories.snooze_rule(*args, **kwargs)
-
     def create_request_access(self, *args, **kwargs):
         return Factories.create_request_access(*args, **kwargs)
 

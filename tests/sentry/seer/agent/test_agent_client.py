@@ -604,6 +604,27 @@ class TestSeerAgentClient(TestCase):
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_pr_context_tools"] is True
 
+    @with_feature("organizations:seer-explorer-allow-bash-mode")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    def test_continue_run_passes_write_pull_request_and_bash_mode(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response(run_id=789)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
+
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            enable_bash_mode=True,
+            enable_coding=True,
+            enable_write_pull_request=True,
+        )
+        client.continue_run(789, "Follow up")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_write_pull_request"] is True
+        assert body["agent_run_options"]["enable_bash_mode"] is True
+
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_http_error(self, mock_post, mock_access):

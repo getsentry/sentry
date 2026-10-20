@@ -5,7 +5,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconOpen} from '@sentry/icons/open';
 import {IconSeer} from '@sentry/icons/seer';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton, type ButtonBarProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
   DropdownMenuFooter,
 } from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
@@ -179,7 +180,7 @@ export function OverviewCardAction({
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             size="sm"
             variant="secondary"
@@ -209,9 +210,12 @@ export const ButtonSpinner = styled(LoadingIndicator)`
   margin: 0;
 `;
 
-export const ActionButtonBar = styled(ButtonBar)`
-  @container (width < ${p => p.theme.container.sm}) {
-    width: 100%;
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
+export function ActionButtonBar(props: ButtonBarProps) {
+  return (
+    <ButtonBar
+      width={{zero: '100%', sm: 'auto'}}
+      columns={{zero: 'minmax(0, 1fr)', sm: 'auto'}}
+      {...props}
+    />
+  );
+}

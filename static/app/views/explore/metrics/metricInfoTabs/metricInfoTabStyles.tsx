@@ -126,7 +126,9 @@ export const StickyTableRow = styled(SimpleTable.Row)<{
     p.sticky &&
     css`
       top: 0px;
-      z-index: 1;
+      /* Stay above the expanded details row (z-index: 1) so cell action menus
+      rendered inside this row are not covered by it. */
+      z-index: 2;
       background: ${p.theme.tokens.background.primary};
       position: sticky;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);

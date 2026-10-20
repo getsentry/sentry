@@ -14,6 +14,7 @@ import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -133,7 +134,6 @@ function SubtitleWithCopyButton({
           variant="transparent"
           size="zero"
           text={clipboardText}
-          tooltipProps={{disabled: true}}
         />
       ) : null}
     </Flex>
@@ -465,7 +465,8 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
       menuTitle={<div>{t('Panel Position')}</div>}
       trigger={triggerProps => (
         <Tooltip title={t('Panel Position')}>
-          <ActionButton
+          <OverlayTrigger.IconButton
+            css={actionButtonStyles}
             {...triggerProps}
             size="zero"
             aria-label={t('Panel position')}

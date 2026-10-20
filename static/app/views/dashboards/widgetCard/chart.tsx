@@ -44,7 +44,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex.ts';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -93,8 +94,9 @@ type TableComponentProps = Pick<
   onWidgetTableSort?: (sort: Sort) => void;
 };
 
-type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'> &
-  TableComponentProps & {
+type WidgetCardChartProps = {
+  timeseriesResults?: WidgetTimeSeries[];
+} & TableComponentProps & {
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
@@ -338,7 +340,10 @@ function TableComponent({
                 organization,
                 dashboardFilters
               );
-              navigate(getExploreUrl(dataRow));
+              const exploreUrl = getExploreUrl(dataRow);
+              if (exploreUrl) {
+                navigate(exploreUrl);
+              }
             }
           }}
         />

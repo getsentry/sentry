@@ -63,8 +63,8 @@ from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
     action_context_scope,
-    resolve_action_actor,
 )
+from sentry.issues.action_log.request import resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -1443,7 +1443,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         clear_organization_info()
         secret = self.get_secret()
 
-        if secret is None:
+        if not secret:
             logger.warning("github.webhook.missing-secret", extra=self.get_logging_data())
             metrics.incr(
                 "github.webhook.hmac_failure",

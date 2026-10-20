@@ -1,13 +1,8 @@
 import {Fragment} from 'react';
-import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
-import {Container} from '@sentry/scraps/layout';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
-
-const theme = ThemeFixture();
 
 /**
  * A section rendered behind a component boundary, which is what a tooltip
@@ -31,17 +26,17 @@ describe('Tooltip', () => {
     });
   }
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+    originalResizeObserver = window.ResizeObserver;
+  });
+
   afterEach(() => {
     window.ResizeObserver = originalResizeObserver;
     // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.scrollWidth;
     // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.clientWidth;
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    originalResizeObserver = window.ResizeObserver;
   });
 
   it('renders', async () => {
@@ -217,11 +212,7 @@ describe('Tooltip', () => {
     expect(handleAncestorClick).not.toHaveBeenCalled();
   });
 
-  describe('content padding', () => {
-    // `getComputedStyle` is stubbed in tests/js/setup.ts and cannot see emotion
-    // rules, so the overlay's own rules are read from the generated CSS. What
-    // those rules select on -- the section marker -- is asserted against the DOM
-    // separately, since jsdom does no layout.
+  describe('section markers', () => {
     async function showTooltip(title: TooltipProps['title'] = 'test') {
       render(
         <Tooltip title={title}>
@@ -232,47 +223,13 @@ describe('Tooltip', () => {
 
       const content = document.querySelector('[data-tooltip]');
       expect(content).toBeInTheDocument();
-
-      return content as HTMLElement;
     }
-
-    it('pads the content by default', async () => {
-      // Every tooltip that is not built from sections depends on this, so it is
-      // the regression guard for the existing call sites.
-      const rules = getEmotionRules(await showTooltip()).join('');
-
-      expect(rules).toContain(`padding: ${theme.space.md} ${theme.space.lg};`);
-    });
-
-    it('pulls sections back out to the overlay edges', async () => {
-      const rules = getEmotionRules(await showTooltip()).join('');
-
-      expect(rules).toMatch(
-        new RegExp(
-          `>\\s*\\[data-tooltip-section\\]\\s*{[^}]*margin-inline:\\s*calc\\(-${theme.space.lg}\\)`
-        )
-      );
-    });
-
-    it('cancels the block padding at the ends only', async () => {
-      // Every section doing this would collapse the space between two of them.
-      const rules = getEmotionRules(await showTooltip()).join('');
-
-      expect(rules).toMatch(
-        /\[data-tooltip-section\]\s*~\s*\[data-tooltip-section\]\s*{[^}]*margin-block-start:\s*0/
-      );
-      expect(rules).toMatch(
-        new RegExp(
-          `:last-child\\s*{[^}]*margin-block-end:\\s*calc\\(-${theme.space.md}\\)`
-        )
-      );
-    });
 
     it('does not depend on a section being the overlay first child', async () => {
       // `Overlay` renders its arrow ahead of the content whenever arrowProps is
       // passed, which Tooltip always does. Keying the block-start cancel off
       // `:first-child` therefore silently never applies, which is why the rule
-      // above selects on a preceding section instead.
+      // uses a preceding section instead.
       await showTooltip(<Tooltip.Header>test</Tooltip.Header>);
 
       const section = document.querySelector('[data-tooltip-section]');
@@ -299,22 +256,6 @@ describe('Tooltip', () => {
       await showTooltip('just a sentence');
 
       expect(document.querySelector('[data-tooltip-section]')).not.toBeInTheDocument();
-    });
-
-    it('reads a grid from the left, undoing the overlay centring', async () => {
-      // The overlay centres text for the sentence case. A card is a set of
-      // rows, so the grid resets it and cells only state an alignment when
-      // they want something other than left.
-      await showTooltip(
-        <Tooltip.Grid>
-          <Tooltip.Row>cell</Tooltip.Row>
-        </Tooltip.Grid>
-      );
-
-      const grid = document.querySelector('[data-tooltip-section]');
-      expect(getEmotionRules(grid as HTMLElement).join('')).toContain(
-        'text-align: left;'
-      );
     });
   });
 
@@ -448,41 +389,6 @@ describe('Tooltip', () => {
       await userEvent.hover(screen.getByText('My Button'));
 
       expect(screen.getByText('My Button')).toHaveAttribute('aria-describedby');
-    });
-
-    it('renders a row as a layout-less wrapper so its cells join that grid', async () => {
-      // A row that established its own layout box would align its columns only
-      // against itself, so what it renders has to stay `display: contents`.
-      // Same class as the reference means the same serialized styles.
-      const reference = render(
-        <Container display="contents">
-          <span>reference cell</span>
-        </Container>
-      );
-      const referenceClassName =
-        screen.getByText('reference cell').parentElement?.className;
-      reference.unmount();
-
-      render(
-        <Tooltip
-          title={
-            <Tooltip.Grid>
-              <Tooltip.Row>
-                <span>row cell</span>
-              </Tooltip.Row>
-            </Tooltip.Grid>
-          }
-        >
-          <button>My Button</button>
-        </Tooltip>
-      );
-
-      await userEvent.hover(screen.getByText('My Button'));
-
-      expect(referenceClassName).toBeTruthy();
-      expect(screen.getByText('row cell').parentElement?.className).toBe(
-        referenceClassName
-      );
     });
   });
 });

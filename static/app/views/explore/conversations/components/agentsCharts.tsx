@@ -21,11 +21,11 @@ import {useAgentsChartsState} from 'sentry/views/explore/conversations/component
 import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentFilter';
 import {
   getAgentRunsFilter,
+  getAiClientSpansFilter,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
 const COUNT = `count(${SpanFields.SPAN_DURATION})`;
 const COST = `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`;
 
@@ -88,7 +88,7 @@ export function AgentsCharts() {
   const agentFilterSuffix = agentQuery ? ` ${agentQuery}` : '';
 
   const agentRunsQuery = `${getAgentRunsFilter()}${agentFilterSuffix}`;
-  const estimatedCostQuery = `${AI_CLIENT_FILTER}${agentFilterSuffix}`;
+  const estimatedCostQuery = `${getAiClientSpansFilter()}${agentFilterSuffix}`;
   const toolCallsQuery = `${getToolSpansFilter()}${agentFilterSuffix}`;
 
   const widgets = useMemo<Widget[]>(() => {

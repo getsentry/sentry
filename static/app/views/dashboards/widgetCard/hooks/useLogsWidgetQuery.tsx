@@ -22,14 +22,16 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
+import {combineIngestionMeta} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -42,7 +44,6 @@ import {
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type LogsSeriesResponse =
@@ -160,19 +161,6 @@ export function useLogsSeriesQuery(
     combine: combineWidgetQueryResults,
   });
 
-  useEventsTimeseriesSpotCheck({
-    config: LogsConfig,
-    enabled,
-    statsQueryResults: queryResults,
-    organization,
-    pageFilters,
-    widget: filteredWidget,
-    timeSeriesQueries: seriesRequestData.map((requestData, queryIndex) => ({
-      params: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      widgetQuery: filteredWidget.queries[queryIndex]!,
-    })),
-  });
-
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data);
@@ -198,7 +186,7 @@ export function useLogsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = LogsConfig.transformSeries!(
+      const transformedResult = eventsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -215,11 +203,11 @@ export function useLogsSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = LogsConfig.getSeriesResultType?.(
+      const resultTypes = eventsResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
-      const resultUnits = LogsConfig.getSeriesResultUnit?.(
+      const resultUnits = eventsResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -238,6 +226,9 @@ export function useLogsSeriesQuery(
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
+      ingestion: combineIngestionMeta(
+        queryResults.map(q => q?.data).filter(isEventsTimeSeriesResponse)
+      ),
       rawData,
     };
   })();
@@ -345,7 +336,7 @@ export function useLogsTableQuery(
       const responseData = q.data.json;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...LogsConfig.transformTable(
+        ...eventsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,

@@ -2,14 +2,17 @@
   "name": "@sentry-internal/gs-app",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "sentry-test --watch --config jest.config.mjs"
+  },
   "dependencies": {
     "@amplitude/analytics-browser": "^1.5.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@react-aria/utils": "3.34.1",
-    "@sentry/core": "11.0.0",
+    "@sentry/core": "11.7.0",
     "@sentry/icons": "workspace:*",
-    "@sentry/react": "11.0.0",
+    "@sentry/react": "11.7.0",
     "@sentry/scraps": "workspace:*",
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^5.10.0",
