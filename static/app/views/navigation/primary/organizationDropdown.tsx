@@ -183,7 +183,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 leadingItems: <span aria-hidden="true" />,
                 submenu: {
                   title: t('All Projects'),
-                  search: {placeholder: t('Search'), showIcon: false, size: 'sm'},
+                  search: {placeholder: t('Search'), size: 'sm'},
                   maxMenuHeight: 240,
                 },
                 hidden: projects.length === 0,

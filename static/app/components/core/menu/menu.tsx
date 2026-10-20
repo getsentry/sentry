@@ -103,26 +103,18 @@ export function MenuFooterLayout(props: FlexProps) {
 
 type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input> & {
   padding?: ContainerProps['padding'];
-  showIcon?: boolean;
 };
 
 /** Shared search field with a leading icon for menu controls. */
-export function SearchInput({
-  padding = 'xs',
-  showIcon = true,
-  size = 'xs',
-  ...props
-}: SearchInputProps) {
+export function SearchInput({padding = 'xs', size = 'xs', ...props}: SearchInputProps) {
   return (
     <Container padding={padding}>
       <InputGroup>
-        {showIcon && (
-          <InputGroup.LeadingItems disablePointerEvents>
-            <Flex paddingLeft="2xs" align="center" justify="center">
-              <IconSearch size="xs" variant="muted" />
-            </Flex>
-          </InputGroup.LeadingItems>
-        )}
+        <InputGroup.LeadingItems disablePointerEvents>
+          <Flex paddingLeft="2xs" align="center" justify="center">
+            <IconSearch size="xs" variant="muted" />
+          </Flex>
+        </InputGroup.LeadingItems>
         <InputGroup.Input size={size} {...props} />
       </InputGroup>
     </Container>
