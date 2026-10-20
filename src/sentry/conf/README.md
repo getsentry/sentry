@@ -121,8 +121,9 @@ cutover, which removes that editable option and switches the client config read.
 Deployment settings writers temporarily record explicit assignments in
 `SENTRY_CONFIGURED_OPTION_SETTINGS`, an immutable internal set of setting names.
 This protects intentionally empty identifiers and secrets and false reply
-settings from deprecated aliases. Existing self-hosted legacy aliases keep their
-precedence unless their target is explicitly tracked. The provenance is removed
+settings from deprecated aliases. Aliases still populate missing legacy options
+for existing readers, but do not overwrite an explicitly tracked modern setting.
+Untracked settings retain the legacy alias precedence. The provenance is removed
 when the deprecated writers and SaaS credential remaps are retired.
 
 ## Deployment prerequisites

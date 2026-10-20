@@ -6,6 +6,7 @@ import pytest
 from django.core.cache import caches
 from django.test import override_settings
 
+from sentry.auth.providers.google.provider import GoogleOAuth2Provider
 from sentry.conf.server import DEAD, SENTRY_EMAIL_BACKEND_ALIASES
 from sentry.hybridcloud.models.outbox import CellOutboxBase
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
@@ -749,10 +750,11 @@ def test_explicit_deployment_secret_is_not_replaced_by_legacy_alias(
     setattr(settings, setting_name, value)
 
     bootstrap_options(settings)
-    apply_legacy_settings(settings)
+    with pytest.warns(DeprecatedSettingWarning):
+        apply_legacy_settings(settings)
 
     assert getattr(settings, setting_name) == value
-    assert key not in settings.SENTRY_OPTIONS
+    assert settings.SENTRY_OPTIONS[key] == "legacy-secret"
 
 
 @pytest.mark.parametrize(
@@ -775,6 +777,22 @@ def test_original_option_precedes_explicit_deployment_setting_and_alias(
 
     assert getattr(settings, setting_name) == "option-secret"
     assert settings.SENTRY_OPTIONS[key] == "option-secret"
+
+
+@pytest.mark.django_db
+def test_google_legacy_reader_preserves_alias_with_explicit_modern_setting(settings) -> None:
+    settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
+    settings.GOOGLE_CLIENT_ID = "legacy-client"
+    settings.SENTRY_AUTH_GOOGLE_CLIENT_ID = "modern-client"
+    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({"SENTRY_AUTH_GOOGLE_CLIENT_ID"})
+
+    bootstrap_options(settings)
+    with pytest.warns(DeprecatedSettingWarning):
+        apply_legacy_settings(settings)
+
+    with override_settings(SENTRY_OPTIONS=settings.SENTRY_OPTIONS):  # noqa: S011
+        assert GoogleOAuth2Provider().get_client_id() == "legacy-client"
+    assert settings.SENTRY_AUTH_GOOGLE_CLIENT_ID == "modern-client"
 
 
 @pytest.mark.parametrize(
@@ -871,10 +889,11 @@ def test_explicit_empty_or_false_deployment_alias_target_is_preserved(
     setattr(settings, setting_name, value)
 
     bootstrap_options(settings)
-    apply_legacy_settings(settings)
+    with pytest.warns(DeprecatedSettingWarning):
+        apply_legacy_settings(settings)
 
     assert getattr(settings, setting_name) == value
-    assert key not in settings.SENTRY_OPTIONS
+    assert settings.SENTRY_OPTIONS[key] == legacy_value
 
 
 @pytest.mark.parametrize(
