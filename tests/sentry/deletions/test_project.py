@@ -157,9 +157,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             subscription=query_sub,
         )
 
-        # Existing join rows still need deletion until IncidentProject is retired.
-        incident.projects.add(project)
-
         self.ScheduledDeletion.schedule(instance=project, days=0)
         with self.tasks():
             run_scheduled_deletions()
@@ -190,7 +187,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not QuerySubscription.objects.filter(id=query_sub.id).exists()
 
         incident.refresh_from_db()
-        assert len(incident.projects.all()) == 0, "Project relation should be removed"
         assert Incident.objects.filter(id=incident.id).exists()
 
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
