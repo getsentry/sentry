@@ -27,6 +27,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.discover.arithmetic import (
     ArithmeticParseError,
@@ -652,7 +653,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
 
         try:
             kwargs["formula"] = ExploreSavedFormula.objects.prefetch_related("variables").get(
-                id=id,
+                id=to_valid_int_id("id", id, raise_404=True),
                 organization=kwargs["organization"],
                 prebuilt_deleted=False,
             )

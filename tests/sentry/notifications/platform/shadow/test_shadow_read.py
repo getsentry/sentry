@@ -263,6 +263,21 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         assert "Events: *2*" in orjson.dumps(legacy).decode()
         assert "Events:" not in orjson.dumps(platform).decode()
 
+    def test_slack_first_seen_crossing_a_minute_is_not_a_mismatch(self) -> None:
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        first_seen = iter(["Just now", "1 minute ago"])
+
+        with mock.patch(
+            "sentry.integrations.slack.message_builder.issues.time_since",
+            side_effect=lambda value: next(first_seen),
+        ):
+            observation, _ = self.send(self.invocation(action))
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        legacy, platform = observation.compared[0]
+        assert "State: *New*   First Seen: *Just now*" in orjson.dumps(legacy).decode()
+        assert "State: *New*   First Seen: *1 minute ago*" in orjson.dumps(platform).decode()
+
     def test_slack_mentions_read_scope_without_nudge(self) -> None:
         action = self.create_shadow_action(
             "slack", {"tags": "", "notes": ""}, metadata={"scopes": ["app_mentions:read"]}
