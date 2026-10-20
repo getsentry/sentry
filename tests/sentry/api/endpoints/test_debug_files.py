@@ -200,13 +200,13 @@ class DebugFilesTest(DebugFilesTestCases):
             "10da03eb5d63d750faab0fb8e7cc12a1c3",
         ]
 
-        # Try every combination of debug_id/code_id for the query, as well as bare queries
-        # only containing the debug ID itself.
+        # Try every combination of debug_id/code_id for the query.
         for query in (
-            debug_ids
-            + [f"debug_id={id}" for id in debug_ids]
+            [f"debug_id={id}" for id in debug_ids]
+            + [f"query={id}" for id in debug_ids]
             + [f"code_id={id}" for id in code_ids]
             + [f"debug_id={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+            + [f"query={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
         ):
             response = self.client.get(f"{self.url}?{query}")
 
@@ -227,13 +227,13 @@ class DebugFilesTest(DebugFilesTestCases):
             "10da03eb5d63d750faab0fb8e7cc12a1c3",
         ]
 
-        # Try every combination of debug_id/code_id for the query, as well as bare queries
-        # only containing the debug ID itself.
+        # Try every combination of debug_id/code_id for the query.
         for query in (
-            debug_ids
-            + [f"debug_id={id}" for id in debug_ids]
+            [f"debug_id={id}" for id in debug_ids]
+            + [f"query={id}" for id in debug_ids]
             + [f"code_id={id}" for id in code_ids]
             + [f"debug_id={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+            + [f"query={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
         ):
             response = self.client.get(f"{self.url}?{query}")
 
