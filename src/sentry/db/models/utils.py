@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Container
+import hashlib
+from collections.abc import Container, Generator
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Generic, Self, overload
 from uuid import uuid4
 
+from django.db import connections, transaction
 from django.db.models import Field, Model
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
@@ -38,6 +41,26 @@ def is_model_attr_cached(model: Model, attr: str) -> bool:
         is_selected = attr not in model.get_deferred_fields()
 
     return is_prefetched or is_selected
+
+
+@contextmanager
+def advisory_transaction_lock(using: str, key: str) -> Generator[None]:
+    """
+    Open a transaction (a savepoint if a transaction is already open) and take a
+    Postgres advisory lock for `key` in it.
+
+    Postgres keeps the lock until the outermost transaction commits or rolls back, not
+    until this block exits. Thus a second caller with the same key waits until the rows
+    that the first caller wrote are visible. Use this instead of a Redis lock to protect
+    a "check, then write" step that can run inside a transaction, for example when you
+    pick a unique slug.
+    """
+    digest = hashlib.blake2b(key.encode(), digest_size=8).digest()
+    lock_id = int.from_bytes(digest, "big", signed=True)
+    with transaction.atomic(using=using):
+        with connections[using].cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_id])
+        yield
 
 
 def unique_db_instance(

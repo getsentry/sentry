@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import jsonschema
 from django.conf import settings
-from django.db import models
+from django.db import models, router
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -34,15 +34,13 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import advisory_transaction_lock, slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.base import ModelRelation
-from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
@@ -285,16 +283,18 @@ class Monitor(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get(
-                f"slug:monitor:{self.organization_id}", duration=5, name="monitor_slug"
-            )
-            with TimedRetryPolicy(10)(lock.acquire):
+            # The database keeps this lock until the outer transaction ends, so a concurrent
+            # create sees our slug before it picks its own.
+            with advisory_transaction_lock(
+                router.db_for_write(Monitor), f"slug:monitor:{self.organization_id}"
+            ):
                 slugify_instance(
                     self,
                     self.name,
                     organization_id=self.organization_id,
                     max_length=DEFAULT_SLUG_MAX_LENGTH,
                 )
+                return super().save(*args, **kwargs)
         return super().save(*args, **kwargs)
 
     @property

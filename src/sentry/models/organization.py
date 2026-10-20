@@ -11,6 +11,7 @@ from django.db.models.functions.text import Upper
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
+from django.utils.text import slugify
 
 from bitfield import TypedClassBitField
 from sentry import options, roles
@@ -28,12 +29,11 @@ from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import advisory_transaction_lock, slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.locks import locks
 from sentry.notifications.services import notifications_service
 from sentry.organizations.absolute_url import (
     api_absolute_url,
@@ -44,7 +44,6 @@ from sentry.roles.manager import OrganizationRole, Role, RoleLevel
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
@@ -249,11 +248,21 @@ class Organization(ReplicatedCellModel):
         elif not self.id:
             slugify_target = self.slug
         if slugify_target is not None:
-            lock = locks.get("slug:organization", duration=5, name="organization_slug")
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_target = slugify_target.lower().replace("_", "-").strip("-")
+            slugify_target = slugify_target.lower().replace("_", "-").strip("-")
+            # The database keeps this lock until the outer transaction ends, so a concurrent
+            # create sees our slug before it picks its own. Only creates that start from the
+            # same base slug can pick the same slug, so the key includes the base slug. This
+            # is the same base slug that slugify_instance makes (max_length 30).
+            base_slug = slugify(slugify_target)[:30].strip("-")
+            with advisory_transaction_lock(
+                router.db_for_write(Organization), f"slug:organization:{base_slug}"
+            ):
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
+                self._save_organization(*args, **kwargs)
+            return
+        self._save_organization(*args, **kwargs)
 
+    def _save_organization(self, *args, **kwargs):
         if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,

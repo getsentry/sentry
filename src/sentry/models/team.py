@@ -19,11 +19,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import advisory_transaction_lock, slugify_instance
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.locks import locks
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
@@ -151,9 +149,17 @@ class Team(ReplicatedCellModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")
-            with TimedRetryPolicy(10)(lock.acquire):
+            # The database keeps this lock until the outer transaction ends, so a concurrent
+            # create sees our slug before it picks its own.
+            with advisory_transaction_lock(
+                router.db_for_write(Team), f"slug:team:{self.organization_id}"
+            ):
                 slugify_instance(self, self.name, organization=self.organization)
+                self._save_team(*args, **kwargs)
+            return
+        self._save_team(*args, **kwargs)
+
+    def _save_team(self, *args, **kwargs):
         if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "team_snowflake_key"
             save_with_snowflake_id(

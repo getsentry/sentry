@@ -29,7 +29,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import advisory_transaction_lock, slugify_instance
 from sentry.db.pending_deletion import (
     delete_pending_deletion_option,
     rename_on_pending_deletion,
@@ -412,17 +412,23 @@ class Project(Model):
             self._save_project(*args, **kwargs)
             return
 
-        # when project is created, we need to acquire a lock to ensure that the generated slug is unique
-        lock = locks.get(f"slug:project:{self.organization_id}", duration=5, name="project_slug")
-        with TimedRetryPolicy(10)(lock.acquire):
-            if not self.slug:
-                slugify_instance(
-                    self,
-                    self.name,
-                    organization=self.organization,
-                    reserved=RESERVED_PROJECT_SLUGS,
-                    max_length=50,
-                )
+        if self.slug:
+            self._save_project(*args, **kwargs)
+            return
+
+        # when project is created without a slug, we need a lock to ensure that the generated
+        # slug is unique. The database keeps this lock until the outer transaction ends, so a
+        # concurrent create sees our slug before it picks its own.
+        with advisory_transaction_lock(
+            router.db_for_write(Project), f"slug:project:{self.organization_id}"
+        ):
+            slugify_instance(
+                self,
+                self.name,
+                organization=self.organization,
+                reserved=RESERVED_PROJECT_SLUGS,
+                max_length=50,
+            )
             self._save_project(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
