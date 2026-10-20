@@ -6,9 +6,8 @@ import {useMenuTrigger} from '@react-aria/menu';
 
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import type {TriggerProps} from '@sentry/scraps/overlayTrigger';
-
-import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import {useOverlay} from 'sentry/utils/useOverlay';
+import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {DropdownMenuContent} from './content';
 import {DropdownMenuContext} from './context';

@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useMemo, useRef, useState} from 'react';
 import type {
   Boundary,
@@ -6,6 +7,7 @@ import type {
   FlipOptions,
   Middleware,
   Padding,
+  Placement,
   Strategy,
 } from '@floating-ui/react-dom';
 import {
@@ -28,14 +30,14 @@ import type {
   OverlayAnchor,
   OverlayPlacement,
   ShiftOverlayOptions,
-} from 'sentry/utils/overlayPositioning';
+} from '@sentry/scraps/overlayPositioning';
 import {
   anchoredStyles,
   anchorOverlay,
   arrowOverlay,
   placementMiddleware,
   shiftOverlay,
-} from 'sentry/utils/overlayPositioning';
+} from '@sentry/scraps/overlayPositioning';
 
 /**
  * Floating UI middleware to change the overlay's width/height to prevent
@@ -62,21 +64,23 @@ function maxSize(options: DetectOverflowOptions): Middleware {
       const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
       const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
 
-      const maxHeight = ['left', 'right'].includes(basePlacement!)
-        ? // If the main axis is horizontal, then maxHeight = the boundary's height
-          height - overflow.top - overflow.bottom
-        : // Otherwise, set max height unless there is enough space on the other side to
-          // flip the overlay to
-          Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
+      const maxHeight =
+        basePlacement === 'left' || basePlacement === 'right'
+          ? // If the main axis is horizontal, then maxHeight = the boundary's height
+            height - overflow.top - overflow.bottom
+          : // Otherwise, set max height unless there is enough space on the other side to
+            // flip the overlay to
+            Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
 
       // If there is enough space on the other side, then allow the overlay to flip
       // without constraining its size
-      const maxWidth = ['top', 'bottom'].includes(basePlacement!)
-        ? // If the main axis is vertical, then maxWidth = the boundary's width
-          width - overflow.left - overflow.right
-        : // Otherwise, set max width unless there is enough space on the other side to
-          // flip the overlay to
-          Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
+      const maxWidth =
+        basePlacement === 'top' || basePlacement === 'bottom'
+          ? // If the main axis is vertical, then maxWidth = the boundary's width
+            width - overflow.left - overflow.right
+          : // Otherwise, set max width unless there is enough space on the other side to
+            // flip the overlay to
+            Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
 
       return {data: {width: maxWidth, height: maxHeight}};
     },
@@ -140,6 +144,26 @@ export interface UseOverlayProps
   strategy?: Strategy;
 }
 
+interface UseOverlayResult {
+  arrowProps: {
+    placement: Placement;
+    style: React.CSSProperties | undefined;
+  };
+  isOpen: boolean;
+  overlayProps: ReturnType<typeof useOverlayTriggerAria>['overlayProps'] &
+    ReturnType<typeof useOverlayAria>['overlayProps'] & {
+      ref: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>;
+      style: React.CSSProperties | undefined;
+    };
+  overlayRef: {current: HTMLDivElement | null};
+  state: ReturnType<typeof useOverlayTriggerState>;
+  triggerProps: ReturnType<typeof useButtonAria>['buttonProps'] & {
+    ref: React.Dispatch<React.SetStateAction<HTMLElement | null>>;
+  };
+  triggerRef: {current: HTMLElement | null};
+  update: ReturnType<typeof useFloating>['update'];
+}
+
 export function useOverlay({
   isOpen,
   onClose,
@@ -160,7 +184,7 @@ export function useOverlay({
   onInteractOutside,
   disableTrigger,
   strategy = 'absolute',
-}: UseOverlayProps = {}) {
+}: UseOverlayProps = {}): UseOverlayResult {
   // Callback refs for Floating UI
   // TODO: Use ref callbacks instead of holding the trigger and overlay elements in state
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);

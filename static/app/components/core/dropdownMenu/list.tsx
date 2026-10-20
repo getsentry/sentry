@@ -14,10 +14,10 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useOverlay} from 'sentry/utils/useOverlay';
 
 import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';

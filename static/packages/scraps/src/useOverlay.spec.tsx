@@ -1,8 +1,7 @@
 import {autoUpdate, useFloating} from '@floating-ui/react-dom';
+import {renderHook} from '@testing-library/react';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
-
-import {useOverlay} from 'sentry/utils/useOverlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 jest.mock('@floating-ui/react-dom', () => ({
   ...jest.requireActual('@floating-ui/react-dom'),

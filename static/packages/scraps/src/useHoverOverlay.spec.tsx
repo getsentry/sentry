@@ -1,6 +1,10 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import {userEvent} from '@testing-library/user-event';
 
-import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+import {lightTheme} from '@sentry/scraps/theme';
+import {useHoverOverlay} from '@sentry/scraps/useHoverOverlay';
 
 function Component(props: Partial<React.HTMLAttributes<HTMLInputElement>>) {
   const {wrapTrigger} = useHoverOverlay({skipWrapper: true});
@@ -17,7 +21,7 @@ describe('useHoverOverlay', () => {
       onBlur: jest.fn(),
     };
 
-    render(<Component {...componentProps} />);
+    render(<Component {...componentProps} />, {wrapper: ThemeWrapper});
 
     const input = screen.getByRole('textbox');
 
@@ -49,7 +53,7 @@ describe('useHoverOverlay', () => {
       return wrapTrigger(<InnerComponent ref={ref} />);
     };
 
-    const {rerender} = render(<WrappedComponent />);
+    const {rerender} = render(<WrappedComponent />, {wrapper: ThemeWrapper});
     expect(ref).toHaveBeenCalled();
 
     const callsAfterMount = ref.mock.calls.length;
@@ -57,3 +61,7 @@ describe('useHoverOverlay', () => {
     expect(ref).toHaveBeenCalledTimes(callsAfterMount);
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}

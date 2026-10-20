@@ -27,8 +27,9 @@ import {
 } from '@sentry/scraps/compactSelect';
 import {useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
   isQueryBuilderPanelChrome,
@@ -36,7 +37,6 @@ import {
   withPanelOverlayProps,
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
-import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
   children: CollectionChildren<SelectOptionOrSectionWithKey<string>>;
