@@ -11,10 +11,18 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    OrFilter,
+    TraceItemFilter,
+)
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAttribute
+from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import Occurrences
@@ -70,6 +78,62 @@ def _identity_column() -> MagicMock:
     resolved_column = MagicMock()
     resolved_column.process_column = lambda v: v
     return resolved_column
+
+
+def test_top_event_conditions_match_case_when_ignoring_case() -> None:
+    resolver = SearchResolver(
+        params=SnubaParams(case_insensitive=True),
+        config=SearchResolverConfig(),
+        definitions=OURLOG_DEFINITIONS,
+    )
+    body = AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING)
+
+    top, other = RPCBase.build_top_event_conditions(
+        resolver,
+        {"data": [{"message": "Foo"}], "meta": {"fields": {}}, "confidence": []},
+        ["message"],
+    )
+
+    assert (top, other) == (
+        TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        and_filter=AndFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=body,
+                                        op=ComparisonFilter.OP_EQUALS,
+                                        value=AttributeValue(val_str="Foo"),
+                                    )
+                                )
+                            ]
+                        )
+                    )
+                ]
+            )
+        ),
+        TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        or_filter=OrFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=body,
+                                        op=ComparisonFilter.OP_NOT_EQUALS,
+                                        value=AttributeValue(val_str="Foo"),
+                                    )
+                                )
+                            ]
+                        )
+                    )
+                ]
+            )
+        ),
+    )
 
 
 class TestProcessColumnValuesTruncation(TestCase):

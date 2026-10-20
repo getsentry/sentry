@@ -969,6 +969,8 @@ class AssembleDownloadExploreTest(
                 {"body": "test log message", "severity_text": "INFO"},
                 timestamp=before_now(minutes=10),
                 attributes={"custom.field": "test_value"},
+                organization=self.org,
+                project=self.project,
             )
         ]
         self.store_eap_items(logs)
@@ -1003,6 +1005,7 @@ class AssembleDownloadExploreTest(
         with file.getfile() as f:
             content = f.read().strip()
         assert b"log.body,severity_text" in content
+        assert b"test log message,INFO" in content
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_logs_export_ignores_case_when_requested(self, emailer: MagicMock) -> None:
