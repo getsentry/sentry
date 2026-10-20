@@ -161,7 +161,7 @@ export function parseCssTemplate(
             const from = expression.range[0] - templateStart - 2;
             const to = expression.range[1] - templateStart + 1;
             return from >= start && to <= end
-              ? [{expression, range: [from - start, to - start] as [number, number]}]
+              ? [{expression, range: [from - start, to - start]}]
               : [];
           }),
         });
