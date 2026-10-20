@@ -732,6 +732,10 @@ function useLogAnchor({
   } | null>(null);
   const [previousAutoRefresh, setPreviousAutoRefresh] = useState(autoRefresh);
 
+  if (anchorState && anchorState.queryKeyHash !== queryKeyHash) {
+    setAnchorState(null);
+  }
+
   if (autoRefresh !== previousAutoRefresh) {
     setPreviousAutoRefresh(autoRefresh);
     if (autoRefresh) {

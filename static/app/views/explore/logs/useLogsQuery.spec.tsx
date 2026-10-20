@@ -763,6 +763,38 @@ describe('useInfiniteLogsQuery', () => {
       );
     });
 
+    it('stops anchoring on the log viewed in the table when the search changes and then changes back', async () => {
+      MockApiClient.addMockResponse({
+        url: eventsEndpoint,
+        body: createMockLogsData([]),
+        headers: linkHeaders,
+      });
+      mockBaseRows();
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`, []);
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=5256`, [anchorRow]);
+
+      const {result} = renderHookWithProviders(
+        () => ({logs: useInfiniteLogsQuery(), setQuery: useSetQueryParamsQuery()}),
+        {additionalWrapper: createWrapper(), organization}
+      );
+      await waitFor(() => expect(result.current.logs.data).toHaveLength(2));
+      act(() => {
+        result.current.logs.anchorToLog(createMockLogsData([anchorRow]).data[0]!);
+      });
+      await waitFor(() => expect(result.current.logs.anchor?.id).toBe('5'));
+
+      act(() => result.current.setQuery('a'));
+      await waitFor(() => expect(result.current.logs.anchor).toBeUndefined());
+      act(() => result.current.setQuery(''));
+      await waitFor(() => expect(result.current.logs.data).toHaveLength(2));
+
+      expect(result.current.logs.anchor).toBeUndefined();
+      expect(result.current.logs.data.map(row => row[OurLogKnownFieldKey.ID])).toEqual([
+        '9',
+        '8',
+      ]);
+    });
+
     it('returns to the unanchored rows when the anchor is cleared', async () => {
       mockBaseRows();
       mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`, []);
