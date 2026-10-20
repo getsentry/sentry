@@ -23,6 +23,7 @@ import {
   useMetricQueriesController,
   type MetricQueriesControllerValue,
 } from 'sentry/views/explore/metrics/useMetricQueriesController';
+import {hasVisualizeTransformations} from 'sentry/views/explore/queryParams/visualize';
 
 export const MAX_METRICS_ALLOWED = 8;
 
@@ -136,6 +137,12 @@ export function LocalMultiMetricsQueryParamsProvider({
 export function useMultiMetricsQueryParams() {
   const {metricQueries} = useMultiMetricsQueryParamsContext();
   return metricQueries;
+}
+
+export function useMetricsHasTransformations(): boolean {
+  return useMultiMetricsQueryParams().some(query =>
+    hasVisualizeTransformations(query.queryParams.visualizes)
+  );
 }
 
 export function useAddMetricQuery({

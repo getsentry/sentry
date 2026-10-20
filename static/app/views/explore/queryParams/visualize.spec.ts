@@ -1,7 +1,69 @@
-import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  parseVisualize,
+  Visualize,
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 describe('VisualizeFunction', () => {
+  it('copies transformation arrays at construction, clone and serialization', () => {
+    const transformations = ['fill(locf)'];
+    const visualize = new VisualizeFunction('avg(span.duration)', {transformations});
+    const clone = visualize.clone();
+    transformations.push('smooth(sma,5)');
+    expect(visualize.transformations).toEqual(['fill(locf)']);
+    expect(clone.transformations).toEqual(['fill(locf)']);
+    expect(clone.transformations).not.toBe(visualize.transformations);
+    expect(visualize.serialize().transformations).not.toBe(visualize.transformations);
+  });
+
+  it('preserves ordered transformations through URL state and unrelated edits', () => {
+    const [visualize] = parseVisualize({
+      yAxes: ['avg(span.duration)'],
+      transformations: ['fill(locf)', 'smooth(sma,5)'],
+    });
+    expect(visualize?.clone().replace({chartType: ChartType.AREA}).serialize()).toEqual({
+      yAxes: ['avg(span.duration)'],
+      chartType: ChartType.AREA,
+      transformations: ['fill(locf)', 'smooth(sma,5)'],
+    });
+  });
+
+  it('clears transformations explicitly and keeps legacy serialization unchanged', () => {
+    const visualize = new VisualizeFunction('count(span.duration)', {
+      transformations: ['fill(zero)'],
+    });
+    expect(visualize.replace({transformations: []}).serialize()).toEqual({
+      yAxes: ['count(span.duration)'],
+    });
+    expect(new VisualizeFunction('count(span.duration)').serialize()).toEqual({
+      yAxes: ['count(span.duration)'],
+    });
+  });
+
+  it.each([null, 'fill(locf)', [123], {}])(
+    'ignores malformed transformation state %s without losing the series',
+    transformations => {
+      const [visualize] = parseVisualize({
+        yAxes: ['avg(span.duration)'],
+        transformations,
+      });
+      expect(visualize?.serialize()).toEqual({yAxes: ['avg(span.duration)']});
+    }
+  );
+
+  it('does not apply transformations to equations', () => {
+    const [visualize] = parseVisualize({
+      yAxes: ['equation|count(span.duration) * 2'],
+      transformations: ['fill(locf)'],
+    });
+    expect(visualize?.serialize()).toEqual({
+      yAxes: ['equation|count(span.duration) * 2'],
+    });
+    expect(visualize).toBeInstanceOf(VisualizeEquation);
+  });
+
   it.each(['count(span.duration)', 'count_unique(span.op)', 'sum(span.duration)'])(
     'defaults to bar charts for %s',
     yAxis => {

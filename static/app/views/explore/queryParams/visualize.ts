@@ -23,6 +23,10 @@ interface VisualizeOptions {
   visible?: boolean;
 }
 
+interface VisualizeFunctionOptions extends VisualizeOptions {
+  transformations?: readonly string[];
+}
+
 export abstract class Visualize {
   readonly yAxis: string;
   readonly chartType: ChartType;
@@ -78,6 +82,11 @@ export abstract class Visualize {
       return new VisualizeFunction(yAxis, {
         chartType: json.chartType,
         visible: json.visible,
+        transformations:
+          Array.isArray(json.transformations) &&
+          json.transformations.every(value => typeof value === 'string')
+            ? json.transformations
+            : undefined,
       });
     });
   }
@@ -86,16 +95,19 @@ export abstract class Visualize {
 export class VisualizeFunction extends Visualize {
   readonly kind = 'function';
   readonly parsedFunction: ParsedFunction | null;
+  readonly transformations: readonly string[];
 
-  constructor(yAxis: string, options?: VisualizeOptions) {
+  constructor(yAxis: string, options?: VisualizeFunctionOptions) {
     super(yAxis, options);
     this.parsedFunction = parseFunction(yAxis);
+    this.transformations = [...(options?.transformations ?? [])];
   }
 
   clone(): VisualizeFunction {
     return new VisualizeFunction(this.yAxis, {
       chartType: this.selectedChartType,
       visible: this.visible,
+      transformations: this.transformations,
     });
   }
 
@@ -103,15 +115,26 @@ export class VisualizeFunction extends Visualize {
     chartType,
     visible,
     yAxis,
+    transformations,
   }: {
     chartType?: ChartType;
+    transformations?: readonly string[];
     visible?: boolean;
     yAxis?: string;
   }): VisualizeFunction {
     return new VisualizeFunction(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
+      transformations: transformations ?? this.transformations,
     });
+  }
+
+  override serialize(): BaseVisualize {
+    const json = super.serialize();
+    if (this.transformations.length) {
+      json.transformations = [...this.transformations];
+    }
+    return json;
   }
 }
 
@@ -200,6 +223,12 @@ export function isVisualizeFunction(
   return visualize.kind === 'function';
 }
 
+export function hasVisualizeTransformations(visualizes: readonly Visualize[]): boolean {
+  return visualizes.some(
+    visualize => isVisualizeFunction(visualize) && visualize.transformations.length > 0
+  );
+}
+
 export function isVisualizeEquation(
   visualize: Visualize
 ): visualize is VisualizeEquation {
@@ -210,6 +239,7 @@ export interface BaseVisualize {
   yAxes: readonly string[];
   chartType?: ChartType;
   internalExpression?: string;
+  transformations?: readonly string[];
   visible?: boolean;
 }
 
