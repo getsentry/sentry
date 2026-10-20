@@ -51,7 +51,6 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, crea
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
-from sentry.viewer_context import ActorType, ViewerContext
 
 pytestmark = [requires_snuba]
 
@@ -2074,11 +2073,6 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         assert schedule.actor_id == self.user.id
-        assert ViewerContext.deserialize(schedule.data["viewer_context"]) == ViewerContext(
-            organization_id=org.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
-        )
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 

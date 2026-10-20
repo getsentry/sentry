@@ -3,11 +3,12 @@ from datetime import datetime, timezone
 import pytest
 
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH
+from sentry.deletions.models.scheduleddeletion import VIEWER_CONTEXT_ACTOR_TYPE_KEY
 from sentry.models.project import Project
 from sentry.projects.services.project.service import project_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import ActorType, ViewerContext
+from sentry.viewer_context import ActorType
 
 from .test_organization import assert_project_equals
 
@@ -180,11 +181,7 @@ def test_delete_project_happy_path() -> None:
         app_label="sentry", model_name="Project", object_id=project.id
     )
     assert deletion.actor_id is None
-    assert ViewerContext.deserialize(deletion.data["viewer_context"]) == ViewerContext(
-        organization_id=org.id,
-        project_id=project.id,
-        actor_type=ActorType.SYSTEM,
-    )
+    assert deletion.data[VIEWER_CONTEXT_ACTOR_TYPE_KEY] == ActorType.SYSTEM.value
     # The freed slug must actually be available for reuse.
     reused = Factories.create_project(organization=org, slug=original_slug)
     assert reused.slug == original_slug

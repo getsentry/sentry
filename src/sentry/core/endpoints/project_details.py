@@ -67,7 +67,6 @@ from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
-from sentry.viewer_context import ActorType, ViewerContext
 
 logger = logging.getLogger(__name__)
 
@@ -1379,19 +1378,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             status=ObjectStatus.PENDING_DELETION
         )
         if updated:
-            scheduled = CellScheduledDeletion.schedule(
-                project,
-                days=0,
-                actor=request.user,
-                data={
-                    "viewer_context": ViewerContext(
-                        organization_id=project.organization_id,
-                        project_id=project.id,
-                        user_id=request.user.id,
-                        actor_type=ActorType.USER,
-                    ).serialize()
-                },
-            )
+            scheduled = CellScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             common_audit_data = {
                 "organization": project.organization,

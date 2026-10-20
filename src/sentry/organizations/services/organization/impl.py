@@ -86,7 +86,6 @@ from sentry.tasks.auth.auth import email_unlink_notifications
 from sentry.types.cell import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
-from sentry.viewer_context import ActorType, ViewerContext
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
@@ -769,18 +768,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
 
             if updated_organization is not None:
-                schedule = CellScheduledDeletion.schedule(
-                    orm_organization,
-                    days=1,
-                    actor=user,
-                    data={
-                        "viewer_context": ViewerContext(
-                            organization_id=orm_organization.id,
-                            user_id=user.id,
-                            actor_type=ActorType.USER,
-                        ).serialize()
-                    },
-                )
+                schedule = CellScheduledDeletion.schedule(orm_organization, days=1, actor=user)
 
                 Organization.objects.uncache_object(updated_organization.id)
                 return RpcOrganizationDeleteResponse(

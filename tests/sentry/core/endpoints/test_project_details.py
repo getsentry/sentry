@@ -40,7 +40,6 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.viewer_context import ActorType, ViewerContext
 
 
 def first_symbol_source_id(sources_json):
@@ -1681,12 +1680,6 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         )
         assert deletion.actor_id is not None
-        assert ViewerContext.deserialize(deletion.data["viewer_context"]) == ViewerContext(
-            organization_id=self.project.organization_id,
-            project_id=self.project.id,
-            user_id=deletion.actor_id,
-            actor_type=ActorType.USER,
-        )
 
         project = Project.objects.get(id=self.project.id)
         assert project.status == ObjectStatus.PENDING_DELETION

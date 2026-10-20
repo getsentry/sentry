@@ -13,6 +13,7 @@ from taskbroker_client.task import Task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.deletions.models.scheduleddeletion import (
+    VIEWER_CONTEXT_ACTOR_TYPE_KEY,
     BaseScheduledDeletion,
     CellScheduledDeletion,
     ScheduledDeletion,
@@ -45,11 +46,10 @@ def _scheduled_deletion_viewer_context(
         return nullcontext()
 
     viewer_context: ViewerContext | None
-    serialized_viewer_context = deletion.data.get("viewer_context")
-    if isinstance(serialized_viewer_context, dict):
-        viewer_context = ViewerContext.deserialize(serialized_viewer_context)
-    elif deletion.actor_id is not None:
+    if deletion.actor_id is not None:
         viewer_context = ViewerContext(user_id=deletion.actor_id, actor_type=ActorType.USER)
+    elif deletion.data.get(VIEWER_CONTEXT_ACTOR_TYPE_KEY) == ActorType.SYSTEM.value:
+        viewer_context = ViewerContext(actor_type=ActorType.SYSTEM)
     else:
         viewer_context = get_viewer_context()
         if viewer_context is None:

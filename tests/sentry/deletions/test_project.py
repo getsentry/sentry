@@ -1,5 +1,6 @@
 from unittest import mock
 
+from sentry.deletions.models.scheduleddeletion import VIEWER_CONTEXT_ACTOR_TYPE_KEY
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
@@ -79,13 +80,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         self.ScheduledDeletion.schedule(
             instance=project,
             days=0,
-            data={
-                "viewer_context": ViewerContext(
-                    organization_id=project.organization_id,
-                    project_id=project.id,
-                    actor_type=ActorType.SYSTEM,
-                ).serialize()
-            },
+            data={VIEWER_CONTEXT_ACTOR_TYPE_KEY: ActorType.SYSTEM.value},
         )
 
         with self.tasks():
