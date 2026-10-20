@@ -1,27 +1,18 @@
-import {Fragment, useMemo, useState} from 'react';
-import classNames from 'classnames';
+import {useMemo, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {FormModel} from 'sentry/components/forms/model';
-import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useApi} from 'sentry/utils/useApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {PlanList} from 'admin/components/planList';
 import {ANNUAL, BillingConfigTier, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {isCheckoutCategory} from 'getsentry/utils/dataCategory';
 
 type Props = {
   onSuccess: () => void;
@@ -36,205 +27,71 @@ function ChangePlanAction({
   partnerPlanId,
   onSuccess,
   closeModal,
+  Header,
+  Body,
+  Footer,
 }: Props) {
   const [billingInterval, setBillingInterval] = useState(MONTHLY);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
-  const [formModel] = useState(() => new FormModel());
-  const orgId = organization.slug;
-
-  const api = useApi({persistInFlight: true});
   const {
     data: configs,
     isPending,
     isError,
-  } = useApiQuery<BillingConfig>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
-        path: {organizationIdOrSlug: orgId},
-      }),
-      {query: {tier: BillingConfigTier.ALL}},
-    ],
-    {
-      // TODO(isabella): pass billing config from customerDetails
+  } = useQuery(
+    apiOptions.as<BillingConfig>()('/customers/$organizationIdOrSlug/billing-config/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {tier: BillingConfigTier.ALL},
       staleTime: Infinity,
-    }
+    })
   );
-
   const planList = useMemo(() => configs?.planList ?? [], [configs]);
 
   if (isPending) {
     return <LoadingIndicator />;
   }
-
   if (isError) {
     return <LoadingError />;
   }
 
-  /**
-   * Get the selectable plans for the current billing/contract interval.
-   */
-  const getPlanList = (): BillingConfig['planList'] =>
-    planList.filter(
-      plan =>
-        plan.totalPrice &&
-        plan.userSelectable &&
-        plan.billingInterval === billingInterval &&
-        // Plan id on partner sponsored subscriptions is not modifiable so only
-        // including the existing plan in the list
-        (partnerPlanId === null || partnerPlanId === plan.id)
-    );
+  const tierPlans = planList.filter(
+    plan =>
+      plan.totalPrice &&
+      plan.userSelectable &&
+      plan.billingInterval === billingInterval &&
+      (partnerPlanId === null || partnerPlanId === plan.id)
+  );
 
-  /**
-   * Find the closest volume tier in the plan for a given category and current volume
-   */
-  const findClosestTier = (
-    plan: Plan | null,
-    category: DataCategory,
-    currentValue: number
-  ): number | null => {
-    if (!plan?.planCategories || !(category in plan.planCategories)) {
-      return null;
-    }
-
-    const categoryBuckets = (plan.planCategories as Record<string, any>)[category];
-    if (!categoryBuckets?.length) {
-      return null;
-    }
-
-    const availableTiers = categoryBuckets.map((tier: {events: number}) => tier.events);
-
-    // If the exact value exists, use it
-    if (availableTiers.includes(currentValue)) {
-      return currentValue;
-    }
-
-    // Find the closest tier, preferring the next higher tier if not exact
-    const sortedTiers = [...availableTiers].sort((a, b) => a - b);
-
-    // Find the first tier that's greater than the current value
-    const nextHigherTier = sortedTiers.find(tier => tier > currentValue);
-    if (nextHigherTier) {
-      return nextHigherTier;
-    }
-
-    // If no higher tier, take the highest available
-    return sortedTiers[sortedTiers.length - 1];
-  };
-
-  /**
-   * Set initial values for reserved volumes based on the current subscription
-   * and available tiers in the newly selected plan
-   */
-  const setInitialReservedVolumes = (planId: string): void => {
-    const plan = getPlanList().find(p => p.id === planId) || null;
-    if (!plan) {
-      return;
-    }
-
-    Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
-      if (metricHistory.reserved && isCheckoutCategory(category as DataCategory, plan)) {
-        const closestTier = findClosestTier(
-          plan,
-          category as DataCategory,
-          metricHistory.reserved
-        );
-        if (closestTier) {
-          formModel.setValue(
-            `reserved${toTitleCase(category, {
-              allowInnerUpperCase: true,
-            })}`,
-            closestTier
-          );
-        }
-      }
-    });
-  };
-
-  const handlePlanChange = (plan: Plan) => {
-    setActivePlan(plan);
-    setInitialReservedVolumes(plan.id);
-  };
-
-  const handleSubmit: OnSubmitCallback = async (
-    data: Data,
-    onSubmitSuccess: (data: Data) => void,
-    onSubmitError: (error: any) => void
-  ) => {
-    addLoadingMessage('Updating plan\u2026');
-
-    if (!data.plan || !planList.some(p => p.id === data.plan)) {
-      onSubmitError('Plan not found');
-      return;
-    }
-
-    try {
-      await api.requestPromise(`/customers/${orgId}/subscription/`, {
-        method: 'PUT',
-        data,
-      });
-      onSubmitSuccess(data);
-      onSuccess?.();
-    } catch (error) {
-      onSubmitError(error);
-    }
-  };
-
-  // Plan for partner sponsored subscriptions is not modifiable so skipping
-  // the navigation that will allow modifying the billing cycle
-  const header = partnerPlanId ? null : (
-    <ul className="nav nav-pills">
-      <li
-        className={classNames({
-          active: billingInterval === MONTHLY,
-        })}
+  const intervalSelector = partnerPlanId ? null : (
+    <Flex gap="sm">
+      <Button
+        variant={billingInterval === MONTHLY ? 'primary' : 'secondary'}
+        onClick={() => setBillingInterval(MONTHLY)}
       >
-        <a
-          onClick={() => {
-            setBillingInterval(MONTHLY);
-          }}
-        >
-          Monthly
-        </a>
-      </li>
-      <li
-        className={classNames({
-          active: billingInterval === ANNUAL,
-        })}
+        Monthly
+      </Button>
+      <Button
+        variant={billingInterval === ANNUAL ? 'primary' : 'secondary'}
+        onClick={() => setBillingInterval(ANNUAL)}
       >
-        <a
-          onClick={() => {
-            setBillingInterval(ANNUAL);
-          }}
-        >
-          Annual (Upfront)
-        </a>
-      </li>
-    </ul>
+        Annual (Upfront)
+      </Button>
+    </Flex>
   );
 
   return (
-    <Fragment>
-      {header}
-      <PlanList
-        formModel={formModel}
-        activePlan={activePlan}
-        subscription={subscription}
-        onSubmit={handleSubmit}
-        onCancel={closeModal}
-        onSubmitSuccess={(data: Data) => {
-          addSuccessMessage(
-            `Customer account has been updated with ${JSON.stringify(data)}.`
-          );
-          closeModal();
-          onSuccess();
-        }}
-        onSubmitError={(error: any) => {
-          addErrorMessage(error?.responseJSON?.detail ?? error);
-        }}
-        onPlanChange={handlePlanChange}
-        tierPlans={getPlanList()}
-      />
-    </Fragment>
+    <PlanList
+      Header={Header}
+      Body={Body}
+      Footer={Footer}
+      intervalSelector={intervalSelector}
+      activePlan={activePlan}
+      subscription={subscription}
+      onCancel={closeModal}
+      onSuccess={onSuccess}
+      onPlanChange={setActivePlan}
+      tierPlans={tierPlans}
+      organizationSlug={organization.slug}
+    />
   );
 }
 

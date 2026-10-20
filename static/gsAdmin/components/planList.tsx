@@ -1,17 +1,21 @@
-import {useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
-import {Container} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
-import {InputField} from 'sentry/components/forms/fields/inputField';
-import {RadioField} from 'sentry/components/forms/fields/radioField';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
-import type {FormModel} from 'sentry/components/forms/model';
-import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {DataCategory} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL} from 'getsentry/constants';
@@ -28,216 +32,258 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
-type Props = {
+type FormValue = string | number | boolean | null;
+type FormValues = Record<string, FormValue>;
+
+type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   activePlan: Plan | null;
-  formModel: FormModel;
+  intervalSelector: React.ReactNode;
   onCancel: () => void;
   onPlanChange: (plan: Plan) => void;
-  onSubmit: OnSubmitCallback;
-  onSubmitError: (error: any) => void;
-  onSubmitSuccess: (data: Data) => void;
+  onSuccess: () => void;
+  organizationSlug: string;
   subscription: Subscription;
   tierPlans: BillingConfig['planList'];
 };
 
+function closestTier(
+  plan: Plan,
+  category: DataCategory,
+  currentValue: number
+): number | null {
+  const tiers = (plan.planCategories as Record<string, Array<{events: number}>>)[
+    category
+  ];
+  if (!tiers?.length) {
+    return null;
+  }
+  const values = tiers.map(tier => tier.events).sort((a, b) => a - b);
+  return values.find(value => value >= currentValue) ?? values[values.length - 1] ?? null;
+}
+
 export function PlanList({
+  Header,
+  Body,
+  Footer,
   activePlan,
   subscription,
-  onSubmit,
   onCancel,
-  onSubmitSuccess,
-  onSubmitError,
-  formModel,
+  onSuccess,
+  organizationSlug,
+  intervalSelector,
   tierPlans,
   onPlanChange,
 }: Props) {
-  const availableAddOns = useMemo(
-    () =>
-      Object.values(activePlan?.addOnCategories || {})
-        .filter(
-          productInfo => subscription.addOns?.[productInfo.apiName]?.isAvailable ?? false
-        )
-        .map(productInfo => {
-          return productInfo;
+  const mutation = useMutation({
+    mutationFn: (data: FormValues) =>
+      fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/subscription/', {
+          path: {organizationIdOrSlug: organizationSlug},
         }),
-    [activePlan?.addOnCategories, subscription.addOns]
+        method: 'PUT',
+        data,
+      }),
+    onMutate: () => addLoadingMessage('Updating plan…'),
+    onSuccess: () => {
+      addSuccessMessage('Customer account has been updated.');
+      onCancel();
+      onSuccess();
+    },
+    onError: error => {
+      const detail =
+        error instanceof RequestError ? error.responseJSON?.detail : undefined;
+      addErrorMessage(typeof detail === 'string' ? detail : 'Failed to update plan.');
+    },
+  });
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {plan: '', 'ticket-url': '', notes: ''} as FormValues,
+    onSubmit: ({value}) => {
+      if (!value.plan || !tierPlans.some(plan => plan.id === value.plan)) {
+        setFieldErrors(form, {plan: {message: 'Choose a plan'}});
+        return;
+      }
+      return mutation.mutateAsync(value).catch(() => {});
+    },
+  });
+
+  const availableAddOns = Object.values(activePlan?.addOnCategories || {}).filter(
+    productInfo => subscription.addOns?.[productInfo.apiName]?.isAvailable ?? false
   );
 
-  useEffect(() => {
-    availableAddOns.forEach(productInfo => {
+  const handlePlanChange = (planId: string) => {
+    const plan = tierPlans.find(candidate => candidate.id === planId);
+    if (!plan) {
+      return;
+    }
+    onPlanChange(plan);
+    for (const [category, metricHistory] of Object.entries(subscription.categories)) {
+      if (metricHistory.reserved && isCheckoutCategory(category as DataCategory, plan)) {
+        const tier = closestTier(plan, category as DataCategory, metricHistory.reserved);
+        if (tier !== null) {
+          form.setFieldValue(
+            `reserved${toTitleCase(category, {allowInnerUpperCase: true})}`,
+            tier
+          );
+        }
+      }
+    }
+    for (const productInfo of Object.values(plan.addOnCategories || {})) {
       const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
-      const enabled = subscription.addOns?.[productInfo.apiName]?.enabled;
-      formModel.setValue(addOnKey, enabled);
-    });
-  }, [availableAddOns, subscription.addOns, formModel]);
+      form.setFieldValue(
+        addOnKey,
+        subscription.addOns?.[productInfo.apiName]?.enabled ?? false
+      );
+    }
+  };
 
   return (
-    <Form
-      onSubmit={onSubmit}
-      onCancel={onCancel}
-      submitLabel="Change Plan"
-      submitVariant="danger"
-      model={formModel}
-      onSubmitSuccess={onSubmitSuccess}
-      onSubmitError={onSubmitError}
-    >
-      <StyledFormSection>
-        <RadioField
-          name="plan"
-          required
-          choices={tierPlans.map(plan => [
-            plan.id,
-            <PlanLabel key={plan.id} data-test-id={`change-plan-label-${plan.id}`}>
-              <div>
-                <strong>{plan.name}</strong> <SubText>— {plan.id}</SubText>
-                <br />
-                <small>
-                  {formatCurrency(plan.totalPrice)} /{' '}
-                  {plan.billingInterval === ANNUAL ? 'annually' : 'monthly'}
-                </small>
-              </div>
-            </PlanLabel>,
-          ])}
-          onChange={value => {
-            const plan = tierPlans.find(p => p.id === value);
-            if (plan) {
-              onPlanChange(plan);
-            }
-          }}
-          value={activePlan?.id ?? null}
-        />
-      </StyledFormSection>
-      {activePlan &&
-        (
-          activePlan?.planCategories.transactions ||
-          activePlan?.planCategories.spans ||
-          []
-        ).length > 1 && (
-          <StyledFormSection>
-            <h4>Reserved Volumes</h4>
-            {activePlan.categories
-              .filter(category => isCheckoutCategory(category, activePlan))
-              .map(category => {
-                const titleCategory = getPlanCategoryName({
-                  plan: activePlan,
-                  category,
-                });
-                const reservedKey = `reserved${toTitleCase(category, {
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <Heading as="h4">Change Plan</Heading>
+      </Header>
+      <Body>
+        <Stack gap="lg">
+          {intervalSelector}
+          <form.AppField name="plan">
+            {field => (
+              <field.Layout.Stack label="Plan" required>
+                <field.Radio.Group
+                  value={String(field.state.value ?? '')}
+                  onChange={value => {
+                    field.handleChange(value);
+                    handlePlanChange(value);
+                  }}
+                >
+                  {tierPlans.map(plan => (
+                    <field.Radio.Item key={plan.id} value={plan.id}>
+                      <Container data-test-id={`change-plan-label-${plan.id}`}>
+                        <Text bold>
+                          {plan.name} — {plan.id}
+                        </Text>
+                        <Text size="sm">
+                          {formatCurrency(plan.totalPrice)} /{' '}
+                          {plan.billingInterval === ANNUAL ? 'annually' : 'monthly'}
+                        </Text>
+                      </Container>
+                    </field.Radio.Item>
+                  ))}
+                </field.Radio.Group>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          {activePlan &&
+            (
+              activePlan.planCategories.transactions ||
+              activePlan.planCategories.spans ||
+              []
+            ).length > 1 && (
+              <Stack gap="lg">
+                <Heading as="h4">Reserved Volumes</Heading>
+                {activePlan.categories
+                  .filter(category => isCheckoutCategory(category, activePlan))
+                  .map(category => {
+                    const reservedKey = `reserved${toTitleCase(category, {allowInnerUpperCase: true})}`;
+                    const titleCategory = getPlanCategoryName({
+                      plan: activePlan,
+                      category,
+                    });
+                    const label = isByteCategory(category)
+                      ? `${titleCategory} (GB)`
+                      : titleCategory;
+                    const reservedValue = subscription.categories?.[category]?.reserved;
+                    const options = (activePlan.planCategories[category] || []).map(
+                      (level: {events: number}) => ({
+                        label: level.events.toLocaleString(),
+                        value: level.events,
+                      })
+                    );
+                    return (
+                      <form.AppField key={category} name={reservedKey}>
+                        {field => (
+                          <field.Layout.Stack label={label} required>
+                            <field.Select
+                              value={
+                                typeof field.state.value === 'number'
+                                  ? field.state.value
+                                  : null
+                              }
+                              onChange={field.handleChange}
+                              options={options}
+                            />
+                            <Text size="sm" variant="muted">
+                              Current:{' '}
+                              {defined(reservedValue)
+                                ? reservedValue.toLocaleString()
+                                : 'None'}{' '}
+                              {isByteCategory(category) && defined(reservedValue)
+                                ? 'GB'
+                                : ''}
+                            </Text>
+                          </field.Layout.Stack>
+                        )}
+                      </form.AppField>
+                    );
+                  })}
+              </Stack>
+            )}
+          {availableAddOns.length > 0 && (
+            <Stack gap="lg">
+              <Heading as="h4">Available Products</Heading>
+              {availableAddOns.map(productInfo => {
+                const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
+                const titleCaseName = toTitleCase(productInfo.productName, {
                   allowInnerUpperCase: true,
-                })}`;
-                const label = isByteCategory(category)
-                  ? `${titleCategory} (GB)`
-                  : titleCategory;
-                const fieldValue = formModel.getValue(reservedKey);
-                const reservedValue = subscription.categories?.[category]?.reserved;
-                const currentValueDisplay = defined(reservedValue) ? (
-                  <CurrentValueText>
-                    Current: {reservedValue.toLocaleString()}{' '}
-                    {isByteCategory(category) ? 'GB' : ''}
-                  </CurrentValueText>
-                ) : (
-                  <CurrentValueText>Current: None</CurrentValueText>
-                );
+                });
+                const label =
+                  productInfo.apiName === AddOnCategory.LEGACY_SEER
+                    ? `${titleCaseName} (Legacy)`
+                    : titleCaseName;
                 return (
-                  <Container position="relative" key={`test-${category}`}>
-                    <SelectField
-                      inline={false}
-                      stacked
-                      name={reservedKey}
-                      label={label}
-                      value={fieldValue}
-                      options={(activePlan.planCategories[category] || []).map(
-                        (level: {events: {toLocaleString: () => any}}) => ({
-                          label: level.events.toLocaleString(),
-                          value: level.events,
-                        })
-                      )}
-                      required
-                    />
-                    {currentValueDisplay}
-                  </Container>
+                  <form.AppField key={productInfo.apiName} name={addOnKey}>
+                    {field => (
+                      <field.Checkbox
+                        data-test-id={`checkbox-${productInfo.productName}`}
+                        label={label}
+                        checked={Boolean(field.state.value)}
+                        onChange={field.handleChange}
+                      />
+                    )}
+                  </form.AppField>
                 );
               })}
-          </StyledFormSection>
-        )}
-      {availableAddOns.length > 0 && (
-        <StyledFormSection>
-          <h4>Available Products</h4>
-          {availableAddOns.map(productInfo => {
-            const addOnKey = `addOn${toTitleCase(productInfo.apiName, {allowInnerUpperCase: true})}`;
-            const titleCaseName = toTitleCase(productInfo.productName, {
-              allowInnerUpperCase: true,
-            });
-            const label =
-              productInfo.apiName === AddOnCategory.LEGACY_SEER
-                ? `${titleCaseName} (Legacy)`
-                : titleCaseName;
-            return (
-              <CheckboxField
-                key={productInfo.apiName}
-                data-test-id={`checkbox-${productInfo.productName}`}
-                label={label}
-                name={addOnKey}
-                onChange={(value: any) => {
-                  formModel.setValue(addOnKey, value.target.checked);
-                }}
-              />
-            );
-          })}
-        </StyledFormSection>
-      )}
-      <Container marginTop="xl">
-        <InputField
-          data-test-id="url-field"
-          name="ticket-url"
-          type="url"
-          label="TicketUrl"
-          inline={false}
-          stacked
-          flexibleControlStateSize
-        />
-        <TextField
-          data-test-id="notes-field"
-          name="notes"
-          label="Notes"
-          inline={false}
-          stacked
-          flexibleControlStateSize
-          maxLength={500}
-        />
-      </Container>
-    </Form>
+            </Stack>
+          )}
+          <form.AppField name="ticket-url">
+            {field => (
+              <field.Layout.Stack label="TicketUrl">
+                <field.Input
+                  type="url"
+                  data-test-id="url-field"
+                  value={String(field.state.value ?? '')}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="notes">
+            {field => (
+              <field.Layout.Stack label="Notes">
+                <field.Input
+                  data-test-id="notes-field"
+                  value={String(field.state.value ?? '')}
+                  onChange={field.handleChange}
+                  maxLength={500}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
+      </Body>
+      <Footer>
+        <Button onClick={onCancel}>Cancel</Button>
+        <form.SubmitButton variant="danger">Change Plan</form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }
-
-const StyledFormSection = styled('div')`
-  margin: ${p => p.theme.space.md} 0;
-
-  & > h4 {
-    margin: ${p => p.theme.space.xl} 0;
-  }
-`;
-
-const PlanLabel = styled('label')`
-  margin-bottom: 0;
-
-  display: flex;
-  align-items: flex-start;
-
-  & > div {
-    margin-right: ${p => p.theme.space['2xl']};
-  }
-`;
-
-const SubText = styled('small')`
-  font-weight: normal;
-  color: #999;
-`;
-
-const CurrentValueText = styled('div')`
-  color: #666;
-  font-size: 0.9em;
-  margin-top: -${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.lg};
-  font-style: italic;
-`;
