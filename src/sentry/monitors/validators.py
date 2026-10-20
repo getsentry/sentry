@@ -486,6 +486,8 @@ class MonitorValidator(CamelSnakeSerializer):
                 raise serializers.ValidationError({"config": f"Invalid config: {e.message}"})
 
             params["config"] = merged_config
+            # The config is now managed here, until a check-in upserts it again
+            params["is_upserting"] = False
 
         if "status" in params:
             # Attempt to assign a monitor seat
