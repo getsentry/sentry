@@ -37,7 +37,9 @@ const codeModeInputSchema = z
         .optional()
         .catch(undefined)
         .transform(language =>
-          language === undefined ? undefined : (LANGUAGE_ALIASES.get(language) ?? language)
+          language === undefined
+            ? undefined
+            : (LANGUAGE_ALIASES.get(language) ?? language)
         ),
     })
   );
