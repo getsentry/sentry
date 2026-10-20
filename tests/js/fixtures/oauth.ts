@@ -1,4 +1,4 @@
-import type {OAuthContext} from 'sentry/views/authV2/oauth/types';
+import type {AuthorizationConsent, OAuthContext} from 'sentry/views/authV2/oauth/types';
 
 export function OAuthContextFixture(overrides: Partial<OAuthContext> = {}): OAuthContext {
   return {
@@ -22,6 +22,18 @@ export function OAuthContextFixture(overrides: Partial<OAuthContext> = {}): OAut
       },
     ],
     scopes: ['project:read'],
+    ...overrides,
+  };
+}
+
+export function OAuthConsentFixture(
+  overrides: Partial<AuthorizationConsent> = {}
+): AuthorizationConsent {
+  return {
+    stage: 'consent',
+    transactionId: 'prepared-transaction',
+    organizationOptions: [],
+    hasExistingConsent: false,
     ...overrides,
   };
 }
