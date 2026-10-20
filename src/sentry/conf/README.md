@@ -133,8 +133,10 @@ Sentry dependency bump must include both parts of this readiness change.
 Preserve the legacy option registrations and explicit option promotion during
 that rollout. Verify effective-value equality for every mapped key in every
 serving workload before deploying the consumer cutover. Compare the currently served option value
-with the candidate setting, including intentionally empty and false values, old
-aliases, database precedence and credential rotations. Keep this evidence private;
+with the candidate setting from the actual cutover image and its full bootstrap,
+including intentionally empty and false values, old aliases, database precedence
+and credential rotations. Preparation promotion can mask differences that the
+cutover exposes; equality on the preparation image alone is insufficient. Keep this evidence private;
 never log secret values. Confirm Slack uses HMAC whenever it currently uses HMAC;
 a configured verification token cannot substitute for a missing signing secret.
 No production parity evidence is supplied by this PR. The cutover must remain

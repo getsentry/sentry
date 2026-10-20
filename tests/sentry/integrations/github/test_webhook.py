@@ -226,7 +226,8 @@ class TestWebhookCredentialSources:
         )
 
         with override_settings(
-            SENTRY_OPTIONS=deployment, SENTRY_GITHUB_APP_WEBHOOK_SECRET=setting_secret
+            SENTRY_OPTIONS=deployment,  # noqa: S011
+            SENTRY_GITHUB_APP_WEBHOOK_SECRET=setting_secret,
         ):
             accepted = client.post(
                 "/extensions/github/webhook/",
@@ -259,7 +260,7 @@ class TestWebhookCredentialSources:
         signature = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, "")
 
         with override_settings(
-            SENTRY_OPTIONS={**settings.SENTRY_OPTIONS, "github-app.webhook-secret": ""},
+            SENTRY_OPTIONS={**settings.SENTRY_OPTIONS, "github-app.webhook-secret": ""},  # noqa: S011
             SENTRY_GITHUB_APP_WEBHOOK_SECRET="",
         ):
             response = client.post(

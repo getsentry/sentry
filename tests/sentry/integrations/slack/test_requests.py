@@ -176,7 +176,7 @@ class TestSlackCredentialSources:
             if key != "slack.signing-secret"
         }
         deployment["slack.verification-token"] = "legacy-token"
-        with override_settings(SENTRY_OPTIONS=deployment):
+        with override_settings(SENTRY_OPTIONS=deployment):  # noqa: S011
             options.delete("slack.signing-secret")
             for key, value in database_options.items():
                 options.set(key, value)
@@ -186,7 +186,7 @@ class TestSlackCredentialSources:
         )
 
         with override_settings(
-            SENTRY_OPTIONS=deployment,
+            SENTRY_OPTIONS=deployment,  # noqa: S011
             SENTRY_SLACK_SIGNING_SECRET=setting_secret,
             SENTRY_SLACK_VERIFICATION_TOKEN="legacy-token",
         ):
