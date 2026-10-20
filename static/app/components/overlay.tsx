@@ -1,5 +1,5 @@
-import type {PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
+import type {Placement} from '@floating-ui/react-dom';
 import type {HTMLMotionProps, MotionProps, MotionStyle} from 'framer-motion';
 import {motion, useIsPresent} from 'framer-motion';
 
@@ -33,7 +33,7 @@ export interface OverlayProps
    * Indicates where the overlay is placed. This is useful for the animation to
    * be animated 'towards' the placment origin, giving it a pleasing effect.
    */
-  placement?: PopperProps<any>['placement'];
+  placement?: Placement;
 }
 
 const overlayAnimation: MotionProps = {
@@ -60,7 +60,7 @@ const overlayAnimation: MotionProps = {
  * since the direction of the scale isn't towards the reference element
  */
 function computeOriginFromArrow(
-  placement?: PopperProps<any>['placement'],
+  placement?: Placement,
   originPoint?: OriginPoint
 ): MotionStyle {
   const simplePlacement = placement?.split('-')[0];

@@ -1,9 +1,7 @@
-import {createContext, Fragment, useCallback, useContext, useMemo, useRef} from 'react';
+import {createContext, Fragment, useContext, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {State} from '@popperjs/core';
-import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -54,34 +52,15 @@ interface HovercardContentProps extends Pick<
 interface HovercardProviderValue {
   isOpen: boolean;
   reset: () => void;
-  update: (() => Promise<Partial<State>>) | null;
 }
 
 const HovercardContext = createContext<HovercardProviderValue>({
   isOpen: false,
   reset: () => {},
-  update: null,
 });
 
 export function useHovercardContext() {
   return useContext(HovercardContext);
-}
-
-function useUpdateOverlayPositionOnContentChange({
-  update,
-}: Pick<UseOverOverlayState, 'update'>) {
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  const onResize = useCallback(() => {
-    update?.();
-  }, [update]);
-
-  useResizeObserver({
-    ref,
-    onResize,
-  });
-
-  return ref;
 }
 
 function HovercardContent({
@@ -90,10 +69,9 @@ function HovercardContent({
   bodyClassName,
   className,
   header,
-  hoverOverlayState: {arrowData, arrowProps, overlayProps, placement, update},
+  hoverOverlayState: {arrowData, arrowProps, overlayProps, placement},
 }: HovercardContentProps) {
   const theme = useTheme();
-  const ref = useUpdateOverlayPositionOnContentChange({update});
 
   return (
     <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
@@ -106,7 +84,6 @@ function HovercardContent({
         originPoint={arrowData}
         placement={placement}
         className={className}
-        ref={ref}
       >
         {header ? <Header>{header}</Header> : null}
         {body ? <Body className={bodyClassName}>{body}</Body> : null}
@@ -140,9 +117,8 @@ function Hovercard({
     () => ({
       isOpen,
       reset: hoverOverlayState.reset,
-      update: hoverOverlayState.update,
     }),
-    [isOpen, hoverOverlayState.reset, hoverOverlayState.update]
+    [isOpen, hoverOverlayState.reset]
   );
   // Nothing to render if no header or body. Be consistent with wrapping the
   // children with the trigger in the case that the body / header is set while
