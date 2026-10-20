@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -73,8 +72,6 @@ export function DroppedDataChart({
   selection,
   onSelectionChange,
 }: DroppedDataChartProps) {
-  const theme = useTheme();
-
   const {legendItems, plottables} = useMemo(() => {
     const series = droppedEventsToSeries(droppedEvents);
     const orderedOutcomes = Object.keys(series).sort();
@@ -115,35 +112,26 @@ export function DroppedDataChart({
           )}
         </Text>
       </Stack>
-      <Container
-        border="primary"
-        radius="lg"
-        padding="md xl xl xl"
-        style={{borderColor: theme.tokens.graphics.neutral.moderate}}
-      >
-        <Container paddingBottom="md">
-          <ChartLegend
-            items={legendItems}
-            selected={selection}
-            onSelectionChange={onSelectionChange}
-          />
-        </Container>
-        <Container height={CHART_HEIGHT}>
-          {plottables.length > 0 ? (
-            <TimeSeriesWidgetVisualization plottables={plottables} showLegend="never" />
-          ) : legendItems.length > 0 ? (
-            <Flex height="100%" align="center">
-              <EmptyState
-                title={t('No outcomes selected.')}
-                description={t(
-                  'Select an outcome in the legend to see its dropped events.'
-                )}
-              />
-            </Flex>
-          ) : (
-            <TimeSeriesWidgetVisualization.NoData />
-          )}
-        </Container>
+      <ChartLegend
+        items={legendItems}
+        selected={selection}
+        onSelectionChange={onSelectionChange}
+      />
+      <Container height={CHART_HEIGHT}>
+        {plottables.length > 0 ? (
+          <TimeSeriesWidgetVisualization plottables={plottables} showLegend="never" />
+        ) : legendItems.length > 0 ? (
+          <Flex height="100%" align="center">
+            <EmptyState
+              title={t('No outcomes selected.')}
+              description={t(
+                'Select an outcome in the legend to see its dropped events.'
+              )}
+            />
+          </Flex>
+        ) : (
+          <TimeSeriesWidgetVisualization.NoData />
+        )}
       </Container>
     </Stack>
   );
