@@ -50,6 +50,10 @@ describe('reasonTitle', () => {
     expect(reasonTitle('Sampled:3000')).toBe('Dynamic sampling');
   });
 
+  it('distinguishes legacy dynamic sampling from current dynamic sampling', () => {
+    expect(reasonTitle('transaction_sampled')).toBe('Dynamic sampling (legacy)');
+  });
+
   it('falls back to the raw code for an unknown reason', () => {
     expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
   });

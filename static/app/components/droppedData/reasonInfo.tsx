@@ -4,6 +4,9 @@ interface ReasonInfo {
   title: string;
 }
 
+export const DROPPED_DATA_DOCS_URL =
+  'https://docs.sentry.io/product/explore/dropped-data/';
+
 // One entry per drop reason, keyed by the reason code Relay/Sentry emits.
 // `title` is the row heading.
 // Content mirrors the "Dropped Events Descriptions" registry.
@@ -58,7 +61,7 @@ export const REASON_INFO: Record<string, ReasonInfo> = {
   duplicate: {title: t('Duplicate ID')},
   duplicate_item: {title: t('Duplicate envelope item')},
   transaction_attachment: {title: t('Transaction attachment')},
-  transaction_sampled: {title: t('Dynamic sampling')},
+  transaction_sampled: {title: t('Dynamic sampling (legacy)')},
   // Relay emits `Sampled:<rule_ids>`; normalizeReason strips the suffix.
   Sampled: {title: t('Dynamic sampling')},
   payload: {title: t('Unprocessable crash payload')},
