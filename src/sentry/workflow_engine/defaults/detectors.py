@@ -88,19 +88,24 @@ class UnableToAcquireLockApiError(SentryAPIException):
 
 
 def _ensure_detector(
-    project: Project, type: str, default_enabled: bool = True, *, new_project: bool = False
+    project: Project,
+    type: str,
+    default_enabled: bool = True,
+    *,
+    project_not_yet_visible: bool = False,
 ) -> Detector:
     """
     Ensure that a detector of a given type exists for a project.
     If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
     and UnableToAcquireLockApiError if that fails.
 
-    Set `new_project` only when the caller inserted the project just now (for example in
-    the post_save signal of the project). Then we do not take the lock. If a transaction is
-    open, no other process can see the project yet. If no transaction is open, another
-    process can only create the same detector if it finds the project in the short time
-    before this call. Also, a Redis lock inside a transaction is released before the commit,
-    so it does not protect this case.
+    Set `project_not_yet_visible` only when no other process can find the project yet, so no
+    other process can create its detectors (for example in the post_save signal of the
+    project). Then we do not take the lock. If a transaction is open, the project is not
+    visible until the commit. If no transaction is open, another process can only create the
+    same detector if it finds the project in the short time before this call. Also, a Redis
+    lock inside a transaction is released before the commit, so it does not protect this case.
+    Do not set it for a project that other code can already find.
     """
     group_type = grouptype.registry.get_by_slug(type)
     if not group_type:
@@ -133,7 +138,7 @@ def _ensure_detector(
         )
         return detector
 
-    if new_project:
+    if project_not_yet_visible:
         return create_detector()
 
     # If we may need to create it, we acquire a lock to avoid double-creating.
@@ -274,7 +279,7 @@ def ensure_default_anomaly_detector(
 
 
 def ensure_performance_detectors(
-    project: Project, *, new_project: bool = False
+    project: Project, *, project_not_yet_visible: bool = False
 ) -> dict[str, Detector]:
     if not features.has("projects:workflow-engine-performance-detectors", project):
         return {}
@@ -293,7 +298,10 @@ def ensure_performance_detectors(
         enabled = (project.platform not in disabled_platforms) and default_enabled
 
         detectors[detector_type] = _ensure_detector(
-            project, detector_type, default_enabled=enabled, new_project=new_project
+            project,
+            detector_type,
+            default_enabled=enabled,
+            project_not_yet_visible=project_not_yet_visible,
         )
 
     return detectors
@@ -349,16 +357,20 @@ def ensure_default_organization_detectors(organization: Organization) -> dict[st
     return detectors
 
 
-def ensure_default_detectors(project: Project, *, new_project: bool = False) -> dict[str, Detector]:
+def ensure_default_detectors(
+    project: Project, *, project_not_yet_visible: bool = False
+) -> dict[str, Detector]:
     """
-    See `_ensure_detector` for when to set `new_project`.
+    See `_ensure_detector` for when to set `project_not_yet_visible`.
     """
     detectors: dict[str, Detector] = {}
     detectors[ErrorGroupType.slug] = _ensure_detector(
-        project, ErrorGroupType.slug, new_project=new_project
+        project, ErrorGroupType.slug, project_not_yet_visible=project_not_yet_visible
     )
     detectors[IssueStreamGroupType.slug] = _ensure_detector(
-        project, IssueStreamGroupType.slug, new_project=new_project
+        project, IssueStreamGroupType.slug, project_not_yet_visible=project_not_yet_visible
     )
-    detectors.update(ensure_performance_detectors(project, new_project=new_project))
+    detectors.update(
+        ensure_performance_detectors(project, project_not_yet_visible=project_not_yet_visible)
+    )
     return detectors

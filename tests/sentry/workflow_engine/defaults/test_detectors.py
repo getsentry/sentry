@@ -63,16 +63,16 @@ class TestEnsureDefaultDetectors(TestCase):
             with pytest.raises(UnableToAcquireLockApiError):
                 ensure_default_detectors(project)
 
-    def test_ensure_default_detector__new_project_does_not_lock(self) -> None:
+    def test_ensure_default_detector__project_not_yet_visible_does_not_lock(self) -> None:
         project = self.create_project(create_default_detectors=False)
-        # Another process holds the lock. A new project must not wait for it.
+        # Another process holds the lock. A project that is not yet visible must not wait for it.
         held_lock = locks.get(
             f"workflow-engine-project-{ErrorGroupType.slug}-detector:{project.id}",
             duration=10,
             name="test",
         )
         with held_lock.acquire():
-            detectors = ensure_default_detectors(project, new_project=True)
+            detectors = ensure_default_detectors(project, project_not_yet_visible=True)
 
         assert detectors[ErrorGroupType.slug].project_id == project.id
         assert detectors[IssueStreamGroupType.slug].project_id == project.id

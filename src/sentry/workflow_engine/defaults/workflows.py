@@ -38,11 +38,11 @@ def connect_workflows_to_issue_stream(
     project: Project,
     workflows: list[Workflow],
     *,
-    new_project: bool = False,
+    project_not_yet_visible: bool = False,
 ) -> Sequence[DetectorWorkflow]:
     # Because we don't know if this signal is handled already or not...
     issue_stream_detector = _ensure_detector(
-        project, IssueStreamGroupType.slug, new_project=new_project
+        project, IssueStreamGroupType.slug, project_not_yet_visible=project_not_yet_visible
     )
 
     connections = [
@@ -164,12 +164,16 @@ def create_and_connect_pull_request_workflow(
     return workflow
 
 
-def ensure_default_workflows(project: Project, *, new_project: bool = False) -> list[Workflow]:
+def ensure_default_workflows(
+    project: Project, *, project_not_yet_visible: bool = False
+) -> list[Workflow]:
     """
-    See `_ensure_detector` for when to set `new_project`.
+    See `_ensure_detector` for when to set `project_not_yet_visible`.
     """
     workflows = [create_priority_workflow(project.organization)]
-    connect_workflows_to_issue_stream(project, workflows, new_project=new_project)
+    connect_workflows_to_issue_stream(
+        project, workflows, project_not_yet_visible=project_not_yet_visible
+    )
     return workflows
 
 
