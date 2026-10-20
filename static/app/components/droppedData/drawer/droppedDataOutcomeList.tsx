@@ -18,7 +18,7 @@ import {DROPPED_DATA_DOCS_URL} from 'sentry/components/droppedData/reasonInfo';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
-const COLUMN_WIDTHS = {reason: '1fr', dropped: '160px', share: '96px', actions: '48px'};
+const COLUMN_WIDTHS = {reason: '1fr', dropped: '96px', share: '88px', actions: '48px'};
 const TABLE_COLUMNS: TableColumnConfig[] = Object.entries(COLUMN_WIDTHS).map(
   ([key, width]) => ({key, width})
 );
