@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -230,6 +231,7 @@ function VisualizeDropdown({
   numberTags,
   stringTags,
 }: VisualizeDropdownProps) {
+  const organization = useOrganization();
   const firstNumberKey = useMemo(
     () => Object.keys(numberTags).sort()[0] ?? null,
     [numberTags]
@@ -337,10 +339,12 @@ function VisualizeDropdown({
       loading={loading}
       fieldDefinitionType="log"
       transformationControls={
-        <VisualizeTransformations
-          transformations={visualize.transformations}
-          onChange={transformations => onReplace(visualize.replace({transformations}))}
-        />
+        organization.features.includes('explore-interpolation-and-smoothing') ? (
+          <VisualizeTransformations
+            transformations={visualize.transformations}
+            onChange={transformations => onReplace(visualize.replace({transformations}))}
+          />
+        ) : undefined
       }
       filterSearchBar={
         showFilterSearchBar ? (
