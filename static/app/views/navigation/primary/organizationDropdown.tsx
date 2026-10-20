@@ -93,7 +93,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     key: `${keyPrefix}-${project.id}`,
     label: project.slug,
     leadingItems: <ProjectAvatar project={project} size={16} />,
-    trailingItems: <BookmarkStar project={project} organization={organization} />,
+    trailingItems: (
+      <span onClick={event => event.stopPropagation()}>
+        <BookmarkStar project={project} organization={organization} />
+      </span>
+    ),
     onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
   });
   const memberProjects = sortProjects(projects.filter(project => project.isMember));
@@ -159,11 +163,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             label: t('Project Settings'),
             hidden: props.hideCurrentOrganizationLinks,
             children: [
-              ...orderBy(
-                projects.filter(project => project.isBookmarked),
-                ['slug'],
-                ['asc']
-              )
+              ...projects
+                .filter(project => project.isBookmarked)
                 .slice(0, 5)
                 .map(project => projectMenuItem(project, 'starred-project')),
               {
