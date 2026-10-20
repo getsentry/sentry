@@ -11,9 +11,13 @@
   ],
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./code/inlineCode": {
+      "types": "./dist/code/inlineCode.d.ts",
+      "import": "./dist/code/inlineCode.js"
+    },
+    "./hotkey/kbd": {
+      "types": "./dist/hotkey/kbd.d.ts",
+      "import": "./dist/hotkey/kbd.js"
     },
     "./theme": {
       "types": "./dist/theme/index.d.ts",
@@ -90,6 +94,38 @@
     "./useScrollLock": {
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
+    },
+    "./link": {
+      "types": "./dist/link/index.d.ts",
+      "import": "./dist/link/index.js"
+    },
+    "./trackingContext": {
+      "types": "./dist/trackingContext.d.ts",
+      "import": "./dist/trackingContext.js"
+    },
+    "./image": {
+      "types": "./dist/image/index.d.ts",
+      "import": "./dist/image/index.js"
+    },
+    "./descriptionList": {
+      "types": "./dist/descriptionList/index.d.ts",
+      "import": "./dist/descriptionList/index.js"
+    },
+    "./interactionStateLayer": {
+      "types": "./dist/interactionStateLayer/index.d.ts",
+      "import": "./dist/interactionStateLayer/index.js"
+    },
+    "./radio": {
+      "types": "./dist/radio/index.d.ts",
+      "import": "./dist/radio/index.js"
+    },
+    "./statusIndicator": {
+      "types": "./dist/statusIndicator/index.d.ts",
+      "import": "./dist/statusIndicator/index.js"
+    },
+    "./hotkey": {
+      "types": "./dist/hotkey/index.d.ts",
+      "import": "./dist/hotkey/index.js"
     }
   },
   "publishConfig": {
@@ -113,7 +149,8 @@
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
     "@types/react": "19.3.0",
-    "framer-motion": "12.38.0"
+    "framer-motion": "12.38.0",
+    "query-string": "7.0.1"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",

@@ -190,23 +190,31 @@ function Card({
 }
 
 function QuestionOptions({question}: {question: EvaluationQuestion}) {
-  const {criteria} = question;
+  const {criteria, descriptions} = question;
 
   // A scale, e.g. `["low", "medium", "high"]`, where the index is the value.
   if (Array.isArray(criteria)) {
-    return criteria.length > 0 ? (
+    const options = criteria.map((label, index): [string, string] => [
+      question.type === 'score' ? `${index} · ${label}` : label,
+      descriptions?.[index] ?? '',
+    ]);
+    if (options.some(([, description]) => description)) {
+      return <DescribedOptions options={options} />;
+    }
+    return options.length > 0 ? (
       <Flex wrap="wrap" gap="xs">
-        {criteria.map((label, index) => (
-          <TruncatedTag key={index}>
-            {question.type === 'score' ? `${index} · ${label}` : label}
-          </TruncatedTag>
+        {options.map(([label], index) => (
+          <TruncatedTag key={index}>{label}</TruncatedTag>
         ))}
       </Flex>
     ) : null;
   }
 
   // Described options, e.g. `{"billing": "Charges and refunds"}`.
-  const options = Object.entries(criteria ?? {});
+  return <DescribedOptions options={Object.entries(criteria ?? {})} />;
+}
+
+function DescribedOptions({options}: {options: Array<[string, string]>}) {
   if (options.length === 0) {
     return null;
   }
@@ -217,11 +225,11 @@ function QuestionOptions({question}: {question: EvaluationQuestion}) {
       align="baseline"
       paddingTop="xs"
     >
-      {options.map(([label, description]) => [
-        <Container key={`${label}:label`} minWidth="0">
+      {options.map(([label, description], index) => [
+        <Container key={`${index}:label`} minWidth="0">
           <TruncatedTag>{label}</TruncatedTag>
         </Container>,
-        <Text key={`${label}:description`} size="sm" variant="muted">
+        <Text key={`${index}:description`} size="sm" variant="muted">
           {description}
         </Text>,
       ])}

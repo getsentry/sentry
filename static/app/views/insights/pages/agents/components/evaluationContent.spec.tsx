@@ -56,6 +56,28 @@ describe('EvaluationQuestions', () => {
     expect(screen.getByText('Unrecognized')).toBeInTheDocument();
     expect(screen.getByText(/friendly/)).toBeInTheDocument();
   });
+
+  it('renders score level descriptions next to their levels', () => {
+    render(
+      <EvaluationQuestions
+        questions={[
+          {
+            key: 'urgency',
+            kind: 'question',
+            type: 'score',
+            criteria: ['low', 'medium', 'high'],
+            descriptions: {1: 'Needs a reply today', 2: 'Blocks the customer'},
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('0 · low')).toBeInTheDocument();
+    expect(screen.getByText('1 · medium')).toBeInTheDocument();
+    expect(screen.getByText('Needs a reply today')).toBeInTheDocument();
+    expect(screen.getByText('2 · high')).toBeInTheDocument();
+    expect(screen.getByText('Blocks the customer')).toBeInTheDocument();
+  });
 });
 
 describe('EvaluationAnswers', () => {

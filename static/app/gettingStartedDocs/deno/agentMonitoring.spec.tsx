@@ -67,12 +67,6 @@ describe('deno agentMonitoring onboarding', () => {
       expect(code).toContain('--preload=npm:@sentry/deno/import app.ts');
     });
 
-    it('omits the data collection step', () => {
-      const titles = agentMonitoring.configure(params).map(step => step.title);
-
-      expect(titles).not.toContain('Control the Data You Send to Sentry (Optional)');
-    });
-
     it('verifies by running a Pi Durable conversation', () => {
       const steps = agentMonitoring.verify(params);
 

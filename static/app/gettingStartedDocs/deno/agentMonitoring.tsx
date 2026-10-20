@@ -8,7 +8,6 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {onboarding as piFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-pi-durable/onboarding';
 import {
-  getAgentDataCollectionStep,
   getAgentIntegration,
   getManualConfigureStep,
   getMinRequiredVersion,
@@ -191,7 +190,7 @@ export const agentMonitoring: OnboardingConfig = {
       },
     ];
   },
-  configure: params => [...configureSteps(params), ...getAgentDataCollectionStep(params)],
+  configure: configureSteps,
   verify: params => {
     if (getAgentIntegration(params) === AgentIntegration.PI) {
       return piFrameworkOnboarding.verify(params);

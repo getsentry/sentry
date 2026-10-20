@@ -30,10 +30,17 @@ const codeModeInputSchema = z
   .pipe(
     z.object({
       code: z.string().refine(code => code.trim().length > 0),
+      // No default: assuming JavaScript would run the JS formatter on other
+      // languages, e.g. flatten Python indentation.
       language: z
         .string()
-        .catch('javascript')
-        .transform(language => LANGUAGE_ALIASES.get(language) ?? language),
+        .optional()
+        .catch(undefined)
+        .transform(language =>
+          language === undefined
+            ? undefined
+            : (LANGUAGE_ALIASES.get(language) ?? language)
+        ),
     })
   );
 

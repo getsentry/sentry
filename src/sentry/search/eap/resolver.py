@@ -341,11 +341,14 @@ class SearchResolver:
         # If occurrences dataset, cache group_id to issues mapping.
         self._init_issue_short_id_cache(parsed_terms)
 
-        if any(
-            isinstance(term, event_search.ParenExpression)
-            or event_search.SearchBoolean.is_operator(term)
-            for term in parsed_terms
-        ):
+        has_boolean = False
+        for term in parsed_terms:
+            if (isinstance(term, event_search.ParenExpression)) or (
+                event_search.SearchBoolean.is_operator(term) and len(parsed_terms) > 1
+            ):
+                has_boolean = True
+                break
+        if has_boolean:
             return self._resolve_boolean_conditions(parsed_terms)
         else:
             return self._resolve_terms(parsed_terms)
@@ -367,7 +370,7 @@ class SearchResolver:
             elif isinstance(terms[0], event_search.AggregateFilter):
                 return self._resolve_terms([terms[0]])
             else:
-                raise NotImplementedError("Haven't handled all the search expressions yet")
+                return self._resolve_terms(terms)
 
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
