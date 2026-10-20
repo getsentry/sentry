@@ -738,7 +738,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
     def test_seeds_defaults_once(self) -> None:
-        project = self.create_project()
+        self.create_project()
 
         first = self.get_success_response(self.organization.slug)
         second = self.get_success_response(self.organization.slug)
@@ -751,8 +751,9 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "enabled": False,
             "schedule": "daily",
             "version": 1,
-            "filters": {"allProjects": True, "environments": []},
-            "projectIds": [str(project.id)],
+            "projects": [-1],
+            "environments": [],
+            "filters": {},
             "outputPolicy": {},
             "seededDefault": "agentic_triage_v2",
             "dateAdded": first.data[0]["dateAdded"],
@@ -778,12 +779,9 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "enabled": True,
             "schedule": "daily",
             "version": 4,
-            "filters": {
-                "allProjects": False,
-                "environments": ["production"],
-                "minEventCount": 10,
-            },
-            "projectIds": [str(project.id)],
+            "projects": [project.id],
+            "environments": ["production"],
+            "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": None,
             "dateAdded": config.date_added,
@@ -812,17 +810,19 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert [item["id"] for item in response.data] == [str(first.id), str(second.id)]
 
     def test_empty_selection_is_distinct_from_all_projects(self) -> None:
-        project = self.create_project()
         empty = self.create_config()
         all_projects = self.create_config(filters={"all_projects": True})
 
         response = self.get_success_response(self.organization.slug)
 
         assert [item["id"] for item in response.data] == [str(empty.id), str(all_projects.id)]
-        assert response.data[0]["filters"]["allProjects"] is False
-        assert response.data[0]["projectIds"] == []
-        assert response.data[1]["filters"]["allProjects"] is True
-        assert response.data[1]["projectIds"] == [str(project.id)]
+        assert response.data[0]["projects"] == []
+        assert response.data[1]["projects"] == [-1]
+
+        self.create_project()
+        later = self.get_success_response(self.organization.slug)
+
+        assert later.data == response.data
 
     def test_scope_only_includes_accessible_active_projects(self) -> None:
         self.organization.flags.allow_joinleave = False
@@ -843,8 +843,8 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 2
-        assert response.data[0]["projectIds"] == [str(accessible.id)]
-        assert response.data[1]["projectIds"] == [str(accessible.id)]
+        assert response.data[0]["projects"] == [accessible.id]
+        assert response.data[1]["projects"] == [-1]
 
     def test_nonmember_cannot_list_or_seed_configs(self) -> None:
         self.login_as(self.create_user())
@@ -863,15 +863,21 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert 'rel="next"; results="true"' in response.headers["Link"]
 
     def test_project_links_are_loaded_in_one_query(self) -> None:
-        project = self.create_project()
+        first, second = self.create_project(), self.create_project()
         configs = [self.create_config(), self.create_config()]
         for config in configs:
-            Factories.create_seer_workflow_config_project(config, project)
+            Factories.create_seer_workflow_config_project(config, second)
+            Factories.create_seer_workflow_config_project(config, first)
 
         with self.assertNumQueries(1):
-            results = serialize_workflow_configs(configs, accessible_project_ids=[project.id])
+            results = serialize_workflow_configs(
+                configs, accessible_project_ids=[first.id, second.id]
+            )
 
-        assert [item["projectIds"] for item in results] == [[str(project.id)], [str(project.id)]]
+        assert [item["projects"] for item in results] == [
+            [first.id, second.id],
+            [first.id, second.id],
+        ]
 
     def create_config(self, **kwargs) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(

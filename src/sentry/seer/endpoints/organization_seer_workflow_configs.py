@@ -17,6 +17,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.organization import Organization
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
@@ -26,19 +27,15 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.workflow import SeerWorkflow
 
 
-class SeerWorkflowFiltersResponse(TypedDict):
-    allProjects: bool
-    environments: list[str]
-
-
 class SeerWorkflowConfigResponse(TypedDict):
     id: str
     strategy: str
     enabled: bool
     schedule: str
     version: int
-    filters: SeerWorkflowFiltersResponse
-    projectIds: list[str]
+    projects: list[int]
+    environments: list[str]
+    filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
     dateAdded: datetime
@@ -60,9 +57,10 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         """List non-legacy configurations, seeding missing defaults on first access.
 
-        ``projectIds`` resolves the scope to active projects accessible to the caller.
-        ``filters.allProjects`` distinguishes all projects from an empty selection;
-        an empty ``filters.environments`` means all environments. ``seededDefault``
+        ``projects`` is ``[-1]`` for all projects, ``[]`` for no projects, or a list
+        of selected active project IDs accessible to the caller. An empty
+        ``environments`` list means all environments; otherwise it contains names.
+        ``filters`` contains strategy-specific filters. ``seededDefault``
         identifies defaults, including defaults whose configuration has been changed.
         ``outputPolicy`` is the saved, opaque policy document.
         """
@@ -88,12 +86,12 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 def serialize_workflow_configs(
     configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
 ) -> list[SeerWorkflowConfigResponse]:
-    selected_projects: dict[int, list[str]] = defaultdict(list)
+    selected_projects: dict[int, list[int]] = defaultdict(list)
     links = SeerWorkflowConfigProject.objects.filter(
         config__in=configs, project_id__in=accessible_project_ids
     ).order_by("project_id")
     for config_id, project_id in links.values_list("config_id", "project_id"):
-        selected_projects[config_id].append(str(project_id))
+        selected_projects[config_id].append(project_id)
 
     results: list[SeerWorkflowConfigResponse] = []
     for config in configs:
@@ -106,13 +104,19 @@ def serialize_workflow_configs(
                 "enabled": config.enabled,
                 "schedule": config.schedule,
                 "version": config.version,
-                "filters": convert_dict_key_case(
-                    config.filters | filters.dict(), snake_to_camel_case
-                ),
-                "projectIds": (
-                    [str(p) for p in accessible_project_ids]
+                "projects": (
+                    [ALL_ACCESS_PROJECT_ID]
                     if filters.all_projects
                     else selected_projects[config.id]
+                ),
+                "environments": filters.environments,
+                "filters": convert_dict_key_case(
+                    {
+                        key: value
+                        for key, value in config.filters.items()
+                        if key not in {"all_projects", "environments"}
+                    },
+                    snake_to_camel_case,
                 ),
                 "outputPolicy": config.output_policy,
                 "seededDefault": workflow.extras.seeded_default,
