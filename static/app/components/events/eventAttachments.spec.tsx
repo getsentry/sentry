@@ -87,7 +87,7 @@ describe('EventAttachments', () => {
       expect(await screen.findByText('Attachments (0)')).toBeInTheDocument();
       expect(
         screen.getByText(
-          "This event had attachments, but they weren't stored because your attachment quota was exceeded.",
+          "This event had attachments, but they weren't stored because your attachment quota was exceeded at the time the event was ingested.",
           {exact: false}
         )
       ).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe('EventAttachments', () => {
       expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
       expect(
         screen.getByText(
-          "Some of this event's attachments weren't stored because your attachment quota was exceeded.",
+          "Some of this event's attachments weren't stored because your attachment quota was exceeded at the time the event was ingested.",
           {exact: false}
         )
       ).toBeInTheDocument();

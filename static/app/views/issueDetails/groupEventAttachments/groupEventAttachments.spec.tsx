@@ -252,7 +252,7 @@ describe('GroupEventAttachments', () => {
       metadata: {attachments_quota_exceeded: true},
     });
     const quotaExceededMessage =
-      'Some attachments may be missing from this list because your attachment quota was exceeded.';
+      'Some attachments may be missing from this list because your attachment quota was exceeded at the time the event was ingested.';
 
     it('warns that attachments may be missing', async () => {
       render(<GroupEventAttachments project={project} group={quotaExceededGroup} />, {

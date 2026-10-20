@@ -20,17 +20,17 @@ function getMessage(variant: Props['variant'], statsLink: React.ReactElement) {
   switch (variant) {
     case 'event-all':
       return tct(
-        "This event had attachments, but they weren't stored because your attachment quota was exceeded. [statsLink:View your attachment usage].",
+        "This event had attachments, but they weren't stored because your attachment quota was exceeded at the time the event was ingested. [statsLink:View your attachment usage].",
         {statsLink}
       );
     case 'event-some':
       return tct(
-        "Some of this event's attachments weren't stored because your attachment quota was exceeded. [statsLink:View your attachment usage].",
+        "Some of this event's attachments weren't stored because your attachment quota was exceeded at the time the event was ingested. [statsLink:View your attachment usage].",
         {statsLink}
       );
     case 'issue':
       return tct(
-        'Some attachments may be missing from this list because your attachment quota was exceeded. [statsLink:View your attachment usage].',
+        'Some attachments may be missing from this list because your attachment quota was exceeded at the time the event was ingested. [statsLink:View your attachment usage].',
         {statsLink}
       );
   }
