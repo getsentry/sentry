@@ -6,10 +6,7 @@ from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.api.serializers import ProjectSerializer
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import (
-    VIEWER_CONTEXT_ACTOR_TYPE_KEY,
-    CellScheduledDeletion,
-)
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.rpc import OptionValue
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.models.options.project_option import ProjectOption
@@ -25,7 +22,6 @@ from sentry.projects.services.project.model import ProjectUpdateArgs
 from sentry.projects.services.project.serial import ProjectUpdateArgsSerializer, serialize_project
 from sentry.signals import project_created
 from sentry.users.services.user import RpcUser
-from sentry.viewer_context import ActorType
 
 
 class DatabaseBackedProjectService(ProjectService):
@@ -240,11 +236,7 @@ class DatabaseBackedProjectService(ProjectService):
                 # project_details.py); if rename fails after this, the
                 # deletion task still runs and the row gets cleaned up
                 # on its normal schedule.
-                CellScheduledDeletion.schedule(
-                    project,
-                    days=0,
-                    data={VIEWER_CONTEXT_ACTOR_TYPE_KEY: ActorType.SYSTEM.value},
-                )
+                CellScheduledDeletion.schedule(project, days=0)
                 # Rename the slug so a recreated project with the same
                 # slug doesn't collide with the pending-deletion row
                 # during its retention window. Without this,

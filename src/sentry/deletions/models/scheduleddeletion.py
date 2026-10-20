@@ -18,8 +18,6 @@ from sentry.users.services.user.service import user_service
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
-VIEWER_CONTEXT_ACTOR_TYPE_KEY = "viewer_context_actor_type"
-
 
 def default_guid() -> str:
     return uuid4().hex
