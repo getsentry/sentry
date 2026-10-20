@@ -78,7 +78,7 @@ describe('SeerStatusBlock', () => {
 
     const toggle = screen.getByRole('button', {name: 'Compare releases'});
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText('Query spans')).not.toBeInTheDocument();
+    expect(screen.getByText('Query spans')).not.toBeVisible();
 
     await userEvent.click(toggle);
 
