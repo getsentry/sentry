@@ -1,7 +1,6 @@
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
-import {Container} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
 
 import type {MenuItemProps} from './item';
@@ -24,9 +23,9 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
   return (
     <Menu.SectionGroup {...itemProps}>
       {node.rendered && (
-        <Container padding="md xl">
-          <Menu.SectionLabel {...headingProps}>{node.rendered}</Menu.SectionLabel>
-        </Container>
+        <Menu.SectionLabel padding="md xl" {...headingProps}>
+          {node.rendered}
+        </Menu.SectionLabel>
       )}
       <Menu.SectionList {...groupProps}>{children}</Menu.SectionList>
     </Menu.SectionGroup>

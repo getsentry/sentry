@@ -298,6 +298,42 @@ describe('DropdownMenu', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it('clears a searchable submenu when it closes', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            submenu: {search: {placeholder: 'Search projects'}},
+            children: [
+              {key: 'javascript', label: 'javascript'},
+              {key: 'sentry', label: 'sentry'},
+            ],
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search projects'}),
+      'sentry'
+    );
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'javascript'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+
+    expect(screen.getByRole('textbox', {name: 'Search projects'})).toHaveValue('');
+    expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
+  });
+
   it('keeps a searchable submenu open when moving the search caret left', async () => {
     render(
       <DropdownMenu

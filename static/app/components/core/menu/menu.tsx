@@ -36,15 +36,40 @@ export function MenuHeading({children}: {children: React.ReactNode}) {
 /** Text style for a heading within a menu section. */
 export function MenuSectionLabel({
   children,
+  padding,
   ...props
 }: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
   children: React.ReactNode;
+  padding?: ContainerProps['padding'];
 }) {
   // TODO: Use the transparent menu heading color when Text exposes a variant for it.
   return (
-    <Text as="span" size="sm" density="fixed" bold tabular {...props}>
+    <Container padding={padding}>
+      <Text as="span" size="sm" density="fixed" bold tabular {...props}>
+        {children}
+      </Text>
+    </Container>
+  );
+}
+
+/** Layout for a menu section heading and an optional action beside it. */
+export function MenuSectionHeader({
+  children,
+  trailingAction,
+  ...props
+}: FlexProps & {trailingAction?: React.ReactNode}) {
+  return (
+    <Flex
+      data-section-header
+      justify="between"
+      align="center"
+      minHeight="1.5em"
+      padding="2xs lg"
+      {...props}
+    >
       {children}
-    </Text>
+      {trailingAction}
+    </Flex>
   );
 }
 

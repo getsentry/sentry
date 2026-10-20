@@ -4,7 +4,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
-import {SectionHeader, SectionSeparator} from '@sentry/scraps/compactSelect/styles';
+import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
 import {Menu} from '@sentry/scraps/menu';
@@ -49,14 +49,19 @@ export function GridListSection<T extends ListItemBase>({
           : {'aria-labelledby': titleId})}
       >
         {(node.rendered || showToggleAllButton) && (
-          <SectionHeader>
+          <Menu.SectionHeader
+            trailingAction={
+              showToggleAllButton ? (
+                <SectionToggle item={node} listState={listState} />
+              ) : null
+            }
+          >
             {node.rendered && (
               <Menu.SectionLabel id={titleId} aria-hidden>
                 {node.rendered}
               </Menu.SectionLabel>
             )}
-            {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
-          </SectionHeader>
+          </Menu.SectionHeader>
         )}
         <Menu.SectionList>
           {childNodes.map(child => (

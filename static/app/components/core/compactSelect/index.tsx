@@ -20,7 +20,6 @@ export {MenuComponents} from './menuComponents';
 export {
   LeadWrap,
   SectionSeparator,
-  SectionHeader,
   SizeLimitMessage,
   ListLabel,
   ListSeparator,

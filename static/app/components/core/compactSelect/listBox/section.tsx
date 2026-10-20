@@ -4,7 +4,7 @@ import {useSeparator} from '@react-aria/separator';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {SectionHeader, SectionSeparator} from '@sentry/scraps/compactSelect/styles';
+import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
 import {Menu} from '@sentry/scraps/menu';
@@ -57,12 +57,17 @@ export function ListBoxSection<T extends ListItemBase>({
       {showSectionHeaders && <SectionSeparator {...separatorProps} />}
       <Menu.SectionGroup {...itemProps} data-index={dataIndex} ref={ref}>
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
-          <SectionHeader>
+          <Menu.SectionHeader
+            trailingAction={
+              showToggleAllButton ? (
+                <SectionToggle item={item} listState={listState} />
+              ) : null
+            }
+          >
             {item.rendered && (
               <Menu.SectionLabel {...headingProps}>{item.rendered}</Menu.SectionLabel>
             )}
-            {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
-          </SectionHeader>
+          </Menu.SectionHeader>
         )}
         <Menu.SectionList {...groupProps}>
           {childItems.map(child => (
