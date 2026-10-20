@@ -17,7 +17,9 @@ def create_default_workflows(
         return
 
     with transaction.atomic(router.db_for_write(Workflow)):
-        ensure_default_workflows(project)
+        # project_created is only sent for a project that was created just now, so we do
+        # not need a lock to prevent a duplicate detector. See `_ensure_detector`.
+        ensure_default_workflows(project, new_project=True)
 
 
 project_created.connect(

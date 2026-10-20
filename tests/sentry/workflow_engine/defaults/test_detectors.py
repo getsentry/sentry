@@ -2,9 +2,12 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.locks import locks
+from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -54,11 +57,34 @@ class TestEnsureDefaultDetectors(TestCase):
             mock_lock.assert_not_called()
 
     def test_ensure_default_detector__lock_fails(self) -> None:
+        project = self.create_project(create_default_detectors=False)
         with patch("sentry.workflow_engine.defaults.detectors.locks.get") as mock_lock:
             mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
             with pytest.raises(UnableToAcquireLockApiError):
-                project = self.create_project()
                 ensure_default_detectors(project)
+
+    def test_ensure_default_detector__new_project_does_not_lock(self) -> None:
+        project = self.create_project(create_default_detectors=False)
+        # Another process holds the lock. A new project must not wait for it.
+        held_lock = locks.get(
+            f"workflow-engine-project-{ErrorGroupType.slug}-detector:{project.id}",
+            duration=10,
+            name="test",
+        )
+        with held_lock.acquire():
+            detectors = ensure_default_detectors(project, new_project=True)
+
+        assert detectors[ErrorGroupType.slug].project_id == project.id
+        assert detectors[IssueStreamGroupType.slug].project_id == project.id
+
+    def test_project_create_in_transaction_creates_detectors(self) -> None:
+        organization = self.create_organization()
+        with transaction.atomic(router.db_for_write(Project)):
+            project = Project.objects.create(organization=organization, name="Detectors")
+
+        assert set(Detector.objects.filter(project=project).values_list("type", flat=True)) == set(
+            self.slugs
+        )
 
     @override_options({"workflow_engine.auto_creation.all_projects_detector": True})
     def test_ensure_default_organization_detectors_creates_all_projects(self) -> None:

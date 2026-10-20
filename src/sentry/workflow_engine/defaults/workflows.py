@@ -37,9 +37,13 @@ PULL_REQUEST_WORKFLOW_LABEL = "Send a notification when pull requests are ready"
 def connect_workflows_to_issue_stream(
     project: Project,
     workflows: list[Workflow],
+    *,
+    new_project: bool = False,
 ) -> Sequence[DetectorWorkflow]:
     # Because we don't know if this signal is handled already or not...
-    issue_stream_detector = _ensure_detector(project, IssueStreamGroupType.slug)
+    issue_stream_detector = _ensure_detector(
+        project, IssueStreamGroupType.slug, new_project=new_project
+    )
 
     connections = [
         DetectorWorkflow(
@@ -160,9 +164,12 @@ def create_and_connect_pull_request_workflow(
     return workflow
 
 
-def ensure_default_workflows(project: Project) -> list[Workflow]:
+def ensure_default_workflows(project: Project, *, new_project: bool = False) -> list[Workflow]:
+    """
+    See `_ensure_detector` for when to set `new_project`.
+    """
     workflows = [create_priority_workflow(project.organization)]
-    connect_workflows_to_issue_stream(project, workflows)
+    connect_workflows_to_issue_stream(project, workflows, new_project=new_project)
     return workflows
 
 

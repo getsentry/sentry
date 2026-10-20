@@ -87,11 +87,20 @@ class UnableToAcquireLockApiError(SentryAPIException):
     message = "Unable to acquire lock for issue alert migration."
 
 
-def _ensure_detector(project: Project, type: str, default_enabled: bool = True) -> Detector:
+def _ensure_detector(
+    project: Project, type: str, default_enabled: bool = True, *, new_project: bool = False
+) -> Detector:
     """
     Ensure that a detector of a given type exists for a project.
     If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
     and UnableToAcquireLockApiError if that fails.
+
+    Set `new_project` only when the caller inserted the project just now (for example in
+    the post_save signal of the project). Then we do not take the lock. If a transaction is
+    open, no other process can see the project yet. If no transaction is open, another
+    process can only create the same detector if it finds the project in the short time
+    before this call. Also, a Redis lock inside a transaction is released before the commit,
+    so it does not protect this case.
     """
     group_type = grouptype.registry.get_by_slug(type)
     if not group_type:
@@ -105,6 +114,27 @@ def _ensure_detector(project: Project, type: str, default_enabled: bool = True) 
     existing = Detector.objects.filter(type=slug, project=project).order_by("id").first()
     if existing:
         return existing
+
+    def create_detector() -> Detector:
+        detector, _ = Detector.objects.get_or_create(
+            type=slug,
+            project=project,
+            defaults={
+                "config": {},
+                "name": (
+                    ERROR_DETECTOR_NAME
+                    if slug == ErrorGroupType.slug
+                    else ISSUE_STREAM_DETECTOR_NAME
+                    if slug == IssueStreamGroupType.slug
+                    else group_type.description
+                ),
+                "enabled": default_enabled,
+            },
+        )
+        return detector
+
+    if new_project:
+        return create_detector()
 
     # If we may need to create it, we acquire a lock to avoid double-creating.
     # There isn't a unique constraint on the detector, so we can't rely on get_or_create
@@ -122,22 +152,7 @@ def _ensure_detector(project: Project, type: str, default_enabled: bool = True) 
             lock.blocking_acquire(initial_delay=0.1, timeout=3),
             transaction.atomic(router.db_for_write(Detector)),
         ):
-            detector, _ = Detector.objects.get_or_create(
-                type=slug,
-                project=project,
-                defaults={
-                    "config": {},
-                    "name": (
-                        ERROR_DETECTOR_NAME
-                        if slug == ErrorGroupType.slug
-                        else ISSUE_STREAM_DETECTOR_NAME
-                        if slug == IssueStreamGroupType.slug
-                        else group_type.description
-                    ),
-                    "enabled": default_enabled,
-                },
-            )
-            return detector
+            return create_detector()
     except UnableToAcquireLock:
         raise UnableToAcquireLockApiError
 
@@ -258,7 +273,9 @@ def ensure_default_anomaly_detector(
         raise UnableToAcquireLockApiError
 
 
-def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
+def ensure_performance_detectors(
+    project: Project, *, new_project: bool = False
+) -> dict[str, Detector]:
     if not features.has("projects:workflow-engine-performance-detectors", project):
         return {}
 
@@ -275,7 +292,9 @@ def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
         ]
         enabled = (project.platform not in disabled_platforms) and default_enabled
 
-        detectors[detector_type] = _ensure_detector(project, detector_type, default_enabled=enabled)
+        detectors[detector_type] = _ensure_detector(
+            project, detector_type, default_enabled=enabled, new_project=new_project
+        )
 
     return detectors
 
@@ -330,9 +349,16 @@ def ensure_default_organization_detectors(organization: Organization) -> dict[st
     return detectors
 
 
-def ensure_default_detectors(project: Project) -> dict[str, Detector]:
+def ensure_default_detectors(project: Project, *, new_project: bool = False) -> dict[str, Detector]:
+    """
+    See `_ensure_detector` for when to set `new_project`.
+    """
     detectors: dict[str, Detector] = {}
-    detectors[ErrorGroupType.slug] = _ensure_detector(project, ErrorGroupType.slug)
-    detectors[IssueStreamGroupType.slug] = _ensure_detector(project, IssueStreamGroupType.slug)
-    detectors.update(ensure_performance_detectors(project))
+    detectors[ErrorGroupType.slug] = _ensure_detector(
+        project, ErrorGroupType.slug, new_project=new_project
+    )
+    detectors[IssueStreamGroupType.slug] = _ensure_detector(
+        project, IssueStreamGroupType.slug, new_project=new_project
+    )
+    detectors.update(ensure_performance_detectors(project, new_project=new_project))
     return detectors
