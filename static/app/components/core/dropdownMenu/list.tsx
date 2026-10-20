@@ -13,6 +13,7 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
 
@@ -489,20 +490,17 @@ function SearchableDropdownSubmenuContent({
 
 function capMenuHeight(
   maxMenuHeight: number | undefined,
-  viewportMaxHeight: NonNullable<
-    DropdownMenuListProps['overlayPositionProps']['style']
-  >['maxHeight']
-): NonNullable<DropdownMenuListProps['overlayPositionProps']['style']>['maxHeight'] {
+  viewportMaxHeight: CSS['maxHeight']
+): CSS['maxHeight'] {
   if (maxMenuHeight === undefined) {
     return viewportMaxHeight;
   }
-  if (typeof viewportMaxHeight === 'number') {
-    return Math.min(maxMenuHeight, viewportMaxHeight);
+  if (viewportMaxHeight === undefined) {
+    return maxMenuHeight;
   }
-  if (typeof viewportMaxHeight === 'string') {
-    return `min(${maxMenuHeight}px, ${viewportMaxHeight})`;
-  }
-  return maxMenuHeight;
+  const viewportHeight =
+    typeof viewportMaxHeight === 'number' ? `${viewportMaxHeight}px` : viewportMaxHeight;
+  return `min(${maxMenuHeight}px, ${viewportHeight})`;
 }
 
 function DropdownSubmenu({

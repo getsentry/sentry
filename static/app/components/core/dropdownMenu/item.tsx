@@ -271,14 +271,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const mergedMenuItemContentProps: React.HTMLAttributes<HTMLElement> = mergeProps(
     props,
     menuItemProps,
-    // oxlint-disable-next-line react/refs -- These handlers only read refs during input events.
-    {
-      onPointerDownCapture: markNestedControlPress,
-      onMouseDownCapture: markNestedControlPress,
-      onTouchStartCapture: markNestedControlPress,
-      onKeyDownCapture: markNestedControlPress,
-      onClickCapture: markNestedControlPress,
-    },
     hoverProps,
     keyboardProps,
     makeInnerWrapProps(),
@@ -306,6 +298,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       isFocused={isFocused}
       innerWrapProps={{
         ...mergedMenuItemContentProps,
+        onPointerDownCapture: markNestedControlPress,
+        onMouseDownCapture: markNestedControlPress,
+        onTouchStartCapture: markNestedControlPress,
+        onKeyDownCapture: markNestedControlPress,
+        onClickCapture: markNestedControlPress,
         onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
           lastPointerPosition.current = {x: event.clientX, y: event.clientY};
           // React clears currentTarget after dispatch, but hover may be deferred.
