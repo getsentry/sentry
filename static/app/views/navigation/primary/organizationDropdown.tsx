@@ -29,12 +29,13 @@ import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -86,22 +87,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     />
   );
   const createOrganizationItem = makeCreateOrganizationMenuItem();
-  const projectMenuItem = (
-    project: (typeof projects)[number],
-    keyPrefix = 'project'
-  ): MenuItemProps => ({
-    key: `${keyPrefix}-${project.id}`,
-    label: project.slug,
-    leadingItems: <ProjectAvatar project={project} size={16} />,
-    trailingItems: (
-      <BookmarkStar
-        project={project}
-        organization={organization}
-        onClick={event => event.stopPropagation()}
-      />
-    ),
-    onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
-  });
   const memberProjects = sortProjects(projects.filter(project => project.isMember));
   const otherProjects = sortProjects(projects.filter(project => !project.isMember));
 
@@ -168,7 +153,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               ...projects
                 .filter(project => project.isBookmarked)
                 .slice(0, 5)
-                .map(project => projectMenuItem(project, 'starred-project')),
+                .map(project =>
+                  makeProjectMenuItem(project, organization, navigate, 'starred-project')
+                ),
               {
                 key: 'view-all-projects',
                 label: t('View All Projects'),
@@ -184,13 +171,17 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     key: 'my-projects',
                     label: t('My Projects'),
                     hidden: memberProjects.length === 0,
-                    children: memberProjects.map(project => projectMenuItem(project)),
+                    children: memberProjects.map(project =>
+                      makeProjectMenuItem(project, organization, navigate)
+                    ),
                   },
                   {
                     key: 'other-projects',
                     label: t('Other Projects'),
                     hidden: otherProjects.length === 0,
-                    children: otherProjects.map(project => projectMenuItem(project)),
+                    children: otherProjects.map(project =>
+                      makeProjectMenuItem(project, organization, navigate)
+                    ),
                   },
                 ],
               },
@@ -304,6 +295,27 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       ]}
     />
   );
+}
+
+function makeProjectMenuItem(
+  project: Project,
+  organization: Organization,
+  navigate: ReactRouter3Navigate,
+  keyPrefix = 'project'
+): MenuItemProps {
+  return {
+    key: `${keyPrefix}-${project.id}`,
+    label: project.slug,
+    leadingItems: <ProjectAvatar project={project} size={16} />,
+    trailingItems: (
+      <BookmarkStar
+        project={project}
+        organization={organization}
+        onClick={event => event.stopPropagation()}
+      />
+    ),
+    onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
+  };
 }
 
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
