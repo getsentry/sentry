@@ -38,10 +38,10 @@ import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts'
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
+  groupEventApiOptions,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {
@@ -178,10 +178,16 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
-  const {data: event, isLoading: isEventLoading} = useGroupEvent({
-    groupId: group.id,
-    eventId: 'recommended',
-    options: {enabled: !disableActions},
+  // Inbox issues can have no events within the list's time range.
+  const {data: event, isLoading: isEventLoading} = useQuery({
+    ...groupEventApiOptions({
+      orgSlug: organization.slug,
+      groupId: group.id,
+      eventId: 'recommended',
+      environments: [],
+    }),
+    enabled: !disableActions,
+    retry: false,
   });
   const {data: summary, isLoading: isSummaryLoading} = useQuery({
     ...apiOptions.as<IssueSummary>()(
@@ -280,6 +286,8 @@ function IssuePreviewContent() {
       >
         <IssuePreviewHeaderActions
           group={group}
+          event={event}
+          isEventLoading={isEventLoading}
           summary={summary}
           project={project}
           disabled={disableActions}
