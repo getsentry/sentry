@@ -3,6 +3,7 @@ import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDispl
 import {
   addInstallableFilter,
   getUpdatedQueryForDisplay,
+  getUserSearchQuery,
   removeInstallableFilter,
 } from './installableQueryUtils';
 
@@ -79,5 +80,32 @@ describe('getUpdatedQueryForDisplay', () => {
 
   it('returns undefined when result is empty', () => {
     expect(getUpdatedQueryForDisplay('', PreprodBuildsDisplay.SIZE)).toBeUndefined();
+  });
+});
+
+describe('getUserSearchQuery', () => {
+  it('ignores the default installable:true filter for Distribution display', () => {
+    expect(
+      getUserSearchQuery('installable:true', PreprodBuildsDisplay.DISTRIBUTION)
+    ).toBe('');
+  });
+
+  it('keeps other tokens for Distribution display', () => {
+    expect(
+      getUserSearchQuery(
+        'app_id:com.example installable:true',
+        PreprodBuildsDisplay.DISTRIBUTION
+      )
+    ).toBe('app_id:com.example');
+  });
+
+  it('keeps installable:true for Size display', () => {
+    expect(getUserSearchQuery('installable:true', PreprodBuildsDisplay.SIZE)).toBe(
+      'installable:true'
+    );
+  });
+
+  it('handles null query', () => {
+    expect(getUserSearchQuery(null, PreprodBuildsDisplay.DISTRIBUTION)).toBe('');
   });
 });

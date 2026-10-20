@@ -715,6 +715,36 @@ describe('ReleasesList', () => {
     expect(await screen.findByRole('button', {name: 'Download CSV'})).toBeInTheDocument();
   });
 
+  it('shows build distribution onboarding when only the default installable filter is set', async () => {
+    renderMobileBuildsTab({display: 'distribution', query: 'installable:true'});
+
+    expect(
+      await screen.findByRole('heading', {name: 'Upload Mobile Builds to Sentry'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Product Docs'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/product/build-distribution/'
+    );
+    expect(screen.getByRole('button', {name: 'Android Docs'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/android/build-distribution/'
+    );
+  });
+
+  it('shows the empty search state when distribution has a user query', async () => {
+    renderMobileBuildsTab({
+      display: 'distribution',
+      query: 'app_id:com.example installable:true',
+    });
+
+    expect(
+      await screen.findByText('No mobile builds found for your search')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {name: 'Upload Mobile Builds to Sentry'})
+    ).not.toBeInTheDocument();
+  });
+
   it('hides the Download CSV button on the size display', async () => {
     renderMobileBuildsTab();
     // Wait for the controls to render before asserting the button is absent.

@@ -26,7 +26,10 @@ import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBu
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {getBuildsExportHref} from 'sentry/views/preprod/utils/buildsExportHref';
-import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
+import {
+  getUpdatedQueryForDisplay,
+  getUserSearchQuery,
+} from 'sentry/views/preprod/utils/installableQueryUtils';
 
 import {MobileBuildsChart} from './mobileBuildsChart';
 
@@ -126,7 +129,7 @@ export function MobileBuilds({
 
   const builds = buildsResponse?.json ?? [];
   const pageLinks = buildsResponse?.headers.Link ?? undefined;
-  const hasSearchQuery = !!searchQuery?.trim();
+  const hasSearchQuery = !!getUserSearchQuery(searchQuery, activeDisplay);
   const showProjectColumn =
     selectedProjectIds.length > 1 ||
     (selectedProjectIds.length === 1 &&
@@ -226,6 +229,7 @@ export function MobileBuilds({
 
       {shouldShowOnboarding && projectId ? (
         <PreprodOnboardingPanel
+          display={activeDisplay}
           platform={platform ?? null}
           onDocsClick={handleDocsClick}
         />

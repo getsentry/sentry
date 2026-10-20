@@ -41,3 +41,17 @@ export function getUpdatedQueryForDisplay(
       : removeInstallableFilter(trimmed);
   return updated || undefined;
 }
+
+/**
+ * Returns the part of a search query the user typed. Distribution display
+ * adds `installable:true` on its own, so that filter alone is not a search.
+ */
+export function getUserSearchQuery(
+  query: string | null | undefined,
+  display: PreprodBuildsDisplay
+): string {
+  const trimmed = (query ?? '').trim();
+  return display === PreprodBuildsDisplay.DISTRIBUTION
+    ? removeInstallableFilter(trimmed).trim()
+    : trimmed;
+}

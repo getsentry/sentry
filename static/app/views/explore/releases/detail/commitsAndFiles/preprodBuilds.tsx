@@ -27,7 +27,10 @@ import {ReleaseContext} from 'sentry/views/explore/releases/detail';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
-import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
+import {
+  getUpdatedQueryForDisplay,
+  getUserSearchQuery,
+} from 'sentry/views/preprod/utils/installableQueryUtils';
 
 import {PreprodOnboarding} from './preprodOnboarding';
 
@@ -145,7 +148,7 @@ export default function PreprodBuilds() {
   const builds = buildsResponse?.json ?? [];
   const pageLinks = buildsResponse?.headers.Link ?? null;
 
-  const hasSearchQuery = !!urlSearchQuery?.trim();
+  const hasSearchQuery = !!getUserSearchQuery(urlSearchQuery, activeDisplay);
   const showOnboarding = builds.length === 0 && !hasSearchQuery && !isLoadingBuilds;
 
   usePreprodBuildsAnalytics({
@@ -192,7 +195,10 @@ export default function PreprodBuilds() {
           />
         </Container>
         {showOnboarding ? (
-          <PreprodOnboarding projectPlatform={projectPlatform || null} />
+          <PreprodOnboarding
+            display={activeDisplay}
+            projectPlatform={projectPlatform || null}
+          />
         ) : (
           <PreprodBuildsTable
             builds={builds}
