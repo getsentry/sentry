@@ -3,14 +3,19 @@ import {Fragment} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import type {OnDataFetchedProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {SpansWidgetQueries} from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 import {TraceMetricsWidgetQueries} from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
+import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {IssueWidgetQueries} from './issueWidgetQueries';
@@ -25,17 +30,65 @@ type Results = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  ingestion?: IngestionMeta;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
-  timeseriesResults?: Series[];
+  timeseriesResults?: WidgetTimeSeries[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
+
+type HookResults = Omit<Results, 'timeseriesResults'> & {
+  timeseriesResults?: Array<Series | WidgetTimeSeries>;
+};
+
+function isWidgetTimeSeries(
+  series: Series | WidgetTimeSeries
+): series is WidgetTimeSeries {
+  return 'queryIndex' in series;
+}
+
+// TODO: Remove once the widget query hooks return WidgetTimeSeries themselves
+function toWidgetTimeSeries(
+  widget: Widget,
+  {
+    timeseriesResults,
+    timeseriesResultsTypes,
+    timeseriesResultsUnits,
+  }: Pick<
+    HookResults,
+    'timeseriesResults' | 'timeseriesResultsTypes' | 'timeseriesResultsUnits'
+  >
+): WidgetTimeSeries[] | undefined {
+  return timeseriesResults
+    ?.map(series => {
+      if (isWidgetTimeSeries(series)) {
+        return series;
+      }
+      const transformed = transformWidgetSeriesToTimeSeries(
+        series,
+        widget,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits
+      );
+      if (!transformed) {
+        return null;
+      }
+      const {timeSeries, seriesName, widgetQuery} = transformed;
+      return {
+        queryIndex: widget.queries.indexOf(widgetQuery),
+        widgetQuery,
+        seriesName,
+        timeSeries,
+      };
+    })
+    .filter(defined);
+}
 
 type Props = {
   children: (props: Results) => React.ReactNode;
@@ -76,8 +129,18 @@ export function WidgetCardDataLoader({
   widgetInterval,
   yBuckets,
 }: Props) {
+  const render = (results: HookResults) =>
+    children({...results, timeseriesResults: toWidgetTimeSeries(widget, results)});
+  const handleDataFetched = onDataFetched
+    ? (results: OnDataFetchedProps) =>
+        onDataFetched({
+          ...results,
+          timeseriesResults: toWidgetTimeSeries(widget, results),
+        })
+    : undefined;
+
   if (widgetFetchesOwnData(widget.displayType)) {
-    return children({loading: false});
+    return render({loading: false});
   }
 
   if (widget.widgetType === WidgetType.ISSUE) {
@@ -86,7 +149,7 @@ export function WidgetCardDataLoader({
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
-        onDataFetched={onDataFetched}
+        onDataFetched={handleDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
         widgetInterval={widgetInterval}
@@ -99,7 +162,7 @@ export function WidgetCardDataLoader({
           loading,
         }) => (
           <Fragment>
-            {children({
+            {render({
               tableResults,
               timeseriesResults,
               timeseriesResultsTypes,
@@ -118,7 +181,7 @@ export function WidgetCardDataLoader({
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
-        onDataFetched={onDataFetched}
+        onDataFetched={handleDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
         widgetInterval={widgetInterval}
@@ -131,7 +194,7 @@ export function WidgetCardDataLoader({
           loading,
         }) => (
           <Fragment>
-            {children({
+            {render({
               tableResults,
               timeseriesResults,
               timeseriesInterval,
@@ -150,12 +213,12 @@ export function WidgetCardDataLoader({
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
-        onDataFetched={onDataFetched}
+        onDataFetched={handleDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
         widgetInterval={widgetInterval}
       >
-        {props => <Fragment>{children({...props})}</Fragment>}
+        {props => <Fragment>{render({...props})}</Fragment>}
       </SpansWidgetQueries>
     );
   }
@@ -167,12 +230,12 @@ export function WidgetCardDataLoader({
         selection={selection}
         limit={tableItemLimit}
         onDataFetchStart={onDataFetchStart}
-        onDataFetched={onDataFetched}
+        onDataFetched={handleDataFetched}
         dashboardFilters={dashboardFilters}
         widgetInterval={widgetInterval}
         yBuckets={yBuckets}
       >
-        {props => <Fragment>{children({...props})}</Fragment>}
+        {props => <Fragment>{render({...props})}</Fragment>}
       </TraceMetricsWidgetQueries>
     );
   }
@@ -184,11 +247,11 @@ export function WidgetCardDataLoader({
         selection={selection}
         limit={tableItemLimit}
         onDataFetchStart={onDataFetchStart}
-        onDataFetched={onDataFetched}
+        onDataFetched={handleDataFetched}
         dashboardFilters={dashboardFilters}
         widgetInterval={widgetInterval}
       >
-        {props => <Fragment>{children({...props})}</Fragment>}
+        {props => <Fragment>{render({...props})}</Fragment>}
       </LogsWidgetQueries>
     );
   }
@@ -201,7 +264,7 @@ export function WidgetCardDataLoader({
         dashboardFilters={dashboardFilters}
         widgetInterval={widgetInterval}
       >
-        {props => <Fragment>{children({...props})}</Fragment>}
+        {props => <Fragment>{render({...props})}</Fragment>}
       </MobileAppSizeWidgetQueries>
     );
   }
@@ -211,7 +274,7 @@ export function WidgetCardDataLoader({
       widget={widget}
       selection={selection}
       limit={tableItemLimit}
-      onDataFetched={onDataFetched}
+      onDataFetched={handleDataFetched}
       onDataFetchStart={onDataFetchStart}
       dashboardFilters={dashboardFilters}
       widgetInterval={widgetInterval}
@@ -224,9 +287,10 @@ export function WidgetCardDataLoader({
         timeseriesResultsTypes,
         timeseriesResultsUnits,
         confidence,
+        ingestion,
       }) => (
         <Fragment>
-          {children({
+          {render({
             tableResults,
             timeseriesResults,
             errorMessage,
@@ -234,6 +298,7 @@ export function WidgetCardDataLoader({
             timeseriesResultsTypes,
             timeseriesResultsUnits,
             confidence,
+            ingestion,
           })}
         </Fragment>
       )}

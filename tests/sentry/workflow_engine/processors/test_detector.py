@@ -737,6 +737,7 @@ class TestKeyBuilders(unittest.TestCase):
         )
 
 
+@freeze_time()
 class TestGetStateData(BaseDetectorHandlerTest):
     def test_new(self) -> None:
         handler = self.build_handler()
@@ -763,6 +764,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.HIGH: 1,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(state_data.group_key, state_data.dedupe_value)
         handler.state_manager.enqueue_counter_update(
@@ -786,6 +788,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.OK: 5,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(key_1, state_data_1.dedupe_value)
         handler.state_manager.enqueue_counter_update(key_1, state_data_1.counter_updates)
@@ -803,6 +806,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.HIGH: 5,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(key_2, state_data_2.dedupe_value)
         handler.state_manager.enqueue_counter_update(key_2, state_data_2.counter_updates)
@@ -1174,6 +1178,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                     **{level: None for level in handler._thresholds},
                     DetectorPriorityLevel.HIGH: 1,
                 },
+                date_updated=timezone.now(),
             )
         }
 

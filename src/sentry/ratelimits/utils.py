@@ -94,10 +94,12 @@ def get_rate_limit_key(
         return None
 
     if is_api_token_auth(request_auth) and request_user:
+        token_id: int | None = None
         token_org_id = None
         if isinstance(request_auth, ApiToken):
             token_id = request_auth.id
-        elif isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
+        elif isinstance(request_auth, AuthenticatedToken):
+            # No entity_id when it's from SENTRY_EXTRA_API_AUTHENTICATION.
             token_id = request_auth.entity_id
             token_org_id = request_auth.organization_id
         elif isinstance(request_auth, ApiTokenReplica) and request_auth.apitoken_id is not None:
@@ -108,7 +110,9 @@ def get_rate_limit_key(
 
         if getattr(request_user, "is_sentry_app", False):
             category = "org"
-            id = token_org_id or get_organization_id_from_token(token_id)
+            id = token_org_id
+            if id is None and token_id is not None:
+                id = get_organization_id_from_token(token_id)
 
             # Fallback to IP address limit if we can't find the organization
             if id is None and ip_address is not None:

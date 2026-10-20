@@ -29,10 +29,9 @@ from sentry.issues.action_log import (
     action_context_scope,
     get_action_context,
     publish_action,
-    resolve_action_actor,
-    resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import activity_read_endpoint
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
@@ -218,7 +217,7 @@ def update_groups(
     organization = projects[0].organization if projects else None
 
     if not groups:
-        return Response({"detail": "No groups found"}, status=204)
+        return Response(status=204)
 
     serializer = validate_request(request, projects, data, user)
 
@@ -337,7 +336,7 @@ def update_groups_with_search_fn(
         group_list = list(cursor_result)
 
     if not group_list:
-        return Response({"detail": "No groups found"}, status=204)
+        return Response(status=204)
 
     return update_groups(request, group_list)
 

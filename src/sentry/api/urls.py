@@ -9,7 +9,12 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import 
 from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     OrganizationAIConversationsEndpoint,
 )
+from sentry.ai_monitoring.endpoints.project_code_explanation import ProjectCodeExplanationEndpoint
 from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
+from sentry.api.endpoints.oauth_authorize import OAuthAuthorizeEndpoint
+from sentry.api.endpoints.oauth_authorize_context import OAuthAuthorizeContextEndpoint
+from sentry.api.endpoints.oauth_device import OAuthDeviceEndpoint
+from sentry.api.endpoints.oauth_device_context import OAuthDeviceContextEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
@@ -45,6 +50,13 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 )
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
+)
+from sentry.api.endpoints.organization_service_account_viewer_context import (
+    OrganizationServiceAccountViewerContextEndpoint,
+)
+from sentry.api.endpoints.organization_service_accounts import (
+    OrganizationServiceAccountDetailsEndpoint,
+    OrganizationServiceAccountIndexEndpoint,
 )
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
@@ -1085,6 +1097,26 @@ def create_group_urls(
 
 AUTH_URLS = [
     re_path(
+        r"^oauth/device/$",
+        OAuthDeviceEndpoint.as_view(),
+        name="sentry-api-0-oauth-device",
+    ),
+    re_path(
+        r"^oauth/device/context/$",
+        OAuthDeviceContextEndpoint.as_view(),
+        name="sentry-api-0-oauth-device-context",
+    ),
+    re_path(
+        r"^oauth/authorize/$",
+        OAuthAuthorizeEndpoint.as_view(),
+        name="sentry-api-0-oauth-authorize",
+    ),
+    re_path(
+        r"^oauth/authorize/context/$",
+        OAuthAuthorizeContextEndpoint.as_view(),
+        name="sentry-api-0-oauth-authorize-context",
+    ),
+    re_path(
         r"^$",
         AuthIndexEndpoint.as_view(),
         name="sentry-api-0-auth",
@@ -1798,6 +1830,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/agent/token/$",
         OrganizationAgentTokenEndpoint.as_view(),
         name="sentry-api-0-organization-agent-token",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/$",
+        OrganizationServiceAccountIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-service-accounts",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/$",
+        OrganizationServiceAccountDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/viewer-context/$",
+        OrganizationServiceAccountViewerContextEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-viewer-context",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/agent/approve/$",
@@ -2577,9 +2624,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-runs",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/runs/$",
         OrganizationSeerWorkflowsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-workflows",
+        name="sentry-api-0-organization-seer-workflow-runs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
@@ -3023,6 +3070,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/actionable-items/$",
         ActionableItemsEndpoint.as_view(),
         name="sentry-api-0-event-actionable-items",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/ai/code-explanation/$",
+        ProjectCodeExplanationEndpoint.as_view(),
+        name="sentry-api-0-project-code-explanation",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/dsyms/$",

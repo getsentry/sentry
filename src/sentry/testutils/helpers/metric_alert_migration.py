@@ -13,7 +13,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionService
@@ -486,21 +485,11 @@ def migrate_alert_rule(
     workflow_name = get_workflow_name(alert_rule)
     workflow = create_workflow(alert_rule, workflow_name, organization_id, user)
 
-    open_incident = Incident.objects.get_active_incident(alert_rule, project)
-    if open_incident:
-        state = (
-            DetectorPriorityLevel.MEDIUM
-            if open_incident.status == IncidentStatus.WARNING.value
-            else DetectorPriorityLevel.HIGH
-        )
-    else:
-        state = DetectorPriorityLevel.OK
-
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
-        is_triggered=True if open_incident else False,
-        state=state,
+        is_triggered=False,
+        state=DetectorPriorityLevel.OK,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
         alert_rule, detector, workflow

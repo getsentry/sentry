@@ -85,6 +85,21 @@ describe('DroppedDataTooltip', () => {
     expect(screen.getByText('/10')).toBeInTheDocument();
   });
 
+  it('shows 0% and the time range for a bucket without drops', () => {
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[]}
+        accepted={[
+          DroppedEventFixture({start: START, end: END, outcome: 'accepted', count: 500}),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Total Dropped')).toBeInTheDocument();
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.getByText('Jan 12, 2024 3:00 PM - 3:05 PM UTC')).toBeInTheDocument();
+  });
+
   it('labels an unintentional client discard as an SDK drop', () => {
     render(
       <ExampleDroppedDataTooltip

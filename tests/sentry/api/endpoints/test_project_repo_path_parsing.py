@@ -404,7 +404,10 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
                 provider="gitlab",
                 name="getsentry",
                 external_id="1234",
-                metadata={"domain_name": "gitlab.com/getsentry"},
+                metadata={
+                    "base_url": "https://gitlab.com",
+                    "domain_name": "gitlab.com/getsentry",
+                },
             )
 
             self.oi = self.integration.add_organization(self.org, self.user)

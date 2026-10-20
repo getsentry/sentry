@@ -3659,13 +3659,6 @@ register(
 )
 
 # Notification Options - Start
-register(
-    "notifications.issue-alerts.disable-rule-snooze",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(
@@ -4391,23 +4384,6 @@ register(
 )
 
 
-# Cells
-
-# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
-register(
-    "provision_organization.override.mapping",
-    type=Dict,
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "provision_organization.override.rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_streak_cap_reached``.
 register(
@@ -4443,14 +4419,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-# When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
-register(
-    "repository.auto-link-by-name-dry-run",
-    default=True,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rolls out the new TaskProducer to the clock_pulse task
 register(

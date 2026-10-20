@@ -623,13 +623,16 @@ class GroupSerializerBase(Serializer, ABC):
                     {"organization_id": item_list[0].project.organization_id} if item_list else None
                 ),
             )
+            to_cache = {}
             for x in rv["data"]:
                 unhandled[x["group_id"]] = x["unhandled"]
+                to_cache[f"group-mechanism-handled:{x['group_id']}"] = x["unhandled"]
 
-                # cache the handled flag for 60 seconds.  This is broadly in line with
-                # the time we give for buffer flushes so the user experience is somewhat
-                # consistent here.
-                cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
+            # cache the handled flag for 60 seconds.  This is broadly in line with
+            # the time we give for buffer flushes so the user experience is somewhat
+            # consistent here.
+            if to_cache:
+                cache.set_many(to_cache, 60)
 
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 

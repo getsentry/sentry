@@ -18,6 +18,8 @@ testable_modified: &testable_modified
 testable_rules_changed: &testable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: 'build-utils/react-router{,.test}.ts'
+  - added|deleted|modified: '.github/workflows/scripts/jest-test-config.sh'
   - added|deleted|modified: 'tests/js/jest.config.mjs'
   - added|deleted|modified: 'tests/js/jest.config.ci.mjs'
   - added|deleted|modified: 'tests/js/createJestConfig.ts'
@@ -46,7 +48,8 @@ frontend_all: &frontend_all
   - added|deleted|modified: 'pnpm-workspace.yaml'
   - added|modified: 'oxlint.config.ts'
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs,pegjs}'
-  - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
+  - added|modified: 'static/**/*.{less,yml,md,mdx}'
+  - added|modified: 'static/**/!(oxlint-suppressions).json'
   - added|modified: '{vercel,tsconfig,biome,package}.json'
 
 frontend_lint:
@@ -60,7 +63,7 @@ frontend_lint:
   - added|deleted|modified: '**/tsconfig*.json'
   - added|deleted|modified: '.node-version'
   - added|deleted|modified: '**/.{git,eslint,oxlint}ignore'
-  - added|deleted|modified: 'oxlint-suppressions.json'
+  - added|deleted|modified: '**/oxlint-suppressions.json'
 
 api_url_codegen:
   - added|modified: 'static/app/utils/api/knownSentryApiUrls.generated.ts'

@@ -35,6 +35,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.base import ModelRelation
 from sentry.locks import locks
 from sentry.models.environment import Environment
@@ -42,7 +43,7 @@ from sentry.models.organization import Organization
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.workflow_engine.models import DataSource
+from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
@@ -50,7 +51,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
-    from sentry.workflow_engine.models import Detector
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -455,17 +455,6 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    monitor = FlexibleForeignKey(
-        "monitors.Monitor",
-        db_index=False,
-        null=True,
-        db_constraint=False,
-        on_delete=models.DO_NOTHING,
-    )
-    """
-    No longer read or written. The monitor environment already holds the monitor;
-    this column is being removed.
-    """
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
     XXX(epurkhiser): Currently unused
@@ -561,14 +550,7 @@ class MonitorCheckIn(Model):
         app_label = "monitors"
         db_table = "sentry_monitorcheckin"
         indexes = [
-            # used for endpoints for monitor stats + list check-ins
-            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor", "date_added", "status"]),
-            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor", "status", "date_added"]),
-            # used for has_newer_result + thresholds
+            # used for has_newer_result + thresholds, monitor stats + list check-ins
             # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
             # column
             models.Index(fields=["monitor_environment", "date_added", "status"]),
@@ -830,6 +812,18 @@ def get_cron_monitor(detector: Detector) -> Monitor:
     data_source = detector.data_sources.first()
     assert data_source
     return Monitor.objects.get(id=int(data_source.source_id))
+
+
+def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
+    try:
+        with in_test_hide_transaction_boundary():
+            return Detector.objects.get(
+                datasource__type=DATA_SOURCE_CRON_MONITOR,
+                datasource__source_id=str(monitor.id),
+                datasource__organization_id=monitor.organization_id,
+            )
+    except Detector.DoesNotExist:
+        return None
 
 
 @data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
