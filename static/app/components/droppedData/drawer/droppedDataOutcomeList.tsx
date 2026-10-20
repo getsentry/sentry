@@ -1,10 +1,10 @@
-import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
 import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawerContentContext} from '@sentry/scraps/drawer';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -37,17 +37,19 @@ function ReasonAskSeerButton({
   const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
 
   return (
-    <HoverRevealButton
-      size="zero"
-      variant="primary"
-      icon={<IconSeer />}
-      aria-label={t('Ask Seer')}
-      tooltipProps={{title: t('Ask Seer')}}
-      onClick={() => {
-        closeDroppedDataDrawer?.();
-        onAskSeer(row);
-      }}
-    />
+    <RevealOnHover.Action>
+      <Button
+        size="zero"
+        variant="primary"
+        icon={<IconSeer />}
+        aria-label={t('Ask Seer')}
+        tooltipProps={{title: t('Ask Seer')}}
+        onClick={() => {
+          closeDroppedDataDrawer?.();
+          onAskSeer(row);
+        }}
+      />
+    </RevealOnHover.Action>
   );
 }
 
@@ -75,25 +77,29 @@ function ReasonTableRow({
   const docsUrl = reasonDocsUrl(row.reason);
 
   return (
-    <SimpleTable.Row>
-      <SimpleTable.RowCell padding="md xl" gap="sm">
-        <Text size="md">{reasonTitle(row.reason)}</Text>
-        {docsUrl && <ReasonDocsLinkButton href={docsUrl} />}
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" padding="md xl">
-        <Text size="md" variant="muted" tabular>
-          <Count value={row.events} />
-        </Text>
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" padding="md xl">
-        <Text size="md" variant="muted" tabular>
-          {formatDroppedShare(row.shareRatio)}
-        </Text>
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="center" padding="0" overflow="visible">
-        {onAskSeer && <ReasonAskSeerButton row={row} onAskSeer={onAskSeer} />}
-      </SimpleTable.RowCell>
-    </SimpleTable.Row>
+    <RevealOnHover>
+      {props => (
+        <SimpleTable.Row {...props}>
+          <SimpleTable.RowCell padding="md xl" gap="sm">
+            <Text size="md">{reasonTitle(row.reason)}</Text>
+            {docsUrl && <ReasonDocsLinkButton href={docsUrl} />}
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" padding="md xl">
+            <Text size="md" variant="muted" tabular>
+              <Count value={row.events} />
+            </Text>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" padding="md xl">
+            <Text size="md" variant="muted" tabular>
+              {formatDroppedShare(row.shareRatio)}
+            </Text>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="center" padding="0" overflow="visible">
+            {onAskSeer && <ReasonAskSeerButton row={row} onAskSeer={onAskSeer} />}
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -193,12 +199,3 @@ export function DroppedDataOutcomeList({
     </Stack>
   );
 }
-
-const HoverRevealButton = styled(Button)`
-  opacity: 0;
-
-  [role='row']:hover &,
-  [role='row']:focus-within & {
-    opacity: 1;
-  }
-`;
