@@ -48,13 +48,6 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
-from sentry.api.endpoints.organization_service_account_viewer_context import (
-    OrganizationServiceAccountViewerContextEndpoint,
-)
-from sentry.api.endpoints.organization_service_accounts import (
-    OrganizationServiceAccountDetailsEndpoint,
-    OrganizationServiceAccountIndexEndpoint,
-)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
@@ -676,6 +669,13 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 )
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
+)
+from sentry.service_accounts.endpoints.organization_service_account_viewer_context import (
+    OrganizationServiceAccountViewerContextEndpoint,
+)
+from sentry.service_accounts.endpoints.organization_service_accounts import (
+    OrganizationServiceAccountDetailsEndpoint,
+    OrganizationServiceAccountIndexEndpoint,
 )
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.synapse.endpoints.project_key_cell_mappings import ProjectKeyCellMappingsEndpoint

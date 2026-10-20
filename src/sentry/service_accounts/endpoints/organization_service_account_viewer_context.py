@@ -29,17 +29,17 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.organization_service_accounts import (
-    FEATURE_FLAG,
-    MOCK_SERVICE_ACCOUNT_SCOPES,
-    SERVICE_ACCOUNT_ID,
-)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.seer.auth import SeerRpcViewerContextAuthentication
+from sentry.service_accounts.endpoints.organization_service_accounts import (
+    FEATURE_FLAG,
+    MOCK_SERVICE_ACCOUNT_SCOPES,
+    SERVICE_ACCOUNT_ID,
+)
 from sentry.viewer_context import (
     Actor,
     ActorType,
