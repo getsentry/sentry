@@ -99,6 +99,8 @@ function ToolCallTitle({activity}: {activity: InvestigationToolActivity}) {
  * the run is working, and a second spinner beside it would show two loading
  * states in one place. Each row is a bare line of text with no button padding,
  * so the calls sit at the same spacing as the title and description above them.
+ * The list is indented instead, so it still reads as detail under the
+ * description rather than another line of it.
  */
 function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivity[]}) {
   const [expanded, setExpanded] = useState(false);
@@ -111,14 +113,19 @@ function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivi
 
   if (!earlier.length) {
     return (
-      <Flex data-test-id="seer-status-block-tool-activity" minWidth="0">
+      <Flex data-test-id="seer-status-block-tool-activity" minWidth="0" paddingLeft="lg">
         <ToolCallTitle activity={latest} />
       </Flex>
     );
   }
 
   return (
-    <Stack data-test-id="seer-status-block-tool-activity" gap="xs" minWidth="0">
+    <Stack
+      data-test-id="seer-status-block-tool-activity"
+      gap="xs"
+      minWidth="0"
+      paddingLeft="lg"
+    >
       <Flex minWidth="0">
         <ToolCallToggle
           size="zero"
