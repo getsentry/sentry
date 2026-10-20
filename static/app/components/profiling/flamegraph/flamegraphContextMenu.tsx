@@ -1,8 +1,8 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {usePopper} from 'react-popper';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconGithub} from '@sentry/icons/github';
@@ -30,6 +30,7 @@ import type {
 } from 'sentry/utils/analytics/profilingAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
+import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
 import type {
   FlamegraphColorCodings,
   FlamegraphSorting,
@@ -575,6 +576,12 @@ function makeProjectIdLookupTable(projects: Project[]): Record<number, Project> 
   }
   return table;
 }
+const SUB_MENU_MIDDLEWARE = [
+  offset({crossAxis: -16, mainAxis: 0}),
+  flipOverlay(),
+  shiftOverlay(),
+];
+
 function ProfileIdsSubMenu(props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];
   frameName: string;
@@ -586,65 +593,56 @@ function ProfileIdsSubMenu(props: {
   subMenuPortalRef: HTMLElement | null;
 }) {
   const {projects} = useProjects();
-  const [isOpen, _setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  // oxlint-disable-next-line react/refs
-  const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
+  const [isOpen, setIsOpen] = useState(false);
+  const {
+    refs: {reference: triggerRef, setReference: setTriggerElement},
+    floatingStyles,
+  } = useFloating<HTMLButtonElement>({
+    elements: {floating: props.subMenuPortalRef},
     placement: 'right-start',
-    modifiers: [
-      {
-        name: 'offset',
-        options: {
-          offset: [-16, 0],
-        },
-      },
-    ],
+    middleware: SUB_MENU_MIDDLEWARE,
+    whileElementsMounted: isOpen ? autoUpdate : undefined,
   });
 
   const projectLookupTable = useMemo(
     () => makeProjectIdLookupTable(projects),
     [projects]
   );
-  const setIsOpen: typeof _setIsOpen = useCallback(
-    nextState => {
-      _setIsOpen(nextState);
-      popper.update?.();
-    },
-    [popper]
-  );
 
-  const currentTarget = useRef<Node | null>(null);
-  useEffect(() => {
-    const listener = (e: MouseEvent) => {
-      currentTarget.current = e.target as Node;
-      setTimeout(() => {
-        if (!currentTarget.current) {
-          return;
-        }
-        if (
-          !triggerRef.current?.contains(currentTarget.current) &&
-          !props.subMenuPortalRef?.contains(currentTarget.current)
-        ) {
-          setIsOpen(false);
-        }
-      }, 250);
-    };
-    document.addEventListener('mouseover', listener);
-    return () => {
-      document.removeEventListener('mouseover', listener);
-    };
-  }, [props.subMenuPortalRef, setIsOpen]);
+  // Close the submenu once the pointer has left both the item and the submenu
+  const subMenuRef = useCallback(
+    (subMenu: HTMLDivElement) => {
+      let currentTarget: EventTarget | null = null;
+      const listener = (e: MouseEvent) => {
+        currentTarget = e.target;
+        setTimeout(() => {
+          if (
+            currentTarget instanceof Node &&
+            !triggerRef.current?.contains(currentTarget) &&
+            !subMenu.contains(currentTarget)
+          ) {
+            setIsOpen(false);
+          }
+        }, 250);
+      };
+      document.addEventListener('mouseover', listener);
+
+      return () => {
+        document.removeEventListener('mouseover', listener);
+      };
+    },
+    [triggerRef]
+  );
 
   return (
     <Fragment>
       <ProfilingContextMenuItemButton
         icon={<IconProfiling size="xs" />}
-        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
           onClick: () => {
             setIsOpen(true);
           },
-          ref: el => (triggerRef.current = el),
+          ref: setTriggerElement,
         })}
         onMouseEnter={() => {
           setIsOpen(true);
@@ -659,7 +657,8 @@ function ProfileIdsSubMenu(props: {
         props.subMenuPortalRef &&
         createPortal(
           <ProfilingContextMenu
-            style={popper.styles.popper}
+            ref={subMenuRef}
+            style={floatingStyles}
             css={css`
               max-height: 250px;
             `}

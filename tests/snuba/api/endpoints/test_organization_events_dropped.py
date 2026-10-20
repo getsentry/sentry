@@ -67,7 +67,9 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
 
     def test_serves_dropped_and_accepted_events(self) -> None:
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
-        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
+        self._store_outcome(
+            Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="usage_exceeded"
+        )
 
         response = self._do_request()
         assert response.status_code == 200, response.content
@@ -79,7 +81,7 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         dropped = response.data["droppedEvents"]
         assert len(dropped) == 1
         assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
-        assert dropped[0]["reason"] == "key_quota"
+        assert dropped[0]["reason"] == "usage_exceeded"
         assert dropped[0]["count"] == 400
         assert dropped[0]["tags"] == ["unintentional"]
 

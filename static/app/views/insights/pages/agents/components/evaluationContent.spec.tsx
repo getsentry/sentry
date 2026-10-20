@@ -1,19 +1,37 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
-  EvaluatedText,
+  EvaluatedContent,
   EvaluationAnswers,
   EvaluationQuestions,
   EvaluationResultSummary,
 } from 'sentry/views/insights/pages/agents/components/evaluationContent';
 
-describe('EvaluatedText', () => {
+describe('EvaluatedContent', () => {
   it('renders the text without a Pretty/Raw toggle', async () => {
-    render(<EvaluatedText state="I cannot log in." />);
+    render(
+      <EvaluatedContent state={[{parts: [{kind: 'text', text: 'I cannot log in.'}]}]} />
+    );
 
     await userEvent.hover(screen.getByText('I cannot log in.'));
 
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+  });
+
+  it('renders message text with a placeholder for each image', () => {
+    render(
+      <EvaluatedContent
+        state={[
+          {
+            role: 'user',
+            parts: [{kind: 'text', text: 'Is this image mostly red?'}, {kind: 'image'}],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Is this image mostly red?')).toBeInTheDocument();
+    expect(screen.getByText('Image')).toBeInTheDocument();
   });
 });
 
@@ -55,6 +73,28 @@ describe('EvaluationQuestions', () => {
     expect(screen.getByText('tone')).toBeInTheDocument();
     expect(screen.getByText('Unrecognized')).toBeInTheDocument();
     expect(screen.getByText(/friendly/)).toBeInTheDocument();
+  });
+
+  it('renders score level descriptions next to their levels', () => {
+    render(
+      <EvaluationQuestions
+        questions={[
+          {
+            key: 'urgency',
+            kind: 'question',
+            type: 'score',
+            criteria: ['low', 'medium', 'high'],
+            descriptions: {1: 'Needs a reply today', 2: 'Blocks the customer'},
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('0 · low')).toBeInTheDocument();
+    expect(screen.getByText('1 · medium')).toBeInTheDocument();
+    expect(screen.getByText('Needs a reply today')).toBeInTheDocument();
+    expect(screen.getByText('2 · high')).toBeInTheDocument();
+    expect(screen.getByText('Blocks the customer')).toBeInTheDocument();
   });
 });
 
