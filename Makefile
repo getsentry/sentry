@@ -188,7 +188,7 @@ test-selective:
 		.cache/selected-tests.txt
 	SELECTED_TESTS_FILE=.cache/selected-tests.txt \
 	python3 -b .github/workflows/scripts/pytest-selected.py \
-		-n3 \
+		-j3 \
 		tests \
 		--reuse-db \
 		--ignore tests/acceptance \

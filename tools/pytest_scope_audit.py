@@ -4,7 +4,7 @@ Example:
     .venv/bin/python -m pytest -q --reuse-db -p tools.pytest_scope_audit \
         tests/sentry/core/endpoints/test_team_projects.py
 
-Run without pytest-xdist so findings can be aggregated in one process.
+Run with ``--serial`` so findings can be aggregated in one process.
 """
 
 from __future__ import annotations

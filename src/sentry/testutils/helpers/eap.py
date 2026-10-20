@@ -117,8 +117,9 @@ class EAPClient(SentryAPIClient):
     def generic(self, method: str, path: Any, data: Any = "", *args: Any, **extra: Any) -> Any:
         path_str = str(path)
         is_query_method = str(method).upper() in _QUERY_DATA_METHODS
+        has_empty_data = data is None or (isinstance(data, (str, bytes)) and not data)
 
-        if is_query_method and data not in ("", None):
+        if is_query_method and not has_empty_data:
             data = apply_eap_default_stats_period(data, path=path_str)
 
         # Prefer QUERY_STRING / query_params over inventing a GET body. Django's Client
@@ -131,7 +132,7 @@ class EAPClient(SentryAPIClient):
             extra["query_params"] = apply_eap_default_stats_period(
                 extra["query_params"], path=path_str
             )
-        elif is_query_method and data in ("", None) and _should_apply_default({}, path_str):
+        elif is_query_method and has_empty_data and _should_apply_default({}, path_str):
             # Empty GET on an EAP path with no query yet: set QUERY_STRING only so the
             # request stays body-less (a dict body becomes application/octet-stream).
             extra["QUERY_STRING"] = apply_eap_default_stats_period("", path=path_str)

@@ -15,7 +15,7 @@ With DEVSERVICES_STATUS_FILE set (the exit status of a background
 healthy, and phase 2 waits for ``devservices up`` to succeed, since it
 health-checks snuba-snuba-1. If devservices fails, this fails fast.
 
-Requires: XDIST_WORKERS env var
+Requires: SENTRY_TEST_WORKERS env var
 """
 
 from __future__ import annotations
@@ -270,9 +270,9 @@ def start_worker_container(worker_id: int, *, image: str, network: str) -> None:
 
 
 def main() -> None:
-    workers_str = os.environ.get("XDIST_WORKERS")
+    workers_str = os.environ.get("SENTRY_TEST_WORKERS")
     if not workers_str:
-        fail("XDIST_WORKERS must be set")
+        fail("SENTRY_TEST_WORKERS must be set")
     workers = range(int(workers_str))  # type: ignore[arg-type]
     start = time.monotonic()
 

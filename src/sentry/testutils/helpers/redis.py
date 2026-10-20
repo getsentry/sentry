@@ -27,10 +27,6 @@ def use_redis_cluster(
 
     cluster_config = sentry_options.get("redis.clusters")["cluster"]
     if not prefix_keys:
-        # For code whose Lua scripts make key names from the values in KEYS. The prefix would
-        # go into the middle of those names. Such tests are not isolated between xdist workers:
-        # they see the keys of other workers, and a flush on this client deletes those keys too.
-        # Clients are cached per cluster id, so use an id that prefixed tests do not use.
         cluster_config = {k: v for k, v in cluster_config.items() if k != "key_prefix"}
     options = {
         "backpressure.high_watermarks.redis": high_watermark,

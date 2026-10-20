@@ -5,10 +5,13 @@ import subprocess
 import sys
 import textwrap
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
+from unittest.mock import Mock, patch
 
 import pytest
+import pytest_jsonreport.plugin
 
+from sentry.testutils.pytest import json_report_reruns
 from sentry.utils import json
 
 INNER_TESTS = textwrap.dedent(
@@ -30,18 +33,18 @@ INNER_TESTS = textwrap.dedent(
 )
 
 
-@pytest.fixture(params=[(), ("-n", "2", "--dist=loadfile")], ids=["inprocess", "xdist"])
+@pytest.fixture(params=[(), ("-j", "2")], ids=["inprocess", "parallel"])
 def tests(request: pytest.FixtureRequest, tmp_path: Path) -> dict[str, dict[str, Any]]:
     (tmp_path / "pytest.ini").write_text("[pytest]\n")
     (tmp_path / "test_inner.py").write_text(INNER_TESTS)
-    # Keep the outer run's options and settings out, and load exactly the
-    # plugins CI combines.
     env = {
-        k: v for k, v in os.environ.items() if not k.startswith(("PYTEST_", "DJANGO_", "SENTRY_"))
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("PYTEST_", "_PYTEST_", "DJANGO_", "SENTRY_"))
     }
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     plugins = (
-        "xdist.plugin",
+        "pytest_parallel.plugin",
         "pytest_rerunfailures",
         "pytest_jsonreport.plugin",
         "sentry.testutils.pytest.json_report_reruns",
@@ -67,7 +70,9 @@ def tests(request: pytest.FixtureRequest, tmp_path: Path) -> dict[str, dict[str,
         timeout=120,
     )
     assert proc.returncode == 1, proc.stdout + proc.stderr
-    report = json.loads((tmp_path / "report.json").read_text())
+    report_path = tmp_path / "report.json"
+    assert report_path.exists(), proc.stdout + proc.stderr
+    report = json.loads(report_path.read_text())
     return {test["nodeid"].split("::")[1]: test for test in report["tests"]}
 
 
@@ -81,6 +86,16 @@ def test_subtests_are_not_reruns(tests: dict[str, dict[str, Any]]) -> None:
         ("passed", {"msg": "loop", "kwargs": {"i": "2"}}),
     ]
     assert "AssertionError: subtest boom" in test["subtests"][1]["longrepr"]
+
+
+def test_rerun_hook_ignores_parallel_json_report_worker() -> None:
+    worker_type = cast(Any, pytest_jsonreport.plugin).JSONReportWorker
+    manager = Mock()
+
+    with patch.object(pytest_jsonreport.plugin, "JSONReport", worker_type):
+        json_report_reruns.pytest_plugin_registered(worker_type(), cast(Any, manager))
+
+    manager.register.assert_not_called()
 
 
 def test_rerun_keeps_its_own_subtests(tests: dict[str, dict[str, Any]]) -> None:

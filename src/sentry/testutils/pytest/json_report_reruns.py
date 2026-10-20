@@ -21,8 +21,8 @@ from collections.abc import Generator
 from typing import Any
 
 import pytest
-import pytest_jsonreport.plugin
 from _pytest._io.saferepr import saferepr
+from pytest_jsonreport.plugin import JSONReport as JSONReportPlugin
 
 JSONTestItem = dict[str, Any]
 JSONTestItems = dict[str, JSONTestItem]
@@ -32,7 +32,7 @@ PHASES = ("setup", "call", "teardown")
 
 def pytest_plugin_registered(plugin: object, manager: pytest.PytestPluginManager) -> None:
     """Only register if/when the plugin we're extending is registered."""
-    if isinstance(plugin, pytest_jsonreport.plugin.JSONReport):
+    if isinstance(plugin, JSONReportPlugin):
         json_tests = getattr(plugin, "_json_tests")
         manager.register(PytestRerunJSONReporter(json_tests))
 
@@ -83,8 +83,6 @@ class PytestRerunJSONReporter:
 
         json_testitem = self.json_tests[report.nodeid]
         if report.when in json_testitem:
-            # this is a new result of some kind -- record all prior data as a
-            # "rerun" and start over fresh
             reruns = json_testitem.setdefault("reruns", [])
             reruns.append(
                 {

@@ -30,9 +30,6 @@ from pathlib import Path
 import pytest
 
 DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
-# Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test.
-# Files run in collection order, so a big file that starts late on an xdist
-# worker holds up the whole shard; this bounds how big that can be.
 PIECES_PER_SHARD = 48
 
 
@@ -203,9 +200,6 @@ def run_full_shard(args: list[str], total: int, group: int) -> int:
     shard_file.write_text("".join(f"{path}\n" for path in shard.files))
     parts_file = shard_file.with_suffix(".json")
     parts_file.write_text(json.dumps(shard.parts))
-    # SELECTED_TESTS_FILE makes the sentry pytest plugin skip other shards'
-    # files at collection; pytest_shard_plugin (loaded in xdist workers too)
-    # keeps this shard's part of each split file.
     os.environ["SELECTED_TESTS_FILE"] = str(shard_file)
     os.environ["TOTAL_TEST_GROUPS"] = "1"
     os.environ["TEST_GROUP"] = "0"
