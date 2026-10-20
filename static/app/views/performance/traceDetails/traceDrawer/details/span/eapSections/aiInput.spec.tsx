@@ -115,6 +115,7 @@ describe('AIInputSection', () => {
       url: '/projects/org-slug/1/ai/code-explanation/',
       method: 'POST',
       body: {summary: 'Print numbers in a loop'},
+      match: [MockApiClient.matchData({code, language: 'python'})],
     });
     render(
       <AIInputSection
@@ -126,6 +127,10 @@ describe('AIInputSection', () => {
       />
     );
 
+    expect(screen.getByRole('region', {name: 'Summary'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
     expect(await screen.findByText('Print numbers in a loop')).toBeInTheDocument();
     expect(screen.getByText('python')).toBeInTheDocument();
     expect(

@@ -11,32 +11,6 @@ beforeEach(() => {
   MockApiClient.clearMockResponses();
 });
 
-it('shows the summary above the code and sends the original snippet', async () => {
-  const request = MockApiClient.addMockResponse({
-    url: URL,
-    method: 'POST',
-    body: {summary: 'Print a number'},
-  });
-
-  render(<CodeModeDetails projectId={1} code={CODE} language="python" />);
-
-  expect(screen.getByRole('button', {name: 'Copy snippet'})).toBeInTheDocument();
-  expect(screen.getByRole('region', {name: 'Summary'})).toHaveAttribute(
-    'aria-busy',
-    'true'
-  );
-  expect(await screen.findByText('Print a number')).toBeInTheDocument();
-  expect(screen.getByRole('region', {name: 'Summary'})).toHaveAttribute(
-    'aria-busy',
-    'false'
-  );
-  expect(screen.getByRole('heading', {name: 'Summary'})).toBeInTheDocument();
-  expect(request).toHaveBeenCalledWith(
-    URL,
-    expect.objectContaining({method: 'POST', data: {code: CODE, language: 'python'}})
-  );
-});
-
 it('does not request a summary when AI features are hidden', () => {
   const request = MockApiClient.addMockResponse({url: URL, method: 'POST'});
 
