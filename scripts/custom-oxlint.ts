@@ -780,7 +780,7 @@ async function main() {
   });
   if (args[0] === '--help' || args[0] === '-h' || values.help) {
     console.log(`Usage: pnpm run lint:js [native options] [paths...]
-       pnpm run lint:js --<maintenance> [options]
+       pnpm run lint:suppressions --<maintenance> [options]
 
 Ordinary lint forwards native options below and uses the committed policy.
 Configuration, rule, and suppression overrides are rejected.
@@ -1058,14 +1058,14 @@ Native oxlint options:
             process.exitCode = 1;
             throw new Error(
               [
-                'Suppression budgets are stale. Run pnpm run lint:js --prune and commit the updated oxlint-suppressions.json.',
+                'Suppression budgets are stale. Run pnpm run lint:suppressions --prune and commit the updated oxlint-suppressions.json.',
                 ...owned,
               ].join('\n')
             );
           }
           if (inherited.length > 0) {
             warn(
-              'Ignoring stale suppression budgets inherited from the base. Prune them separately with pnpm run lint:js --prune.',
+              'Ignoring stale suppression budgets inherited from the base. Prune them separately with pnpm run lint:suppressions --prune.',
               inherited
             );
           }

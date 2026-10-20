@@ -145,16 +145,12 @@ const config: KnipConfig = {
     },
     'static/packages/icons': {
       oxlint: scopedOxlint,
-      // The shared lint runner resolves these binaries in each owning package.
-      ignoreDependencies: ['oxlint', 'oxlint-tsgolint', 'stylelint'],
       // test helpers are only used outside production.
       project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!', '!test/**!'],
       includeEntryExports: true,
     },
     'static/packages/scraps': {
       oxlint: scopedOxlint,
-      // The shared lint runner resolves these binaries in each owning package.
-      ignoreDependencies: ['oxlint', 'oxlint-tsgolint', 'stylelint'],
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.

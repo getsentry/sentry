@@ -101,7 +101,7 @@ jobs:
 
       - name: Prune suppression budgets
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'
-        run: pnpm run lint:js --prune
+        run: pnpm run lint:suppressions --prune
 
       - name: Apply any pre-commit fixed files
         # Run after prek failures, but skip canceled runs that may have incomplete fixes.

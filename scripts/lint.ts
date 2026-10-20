@@ -1,25 +1,21 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {existsSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
 
 const [language, ...args] = process.argv.slice(2);
 assert(language === 'js' || language === 'css', 'Expected js or css');
-const local = args[0] === '--local';
-if (local) {
-  args.shift();
-}
-
-// Maintenance and inspection belong to the root policy, not package lint tasks.
-const rootOnly =
-  (language === 'js' &&
-    ['--check', '--ci', '--enroll', '--prune', '--backlog', '--snapshot'].includes(
-      args[0] ?? ''
-    )) ||
-  args.some(arg =>
-    ['--help', '-h', '--version', '-V', '-v', '--print-config', '--rules'].includes(arg)
-  );
+assert(
+  language !== 'js' ||
+    !args.some(arg =>
+      ['--check', '--ci', '--enroll', '--prune', '--backlog', '--snapshot'].includes(arg)
+    ),
+  'Use pnpm run lint:suppressions for suppression maintenance.'
+);
+const inspect = args.some(arg =>
+  ['--help', '-h', '--version', '-V', '-v', '--print-config', '--rules'].includes(arg)
+);
 
 function run(options: string[], cwd = process.cwd()) {
   const result = spawnSync('pnpm', options, {stdio: 'inherit', cwd});
@@ -30,7 +26,7 @@ function run(options: string[], cwd = process.cwd()) {
 }
 
 const {positionals, tokens} = parseArgs({
-  args: rootOnly ? [] : args,
+  args: inspect ? [] : args,
   strict: false,
   allowPositionals: true,
   tokens: true,
@@ -71,11 +67,7 @@ const packageArgs = tokens.flatMap(token => {
 
 function lintArgs(files: string[]) {
   const options = [...packageArgs];
-  if (
-    !rootOnly &&
-    language === 'js' &&
-    !options.includes('--no-error-on-unmatched-pattern')
-  ) {
+  if (language === 'js' && !options.includes('--no-error-on-unmatched-pattern')) {
     options.unshift('--no-error-on-unmatched-pattern');
   }
   return [
@@ -84,31 +76,7 @@ function lintArgs(files: string[]) {
   ];
 }
 
-if (local) {
-  process.exitCode = run([
-    'exec',
-    language === 'js' ? 'oxlint' : 'stylelint',
-    ...(rootOnly ? args : lintArgs(positionals)),
-  ]);
-  if (
-    language === 'js' &&
-    process.exitCode === 0 &&
-    args.includes('--fix') &&
-    existsSync('oxlint-suppressions.json')
-  ) {
-    const asset = 'oxlint-suppressions.json';
-    const native = readFileSync(asset, 'utf8');
-    const budget = JSON.parse(native);
-    if (Object.keys(budget).length === 0) {
-      rmSync(asset);
-    } else {
-      const formatted = JSON.stringify(budget, null, 2) + '\n';
-      if (native !== formatted) {
-        writeFileSync(asset, formatted);
-      }
-    }
-  }
-} else if (rootOnly) {
+if (inspect) {
   process.exitCode = run(['run', `lint:${language}:root`, ...args]);
 } else if (positionals.length === 0) {
   const rootStatus = run(['run', `lint:${language}:root`, ...lintArgs([])]);
@@ -178,7 +146,13 @@ if (local) {
   }
   if (status === 0) {
     for (const [project, files] of selected) {
-      const result = run(['run', `lint:${language}`, ...packageArgs, ...files], project);
+      // A package's Stylelint task has a full-scan glob. Use explicit paths here
+      // so file-scoped fixes cannot also change unselected files.
+      const command =
+        language === 'css'
+          ? ['exec', 'stylelint', '--allow-empty-input']
+          : ['run', 'lint:js'];
+      const result = run([...command, ...packageArgs, ...files], project);
       status ||= result;
     }
   }

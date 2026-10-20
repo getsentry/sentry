@@ -308,7 +308,7 @@ test('verified lint bases require the exact budgets step after the ratchet', () 
   const exact = steps.findIndex(({name}) => name === step);
   assert(ratchet >= 0 && exact > ratchet);
   assert.equal(steps[ratchet]!.id, 'ratchet');
-  assert.match(steps[ratchet]!.run ?? '', /pnpm run lint:js --ci/);
+  assert.match(steps[ratchet]!.run ?? '', /pnpm run lint:suppressions --ci/);
   assert.equal(steps[exact]!.if, "steps.ratchet.outputs.budgets == 'exact'");
   assert(
     readFileSync(
@@ -494,7 +494,7 @@ test('CI scans head once and rejects increased or stale budgets', t => {
   const stale = ci(1);
   assert.equal(stale.status, 1, stale.stderr);
   assert.match(stale.stderr, /Suppression budgets are stale/);
-  assert.match(stale.stderr, /pnpm run lint:js --prune/);
+  assert.match(stale.stderr, /pnpm run lint:suppressions --prune/);
   assert.match(stale.stderr, /commit the updated oxlint-suppressions.json/);
   assert.match(stale.stderr, /source.js no-debugger: budget 2, 0 violations/);
   assert.doesNotMatch(stale.stderr, /fix:oxlint|--enroll|New incubator violations/);
@@ -595,7 +595,7 @@ test('CI and prune report violations exceeding committed budgets', t => {
       result.stderr,
       /source.js:1:1 no-debugger `debugger` statement is not allowed/
     );
-    assert.doesNotMatch(result.stderr, /stale|pnpm run lint:js --prune/);
+    assert.doesNotMatch(result.stderr, /stale|pnpm run lint:suppressions --prune/);
   }
   assert.equal(
     readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8'),

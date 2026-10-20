@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -30,12 +31,16 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
   );
   write(
     'record.mjs',
-    `import {appendFileSync, readFileSync} from 'node:fs';
+    `#!/usr/bin/env node
+    import {appendFileSync, readFileSync} from 'node:fs';
     const {name} = JSON.parse(readFileSync('package.json', 'utf8'));
     appendFileSync(${JSON.stringify(path.join(directory, 'runs.jsonl'))},
       JSON.stringify({name, args: process.argv.slice(2)}) + '\\n');
     process.exitCode = process.env.FAIL_WORKSPACE === name ? 1 : 0;`
   );
+  chmodSync(path.join(directory, 'record.mjs'), 0o755);
+  mkdirSync(path.join(directory, 'bin'));
+  symlinkSync(path.join(directory, 'record.mjs'), path.join(directory, 'bin/stylelint'));
   write(
     'package.json',
     JSON.stringify({
@@ -69,11 +74,17 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
       const result = spawnSync(process.execPath, [runner, language, ...args], {
         cwd: directory,
         encoding: 'utf8',
-        env: {...process.env, FAIL_WORKSPACE: failWorkspace},
+        env: {
+          ...process.env,
+          FAIL_WORKSPACE: failWorkspace,
+          PATH: path.join(directory, 'bin') + path.delimiter + process.env.PATH,
+        },
       });
-      const runs = readFileSync(path.join(directory, 'runs.jsonl'), 'utf8')
+      const log = path.join(directory, 'runs.jsonl');
+      const runs = (existsSync(log) ? readFileSync(log, 'utf8') : '')
         .trim()
         .split('\n')
+        .filter(Boolean)
         .map(line => JSON.parse(line) as {args: string[]; name: string});
       return {...result, runs};
     },
@@ -160,12 +171,29 @@ test('scoped CSS lint routes files to their owning projects', t => {
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.deepEqual(result.runs, [
     {name: 'root', args: ['--quiet', 'static/app/example.tsx']},
-    {name: 'icons', args: ['--quiet', 'src/example.tsx']},
+    {name: 'icons', args: ['--allow-empty-input', '--quiet', 'src/example.tsx']},
   ]);
 });
 
-test('suppression maintenance and config inspection do not invoke package tasks', t => {
-  for (const args of [['--ci', '--base', 'HEAD'], ['--prune'], ['--print-config']]) {
+test('suppression maintenance uses a separate root command', t => {
+  for (const flag of [
+    '--check',
+    '--ci',
+    '--enroll',
+    '--prune',
+    '--backlog',
+    '--snapshot',
+  ]) {
+    const {lint} = fixture(t);
+    const result = lint('js', [flag]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /pnpm run lint:suppressions/);
+    assert.deepEqual(result.runs, []);
+  }
+});
+
+test('config inspection does not invoke package tasks', t => {
+  for (const args of [['--print-config'], ['--help'], ['--version'], ['--rules']]) {
     const {lint} = fixture(t);
     const result = lint('js', args);
     assert.equal(result.status, 0, result.stdout + result.stderr);
@@ -210,9 +238,10 @@ for (const language of ['js', 'css']) {
         JSON.stringify({
           name,
           scripts: {
-            [`lint:${language}`]: manifest.scripts[`lint:${language}`]
-              .replace('node ../../../scripts/lint.ts', `node ${runner}`)
-              .replace('--type-aware ', ''),
+            [`lint:${language}`]: manifest.scripts[`lint:${language}`].replace(
+              '--type-aware ',
+              ''
+            ),
           },
         })
       );
@@ -264,7 +293,7 @@ for (const language of ['js', 'css']) {
   });
 }
 
-test('package fixes preserve canonical suppression bytes and format pruned budgets', t => {
+test('native package fixes reduce only checked suppression counts', t => {
   const {directory, write, lint} = fixture(t);
   const project = 'packages/icons';
   write(
@@ -272,7 +301,7 @@ test('package fixes preserve canonical suppression bytes and format pruned budge
     JSON.stringify({
       name: 'icons',
       scripts: {
-        'lint:js': `node ${runner} js --local`,
+        'lint:js': 'oxlint',
       },
     })
   );
@@ -298,22 +327,21 @@ test('package fixes preserve canonical suppression bytes and format pruned budge
     path.join(directory, 'node_modules/.bin')
   );
   const asset = () =>
-    readFileSync(path.join(directory, project, 'oxlint-suppressions.json'), 'utf8');
+    JSON.parse(
+      readFileSync(path.join(directory, project, 'oxlint-suppressions.json'), 'utf8')
+    );
   const fix = (file: string) => {
     const result = lint('js', ['--fix', 'application.js', `${project}/${file}`]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
   };
   fix('source.js');
-  assert.equal(asset(), original);
+  assert.deepEqual(asset(), JSON.parse(original));
   write(`${project}/source.js`, '');
   fix('source.js');
-  assert.equal(
-    asset(),
-    '{\n  "other.js": {\n    "no-debugger": {\n      "count": 1\n    }\n  }\n}\n'
-  );
+  assert.deepEqual(asset(), {'other.js': {'no-debugger': {count: 1}}});
   write(`${project}/other.js`, '');
   fix('other.js');
-  assert(!existsSync(path.join(directory, project, 'oxlint-suppressions.json')));
+  assert.deepEqual(asset(), {});
   fix('other.js');
-  assert(!existsSync(path.join(directory, project, 'oxlint-suppressions.json')));
+  assert.deepEqual(asset(), {});
 });

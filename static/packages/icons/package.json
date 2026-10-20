@@ -183,8 +183,8 @@
     "test": "NODE_ENV=test jest --config jest.config.mjs",
     "typecheck": "tsc --build tsconfig.json",
     "lint": "pnpm run lint:js && pnpm run lint:css",
-    "lint:js": "node ../../../scripts/lint.ts js --local --type-aware --report-unused-disable-directives",
-    "lint:css": "node ../../../scripts/lint.ts css --local"
+    "lint:js": "oxlint --type-aware --report-unused-disable-directives --no-error-on-unmatched-pattern",
+    "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
     "@emotion/styled": "^11.14.0",

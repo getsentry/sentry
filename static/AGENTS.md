@@ -60,9 +60,9 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 
 ## Linting
 
-Icons and Scraps own their lint configs. Scoped lint and prek route selected files to their owning packages; package commands accept project-relative paths. Use root commands for suppression maintenance.
+Icons and Scraps own their lint configs and run native Oxlint and Stylelint. Root lint commands and prek route selected files to their owning packages. For file-scoped CSS checks, the root invokes Stylelint directly in each package to avoid its full-scan glob. Use `pnpm run lint:suppressions` at the root for suppression maintenance across all workspaces.
 
-Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. Each workspace's `oxlint-suppressions.json` uses project-relative paths and caps existing debt per file and rule. Missing files mean empty budgets. Successful fixes lower counts automatically. Run `pnpm run lint:js --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
+Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. Each workspace's `oxlint-suppressions.json` uses project-relative paths and caps existing debt per file and rule. Missing or empty files mean empty budgets. Successful fixes lower counts automatically. Run `pnpm run lint:suppressions --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
 
 ## Refs
 
