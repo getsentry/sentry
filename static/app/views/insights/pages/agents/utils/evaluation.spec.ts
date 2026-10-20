@@ -70,17 +70,75 @@ describe('parseEvaluationInput', () => {
     });
   });
 
+  it('reads boolean choice options as strings', () => {
+    const raw = JSON.stringify([
+      {
+        type: 'evaluation',
+        state: 'Win a free cruise!',
+        questions: {
+          // As recorded by the JavaScript SDK for OpenAI decisions.
+          isSpam: {type: 'choice', criteria: {true: '', false: 'Not spam'}},
+          isAd: {type: 'choice', criteria: [true, false]},
+        },
+      },
+    ]);
+
+    expect(parseEvaluationInput(raw)?.questions).toEqual([
+      {
+        key: 'isSpam',
+        kind: 'question',
+        type: 'choice',
+        criteria: {true: '', false: 'Not spam'},
+      },
+      {key: 'isAd', kind: 'question', type: 'choice', criteria: ['true', 'false']},
+    ]);
+  });
+
+  it('parses score level descriptions', () => {
+    const raw = JSON.stringify([
+      {
+        type: 'evaluation',
+        state: 'I was charged twice.',
+        questions: {
+          urgency: {
+            type: 'score',
+            criteria: ['low', 'medium', 'high'],
+            descriptions: {1: 'Needs a reply today', 2: 'Blocks the customer'},
+          },
+        },
+      },
+    ]);
+
+    expect(parseEvaluationInput(raw)?.questions).toEqual([
+      {
+        key: 'urgency',
+        kind: 'question',
+        type: 'score',
+        criteria: ['low', 'medium', 'high'],
+        descriptions: {1: 'Needs a reply today', 2: 'Blocks the customer'},
+      },
+    ]);
+  });
+
   it('keeps malformed questions as raw values', () => {
     const raw = JSON.stringify([
       {
         type: 'evaluation',
         state: 'text',
-        questions: {urgency: {type: 'score', criteria: 'low'}},
+        questions: {
+          urgency: {type: 'score', criteria: 'low'},
+          severity: {type: 'score', criteria: ['low'], descriptions: ['Minor']},
+        },
       },
     ]);
 
     expect(parseEvaluationInput(raw)?.questions).toEqual([
       {key: 'urgency', kind: 'invalid', value: {type: 'score', criteria: 'low'}},
+      {
+        key: 'severity',
+        kind: 'invalid',
+        value: {type: 'score', criteria: ['low'], descriptions: ['Minor']},
+      },
     ]);
   });
 
@@ -134,6 +192,7 @@ describe('parseEvaluationOutput', () => {
             probabilities: {technical: 0.35, billing: 0.59},
             confidence: 0.24,
           },
+          tone: {type: 'refusal'},
         },
       },
     ]);
@@ -157,6 +216,36 @@ describe('parseEvaluationOutput', () => {
         probabilities: {technical: 0.35, billing: 0.59},
         confidence: 0.24,
       },
+      {kind: 'refusal', key: 'tone'},
+    ]);
+  });
+
+  it('reads boolean choices as strings', () => {
+    const raw = JSON.stringify([
+      {
+        type: 'evaluation',
+        answers: {
+          // As recorded by the JavaScript SDK for OpenAI decisions.
+          isSpam: {
+            type: 'choice',
+            choice: 'true',
+            probabilities: {true: 0.91, false: 0.09},
+            confidence: 0.91,
+          },
+          isAd: {type: 'choice', choice: false},
+        },
+      },
+    ]);
+
+    expect(parseEvaluationOutput(raw)).toEqual([
+      {
+        kind: 'choice',
+        key: 'isSpam',
+        choice: 'true',
+        probabilities: {true: 0.91, false: 0.09},
+        confidence: 0.91,
+      },
+      {kind: 'choice', key: 'isAd', choice: 'false'},
     ]);
   });
 
@@ -251,5 +340,9 @@ describe('getAnswerLabel', () => {
         criteria: ['low', 'medium', 'critical'],
       })
     ).toBe('critical (1.6)');
+  });
+
+  it('labels a refusal', () => {
+    expect(getAnswerLabel({kind: 'refusal', key: 'urgency'})).toBe('Refused');
   });
 });

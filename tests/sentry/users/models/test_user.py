@@ -36,8 +36,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
-from sentry.models.rule import Rule, RuleActivity
-from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.rule import Rule
 from sentry.models.search_common import SearchType
 from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
@@ -490,8 +489,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ProjectBookmark,
         RecentSearch,
         Rule,
-        RuleActivity,
-        RuleSnooze,
     )
     def test_only_source_user_is_member_of_organization(
         self, expected_models: list[type[Model]]
@@ -532,8 +529,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ProjectBookmark,
         RecentSearch,
         Rule,
-        RuleActivity,
-        RuleSnooze,
     )
     def test_both_users_are_members_of_organization(
         self, expected_models: list[type[Model]]

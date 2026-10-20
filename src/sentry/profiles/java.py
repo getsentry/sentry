@@ -1,5 +1,6 @@
 from typing import Any
 
+from sentry.lang.java.processing import fixup_frame_in_app
 from sentry.profiles.utils import Profile, is_android_trace_format, is_jvm_frame
 
 JAVA_BASE_TYPES = {
@@ -180,6 +181,11 @@ def _apply_jvm_frame_to_sample_v2_frame(f: dict[str, Any], frame: dict[str, Any]
 
 
 def merge_jvm_frames_with_android_methods(frames: list[dict[str, Any]], profile: Profile) -> None:
+    release_package = profile.get("transaction_metadata", {}).get("app.identifier")
+
+    for f in frames:
+        fixup_frame_in_app(f, release_package)
+
     if is_android_trace_format(profile):
         methods = profile["profile"]["methods"]
         for f in frames:

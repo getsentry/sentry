@@ -233,17 +233,16 @@ jobs:
         name: Checkout sentry
 
       # Must run before the parallel group: it parses $GITHUB_EVENT_PATH, which the
-      # runner truncates whenever a step starts (getsentry/sentry#127566).
-      - uses: ./.github/actions/setup-node-toolchain
+      # runner truncates whenever a step starts (getsentry/sentry#127566). It is also
+      # a composite action, and the runner corrupts shared job state when a composite
+      # overlaps another step (actions/runner#4789).
+      - uses: ./.github/actions/setup-node-pnpm
 
       # None of these depend on each other, fetch them all at once. Nothing in this
       # group may read $GITHUB_EVENT_PATH (e.g. actions/setup-node, pnpm/action-setup,
-      # actions/download-artifact, actions/github-script, actions/checkout).
+      # actions/download-artifact, actions/github-script, actions/checkout) or be a
+      # composite action.
       - parallel:
-          - uses: ./.github/actions/setup-node-pnpm
-            with:
-              setup-toolchain: 'false'
-
           - name: jest transform cache
             uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
             with:

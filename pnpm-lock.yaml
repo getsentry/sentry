@@ -1217,6 +1217,9 @@ importers:
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      query-string:
+        specifier: 7.0.1
+        version: 7.0.1
       react:
         specifier: ^19.0.0
         version: 19.3.0
