@@ -6,9 +6,15 @@ import orjson
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from drf_spectacular.settings import patched_settings
+from openapi_schema_validator import OAS30Validator
+from rest_framework.response import Response
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 from urllib3.response import HTTPResponse
 
+import sentry.apidocs.extensions  # noqa: F401
+from sentry.apidocs.hooks import CustomGenerator
+from sentry.investigations.apidocs import PRIVATE_SCHEMA_SETTINGS
 from sentry.investigations.models import (
     Investigation,
     InvestigationOrchestrationRun,
@@ -467,3 +473,66 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.status_code == 200, response.data
         assert [item["title"] for item in response.data] == ["Listed"]
         assert response.data[0]["isFavorited"] is False
+
+    def test_private_schema_matches_frontend_responses(self) -> None:
+        with patched_settings(PRIVATE_SCHEMA_SETTINGS):
+            schema = CustomGenerator().get_schema(public=True)
+        base = "/api/0/organizations/{organization_id_or_slug}/investigations/"
+        detail_path = base + "{investigation_id}/"
+
+        def validate_response(response: Response, method: str, path: str) -> None:
+            assert 200 <= response.status_code < 300, response.data
+            response_schema = schema["paths"][path][method]["responses"][str(response.status_code)][
+                "content"
+            ]["application/json"]["schema"]
+            OAS30Validator({**response_schema, "components": schema["components"]}).validate(
+                orjson.loads(response.content)
+            )
+
+        created = self.client.post(
+            self.collection_url,
+            data={"title": "Checkout latency", "projectIds": [self.project.id]},
+            format="json",
+        )
+        validate_response(created, "post", base)
+        validate_response(self.client.get(self.collection_url), "get", base)
+        detail_url = f"{self.collection_url}{created.data['id']}/"
+        block = self.client.post(
+            detail_url + "blocks/",
+            data={
+                "investigationVersion": created.data["version"],
+                "kind": "text",
+                "content": "Initial observations",
+            },
+            format="json",
+        )
+        validate_response(block, "post", detail_path + "blocks/")
+        detail = self.client.get(detail_url)
+        validate_response(detail, "get", detail_path)
+        comment = self.client.post(
+            detail_url + "comments/",
+            data={"body": "Latency rose after deployment.", "blockId": int(block.data["id"])},
+            format="json",
+        )
+        validate_response(comment, "post", detail_path + "comments/")
+        validate_response(
+            self.client.get(detail_url + "comments/"), "get", detail_path + "comments/"
+        )
+        validate_response(
+            self.client.get(detail_url + "comment-counts/"), "get", detail_path + "comment-counts/"
+        )
+        validate_response(
+            self.client.put(detail_url + "presence/"), "put", detail_path + "presence/"
+        )
+        validate_response(
+            self.client.get(detail_url + "title-generation/"),
+            "get",
+            detail_path + "title-generation/",
+        )
+
+        agentic = self.client.post(
+            self.collection_url, data={"source": {"type": "manual"}}, format="json"
+        )
+        validate_response(agentic, "post", base)
+        orchestration = self.client.get(f"{self.collection_url}{agentic.data['id']}/orchestration/")
+        validate_response(orchestration, "get", detail_path + "orchestration/")

@@ -179,6 +179,34 @@ describe('TagDetailsDrawerContent', () => {
     );
   });
 
+  it('escapes reserved tag names when clicking a tag value', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/project_id/',
+      body: {...tags[0], key: 'project_id'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/project_id/values/',
+      body: [
+        {
+          ...TagValuesFixture()[0],
+          key: 'project_id',
+          value: 'custom-project',
+          query: undefined,
+        },
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('project_id'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: 'custom-project'}));
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/issues/1/events/recommended/'
+    );
+    expect(router.location.query.query).toBe('tags[project_id]:"custom-project"');
+  });
+
   it('navigates to explore with issue + tag query', async () => {
     const discoverOrganization = OrganizationFixture({
       features: ['discover-basic'],

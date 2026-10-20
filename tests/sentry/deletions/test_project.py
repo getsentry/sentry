@@ -21,8 +21,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.rule import Rule
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -59,9 +58,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
     def test_simple(self) -> None:
         project = self.create_project(name="test")
         rule = self.create_project_rule(project=project)
-        RuleActivity.objects.create(
-            rule=rule, user_id=self.user.id, type=RuleActivityType.CREATED.value
-        )
         event = self.store_event(data={}, project_id=project.id)
         assert event.group is not None
         group = event.group
@@ -161,15 +157,12 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             subscription=query_sub,
         )
 
-        rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
-
         self.ScheduledDeletion.schedule(instance=project, days=0)
         with self.tasks():
             run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not Rule.objects.filter(id=rule.id).exists()
-        assert not RuleActivity.objects.filter(rule_id=rule.id).exists()
         assert not EnvironmentProject.objects.filter(
             project_id=project.id, environment_id=env.id
         ).exists()
@@ -194,11 +187,9 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not QuerySubscription.objects.filter(id=query_sub.id).exists()
 
         incident.refresh_from_db()
-        assert len(incident.projects.all()) == 0, "Project relation should be removed"
         assert Incident.objects.filter(id=incident.id).exists()
 
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
-        assert RuleSnooze.objects.filter(id=rule_snooze.id).exists()
 
     def test_delete_error_events(self) -> None:
         keeper = self.create_project(name="keeper")

@@ -90,6 +90,8 @@ const questionSchema = z.union([
       criteria: z
         .union([z.array(optionSchema), z.record(z.string(), z.string())])
         .optional(),
+      /** Descriptions of score values, e.g. `{"2": "Blocks the customer"}`. */
+      descriptions: z.record(z.string(), z.string()).optional(),
     })
     .transform(question => ({...question, kind: 'question' as const})),
   invalidEntrySchema,

@@ -1485,6 +1485,7 @@ describe('ExploreToolbar', () => {
           },
         ],
         range: '14d',
+        statsPeriod: '14d',
         projects: [],
         environment: [],
       },

@@ -7,7 +7,6 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getAgentDataCollectionStep,
   getAgentIntegration,
   getManualConfigureStep,
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
@@ -179,7 +178,7 @@ export const agentMonitoring: OnboardingConfig = {
       ],
     },
   ],
-  configure: params => [...configureSteps(params), ...getAgentDataCollectionStep(params)],
+  configure: configureSteps,
   verify: () => [
     {
       type: StepType.VERIFY,

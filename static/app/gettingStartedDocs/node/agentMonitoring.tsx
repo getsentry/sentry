@@ -7,11 +7,6 @@ import {
   type OnboardingConfig,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  GEN_AI_DATA_COLLECTION_SNIPPET,
-  getJsDataCollectionDocsLink,
-  getDataCollectionStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-eve/onboarding';
 import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
@@ -66,53 +61,6 @@ export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
  */
 export function getMinRequiredVersion(params: DocsParams, fallback: string): string {
   return INTEGRATION_MIN_VERSIONS[getAgentIntegration(params)] ?? fallback;
-}
-
-// On Cloudflare the options live in the `defineCloudflareOptions` callback, not in `Sentry.init`
-const CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET = `export default defineCloudflareOptions((env) => ({
-  // ...
-  dataCollection: {
-    genAI: { inputs: false, outputs: false },
-  },
-}));`;
-
-// Flue on Cloudflare has no `defineCloudflareOptions` file; the blueprint
-// generates a `sentry.ts` that holds the Sentry options.
-const FLUE_CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET = `// In the Sentry options of the blueprint-generated sentry.ts
-dataCollection: {
-  genAI: { inputs: false, outputs: false },
-},`;
-
-function getGenAiDataCollectionSnippet(params: DocsParams): string {
-  if (getDeploymentTarget(params) !== DeploymentTarget.CLOUDFLARE) {
-    return GEN_AI_DATA_COLLECTION_SNIPPET;
-  }
-  return getAgentIntegration(params) === AgentIntegration.FLUE
-    ? FLUE_CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET
-    : CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET;
-}
-
-/**
- * The data collection step for agent monitoring, leading with generative AI
- * content. Returns no step for Eve, which never configures the Sentry SDK.
- */
-export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[] {
-  if (getAgentIntegration(params) === AgentIntegration.EVE) {
-    return [];
-  }
-
-  return [
-    getDataCollectionStep({
-      // GuidedSteps surfaces drop collapsible steps, so this must be a plain step.
-      collapsible: false,
-      // Shared across platforms, so resolve the link from the project's platform.
-      docsLink: getJsDataCollectionDocsLink(params.platformKey),
-      description: t(
-        'By default, the SDK sends the inputs and outputs of your LLM and tool calls, such as prompts, responses, and tool arguments. This gives you rich debugging context.'
-      ),
-      code: getGenAiDataCollectionSnippet(params),
-    }),
-  ];
 }
 
 const getCloudflareViteConfigSnippet =
@@ -1206,10 +1154,6 @@ const text = lastMessage.content;`,
   ];
 }
 
-/**
- * The configure steps without the data collection step; the factory appends it
- * once around these, so no branch can miss or repeat it.
- */
 function getAgentConfigureSteps(
   params: DocsParams,
   {
@@ -1263,9 +1207,6 @@ export const agentMonitoring = ({
       packageName,
       minVersion: MIN_REQUIRED_VERSION,
     }),
-  configure: params => [
-    ...getAgentConfigureSteps(params, {packageName, configFileName}),
-    ...getAgentDataCollectionStep(params),
-  ],
+  configure: params => getAgentConfigureSteps(params, {packageName, configFileName}),
   verify: getVerifyStep,
 });

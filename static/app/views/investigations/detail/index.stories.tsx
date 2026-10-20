@@ -1,6 +1,7 @@
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
+import {CrashReportPreviewButton} from 'sentry/views/investigations/__stories__/crashReportPreviewButton';
 import {
   InvestigationFixtureApi,
   investigationExecutionFixtureKey,
@@ -21,6 +22,7 @@ import {
   InvestigationTitleGenerationFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
+import {RouteError} from 'sentry/views/routeError';
 
 const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   id: 'completed-checkout-regression',
@@ -153,6 +155,30 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
       currentExecution: InvestigationBlockExecutionFixture({id: 'synthesis-execution'}),
     }),
   ],
+});
+
+// The completed investigation above, with a finished agentic run behind it.
+const agenticReportInvestigation = {
+  ...completedInvestigation,
+  id: 'completed-agentic-report',
+  status: 'active',
+  orchestration: {
+    phase: 'completed',
+    status: 'completed',
+    heartbeatAt: '2026-08-18T16:19:42Z',
+    notebookRevision: 8,
+  },
+};
+
+const agenticReportOrchestration = InvestigationOrchestrationFixture({
+  investigationId: agenticReportInvestigation.id,
+  phase: 'completed',
+  status: 'completed',
+  startedAt: '2026-08-18T16:02:14Z',
+  finishedAt: '2026-08-18T16:06:19Z',
+  activeSince: null,
+  activeTimeElapsedSeconds: 245,
+  report: {...InvestigationOrchestrationFixture().report, status: 'completed'},
 });
 
 const manualInvestigation = InvestigationDetailFixture({
@@ -419,6 +445,18 @@ const archivedInvestigation = InvestigationDetailFixture({
 });
 
 export default Storybook.story('Investigations — Detail', story => {
+  story('Completed agentic report', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-agentic-report"
+      details={[agenticReportInvestigation]}
+      orchestration={{[agenticReportInvestigation.id]: agenticReportOrchestration}}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={agenticReportInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
   story('Completed with every output type', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-completed"
@@ -649,13 +687,17 @@ export default Storybook.story('Investigations — Detail', story => {
   ));
 
   story('Error', () => (
-    <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-detail-error"
-      mode="error"
-    >
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId="error-investigation" />
-      </Container>
-    </InvestigationFixtureApi>
+    <Stack gap="md" align="start">
+      <CrashReportPreviewButton />
+      <Stack
+        minHeight="420px"
+        width="100%"
+        padding="2xl 3xl"
+        border="primary"
+        radius="md"
+      >
+        <RouteError />
+      </Stack>
+    </Stack>
   ));
 });
