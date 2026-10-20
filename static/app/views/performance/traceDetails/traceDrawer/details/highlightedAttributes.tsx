@@ -25,7 +25,7 @@ import {
 } from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {getByteLength} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
+import {getToolOutputBytesFromAttributes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {isMemoryOperation} from 'sentry/views/insights/pages/agents/utils/memory';
 import {
   getIsAiAgentSpan,
@@ -225,12 +225,11 @@ function getAISpanAttributes({
     });
   }
 
-  const toolResult =
-    attributes['gen_ai.tool.call.result'] || attributes['gen_ai.tool.output'];
-  if (getIsExecuteToolSpan(genAiOpType) && toolResult) {
+  const toolOutputBytes = getToolOutputBytesFromAttributes(key => attributes[key]);
+  if (getIsExecuteToolSpan(genAiOpType) && toolOutputBytes > 0) {
     highlightedAttributes.push({
       name: t('Result Size'),
-      value: formatBytesBase10(getByteLength(toolResult.toString())),
+      value: formatBytesBase10(toolOutputBytes),
     });
   }
 
