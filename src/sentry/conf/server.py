@@ -2693,6 +2693,7 @@ SENTRY_GITHUB_CONSOLE_SDK_APP_ID: int = 0
 SENTRY_SLACK_CLIENT_ID: str = ""
 SENTRY_SLACK_STAGING_CLIENT_ID: str = ""
 SENTRY_MSTEAMS_CLIENT_ID: str = ""
+# Empty tenant ID uses the multi-tenant botframework.com OAuth authority.
 SENTRY_MSTEAMS_TENANT_ID: str = ""
 SENTRY_VERCEL_CLIENT_ID: str = ""
 SENTRY_DISCORD_APPLICATION_ID: str = ""
@@ -3131,9 +3132,9 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
-# `symbolicator.options`.
+# `SENTRY_SYMBOLICATOR_OPTIONS`.
 # The settings here are intentionally empty and will fall back to
-# `symbolicator.options` for backwards compatibility.
+# `SENTRY_SYMBOLICATOR_OPTIONS` for deployments with a single pool.
 SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",

@@ -4,9 +4,9 @@ from typing import Any
 
 import orjson
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 
-from sentry import options
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service, get_services
@@ -118,6 +118,7 @@ class PagerDutyIntegrationConfigTest(TestCase):
 
 
 @control_silo_test
+@override_settings(SENTRY_PAGERDUTY_APP_ID="app_1")
 class PagerDutyApiPipelineTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
     method = "post"
@@ -126,7 +127,6 @@ class PagerDutyApiPipelineTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.app_id = "app_1"
-        options.set("pagerduty.app-id", self.app_id)
 
     def _get_pipeline_url(self, organization=None) -> str:
         organization = organization or self.organization

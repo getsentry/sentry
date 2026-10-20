@@ -325,7 +325,7 @@ def get_internal_url_prefix() -> str:
     Returns the `internal-url-prefix` normalized in such a way that it works in local
     development environments.
     """
-    internal_url_prefix = options.get("system.internal-url-prefix")
+    internal_url_prefix = settings.SENTRY_SYSTEM_INTERNAL_URL_PREFIX
     if not internal_url_prefix:
         internal_url_prefix = options.get("system.url-prefix")
 

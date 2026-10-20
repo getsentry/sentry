@@ -72,7 +72,6 @@ def get_asset_version(settings: Any) -> str:
 options_mapper = {
     # 'cache.backend': 'SENTRY_CACHE',
     # 'cache.options': 'SENTRY_CACHE_OPTIONS',
-    # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
     "mail.backend": "EMAIL_BACKEND",
@@ -187,6 +186,21 @@ migrated_options_mapper = {
     "sms.twilio-number": "SENTRY_SMS_TWILIO_NUMBER",
 }
 
+# Existing mapped settings used registered defaults during bootstrap. Initialize
+# them only after copying explicitly configured settings back into option keys,
+# so defaults never create synthetic login keys that override app credentials.
+legacy_mapped_settings_defaults: dict[str, str | bool | list[str]] = {
+    "EMAIL_BACKEND": "smtp",
+    "EMAIL_SUBJECT_PREFIX": "[Sentry]",
+    "GITHUB_APP_ID": "",
+    "GITHUB_API_SECRET": "",
+    "GITHUB_REQUIRE_VERIFIED_EMAIL": False,
+    "GITHUB_BASE_DOMAIN": "github.com",
+    "GITHUB_API_DOMAIN": "api.github.com",
+    "GITHUB_EXTENDED_PERMISSIONS": [],
+    "GITHUB_ORGANIZATION": "",
+}
+
 
 def bootstrap_options(settings: Any, config: str | None = None) -> None:
     """
@@ -195,7 +209,7 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     required to even initialize the rest of the app.
     """
     # Make sure our options have gotten registered
-    from sentry.options import load_defaults, lookup_key
+    from sentry.options import load_defaults
 
     load_defaults()
 
@@ -230,12 +244,18 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     for k, v in options_mapper.items():
         if (
             settings.SENTRY_SINGLE_ORGANIZATION
+            and not settings.SENTRY_SELF_HOSTED
+            and k in ("github-app.client-id", "github-app.client-secret")
+        ):
+            continue
+        # A modern credential pair owns empty partners. Explicit app option
+        # keys also take precedence over synthesized legacy login values.
+        if (
+            settings.SENTRY_SINGLE_ORGANIZATION
             and k in ("github-app.client-id", "github-app.client-secret")
             and k not in options
             and (
                 k in settings.SENTRY_OPTIONS
-                or {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
-                & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
                 or settings.SENTRY_GITHUB_APP_CLIENT_ID
                 or settings.SENTRY_GITHUB_APP_CLIENT_SECRET
             )
@@ -253,6 +273,12 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
+    for setting_name, default in legacy_mapped_settings_defaults.items():
+        if getattr(settings, setting_name, DEAD) is DEAD:
+            if setting_name == "EMAIL_BACKEND":
+                default = settings.SENTRY_EMAIL_BACKEND_ALIASES.get(default, default)
+            setattr(settings, setting_name, default)
+
     effective_mapper = (
         {**options_mapper, **self_hosted_options_mapper}
         if settings.SENTRY_SELF_HOSTED
@@ -270,23 +296,15 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
                 # Escalate the few needed to actually get the app bootstrapped into settings
                 setattr(settings, effective_mapper[k], v)
 
-    for key in ("mail.backend", "mail.subject-prefix"):
-        setting = options_mapper[key]
-        if getattr(settings, setting, DEAD) is DEAD:
-            value = lookup_key(key).default()
-            if key == "mail.backend":
-                value = settings.SENTRY_EMAIL_BACKEND_ALIASES.get(value, value)
-            setattr(settings, setting, value)
+    if settings.SENTRY_SELF_HOSTED:
+        for k, v in settings.SENTRY_OPTIONS.items():
+            if k in migrated_options_mapper and v is not None:
+                setattr(settings, migrated_options_mapper[k], v)
 
-    for k, v in settings.SENTRY_OPTIONS.items():
-        if k in migrated_options_mapper and v is not None:
-            setattr(settings, migrated_options_mapper[k], v)
-
+    # Single organization mode reuses the GitHub integration app for SSO. The
+    # remap in initialize_app handles the option key; this handles the setting.
     if settings.SENTRY_SINGLE_ORGANIZATION:
-        if {
-            "SENTRY_GITHUB_APP_CLIENT_ID",
-            "SENTRY_GITHUB_APP_CLIENT_SECRET",
-        } & settings.SENTRY_CONFIGURED_OPTION_SETTINGS:
+        if not settings.SENTRY_SELF_HOSTED:
             settings.GITHUB_APP_ID = settings.SENTRY_GITHUB_APP_CLIENT_ID
             settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
         else:
@@ -400,7 +418,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
     # integration.
-    if settings.SENTRY_SINGLE_ORGANIZATION:
+    if settings.SENTRY_SINGLE_ORGANIZATION and settings.SENTRY_SELF_HOSTED:
         options_mapper.update(
             {
                 "github-app.client-id": "GITHUB_APP_ID",
@@ -571,12 +589,13 @@ def setup_services(validate: bool = True) -> None:
 def validate_options(settings: Any) -> None:
     from sentry.options import default_manager
 
-    if settings.SENTRY_SELF_HOSTED:
-        opts = {
-            k: v for k, v in settings.SENTRY_OPTIONS.items() if k not in self_hosted_options_mapper
-        }
-    else:
-        opts = settings.SENTRY_OPTIONS
+    opts = {
+        k: v
+        for k, v in settings.SENTRY_OPTIONS.items()
+        if not (settings.SENTRY_SELF_HOSTED and k in self_hosted_options_mapper)
+        and not (settings.SENTRY_SELF_HOSTED and k in migrated_options_mapper)
+        and not (k in options_mapper and options_mapper[k] in legacy_mapped_settings_defaults)
+    }
     default_manager.validate(opts, warn=True)
 
 
@@ -662,7 +681,7 @@ def apply_legacy_settings(settings: Any) -> None:
     effective_mapper = (
         {**options_mapper, **migrated_options_mapper, **self_hosted_options_mapper}
         if settings.SENTRY_SELF_HOSTED
-        else {**options_mapper, **migrated_options_mapper}
+        else options_mapper
     )
 
     for old, new in (
@@ -680,15 +699,17 @@ def apply_legacy_settings(settings: Any) -> None:
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
+            if not settings.SENTRY_SELF_HOSTED and (
+                new in self_hosted_options_mapper or new in migrated_options_mapper
+            ):
+                continue
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
             value = getattr(settings, old)
             settings.SENTRY_OPTIONS[new] = value
-            setting_name = effective_mapper.get(new)
-            if (
-                setting_name is not None
-                and setting_name not in settings.SENTRY_CONFIGURED_OPTION_SETTINGS
+            if new in effective_mapper and (
+                new not in migrated_options_mapper or value is not None
             ):
-                setattr(settings, setting_name, value)
+                setattr(settings, effective_mapper[new], value)
 
     if hasattr(settings, "SENTRY_REDIS_OPTIONS"):
         if "redis.clusters" in settings.SENTRY_OPTIONS:

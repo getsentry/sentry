@@ -4,11 +4,11 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 
-from sentry import options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
@@ -246,10 +246,10 @@ class DiscordIntegrationProvider(IntegrationProvider):
     )
 
     def __init__(self) -> None:
-        self.application_id = options.get("discord.application-id")
-        self.public_key = options.get("discord.public-key")
-        self.bot_token = options.get("discord.bot-token")
-        self.client_secret = options.get("discord.client-secret")
+        self.application_id = settings.SENTRY_DISCORD_APPLICATION_ID
+        self.public_key = settings.SENTRY_DISCORD_PUBLIC_KEY
+        self.bot_token = settings.SENTRY_DISCORD_BOT_TOKEN
+        self.client_secret = settings.SENTRY_DISCORD_CLIENT_SECRET
         self.client = DiscordClient()
         self.setup_url = absolute_uri("extensions/discord/setup/")
         self.configure_url = absolute_uri("extensions/discord/configure/")
