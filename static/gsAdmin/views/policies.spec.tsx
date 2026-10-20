@@ -61,13 +61,16 @@ describe('Policies', () => {
     expect(screen.getByRole('button', {name: /Show All policies/})).toBeInTheDocument();
   });
 
-  it('enables policy creation without the admin permission', async () => {
+  it('disables policy creation without the admin permission', async () => {
     ConfigStore.set('user', UserFixture({permissions: new Set()}));
     MockApiClient.addMockResponse({url: '/policies/', body: []});
 
     render(<Policies />);
 
     expect(await screen.findByText('No results')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Add Policy'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Add Policy'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

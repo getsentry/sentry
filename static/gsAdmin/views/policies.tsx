@@ -9,6 +9,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {AddPolicyModal} from 'admin/components/policies/addPolicyModal';
@@ -29,6 +30,7 @@ const getRow = (row: any) => [
 
 export function Policies() {
   const {openModal} = useModal();
+  const hasPermission = ConfigStore.get('user').permissions.has('policies.admin');
   const [status, setStatus] = useQueryState(
     'include',
     parseAsStringLiteral(['active', 'all'] as const).withDefault('active')
@@ -52,6 +54,12 @@ export function Policies() {
           <Button
             onClick={() => openModal(deps => <AddPolicyModal {...deps} />)}
             size="sm"
+            disabled={!hasPermission}
+            tooltipProps={{
+              title: hasPermission
+                ? undefined
+                : "You don't have the policies.admin permission",
+            }}
           >
             Add Policy
           </Button>
