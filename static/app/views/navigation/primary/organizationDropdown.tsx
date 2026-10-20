@@ -31,6 +31,7 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -92,23 +93,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     key: `${keyPrefix}-${project.id}`,
     label: project.slug,
     leadingItems: <ProjectAvatar project={project} size={16} />,
-    trailingItems: (
-      <span onClick={event => event.stopPropagation()}>
-        <BookmarkStar project={project} organization={organization} />
-      </span>
-    ),
+    trailingItems: <BookmarkStar project={project} organization={organization} />,
     onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
   });
-  const memberProjects = orderBy(
-    projects.filter(project => project.isMember),
-    ['isBookmarked', 'slug'],
-    ['desc', 'asc']
-  );
-  const otherProjects = orderBy(
-    projects.filter(project => !project.isMember),
-    ['isBookmarked', 'slug'],
-    ['desc', 'asc']
-  );
+  const memberProjects = sortProjects(projects.filter(project => project.isMember));
+  const otherProjects = sortProjects(projects.filter(project => !project.isMember));
 
   if (settingsV3) {
     return (

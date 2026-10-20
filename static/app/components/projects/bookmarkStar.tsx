@@ -57,7 +57,10 @@ export function BookmarkStar({
       aria-label={isBookmarked ? t('Remove Bookmark') : t('Bookmark')}
       aria-pressed={isBookmarked}
       busy={isBookmarking}
-      onClick={() => handleBookmarkToggle({isBookmarked: !isBookmarked})}
+      onClick={event => {
+        event.stopPropagation();
+        handleBookmarkToggle({isBookmarked: !isBookmarked});
+      }}
       size="zero"
       variant="transparent"
       icon={

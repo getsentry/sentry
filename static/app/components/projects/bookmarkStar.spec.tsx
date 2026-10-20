@@ -14,8 +14,13 @@ describe('BookmarkStar', () => {
 
   it('can star', async () => {
     const project = ProjectFixture();
+    const parentClick = jest.fn();
     ProjectsStore.loadInitialData([project]);
-    render(<BookmarkStar organization={OrganizationFixture()} project={project} />);
+    render(
+      <div onClick={parentClick}>
+        <BookmarkStar organization={OrganizationFixture()} project={project} />
+      </div>
+    );
 
     const projectMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
@@ -25,6 +30,7 @@ describe('BookmarkStar', () => {
 
     expect(screen.getByRole('button', {pressed: false})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button'));
+    expect(parentClick).not.toHaveBeenCalled();
 
     // Visually optimistically updated
     expect(screen.getByRole('button', {pressed: true})).toBeInTheDocument();
