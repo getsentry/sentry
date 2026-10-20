@@ -343,6 +343,7 @@ describe('node agentMonitoring onboarding', () => {
         expect(code).toContain('sentryCloudflareVitePlugin()');
         expect(code).toContain('defineCloudflareOptions((env: Env) => ({');
         expect(code).toContain('nodejs_compat');
+        expect(code).toMatch(/compatibility_date = "\d{4}-\d{2}-\d{2}"/);
         expect(code).not.toContain('node --import');
       });
     });

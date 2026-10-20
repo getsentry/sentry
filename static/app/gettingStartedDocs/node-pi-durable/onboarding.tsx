@@ -6,6 +6,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getCompatibilityDate} from 'sentry/gettingStartedDocs/node-cloudflare-workers/utils';
 import {t, tct} from 'sentry/locale';
 import {DeploymentTarget} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
@@ -282,7 +283,7 @@ Sentry.init({
     {
       type: 'text',
       text: tct(
-        'Preload the Sentry import hook with Deno’s [code:--preload] flag so the SDK can instrument [package:@earendil-works/pi-durable] when it loads:',
+        'Preload the Sentry import hook with Deno’s [code:--preload] flag so the SDK can instrument [package:@earendil-works/pi-durable] when it loads. Deno blocks network, file system, and system access until you grant it, so add the hosts your agents call, such as your model provider, to [code:--allow-net], separated by commas, along with any other access your app needs:',
         {code: <code />, package: <code />}
       ),
     },
@@ -292,7 +293,13 @@ Sentry.init({
         {
           label: 'bash',
           language: 'bash',
-          code: 'deno run --allow-net --allow-env --allow-read --allow-sys --allow-write --preload=npm:@sentry/deno/import app.ts',
+          code: `deno run \\
+  --allow-net=${new URL(params.dsn.public).host} \\
+  --allow-env \\
+  --allow-read=. \\
+  --allow-sys=hostname,osRelease \\
+  --preload=npm:@sentry/deno/import \\
+  app.ts`,
         },
       ],
     },
@@ -349,7 +356,9 @@ export default defineCloudflareOptions((env: Env) => ({
     },
     {
       type: 'text',
-      text: t('Enable Node.js compatibility in your Wrangler config:'),
+      text: t(
+        'Enable Node.js compatibility and set a compatibility date in your Wrangler config:'
+      ),
     },
     {
       type: 'code',
@@ -358,7 +367,17 @@ export default defineCloudflareOptions((env: Env) => ({
           label: 'TOML',
           language: 'toml',
           filename: 'wrangler.toml',
-          code: 'compatibility_flags = ["nodejs_compat"]',
+          code: `compatibility_flags = ["nodejs_compat"]
+compatibility_date = "${getCompatibilityDate()}"`,
+        },
+        {
+          label: 'JSON',
+          language: 'json',
+          filename: 'wrangler.jsonc',
+          code: `{
+  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_date": "${getCompatibilityDate()}"
+}`,
         },
       ],
     },

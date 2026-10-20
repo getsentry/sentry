@@ -64,7 +64,15 @@ describe('deno agentMonitoring onboarding', () => {
 
       expect(code).toContain('Sentry.init({');
       expect(code).toContain('dsn: "https://public@o1.ingest.sentry.io/1"');
-      expect(code).toContain('--preload=npm:@sentry/deno/import app.ts');
+      expect(code).toContain('--preload=npm:@sentry/deno/import');
+    });
+
+    it('only allows network access to the Sentry ingest host', () => {
+      const code = collectCode(agentMonitoring.configure(params));
+
+      expect(code).toContain('--allow-net=o1.ingest.sentry.io \\');
+      expect(code).not.toMatch(/--allow-net(\s|$)/);
+      expect(code).not.toContain('--allow-write');
     });
 
     it('verifies by running a Pi Durable conversation', () => {
