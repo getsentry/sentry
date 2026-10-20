@@ -185,7 +185,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == entry_id
         assert int(comment_id) == entry.data["comment_id"]
 
-        # Put the comment at the oldest edge of the 99-entry action-log window.
+        # Put the comment at the oldest edge of the 99-item mixed feed.
         for _ in range(98):
             self.create_group_action_log_entry(group=group, type=GroupActionType.RESOLVE)
 
@@ -197,7 +197,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         notes = [item for item in response.data["activity"] if item["type"] == "note"]
         assert len(notes) == 1
         assert notes[0]["commentId"] == comment_id
-        assert notes[0]["id"] == entry_id
+        assert notes[0]["id"] == comment_id
 
         # the comment reference served by the feed round-trips through edit ...
         response = self.client.put(
@@ -208,14 +208,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["commentId"] == comment_id
         assert response.data["data"]["text"] == "edited"
 
-        # ... the feed folds the appended COMMENT_EDIT back into the comment ...
+        # ... the feed reads the updated Activity without folding COMMENT_EDIT ...
         response = self.client.get(details_url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data["activity"]) == 100
-        assert response.data["activity"][-2]["id"] == entry_id
+        assert response.data["activity"][-2]["id"] == comment_id
         notes = [item for item in response.data["activity"] if item["type"] == "note"]
         assert len(notes) == 1
-        assert notes[0]["id"] == entry_id
+        assert notes[0]["id"] == comment_id
         assert notes[0]["commentId"] == comment_id
         assert notes[0]["data"]["text"] == "edited"
 
@@ -223,7 +223,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.delete(f"{comments_url}{comment_id}/", format="json")
         assert response.status_code == 204, response.status_code
 
-        # ... after which the COMMENT_DELETE drops the comment from the feed
+        # ... after which the deleted Activity is absent from the feed.
         response = self.client.get(details_url, format="json")
         assert response.status_code == 200, response.content
         assert [item for item in response.data["activity"] if item["type"] == "note"] == []
@@ -232,12 +232,21 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_group_action_log_served_when_enabled(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group,
+                type=ActivityType.NOTE.value,
+                user_id=self.user.id,
+                data={"text": "current text"},
+            )
         self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
-            data={"comment_id": 123, "text": "hello world"},
+            data={"comment_id": note.id, "text": "stale text"},
+            idempotency_key=f"activity:{note.id}",
+            source="web",
         )
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
@@ -247,6 +256,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         get_activity.assert_not_called()
 
         assert [item["type"] for item in response.data["activity"]] == ["note", "first_seen"]
+        assert response.data["activity"][0]["id"] == str(note.id)
+        assert response.data["activity"][0]["data"]["text"] == "current text"
+        assert response.data["activity"][0]["source"] == "web"
 
     @action_log_activity_enabled()
     def test_group_action_log_empty_falls_back_to_activity(self) -> None:

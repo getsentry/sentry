@@ -30,10 +30,10 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
     ScheduleType,
+    get_detector_for_monitor,
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
-from sentry.monitors.utils import get_detector_for_monitor
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -1736,6 +1736,9 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
         assert monitor.status == ObjectStatus.DISABLED
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert not detector.enabled
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_seat.assert_called_with(seat_object=monitor)

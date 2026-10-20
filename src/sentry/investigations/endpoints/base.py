@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
+from sentry.investigations.endpoints.schema import InvestigationSchema
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
@@ -93,6 +94,8 @@ class InvestigationPermission(OrganizationPermission):
 
 class OrganizationInvestigationsBaseEndpoint(OrganizationEndpoint):
     """Base for endpoints addressing the investigation collection."""
+
+    schema = InvestigationSchema()
 
     owner = ApiOwner.ML_AI
     permission_classes = (InvestigationPermission,)

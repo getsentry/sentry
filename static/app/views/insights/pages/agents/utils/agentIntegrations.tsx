@@ -51,7 +51,7 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.LANGCHAIN]: 'langchain',
   [AgentIntegration.LANGGRAPH]: 'langchain',
   [AgentIntegration.LITELLM]: 'litellm',
-  [AgentIntegration.FLUE]: 'astro',
+  [AgentIntegration.FLUE]: 'flue',
   [AgentIntegration.MASTRA]: 'mastra',
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
   [AgentIntegration.VERCEL_AI]: 'vercel',

@@ -1,6 +1,9 @@
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
+import {
+  droppedEventsToOutcomeGroups,
+  droppedEventsToOutcomeSections,
+} from 'sentry/components/droppedData/drawer/outcomeSections';
 
 describe('droppedEventsToOutcomeSections', () => {
   it('returns no sections for no dropped events', () => {
@@ -78,5 +81,47 @@ describe('droppedEventsToOutcomeSections', () => {
 
     expect(sections[0]!.shareRatio).toBe(0);
     expect(sections[0]!.reasons[0]!.shareRatio).toBe(0);
+  });
+});
+
+describe('droppedEventsToOutcomeGroups', () => {
+  it('splits reasons by tag, treating untagged drops as intentional', () => {
+    const {unintentional, intentional} = droppedEventsToOutcomeGroups(
+      [
+        DroppedEventFixture({
+          outcome: 'client_discard',
+          reason: 'queue_overflow',
+          tags: ['unintentional'],
+        }),
+        DroppedEventFixture({
+          outcome: 'client_discard',
+          reason: 'sample_rate',
+          tags: ['intentional'],
+        }),
+        DroppedEventFixture({outcome: 'invalid', reason: 'cors', tags: []}),
+      ],
+      []
+    );
+
+    expect(unintentional.flatMap(s => s.reasons.map(r => r.reason))).toEqual([
+      'queue_overflow',
+    ]);
+    expect(intentional.flatMap(s => s.reasons.map(r => r.reason))).toEqual([
+      'sample_rate',
+      'cors',
+    ]);
+  });
+
+  it('computes shares against all events, not just the group', () => {
+    const {unintentional, intentional} = droppedEventsToOutcomeGroups(
+      [
+        DroppedEventFixture({count: 10, tags: ['unintentional']}),
+        DroppedEventFixture({outcome: 'filtered', count: 30, tags: ['intentional']}),
+      ],
+      [DroppedEventFixture({outcome: 'accepted', reason: 'accepted', count: 60})]
+    );
+
+    expect(unintentional[0]!.shareRatio).toBe(0.1);
+    expect(intentional[0]!.shareRatio).toBe(0.3);
   });
 });
