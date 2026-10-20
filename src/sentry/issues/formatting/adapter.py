@@ -151,8 +151,7 @@ def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     ``evidenceDisplay`` only summarises the metric by name, so without this a metric issue
     renders none of the query it fired on. The detector stores ``evidence_data`` snake_cased,
     but ``EventSerializer`` camelCases the whole occurrence recursively on the way out, so what
-    arrives here is ``dataSources[].queryObj.snubaQuery``. ``alertId`` is deliberately left out:
-    it's the legacy alert rule id, and exposing it invites dependence on it.
+    arrives here is ``dataSources[].queryObj.snubaQuery``.
     """
     occurrence = data.get("occurrence") or {}
     if occurrence.get("type") != _METRIC_ISSUE_TYPE:

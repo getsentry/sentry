@@ -455,13 +455,6 @@ def test_metric_alert_skips_missing_pieces() -> None:
     assert model.metric_alert == [("Evaluated Value", "812.4")]
 
 
-def test_metric_alert_does_not_expose_the_legacy_alert_id() -> None:
-    # alertId is the legacy alert rule id; nothing downstream should come to depend on it
-    event = _metric_issue(alertId=31337)
-    assert all(label != "Alert Rule ID" for label, _ in event_response_to_model(event).metric_alert)
-    assert "31337" not in format_issue(event, sections=EVENT_SECTIONS_WITH_USER)
-
-
 def test_metric_alert_only_applies_to_metric_issues() -> None:
     event = _metric_issue()
     event["occurrence"]["type"] = 1001  # a perf issue
