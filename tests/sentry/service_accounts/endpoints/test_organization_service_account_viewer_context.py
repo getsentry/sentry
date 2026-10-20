@@ -1,10 +1,13 @@
 from typing import Any
 
+from django.core.cache import cache
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import cell_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.viewer_context import (
     Actor,
     ActorType,
@@ -22,22 +25,85 @@ SECRET = "service-accounts-test-viewer-context-secret"
 class OrganizationServiceAccountViewerContextTest(APITestCase):
     endpoint = "sentry-api-0-organization-service-account-viewer-context"
 
-    def _post(self, viewer_context: ViewerContext) -> Any:
-        url = reverse(self.endpoint, args=[self.organization.slug, "7"])
-        with self.feature(FEATURE_FLAG):
-            return self.client.post(
-                url, HTTP_X_VIEWER_CONTEXT=encode_viewer_context(viewer_context)
-            )
-
-    def test_returns_org_viewer_context(self) -> None:
-        response = self._post(
-            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id)
+    def setUp(self) -> None:
+        super().setUp()
+        # The endpoint reads accounts through the cell cache, which outlives a test.
+        cache.clear()
+        self.service_account = self.create_service_account(
+            organization=self.organization,
+            name="seer-autofix",
+            scope_list=["project:read", "event:read"],
+        )
+        self.seer_viewer_context = ViewerContext(
+            actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id
         )
 
+    def _post(
+        self, viewer_context: ViewerContext | None = None, service_account_id: int | None = None
+    ) -> Any:
+        url = reverse(
+            self.endpoint,
+            args=[self.organization.slug, service_account_id or self.service_account.id],
+        )
+        with self.feature(FEATURE_FLAG):
+            return self.client.post(
+                url,
+                HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
+                    viewer_context or self.seer_viewer_context
+                ),
+            )
+
+    def test_returns_org_viewer_context_and_account_scopes(self) -> None:
+        response = self._post()
+
         assert response.status_code == 200
+        assert response.data["scopes"] == ["event:read", "project:read"]
         returned = decode_viewer_context(response.data["viewerContext"])
         assert returned.organization_id == self.organization.id
         assert returned.user_id is None
+
+    def test_missing_account_returns_404(self) -> None:
+        response = self._post(service_account_id=self.service_account.id + 1)
+
+        assert response.status_code == 404
+
+    def test_account_in_other_org_returns_404(self) -> None:
+        other = self.create_service_account(organization=self.create_organization())
+
+        response = self._post(service_account_id=other.id)
+
+        assert response.status_code == 404
+
+    def test_inactive_account_returns_404(self) -> None:
+        inactive = self.create_service_account(
+            organization=self.organization, name="nightly-triage", is_active=False
+        )
+
+        response = self._post(service_account_id=inactive.id)
+
+        assert response.status_code == 404
+
+    def test_changes_apply_to_next_request(self) -> None:
+        assert self._post().status_code == 200
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(scope_list=["event:read"])
+        response = self._post()
+        assert response.status_code == 200
+        assert response.data["scopes"] == ["event:read"]
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(is_active=False)
+        assert self._post().status_code == 404
+
+    def test_deleted_account_returns_404_on_next_request(self) -> None:
+        assert self._post().status_code == 200
+        service_account_id = self.service_account.id
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.delete()
+
+        assert self._post(service_account_id=service_account_id).status_code == 404
 
     def test_rejects_viewer_context_for_other_org(self) -> None:
         other_org = self.create_organization()
@@ -60,7 +126,7 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
 
     def test_rejects_session_user(self) -> None:
         self.login_as(self.user)
-        url = reverse(self.endpoint, args=[self.organization.slug, "7"])
+        url = reverse(self.endpoint, args=[self.organization.slug, self.service_account.id])
 
         with self.feature(FEATURE_FLAG):
             response = self.client.post(url)
@@ -68,13 +134,10 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         assert response.status_code == 403
 
     def test_flag_off_returns_404(self) -> None:
-        url = reverse(self.endpoint, args=[self.organization.slug, "7"])
-        viewer_context = ViewerContext(
-            actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id
-        )
+        url = reverse(self.endpoint, args=[self.organization.slug, self.service_account.id])
 
         response = self.client.post(
-            url, HTTP_X_VIEWER_CONTEXT=encode_viewer_context(viewer_context)
+            url, HTTP_X_VIEWER_CONTEXT=encode_viewer_context(self.seer_viewer_context)
         )
 
         assert response.status_code == 404
