@@ -97,9 +97,9 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             organization_id=organization_id,
         )
         if integration:
-            # The instance URL as the user entered it, so it keeps its scheme and any path prefix
-            # of a self-hosted instance. "instance" and "domain_name" hold only the hostname (the
-            # latter plus the group path), and neither is the instance URL.
+            # The same instance URL the GitLab API client and source links are built from, so it
+            # keeps the scheme and any path prefix of a self-hosted instance. Installs from older
+            # pipelines may have saved it with a trailing slash.
             base_url = integration.metadata.get("base_url")
             if base_url:
                 web_base_url = base_url.rstrip("/")
