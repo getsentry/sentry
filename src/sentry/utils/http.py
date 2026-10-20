@@ -25,8 +25,12 @@ MCP_CLIENT_FAMILY_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_FAMILY"
 # Standardized client families the MCP buckets its callers into and forwards via
 # X-Sentry-MCP-Client-Family (source of truth: client-family.ts in getsentry/sentry-mcp).
 KNOWN_MCP_CLIENT_FAMILIES = frozenset(
-    {"claude-code", "cursor", "copilot", "opencode", "claude-desktop", "codex"}
+    {"claude-code", "cursor", "copilot", "opencode", "claude", "codex"}
 )
+# Families older MCP versions sent, mapped to their current name. `claude-desktop` was
+# assigned to every `Claude-User` request, which covers claude.ai, Desktop, mobile, and
+# Claude routines alike, so it never identified Desktop specifically.
+LEGACY_MCP_CLIENT_FAMILY_ALIASES: dict[str, str] = {"claude-desktop": "claude"}
 MCP_CATCHALL_CLIENT_FAMILIES = frozenset({"other", "unknown"})
 
 # Header Seer sets on the API calls it makes on a user's behalf. Shared so that
@@ -245,6 +249,7 @@ def get_mcp_client_family(request: HttpRequest | Request) -> str | None:
     """The client family (`claude-code`, `cursor`, ...) the MCP server declares for its caller.
 
     Returns None when the header is absent or the MCP bucketed the caller into a catch-all.
+    Legacy family names are translated via `LEGACY_MCP_CLIENT_FAMILY_ALIASES`.
     A value outside `KNOWN_MCP_CLIENT_FAMILIES` is still returned: this set can lag
     client-family.ts upstream, so callers decide whether to log the unrecognized value.
 
@@ -253,7 +258,7 @@ def get_mcp_client_family(request: HttpRequest | Request) -> str | None:
     family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
     if not family or family in MCP_CATCHALL_CLIENT_FAMILIES:
         return None
-    return family
+    return LEGACY_MCP_CLIENT_FAMILY_ALIASES.get(family, family)
 
 
 def percent_encode(val: str) -> str:
