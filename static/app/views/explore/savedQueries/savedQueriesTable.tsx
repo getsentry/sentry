@@ -262,7 +262,7 @@ export function SavedQueriesTable({
                   />
                 )}
               </SavedEntityTable.Cell>
-              <SavedEntityTable.Cell>
+              <SavedEntityTable.Cell justify="center">
                 {isPrebuilt ? (
                   <Tooltip title="Sentry">
                     <ActivityAvatar type="system" size={20} />
@@ -370,7 +370,7 @@ function savedQueryColumns(): TableColumnConfig[] {
     {
       key: 'dataset',
       visible: {xl: true},
-      width: 'min-content',
+      width: 'max-content',
     } satisfies TableColumnConfig,
     {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
     {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},

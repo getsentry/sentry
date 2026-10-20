@@ -53,7 +53,12 @@ function mockMultiOutcomeDroppedData() {
           reason: 'network_error',
           count: 6,
         }),
-        DroppedEventFixture({outcome: 'filtered', reason: 'ignore_spans', count: 30}),
+        DroppedEventFixture({
+          outcome: 'filtered',
+          reason: 'ignore_spans',
+          count: 30,
+          tags: ['intentional'],
+        }),
       ],
       acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
     },
@@ -296,6 +301,31 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByText('10%')).toBeInTheDocument();
     });
 
+    it('lists intentional drops under Configured Drops', async () => {
+      mockMultiOutcomeDroppedData();
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      const heading = await screen.findByRole('heading', {name: 'Configured Drops'});
+      const isAfterHeading = (text: string) =>
+        Boolean(
+          heading.compareDocumentPosition(screen.getByText(text)) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        );
+      expect(isAfterHeading('Dropped by before send')).toBe(false);
+      expect(isAfterHeading('Dropped by ignored spans')).toBe(true);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+
+      expect(
+        screen.queryByRole('heading', {name: 'Configured Drops'})
+      ).not.toBeInTheDocument();
+    });
+
     it('shows an empty state when every outcome is deselected', async () => {
       mockMultiOutcomeDroppedData();
 
@@ -323,7 +353,7 @@ describe('useDroppedDataDrawer', () => {
     });
   });
 
-  it('hands off to Seer Explorer from a reason’s investigate action', async () => {
+  it('hands off to Seer Explorer from a reason’s troubleshoot action', async () => {
     const seerOrganization = OrganizationFixture({
       openMembership: true,
       hideAiFeatures: false,
@@ -372,9 +402,8 @@ describe('useDroppedDataDrawer', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigate'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Troubleshoot'}));
 
     expect(
       await screen.findByRole('complementary', {name: 'Seer Explorer Drawer'})

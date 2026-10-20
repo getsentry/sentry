@@ -16,15 +16,17 @@ import {
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {
-  buildIntegrationAction,
-  buildNotificationSelection,
-  getChannelTarget,
   IssueAlertNotificationOptions,
-  type IssueAlertNotificationProps,
-  MultipleCheckboxOptions,
   useCreateNotificationAction,
   useScmNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  buildIntegrationAction,
+  buildNotificationSelection,
+  getChannelTarget,
+  type IssueAlertNotificationProps,
+  MultipleCheckboxOptions,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 describe('buildIntegrationAction', () => {
   it.each([

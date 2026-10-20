@@ -37,12 +37,14 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.clock_dispatch import record_pulse_partitions, try_monitor_clock_tick
 from sentry.monitors.constants import MAX_MARGIN, MAX_TIMEOUT, PermitCheckInStatus
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.logic.monitor_environment import (
     monitor_has_newer_status_affecting_checkins,
     update_monitor_environment,
 )
+from sentry.monitors.logic.monitor_status import update_monitor_status
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -412,11 +414,7 @@ def update_existing_check_in(
     monitor = monitor_environment.monitor
     processing_errors: list[ProcessingError] = []
 
-    if (
-        existing_check_in.project_id != project_id
-        or existing_check_in.monitor_id != monitor.id
-        or existing_check_in.monitor_environment_id != monitor_environment.id
-    ):
+    if existing_check_in.monitor_environment_id != monitor_environment.id:
         mismatch_error: CheckinGuidProjectMismatch = {
             "type": ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH,
             "guid": existing_check_in.guid.hex,
@@ -432,7 +430,7 @@ def update_existing_check_in(
             "monitors.consumer.guid_exists",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": existing_check_in.monitor_environment.monitor.slug,
                 "payload_slug": monitor.slug,
             },
         )
@@ -485,7 +483,7 @@ def update_existing_check_in(
             "monitors.consumer.check_in_closed",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": monitor.slug,
                 "status": existing_check_in.status,
                 "updated_status": updated_status,
             },
@@ -517,7 +515,7 @@ def update_existing_check_in(
             "monitors.consumer.invalid_implicit_duration",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": monitor.slug,
                 "duration": updated_duration,
             },
         )
@@ -576,11 +574,9 @@ def update_existing_check_in(
 
 
 def _cache_checkin_relations(
-    check_in: MonitorCheckIn, monitor: Monitor, monitor_environment: MonitorEnvironment
+    check_in: MonitorCheckIn, monitor_environment: MonitorEnvironment
 ) -> None:
     # Avoid re-fetching already loaded objects; only when the ids match
-    if check_in.monitor_id == monitor.id:
-        check_in.monitor = monitor
     if check_in.monitor_environment_id == monitor_environment.id:
         check_in.monitor_environment = monitor_environment
 
@@ -818,7 +814,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+            update_monitor_status(monitor, ObjectStatus.DISABLED)
 
     if not monitor:
         metrics.incr(
@@ -963,6 +959,9 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     # 03
     # Create or update check-in
 
+    # Outside the transaction, so a rolled back config row is never cached
+    checkin_config_id = get_checkin_config_id(monitor.get_validated_config())
+
     try:
         with transaction.atomic(router.db_for_write(Monitor)):
             status: int = getattr(CheckInStatus, validated_params["status"].upper())
@@ -1024,7 +1023,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         }
                         raise ProcessingErrorsException([env_mismatch_error], monitor)
 
-                _cache_checkin_relations(check_in, monitor, monitor_environment)
+                _cache_checkin_relations(check_in, monitor_environment)
                 span.set_attribute("outcome", "process_existing_checkin")
                 update_existing_check_in(
                     span,
@@ -1063,8 +1062,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
 
                 lookup = {
                     "guid": guid,
-                    "project_id": project_id,
-                    "monitor": monitor,
                     "monitor_environment": monitor_environment,
                 }
                 # The guid lookup above found nothing, so create directly
@@ -1081,7 +1078,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                             date_in_progress=date_in_progress,
                             expected_time=expected_time,
                             timeout_at=timeout_at,
-                            monitor_config=checkin_monitor_config,
+                            checkin_config_id=checkin_config_id,
                             trace_id=trace_id,
                         )
                     created = True
@@ -1099,7 +1096,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                 # XXX(epurkhiser): Is this needed since we're already
                 # locking this entire process?
                 if not created:
-                    _cache_checkin_relations(check_in, monitor, monitor_environment)
+                    _cache_checkin_relations(check_in, monitor_environment)
                     span.set_attribute("outcome", "process_existing_checkin_race_condition")
                     update_existing_check_in(
                         span,

@@ -5,7 +5,7 @@ import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from typing import TYPE_CHECKING, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -35,15 +35,15 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.base import ModelRelation
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.workflow_engine.models import DataSource
+from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
@@ -51,7 +51,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
-    from sentry.workflow_engine.models import Detector
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -373,57 +372,6 @@ class Monitor(Model):
         # match the schema
         return self.config
 
-    def get_issue_alert_rule(self):
-        issue_alert_rule_id = self.config.get("alert_rule_id")
-        if issue_alert_rule_id:
-            issue_alert_rule = Rule.objects.filter(
-                project_id=self.project_id,
-                id=issue_alert_rule_id,
-                source=RuleSource.CRON_MONITOR,
-                status=ObjectStatus.ACTIVE,
-            ).first()
-            if issue_alert_rule:
-                return issue_alert_rule
-
-            # If issue_alert_rule_id is stale, clear it from the config
-            clean_config = self.config.copy()
-            clean_config.pop("alert_rule_id", None)
-            self.update(config=clean_config)
-
-        return None
-
-    def get_issue_alert_rule_data(self):
-        issue_alert_rule = self.get_issue_alert_rule()
-        if issue_alert_rule:
-            data = issue_alert_rule.data
-            issue_alert_rule_data: dict[str, Any | None] = dict()
-
-            # Build up alert target data
-            targets = []
-            for action in data.get("actions", []):
-                # Only include email alerts for now
-                if action.get("id") == "sentry.mail.actions.NotifyEmailAction":
-                    targets.append(
-                        {
-                            "targetIdentifier": action.get("targetIdentifier"),
-                            "targetType": action.get("targetType"),
-                        }
-                    )
-            issue_alert_rule_data["targets"] = targets
-
-            environment, issue_alert_rule_environment_id = None, issue_alert_rule.environment_id
-            if issue_alert_rule_environment_id:
-                try:
-                    environment = Environment.objects.get(id=issue_alert_rule_environment_id).name
-                except Environment.DoesNotExist:
-                    pass
-
-            issue_alert_rule_data["environment"] = environment
-
-            return issue_alert_rule_data
-
-        return None
-
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:
@@ -485,6 +433,11 @@ class MonitorCheckInConfig(DefaultFieldsModel):
     hash = models.CharField(max_length=64)
     config = models.JSONField()
 
+    # Rows never change, so they can stay cached for a long time
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
+        cache_fields=("hash",), cache_ttl=60 * 60 * 24
+    )
+
     class Meta:
         app_label = "monitors"
         db_table = "sentry_monitorcheckinconfig"
@@ -502,8 +455,6 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedBigIntegerField(db_index=True)
-    monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
     XXX(epurkhiser): Currently unused
@@ -573,7 +524,8 @@ class MonitorCheckIn(Model):
 
     monitor_config = LegacyTextJSONField(null=True)
     """
-    A snapshot of the monitor configuration at the time of the check-in.
+    Legacy snapshot of the monitor configuration at the time of the check-in.
+    No longer written; replaced by `checkin_config`.
     """
 
     checkin_config = FlexibleForeignKey(
@@ -598,20 +550,7 @@ class MonitorCheckIn(Model):
         app_label = "monitors"
         db_table = "sentry_monitorcheckin"
         indexes = [
-            # used for endpoints for monitor stats + list check-ins
-            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest on api endpoints
-            models.Index(
-                fields=["monitor", "-date_added"],
-                condition=Q(status=CheckInStatus.IN_PROGRESS),
-                name="api_latest",
-            ),
-            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor", "status", "date_added"]),
-            # used for has_newer_result + thresholds
+            # used for has_newer_result + thresholds, monitor stats + list check-ins
             # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
             # column
             models.Index(fields=["monitor_environment", "date_added", "status"]),
@@ -636,7 +575,7 @@ class MonitorCheckIn(Model):
             ),
         ]
 
-    __repr__ = sane_repr("guid", "project_id", "status")
+    __repr__ = sane_repr("guid", "monitor_environment_id", "status")
 
     def save(self, *args, **kwargs):
         if not self.date_added:
@@ -873,6 +812,18 @@ def get_cron_monitor(detector: Detector) -> Monitor:
     data_source = detector.data_sources.first()
     assert data_source
     return Monitor.objects.get(id=int(data_source.source_id))
+
+
+def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
+    try:
+        with in_test_hide_transaction_boundary():
+            return Detector.objects.get(
+                datasource__type=DATA_SOURCE_CRON_MONITOR,
+                datasource__source_id=str(monitor.id),
+                datasource__organization_id=monitor.organization_id,
+            )
+    except Detector.DoesNotExist:
+        return None
 
 
 @data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)

@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -46,14 +45,6 @@ export interface Conversation {
   traceCount: number;
   traceIds: string[];
   user: ConversationUser | null;
-}
-
-interface ConversationApiResponse extends Omit<
-  Conversation,
-  'firstInput' | 'lastOutput'
-> {
-  firstInput?: Array<{text: string; type: string}> | string | null;
-  lastOutput?: Array<{text: string; type: string}> | string | null;
 }
 
 const CONVERSATION_LIST_PER_PAGE = 50;
@@ -135,14 +126,6 @@ const CONVERSATION_SORTS = CONVERSATION_SORT_FIELDS.flatMap(field => [
   `-${field}`,
 ]);
 
-function normalizeConversationPreview(
-  content: ConversationApiResponse['firstInput']
-): string | null {
-  return typeof content === 'string'
-    ? content
-    : (content?.find(part => part.type === 'text')?.text ?? null);
-}
-
 export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const organization = useOrganization();
   const {cursor, setCursor, unsetCursor} = useTableCursor();
@@ -161,7 +144,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
     isFetching,
     error,
   } = useQuery({
-    ...apiOptions.as<ConversationApiResponse[]>()(
+    ...apiOptions.as<Conversation[]>()(
       '/organizations/$organizationIdOrSlug/agents/conversations/',
       {
         path: {organizationIdOrSlug: organization.slug},
@@ -184,15 +167,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const pageLinks = response?.headers.Link;
   const isDirectHit = response?.headers['X-Sentry-Direct-Hit'] === '1';
 
-  const data = useMemo(() => {
-    return (response?.json ?? []).map(
-      ({firstInput: rawFirstInput, lastOutput: rawLastOutput, ...rest}): Conversation => {
-        const firstInput = normalizeConversationPreview(rawFirstInput);
-        const lastOutput = normalizeConversationPreview(rawLastOutput);
-        return {...rest, firstInput, lastOutput};
-      }
-    );
-  }, [response?.json]);
+  const data = response?.json ?? [];
 
   return {
     data,

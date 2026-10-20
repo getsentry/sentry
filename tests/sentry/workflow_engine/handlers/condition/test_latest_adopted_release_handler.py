@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any, Mapping
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,7 +7,6 @@ from jsonschema import ValidationError
 
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
 from sentry.search.utils import LatestReleaseOrders
 from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType, ModelAgeType
 from sentry.workflow_engine.handlers.condition.utils.releases import (
@@ -23,12 +22,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_ADOPTED_RELEASE
-    payload: Mapping[str, Any] = {
-        "id": LatestAdoptedReleaseFilter.id,
-        "oldest_or_newest": "oldest",
-        "older_or_newer": "newer",
-        "environment": "prod",
-    }
 
     def create_new_group_event(self, fingerprint: str) -> tuple[Any, Any]:
         event = self.store_event(data={"fingerprint": [fingerprint]}, project_id=self.project.id)
@@ -75,19 +68,6 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             },
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "release_age_type": "oldest",
-            "age_comparison": "newer",
-            "environment": "prod",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"age_comparison": AgeComparisonType.OLDER})

@@ -46,9 +46,8 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.issues.action_log import (
     action_context_scope,
     publish_action,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import (
     CreateExternalIssueAction,
     LinkExternalIssueAction,

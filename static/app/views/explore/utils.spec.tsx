@@ -821,7 +821,7 @@ describe('getSavedQueryTraceItemUrl', () => {
       lastVisited: '',
       dateAdded: '',
       dateUpdated: '',
-      range: '24h',
+      statsPeriod: '24h',
       query: [{fields: [], mode: Mode.SAMPLES, orderby: '', query: ''}],
       ...overrides,
     });

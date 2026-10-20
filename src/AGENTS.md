@@ -1,47 +1,42 @@
 # Backend Development Guide
 
-> For critical commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
+> For setup, lint, and test commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## Security Guidelines
 
 ### Preventing Indirect Object References (IDOR)
 
-Multi-tenant queries MUST be scoped — never trust user-supplied IDs alone.
+Multi-tenant queries MUST be scoped. Never trust user-supplied IDs alone.
 
-- Always filter by `organization_id` and/or `project_id`:
+- Always filter by `organization_id` or `project_id`:
   `Resource.objects.get(id=..., organization_id=organization.id)`.
-- Never read `request.data["project_id"]` / `request.GET["project_id"]` directly. Use `self.get_projects(request=request, organization=organization, project_ids=...)`, which validates permissions.
+- Never read `request.data["project_id"]` or `request.GET["project_id"]` directly. Use `self.get_projects(request=request, organization=organization, project_ids=...)`, which checks permissions.
 
 For access-control review or deeper authorization work, use the **`django-access-review`** and **`sentry-security`** skills.
 
 ## Development Services
 
-Local dependencies are managed by `devservices` (config: `devservices/config.yml`).
-
-📖 Full devservices documentation: https://develop.sentry.dev/development-infrastructure/devservices.md
+`devservices` runs local dependencies from `devservices/config.yml`. Full documentation: https://develop.sentry.dev/development-infrastructure/devservices/
 
 ## AI Assistant Quick Decision Trees
 
 ### "User wants to add an API endpoint"
 
-1. Check if endpoint already exists: `grep -r "endpoint_name" src/sentry/api/`
-2. Inherit from appropriate base:
-   - Organization-scoped: `OrganizationEndpoint`
-   - Project-scoped: `ProjectEndpoint`
-   - Region silo: `RegionSiloEndpoint`
-3. File locations:
-   - Endpoint: `src/sentry/api/endpoints/{resource}.py`
-   - URL: `src/sentry/api/urls.py`
-   - Test: `tests/sentry/api/endpoints/test_{resource}.py`
-   - Serializer: `src/sentry/api/serializers/models/{model}.py`
-4. Document with drf-spectacular decorators → use the **`document-api-endpoint`** skill.
+1. Check whether the endpoint already exists: `grep -rn "endpoint_name" src/sentry/`.
+2. Inherit from the scope base: `OrganizationEndpoint` (`src/sentry/api/bases/organization.py`) or `ProjectEndpoint` (`src/sentry/api/bases/project.py`).
+3. Decorate the class with `@cell_silo_endpoint` or `@control_silo_endpoint` from `src/sentry/api/base.py`.
+4. Put the endpoint in the owning domain's `endpoints/` package (for example `src/sentry/core/endpoints/`) or in `src/sentry/api/endpoints/`. Register the route in `src/sentry/api/urls.py`, or in the domain `urls.py` it includes. The test file mirrors the endpoint path under `tests/`.
+5. Document it with drf-spectacular decorators → use the **`document-api-endpoint`** skill.
 
-### "User wants to add a Celery task"
+### "User wants to add a task"
 
-1. Location: `src/sentry/tasks/{category}.py`
-2. Use `@instrumented_task` decorator
-3. Set appropriate `queue` and `max_retries`
-4. Test location: `tests/sentry/tasks/test_{category}.py`
+Tasks run on taskbroker, not Celery.
+
+1. Decorate the function with `@instrumented_task` from `src/sentry/tasks/base.py`. Pass `name`, a `namespace` from `src/sentry/taskworker/namespaces.py`, and `retry=Retry(...)` from `taskbroker_client.retry` when the task retries.
+2. Add a new task module to `TASKWORKER_IMPORTS` in `src/sentry/conf/server.py`. `tests/sentry/taskworker/test_config.py` fails when a listed path does not import.
+3. The test file mirrors the module path under `tests/`.
+
+Full documentation: https://develop.sentry.dev/backend/application-domains/tasks/
 
 ### Serializers: Avoiding N+1 Queries
 
@@ -51,30 +46,25 @@ NEVER query the database in `serialize()` for bulk requests. `serialize()` runs 
 
 ### API Documentation
 
-- OpenAPI spec generation: `make build-api-docs`
-- API ownership tracked in `src/sentry/apidocs/api_ownership_allowlist_dont_modify.py`
-- Documenting/typing an endpoint → use the **`document-api-endpoint`** skill.
+- Generate the OpenAPI spec with `make build-api-docs`.
+- API ownership is tracked in `src/sentry/apidocs/api_ownership_allowlist_dont_modify.py`.
 
 ### API Design Rules
 
 1. Route: `/api/0/organizations/{org}/projects/{project}/`
-2. Use `snake_case` for URL params
-3. Use `camelCase` for request/response bodies
-4. Return strings for numeric IDs
-5. Implement pagination with `cursor`
-6. Use `GET` for read, `POST` for create, `PUT` for update
-7. **Error responses MUST use the `"detail"` key** (Django REST Framework convention) — not `"error"` or `"message"`:
+2. Use `snake_case` for URL params.
+3. Use `camelCase` for request and response bodies.
+4. Return strings for numeric IDs.
+5. Paginate with `cursor`.
+6. Use `GET` to read, `POST` to create, `PUT` to update.
+7. **Error responses MUST use the `"detail"` key**, not `"error"` or `"message"`:
    `return Response({"detail": "Invalid input"}, status=400)`.
 
 ## Common Patterns
 
 ### Viewer/Organization Context
 
-Viewer identity is wired through the app via the `ViewerContext` contextvar; use `sentry.viewer_context.get_viewer_context()` instead of explicitly threading org/user identity when the current viewer is in scope.
-
-### Feature Flags
-
-See the **feature-flags** skill (`.agents/skills/feature-flags/`) for registration, the `features.has(...)` check, and test usage.
+The `ViewerContext` contextvar carries the current viewer's identity. When the viewer is in scope, call `sentry.viewer_context.get_viewer_context()` instead of passing org and user identity through arguments.
 
 ### Permissions
 
@@ -90,16 +80,15 @@ class MyPermission(SentryPermission):
 
 ### Logging, Tracing, Metrics, Options
 
-Logging (`logger.info/exception`, `LOG005`/`LOG011`), tracing/spans (`sentry.utils.tracing`), metrics tag cardinality, and the options system (`options.get()`) → use the **`backend-conventions`** skill.
+Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()` → use the **`backend-conventions`** skill.
 
 ## Architecture Rules
 
 ### Silo Mode
 
-- **Control Silo**: User auth, billing, organization management
-- **Region Silo**: Project data, events, issues
-- Check model's silo in `src/sentry/models/outbox.py`; use `@cell_silo_endpoint` or `@control_silo_endpoint`.
-- Never join across silos; use `outbox` for cross-silo updates. For silo/RPC/outbox work, use the **`hybrid-cloud-rpc`**, **`hybrid-cloud-outboxes`**, and **`cell-architecture`** skills.
+- The control silo holds global data such as `User`, `Integration`, and `OrganizationMapping`. The cell silo holds organization-scoped data such as `Organization`, `Project`, and `Group`.
+- Each model declares its silo with `@control_silo_model` or `@cell_silo_model` (`src/sentry/db/models/base.py`). Each endpoint declares it with `@control_silo_endpoint` or `@cell_silo_endpoint`.
+- Never join across silos. Use outboxes (`src/sentry/hybridcloud/models/outbox.py`) for cross-silo updates. For silo, RPC, and outbox work, use the **`hybrid-cloud-rpc`**, **`hybrid-cloud-outboxes`**, and **`cell-architecture`** skills.
 
 ### Database Guidelines
 
@@ -110,24 +99,15 @@ Logging (`logger.info/exception`, `LOG005`/`LOG011`), tracing/spans (`sentry.uti
 
 ### Redis TTLs
 
-**Every new Redis key sets a TTL, or is registered with Infrastructure Engineering as accepted durable data.** `CommonRedisCache.set` and `RedisKVStorage.set` raise `MissingTTL` rather than write a key with no expiry. There is no opt-out argument: the exemption is granted by Infrastructure Engineering, not at the callsite.
-
-A bare `SET` or `GETSET` over an existing key clears its TTL; `SETEX` replaces it with the supplied expiry. `SADD`, `ZADD`, `HSET`, `HINCRBY` and `INCR` preserve an existing TTL. A TTL refreshed on every write does not bound the key's lifetime — shard by time window and give each shard a fixed TTL instead. Full rules: https://develop.sentry.dev/backend/application-domains/redis/.
+**Every new Redis key sets a TTL, or is registered with Infrastructure Engineering as accepted durable data.** `CommonRedisCache.set` and `RedisKVStorage.set` raise `MissingTTL` for a key with no expiry, and there is no opt-out argument. Which commands drop an existing TTL, and why a sliding TTL is not a bound: https://develop.sentry.dev/backend/application-domains/redis/
 
 ## Anti-Patterns (NEVER DO)
 
 ```python
-# WRONG: Direct model import in API
-from sentry.models import Organization  # NO!
-
-# RIGHT: Use endpoint bases
-from sentry.api.bases.organization import OrganizationEndpoint
-
-# WRONG: Synchronous external calls
+# WRONG: Slow external calls inside a request
 response = requests.get(url)  # NO!
 
-# RIGHT: Use Celery task
-from sentry.tasks import fetch_external_data
+# RIGHT: Move the call into a task (see "User wants to add a task")
 fetch_external_data.delay(url)
 
 # WRONG: N+1 queries
@@ -157,10 +137,11 @@ def my_function():
 
 ## File Location Map
 
-- **Models**: `src/sentry/models/{model}.py`
-- **API Endpoints**: `src/sentry/api/endpoints/{resource}.py`
+- **Models**: `src/sentry/models/{model}.py` or the owning domain's `models/` package
+- **API Endpoints**: `src/sentry/api/endpoints/{resource}.py` or `src/sentry/{domain}/endpoints/`
 - **Serializers**: `src/sentry/api/serializers/models/{model}.py`
-- **Tasks**: `src/sentry/tasks/{category}.py`
+- **Tasks**: `src/sentry/tasks/{category}.py` or `src/sentry/{domain}/tasks/`
+- **Task namespaces**: `src/sentry/taskworker/namespaces.py`
 - **Integrations**: `src/sentry/integrations/{provider}/`
 - **Permissions**: `src/sentry/api/permissions.py`
 - **Feature Flags**: `src/sentry/features/permanent.py` or `temporary.py`
@@ -168,7 +149,7 @@ def my_function():
 
 ## Integration Development
 
-Add an integration under `src/sentry/integrations/{name}/` with `__init__.py`, `integration.py` (inherit from `Integration`), `client.py` (API client), and `webhooks/` if needed. Register it in `src/sentry/integrations/registry.py` and add a feature flag in `temporary.py`.
+Add an integration under `src/sentry/integrations/{name}/`. Subclass `IntegrationProvider` and `IntegrationInstallation` from `src/sentry/integrations/base.py`; `src/sentry/integrations/example/integration.py` is a working reference. Register the provider class path in `SENTRY_DEFAULT_INTEGRATIONS` in `src/sentry/conf/server.py`, and gate it with a flag in `src/sentry/features/temporary.py`.
 
 ## Python Typing
 

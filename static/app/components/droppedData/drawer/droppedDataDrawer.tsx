@@ -2,13 +2,14 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {
-  droppedEventsToOutcomeSections,
+  droppedEventsToOutcomeGroups,
   type ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
@@ -26,13 +27,13 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
   interval?: string;
-  onInvestigate?: (row: ReasonRow) => void;
+  onTroubleshoot?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataDrawer({
   dataset,
   interval,
-  onInvestigate,
+  onTroubleshoot,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
   const [chartInterval] = useChartInterval();
@@ -41,24 +42,30 @@ export function DroppedDataDrawer({
     interval: interval ?? chartInterval,
   });
 
-  const sections = useMemo(
-    () => droppedEventsToOutcomeSections(droppedEvents ?? [], acceptedEvents ?? []),
+  const groups = useMemo(
+    () => droppedEventsToOutcomeGroups(droppedEvents ?? [], acceptedEvents ?? []),
     [droppedEvents, acceptedEvents]
   );
   const outcomeColors = useMemo(
     () =>
       getOutcomeColors(
-        sections.map(section => section.outcome),
+        [...groups.unintentional, ...groups.intentional].map(section => section.outcome),
         theme
       ),
-    [sections, theme]
+    [groups, theme]
   );
 
   const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
-  const selectedSections = useMemo(
-    () =>
-      sections.filter(section => isOutcomeSelected(outcomeSelection, section.outcome)),
-    [sections, outcomeSelection]
+  const selectedGroups = useMemo(
+    () => ({
+      unintentional: groups.unintentional.filter(section =>
+        isOutcomeSelected(outcomeSelection, section.outcome)
+      ),
+      intentional: groups.intentional.filter(section =>
+        isOutcomeSelected(outcomeSelection, section.outcome)
+      ),
+    }),
+    [groups, outcomeSelection]
   );
 
   return (
@@ -84,11 +91,30 @@ export function DroppedDataDrawer({
               selection={outcomeSelection}
               onSelectionChange={setOutcomeSelection}
             />
-            <DroppedDataOutcomeList
-              sections={selectedSections}
-              colors={outcomeColors}
-              onInvestigate={onInvestigate}
-            />
+            {selectedGroups.unintentional.length > 0 && (
+              <DroppedDataOutcomeList
+                sections={selectedGroups.unintentional}
+                colors={outcomeColors}
+                onTroubleshoot={onTroubleshoot}
+              />
+            )}
+            {selectedGroups.intentional.length > 0 && (
+              <Stack gap="md">
+                <Stack gap="xl">
+                  <Separator orientation="horizontal" border="primary" />
+                  <Container padding="0 xl">
+                    <Heading as="h3" size="xl">
+                      {t('Configured Drops')}
+                    </Heading>
+                  </Container>
+                </Stack>
+                <DroppedDataOutcomeList
+                  sections={selectedGroups.intentional}
+                  colors={outcomeColors}
+                  onTroubleshoot={onTroubleshoot}
+                />
+              </Stack>
+            )}
           </Stack>
         )}
       </DrawerBody>

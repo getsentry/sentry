@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -26,12 +27,7 @@ describe('ProjectDetail > ProjectIssues', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues-count/?project=${project.id}&query=is%3Aunresolved%20is%3Afor_review&query=&query=is%3Aresolved&query=error.unhandled%3Atrue%20is%3Aunresolved&query=regressed_in_release%3Alatest&statsPeriod=14d`,
-      body: {},
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues-count/?environment=staging&project=${project.id}&query=is%3Aunresolved%20is%3Afor_review&query=&query=is%3Aresolved&query=error.unhandled%3Atrue%20is%3Aunresolved&query=regressed_in_release%3Alatest&statsPeriod=7d`,
+      url: `/organizations/${organization.slug}/issues-count/`,
       body: {},
     });
   });
@@ -41,6 +37,54 @@ describe('ProjectDetail > ProjectIssues', () => {
     jest.clearAllMocks();
   });
 
+  it('updates tab counts when the release search changes or is cleared', async () => {
+    const props = {
+      organization,
+      location: LocationFixture(),
+      projectId: Number(project.id),
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues-count/`,
+      body: {'error.unhandled:true is:unresolved': 6},
+    });
+    const counts = {
+      'is:unresolved is:for_review release:1.2.3': 1,
+      'error.unhandled:true is:unresolved release:1.2.3': 3,
+      'regressed_in_release:latest release:1.2.3': 4,
+      'is:resolved release:1.2.3': null,
+      'release:1.2.3': 5,
+    };
+    const response = Promise.withResolvers<void>();
+    const fetchFilteredCounts = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues-count/`,
+      match: [
+        MockApiClient.matchQuery({
+          query: Object.keys(counts),
+        }),
+      ],
+      body: counts,
+      asyncDelay: response.promise,
+    });
+
+    const {rerender} = render(<ProjectIssues {...props} />, {organization});
+    expect(await screen.findByRole('radio', {name: 'Unhandled 6'})).toBeChecked();
+
+    rerender(<ProjectIssues {...props} query="release:1.2.3" />);
+
+    await waitFor(() => expect(fetchFilteredCounts).toHaveBeenCalled());
+    expect(screen.getByRole('radio', {name: 'Unhandled 6'})).toBeChecked();
+    response.resolve();
+
+    expect(await screen.findByRole('radio', {name: 'Unhandled 3'})).toBeChecked();
+    expect(screen.getByRole('radio', {name: 'All Issues 5'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'New Issues 1'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Resolved 0'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Regressed 4'})).toBeInTheDocument();
+
+    rerender(<ProjectIssues {...props} query="" />);
+    expect(await screen.findByRole('radio', {name: 'Unhandled 6'})).toBeChecked();
+  });
+
   it('renders a list', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -48,7 +92,6 @@ describe('ProjectDetail > ProjectIssues', () => {
     });
     render(
       <ProjectIssues
-        api={new MockApiClient()}
         organization={organization}
         location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
@@ -64,7 +107,6 @@ describe('ProjectDetail > ProjectIssues', () => {
   it('renders a link to Issues', async () => {
     const {router} = render(
       <ProjectIssues
-        api={new MockApiClient()}
         organization={organization}
         projectId={parseInt(project.id, 10)}
         location={{query: {}} as any}
@@ -90,7 +132,6 @@ describe('ProjectDetail > ProjectIssues', () => {
   it('renders a segmented control', async () => {
     render(
       <ProjectIssues
-        api={new MockApiClient()}
         organization={organization}
         location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
@@ -126,7 +167,6 @@ describe('ProjectDetail > ProjectIssues', () => {
   it('renders a link to Explore', async () => {
     const {router} = render(
       <ProjectIssues
-        api={new MockApiClient()}
         organization={organization}
         location={{query: {}} as any}
         projectId={parseInt(project.id, 10)}
@@ -162,7 +202,6 @@ describe('ProjectDetail > ProjectIssues', () => {
     const {router} = render(
       <ProjectIssues
         organization={organization}
-        api={new MockApiClient()}
         projectId={parseInt(project.id, 10)}
         location={locationWithQuery}
       />,

@@ -79,14 +79,12 @@ class TestUpdater(TestCase):
         ApiToken.objects.create(
             application=self.sentry_app.application,
             user=self.sentry_app.proxy_user,
-            scopes=self.sentry_app.scopes,
             scope_list=self.sentry_app.scope_list,
             expires_at=(timezone.now() + timedelta(hours=1)),
         )
         ApiToken.objects.create(
             application=self.sentry_app.application,
             user=self.sentry_app.proxy_user,
-            scopes=self.sentry_app.scopes,
             scope_list=self.sentry_app.scope_list,
             expires_at=(timezone.now() - timedelta(hours=1)),
         )

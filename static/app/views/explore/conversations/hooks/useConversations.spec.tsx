@@ -2,15 +2,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useConversations} from './useConversations';
+import {useConversations, type Conversation} from './useConversations';
 
-const BASE_CONVERSATION = {
+const BASE_CONVERSATION: Conversation = {
   conversationId: 'conv-1',
   endTimestamp: 2000,
   errors: 0,
+  firstInput: null,
+  generationDuration: 0,
+  inputTokens: 0,
+  lastOutput: null,
   llmCalls: 1,
+  outputTokens: 0,
+  projectId: null,
   startTimestamp: 1000,
   timeSpan: 1000,
+  title: null,
   toolCalls: 0,
   toolErrors: 0,
   toolNames: [],
@@ -42,7 +49,7 @@ describe('useConversations', () => {
     await waitFor(() => expect(result.current.isFetching).toBe(false));
   });
 
-  it('normalizes firstInput when it is a string', async () => {
+  it('preserves string firstInput', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: 'hello', lastOutput: null}],
@@ -55,48 +62,7 @@ describe('useConversations', () => {
     expect(result.current.data[0]?.firstInput).toBe('hello');
   });
 
-  it('normalizes firstInput from array format to string', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/`,
-      body: [
-        {
-          ...BASE_CONVERSATION,
-          firstInput: [
-            {type: 'image', text: 'ignore me'},
-            {type: 'text', text: 'hello from array'},
-          ],
-          lastOutput: null,
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.firstInput).toBe('hello from array');
-  });
-
-  it('normalizes firstInput to null when array has no text type', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/`,
-      body: [
-        {
-          ...BASE_CONVERSATION,
-          firstInput: [{type: 'image', text: 'no text type'}],
-          lastOutput: null,
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.firstInput).toBeNull();
-  });
-
-  it('normalizes lastOutput when it is a string', async () => {
+  it('preserves string lastOutput', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: 'world'}],
@@ -107,49 +73,6 @@ describe('useConversations', () => {
     await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.lastOutput).toBe('world');
-  });
-
-  it('normalizes lastOutput from array format to string', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/`,
-      body: [
-        {
-          ...BASE_CONVERSATION,
-          firstInput: null,
-          lastOutput: [
-            {type: 'tool_use', text: 'ignore me'},
-            {type: 'text', text: 'world from array'},
-          ],
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    // This was the bug: lastOutput was passed through as an array, causing
-    // `.replace is not a function` when rendering the table cell
-    expect(result.current.data[0]?.lastOutput).toBe('world from array');
-  });
-
-  it('normalizes lastOutput to null when array has no text type', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/`,
-      body: [
-        {
-          ...BASE_CONVERSATION,
-          firstInput: null,
-          lastOutput: [{type: 'tool_use', text: 'no text type'}],
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.lastOutput).toBeNull();
   });
 
   it('handles null firstInput and lastOutput', async () => {

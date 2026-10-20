@@ -10,7 +10,7 @@ from django.dispatch import Signal
 
 from sentry import roles
 from sentry.api.serializers import serialize
-from sentry.auth.email import emails_match
+from sentry.auth.email import first_matching_email
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -43,8 +43,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
-from sentry.models.rule import Rule, RuleActivity
-from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.rule import Rule
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
 from sentry.organizations.services.organization import (
@@ -195,15 +194,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> RpcOrganizationMember | None:
-        member = next(
-            (
-                m
-                for m in OrganizationMember.objects.filter(
-                    organization_id=organization_id, email__iexact=email
-                )
-                if m.email and emails_match(m.email, email)
-            ),
-            None,
+        member = first_matching_email(
+            OrganizationMember.objects.filter(organization_id=organization_id), email
         )
         if member is None:
             return None
@@ -278,15 +270,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 organization_id=org.id, user_id=user_id
             ).first()
         if member is None and email is not None:
-            member = next(
-                (
-                    m
-                    for m in OrganizationMember.objects.filter(
-                        organization_id=org.id, email__iexact=email
-                    )
-                    if m.email and emails_match(m.email, email)
-                ),
-                None,
+            member = first_matching_email(
+                OrganizationMember.objects.filter(organization_id=org.id), email
             )
         if member is None and organization_member_id is not None:
             member = OrganizationMember.objects.filter(
@@ -616,8 +601,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 ProjectBookmark,
                 RecentSearch,
                 Rule,
-                RuleActivity,
-                RuleSnooze,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(
