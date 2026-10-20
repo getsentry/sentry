@@ -186,11 +186,9 @@ describe('ExploreCharts', () => {
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
 
-    it('hides the Layers control when every drop is configured', async () => {
+    it('hides the Layers control when every drop is intentional', async () => {
       const request = renderCharts({
-        droppedEvents: [
-          DroppedEventFixture({outcome: 'client_discard', reason: 'sample_rate'}),
-        ],
+        droppedEvents: [DroppedEventFixture({tags: ['intentional']})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());

@@ -4,22 +4,23 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
+import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 
 function OutcomeList({
   droppedEvents,
   acceptedEvents,
-  onInvestigate,
+  onTroubleshoot,
 }: {
   acceptedEvents: DroppedEventsBucket[];
   droppedEvents: DroppedEventsBucket[];
-  onInvestigate?: () => void;
+  onTroubleshoot?: (row: ReasonRow) => void;
 }) {
   return (
     <DroppedDataOutcomeList
       sections={droppedEventsToOutcomeSections(droppedEvents, acceptedEvents)}
       colors={{}}
-      onInvestigate={onInvestigate}
+      onTroubleshoot={onTroubleshoot}
     />
   );
 }
@@ -93,7 +94,7 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
   });
 
-  it('renders the short description under the reason title', () => {
+  it('shows the short description when hovering the reason title', async () => {
     render(
       <OutcomeList
         droppedEvents={[
@@ -109,12 +110,15 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
-    expect(
-      screen.getByText("User agent matched Sentry's known crawler list.")
-    ).toBeInTheDocument();
+    const description = "User agent matched Sentry's known crawler list.";
+    expect(screen.queryByText(description)).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Web crawler filter'));
+
+    expect(await screen.findByText(description)).toBeInTheDocument();
   });
 
-  it('fills the data type into the description from the event category', () => {
+  it('fills the data type into the description from the event category', async () => {
     render(
       <OutcomeList
         droppedEvents={[
@@ -131,8 +135,10 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
+    await userEvent.hover(screen.getByText('Project abuse limit'));
+
     expect(
-      screen.getByText('Your log events exceeded the project abuse limit.')
+      await screen.findByText('Your log events exceeded the project abuse limit.')
     ).toBeInTheDocument();
   });
 
@@ -191,7 +197,8 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  it('reveals the fix options under a reason row via its chevron', async () => {
+  it('opens the reason actions menu with docs and troubleshoot entries', async () => {
+    const onTroubleshoot = jest.fn();
     render(
       <OutcomeList
         droppedEvents={[
@@ -205,65 +212,28 @@ describe('DroppedDataOutcomeList', () => {
           }),
         ]}
         acceptedEvents={[]}
+        onTroubleshoot={onTroubleshoot}
       />
     );
 
-    // The fix-this affordance is hidden until the reason chevron is clicked.
-    expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-
-    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
-
-    // Collapsing hides it again.
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
-
-    // The toggle is reachable from the keyboard.
-    act(() => screen.getByRole('button', {name: 'Toggle fix options'}).focus());
-    await userEvent.keyboard('{Enter}');
-    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
-  });
-
-  it('opens the fix-this menu with investigate, settings, and docs entries', async () => {
-    const onInvestigate = jest.fn();
-    render(
-      <OutcomeList
-        droppedEvents={[
-          DroppedEventFixture({
-            category: 'span',
-            outcome: 'rate_limited',
-            reason: 'smart_rate_limit',
-            start: 0,
-            end: 60_000,
-            count: 10,
-          }),
-        ]}
-        acceptedEvents={[]}
-        onInvestigate={onInvestigate}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
-
-    // Project settings deep-links to the usage stats page scoped to the
-    // reason's data category.
-    expect(screen.getByRole('menuitemradio', {name: 'Project Settings'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('/stats/?dataCategory=spans')
-    );
-
+    expect(screen.getAllByRole('menuitemradio').map(item => item.textContent)).toEqual([
+      'Troubleshoot',
+      'Go to Docs',
+    ]);
     expect(screen.getByRole('menuitemradio', {name: 'Go to Docs'})).toHaveAttribute(
       'href',
       expect.stringContaining('docs.sentry.io')
     );
 
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigate'}));
-    expect(onInvestigate).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Troubleshoot'}));
+    expect(onTroubleshoot).toHaveBeenCalledWith(
+      expect.objectContaining({outcome: 'rate_limited', reason: 'smart_rate_limit'})
+    );
   });
 
-  it('hides investigate when there is no Seer hand-off', async () => {
+  it('hides troubleshoot when there is no Seer hand-off', async () => {
     render(
       <OutcomeList
         droppedEvents={[
@@ -280,14 +250,11 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
 
+    expect(screen.getByRole('menuitemradio', {name: 'Go to Docs'})).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitemradio', {name: 'Project Settings'})
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Investigate'})
+      screen.queryByRole('menuitemradio', {name: 'Troubleshoot'})
     ).not.toBeInTheDocument();
   });
 });

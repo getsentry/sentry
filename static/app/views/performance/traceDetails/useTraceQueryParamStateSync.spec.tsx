@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 
-import {act, render} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render} from 'sentry-test/reactTestingLibrary';
 
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
@@ -24,8 +24,12 @@ describe('useTraceQueryParamStateSync', () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    try {
+      cleanup();
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('syncs changed state into the query string', async () => {

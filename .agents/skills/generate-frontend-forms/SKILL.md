@@ -186,6 +186,10 @@ All fields are accessed via the `field` render prop and follow consistent patter
 </form.AppField>
 ```
 
+### Checkbox Group (Multiple Selections)
+
+Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections stored as one string array. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
+
 ### TextArea Field
 
 ```tsx

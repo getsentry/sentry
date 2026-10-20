@@ -3,6 +3,7 @@ import type {
   HTMLAttributes,
   MouseEvent,
   ReactNode,
+  Ref,
   RefObject,
 } from 'react';
 import {createContext, Fragment, useContext} from 'react';
@@ -12,10 +13,10 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {fullWidthCellStyle, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   type ColumnAlign,
   HeaderCellContent,
@@ -82,7 +83,7 @@ interface HeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {
 }
 
 interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
-  ref?: RefObject<HTMLTableRowElement | null>;
+  ref?: Ref<HTMLTableRowElement>;
   variant?: 'default' | 'faded';
 }
 
@@ -161,7 +162,7 @@ function Row({children, variant = 'default', ref, ...props}: RowProps) {
   const density = useContext(DensityContext);
 
   return (
-    <StyledRow divider={density !== 'compressed'} variant={variant} ref={ref} {...props}>
+    <StyledRow divider={density === 'default'} variant={variant} ref={ref} {...props}>
       {children}
     </StyledRow>
   );

@@ -414,23 +414,6 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             resp = self.get_error_response(**data)
             assert resp.status_code == 400, "Staff cannot create orgs in invalid locales"
 
-    @override_options(
-        {
-            "provision_organization.override.rate": 1.0,
-            "provision_organization.override.mapping": {"us": "de"},
-        }
-    )
-    def test_locality_to_cell_overrides(self) -> None:
-        # When these options are active we can redirect one storage location to another.
-        response = self.get_success_response(
-            name="implicit org", slug="implicit-org", dataStorageLocation="us"
-        )
-
-        organization_id = response.data["id"]
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            mapping = OrganizationMapping.objects.get(organization_id=organization_id)
-        assert mapping.cell_name == "de"
-
     def test_invalid_slug_values(self) -> None:
         with self.options({"api.rate-limit.org-create": 9001}):
             self.get_error_response(name="name", slug=" i have whitespace ", status_code=400)

@@ -15,9 +15,8 @@ import {
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
 import {Container} from '@sentry/scraps/layout';
+import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import type {FormSize} from 'sentry/utils/theme';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
