@@ -91,6 +91,18 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             if domain_name:
                 base_host = domain_name.split("/", 1)[0]
                 web_base_url = f"https://{base_host}"
+    elif provider_name == "gitlab":
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id,
+            organization_id=organization_id,
+        )
+        if integration:
+            # The instance URL as the user entered it, so it keeps its scheme and any path prefix
+            # of a self-hosted instance. "instance" and "domain_name" hold only the hostname (the
+            # latter plus the group path), and neither is the instance URL.
+            base_url = integration.metadata.get("base_url")
+            if base_url:
+                web_base_url = base_url.rstrip("/")
     elif provider_name == "cursor_origin":
         integration = integration_service.get_integration(
             integration_id=repo.integration_id,

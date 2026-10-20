@@ -127,6 +127,64 @@ class TestFetchRepository(TestCase):
         assert result is not None
         assert result["web_base_url"] == "https://acme-corp.ghe.com"
 
+    def _create_gitlab_repo(self, instance: str, metadata: dict[str, str]) -> RepositoryModel:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            name="GitLab Acme",
+            external_id=f"{instance}:acme",
+            metadata=metadata,
+        )
+        return self.create_repo(
+            project=self.project,
+            name="acme / widget",
+            provider="integrations:gitlab",
+            external_id=f"{instance}:42",
+            integration_id=integration.id,
+        )
+
+    def test_fetch_gitlab_repo_populates_web_base_url(self) -> None:
+        repo = self._create_gitlab_repo(
+            "gitlab.com",
+            {
+                "instance": "gitlab.com",
+                "domain_name": "gitlab.com/acme",
+                "base_url": "https://gitlab.com",
+            },
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["provider_name"] == "gitlab"
+        assert result["web_base_url"] == "https://gitlab.com"
+
+    def test_fetch_self_hosted_gitlab_repo_keeps_path_prefix(self) -> None:
+        repo = self._create_gitlab_repo(
+            "git.acme.com",
+            {
+                "instance": "git.acme.com",
+                "domain_name": "git.acme.com/acme",
+                "base_url": "https://git.acme.com/gitlab/",
+            },
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["web_base_url"] == "https://git.acme.com/gitlab"
+
+    def test_fetch_gitlab_repo_without_base_url_web_base_url_is_none(self) -> None:
+        repo = self._create_gitlab_repo(
+            "git.acme.com",
+            {"instance": "git.acme.com", "domain_name": "git.acme.com/acme"},
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["web_base_url"] is None
+
     def test_fetch_non_ghe_repo_web_base_url_is_none(self) -> None:
         repo = RepositoryModel.objects.create(
             organization_id=self.organization.id,
