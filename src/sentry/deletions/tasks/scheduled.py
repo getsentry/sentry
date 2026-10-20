@@ -38,9 +38,10 @@ logger = logging.getLogger("sentry.deletions.api")
 MAX_RETRIES = 5
 
 
-def _scheduled_deletion_viewer_context(
+def scheduled_deletion_viewer_context(
     deletion: BaseScheduledDeletion, instance: Any
 ) -> AbstractContextManager[None]:
+    """Apply the recorded actor and target scope while executing a scheduled deletion."""
     if not isinstance(instance, (Organization, Project)):
         return nullcontext()
 
@@ -241,7 +242,7 @@ def _run_deletion(
         actor = deletion.get_actor()
         pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
-    with _scheduled_deletion_viewer_context(deletion, instance):
+    with scheduled_deletion_viewer_context(deletion, instance):
         try:
             has_more = task.chunk()
             if has_more:

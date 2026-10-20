@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING, Any
 
 import click
 
+from sentry.deletions.tasks.scheduled import scheduled_deletion_viewer_context
 from sentry.runner.decorators import configuration
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
     from sentry.deletions.models.scheduleddeletion import BaseScheduledDeletion
@@ -91,6 +93,23 @@ def run_deletions(
     """
     Run pending scheduled deletions synchronously.
     """
+    with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
+        _run_deletions(
+            deletion_id=deletion_id,
+            cell_deletion_id=cell_deletion_id,
+            model=model,
+            run_all=run_all,
+            verbose=verbose,
+        )
+
+
+def _run_deletions(
+    deletion_id: int | None,
+    cell_deletion_id: int | None,
+    model: str | None,
+    run_all: bool,
+    verbose: bool,
+) -> None:
     from django.utils import timezone
 
     if not any([deletion_id, cell_deletion_id, model, run_all]):
@@ -156,32 +175,33 @@ def _run_one(*, deletion: BaseScheduledDeletion, verbose: bool = False) -> None:
         deletion.delete()
         return
 
-    task = deletions_module.get(
-        model=deletion.get_model(),
-        query={"id": deletion.object_id},
-        transaction_id=deletion.guid,
-        actor_id=deletion.actor_id,
-    )
+    with scheduled_deletion_viewer_context(deletion, instance):
+        task = deletions_module.get(
+            model=deletion.get_model(),
+            query={"id": deletion.object_id},
+            transaction_id=deletion.guid,
+            actor_id=deletion.actor_id,
+        )
 
-    if not task.should_proceed(instance):
-        click.echo("  Deletion aborted (should_proceed returned False).")
-        deletion.delete()
-        return
+        if not task.should_proceed(instance):
+            click.echo("  Deletion aborted (should_proceed returned False).")
+            deletion.delete()
+            return
 
-    actor = deletion.get_actor()
-    pending_delete.send(sender=type(instance), instance=instance, actor=actor)
+        actor = deletion.get_actor()
+        pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
-    try:
-        has_more = True
-        while has_more:
-            has_more = task.chunk()
-        deletion.delete()
-        click.echo("  Done.")
-    except Exception as e:
-        if verbose:
-            import traceback
+        try:
+            has_more = True
+            while has_more:
+                has_more = task.chunk()
+            deletion.delete()
+            click.echo("  Done.")
+        except Exception as e:
+            if verbose:
+                import traceback
 
-            click.echo(f"  Failed:\n{traceback.format_exc()}", err=True)
-        else:
-            click.echo(f"  Failed: {e}", err=True)
-        click.echo("  Deletion record preserved for retry. Re-run to continue.")
+                click.echo(f"  Failed:\n{traceback.format_exc()}", err=True)
+            else:
+                click.echo(f"  Failed: {e}", err=True)
+            click.echo("  Deletion record preserved for retry. Re-run to continue.")
