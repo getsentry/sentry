@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from sentry.api.helpers.data_annotations import get_dropped_data_annotations
+import pytest
+
+from sentry.api.helpers.data_annotations import (
+    INTENTIONAL,
+    UNINTENTIONAL,
+    classify_drop,
+    get_dropped_data_annotations,
+)
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
@@ -11,6 +18,63 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.outcomes import Outcome
 
 ONE_HOUR = 3600
+
+
+@pytest.mark.parametrize(
+    ("outcome", "reason"),
+    [
+        ("client_discard", "before_send"),
+        ("client_discard", "event_processor"),
+        ("client_discard", "ignored"),
+        ("client_discard", "no_parent_span"),
+        ("client_discard", "sample_rate"),
+        ("filtered", "browser-extensions"),
+        ("filtered", "chunk-load-error"),
+        ("filtered", "custom-error"),
+        ("filtered", "custom-inbound-filter:123"),
+        ("filtered", "denied-name"),
+        ("filtered", "disabled-namespace"),
+        ("filtered", "discarded"),
+        ("filtered", "error-message"),
+        ("filtered", "filtered-transaction"),
+        ("filtered", "invalid-csp"),
+        ("filtered", "ip-address"),
+        ("filtered", "legacy-browsers"),
+        ("filtered", "localhost"),
+        ("filtered", "log-message"),
+        ("filtered", "react-hydration-errors"),
+        ("filtered", "release-version"),
+        ("filtered", "trace-metric-name"),
+        ("filtered", "web-crawlers"),
+        ("filtered", "some-new-filter"),
+        ("invalid", "cors"),
+        ("invalid", "missing_signature"),
+        ("invalid", "transaction_sampled"),
+        ("rate_limited", "key_quota"),
+    ],
+)
+def test_classify_drop_intentional(outcome: str, reason: str) -> None:
+    assert classify_drop(outcome, reason) == INTENTIONAL
+
+
+@pytest.mark.parametrize(
+    ("outcome", "reason"),
+    [
+        ("client_discard", "queue_overflow"),
+        ("client_discard", "network_error"),
+        ("invalid", "timestamp"),
+        ("invalid", "too_large:transaction"),
+        ("invalid", "some_new_reason"),
+        ("rate_limited", "usage_exceeded"),
+        ("rate_limited", "smart_rate_limit"),
+        ("abuse", "project_abuse_limit"),
+        ("cardinality_limited", "cardinality_limited"),
+        ("rate_limited", "sample_rate"),
+        ("invalid", "before_send"),
+    ],
+)
+def test_classify_drop_unintentional(outcome: str, reason: str) -> None:
+    assert classify_drop(outcome, reason) == UNINTENTIONAL
 
 
 class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):

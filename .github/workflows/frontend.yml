@@ -120,7 +120,7 @@ jobs:
 
       # Decide whether to lint just the PR's impacted files or everything (see
       # frontend-changed-scope.sh): we scope to impacted files only when a merge base
-      # resolves and changes are under static/ or to oxlint-suppressions.json.
+      # resolves and changes are under static/ or to project oxlint-suppressions.json files.
       # Global config or dependency changes require linting everything because
       # their impact can't be traced from source files.
       - name: Compute lint strategy
