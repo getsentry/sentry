@@ -10,16 +10,16 @@ import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 function OutcomeList({
   droppedEvents,
   acceptedEvents,
-  onTroubleshoot,
+  onAskSeer,
 }: {
   acceptedEvents: DroppedEventsBucket[];
   droppedEvents: DroppedEventsBucket[];
-  onTroubleshoot?: (row: ReasonRow) => void;
+  onAskSeer?: (row: ReasonRow) => void;
 }) {
   return (
     <DroppedDataOutcomeList
       sections={droppedEventsToOutcomeSections(droppedEvents, acceptedEvents)}
-      onTroubleshoot={onTroubleshoot}
+      onAskSeer={onAskSeer}
     />
   );
 }
@@ -93,13 +93,12 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
   });
 
-  it('opens the reason actions menu with docs and troubleshoot entries', async () => {
-    const onTroubleshoot = jest.fn();
+  it('asks Seer about a reason', async () => {
+    const onAskSeer = jest.fn();
     render(
       <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
-            category: 'span',
             outcome: 'rate_limited',
             reason: 'smart_rate_limit',
             start: 0,
@@ -108,33 +107,25 @@ describe('DroppedDataOutcomeList', () => {
           }),
         ]}
         acceptedEvents={[]}
-        onTroubleshoot={onTroubleshoot}
+        onAskSeer={onAskSeer}
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
+    const button = screen.getByRole('button', {name: 'Ask Seer'});
+    await userEvent.hover(button);
+    expect(await screen.findByText('Ask Seer')).toBeInTheDocument();
 
-    expect(screen.getAllByRole('menuitemradio').map(item => item.textContent)).toEqual([
-      'Troubleshoot',
-      'Go to Docs',
-    ]);
-    expect(screen.getByRole('menuitemradio', {name: 'Go to Docs'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('docs.sentry.io')
-    );
-
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Troubleshoot'}));
-    expect(onTroubleshoot).toHaveBeenCalledWith(
+    await userEvent.click(button);
+    expect(onAskSeer).toHaveBeenCalledWith(
       expect.objectContaining({outcome: 'rate_limited', reason: 'smart_rate_limit'})
     );
   });
 
-  it('hides troubleshoot when there is no Seer hand-off', async () => {
+  it('hides Ask Seer when there is no Seer hand-off', () => {
     render(
       <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
-            category: 'span',
             outcome: 'rate_limited',
             reason: 'smart_rate_limit',
             start: 0,
@@ -146,11 +137,6 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
-
-    expect(screen.getByRole('menuitemradio', {name: 'Go to Docs'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Troubleshoot'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Ask Seer'})).not.toBeInTheDocument();
   });
 });

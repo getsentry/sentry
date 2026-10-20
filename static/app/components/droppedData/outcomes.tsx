@@ -40,7 +40,7 @@ export function reasonTitle(reason: string): string {
   return REASON_INFO[normalizeReason(reason)]?.title ?? reason;
 }
 
-export function buildTroubleshootPrompt(args: {
+export function buildAskSeerPrompt(args: {
   dataset: DiscoverDatasets;
   outcome: string;
   reason: string;
