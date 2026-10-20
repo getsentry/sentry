@@ -12,7 +12,7 @@ from django.conf import settings
 from django.utils import timezone
 
 import sentry
-from sentry import application_state, tsdb
+from sentry import options, tsdb
 from sentry.debug.utils.packages import get_all_package_versions
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.locks import locks
@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_install_id() -> str:
-    install_id = application_state.get("sentry:install-id")
+    install_id = options.get_state("sentry:install-id")
     if not install_id:
         install_id = sha1(uuid4().bytes).hexdigest()
         logger.info("beacon.generated-install-id", extra={"install_id": install_id})
-        application_state.set("sentry:install-id", install_id)
+        options.set_state("sentry:install-id", install_id)
 
     return install_id
 
@@ -180,7 +180,7 @@ def send_beacon() -> None:
     data = json.loads(response)
 
     if "version" in data:
-        application_state.set("sentry:latest_version", data["version"]["stable"])
+        options.set_state("sentry:latest_version", data["version"]["stable"])
 
     if "notices" in data:
         upstream_ids = set()

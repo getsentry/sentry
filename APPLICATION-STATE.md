@@ -1,7 +1,8 @@
 # Global application state
 
-`sentry.application_state` reads, writes, and deletes the following global
-application-generated values:
+The `sentry.options` state API reads, writes, and deletes the following global
+application-generated values through `get_state()`, `set_state()`, and
+`delete_state()`:
 
 | Key                          | Value                                                    |
 | ---------------------------- | -------------------------------------------------------- |
@@ -12,7 +13,7 @@ application-generated values:
 | `sentry:last_worker_version` | Version string reported by the worker                    |
 | `sentry:version-configured`  | Version string recorded by installation setup            |
 
-`get()` returns the existing value without coercion. A missing row uses
+`get_state()` returns the existing value without coercion. A missing row uses
 `SENTRY_OPTIONS`, then `SENTRY_DEFAULT_OPTIONS`, then the legacy empty string.
 Reads validate stored and configured values before returning them. Configured
 fallbacks are validated before caching; the existing store and cache repair
@@ -21,7 +22,7 @@ String keys require strings. Worker timestamp reads retain numeric values and
 legacy string fallbacks; booleans are not timestamps. Invalid types, including
 explicit configured `None`, raise `TypeError` without exposing the value.
 A `None` returned by the store remains a miss and uses the normal fallback.
-`set()` accepts strings for string keys and numbers for the worker timestamp,
+`set_state()` accepts strings for string keys and numbers for the worker timestamp,
 without coercing them. Mutations use the application update channel. Unknown
 keys, runtime configuration keys, and project or organization keys are rejected.
 

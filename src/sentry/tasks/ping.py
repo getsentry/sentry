@@ -1,7 +1,7 @@
 from time import time
 
 import sentry
-from sentry import application_state
+from sentry import options
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import selfhosted_tasks
 
@@ -11,5 +11,5 @@ from sentry.taskworker.namespaces import selfhosted_tasks
     namespace=selfhosted_tasks,
 )
 def send_ping() -> None:
-    application_state.set("sentry:last_worker_ping", time())
-    application_state.set("sentry:last_worker_version", sentry.VERSION)
+    options.set_state("sentry:last_worker_ping", time())
+    options.set_state("sentry:last_worker_version", sentry.VERSION)

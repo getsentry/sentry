@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 import sentry
-from sentry import application_state, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -151,7 +151,7 @@ class SystemOptionsEndpoint(Endpoint):
                     },
                     status=400,
                 )
-        application_state.set(
+        options.set_state(
             "sentry:version-configured",
             sentry.get_version(),
         )

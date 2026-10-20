@@ -16,6 +16,9 @@ from .manager import (
     FLAG_SCALAR,
     NotWritableReason,
     OptionsManager,
+    StateKey,
+    StringStateKey,
+    TimestampStateKey,
     UnknownOption,
     UpdateChannel,
 )
@@ -49,6 +52,12 @@ __all__ = (
     "unregister",
     "set",
     "OptionsManager",
+    "StateKey",
+    "StringStateKey",
+    "TimestampStateKey",
+    "get_state",
+    "set_state",
+    "delete_state",
 )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
@@ -57,7 +66,6 @@ request_finished.connect(default_store.maybe_clean_local_cache)
 
 default_manager = OptionsManager(store=default_store)
 
-# expose public API
 get = default_manager.get
 set = default_manager.set
 delete = default_manager.delete
@@ -70,6 +78,9 @@ is_set_on_disk = default_manager.is_set_on_disk
 lookup_key = default_manager.lookup_key
 get_last_update_channel = default_manager.get_last_update_channel
 can_update = default_manager.can_update
+get_state = default_manager.get_state
+set_state = default_manager.set_state
+delete_state = default_manager.delete_state
 
 
 def load_defaults() -> None:

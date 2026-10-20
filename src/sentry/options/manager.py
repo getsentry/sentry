@@ -5,7 +5,7 @@ import os
 import sys
 from collections.abc import Callable, Iterable, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, get_args, overload
 from typing import Any as TAny
 
 from django.conf import settings
@@ -168,6 +168,20 @@ def _make_cache_key(key: str) -> str:
     return "o:%s" % md5_text(key).hexdigest()
 
 
+StringStateKey = Literal[
+    "sentry:system-token",
+    "sentry:install-id",
+    "sentry:latest_version",
+    "sentry:last_worker_version",
+    "sentry:version-configured",
+]
+TimestampStateKey = Literal["sentry:last_worker_ping"]
+StateKey = StringStateKey | TimestampStateKey
+
+_STRING_STATE_KEYS = frozenset(get_args(StringStateKey))
+_STATE_KEYS = _STRING_STATE_KEYS | frozenset(get_args(TimestampStateKey))
+
+
 class OptionsManager:
     """
     A backend for storing generic configuration within Sentry.
@@ -275,6 +289,71 @@ class OptionsManager:
             _make_cache_key(name),
             grouping_info,
         )
+
+    def _state_key(self, name: str) -> Key:
+        if name not in _STATE_KEYS:
+            raise ValueError(f"Unknown application state key: {name}")
+        return self.make_key(
+            name,
+            default=lambda: "",
+            type=Any,
+            flags=DEFAULT_FLAGS,
+            ttl=0,
+            grace=0,
+            grouping_info=None,
+        )
+
+    @staticmethod
+    def _validate_state_value(name: StateKey, value: object) -> str | float:
+        if name in _STRING_STATE_KEYS:
+            if not isinstance(value, str):
+                raise TypeError(f"Application state {name} requires a string")
+            return value
+        if isinstance(value, str) or (
+            isinstance(value, (int, float)) and not isinstance(value, bool)
+        ):
+            return value
+        raise TypeError(f"Application state {name} requires a timestamp or string fallback")
+
+    @overload
+    def get_state(self, name: StringStateKey) -> str: ...
+
+    @overload
+    def get_state(self, name: TimestampStateKey) -> float | str: ...
+
+    def get_state(self, name: StateKey) -> str | float:
+        key = self._state_key(name)
+        value = self.store.get(key)
+        if value is not None:
+            return self._validate_state_value(name, value)
+
+        if name in settings.SENTRY_OPTIONS:
+            value = settings.SENTRY_OPTIONS[name]
+        elif name in settings.SENTRY_DEFAULT_OPTIONS:
+            value = settings.SENTRY_DEFAULT_OPTIONS[name]
+        else:
+            value = ""
+        validated_value = self._validate_state_value(name, value)
+        self.store.set_cache(key, validated_value)
+        return validated_value
+
+    @overload
+    def set_state(self, name: StringStateKey, value: str) -> bool: ...
+
+    @overload
+    def set_state(self, name: TimestampStateKey, value: float) -> bool: ...
+
+    def set_state(self, name: StateKey, value: str | float) -> bool:
+        key = self._state_key(name)
+        if name in _STRING_STATE_KEYS:
+            if not isinstance(value, str):
+                raise TypeError(f"Application state {name} requires a string")
+        elif not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise TypeError(f"Application state {name} requires a timestamp")
+        return self.store.set(key, value, channel=UpdateChannel.APPLICATION)
+
+    def delete_state(self, name: StateKey) -> bool:
+        return self.store.delete(self._state_key(name))
 
     def isset(self, key: str) -> bool:
         """

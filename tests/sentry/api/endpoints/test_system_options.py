@@ -4,7 +4,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 import sentry
-from sentry import application_state, options
+from sentry import options
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.web.client_config import get_client_config
@@ -34,10 +34,10 @@ class SystemOptionsTest(APITestCase):
 
     def test_setup_records_configured_version(self) -> None:
         self.login_as(user=self.user, superuser=True)
-        application_state.delete("sentry:version-configured")
+        options.delete_state("sentry:version-configured")
         response = self.client.put(self.url, {}, format="json")
         assert response.status_code == 200
-        assert application_state.get("sentry:version-configured") == sentry.get_version()
+        assert options.get_state("sentry:version-configured") == sentry.get_version()
 
     def test_simple(self) -> None:
         self.login_as(user=self.user, superuser=True)
