@@ -26,7 +26,7 @@ export function CodeModeInput({code, language}: {code: string; language?: string
           variant="transparent"
         />
       </Flex>
-      <CodeBlock language={language} hideCopyButton wrapMode="wrap">
+      <CodeBlock language={language ?? 'javascript'} hideCopyButton wrapMode="wrap">
         {formattedCode}
       </CodeBlock>
     </Stack>
