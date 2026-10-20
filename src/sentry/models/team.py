@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
@@ -19,7 +19,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import advisory_transaction_lock, slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
@@ -148,27 +148,31 @@ class Team(ReplicatedCellModel):
         return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
-        if not self.slug:
-            # The database keeps this lock until the outer transaction ends, so a concurrent
-            # create sees our slug before it picks its own.
-            with advisory_transaction_lock(
-                router.db_for_write(Team), f"slug:team:{self.organization_id}"
-            ):
-                slugify_instance(self, self.name, organization=self.organization)
-                self._save_team(*args, **kwargs)
+        save_callback = lambda: super(Team, self).save(*args, **kwargs)
+        if self.slug:
+            self._save_team(save_callback)
             return
-        self._save_team(*args, **kwargs)
 
-    def _save_team(self, *args, **kwargs):
+        # No lock: if a concurrent create commits the same slug first, our insert fails and
+        # save_with_unique_slug picks a new slug.
+        self._save_team(
+            lambda: save_with_unique_slug(
+                self,
+                pick_slug=lambda: slugify_instance(self, self.name, organization=self.organization),
+                save_callback=save_callback,
+            )
+        )
+
+    def _save_team(self, save_callback: Callable[[], object]) -> None:
         if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "team_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=snowflake_redis_key,
-                save_callback=lambda: super(Team, self).save(*args, **kwargs),
+                save_callback=save_callback,
             )
         else:
-            super().save(*args, **kwargs)
+            save_callback()
 
     @property
     def member_set(self):

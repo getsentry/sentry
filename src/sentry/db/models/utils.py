@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import hashlib
-from collections.abc import Container, Generator
-from contextlib import contextmanager
+from collections.abc import Callable, Container
 from typing import TYPE_CHECKING, Any, Generic, Self, overload
 from uuid import uuid4
 
-from django.db import connections, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Field, Model
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 
 from sentry.db.models.fields.types import FieldGetType, FieldSetType
+from sentry.db.postgres.transactions import enforce_constraints
 
 if TYPE_CHECKING:
     from sentry.db.models.base import Model as SentryModel
@@ -43,24 +42,42 @@ def is_model_attr_cached(model: Model, attr: str) -> bool:
     return is_prefetched or is_selected
 
 
-@contextmanager
-def advisory_transaction_lock(using: str, key: str) -> Generator[None]:
-    """
-    Open a transaction (a savepoint if a transaction is already open) and take a
-    Postgres advisory lock for `key` in it.
+MAX_SLUG_ATTEMPTS = 3
 
-    Postgres keeps the lock until the outermost transaction commits or rolls back, not
-    until this block exits. Thus a second caller with the same key waits until the rows
-    that the first caller wrote are visible. Use this instead of a Redis lock to protect
-    a "check, then write" step that can run inside a transaction, for example when you
-    pick a unique slug.
+
+def save_with_unique_slug(
+    inst: SentryModel,
+    pick_slug: Callable[[], None],
+    save_callback: Callable[[], object],
+) -> None:
     """
-    digest = hashlib.blake2b(key.encode(), digest_size=8).digest()
-    lock_id = int.from_bytes(digest, "big", signed=True)
-    with transaction.atomic(using=using):
-        with connections[using].cursor() as cursor:
-            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_id])
-        yield
+    Set a slug on `inst` with `pick_slug`, then insert the row with `save_callback`. This
+    needs no lock.
+
+    Two concurrent creates can pick the same slug, because neither one sees the row of the
+    other before it commits. The unique constraint on the slug catches this: Postgres makes
+    the second insert wait until the first transaction ends, and fails it if the first
+    transaction commits. The first slug is then visible, so we pick again and retry.
+
+    If the new pick gives the same slug, the slug was not the cause of the error, so we
+    raise it.
+
+    For a model with snowflake IDs, call this inside the `save_callback` of
+    `save_with_snowflake_id`, not around it. `save_with_snowflake_id` retries every
+    IntegrityError with a new ID, so it would hide a slug collision from this function.
+    """
+    using = router.db_for_write(type(inst))
+    pick_slug()
+    for attempt in range(MAX_SLUG_ATTEMPTS):
+        try:
+            with enforce_constraints(transaction.atomic(using=using)):
+                save_callback()
+            return
+        except IntegrityError:
+            failed_slug = getattr(inst, "slug")
+            pick_slug()
+            if getattr(inst, "slug") == failed_slug or attempt == MAX_SLUG_ATTEMPTS - 1:
+                raise
 
 
 def unique_db_instance(

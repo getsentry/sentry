@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import jsonschema
 from django.conf import settings
-from django.db import models, router
+from django.db import models
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -34,7 +34,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import advisory_transaction_lock, slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.base import ModelRelation
 from sentry.models.environment import Environment
@@ -283,18 +283,20 @@ class Monitor(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            # The database keeps this lock until the outer transaction ends, so a concurrent
-            # create sees our slug before it picks its own.
-            with advisory_transaction_lock(
-                router.db_for_write(Monitor), f"slug:monitor:{self.organization_id}"
-            ):
-                slugify_instance(
+            # No lock: if a concurrent create commits the same slug first, our insert fails
+            # and save_with_unique_slug picks a new slug. The unique constraint is per project,
+            # so two monitors in different projects of an organization can get the same slug.
+            # This is expected, see get_monitor_by_org_id_or_slug.
+            return save_with_unique_slug(
+                self,
+                pick_slug=lambda: slugify_instance(
                     self,
                     self.name,
                     organization_id=self.organization_id,
                     max_length=DEFAULT_SLUG_MAX_LENGTH,
-                )
-                return super().save(*args, **kwargs)
+                ),
+                save_callback=lambda: super(Monitor, self).save(*args, **kwargs),
+            )
         return super().save(*args, **kwargs)
 
     @property

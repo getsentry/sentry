@@ -3,7 +3,8 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from django.db import connections, router, transaction
+import pytest
+from django.db import IntegrityError, connections, router, transaction
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
@@ -92,6 +93,26 @@ class ConcurrentSlugTest(TransactionTestCase):
         assert set(
             Project.objects.filter(organization=organization).values_list("slug", flat=True)
         ) == {first.slug, second.slug}
+
+    def test_other_integrity_error_is_raised(self) -> None:
+        # Monitor does not use snowflake IDs, so save_with_snowflake_id does not catch the
+        # error first.
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        first = self.create_monitor(organization=organization, project=project, name="First")
+
+        monitor = Monitor(
+            organization_id=organization.id,
+            project_id=project.id,
+            name="Second",
+            guid=first.guid,
+            config=first.config,
+        )
+        with pytest.raises(IntegrityError):
+            monitor.save()
+
+        # The slug was free, so the slug is not picked again.
+        assert monitor.slug == "second"
 
     def test_teams_get_different_slugs(self) -> None:
         organization = self.create_organization()

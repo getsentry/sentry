@@ -11,7 +11,6 @@ from django.db.models.functions.text import Upper
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.text import slugify
 
 from bitfield import TypedClassBitField
 from sentry import options, roles
@@ -29,7 +28,7 @@ from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.utils import advisory_transaction_lock, slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -242,35 +241,38 @@ class Organization(ReplicatedCellModel):
     snowflake_redis_key = "organization_snowflake_key"
 
     def save(self, *args, **kwargs):
+        save_callback = lambda: super(Organization, self).save(*args, **kwargs)
         slugify_target = None
         if not self.slug:
             slugify_target = self.name
         elif not self.id:
             slugify_target = self.slug
-        if slugify_target is not None:
-            slugify_target = slugify_target.lower().replace("_", "-").strip("-")
-            # The database keeps this lock until the outer transaction ends, so a concurrent
-            # create sees our slug before it picks its own. Only creates that start from the
-            # same base slug can pick the same slug, so the key includes the base slug. This
-            # is the same base slug that slugify_instance makes (max_length 30).
-            base_slug = slugify(slugify_target)[:30].strip("-")
-            with advisory_transaction_lock(
-                router.db_for_write(Organization), f"slug:organization:{base_slug}"
-            ):
-                slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
-                self._save_organization(*args, **kwargs)
+        if slugify_target is None:
+            self._save_organization(save_callback)
             return
-        self._save_organization(*args, **kwargs)
 
-    def _save_organization(self, *args, **kwargs):
+        target = slugify_target.lower().replace("_", "-").strip("-")
+        # No lock: if a concurrent create commits the same slug first, our insert fails and
+        # save_with_unique_slug picks a new slug.
+        self._save_organization(
+            lambda: save_with_unique_slug(
+                self,
+                pick_slug=lambda: slugify_instance(
+                    self, target, reserved=RESERVED_ORGANIZATION_SLUGS
+                ),
+                save_callback=save_callback,
+            )
+        )
+
+    def _save_organization(self, save_callback: Callable[[], object]) -> None:
         if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=self.snowflake_redis_key,
-                save_callback=lambda: super(Organization, self).save(*args, **kwargs),
+                save_callback=save_callback,
             )
         else:
-            super().save(*args, **kwargs)
+            save_callback()
 
     @classmethod
     def reserve_snowflake_id(cls):

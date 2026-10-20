@@ -29,7 +29,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import advisory_transaction_lock, slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.db.pending_deletion import (
     delete_pending_deletion_option,
     rename_on_pending_deletion,
@@ -395,41 +395,38 @@ class Project(Model):
         ):
             return Counter.increment(self, delta)
 
-    def _save_project(self, *args, **kwargs):
+    def _save_project(self, save_callback: Callable[[], object]) -> None:
         if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "project_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=snowflake_redis_key,
-                save_callback=lambda: super(Project, self).save(*args, **kwargs),
+                save_callback=save_callback,
             )
         else:
-            super().save(*args, **kwargs)
+            save_callback()
 
     def save(self, *args, **kwargs):
-        if getattr(self, "id", None) is not None:
-            # no need to acquire lock if we're updating an existing project
-            self._save_project(*args, **kwargs)
+        save_callback = lambda: super(Project, self).save(*args, **kwargs)
+        if getattr(self, "id", None) is not None or self.slug:
+            self._save_project(save_callback)
             return
 
-        if self.slug:
-            self._save_project(*args, **kwargs)
-            return
-
-        # when project is created without a slug, we need a lock to ensure that the generated
-        # slug is unique. The database keeps this lock until the outer transaction ends, so a
-        # concurrent create sees our slug before it picks its own.
-        with advisory_transaction_lock(
-            router.db_for_write(Project), f"slug:project:{self.organization_id}"
-        ):
-            slugify_instance(
+        # No lock: if a concurrent create commits the same slug first, our insert fails and
+        # save_with_unique_slug picks a new slug.
+        self._save_project(
+            lambda: save_with_unique_slug(
                 self,
-                self.name,
-                organization=self.organization,
-                reserved=RESERVED_PROJECT_SLUGS,
-                max_length=50,
+                pick_slug=lambda: slugify_instance(
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS,
+                    max_length=50,
+                ),
+                save_callback=save_callback,
             )
-            self._save_project(*args, **kwargs)
+        )
 
     def get_absolute_url(self, params=None):
         path = f"/organizations/{self.organization.slug}/issues/"
