@@ -56,6 +56,8 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
+`Menu` from `@sentry/scraps/menu` is an internal presentation primitive for shared controls. In product UI, use `DropdownMenu` for actions, `CompactSelect` for choices, or the form system's `field.Select` for form fields. Use `Menu` directly only when implementing those shared controls.
+
 ## Linting
 
 Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. `oxlint-suppressions.json` caps existing debt per file and rule, and successful fixes lower its counts automatically. Run `pnpm run lint:js --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).

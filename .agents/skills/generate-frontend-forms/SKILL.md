@@ -136,6 +136,8 @@ All fields are accessed via the `field` render prop and follow consistent patter
 
 ### Select Field (Single)
 
+Use `field.Select` for form choices. Do not compose a form select from bare `Menu` components; those are internal presentation primitives for shared controls.
+
 ```tsx
 <form.AppField name="country">
   {field => (

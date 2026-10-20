@@ -523,6 +523,10 @@ If you answered yes to any of these, **use the primitive instead**.
 
 ## Other Core Components
 
+### Menus and Selects
+
+Use `DropdownMenu` for action menus and `CompactSelect` for choices. In forms, use the form system's `field.Select`. `Menu` from `@sentry/scraps/menu` is an internal presentation primitive; use it directly only when implementing shared controls such as `DropdownMenu` and `CompactSelect`.
+
 ### Avatars
 
 Use the core avatar components (`<UserAvatar/>`, `<TeamAvatar/>`, `<ProjectAvatar/>`, `<OrganizationAvatar/>`, `<SentryAppAvatar/>`, `<DocIntegrationAvatar/>`) from `static/app/components/core/avatar`. For lists of avatars, use `<AvatarList>`.
