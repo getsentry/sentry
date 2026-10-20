@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -9,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
+from sentry.utils import json
 
 INNER_TESTS = textwrap.dedent(
     """
