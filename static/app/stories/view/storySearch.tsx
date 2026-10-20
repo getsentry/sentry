@@ -1,5 +1,5 @@
 import type {Key} from 'react';
-import {useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState, useDeferredValue} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
@@ -178,6 +178,8 @@ export function StorySearch() {
   const [inputValue, setInputValue] = useState('');
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
+  const deferredInputValue = useDeferredValue(inputValue);
+
   const sectionedItems = useMemo(() => {
     const sections: SearchSection[] = [];
 
@@ -197,7 +199,7 @@ export function StorySearch() {
           sections.push({
             key: section,
             label: SECTION_CONFIG[section].label,
-            options: searchItems(allCoreNodes, inputValue),
+            options: searchItems(allCoreNodes, deferredInputValue),
           });
         }
       } else if (section === 'product' && data.stories.length > 0) {
@@ -205,14 +207,14 @@ export function StorySearch() {
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: searchItems(flattenedStories, inputValue),
+          options: searchItems(flattenedStories, deferredInputValue),
         });
       } else if (data.stories.length > 0) {
         // Other sections (principles, patterns) don't need flattening
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: searchItems(data.stories, inputValue),
+          options: searchItems(data.stories, deferredInputValue),
         });
       }
     }
@@ -224,12 +226,12 @@ export function StorySearch() {
       .map(section => ({...section, options: collapseBreadcrumbs(section.options)}));
     // Section headings make weak matches common in the sections
     // listed first, so lead with the section that holds the best match.
-    return inputValue.trim()
+    return deferredInputValue.trim()
       ? results.sort(({options: [a]}, {options: [b]}) =>
           a && b ? compareMatches(a, b) : 0
         )
       : results;
-  }, [hierarchy, inputValue]);
+  }, [hierarchy, deferredInputValue]);
 
   return (
     <SearchComboBox
