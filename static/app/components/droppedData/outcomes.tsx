@@ -6,8 +6,21 @@ import {
 } from 'sentry/components/droppedData/reasonInfo';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+
+// Customer-facing names for datasets. The raw DiscoverDatasets values are
+// internal (e.g. `ourlogs`, `tracemetrics`) and must never reach a user.
+const DATASET_LABELS: Partial<Record<DiscoverDatasets, string>> = {
+  [DiscoverDatasets.ERRORS]: t('error'),
+  [DiscoverDatasets.OURLOGS]: t('log'),
+  [DiscoverDatasets.SPANS]: t('span'),
+  [DiscoverDatasets.TRACEMETRICS]: t('application metric'),
+};
+
+function datasetLabel(dataset: DiscoverDatasets): string {
+  return DATASET_LABELS[dataset] ?? dataset;
+}
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
   [Outcome.CLIENT_DISCARD]: t('Client Discard'),
@@ -56,7 +69,7 @@ export function buildAskSeerPrompt(args: {
   return t(
     'My %(dataset)s data is being dropped as "%(outcome)s" (%(reason)s). Why is this happening and how do I fix it?',
     {
-      dataset: args.dataset,
+      dataset: datasetLabel(args.dataset),
       outcome: outcomeLabel(args.outcome),
       reason: reasonTitle(args.reason),
     }
