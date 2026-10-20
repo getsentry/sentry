@@ -146,12 +146,13 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
-            # Do not set team-roles when inviting a member
-            if "teams" in result or "teamRoles" in result:
-                teams = result.get("teams") or [
-                    item["teamSlug"] for item in result.get("teamRoles", [])
-                ]
-                save_team_assignments(om, teams)
+        # Do not set team-roles when inviting a member.
+        # This runs after the commit, because save_team_assignments takes a lock.
+        if "teams" in result or "teamRoles" in result:
+            teams = result.get("teams") or [
+                item["teamSlug"] for item in result.get("teamRoles", [])
+            ]
+            save_team_assignments(om, teams)
 
         self.create_audit_entry(
             request=request,

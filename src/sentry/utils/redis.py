@@ -316,8 +316,6 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
         ("sentry.workflow_engine.defaults.detectors._ensure_detector",),
         # INFRENG-807: grant lock in GrantExchanger.run
         ("sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger.run",),
-        # INFRENG-808: invite request team assignments
-        ("sentry.core.endpoints.organization_member_utils.save_team_assignments",),
         # INFRENG-809: test-only, ApiToken.from_grant inside a transaction in ControlOutboxDrainTest
         (
             "sentry.models.apitoken.ApiToken.from_grant",
