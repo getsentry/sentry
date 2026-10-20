@@ -22,7 +22,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -158,11 +157,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             subscription=query_sub,
         )
 
-        # Existing join rows still need deletion until IncidentProject is retired.
-        incident.projects.add(project)
-
-        rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
-
         self.ScheduledDeletion.schedule(instance=project, days=0)
         with self.tasks():
             run_scheduled_deletions()
@@ -193,11 +187,9 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not QuerySubscription.objects.filter(id=query_sub.id).exists()
 
         incident.refresh_from_db()
-        assert len(incident.projects.all()) == 0, "Project relation should be removed"
         assert Incident.objects.filter(id=incident.id).exists()
 
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
-        assert RuleSnooze.objects.filter(id=rule_snooze.id).exists()
 
     def test_delete_error_events(self) -> None:
         keeper = self.create_project(name="keeper")

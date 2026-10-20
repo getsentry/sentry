@@ -17,10 +17,7 @@ describe('isCodeModeNode', () => {
 describe('getCodeModeInput', () => {
   it('extracts source from JSON without changing it', () => {
     const code = 'const result=await api.search({limit:5});\nreturn result;';
-    expect(getCodeModeInput(JSON.stringify({code}))).toEqual({
-      code,
-      language: 'javascript',
-    });
+    expect(getCodeModeInput(JSON.stringify({code}))).toEqual({code});
   });
 
   it('supports script arguments and explicit languages', () => {
@@ -30,13 +27,15 @@ describe('getCodeModeInput', () => {
     });
   });
 
+  it('does not assume a language when none is given', () => {
+    expect(getCodeModeInput({code: 'print(1)'})?.language).toBeUndefined();
+    expect(getCodeModeInput({code: 'print(1)', language: 3})?.language).toBeUndefined();
+  });
+
   it('preserves raw and incomplete code', () => {
     const code = ' async function run() {';
-    expect(getCodeModeInput(code)).toEqual({code, language: 'javascript'});
-    expect(getCodeModeInput(JSON.stringify('return 42;'))).toEqual({
-      code: 'return 42;',
-      language: 'javascript',
-    });
+    expect(getCodeModeInput(code)).toEqual({code});
+    expect(getCodeModeInput(JSON.stringify('return 42;'))).toEqual({code: 'return 42;'});
   });
 
   it.each([

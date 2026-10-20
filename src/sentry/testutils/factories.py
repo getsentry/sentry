@@ -165,7 +165,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
@@ -2486,11 +2485,6 @@ class Factories:
     @staticmethod
     def create_basic_auth_header(username: str, password: str = "") -> bytes:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def snooze_rule(**kwargs):
-        return RuleSnooze.objects.create(**kwargs)
 
     @staticmethod
     def create_request_access(

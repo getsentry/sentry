@@ -7,9 +7,11 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
+import {isRecord} from 'sentry/utils/object/isRecord';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {AIMessage} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
@@ -18,6 +20,10 @@ import {
   getIsAiNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getCodeModeInput,
+  isCodeModeNode,
+} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {tryParsePythonDict} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
@@ -60,6 +66,8 @@ export function AIInputSection({
     : {messages: null, fixedInvalidJson: false};
 
   const toolArgs = getAIToolInput(node, attributes, event);
+  const codeInput =
+    toolArgs && isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
   const embeddingsInput = getTraceNodeAttribute(
     'gen_ai.embeddings.input',
     node,
@@ -100,7 +108,9 @@ export function AIInputSection({
           fixedInvalidJson={fixedInvalidJson}
         />
       ) : null}
-      {toolArgs ? (
+      {codeInput ? (
+        <CodeModeDetails key={node.id} projectId={node.value.project_id} {...codeInput} />
+      ) : toolArgs ? (
         <TraceDrawerComponents.MultilineJSON
           key={node.id}
           value={toolArgs}
@@ -209,13 +219,12 @@ function unwrapStructuredContent(raw: string): string {
   if (Array.isArray(parsed)) {
     const texts: string[] = [];
     for (const item of parsed) {
-      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
-        const record = item as Record<string, unknown>;
+      if (isRecord(item)) {
         const text =
-          typeof record.text === 'string'
-            ? record.text
-            : typeof record.content === 'string'
-              ? record.content
+          typeof item.text === 'string'
+            ? item.text
+            : typeof item.content === 'string'
+              ? item.content
               : null;
         if (text) {
           texts.push(text);

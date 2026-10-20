@@ -2550,11 +2550,6 @@
       "count": 5
     }
   },
-  "static/app/views/issueDetails/activitySection/activityLineItem/actor.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/views/issueDetails/activitySection/activityLineItem/layout.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
@@ -2564,14 +2559,6 @@
     }
   },
   "static/app/views/issueDetails/activitySection/activityLineItem/note.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueDetails/activitySection/activityLineItem/progressMarker/index.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }

@@ -5,17 +5,19 @@ import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 
-interface InvitationAccountBadgeProps {
+interface AccountBadgeProps {
   onSwitchAccount: () => void;
   user: AvatarUser;
+  disabled?: boolean;
   isSwitchingAccount?: boolean;
 }
 
-export function InvitationAccountBadge({
+export function AccountBadge({
+  disabled = false,
   isSwitchingAccount = false,
   onSwitchAccount,
   user,
-}: InvitationAccountBadgeProps) {
+}: AccountBadgeProps) {
   return (
     <Flex
       align="center"
@@ -30,7 +32,7 @@ export function InvitationAccountBadge({
         size="xs"
         variant="transparent"
         busy={isSwitchingAccount}
-        disabled={isSwitchingAccount}
+        disabled={disabled || isSwitchingAccount}
         onClick={onSwitchAccount}
       >
         {t('Switch account')}
