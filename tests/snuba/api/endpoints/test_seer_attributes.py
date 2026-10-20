@@ -107,12 +107,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         built_in_by_key = {field.key: field for field in result.built_in_fields}
 
-        # A deprecated built-in attribute surfaces its conventions context,
-        # including the replacement attribute.
+        # A built-in attribute surfaces its conventions context. `transaction`'s
+        # replacement (`sentry.segment.name`) is queried by the same key, so it
+        # isn't deprecated.
         transaction_context = built_in_by_key["transaction"].context
         assert transaction_context is not None
-        assert transaction_context["isDeprecated"] is True
-        assert transaction_context["replacementAttribute"] == "sentry.segment.name"
+        assert transaction_context["isDeprecated"] is False
+        assert "replacementAttribute" not in transaction_context
         assert transaction_context["brief"]
 
         # Built-in fields that aren't returned by the public endpoint (e.g. no

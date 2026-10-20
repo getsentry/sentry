@@ -36,7 +36,8 @@ class TraceItemAttributeContext(TypedDict):
     details: NotRequired[list[str]]
     # Example value(s) for the attribute, normalized to a list.
     examples: NotRequired[list[str | int | float | bool]]
-    # The attribute that replaces this one, when deprecated.
+    # The key of the attribute that replaces this one, when deprecated. Built the
+    # same way as ``TraceItemAttributeKey.key``, so it can be queried directly.
     replacementAttribute: NotRequired[str]
 
 

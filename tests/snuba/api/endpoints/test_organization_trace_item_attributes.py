@@ -692,6 +692,14 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
     def test_expand_context(self) -> None:
         self._store_basic_segment()
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"messaging.destination": "orders"},
+        )
 
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
@@ -710,13 +718,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "examples": ["medium"],
             "isDeprecated": False,
         }
-        # A deprecated convention also surfaces the replacement attribute.
+        # A deprecated convention also surfaces the key of its replacement.
+        # `messaging.destination.name` is a public alias for a different column,
+        # so its replacement is only reachable through the explicit tags syntax.
+        assert attributes["messaging.destination"]["context"]["isDeprecated"] is True
+        assert (
+            attributes["messaging.destination"]["context"]["replacementAttribute"]
+            == "tags[messaging.destination.name,string]"
+        )
+        # The replacement `sentry.segment.name` is queried by the same
+        # `transaction` key, so `transaction` isn't deprecated.
         assert attributes["transaction"]["context"] == {
             "isConvention": True,
             "brief": "The sentry transaction (segment name).",
             "examples": ["GET /"],
-            "isDeprecated": True,
-            "replacementAttribute": "sentry.segment.name",
+            "isDeprecated": False,
         }
         # Custom (non-convention) attributes aren't served yet, so they get an
         # empty context.

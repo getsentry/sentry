@@ -1,7 +1,60 @@
 from sentry.api.endpoints.organization_trace_item_attributes import (
+    as_attribute_key,
     build_sentry_attribute_context,
 )
 from sentry.search.eap.types import SupportedTraceItemType
+
+
+def test_as_attribute_key_replacement_uses_tags_syntax() -> None:
+    # `thread.id` is a public alias for `sentry.thread.id` (the deprecated
+    # attribute), so the replacement is only reachable through the tags syntax.
+    attribute_key = as_attribute_key(
+        "sentry.thread.id", "number", SupportedTraceItemType.SPANS, include_context=True
+    )
+    assert attribute_key["key"] == "tags[sentry.thread.id,number]"
+    assert attribute_key["context"]["isDeprecated"] is True
+    assert attribute_key["context"]["replacementAttribute"] == "tags[thread.id,number]"
+
+
+def test_as_attribute_key_replacement_uses_its_own_type() -> None:
+    # `deviceMemory` is a string, but its replacement is an integer convention.
+    attribute_key = as_attribute_key(
+        "deviceMemory", "string", SupportedTraceItemType.SPANS, include_context=True
+    )
+    assert (
+        attribute_key["context"]["replacementAttribute"]
+        == "tags[device.memory.estimated_capacity,number]"
+    )
+
+
+def test_as_attribute_key_replacement_uses_public_alias() -> None:
+    attribute_key = as_attribute_key(
+        "http.status_code", "number", SupportedTraceItemType.SPANS, include_context=True
+    )
+    assert attribute_key["context"]["replacementAttribute"] == "http.response_status_code"
+
+
+def test_as_attribute_key_replacement_without_definition() -> None:
+    # Logs have no definition for the replacement, so a number replacement needs
+    # the tags syntax to be queried with the right type.
+    attribute_key = as_attribute_key(
+        "http.status_code", "number", SupportedTraceItemType.LOGS, include_context=True
+    )
+    assert attribute_key["key"] == "tags[http.status_code,number]"
+    assert (
+        attribute_key["context"]["replacementAttribute"] == "tags[http.response.status_code,number]"
+    )
+
+
+def test_as_attribute_key_replacement_with_same_key_is_not_deprecated() -> None:
+    # `sentry.segment.name` (the replacement) is also served as `transaction`,
+    # so there's nothing to migrate to.
+    attribute_key = as_attribute_key(
+        "sentry.transaction", "string", SupportedTraceItemType.SPANS, include_context=True
+    )
+    assert attribute_key["key"] == "transaction"
+    assert attribute_key["context"]["isDeprecated"] is False
+    assert "replacementAttribute" not in attribute_key["context"]
 
 
 def test_build_sentry_attribute_context_brief() -> None:

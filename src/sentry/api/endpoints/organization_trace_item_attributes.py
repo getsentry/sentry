@@ -336,7 +336,7 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 # Maps sentry-convention attribute types to EAP search types. Array and "any"
 # convention types aren't representable as a single search type, so they're
 # omitted and treated as "no type constraint" when matching.
-_CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
+_CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, ColumnType] = {
     "string": "string",
     "boolean": "boolean",
     "integer": "number",
@@ -626,9 +626,40 @@ def as_attribute_key(
         context = build_sentry_convention_context(
             public_name, name, attr_type
         ) or build_sentry_attribute_context(public_name, attr_type, item_type)
+        if context and (replacement := context.get("replacementAttribute")):
+            replacement_key = _replacement_attribute_key(replacement, attr_type, item_type)
+            if replacement_key == public_key:
+                # The replacement is queried by this same key (e.g.
+                # `sentry.transaction` and its replacement `sentry.segment.name`
+                # are both served as `transaction`), so there's nothing to
+                # migrate to and the attribute isn't deprecated from the API's
+                # point of view.
+                context["isDeprecated"] = False
+                del context["replacementAttribute"]
+            else:
+                context["replacementAttribute"] = replacement_key
         attribute_key["context"] = context or {}
 
     return attribute_key
+
+
+def _replacement_attribute_key(
+    replacement: str,
+    attr_type: ColumnType,
+    item_type: SupportedTraceItemType,
+) -> str:
+    """
+    Resolve a deprecated attribute's replacement, a raw attribute name from the
+    conventions, to the key it's queried by, built the same way as every other
+    attribute key (e.g. `thread.id` becomes `tags[thread.id,number]`). The type
+    comes from the replacement's own convention, since it can differ from the
+    deprecated attribute's.
+    """
+    metadata = ATTRIBUTE_METADATA.get(replacement)
+    replacement_type = (
+        _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value) if metadata else None
+    ) or attr_type
+    return as_attribute_key(replacement, replacement_type, item_type)["key"]
 
 
 def can_expose_trace_item_attribute_to_api(
