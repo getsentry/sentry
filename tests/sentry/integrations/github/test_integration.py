@@ -1061,6 +1061,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 True,
             ),
             (
+                "https://github.com/Test-Organization-Mobile/sentry/blob/master/src/app.py",
+                False,
+            ),
+            (
                 "https://notgithub.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
                 False,
             ),
@@ -1068,14 +1072,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
         for source_url, matches in test_cases:
             assert installation.source_url_matches(source_url) == matches
-
-    @responses.activate
-    def test_source_url_matches_org_with_shared_name_prefix(self) -> None:
-        installation = self.get_installation_helper()
-
-        assert not installation.source_url_matches(
-            "https://github.com/Test-Organization-Mobile/app/blob/master/src/app.py"
-        )
 
     @responses.activate
     def test_extract_branch_from_source_url(self) -> None:
