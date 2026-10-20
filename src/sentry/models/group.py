@@ -871,7 +871,6 @@ class Group(Model):
         choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
         blank=True,
-        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
