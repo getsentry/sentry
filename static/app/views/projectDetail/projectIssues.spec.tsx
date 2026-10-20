@@ -101,7 +101,7 @@ describe('ProjectDetail > ProjectIssues', () => {
       }
     );
 
-    expect(await screen.findAllByTestId('group')).toHaveLength(2);
+    await waitFor(() => expect(screen.getAllByTestId('group')).toHaveLength(2));
   });
 
   it('renders a link to Issues', async () => {
