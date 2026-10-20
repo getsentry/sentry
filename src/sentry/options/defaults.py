@@ -25,7 +25,6 @@ from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 # System
 register("system.admin-email", flags=FLAG_REQUIRED)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
-register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 register(
     "system.event-retention-days",
     default=0,
@@ -52,7 +51,6 @@ register(
 )
 
 # Organization
-register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register(
     "organization.default-owner-id-cache-ttl",
     type=Int,
@@ -417,20 +415,6 @@ register(
 # Replay Options
 #
 # Globally disables replay-video.
-register(
-    "flags:options-audit-log-is-enabled",
-    default=True,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    type=Bool,
-)
-
-register(
-    "flags:options-audit-log-organization-id",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    type=Int,
-)
-
 register(
     "replay.replay-video.disabled",
     type=Bool,
@@ -1232,7 +1216,7 @@ register(
     "seer.similarity.token_count_metrics_enabled",
     type=Bool,
     default=True,
-    flags=FLAG_MODIFIABLE_BOOL,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Maximum token count for stacktraces sent to Seer for similarity analysis
@@ -2857,12 +2841,6 @@ register(
     "statistical_detectors.throughput.threshold.functions",
     default=25,
     type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "options_automator_slack_webhook_enabled",
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
