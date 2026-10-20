@@ -70,6 +70,24 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)
+        assert response.data["activeAt"] == group.first_seen
+
+    def test_active_at_after_regression(self) -> None:
+        self.login_as(user=self.user)
+        first_seen = timezone.now() - timedelta(days=20)
+        active_at = timezone.now() - timedelta(minutes=20)
+        group = self.create_group(
+            first_seen=first_seen,
+            active_at=active_at,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
+        )
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["activeAt"] == active_at
 
     @override_settings(SEER_API_SHARED_SECRET=SECRET)
     def test_agent_token_gets_issue_details(self) -> None:
