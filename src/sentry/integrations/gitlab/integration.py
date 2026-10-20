@@ -245,16 +245,14 @@ class GitlabIntegration(
             raise IntegrationConfigurationError(self.message_from_error(e)) from e
 
     def source_url_matches(self, url: str) -> bool:
-        # domain_name is "<host>/<group path>" and drops any path prefix of the
-        # instance, so match from base_url like format_source_url does. The scheme is
-        # ignored: it never tells integrations apart, and repo matching checks it
-        # against GitLab's own web_url. Installs from before trailing slashes were
-        # stripped can still store one, and legacy installs may have no group.
-        base = urlparse(self.model.metadata["base_url"].rstrip("/"))
+        # Compare host and path, not the scheme: base_url carries the instance's path
+        # prefix, and the group path is what tells integrations on one instance apart.
+        # Installs from before October 2018 can store base_url with a trailing slash.
+        base = urlparse(self.model.metadata["base_url"])
         group_path = self.model.metadata["domain_name"].partition("/")[2]
-        prefix = "/".join(filter(None, (f"{base.netloc}{base.path}", group_path))) + "/"
+        prefix = f"{base.path.rstrip('/')}/{group_path}".rstrip("/") + "/"
         parsed = urlparse(url)
-        return f"{parsed.netloc}{parsed.path}".startswith(prefix)
+        return parsed.netloc == base.netloc and parsed.path.startswith(prefix)
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]
