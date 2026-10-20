@@ -45,7 +45,10 @@ def _scheduled_deletion_viewer_context(
         return nullcontext()
 
     viewer_context: ViewerContext | None
-    if deletion.actor_id is not None:
+    serialized_viewer_context = deletion.data.get("viewer_context")
+    if isinstance(serialized_viewer_context, dict):
+        viewer_context = ViewerContext.deserialize(serialized_viewer_context)
+    elif deletion.actor_id is not None:
         viewer_context = ViewerContext(user_id=deletion.actor_id, actor_type=ActorType.USER)
     else:
         viewer_context = get_viewer_context()

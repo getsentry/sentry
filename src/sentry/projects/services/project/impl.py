@@ -22,6 +22,7 @@ from sentry.projects.services.project.model import ProjectUpdateArgs
 from sentry.projects.services.project.serial import ProjectUpdateArgsSerializer, serialize_project
 from sentry.signals import project_created
 from sentry.users.services.user import RpcUser
+from sentry.viewer_context import ActorType, ViewerContext
 
 
 class DatabaseBackedProjectService(ProjectService):
@@ -236,7 +237,17 @@ class DatabaseBackedProjectService(ProjectService):
                 # project_details.py); if rename fails after this, the
                 # deletion task still runs and the row gets cleaned up
                 # on its normal schedule.
-                CellScheduledDeletion.schedule(project, days=0)
+                CellScheduledDeletion.schedule(
+                    project,
+                    days=0,
+                    data={
+                        "viewer_context": ViewerContext(
+                            organization_id=project.organization_id,
+                            project_id=project.id,
+                            actor_type=ActorType.SYSTEM,
+                        ).serialize()
+                    },
+                )
                 # Rename the slug so a recreated project with the same
                 # slug doesn't collide with the pending-deletion row
                 # during its retention window. Without this,

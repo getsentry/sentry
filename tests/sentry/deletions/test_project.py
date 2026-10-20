@@ -38,7 +38,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -56,6 +56,44 @@ pytestmark = [requires_snuba]
 
 
 class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMixin):
+    @mock.patch(
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_seer_cleanup_uses_persisted_system_context(
+        self, mock_delete_seer_grouping_records: mock.MagicMock
+    ) -> None:
+        project = self.create_project(name="test")
+        project.update_option("sentry:similarity_backfill_completed", 1)
+        event = self.store_event(data={"message": "error"}, project_id=project.id)
+        assert event.group is not None
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context == ViewerContext(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                actor_type=ActorType.SYSTEM,
+            )
+
+        mock_delete_seer_grouping_records.side_effect = assert_viewer_context
+        self.ScheduledDeletion.schedule(
+            instance=project,
+            days=0,
+            data={
+                "viewer_context": ViewerContext(
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    actor_type=ActorType.SYSTEM,
+                ).serialize()
+            },
+        )
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        mock_delete_seer_grouping_records.assert_called()
+        assert get_viewer_context() is None
+
     @mock.patch(
         "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
