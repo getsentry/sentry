@@ -105,7 +105,6 @@ export function DroppedDataDrawer({
             {selectedUnintentional.length > 0 && (
               <DroppedDataOutcomeList
                 sections={selectedUnintentional}
-                colors={outcomeColors}
                 onTroubleshoot={onTroubleshoot}
               />
             )}
@@ -121,7 +120,6 @@ export function DroppedDataDrawer({
                 </Stack>
                 <DroppedDataOutcomeList
                   sections={selectedIntentional}
-                  colors={outcomeColors}
                   onTroubleshoot={onTroubleshoot}
                 />
               </Stack>

@@ -8,7 +8,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {CircleIndicator} from 'sentry/components/circleIndicator';
 import type {
   OutcomeSection,
   ReasonRow,
@@ -17,7 +16,6 @@ import {
   formatDroppedShare,
   reasonDescription,
   reasonTitle,
-  type OutcomeColors,
 } from 'sentry/components/droppedData/outcomes';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -159,18 +157,15 @@ function ReasonTable({
 
 function OutcomeSectionRow({
   section,
-  color,
   onTroubleshoot,
 }: {
-  color: string | undefined;
   section: OutcomeSection;
   onTroubleshoot?: (row: ReasonRow) => void;
 }) {
   return (
     <Stack gap="md">
       <Grid columns={HEADER_COLUMNS} align="center">
-        <Flex align="center" gap="md" padding="md xl">
-          <CircleIndicator color={color} size={12} />
+        <Flex align="center" padding="md xl">
           <Text size="lg" bold>
             {section.label}
           </Text>
@@ -192,14 +187,12 @@ function OutcomeSectionRow({
 }
 
 interface DroppedDataOutcomeListProps {
-  colors: OutcomeColors;
   sections: OutcomeSection[];
   onTroubleshoot?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataOutcomeList({
   sections,
-  colors,
   onTroubleshoot,
 }: DroppedDataOutcomeListProps) {
   return (
@@ -208,7 +201,6 @@ export function DroppedDataOutcomeList({
         <OutcomeSectionRow
           key={section.outcome}
           section={section}
-          color={colors[section.outcome]}
           onTroubleshoot={onTroubleshoot}
         />
       ))}

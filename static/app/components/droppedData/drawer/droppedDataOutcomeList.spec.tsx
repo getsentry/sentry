@@ -19,7 +19,6 @@ function OutcomeList({
   return (
     <DroppedDataOutcomeList
       sections={droppedEventsToOutcomeSections(droppedEvents, acceptedEvents)}
-      colors={{}}
       onTroubleshoot={onTroubleshoot}
     />
   );
