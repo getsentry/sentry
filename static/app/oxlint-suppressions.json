@@ -2520,11 +2520,6 @@
       "count": 1
     }
   },
-  "views/insights/pages/platform/nextjs/serverTree.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "views/insights/pages/transactionNameSearchBar.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
