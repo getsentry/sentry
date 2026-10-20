@@ -133,6 +133,52 @@ describe('ConversationViewContent', () => {
     expect(detailPane()).not.toBeInTheDocument();
   });
 
+  it('requests a Code Mode summary only when its details are opened', async () => {
+    mockConversation([
+      CONVERSATION_BODY[0]!,
+      spanFixture({
+        span_id: 'tool-span',
+        parent_span: 'span-a',
+        'span.name': 'execute_code',
+        'precise.start_ts': 1000.1,
+        'precise.finish_ts': 1000.2,
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'execute_code',
+        'gen_ai.tool.call.arguments': JSON.stringify({
+          code: 'print(42)',
+          language: 'python',
+        }),
+      }),
+    ]);
+    const request = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/1/ai/code-explanation/',
+      method: 'POST',
+      body: {summary: 'Print a number'},
+    });
+
+    const {rerender} = render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Select tool call execute_code'})
+    ).toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
+    expect(screen.queryByRole('heading', {name: 'Summary'})).not.toBeInTheDocument();
+
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        selectedSpanId="tool-span"
+      />
+    );
+    expect(await screen.findByText('Print a number')).toBeInTheDocument();
+  });
+
   it('loads the next page when the pagination footer is visible', async () => {
     MockApiClient.clearMockResponses();
     mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
