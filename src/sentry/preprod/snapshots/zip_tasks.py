@@ -157,7 +157,7 @@ def build_snapshot_images_zip(
                     },
                 )
                 # Pass the seekable file so the client can resume large uploads.
-                session.put(tmp, key=key, compress="none", content_type="application/zip")
+                session.put(tmp, key=key, content_type="application/zip")
                 logger.info(
                     "preprod_snapshot_zip.upload_completed",
                     extra={

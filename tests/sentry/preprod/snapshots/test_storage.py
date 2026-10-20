@@ -49,14 +49,11 @@ def test_head_uses_fallback_when_primary_missing(sessions) -> None:
     assert storage.head("k") is fallback.head.return_value
 
 
-@pytest.mark.parametrize("compress", [None, "none", "zstd"])
-def test_put_only_writes_primary(sessions, compress) -> None:
+def test_put_only_writes_primary(sessions) -> None:
     primary, fallback = sessions
     storage = SnapshotStorage(primary, fallback)
-    storage.put(b"data", key="k", compress=compress, content_type="image/png")
-    primary.put.assert_called_once_with(
-        b"data", key="k", compress=compress, content_type="image/png"
-    )
+    storage.put(b"data", key="k", content_type="image/png")
+    primary.put.assert_called_once_with(b"data", key="k", content_type="image/png")
     fallback.put.assert_not_called()
 
 

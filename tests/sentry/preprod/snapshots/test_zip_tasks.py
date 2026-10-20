@@ -5,6 +5,7 @@ import zipfile
 from unittest.mock import MagicMock, patch
 
 import orjson
+import zstandard
 from objectstore_client import Client, RequestError, Usecase
 
 from sentry.preprod.models import PreprodArtifact
@@ -74,8 +75,10 @@ class BuildSnapshotImagesZipTest(TestCase):
             nonlocal archive_bytes
             assert body.seekable()
             assert body.tell() == 0
-            archive_bytes = body.read()
-            assert len(archive_bytes) == size
+            compressed_bytes = body.read()
+            assert len(compressed_bytes) == size
+            with zstandard.ZstdDecompressor().stream_reader(io.BytesIO(compressed_bytes)) as reader:
+                archive_bytes = reader.read()
             return kwargs["key"]
 
         mock_upload.side_effect = upload
@@ -88,12 +91,10 @@ class BuildSnapshotImagesZipTest(TestCase):
         session.put.assert_called_once()
         kwargs = session.put.call_args.kwargs
         assert kwargs["key"] == f"snapshot_archives/{self.artifact.id}.zip"
-        assert kwargs["compress"] == "none"
         assert kwargs["content_type"] == "application/zip"
 
         mock_upload.assert_called_once()
-        assert mock_upload.call_args.args[1] is session.put.call_args.args[0]
-        assert mock_upload.call_args.kwargs["compression"] == "none"
+        assert mock_upload.call_args.kwargs["compression"] == "zstd"
         with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
             assert sorted(archive.namelist()) == ["a.png", "manifest.json"]
             assert archive.read("manifest.json") == _manifest_bytes()
