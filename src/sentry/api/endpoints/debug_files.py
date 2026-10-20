@@ -436,7 +436,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
                             code_id_q
                             & q
                             # Only return any code id matches if there are *no* debug id matches.
-                            # .filter(~Exists(debug_id_qs))
                             #
                             # If we have no debug_id, debug_id_qs is the empty qs, so this always
                             # succeeds.
