@@ -21,7 +21,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -237,6 +236,16 @@ describe('InboxPage', () => {
     markSeenStatusCode?: number;
   } = {}) {
     let previewHasSeen = group.hasSeen;
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {
+        headline: 'Test summary',
+        whatsWrong: null,
+        possibleCause: null,
+        trace: null,
+      },
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: () => ({...group, hasSeen: previewHasSeen}),
@@ -1519,7 +1528,7 @@ describe('InboxPage', () => {
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('shows one column without the empty state when the container is narrow', async () => {
+  it('does not show the empty state when the container is narrow', async () => {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(803);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -1533,9 +1542,6 @@ describe('InboxPage', () => {
     expect(
       screen.queryByRole('heading', {name: 'No Issues in your Inbox!'})
     ).not.toBeInTheDocument();
-    expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
-      'grid-template-columns: minmax(0, 1fr)'
-    );
   });
 
   it('shows the empty state at the 2xl container breakpoint', async () => {
@@ -1548,10 +1554,6 @@ describe('InboxPage', () => {
     render(<InboxPageInContainer />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
-    const inbox = screen.getByRole('region', {name: 'Issue inbox'});
-    expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
-      'grid-template-columns: max-content minmax(0, 1fr)'
-    );
   });
 
   describe('on desktop', () => {
@@ -1563,7 +1565,29 @@ describe('InboxPage', () => {
       jest.restoreAllMocks();
     });
 
-    it('fills the available width when there is no preview or empty state', async () => {
+    it('keeps loading rows within the persisted inbox width before auto-selecting an issue', async () => {
+      jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(550);
+      localStorage.setItem('inbox-split-size', '550');
+      mockSuccessfulSections();
+      mockIssuePreview();
+
+      const {router} = render(<InboxPageInContainer />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      const inbox = screen.getByRole('region', {name: 'Issue inbox'});
+      expect(within(inbox).getByLabelText('Loading Fix Proposed issues')).toBeVisible();
+      expect(router.location.query.preview).toBeUndefined();
+      expect(inbox).toHaveStyle({width: '550px'});
+
+      await waitFor(() => {
+        expect(router.location.query.preview).toBe(fixProposedGroup.id);
+      });
+      expect(inbox).toHaveStyle({width: '550px'});
+    });
+
+    it('does not show the empty state when the inbox count is nonzero', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -1578,17 +1602,12 @@ describe('InboxPage', () => {
       render(<InboxPageInContainer />, {organization, initialRouterConfig});
 
       const inbox = screen.getByRole('region', {name: 'Issue inbox'});
-      await waitFor(() => {
-        expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
-          'grid-template-columns: minmax(0, 1fr)'
-        );
-        expect(inbox).toHaveStyle({width: '100%'});
-      });
-      expect(
-        getEmotionRules(screen.getByRole('complementary', {name: 'Issue preview'})).join(
-          ''
+      await waitFor(() =>
+        expect(within(inbox).getByRole('button', {name: /Fix Proposed/})).toHaveAttribute(
+          'aria-expanded',
+          'false'
         )
-      ).toContain('display: none');
+      );
       expect(
         screen.queryByRole('heading', {name: 'No Issues in your Inbox!'})
       ).not.toBeInTheDocument();

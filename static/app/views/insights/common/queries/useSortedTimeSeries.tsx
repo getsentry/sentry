@@ -28,6 +28,7 @@ import type {
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
+import {isEventViewEndInFuture} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
@@ -96,6 +97,15 @@ export const useSortedTimeSeries = <
     ? intervalToMilliseconds(eventView.interval)
     : undefined;
 
+  let staleTime = isEventViewEndInFuture(eventView) ? 0 : Infinity;
+  if (
+    usesRelativeDateRange &&
+    defined(intervalInMilliseconds) &&
+    intervalInMilliseconds !== 0
+  ) {
+    staleTime = intervalInMilliseconds;
+  }
+
   const groupBy = fields?.filter(
     field => !(yAxis as unknown as string[]).includes(field)
   );
@@ -118,12 +128,7 @@ export const useSortedTimeSeries = <
       extrapolate: !disableAggregateExtrapolation,
       queryOptions: {
         enabled: enabled && pageFilters.isReady,
-        staleTime:
-          usesRelativeDateRange &&
-          defined(intervalInMilliseconds) &&
-          intervalInMilliseconds !== 0
-            ? intervalInMilliseconds
-            : Infinity,
+        staleTime,
       },
     },
     referrer

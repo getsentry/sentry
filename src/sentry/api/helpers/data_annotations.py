@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from sentry_sdk import traces
 
-from sentry.api.endpoints.timeseries import Annotation
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import errors
@@ -16,9 +16,20 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
+
+
+class Annotation(TypedDict):
+    """One time bucket's volume for a system data-fidelity annotation."""
+
+    type: Literal["system"]
+    category: str
+    outcome: str
+    reason: str
+    start: float
+    end: float
+    eventCount: float
 
 
 def record_dropped_events_telemetry(
@@ -49,6 +60,31 @@ def record_dropped_events_telemetry(
 
 
 DROPPED_OUTCOMES: tuple[Outcome, ...] = tuple(o for o in Outcome if o is not Outcome.ACCEPTED)
+
+
+INTENTIONAL = "intentional"
+UNINTENTIONAL = "unintentional"
+
+_INTENTIONAL_REASONS_BY_OUTCOME: dict[str, frozenset[str]] = {
+    Outcome.CLIENT_DISCARD.api_name(): frozenset(
+        {"before_send", "event_processor", "ignored", "no_parent_span", "sample_rate"}
+    ),
+    Outcome.INVALID.api_name(): frozenset({"cors", "missing_signature", "transaction_sampled"}),
+    Outcome.RATE_LIMITED.api_name(): frozenset({"key_quota"}),
+}
+
+
+def classify_drop(outcome: str, reason: str) -> str:
+    """Tag a drop as intentional (user-configured) or unintentional.
+
+    Every ``filtered`` drop is intentional because inbound filters are project
+    settings. Unrecognized drops default to unintentional so they stay visible.
+    """
+    if outcome == Outcome.FILTERED.api_name():
+        return INTENTIONAL
+    if reason in _INTENTIONAL_REASONS_BY_OUTCOME.get(outcome, frozenset()):
+        return INTENTIONAL
+    return UNINTENTIONAL
 
 
 DEFAULT_DROP_THRESHOLD = 1
@@ -164,11 +200,13 @@ def get_dropped_data_annotations(
         return [], []
     organization_id = snuba_params.organization_id
 
-    with start_span(
-        name="data_annotations.get_dropped_data", op="data_annotations.get_dropped_data"
+    with traces.start_span(
+        name="data_annotations.get_dropped_data",
+        attributes={
+            "sentry.op": "data_annotations.get_dropped_data",
+            "category": category.api_name(),
+        },
     ) as span:
-        set_span_data(span, "category", category.api_name())
-
         item_rows = _run_category_query(category, snuba_params, rollup, organization_id)
         accepted_by_bucket = _accepted_by_bucket(item_rows)
         dropped_by_key = _dropped_by_bucket_reason(item_rows)
@@ -206,6 +244,6 @@ def get_dropped_data_annotations(
             )
             accepted_annotations.append(annotation)
 
-        set_span_data(span, "dropped_annotation_count", len(dropped_annotations))
-        set_span_data(span, "accepted_annotation_count", len(accepted_annotations))
+        span.set_attribute("dropped_annotation_count", len(dropped_annotations))
+        span.set_attribute("accepted_annotation_count", len(accepted_annotations))
         return dropped_annotations, accepted_annotations

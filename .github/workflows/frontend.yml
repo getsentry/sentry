@@ -49,7 +49,13 @@ jobs:
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: typescript
+    name: typescript (router v${{ matrix.router }})
+    strategy:
+      fail-fast: false
+      matrix:
+        router: ['6', '8']
+    env:
+      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -72,6 +78,8 @@ jobs:
     name: oxlint
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      budgets: ${{ steps.ratchet.outputs.budgets }}
     permissions:
       contents: read
       actions: read
@@ -112,7 +120,7 @@ jobs:
 
       # Decide whether to lint just the PR's impacted files or everything (see
       # frontend-changed-scope.sh): we scope to impacted files only when a merge base
-      # resolves and changes are under static/ or to oxlint-suppressions.json.
+      # resolves and changes are under static/ or to project oxlint-suppressions.json files.
       # Global config or dependency changes require linting everything because
       # their impact can't be traced from source files.
       - name: Compute lint strategy
@@ -136,23 +144,31 @@ jobs:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
 
+  prune-oxlint-suppressions:
+    needs: oxlint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.oxlint.outputs.budgets == 'stale'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/prune-oxlint-suppressions.yml
+    secrets:
+      SENTRY_INTERNAL_APP_PRIVATE_KEY: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: knip
+    name: ${{ matrix.command }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        command: [knip, 'knip:prod', 'knip:cycles']
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: knip
-        id: knip
-        run: pnpm run knip
-
-      - name: knip-prod
-        id: knip-prod
-        run: pnpm run knip:prod
+      - name: ${{ matrix.command }}
+        run: pnpm run ${{ matrix.command }}
 
   jest-config:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
@@ -192,7 +208,7 @@ jobs:
   jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
-    name: Jest
+    name: Jest (router v${{ matrix.router }}, shard ${{ matrix.index }})
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-24.04
@@ -201,45 +217,48 @@ jobs:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
-      matrix: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix) }}
+      matrix:
+        index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
+        total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
+        router: ['6', '8']
+    env:
+      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
+    permissions:
+      contents: read
+      # `gh run download` in "Download jest artifacts"
+      actions: read
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
-      # None of these depend on each other, fetch them all at once
-      - parallel:
-          - uses: ./.github/actions/setup-node-pnpm
+      # Must run before the parallel group: it parses $GITHUB_EVENT_PATH, which the
+      # runner truncates whenever a step starts (getsentry/sentry#127566). It is also
+      # a composite action, and the runner corrupts shared job state when a composite
+      # overlaps another step (actions/runner#4789).
+      - uses: ./.github/actions/setup-node-pnpm
 
+      # None of these depend on each other, fetch them all at once. Nothing in this
+      # group may read $GITHUB_EVENT_PATH (e.g. actions/setup-node, pnpm/action-setup,
+      # actions/download-artifact, actions/github-script, actions/checkout) or be a
+      # composite action.
+      - parallel:
           - name: jest transform cache
             uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
             with:
               path: |
                 .cache/jest
                 ~/.cache/swc
-              key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.index }}
+              key: jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
               restore-keys: |
-                jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
-                jest-cache-${{ runner.os }}-
+                jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
+                jest-cache-${{ runner.os }}-router${{ matrix.router }}-
 
-          - name: Download jest-test-files.json
-            uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-            with:
-              name: jest-test-files
-              path: .
-
-          - name: Download jest-balance.json
-            id: download-artifact
-            uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
-            with:
-              workflow: 38531594 # jest-balancer.yml
-              workflow_conclusion: success # The conclusion of the workflow we're looking for
-              branch: master # The branch we're looking for
-              name: jest-balance.json # Artifact name
-              name_is_regexp: false
-              path: tests/js/test-balancer/ # Directory where to extract artifact(s), defaults to the current directory
-              search_artifacts: true # Search for the last workflow run whose stored the artifact we're looking for
-              if_no_artifact_found: warn # Can be one of: "fail", "warn", "ignore"
+          - name: Download jest artifacts
+            env:
+              GH_TOKEN: ${{ github.token }}
+              GH_REPO: ${{ github.repository }}
+            run: ./.github/workflows/scripts/download-jest-artifacts.sh
 
       - name: jest
         env:

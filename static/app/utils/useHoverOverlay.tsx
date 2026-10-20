@@ -17,9 +17,9 @@ import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
+import type {Theme} from '@sentry/scraps/theme';
 
 import {NODE_ENV} from 'sentry/constants/env';
-import type {Theme} from 'sentry/utils/theme';
 
 import {useStableMergeRef} from './useStableMergeRef';
 

@@ -799,6 +799,12 @@ def _apply_snapshot(
     _bump_notebook(run, run.investigation)
 
 
+def _event_carries_projection(event: InvestigationOrchestrationEvent) -> bool:
+    return event.type in {"workflow_updated", "state_snapshot"} or (
+        event.type == "workflow_failed" and isinstance(_event_data(event).get("projection"), dict)
+    )
+
+
 def _apply_event(
     run: InvestigationOrchestrationRun, event: InvestigationOrchestrationEvent
 ) -> tuple[bool, str | None]:
@@ -811,10 +817,7 @@ def _apply_event(
         return False, "stale_generation"
     # A projection is what establishes a new generation, so only an event carrying
     # one may move the run forward.
-    carries_projection = event.type in {"workflow_updated", "state_snapshot"} or (
-        event.type == "workflow_failed" and isinstance(payload.get("projection"), dict)
-    )
-    if generation > run.generation and not carries_projection:
+    if generation > run.generation and not _event_carries_projection(event):
         return False, "future_generation_without_projection"
     notebook_writes_are_fenced = _notebook_writes_are_fenced(
         run,
@@ -1025,12 +1028,22 @@ def _lock_run_after_investigation(
     )
 
 
+def schedule_investigation_updates(investigation_id: int, database: str) -> None:
+    from sentry.seer.entrypoints.operator import process_investigation_updates
+
+    transaction.on_commit(
+        lambda: process_investigation_updates.delay(investigation_id=investigation_id),
+        using=database,
+    )
+
+
 def _apply_available_events(
     orchestration_run_id: int, delivered_event_id: int
 ) -> _OrchestrationEventApplication:
     """Consume contiguous events after rollback; only a valid terminal snapshot may skip a gap."""
 
     database = router.db_for_write(InvestigationOrchestrationRun)
+    projection_applied = False
     with transaction.atomic(using=database):
         run = _lock_run_after_investigation(orchestration_run_id)
         delivered = InvestigationOrchestrationEvent.objects.get(id=delivered_event_id)
@@ -1083,6 +1096,7 @@ def _apply_available_events(
             )
             _mark_event(delivered, InvestigationOrchestrationEventStatus.APPLIED)
             run.last_event_sequence = delivered.sequence
+            projection_applied = True
         else:
             while True:
                 next_event = InvestigationOrchestrationEvent.objects.filter(
@@ -1117,6 +1131,8 @@ def _apply_available_events(
                         ),
                         error={"reason": ignored_reason} if ignored_reason else None,
                     )
+                    if applied and _event_carries_projection(next_event):
+                        projection_applied = True
                 run.last_event_sequence = next_event.sequence
 
         run.date_updated = timezone.now()
@@ -1135,6 +1151,8 @@ def _apply_available_events(
                 "date_updated",
             ]
         )
+        if projection_applied:
+            schedule_investigation_updates(run.investigation_id, database)
         delivered.refresh_from_db()
         return _OrchestrationEventApplication(
             event=delivered,
@@ -1317,6 +1335,7 @@ def _synchronize_orchestration_projection(
                 notebook_changed = bool(_cancel_workflow_report_executions(run)) or notebook_changed
             if notebook_changed:
                 _bump_notebook(run, run.investigation)
+            schedule_investigation_updates(run.investigation_id, database)
         run.date_updated = timezone.now()
         run.save(
             update_fields=[

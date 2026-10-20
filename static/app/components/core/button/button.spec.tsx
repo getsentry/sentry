@@ -1,13 +1,7 @@
-import {ThemeFixture} from 'sentry-fixture/theme';
-
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
-
-const theme = ThemeFixture();
 
 function renderWithTracking(ui: React.ReactElement) {
   const tracking = jest.fn();
@@ -33,10 +27,32 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', {name: 'Save'});
     expect(button).toHaveAttribute('aria-disabled', 'true');
-    expect(button).toBeEnabled();
+
+    await userEvent.tab();
+    expect(button).toHaveFocus();
 
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('calls consumer handlers when a button with a tooltip is enabled', async () => {
+    const onClick = jest.fn();
+    const onKeyDown = jest.fn();
+    render(
+      <Button
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        tooltipProps={{title: 'Save changes'}}
+      >
+        Save
+      </Button>
+    );
+
+    await userEvent.tab();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
   });
 
   it('prevents keyboard activation when aria-disabled with tooltip', async () => {
@@ -76,51 +92,16 @@ describe('Button', () => {
     expect(button).toBeDisabled();
   });
 
-  describe('responsive sizing', () => {
-    let resizeCallback: ResizeObserverCallback | undefined;
-    let originalResizeObserver: typeof window.ResizeObserver;
+  it('keeps a disabled button natively disabled when its tooltip is hidden', () => {
+    render(
+      <Button disabled tooltipProps={{title: 'Not available', disabled: true}}>
+        Save
+      </Button>
+    );
 
-    beforeEach(() => {
-      originalResizeObserver = window.ResizeObserver;
-      window.ResizeObserver = class {
-        constructor(callback: ResizeObserverCallback) {
-          resizeCallback = callback;
-        }
-
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      };
-      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(0);
-    });
-
-    afterEach(() => {
-      window.ResizeObserver = originalResizeObserver;
-      jest.restoreAllMocks();
-    });
-
-    it('updates its size at container breakpoints', () => {
-      render(
-        <Container containerType="inline-size">
-          <Button size={{zero: 'xs', lg: 'sm'}}>Button</Button>
-        </Container>
-      );
-
-      const button = screen.getByRole('button', {name: 'Button'});
-      expect(getEmotionRules(button).join('')).toContain(
-        `height: ${theme.form.xs.height}`
-      );
-
-      act(() => {
-        resizeCallback?.(
-          [{contentBoxSize: [{inlineSize: 800}]} as unknown as ResizeObserverEntry],
-          {} as ResizeObserver
-        );
-      });
-      expect(getEmotionRules(button).join('')).toContain(
-        `height: ${theme.form.sm.height}`
-      );
-    });
+    const button = screen.getByRole('button', {name: 'Save'});
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('calls `onClick` callback', async () => {

@@ -200,6 +200,23 @@ class AttributeArgumentDefinition(BaseArgumentDefinition):
 
 
 @dataclass
+class NumericArgumentDefinition(AttributeArgumentDefinition):
+    """Helper so we don't have to define types everywhere"""
+
+    attribute_types: set[constants.SearchType] | None = field(
+        default_factory=lambda: {
+            "duration",
+            "number",
+            "percentage",
+            "integer",
+            "currency",
+            *constants.SIZE_TYPE,
+            *constants.DURATION_TYPE,
+        }
+    )
+
+
+@dataclass
 class VirtualColumnDefinition:
     constructor: Callable[[SnubaParams, Any], VirtualColumnContext]
     # Need a type for the attributes endpoint

@@ -15,7 +15,10 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationTemplate,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
@@ -24,6 +27,16 @@ from sentry.testutils.notifications.platform import MockNotification
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+
+
+def render_issue(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> SlackRenderable:
+    return IssueSlackRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK),
+    )
 
 
 class IssueAlertInvocationMixin(TestCase):
@@ -75,42 +88,37 @@ class IssueAlertInvocationMixin(TestCase):
 
 
 class IssueNotificationDataTest(IssueAlertInvocationMixin):
-    def test_deserializes_legacy_rule_proxy(self) -> None:
-        proxy = SerializableRuleProxy.parse_obj(
-            {
-                "id": 1,
-                "label": "Legacy payload",
-                "data": {"actions": [{"workflow_id": "2"}]},
-                "project_id": self.project.id,
-            }
-        )
+    def test_rule_proxy_is_frozen(self) -> None:
+        proxy = SerializableRuleProxy(label="Test Detector", workflow_id=1)
 
-        origin = proxy.to_notification_origin()
+        with pytest.raises(TypeError):
+            proxy.workflow_id = 2  # type: ignore[misc]
 
-        assert origin.label == "Legacy payload"
-        assert origin.workflow_id == 2
-        assert origin.legacy_rule_id is None
+    def test_rule_proxy_round_trips_with_previous_release(self) -> None:
+        # Payloads from the previous release include a bogus `model_config` key, and
+        # workers on that release still require `id`, `data`, and `project_id`.
+        previous = {
+            "id": 1,
+            "label": "Test Detector",
+            "data": {"actions": [{"workflow_id": 2}]},
+            "project_id": self.project.id,
+            "workflow_id": 2,
+            "legacy_rule_id": None,
+            "environment_id": None,
+            "model_config": {"frozen": True},
+        }
+        proxy = SerializableRuleProxy.parse_obj(previous)
+        assert proxy.to_notification_origin().workflow_id == 2
 
-    def test_deserializes_legacy_rule_proxy_without_action_identity(self) -> None:
-        proxy = SerializableRuleProxy(
-            id=1,
-            label="Legacy payload",
-            data={},
-            project_id=self.project.id,
-        )
-
-        origin = proxy.to_notification_origin()
-
-        assert origin.workflow_id is None
-        assert origin.legacy_rule_id == 1
+        serialized = json.loads(proxy.json())
+        assert "model_config" not in serialized
+        assert {"id", "data", "project_id"} <= serialized.keys()
 
     def test_source(self) -> None:
         data = IssueNotificationData(
             organization_id=1,
             group_id=self.group.id,
-            rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
-            ),
+            rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
         assert data.source == NotificationSource.ISSUE
 
@@ -134,7 +142,6 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
-        assert action_blob["workflow_id"] == invocation.workflow_id
         assert (
             action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
         )
@@ -154,7 +161,6 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.tags is None
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
-        assert action_blob["workflow_id"] == invocation.workflow_id
         assert (
             action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
         )
@@ -182,7 +188,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            IssueSlackRenderer.render(
+            render_issue(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -308,7 +314,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueSlackRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -325,7 +331,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueSlackRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -346,7 +352,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueSlackRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -366,9 +372,7 @@ class IssueAlertProviderDispatchTest(TestCase):
         data = IssueNotificationData(
             organization_id=1,
             group_id=self.group.id,
-            rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
-            ),
+            rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
         renderer = SlackNotificationProvider.get_renderer(data=data)
         assert renderer is IssueSlackRenderer
