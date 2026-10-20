@@ -32,7 +32,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
-import {BrowserOSIcons} from 'sentry/views/explore/replays/detail/browserOSIcons';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
@@ -144,14 +143,13 @@ export function ReplayPreviewPlayer({
           <PlayerBreadcrumbContainer>
             <PlayerContextContainer>
               {isFullscreen ? (
-                <ContextContainer>
+                <Grid align="center" gap="md" columns="1fr max-content" flow="column">
                   {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
-                  <BrowserOSIcons />
                   <ReplaySidebarToggleButton
                     isOpen={isSidebarOpen}
                     setIsOpen={setIsSidebarOpen}
                   />
-                </ContextContainer>
+                </Grid>
               ) : null}
               <StaticPanel>
                 <ReplayPlayer overlayContent={overlayContent} isPreview />
@@ -238,14 +236,6 @@ const StaticPanel = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
-const ContextContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: 1fr max-content max-content;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-`;
-
 const StyledAlert = styled(Alert)`
   margin: ${p => p.theme.space.md} 0;
 `;

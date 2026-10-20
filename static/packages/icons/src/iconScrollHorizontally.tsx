@@ -1,6 +1,7 @@
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
+/** @public */
 export function IconScrollHorizontally(props: SVGIconProps) {
   return (
     <SvgIcon {...props}>

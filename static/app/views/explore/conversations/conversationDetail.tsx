@@ -1,16 +1,12 @@
-import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
-import {IconCopy} from '@sentry/icons/copy';
+import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
-import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -21,11 +17,9 @@ import {
   CONVERSATION_VIEW_TABS,
   ConversationViewContent,
 } from 'sentry/views/explore/conversations/components/conversationView';
+import {ExportTranscriptButton} from 'sentry/views/explore/conversations/components/exportTranscriptButton';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {
-  extractMessagesFromNodes,
-  messagesToMarkdown,
-} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -55,26 +49,13 @@ function ConversationDetailPage() {
     () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
-  const [isCopyingTranscript, setIsCopyingTranscript] = useState(false);
-
-  const {stats, nodes, nodeTraceMap, isLoading, error, hasNextPage, title} =
-    useConversation({...conversation, autoFetchAll: isCopyingTranscript});
+  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
+    ...conversation,
+    autoFetchAll: false,
+  });
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
   const isInitialLoading = isLoading && nodes.length === 0;
-
-  useEffect(() => {
-    if (!isCopyingTranscript || isLoading) {
-      return;
-    }
-    if (error || hasNextPage) {
-      addErrorMessage(t('Failed to load the complete transcript'));
-    } else {
-      void copyToClipboard(messagesToMarkdown(messages));
-    }
-    // oxlint-disable-next-line react/set-state-in-effect
-    setIsCopyingTranscript(false);
-  }, [error, hasNextPage, isCopyingTranscript, isLoading, messages]);
 
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
@@ -107,13 +88,6 @@ function ConversationDetailPage() {
     setQueryState({tab: 'timeline'});
   }, [setQueryState]);
 
-  function handleCopyTranscript() {
-    trackAnalytics('conversations.detail.copy-conversation', {
-      organization,
-    });
-    setIsCopyingTranscript(true);
-  }
-
   return (
     <ViewportConstrainedPage background="secondary">
       <ConversationsBreadcrumbs conversationId={conversationId} />
@@ -137,18 +111,9 @@ function ConversationDetailPage() {
               <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
             </TabList>
           </Tabs>
-          {queryState.tab === 'transcript' &&
-            !isInitialLoading &&
-            messages.length > 0 && (
-              <Button
-                size="xs"
-                icon={<IconCopy />}
-                busy={isCopyingTranscript}
-                onClick={handleCopyTranscript}
-              >
-                {t('Copy Transcript')}
-              </Button>
-            )}
+          {queryState.tab === 'transcript' && messages.length > 0 && (
+            <ExportTranscriptButton conversation={conversation} />
+          )}
         </Flex>
         <ConversationViewContainer>
           <ConversationViewContent

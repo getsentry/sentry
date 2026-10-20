@@ -88,7 +88,9 @@ export function SortableHeaderCell({
 const Label = styled('div', {
   shouldForwardProp: prop => prop !== 'align' && prop !== 'grow',
 })<{grow: boolean; align?: ColumnAlign}>`
+  margin: -${p => p.theme.space['2xs']};
   overflow: hidden;
+  padding: ${p => p.theme.space['2xs']};
   text-overflow: ellipsis;
   white-space: nowrap;
 
@@ -120,9 +122,10 @@ export const HeaderCellContent = styled('div', {
   flex: 1;
   font: inherit;
   gap: ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space['2xs']};
   min-width: 0;
   overflow: hidden;
-  padding: 0;
+  padding: ${p => p.theme.space['2xs']};
   text-align: inherit;
   text-transform: inherit;
 

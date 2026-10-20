@@ -5,7 +5,7 @@ import {IconFatal} from '@sentry/icons/fatal';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -29,7 +29,6 @@ import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
-import {BrowserOSIcons} from 'sentry/views/explore/replays/detail/browserOSIcons';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {ReplayViewScale} from 'sentry/views/explore/replays/detail/replayViewScale';
 
@@ -62,7 +61,7 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
     <Fragment>
       <Flex flexGrow={1} gap="md">
         <PlayerContainer>
-          <ContextContainer>
+          <Grid align="center" gap="lg" columns="1fr max-content" flow="column">
             {isLoading ? (
               <TextCopyInput size="sm" disabled>
                 {''}
@@ -90,9 +89,6 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
               <ReplayCurrentUrl />
             )}
 
-            <ErrorBoundary customComponent={FatalIconTooltip}>
-              <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
-            </ErrorBoundary>
             <ErrorBoundary customComponent={FatalIconTooltip}>
               <ReplayViewScale isLoading={isLoading} />
             </ErrorBoundary>
@@ -124,7 +120,7 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
                 }}
               />
             )}
-          </ContextContainer>
+          </Grid>
           {isLoading ? (
             <FluidHeight>
               <Panel>
@@ -167,14 +163,6 @@ const Panel = styled(FluidHeight)`
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: ${p => p.theme.shadow.medium};
-`;
-
-const ContextContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: 1fr max-content;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
 `;
 
 const PlayerContainer = styled('div')`

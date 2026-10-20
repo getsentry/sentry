@@ -225,10 +225,6 @@ def generate_incident_trigger_email_context(
         ),
         query=urlencode(alert_link_params),
     )
-    # We don't have user muting for workflows in the new workflow engine system
-    # so we don't need to show the snooze alert url
-    snooze_alert_url = None
-    snooze_alert = False
 
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     return {
@@ -251,8 +247,6 @@ def generate_incident_trigger_email_context(
         "unsubscribe_link": None,
         "chart_url": chart_url,
         "timezone": tz,
-        "snooze_alert": snooze_alert,
-        "snooze_alert_url": snooze_alert_url,
     }
 
 

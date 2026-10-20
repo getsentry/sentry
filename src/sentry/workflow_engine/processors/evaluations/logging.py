@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, is_dataclass
 from typing import TYPE_CHECKING, cast, overload
 
@@ -10,13 +10,9 @@ from sentry import features, options
 from sentry.utils.sdk import sdk_logger
 from sentry.workflow_engine.processors.evaluations.base import (
     BaseWorkflowEngineEvaluationArtifact,
-    EvaluationType,
 )
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.workflow import (
-    ProcessWorkflowsResult,
-    WorkflowEvaluationOutcome,
-)
+from sentry.workflow_engine.processors.evaluations.serialization import evaluation_artifacts
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -91,59 +87,6 @@ def _serialize_log_value(value: object, field_name: str | None = None) -> object
     return value
 
 
-def _serialize_empty_result(result: WorkflowEngineResult) -> dict[str, object] | None:
-    if isinstance(result, ProcessDetectorsResult):
-        return {
-            "evaluation_type": EvaluationType.DETECTOR,
-            "detector_id": result.detector_id,
-            "detector_type": result.detector_type,
-            "project_id": result.project_id,
-            "outcome": result.outcome,
-            "error": result.evaluation_error.msg if result.evaluation_error else None,
-        }
-
-    summary: dict[str, object] = {
-        "error": None,
-        "evaluation_phase": result.evaluation_phase,
-        "evaluation_type": EvaluationType.WORKFLOW,
-        "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
-    }
-    if isinstance(result, ProcessWorkflowsResult):
-        summary.update(
-            detector_id=result.detector_id,
-            detector_type=result.detector_type,
-            event_id=result.event_id,
-            group_id=result.group_id,
-            outcome=result.outcome,
-            project_id=result.project_id,
-        )
-
-    return summary
-
-
-def _serialize_evaluation_artifacts(
-    result: WorkflowEngineResult,
-) -> Iterator[dict[str, object]]:
-    artifacts = result.evaluation_artifacts()
-    if not artifacts:
-        if summary := _serialize_empty_result(result):
-            yield summary
-        return
-
-    for artifact in artifacts:
-        serialized = _serialize_log_value(artifact)
-        if isinstance(result, ProcessDetectorsResult):
-            yield {
-                "evaluation_type": EvaluationType.DETECTOR,
-                "detector_id": result.detector_id,
-                "detector_type": result.detector_type,
-                "project_id": result.project_id,
-                **serialized,
-            }
-        else:
-            yield serialized
-
-
 def emit_evaluation_logs(
     organization: Organization,
     result: WorkflowEngineResult,
@@ -159,7 +102,8 @@ def emit_evaluation_logs(
         DETECTOR_EVALUATION_LOG_PREFIX if is_detector_result else WORKFLOW_EVALUATION_LOG_PREFIX
     )
 
-    for artifact in _serialize_evaluation_artifacts(result):
+    for evaluation in evaluation_artifacts(result):
+        artifact = _serialize_log_value(evaluation)
         artifact["organization_id"] = organization.id
 
         if direct_to_sentry:

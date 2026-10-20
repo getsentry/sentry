@@ -1,8 +1,10 @@
 /**
- * Parsing for `gen_ai.evaluate` spans. Evaluator SDKs record the evaluated
- * text and its questions on `gen_ai.input.messages`, and the answers on
+ * Parsing for evaluation spans. Evaluator SDKs record the evaluated text and
+ * its questions on `gen_ai.input.messages`, and the answers on
  * `gen_ai.output.messages`, as a single `{"type": "evaluation"}` item rather
- * than chat messages.
+ * than chat messages. The span is recognized by its `gen_ai.operation.name`:
+ * `decide` is the current value, `evaluate` the deprecated one still emitted by
+ * older SDKs, and both must keep working.
  */
 
 import round from 'lodash/round';
@@ -25,11 +27,13 @@ const invalidEntrySchema = z
   .unknown()
   .transform(value => ({kind: 'invalid' as const, value}));
 
+const optionSchema = z.union([z.string(), z.boolean().transform(String)]);
+
 /** Probability per option or score value, e.g. `{"billing": 0.62}`. */
 const probabilitiesSchema = z.record(z.string(), z.number());
 
 const booleanAnswerSchema = z
-  .object({type: z.literal('boolean'), probability: z.number()})
+  .object({type: z.literal(['boolean', 'predicate']), probability: z.number()})
   .transform(({type: _type, ...answer}) => ({...answer, kind: 'boolean' as const}));
 
 // `noul` is the boolean flavour used by the jev evaluator; its probability is
@@ -52,17 +56,24 @@ const scoreAnswerSchema = z
 const choiceAnswerSchema = z
   .object({
     type: z.literal('choice'),
-    choice: z.string(),
+    choice: optionSchema,
     probabilities: probabilitiesSchema.optional(),
     confidence: z.number().optional(),
   })
   .transform(({type: _type, ...answer}) => ({...answer, kind: 'choice' as const}));
+
+// The model declined to answer the question. It carries no probability or
+// reason, so there's nothing to render beyond the refusal itself.
+const refusalAnswerSchema = z
+  .object({type: z.literal('refusal')})
+  .transform(() => ({kind: 'refusal' as const}));
 
 const answerSchema = z.union([
   booleanAnswerSchema,
   noulAnswerSchema,
   scoreAnswerSchema,
   choiceAnswerSchema,
+  refusalAnswerSchema,
   invalidEntrySchema,
 ]);
 
@@ -77,8 +88,10 @@ const questionSchema = z.union([
        * describe each option (`{"billing": "Charges and refunds"}`).
        */
       criteria: z
-        .union([z.array(z.string()), z.record(z.string(), z.string())])
+        .union([z.array(optionSchema), z.record(z.string(), z.string())])
         .optional(),
+      /** Descriptions of score values, e.g. `{"2": "Blocks the customer"}`. */
+      descriptions: z.record(z.string(), z.string()).optional(),
     })
     .transform(question => ({...question, kind: 'question' as const})),
   invalidEntrySchema,
@@ -183,6 +196,13 @@ export function parseEvaluationOutput(raw: unknown): EvaluationAnswer[] | null {
 }
 
 /**
+ * Well-known `gen_ai.operation.name` values for evaluation spans. `decide` is
+ * the current value; `evaluate` is the deprecated one still emitted by older
+ * SDKs.
+ */
+const EVALUATION_OPERATION_NAMES: ReadonlySet<string> = new Set(['decide', 'evaluate']);
+
+/**
  * Whether a span is an evaluation, from its `gen_ai.operation.name`.
  */
 export function isEvaluationNode(
@@ -190,9 +210,14 @@ export function isEvaluationNode(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): boolean {
+  const operationName = getTraceNodeAttribute(
+    SpanFields.GEN_AI_OPERATION_NAME,
+    node,
+    event,
+    attributes
+  );
   return (
-    getTraceNodeAttribute(SpanFields.GEN_AI_OPERATION_NAME, node, event, attributes) ===
-    'evaluate'
+    typeof operationName === 'string' && EVALUATION_OPERATION_NAMES.has(operationName)
   );
 }
 
@@ -310,6 +335,8 @@ export function getAnswerLabel(
     }
     case 'choice':
       return answer.choice;
+    case 'refusal':
+      return t('Refused');
     default:
       return null;
   }

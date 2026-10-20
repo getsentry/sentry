@@ -13,10 +13,15 @@ import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTra
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {t, tct} from 'sentry/locale';
-import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
+import {
+  DeviceContextKey,
+  EntryType,
+  EventOrGroupType,
+  type Event,
+  type Frame,
+} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -26,10 +31,10 @@ import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
+  PROFILE_CONTEXT_WINDOW_MS,
 } from 'sentry/utils/profiling/routes';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 const MAX_STACK_DEPTH = 8;
@@ -37,8 +42,30 @@ const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
 const TOP_NODE_MIN_COUNT = 3;
 
+function ProfileFrameActions({isHovering}: {isHovering: boolean}) {
+  return <IssueFrameActions isHovering={isHovering} includeIssueOnlyActions={false} />;
+}
+
+export interface SpanProfileDetailsMetadata {
+  endTimestamp: number;
+  profileId: string | undefined;
+  profilerId: string | undefined;
+  projectId: string;
+  projectSlug: string;
+  startTimestamp: number;
+  traceId: string;
+  deviceArch?: string;
+  platform?: PlatformKey;
+  profileStartTimestamp?: number;
+  release?: Event['release'];
+  sdkName?: string;
+  sdkVersion?: string;
+  transactionId?: string;
+  transactionSpanId?: string;
+}
+
 export interface SpanProfileDetailsProps {
-  event: Readonly<EventTransaction>;
+  metadata: SpanProfileDetailsMetadata;
   span: Readonly<{
     end_timestamp: number;
     span_id: string;
@@ -49,26 +76,54 @@ export interface SpanProfileDetailsProps {
 
 export function useSpanProfileDetails(
   organization: Organization,
-  project: Project | undefined,
-  event: Readonly<EventTransaction | undefined>,
+  metadata: SpanProfileDetailsMetadata,
   span: SpanProfileDetailsProps['span']
 ) {
   const profileGroup = useProfileGroup();
 
-  const processedEvent = useMemo(() => {
-    if (!event) {
-      return null;
-    }
+  const profileEvent = useMemo<Event>(() => {
+    const entries: Event['entries'] = profileGroup.images
+      ? [{data: {images: profileGroup.images}, type: EntryType.DEBUGMETA}]
+      : [];
+    const timestamp = new Date(metadata.startTimestamp * 1000).toISOString();
 
-    const entries: EventTransaction['entries'] = [...(event.entries || [])];
-    if (profileGroup.images) {
-      entries.push({
-        data: {images: profileGroup.images},
-        type: EntryType.DEBUGMETA,
-      });
-    }
-    return {...event, entries};
-  }, [event, profileGroup]);
+    return {
+      contexts: metadata.deviceArch
+        ? {
+            device: {
+              [DeviceContextKey.ARCH]: metadata.deviceArch,
+              [DeviceContextKey.NAME]: '',
+              type: 'device',
+            },
+          }
+        : {},
+      crashFile: null,
+      culprit: '',
+      dateReceived: timestamp,
+      dist: null,
+      entries,
+      errors: [],
+      eventID: metadata.transactionId ?? span.span_id,
+      fingerprints: [],
+      id: metadata.transactionId ?? span.span_id,
+      location: null,
+      message: '',
+      metadata: {},
+      occurrence: null,
+      platform: metadata.platform,
+      projectID: metadata.projectId,
+      release: metadata.release ?? null,
+      resolvedWith: [],
+      sdk: metadata.sdkName
+        ? {name: metadata.sdkName, version: metadata.sdkVersion ?? null}
+        : null,
+      size: 0,
+      tags: [],
+      title: '',
+      type: EventOrGroupType.DEFAULT,
+      user: null,
+    };
+  }, [metadata, profileGroup.images, span.span_id]);
 
   // TODO: Pick another thread if it's more relevant.
   const threadId = useMemo(() => {
@@ -90,7 +145,7 @@ export function useSpanProfileDetails(
   }, [profileGroup.profiles, threadId]);
 
   const nodes = useMemo(() => {
-    if (profile === null || !event) {
+    if (profile === null) {
       return [];
     }
 
@@ -103,7 +158,8 @@ export function useSpanProfileDetails(
     // If the profile does not contain a timestamp, we fall back to using the
     // start timestamp on the transaction. This won't be as accurate but it's
     // the next best thing.
-    const startTimestamp = profile.timestamp ?? event.startTimestamp;
+    const startTimestamp =
+      profile.timestamp ?? metadata.profileStartTimestamp ?? metadata.startTimestamp;
 
     const relativeStartTimestamp = formatTo(
       span.start_timestamp - startTimestamp,
@@ -119,7 +175,7 @@ export function useSpanProfileDetails(
     return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp).filter(
       hasApplicationFrame
     );
-  }, [profile, span, event]);
+  }, [profile, span, metadata.profileStartTimestamp, metadata.startTimestamp]);
 
   const [index, setIndex] = useState(0);
 
@@ -145,53 +201,55 @@ export function useSpanProfileDetails(
   }, [nodes]);
 
   const {frames, hasPrevious, hasNext} = useMemo(() => {
-    if (index >= maxNodes || !event) {
+    if (index >= maxNodes) {
       return {frames: [], hasPrevious: false, hasNext: false};
     }
 
     return {
-      frames: extractFrames(nodes[index]!, event.platform || 'other'),
+      frames: extractFrames(nodes[index]!, metadata.platform || 'other'),
       hasPrevious: index > 0,
       hasNext: index + 1 < maxNodes,
     };
-  }, [index, maxNodes, event, nodes]);
+  }, [metadata.platform, index, maxNodes, nodes]);
 
   const profileTarget = useMemo(() => {
-    if (defined(project) && event) {
-      const profileContext = event.contexts.profile ?? {};
+    if (metadata.profileId) {
+      return generateProfileFlamechartRouteWithQuery({
+        organization,
+        projectSlug: metadata.projectSlug,
+        profileId: metadata.profileId,
+        query: {
+          spanId: span.span_id,
+        },
+      });
+    }
 
-      if (defined(profileContext.profile_id)) {
-        return generateProfileFlamechartRouteWithQuery({
-          organization,
-          projectSlug: project.slug,
-          profileId: profileContext.profile_id,
-          query: {
-            spanId: span.span_id,
-          },
-        });
-      }
-
-      if (defined(profileContext.profiler_id)) {
-        return generateContinuousProfileFlamechartRouteWithQuery({
-          organization,
-          projectSlug: project.slug,
-          profilerId: profileContext.profiler_id,
-          start: new Date(event.startTimestamp * 1000).toISOString(),
-          end: new Date(event.endTimestamp * 1000).toISOString(),
-          query: {
-            eventId: event.id,
-            spanId: span.span_id,
-            tid: threadId ? String(threadId) : undefined,
-          },
-        });
-      }
+    if (metadata.profilerId) {
+      return generateContinuousProfileFlamechartRouteWithQuery({
+        organization,
+        projectSlug: metadata.projectSlug,
+        profilerId: metadata.profilerId,
+        start: new Date(
+          metadata.startTimestamp * 1000 - PROFILE_CONTEXT_WINDOW_MS
+        ).toISOString(),
+        end: new Date(
+          metadata.endTimestamp * 1000 + PROFILE_CONTEXT_WINDOW_MS
+        ).toISOString(),
+        query: {
+          spanId: span.span_id,
+          tid: defined(threadId) ? String(threadId) : undefined,
+          traceId: metadata.traceId,
+          eventId: metadata.transactionSpanId ? undefined : metadata.transactionId,
+          transactionId: metadata.transactionSpanId,
+        },
+      });
     }
 
     return;
-  }, [organization, project, event, span, threadId]);
+  }, [organization, metadata, span.span_id, threadId]);
 
   return {
-    processedEvent,
+    profileEvent,
     profileGroup,
     profileTarget,
     profile,
@@ -206,12 +264,10 @@ export function useSpanProfileDetails(
   };
 }
 
-export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
+export function SpanProfileDetails({metadata, span}: SpanProfileDetailsProps) {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === event.projectID);
   const {
-    processedEvent,
+    profileEvent,
     profileTarget,
     nodes,
     index,
@@ -221,9 +277,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     hasPrevious,
     totalWeight,
     frames,
-  } = useSpanProfileDetails(organization, project, event, span);
+  } = useSpanProfileDetails(organization, metadata, span);
 
-  if (!defined(profileTarget) || !processedEvent) {
+  if (!defined(profileTarget)) {
     return null;
   }
 
@@ -294,9 +350,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
           </LinkButton>
         </SpanDetailsItem>
       </SpanDetails>
-      <StackTraceViewStateProvider platform={event.platform || 'other'}>
+      <StackTraceViewStateProvider platform={metadata.platform || 'other'}>
         <StackTraceProvider
-          event={processedEvent}
+          event={profileEvent}
           stacktrace={{
             framesOmitted: null,
             hasSystemFrames: false,
@@ -307,7 +363,7 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
         >
           <StackTraceFrames
             borderless
-            frameActionsComponent={IssueFrameActions}
+            frameActionsComponent={ProfileFrameActions}
             frameContextComponent={FrameContent}
           />
         </StackTraceProvider>

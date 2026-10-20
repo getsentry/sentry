@@ -24,8 +24,6 @@ class IncrMultiOptions(TypedDict):
 
 
 class TSDBModel(Enum):
-    internal = 0
-
     # number of events seen specific to grouping
     project = 1
     group = 4
@@ -100,8 +98,6 @@ class TSDBModel(Enum):
     project_total_received_discarded = 610
     # the number of events filtered because they refer to a healthcheck endpoint
     project_total_healthcheck = 611
-
-    servicehook_fired = 700
 
     # the number of views that a Sentry App receives
     sentry_app_viewed = 800

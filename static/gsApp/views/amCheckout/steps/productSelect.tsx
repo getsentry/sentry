@@ -15,7 +15,11 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AddOnCategory} from 'getsentry/types';
-import {getReservedBudgetCategoryForAddOn} from 'getsentry/utils/billing';
+import {
+  displayUnitPrice,
+  formatPrice,
+  getReservedBudgetCategoryForAddOn,
+} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getSingularCategoryName,
@@ -67,7 +71,7 @@ export function ProductSelect({
           addOnCategory: apiName,
         });
 
-        const priceInDollars = utils.formatPrice({
+        const priceInDollars = formatPrice({
           cents: priceInCents,
         });
 
@@ -193,7 +197,7 @@ export function ProductSelect({
                               })}
                               {' - '}
                               {eventPrice &&
-                                `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${perEventNameOverride}`}
+                                `${displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${perEventNameOverride}`}
                             </Text>
                             <Text size="md" variant="muted">
                               {info.description}

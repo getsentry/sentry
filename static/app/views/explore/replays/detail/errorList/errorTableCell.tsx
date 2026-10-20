@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 
@@ -28,7 +28,6 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   frame: ErrorFrame;
   startTimestampMs: number;
   style: CSSProperties;
-  ref?: React.Ref<HTMLDivElement>;
 }
 
 export function ErrorTableCell({
@@ -39,7 +38,6 @@ export function ErrorTableCell({
   onClickTimestamp,
   startTimestampMs,
   style,
-  ref,
 }: Props) {
   const organization = useOrganization();
 
@@ -66,13 +64,12 @@ export function ErrorTableCell({
   const columnProps = {
     onMouseEnter: () => onMouseEnter(frame),
     onMouseLeave: () => onMouseLeave(frame),
-    ref,
     style,
-  } as ComponentProps<typeof Cell>;
+  };
 
   const renderFns = [
     () => (
-      <Cell {...columnProps} numeric align="flex-start">
+      <Cell {...columnProps}>
         {eventUrl ? (
           <Link to={eventUrl}>
             <Text>{getShortEventId(eventId || '')}</Text>
@@ -162,7 +159,7 @@ export function ErrorTableCell({
       </Cell>
     ),
     () => (
-      <Cell {...columnProps} numeric align="flex-start">
+      <Cell {...columnProps}>
         {eventUrl ? (
           <Link to={eventUrl}>
             <Text>{level}</Text>

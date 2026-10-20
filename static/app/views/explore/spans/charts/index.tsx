@@ -7,13 +7,15 @@ import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -122,8 +124,11 @@ export function ExploreCharts({
     EXPLORE_CHART_GROUP
   );
 
+  const dataset = useSpansDataset();
+
   return (
     <ChartList>
+      <DroppedDataLLMContext dataset={dataset} />
       <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
         {visualizes.map((visualize, index) => {
           return (
@@ -425,10 +430,9 @@ function Chart({
   );
 }
 
-export const ChartWrapper = styled('div')`
-  position: relative;
-  min-width: 0;
-`;
+export function ChartWrapper(props: ContainerProps) {
+  return <Container minWidth="0" position="relative" {...props} />;
+}
 
 export const ChartList = styled('div')`
   position: relative;

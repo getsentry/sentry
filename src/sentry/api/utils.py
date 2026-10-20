@@ -16,7 +16,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
 from rest_framework.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_504_GATEWAY_TIMEOUT
-from sentry_sdk import Scope
+from sentry_sdk import Scope, traces
 from snuba_sdk.column import InvalidColumnError
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
@@ -49,7 +49,7 @@ from sentry.silo.base import SiloMode
 from sentry.types.cell import get_local_locality, get_locality_name_for_cell
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
+from sentry.utils.sdk import capture_exception, merge_context_into_scope
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -393,6 +393,8 @@ def handle_query_errors() -> Iterator[None]:
             message = "Invalid Span ID used in a filter"
         elif message.startswith("Empty string after"):
             message = "Filter key was followed by nothing (eg. thing:)"
+        elif message.endswith("quotes must enclose text or be escaped."):
+            message = "Invalid quoting in filter"
         sentry_sdk.set_tag("query.error_reason", message)
         sentry_sdk.set_attribute("query.error_reason", message)
         logger.info("A query error was handled", extra={"query.error_reason": message})
@@ -432,6 +434,10 @@ def handle_query_errors() -> Iterator[None]:
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
+        if getattr(arg, "code", None) == 408:
+            sentry_sdk.set_tag("query.error_reason", "Timeout")
+            sentry_sdk.set_attribute("query.error_reason", "Timeout")
+            raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             sentry_sdk.set_attribute("query.error_reason", "Timeout")
@@ -528,7 +534,9 @@ def update_snuba_params_with_timestamp(
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
         time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
-        set_span_attribute("trace_view.transactions.time_buffer", time_buffer)
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("trace_view.transactions.time_buffer", time_buffer)
         example_start = example_timestamp - timedelta(days=time_buffer)
         example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end

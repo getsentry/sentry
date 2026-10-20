@@ -52,6 +52,15 @@ class EmailAuthBackendTest(TestCase):
         )
         self.assertEqual(result, self.user)
 
+    def test_find_users_ignores_unicode_lookalike(self) -> None:
+        from sentry.utils.auth import find_users
+
+        user = User(username="adminuser", email="admin@example.com")
+        user.set_password("pw")
+        user.save()
+        assert find_users("admin@example.com") == [user]
+        assert find_users("adm\u0131n@example.com") == []
+
     def test_does_not_authenticate_with_invalid_password(self) -> None:
         result = self.backend.authenticate(HttpRequest(), username="foo", password="pizza")
         self.assertEqual(result, None)

@@ -48,19 +48,17 @@ import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/comp
 import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import {LegendTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/legendTypeSelector';
 import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
-import {
-  WidgetPreviewContainer,
-  type ThresholdMetaState,
-} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {type ThresholdMetaState} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {WidgetBuilderQueryFilterBuilder} from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import {SaveButtonGroup} from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
 import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreviewContainer';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';

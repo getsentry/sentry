@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -36,7 +37,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 from sentry_sdk import traces
 
-from sentry import features
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
@@ -69,6 +69,8 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
+
+logger = logging.getLogger(__name__)
 
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
@@ -295,14 +297,7 @@ class SearchResolver:
         )
 
     def _allows_regex(self) -> bool:
-        organization = self.params.organization
-        return (
-            self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
-            and organization is not None
-            and features.has(
-                "organizations:ourlogs-regex-searches", organization, actor=self.params.user
-            )
-        )
+        return self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
 
     def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
         """Helper function to collect all the search terms from a parsed query ignoring the actual query tree"""
@@ -346,11 +341,14 @@ class SearchResolver:
         # If occurrences dataset, cache group_id to issues mapping.
         self._init_issue_short_id_cache(parsed_terms)
 
-        if any(
-            isinstance(term, event_search.ParenExpression)
-            or event_search.SearchBoolean.is_operator(term)
-            for term in parsed_terms
-        ):
+        has_boolean = False
+        for term in parsed_terms:
+            if (isinstance(term, event_search.ParenExpression)) or (
+                event_search.SearchBoolean.is_operator(term) and len(parsed_terms) > 1
+            ):
+                has_boolean = True
+                break
+        if has_boolean:
             return self._resolve_boolean_conditions(parsed_terms)
         else:
             return self._resolve_terms(parsed_terms)
@@ -372,7 +370,7 @@ class SearchResolver:
             elif isinstance(terms[0], event_search.AggregateFilter):
                 return self._resolve_terms([terms[0]])
             else:
-                raise NotImplementedError("Haven't handled all the search expressions yet")
+                return self._resolve_terms(terms)
 
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
@@ -1329,6 +1327,17 @@ class SearchResolver:
                     function_definition, function_name, alias, columns, default_value
                 )
             except Exception:
+                logger.warning(
+                    "resolver.deprecated_function_used",
+                    extra={
+                        "organization_id": self.params.organization_id,
+                        "function_name": function_name,
+                        "column": column,
+                        "query_string": self.params.query_string,
+                    },
+                )
+                if self.config.disable_deprecated_functions:
+                    raise
                 return self._resolve_function(
                     deprecated_definition, function_name, alias, columns, default_value
                 )
@@ -1492,7 +1501,9 @@ class SearchResolver:
         """Resolve an equation creating a ResolvedEquation object, we don't just return a Column.BinaryFormula since
         it'll help callers with extra information, like the existence of aggregates and the search type
         """
-        operation, fields, functions = arithmetic.parse_arithmetic(equation)
+        operation, fields, functions = arithmetic.parse_arithmetic(
+            equation, definitions=self.definitions
+        )
         # Handle the case where the equation is just a single term
         if isinstance(operation, str):
             # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
@@ -1511,6 +1522,22 @@ class SearchResolver:
                 ),
                 [],
             )
+        # Fold equations that are only literals so Snuba does not evaluate them.
+        # Field equations such as `span.duration / 1000` still go through the RPC.
+        elif len(fields) == 0 and len(functions) == 0:
+            try:
+                value = arithmetic.resolve_arithmetic(operation)
+            except ZeroDivisionError:
+                raise arithmetic.ArithmeticValidationError("division by 0 is not allowed")
+            return (
+                ResolvedLiteral(
+                    public_alias=f"equation|{equation}" if alias is None else alias,
+                    search_type="number",
+                    value=value,
+                ),
+                [],
+            )
+
         lhs, lhs_contexts = (
             self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
         )
@@ -1637,5 +1664,5 @@ class SearchResolver:
 
         arguments = fields.parse_arguments(formula.name, columns)
 
-        equation = resolve_and_parse_formula(formula, arguments, self.resolve_column)
+        equation = resolve_and_parse_formula(formula, arguments, self)
         return self.resolve_equation(equation, alias)
