@@ -50,24 +50,25 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
     @extend_schema(
-        operation_id="List Seer workflow configurations",
+        operation_id="List Seer automation workflows",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
         responses={200: list[SeerWorkflowConfigResponse]},
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        """List non-legacy configurations, seeding missing defaults on first access.
+        """List saved Seer automation workflows, seeding missing defaults on first access.
 
         ``projects`` is ``[-1]`` for all projects, ``[]`` for no projects, or a list
         of selected active project IDs accessible to the caller. An empty
         ``environments`` list means all environments; otherwise it contains names.
-        ``filters`` contains strategy-specific filters. ``seededDefault``
-        identifies defaults, including defaults whose configuration has been changed.
+        ``filters`` contains strategy-specific filters. ``seededDefault`` records
+        the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
+        # TODO: Move default seeding to an explicit Seer automation onboarding step.
         SeerWorkflow.ensure_defaults(organization.id)
         configs = SeerWorkflowConfig.objects.filter(
             organization=organization, strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES
@@ -78,7 +79,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             order_by="id",
             paginator_cls=OffsetPaginator,
             on_results=partial(
-                serialize_workflow_configs, accessible_project_ids=sorted(p.id for p in projects)
+                serialize_workflow_configs, accessible_project_ids=[p.id for p in projects]
             ),
         )
 
