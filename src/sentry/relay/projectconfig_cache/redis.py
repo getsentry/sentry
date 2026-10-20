@@ -62,17 +62,6 @@ class RedisProjectConfigCache(ProjectConfigCache):
 
         p.execute()
 
-    def delete_many(self, public_keys):
-        # Note: Those are multiple pipelines, one per cluster node
-        with self.cluster.pipeline(transaction=False) as p:
-            for public_key in public_keys:
-                p.delete(self.__get_redis_key(public_key), self.__get_redis_rev_key(public_key))
-            return_values = p.execute()
-
-        # Count deletions of project configs, not deletions of individual Redis keys.
-        amount = sum(1 for rv in return_values if rv >= 1)
-        metrics.incr("relay.projectconfig_cache.write", amount=amount, tags={"action": "delete"})
-
     def get(self, public_key):
         rv_b = self.cluster_read.get(self.__get_redis_key(public_key))
         if rv_b is not None:

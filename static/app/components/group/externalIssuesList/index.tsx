@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {AlertLink} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
 
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
@@ -52,12 +52,9 @@ export function ExternalIssueListContent({
   const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;
   if (!hasLinkedIssuesOrIntegrations) {
     return (
-      <AlertLink
-        variant="muted"
-        to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-      >
+      <Link to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}>
         {t('Track this issue in Jira, GitHub, etc.')}
-      </AlertLink>
+      </Link>
     );
   }
 

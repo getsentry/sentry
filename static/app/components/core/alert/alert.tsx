@@ -1,18 +1,22 @@
 import {useRef, useState} from 'react';
 import {css, type SerializedStyles, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconInfo} from '@sentry/icons/info';
+import {IconNot} from '@sentry/icons/not';
+import {IconWarning} from '@sentry/icons/warning';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import type {AlertVariant} from '@sentry/scraps/theme';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
-import type {AlertVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -134,18 +138,8 @@ function generateAlertBackground(
   `;
 }
 
-const StyledTrailingItems = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  grid-template-rows: 100%;
-  gap: ${p => p.theme.space.md};
+const StyledTrailingItems = styled(Grid)`
   font-size: ${p => p.theme.font.size.md};
-  grid-row: 2;
-  grid-column: 1 / -1;
-  justify-items: start;
-  min-height: 28px;
-  padding-block: ${p => p.theme.space['2xs']};
 
   > svg {
     width: 16px;
@@ -153,11 +147,6 @@ const StyledTrailingItems = styled('div')`
     display: flex;
     align-items: center;
     align-self: center;
-  }
-
-  @container (min-width: ${p => p.theme.container.sm}) {
-    grid-area: auto;
-    align-items: start;
   }
 `;
 
@@ -235,7 +224,18 @@ export function Alert({
         )}
         <StyledMessage>{children}</StyledMessage>
         {!!trailingItems && (
-          <StyledTrailingItems onClick={e => e.stopPropagation()}>
+          <StyledTrailingItems
+            flow="column"
+            autoColumns="max-content"
+            rows="100%"
+            gap="md"
+            area={{zero: '2 / 1 / auto / -1', sm: 'auto'}}
+            align={{zero: 'stretch', sm: 'start'}}
+            justifyItems="start"
+            minHeight="28px"
+            padding="2xs 0"
+            onClick={e => e.stopPropagation()}
+          >
             {trailingItems}
           </StyledTrailingItems>
         )}

@@ -7,6 +7,7 @@ import {
   type ComponentProps,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueryState} from 'nuqs';
 
@@ -25,7 +26,6 @@ import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTi
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
@@ -191,39 +191,26 @@ export function DetectorListTable({
                   <span>{t('Name')}</span>
                 </Flex>
               </HeaderCell>
-              <HeaderCell columnKey="type" divider sortKey="type">
+              <HeaderCell divider sortKey="type">
                 {t('Type')}
               </HeaderCell>
-              <HeaderCell columnKey="last-issue" divider sortKey="latestGroup">
+              <HeaderCell divider sortKey="latestGroup">
                 {t('Last Issue')}
               </HeaderCell>
-              <HeaderCell columnKey="assignee" divider>
-                {t('Assignee')}
-              </HeaderCell>
-              <HeaderCell
-                columnKey="connected-automations"
-                divider
-                sortKey="connectedWorkflows"
-              >
+              <HeaderCell divider>{t('Assignee')}</HeaderCell>
+              <HeaderCell divider sortKey="connectedWorkflows">
                 {t('Alerts')}
               </HeaderCell>
               {additionalColumns.map(col => (
                 <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
               ))}
               {hasVisualization && detectors.length > 0 && (
-                <VisualizationHeaderCell
-                  columnKey="visualization"
-                  ref={elementRef}
-                  scope="col"
-                >
+                <VisualizationHeaderCell ref={elementRef} scope="col">
                   <GridLineLabels timeWindowConfig={timeWindowConfig} />
                 </VisualizationHeaderCell>
               )}
               {hasVisualization && (
-                <VisualizationExpandButtonCell
-                  columnKey="visualization-expand"
-                  scope="col"
-                >
+                <VisualizationExpandButtonCell scope="col">
                   <Button
                     size="xs"
                     variant="transparent"

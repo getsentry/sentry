@@ -5,6 +5,7 @@ import {Stack, Grid} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
+import {formatPrice} from 'getsentry/utils/billing';
 import {BillingCycleSelectCard} from 'getsentry/views/amCheckout/components/billingCycleSelectCard';
 import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -37,8 +38,8 @@ export function ChooseYourBillingCycle({
       <StepHeader title={t('Pay monthly or yearly, your choice')} />
       <Grid
         columns={{
-          'screen:xs': '1fr',
-          'screen:lg': `repeat(${intervalOptions.length}, 1fr)`,
+          zero: '1fr',
+          '4xl': `repeat(${intervalOptions.length}, 1fr)`,
         }}
         gap="lg"
       >
@@ -50,13 +51,13 @@ export function ChooseYourBillingCycle({
             reserved: formData.reserved,
             addOns: formData.addOns,
           });
-          const formattedPriceAfterDiscount = utils.formatPrice({
+          const formattedPriceAfterDiscount = formatPrice({
             cents: priceAfterDiscount,
           });
 
           const priceBeforeDiscount = isAnnual ? previousPlanPrice * 12 : 0;
           const formattedPriceBeforeDiscount = previousPlanPrice
-            ? utils.formatPrice({cents: priceBeforeDiscount})
+            ? formatPrice({cents: priceBeforeDiscount})
             : '';
           // oxlint-disable-next-line react/immutability
           previousPlanPrice = priceAfterDiscount;

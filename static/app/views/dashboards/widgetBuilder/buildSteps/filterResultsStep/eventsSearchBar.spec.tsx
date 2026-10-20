@@ -42,9 +42,7 @@ describe('EventsSearchBar', () => {
   });
 
   it('hides Ask Seer for errors widgets', async () => {
-    organization = OrganizationFixture({
-      features: ['gen-ai-features', 'gen-ai-search-agent-translate'],
-    });
+    organization = OrganizationFixture();
 
     render(
       <EventsSearchBar
@@ -107,6 +105,9 @@ describe('EventsSearchBar', () => {
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Edit value for filter: has'})
+    );
+    await userEvent.clear(
+      await screen.findByRole('combobox', {name: 'Edit filter value'})
     );
 
     // Assert we actually have has: dropdown options before checking exclusions.

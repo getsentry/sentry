@@ -1,13 +1,7 @@
-import {ThemeFixture} from 'sentry-fixture/theme';
-
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
-
-const theme = ThemeFixture();
 
 function renderWithTracking(ui: React.ReactElement) {
   const tracking = jest.fn();
@@ -23,51 +17,91 @@ describe('Button', () => {
     render(<Button variant="primary">Button</Button>);
   });
 
-  describe('responsive sizing', () => {
-    let resizeCallback: ResizeObserverCallback | undefined;
-    let originalResizeObserver: typeof window.ResizeObserver;
+  it('uses aria-disabled instead of disabled when a tooltip is present', async () => {
+    const onClick = jest.fn();
+    render(
+      <Button disabled onClick={onClick} tooltipProps={{title: 'Not available'}}>
+        Save
+      </Button>
+    );
 
-    beforeEach(() => {
-      originalResizeObserver = window.ResizeObserver;
-      window.ResizeObserver = class {
-        constructor(callback: ResizeObserverCallback) {
-          resizeCallback = callback;
-        }
+    const button = screen.getByRole('button', {name: 'Save'});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
 
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      };
-      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(0);
-    });
+    await userEvent.tab();
+    expect(button).toHaveFocus();
 
-    afterEach(() => {
-      window.ResizeObserver = originalResizeObserver;
-      jest.restoreAllMocks();
-    });
+    await userEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+  });
 
-    it('updates its size at container breakpoints', () => {
-      render(
-        <Container containerType="inline-size">
-          <Button size={{zero: 'xs', lg: 'sm'}}>Button</Button>
-        </Container>
-      );
+  it('calls consumer handlers when a button with a tooltip is enabled', async () => {
+    const onClick = jest.fn();
+    const onKeyDown = jest.fn();
+    render(
+      <Button
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        tooltipProps={{title: 'Save changes'}}
+      >
+        Save
+      </Button>
+    );
 
-      const button = screen.getByRole('button', {name: 'Button'});
-      expect(getEmotionRules(button).join('')).toContain(
-        `height: ${theme.form.xs.height}`
-      );
+    await userEvent.tab();
+    await userEvent.keyboard('{Enter}');
 
-      act(() => {
-        resizeCallback?.(
-          [{contentBoxSize: [{inlineSize: 800}]} as unknown as ResizeObserverEntry],
-          {} as ResizeObserver
-        );
-      });
-      expect(getEmotionRules(button).join('')).toContain(
-        `height: ${theme.form.sm.height}`
-      );
-    });
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+  });
+
+  it('prevents keyboard activation when aria-disabled with tooltip', async () => {
+    const onClick = jest.fn();
+    render(
+      <Button disabled onClick={onClick} tooltipProps={{title: 'Not available'}}>
+        Save
+      </Button>
+    );
+
+    const button = screen.getByRole('button', {name: 'Save'});
+    await userEvent.tab();
+    expect(button).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard(' ');
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('prevents form submission when disabled with tooltip', async () => {
+    const onSubmit = jest.fn(e => e.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Button disabled type="submit" tooltipProps={{title: 'Not available'}}>
+          Submit
+        </Button>
+      </form>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('uses native disabled when no tooltip is present', () => {
+    render(<Button disabled>Save</Button>);
+
+    const button = screen.getByRole('button', {name: 'Save'});
+    expect(button).toBeDisabled();
+  });
+
+  it('keeps a disabled button natively disabled when its tooltip is hidden', () => {
+    render(
+      <Button disabled tooltipProps={{title: 'Not available', disabled: true}}>
+        Save
+      </Button>
+    );
+
+    const button = screen.getByRole('button', {name: 'Save'});
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('calls `onClick` callback', async () => {

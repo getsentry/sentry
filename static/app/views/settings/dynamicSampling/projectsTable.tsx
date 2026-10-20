@@ -1,7 +1,9 @@
 import type React from 'react';
 import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -12,7 +14,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -110,14 +112,13 @@ export function ProjectsTable({
     [sortedItems]
   );
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: sortedItems.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: index =>
       sortedItems[index]?.isExpanded
         ? BASE_ROW_HEIGHT + (sortedItems[index].subProjects.length + 1) * 21
         : BASE_ROW_HEIGHT,
-    overscan: 5,
     getItemKey,
   });
 
@@ -149,10 +150,10 @@ export function ProjectsTable({
         <Container
           ref={scrollContainerRef}
           overflowY="auto"
-          style={{height: Math.min(virtualizer.getTotalSize(), MAX_SCROLL_HEIGHT)}}
+          style={{height: Math.min(totalSize, MAX_SCROLL_HEIGHT)}}
         >
-          <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
-            {virtualizer.getVirtualItems().map(virtualRow => {
+          <div style={{height: totalSize, position: 'relative'}}>
+            {virtualItems.map(virtualRow => {
               const item = sortedItems[virtualRow.index];
               if (!item) {
                 return null;

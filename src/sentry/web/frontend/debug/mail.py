@@ -13,7 +13,6 @@ from hashlib import md5
 from random import Random
 from typing import Any, cast
 from unittest import mock
-from urllib.parse import urlencode
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
@@ -38,13 +37,12 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import get_group_substatus_text
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.types import GroupSubscriptionReason, NotificationOrigin
 from sentry.notifications.utils import get_interface_list
 from sentry.notifications.utils.links import (
     get_group_settings_link,
@@ -280,13 +278,15 @@ def make_feedback_issue(project: Project) -> GroupEvent:
 
 
 def get_shared_context(
-    rule: Rule, org: Organization, project: Project, group: Group, event: BaseEvent
+    origin: NotificationOrigin,
+    org: Organization,
+    project: Project,
+    group: Group,
+    event: BaseEvent,
 ) -> dict[str, Any]:
-    rules = get_rules([rule], org, project, group.type)
-    snooze_alert = len(rules) > 0
-    snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
+    rules = get_rules([origin], org, project, group.type)
     return {
-        "rule": rule,
+        "rule": rules[0],
         "rules": rules,
         "group": group,
         "group_header": get_group_substatus_text(group),
@@ -296,8 +296,6 @@ def get_shared_context(
         #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
         "link": get_group_settings_link(group, None, rules, 1337),
         "tags": event.tags,
-        "snooze_alert": snooze_alert,
-        "snooze_alert_url": absolute_uri(snooze_alert_url),
     }
 
 
@@ -479,7 +477,12 @@ def alert(request: HttpRequest) -> HttpResponse:
         [GroupSubStatus.ESCALATING, GroupSubStatus.NEW, GroupSubStatus.REGRESSED]
     )
 
-    rule = Rule(id=1, label="An example rule")
+    origin = NotificationOrigin(
+        label="An example rule",
+        environment_id=None,
+        workflow_id=None,
+        legacy_rule_id=1,
+    )
     notification_reason = (
         random.randint(0, 1) > 0
         and f"We notified all members in the {project.get_full_name()} project of this issue"
@@ -490,7 +493,7 @@ def alert(request: HttpRequest) -> HttpResponse:
         html_template="sentry/emails/error.html",
         text_template="sentry/emails/error.txt",
         context={
-            **get_shared_context(rule, org, project, group, event),
+            **get_shared_context(origin, org, project, group, event),
             "interfaces": get_interface_list(event),
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
@@ -517,7 +520,13 @@ def digest(request: HttpRequest) -> HttpResponse:
     org = Organization(id=1, slug="example", name="Example Organization")
     project = Project(id=1, slug="example", name="Example Project", organization=org)
     rules = {
-        i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
+        i: NotificationOrigin(
+            label=f"Rule #{i}",
+            environment_id=None,
+            workflow_id=None,
+            legacy_rule_id=i,
+        )
+        for i in range(1, random.randint(2, 4))
     }
     groups = {}
     event_counts = {}
@@ -617,10 +626,6 @@ def digest(request: HttpRequest) -> HttpResponse:
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
 
     context["show_replay_links"] = True
-    context["snooze_alert"] = True
-    context["snooze_alert_urls"] = {
-        rule.id: f"{rule.status_url}?{urlencode({'mute': '1'})}" for rule in rule_details
-    }
 
     add_unsubscribe_link(context)
 

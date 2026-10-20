@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db.models import (
     Case,
     DateTimeField,
@@ -46,6 +47,7 @@ from sentry.discover.models import (
     DatasetSourcesTypes,
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.models.organization import Organization
@@ -64,11 +66,6 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
 
     def has_feature(self, organization, request):
         return features.has("organizations:discover-query", organization, actor=request.user)
-
-    def has_migrate_feature(self, organization, request):
-        return features.has(
-            "organizations:discover-queries-in-all-queries", organization, actor=request.user
-        )
 
     @extend_schema(
         operation_id="listOrganizationDiscoverSavedQueries",
@@ -127,20 +124,16 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        has_migrate_feature = self.has_migrate_feature(organization, request)
-        if has_migrate_feature:
-            last_visited_query: Subquery | Value = Value(
-                None, output_field=DateTimeField(null=True)
+        last_visited_query: Subquery | Value = Value(None, output_field=DateTimeField(null=True))
+        if request.user.is_authenticated:
+            last_visited_query = Subquery(
+                DiscoverSavedQueryLastVisited.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    discover_saved_query_id=OuterRef("id"),
+                ).values("last_visited")[:1]
             )
-            if request.user.is_authenticated:
-                last_visited_query = Subquery(
-                    DiscoverSavedQueryLastVisited.objects.filter(
-                        organization=organization,
-                        user_id=request.user.id,
-                        discover_saved_query_id=OuterRef("id"),
-                    ).values("last_visited")[:1]
-                )
-            queryset = queryset.annotate(user_last_visited=last_visited_query)
+        queryset = queryset.annotate(user_last_visited=last_visited_query)
 
         sort_by = request.query_params.get("sortBy")
         if sort_by and sort_by.startswith("-"):
@@ -167,17 +160,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            if has_migrate_feature:
-                order_by = [
-                    (
-                        F("user_last_visited").asc(nulls_last=True)
-                        if desc
-                        else F("user_last_visited").desc(nulls_last=True)
-                    ),
-                    "-date_updated",
-                ]
-            else:
-                order_by = ["last_visited" if desc else "-last_visited"]
+            order_by = [
+                (
+                    F("user_last_visited").asc(nulls_last=True)
+                    if desc
+                    else F("user_last_visited").desc(nulls_last=True)
+                ),
+                "-date_updated",
+            ]
 
         elif sort_by == "myqueries":
             order_by = [
@@ -269,6 +259,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         model.set_projects(data["project_ids"])
+
+        try:
+            if request.user.is_authenticated and request.data.get("starred"):
+                DiscoverSavedQueryStarred.objects.insert_starred_query(
+                    organization, request.user.id, model, starred=True
+                )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         return Response(
             serialize(model, serializer=DiscoverSavedQueryModelSerializer()), status=201

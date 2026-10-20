@@ -28,8 +28,10 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
         self.client.cookies.clear()
 
         response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        repeated = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
         assert response.status_code == 204, response.content
+        assert repeated.status_code == 204, repeated.content
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
         assert Group.objects.get(id=self.group.id).status == self.group.status
 
@@ -61,7 +63,7 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
 
         response = self.client.delete(url, format="json")
 
-        assert response.status_code == 404, response.content
+        assert response.status_code == 204, response.content
 
     def test_forbids_deleting_an_inaccessible_issue(self) -> None:
         group = self.create_group(
@@ -84,5 +86,8 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
         response = self.client.delete(url, format="json")
 
         assert response.status_code == 403, response.content
+        missing_url = f"/api/0/organizations/{group.project.organization.slug}/issues/{group.id}/external-issues/99999/"
+        missing_response = self.client.delete(missing_url, format="json")
+        assert missing_response.status_code == 403, missing_response.content
         assert PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
         assert Group.objects.get(id=group.id).status == group.status

@@ -189,6 +189,7 @@ export function RecursiveStructuredData({
 
   if (Array.isArray(value)) {
     const containerLen = getTotalChildrenFromMeta(meta);
+    // oxlint-disable-next-line react/todo
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
@@ -222,6 +223,7 @@ export function RecursiveStructuredData({
 
   const keys = Object.keys(value);
   keys.sort(naturalCaseInsensitiveSort);
+  // oxlint-disable-next-line react/todo
   for (i = 0; i < keys.length; i++) {
     const key = keys[i]!;
 

@@ -13,21 +13,26 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
-import {OP_LABELS as NATIVE_OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
 import {
   TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/datasetLabels';
 import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {FilterSelectorTriggerButton} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
   NumericFilterSelectorTrigger,
 } from 'sentry/views/dashboards/globalFilter/numericFilterSelectorTrigger';
+import {
+  CustomOperator,
+  type Operator,
+  getOperatorLabel,
+} from 'sentry/views/dashboards/globalFilter/operatorLabels';
 import {
   getFieldDefinitionForDataset,
   isValidNumericFilterValue,
@@ -37,21 +42,6 @@ import {
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
-
-enum CustomOperator {
-  BETWEEN = 'between',
-}
-type Operator = TermOperator | CustomOperator;
-
-const OPERATOR_LABELS: Partial<Record<Operator, string>> = {
-  [CustomOperator.BETWEEN]: t('between'),
-  [TermOperator.GREATER_THAN_EQUAL]: '\u2265',
-  [TermOperator.LESS_THAN_EQUAL]: '\u2264',
-};
-
-export function getOperatorLabel(operator: Operator): string {
-  return OPERATOR_LABELS[operator] ?? NATIVE_OP_LABELS[operator as TermOperator];
-}
 
 const FILTER_QUERY_SEPARATOR = ' ';
 
@@ -213,6 +203,7 @@ export function NumericFilterSelector({
   onRemoveFilter,
   onUpdateFilter,
   disableRemoveFilter,
+  showDatasetLabel,
 }: GenericFilterSelectorProps) {
   const globalFilterQueries = useMemo(
     () => globalFilter.value.split(FILTER_QUERY_SEPARATOR),
@@ -320,7 +311,7 @@ export function NumericFilterSelector({
             <DropdownMenu
               usePortal
               trigger={triggerProps => (
-                <StyledOperatorButton {...triggerProps}>
+                <StyledOperatorButton showChevron={false} {...triggerProps}>
                   {getOperatorLabel(filter.stagedOperator)}
                 </StyledOperatorButton>
               )}
@@ -332,9 +323,13 @@ export function NumericFilterSelector({
       }
       trigger={triggerProps => (
         <Container maxWidth={FILTER_SELECTOR_TRIGGER_MAX_WIDTH}>
-          <OverlayTrigger.Button {...triggerProps}>
+          <FilterSelectorTriggerButton
+            {...triggerProps}
+            globalFilter={globalFilter}
+            showDatasetLabel={showDatasetLabel}
+          >
             {filter.renderSelectorTrigger()}
-          </OverlayTrigger.Button>
+          </FilterSelectorTriggerButton>
         </Container>
       )}
       menuFooter={
@@ -363,7 +358,7 @@ const MenuBodyWrap = styled('div')`
   padding: ${p => p.theme.space.md};
 `;
 
-const StyledOperatorButton = styled(Button)`
+const StyledOperatorButton = styled(OverlayTrigger.Button)`
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

@@ -1,17 +1,16 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {withApi} from 'sentry/utils/withApi';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -53,9 +52,7 @@ function TrialStartedHovercardBody({
         <IconBusiness />
         {t('Dashboards')}
         <IconBusiness />
-        {getDiscoverDeprecation(organization)
-          ? t('Advanced Errors Queries')
-          : t('Advanced Discover Queries')}
+        {t('Advanced Errors Queries')}
         <IconBusiness />
         {t('Additional Integrations')}
       </Bullets>

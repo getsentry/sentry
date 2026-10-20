@@ -1,9 +1,10 @@
+import {IconDashboard} from '@sentry/icons/dashboard';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
 
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
-import {IconDashboard} from 'sentry/icons';
 
 function renderBlock(props: Partial<Parameters<typeof SeerEmbedBlock>[0]> = {}) {
   return render(
@@ -71,6 +72,20 @@ describe('SeerEmbedBlock', () => {
     renderBlock({badge: <Tag variant="muted">Aggregate</Tag>});
 
     expect(screen.getByText('Aggregate')).toBeInTheDocument();
+  });
+
+  it('renders the header without a link for a block that has no page of its own', () => {
+    render(
+      <SeerEmbedBlock testId="seer-block" title="Error volume">
+        <div>Preview body</div>
+      </SeerEmbedBlock>
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Error volume'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
   });
 
   it('renders nothing for the link when the href is unsafe', () => {

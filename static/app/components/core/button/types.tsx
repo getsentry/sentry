@@ -1,16 +1,11 @@
 import type {LocationDescriptor} from 'history';
 
 import type {Responsive} from '@sentry/scraps/layout';
+import type {ButtonVariant} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import type {AnalyticsProps} from '@sentry/scraps/trackingContext';
 
-export type ButtonVariant =
-  | 'secondary'
-  | 'primary'
-  | 'danger'
-  | 'warning'
-  | 'link'
-  | 'transparent';
+export type {ButtonVariant} from '@sentry/scraps/theme';
 
 export type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
 
@@ -32,20 +27,13 @@ export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
   /**
    * Button Tooltip Props
    */
-  tooltipProps?: ButtonTooltipProps;
+  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper'>;
   /**
    * The semantic "variant" of the button. Use `primary` when the action is
    * contextually the primary action, `danger` if the button will do something
    * destructive, `link` for visual similarity to a link.
    */
   variant?: ButtonVariant;
-}
-
-interface ButtonTooltipProps extends Omit<
-  TooltipProps,
-  'children' | 'skipWrapper' | 'title'
-> {
-  title?: TooltipProps['title'];
 }
 
 type ButtonElementProps = Omit<

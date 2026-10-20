@@ -1,3 +1,4 @@
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useUptimeAssertionFeatures() {
@@ -5,8 +6,7 @@ export function useUptimeAssertionFeatures() {
 
   const hasAiAssertionSuggestions =
     organization.features.includes('uptime-ai-assertion-suggestions') &&
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures;
+    areAiFeaturesAllowed(organization);
 
   return {hasRuntimeAssertions: true, hasAiAssertionSuggestions};
 }

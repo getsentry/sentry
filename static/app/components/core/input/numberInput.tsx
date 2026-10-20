@@ -6,13 +6,13 @@ import type {AriaNumberFieldProps} from '@react-aria/numberfield';
 import {useNumberField} from '@react-aria/numberfield';
 import {mergeRefs} from '@react-aria/utils';
 import {useNumberFieldState} from '@react-stately/numberfield';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
-import type {InputStylesProps} from '@sentry/scraps/input';
-import {InputGroup} from '@sentry/scraps/input';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconChevron} from 'sentry/icons/iconChevron';
+import type {InputStylesProps} from './input';
+import {InputGroup} from './inputGroup';
 
 interface NumberInputProps
   extends

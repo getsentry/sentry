@@ -3,10 +3,13 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconWarning} from '@sentry/icons/warning';
 import partition from 'lodash/partition';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -21,7 +24,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconArrow, IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -358,9 +360,9 @@ function FunctionTrendsEntry({
         </Tooltip>
       </AccordionItem>
       {isExpanded && (
-        <FunctionTrendsChartContainer>
+        <Container flex="1 1 auto">
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
-        </FunctionTrendsChartContainer>
+        </Container>
       )}
     </Fragment>
   );
@@ -544,10 +546,6 @@ const StyledPagination = styled(Pagination)`
 `;
 
 const FunctionName = styled(TextOverflow)`
-  flex: 1 1 auto;
-`;
-
-const FunctionTrendsChartContainer = styled('div')`
   flex: 1 1 auto;
 `;
 

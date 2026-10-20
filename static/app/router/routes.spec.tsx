@@ -1,9 +1,10 @@
-import {matchRoutes, type RouteObject} from 'react-router-dom';
+import {matchRoutes, type RouteObject} from 'react-router';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/router/routes';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 // Setup a module mock so that we can replace
 // USING_CUSTOMER_DOMAIN with a getter.
@@ -91,6 +92,98 @@ function getRedirectTarget(routes: RouteObject[], url: string): string | undefin
 }
 
 describe('buildRoutes()', () => {
+  it.each([false, true])(
+    'composes settings breadcrumbs from matched routes (customer domain: %s)',
+    customerDomain => {
+      jest
+        .spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get')
+        .mockReturnValue(customerDomain);
+      const routeTree = buildRoutes();
+      const prefix = customerDomain ? '/settings/' : '/settings/org-slug/';
+      const cases: Array<[string, SettingsBreadcrumb[]]> = [
+        [
+          'members/member-1/',
+          [
+            {type: 'link', label: 'Settings', to: '/settings/'},
+            {type: 'link', label: 'Members', to: '/settings/:orgId/members/'},
+          ],
+        ],
+        [
+          'projects/javascript/keys/key-1/',
+          [
+            {type: 'link', label: 'Settings', to: '/settings/'},
+            {
+              type: 'project',
+              to: '/settings/:orgId/projects/:projectId/',
+              switchTo: '/settings/:orgId/projects/:projectId/keys/',
+            },
+            {
+              type: 'link',
+              label: 'Client Keys',
+              to: '/settings/:orgId/projects/:projectId/keys/',
+            },
+          ],
+        ],
+        [
+          'teams/frontend/notifications/',
+          [
+            {type: 'link', label: 'Settings', to: '/settings/'},
+            {type: 'link', label: 'Teams', to: '/settings/:orgId/teams/'},
+            {
+              type: 'team',
+              to: '/settings/:orgId/teams/:teamId/',
+              switchTo: '/settings/:orgId/teams/:teamId/notifications/',
+            },
+          ],
+        ],
+        [
+          'integrations/github/1/',
+          [
+            {type: 'link', label: 'Settings', to: '/settings/'},
+            {type: 'link', label: 'Integrations', to: '/settings/:orgId/integrations/'},
+            {
+              type: 'integration',
+              to: '/settings/:orgId/integrations/:providerKey/',
+              switchTo: '/settings/:orgId/integrations/:providerKey/',
+            },
+          ],
+        ],
+        [
+          'document-integrations/docs-app/',
+          [
+            {type: 'link', label: 'Settings', to: '/settings/'},
+            {
+              type: 'link',
+              label: 'Integrations',
+              to: '/settings/:orgId/document-integrations/',
+            },
+          ],
+        ],
+      ];
+      for (const [path, expected] of cases) {
+        const matches = matchRoutes(routeTree, prefix + path);
+        const parents = matches?.flatMap(
+          match => match.route.handle?.settingsBreadcrumb ?? []
+        );
+        expect({path, parents}).toEqual({
+          path,
+          parents: expected,
+        });
+      }
+    }
+  );
+
+  it.each([
+    ['/manage/settings/', ['Settings', 'Settings']],
+    ['/manage/status/mail/', ['Settings', 'Mail']],
+    ['/manage/users/', ['Settings', 'Users']],
+  ])('shows the admin breadcrumb for %s', (url, names) => {
+    const matches = matchRoutes(buildRoutes(), url);
+    expect(
+      matches?.flatMap(match => (match.route.handle as {name?: string})?.name ?? [])
+    ).toEqual(names);
+  });
+
   // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.

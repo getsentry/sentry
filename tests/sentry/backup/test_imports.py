@@ -88,6 +88,8 @@ from tests.sentry.backup import (
     verify_models_in_output,
 )
 
+pytestmark = pytest.mark.usefixtures("skip_group_attributes_snapshots")
+
 
 class ImportTestCase(BackupTransactionTestCase):
     def export_to_tmp_file_and_clear_database(self, tmp_dir) -> Path:

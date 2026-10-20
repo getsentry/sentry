@@ -684,15 +684,14 @@ class TestAdoptReleasesPath(TestMetricReleaseMonitor):
         ).exists()
 
     def test_auto_creation_disabled_does_not_create_release(self) -> None:
-        # With the feature flag and the project opting out, a release referenced
-        # only by sessions must not be auto-created.
+        # With the project opting out, a release referenced only by sessions must
+        # not be auto-created.
         self.project1.update_option("sentry:enable_auto_release_creation", False)
 
-        with self.feature("organizations:auto-release-creation"):
-            adopt_releases(
-                self.organization.id,
-                {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
-            )
+        adopt_releases(
+            self.organization.id,
+            {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+        )
 
         assert not Release.objects.filter(
             organization_id=self.organization.id, version="9.9.9"
@@ -707,11 +706,10 @@ class TestAdoptReleasesPath(TestMetricReleaseMonitor):
         self.project1.update_option("sentry:enable_auto_release_creation", False)
         existing = self.create_release(project=self.project1, version="9.9.9")
 
-        with self.feature("organizations:auto-release-creation"):
-            adopt_releases(
-                self.organization.id,
-                {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
-            )
+        adopt_releases(
+            self.organization.id,
+            {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+        )
 
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -720,19 +718,43 @@ class TestAdoptReleasesPath(TestMetricReleaseMonitor):
             adopted__isnull=False,
         ).exists()
 
-    def test_auto_creation_disabled_without_feature_flag(self) -> None:
-        # Without the feature flag the project option is ignored and the release is
-        # auto-created as before.
-        self.project1.update_option("sentry:enable_auto_release_creation", False)
+    @mock.patch("sentry.release_health.tasks.capture_exception")
+    def test_deleted_project_with_sessions_is_skipped(self, mock_capture: mock.MagicMock) -> None:
+        # Session data can outlive the project row it references.
+        deleted_project_id = self.project1.id + 1_000_000
+        sessions = [
+            self.build_session(
+                project_id=project_id, release=self.release2, environment="somenvname"
+            )
+            for project_id in (self.project1.id, deleted_project_id)
+            for _ in range(20)
+        ]
+        self.bulk_store_sessions(sessions)
 
-        adopt_releases(
+        process_projects_with_sessions(self.organization.id, [self.project1.id, deleted_project_id])
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id,
+            release_id=self.release2.id,
+            environment__name="somenvname",
+            adopted__isnull=False,
+        ).exists()
+        assert not ReleaseProjectEnvironment.objects.filter(project_id=deleted_project_id).exists()
+        mock_capture.assert_not_called()
+
+    @mock.patch("sentry.release_health.tasks.capture_exception")
+    def test_adopt_releases_missing_project_is_not_reported(
+        self, mock_capture: mock.MagicMock
+    ) -> None:
+        missing_project_id = self.project1.id + 1_000_000
+
+        adopted_ids = adopt_releases(
             self.organization.id,
-            {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+            {missing_project_id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
         )
 
-        assert Release.objects.filter(
-            organization_id=self.organization.id, version="9.9.9"
-        ).exists()
+        assert adopted_ids == []
+        mock_capture.assert_not_called()
 
 
 def test_valid_environment() -> None:

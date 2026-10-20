@@ -10,13 +10,12 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text, type TextProps} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
-
-import {IconClose} from 'sentry/icons';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 const SIZES = {
   xs: {height: '20px', radius: '2xs', pad: 'xs', font: 'sm', dismiss: '20px'},

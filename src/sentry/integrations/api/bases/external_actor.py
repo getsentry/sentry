@@ -31,6 +31,7 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.GITHUB,
     ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviders.GITLAB,
+    ExternalProviders.CURSOR_ORIGIN,
     ExternalProviders.SLACK,
     ExternalProviders.SLACK_STAGING,
     ExternalProviders.MSTEAMS,
@@ -43,12 +44,14 @@ STRICT_NAME_PROVIDERS = {
     ExternalProviders.GITHUB,
     ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviders.GITLAB,
+    ExternalProviders.CURSOR_ORIGIN,
 }
 
 CASE_INSENSITIVE_PROVIDERS = {
     ExternalProviders.GITHUB,
     ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviders.GITLAB,
+    ExternalProviders.CURSOR_ORIGIN,
 }
 
 

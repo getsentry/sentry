@@ -45,7 +45,7 @@ prek is the single entrypoint for all lint, format, and type-checking tools. Bef
 
 ```bash
 SENTRY_MYPY_PRE_PUSH=1 .venv/bin/prek run -q mypy --files src/sentry/foo/bar.py --stage pre-push
-.venv/bin/prek run -q ruff --files src/sentry/foo/bar.py
+.venv/bin/prek run -q ruff-check --files src/sentry/foo/bar.py
 ```
 
 If a hook fails, fix the issues, stage changes, then re-run until it passes.
@@ -76,7 +76,7 @@ Dev server URLs: full devserver `http://dev.getsentry.net:8000`; frontend-only `
 
 #### Typechecking
 
-Run the `pnpm run typecheck` script. It checks the whole project and does not accept file paths. DO NOT use `tsc` directly.
+Run `pnpm run typecheck` to run the typescript type checker. It does not accept file paths. DO NOT use `tsc` directly.
 
 #### Linting
 

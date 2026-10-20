@@ -1,8 +1,10 @@
 import logging
 
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_sdk import traces
 
 from sentry.api.serializers.models.project import get_has_logs
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -10,7 +12,6 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.ourlogs")
 
@@ -23,7 +24,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
         return get_has_logs(project)
 
     @classmethod
-    @trace
+    @traces.trace
     def run_table_query(
         cls,
         *,
@@ -46,6 +47,12 @@ class OurLogs(rpc_dataset_common.RPCBase):
         so we need to always order by it regardless of what is actually passed to the orderby.
         Additionally, to ensure a strict order in the flex time sampling mode, we also order
         by the item id."""
+        if not selected_columns:
+            # Matches the same guard in sentry.snuba.errors/discover/functions/issue_platform:
+            # reject an empty column list here instead of sending it to the RPC, which
+            # returns a generic 500 rather than a descriptive error for this case.
+            raise InvalidSearchQuery("No columns selected")
+
         if (
             orderby is not None
             and len(orderby) == 1
@@ -62,6 +69,8 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 orderby.append(direction + "id")
                 if "id" not in selected_columns:
                     selected_columns.append("id")
+        elif sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
+            raise InvalidSearchQuery("You must orderby timestamp to use HIGHEST_ACCURACY_FLEX_TIME")
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(

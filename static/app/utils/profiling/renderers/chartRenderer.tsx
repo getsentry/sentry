@@ -1,14 +1,11 @@
 import type {mat3, vec2} from 'gl-matrix';
 import {vec3} from 'gl-matrix';
 
+import {lowerBound} from 'sentry/utils/array/lowerBound';
+import {upperBound} from 'sentry/utils/array/upperBound';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
-import {
-  getContext,
-  lowerBound,
-  resizeCanvasToDisplaySize,
-  upperBound,
-} from 'sentry/utils/profiling/gl/utils';
+import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 
 function findYIntervals(

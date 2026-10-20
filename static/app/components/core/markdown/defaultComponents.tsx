@@ -72,7 +72,7 @@ export function DefaultCodeBlock({children, lang}: {children: string; lang?: str
   return <CodeBlock language={lang}>{children}</CodeBlock>;
 }
 
-export function DefaultHtmlBlock({html}: {html: string}) {
+export function DefaultHtmlBlock({html}: {html: TrustedHTML}) {
   return <span dangerouslySetInnerHTML={{__html: html}} />;
 }
 

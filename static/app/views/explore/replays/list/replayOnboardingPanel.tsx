@@ -10,7 +10,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
-import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
@@ -27,15 +26,9 @@ import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobile
 import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-const OnboardingCTAHook = OverrideOrDefault({
-  overrideName: 'component:replay-onboarding-cta',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-});
-
 export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
-  const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
 
   const supportedPlatforms = replayPlatforms;
@@ -69,13 +62,18 @@ export function ReplayOnboardingPanel() {
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
-        <OnboardingCTAHook organization={organization}>
-          <SetupReplaysCTA
-            primaryAction={primaryAction}
-            disabled={primaryActionDisabled}
-          />
-        </OnboardingCTAHook>
+      <ReplayPanel
+        image={
+          <Container
+            width={{zero: '100%', xl: '220px', '3xl': '300px'}}
+            maxWidth="300px"
+            margin="0 auto"
+          >
+            <HeroImage src={emptyStateImg} />
+          </Container>
+        }
+      >
+        <SetupReplaysCTA primaryAction={primaryAction} disabled={primaryActionDisabled} />
       </ReplayPanel>
     </Fragment>
   );
@@ -89,7 +87,7 @@ interface SetupReplaysCTAProps {
 export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
   const organization = useOrganization();
 
   const FAQ = [
@@ -273,18 +271,8 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 const HeroImage = styled('img')`
   display: block;
   width: 100%;
-  max-width: 300px;
   height: auto;
-  margin: 0 auto;
   user-select: none;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    width: 220px;
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    width: 300px;
-  }
 `;
 
 const ButtonList = styled((props: GridProps) => (

@@ -2,6 +2,7 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -635,6 +636,7 @@ class IssueSyncIntegrationWebhookTest(TestCase):
             assert data["installation"]["uuid"] == str(self.sentry_app_installation.uuid)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class IssueDefaultTest(TestCase):
     def setUp(self) -> None:
         event = self.store_event(
@@ -771,20 +773,9 @@ class IssueDefaultTest(TestCase):
         }
 
     def test_annotations(self) -> None:
-        label = self.installation.get_issue_display_name(self.external_issue)
-        link = self.installation.get_issue_url(self.external_issue.key)
-
-        assert self.installation.get_annotations_for_group_list([self.group]) == {
-            self.group.id: [{"url": link, "displayName": label}]
-        }
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_provider_integration(provider="example", external_id="4444")
-            integration.add_organization(self.group.organization, self.user)
-        installation = integration.get_installation(self.group.organization.id)
-        assert isinstance(installation, ExampleIntegration)
-
-        assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}
+        assert self.installation.map_external_issues_to_annotations([self.external_issue]) == [
+            {"url": "https://example/issues/APP-123", "displayName": "display name: APP-123"}
+        ]
 
     @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
     def test_ai_text_replaces_defaults(self, mock_generate: MagicMock) -> None:
@@ -823,9 +814,7 @@ class IssueDefaultTest(TestCase):
     def test_hide_ai_features_skips_ai(self, mock_request: MagicMock) -> None:
         self.group.organization.update_option("sentry:hide_ai_features", True)
 
-        with self.feature(
-            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
-        ):
+        with self.feature(["organizations:external-issues-ai-generate"]):
             config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
@@ -836,9 +825,7 @@ class IssueDefaultTest(TestCase):
     def test_ai_exception_falls_back(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 
-        with self.feature(
-            ["organizations:gen-ai-features", "organizations:external-issues-ai-generate"]
-        ):
+        with self.feature(["organizations:external-issues-ai-generate"]):
             config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")

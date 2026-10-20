@@ -5,6 +5,7 @@ export const API_ACCESS_SCOPES = [
   'event:read',
   'event:write',
   'member:admin',
+  'member:invite',
   'member:read',
   'member:write',
   'org:admin',

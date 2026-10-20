@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.snapshots.storage import get_snapshot_storage
@@ -48,6 +48,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (ProjectReleasePermission,)
     # Higher limits than default (40 rps, 25 concurrent) since this proxies images from Objectstore.
     # Snapshot pages load many images in parallel, so per-user is 400 rps/200 concurrent and per-org is 4k rps/200 concurrent.
     # Objectstore's own ceilings are a percentage of a per-pod global_rps and sit well above these:

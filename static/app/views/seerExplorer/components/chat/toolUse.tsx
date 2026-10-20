@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
 
 import {
@@ -18,12 +19,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {
   RESOURCE_KIND_ICON,
   type ResourceKind,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,6 +37,7 @@ import {
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
 import {
+  getValidToolLinks,
   resolveLink,
   subjectFromCallRecord,
   subjectFromToolLink,
@@ -49,10 +49,7 @@ import type {
   ToolLink,
   ToolResult,
 } from 'sentry/views/seerExplorer/types';
-import {
-  getToolsStringFromBlock,
-  getValidToolLinks,
-} from 'sentry/views/seerExplorer/utils';
+import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import type {ToolUseBlockProps} from './shared';
 import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
@@ -104,7 +101,10 @@ function linkKey(link: ToolLink) {
  * The same terms as the per-call `hasContent` guard below, attributing progress and live rows the
  * way the list does: only to a call that has not settled.
  */
-export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean {
+export function blockRendersToolContent(
+  block: Block,
+  latestTodos?: LatestTodos | null
+): boolean {
   const toolCalls = block.message.tool_calls ?? [];
   if (!toolCalls.length) {
     return false;
@@ -115,7 +115,7 @@ export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean
     toolCall.id && !settledCallIds.has(toolCall.id) ? [toolCall.id] : []
   );
 
-  if (findLatestTodos(blocks)?.block === block) {
+  if (latestTodos?.block === block) {
     return true;
   }
   // Live rows hang off the block, so the list can only attribute them to a lone pending call.
@@ -156,10 +156,9 @@ export function ToolUseBlock({
   showThinking,
   blocks,
   getPageReferrer,
-  pendingInput,
-  readOnly = false,
-  respondToUserInput,
 }: ToolUseBlockProps) {
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
+
   if (block.loading && !block.message.tool_calls) {
     return <MessagePlaceholder />;
   }
@@ -169,11 +168,7 @@ export function ToolUseBlock({
   // call is a thing that happened, exactly like a classic tool call, and packing several into one
   // row makes an execute that made three calls look different from three that made one each.
   return (
-    <AgentWriteApprovalProvider
-      pendingInput={pendingInput ?? null}
-      readOnly={readOnly}
-      respondToUserInput={respondToUserInput}
-    >
+    <Fragment>
       {showThinking && hasValidContent(block.message.thinking_content) && (
         <MessageRow from="assistant" density="compact">
           <Disclosure size="sm">
@@ -189,9 +184,13 @@ export function ToolUseBlock({
         </MessageRow>
       )}
       {block.message.tool_calls ? (
-        <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
+        <ToolCallList
+          block={block}
+          latestTodos={latestTodos}
+          getPageReferrer={getPageReferrer}
+        />
       ) : null}
-    </AgentWriteApprovalProvider>
+    </Fragment>
   );
 }
 
@@ -343,11 +342,12 @@ function useToolLinks(block: Block) {
 
 interface ToolCallListProps {
   block: Block;
-  blocks?: Block[];
   getPageReferrer?: () => string;
+  /** The conversation's newest todo snapshot, from `findLatestTodos`. */
+  latestTodos?: LatestTodos | null;
 }
 
-export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
+export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallListProps) {
   const {
     sortedToolLinks,
     toolCallToLinkIndexMap,
@@ -364,8 +364,6 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
-  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
-
   // Counts rows actually rendered, so the status tick lands on the first visible one rather than
   // on a Code Mode call that was suppressed.
   let rendered = 0;
@@ -594,6 +592,7 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
                     url: toolUrl,
                     failure: failureTooltip,
                     // Only the first classic row shows the block status; call rows carry their own.
+                    // oxlint-disable-next-line react/todo
                     status: ++rendered === 1 ? blockStatus : undefined,
                   }}
                   onLinkClick={handleLinkClick}
@@ -687,7 +686,9 @@ function CallRow({
       </ToolCallLinkIconWrapper>
     </ToolCallLink>
   ) : (
-    <ToolCallPlainRow>{text}</ToolCallPlainRow>
+    <Flex as="span" display="inline-flex" align="center" gap="md" maxWidth="100%">
+      {text}
+    </Flex>
   );
 
   return (
@@ -786,6 +787,13 @@ function RequestDetail({
   );
 }
 
+export type LatestTodos = {block: Block; todos: TodoItem[]};
+
+// A block's snapshot is fixed for a given block object (query structural sharing gives a changed
+// block a new identity), so reuse one result per block. Otherwise every poll would hand memoized
+// rows a fresh `latestTodos` object and re-render them all.
+const latestTodosCache = new WeakMap<Block, LatestTodos>();
+
 /**
  * The newest todo snapshot in the conversation and the block that carries it.
  *
@@ -795,19 +803,31 @@ function RequestDetail({
  * with the legacy field first so a same-block collision resolves to the structured value. Returns
  * null when no block carries one.
  */
-function findLatestTodos(blocks?: Block[]): {block: Block; todos: TodoItem[]} | null {
-  let latest: {block: Block; todos: TodoItem[]} | null = null;
+export function findLatestTodos(blocks?: Block[]): LatestTodos | null {
+  let latestBlock: Block | null = null;
+  let latestTodos: TodoItem[] | null = null;
   for (const block of blocks ?? []) {
     if (block.todos?.length) {
-      latest = {block, todos: block.todos};
+      latestBlock = block;
+      latestTodos = block.todos;
     }
     for (const result of block.tool_results ?? []) {
       const todos = result?.structuredContent?.todos;
       if (todos?.length) {
-        latest = {block, todos};
+        latestBlock = block;
+        latestTodos = todos;
       }
     }
   }
+  if (!latestBlock || !latestTodos) {
+    return null;
+  }
+  const cached = latestTodosCache.get(latestBlock);
+  if (cached?.todos === latestTodos) {
+    return cached;
+  }
+  const latest = {block: latestBlock, todos: latestTodos};
+  latestTodosCache.set(latestBlock, latest);
   return latest;
 }
 
@@ -901,11 +921,4 @@ const ToolCallLinkIcon = styled(IconLink)`
   ${ToolCallLink}:hover & {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
-`;
-
-const ToolCallPlainRow = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  max-width: 100%;
 `;

@@ -2,14 +2,20 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Literal, Union, overload
+from typing import Iterable, Literal, Union, overload
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.constants import TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS
+from sentry.search.eap.columns import ColumnDefinitions
+from sentry.search.events.constants import (
+    DURATION_UNITS,
+    SIZE_UNITS,
+    TOTAL_COUNT_ALIAS,
+    TOTAL_TRANSACTION_DURATION_ALIAS,
+)
 
 # prefix on fields so we know they're equations
 EQUATION_PREFIX = "equation|"
@@ -148,13 +154,14 @@ class ArithmeticVisitor(NodeVisitor):
     # Don't wrap in VisitationErrors
     unwrapped_exceptions = (ArithmeticError,)
 
-    field_allowlist = {
+    field_allowlist: Iterable[str] = {
         "transaction.duration",
         "spans.http",
         "spans.db",
         "spans.resource",
         "spans.browser",
         "spans.total.time",
+        "span.duration",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
         "measurements.cls",
@@ -175,7 +182,7 @@ class ArithmeticVisitor(NodeVisitor):
         TOTAL_COUNT_ALIAS,
         TOTAL_TRANSACTION_DURATION_ALIAS,
     }
-    function_allowlist = {
+    function_allowlist: Iterable[str] = {
         "count",
         "count_if",
         "count_unique",
@@ -221,11 +228,36 @@ class ArithmeticVisitor(NodeVisitor):
         "trace_status_rate",
     }
 
-    def __init__(self, max_operators: int | None):
+    def __init__(self, max_operators: int | None, definitions: ColumnDefinitions | None):
         super().__init__()
         self.operators: int = 0
         self.terms: int = 0
         self.max_operators = max_operators if max_operators else self.DEFAULT_MAX_OPERATORS
+        self.definitions = definitions
+        if definitions:
+            self.field_allowlist = [
+                name
+                for name, column in definitions.columns.items()
+                if column.search_type
+                in [
+                    "number",
+                    "integer",
+                    "duration",
+                    "rate",
+                    "currency",
+                    "percentage",
+                    *SIZE_UNITS.keys(),
+                    *DURATION_UNITS.keys(),
+                ]
+            ]
+            self.function_allowlist = [
+                name
+                for name, function in definitions.aggregates.items()
+                if function.valid_arithmetic
+            ]
+            self.function_allowlist.extend(
+                [name for name, formula in definitions.formulas.items() if formula.valid_arithmetic]
+            )
         self.fields: set[str] = set()
         self.functions: set[str] = set()
 
@@ -322,20 +354,21 @@ def parse_arithmetic(
     equation: str,
     max_operators: int | None = None,
     *,
+    definitions: ColumnDefinitions | None = None,
     validate_single_operator: Literal[True],
 ) -> tuple[Operation, list[str], list[str]]: ...
 
 
 @overload
 def parse_arithmetic(
-    equation: str,
-    max_operators: int | None = None,
+    equation: str, max_operators: int | None = None, definitions: ColumnDefinitions | None = None
 ) -> tuple[Operation | float | str, list[str], list[str]]: ...
 
 
 def parse_arithmetic(
     equation: str,
     max_operators: int | None = None,
+    definitions: ColumnDefinitions | None = None,
     validate_single_operator: bool = False,
 ) -> tuple[Operation | float | str, list[str], list[str]]:
     """Given a string equation try to parse it into a set of Operations"""
@@ -345,7 +378,7 @@ def parse_arithmetic(
         raise ArithmeticParseError(
             "Unable to parse your equation, make sure it is well formed arithmetic"
         )
-    visitor = ArithmeticVisitor(max_operators)
+    visitor = ArithmeticVisitor(max_operators, definitions)
     result = visitor.visit(tree)
     # total count is the exception to the no mixing rule
     if (
@@ -358,6 +391,35 @@ def parse_arithmetic(
     if validate_single_operator and visitor.operators == 0:
         raise ArithmeticValidationError("Arithmetic expression must contain at least 1 operator")
     return result, list(visitor.fields), list(visitor.functions)
+
+
+def resolve_arithmetic(parsed: Operation | float | str):
+    """Given a parsed arithmetic string, assume that its resolveable to a single value and return that
+
+    will error if this is not possible
+    """
+    if isinstance(parsed, str):
+        raise InvalidSearchQuery("Cannot resolve columns")
+    elif isinstance(parsed, float):
+        return parsed
+    elif parsed.lhs is not None and parsed.rhs is not None:
+        match parsed.operator:
+            case "plus":
+                return resolve_arithmetic(parsed.lhs) + resolve_arithmetic(parsed.rhs)
+            case "minus":
+                return resolve_arithmetic(parsed.lhs) - resolve_arithmetic(parsed.rhs)
+            case "multiply":
+                return resolve_arithmetic(parsed.lhs) * resolve_arithmetic(parsed.rhs)
+            case "divide":
+                return resolve_arithmetic(parsed.lhs) / resolve_arithmetic(parsed.rhs)
+            case _:
+                raise InvalidSearchQuery("Unknown operator")
+    elif parsed.lhs is not None:
+        return parsed.lhs
+    elif parsed.rhs is not None:
+        return parsed.rhs
+    else:
+        raise InvalidSearchQuery("Poorly formed arithmetic an operator without sides was found")
 
 
 def resolve_equation_list(

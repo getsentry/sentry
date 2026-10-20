@@ -3,10 +3,14 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
+from django.core.cache import cache
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
+from sentry.utils import metrics
+from sentry.utils.hashlib import md5_text
 from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
@@ -53,3 +57,51 @@ def has_accepted_outcomes(
         return None
 
     return any(int(row.get("quantity", 0) or 0) > 0 for row in rows)
+
+
+def _outcomes_cache_key(
+    organization_id: int,
+    project_ids: list[int],
+    item_type: TraceItemType.ValueType,
+    last_ingested_at: datetime | None,
+    delay_seconds: float | None,
+) -> str:
+    window = (
+        f"{'none' if last_ingested_at is None else last_ingested_at.timestamp()}"
+        f":{'none' if delay_seconds is None else delay_seconds}"
+    )
+    projects = ",".join(str(id) for id in sorted(project_ids))
+    digest = md5_text(f"{projects}|{window}").hexdigest()
+    return f"ingestion-delay:outcomes:{organization_id}:{item_type}:{digest}"
+
+
+def get_accepted_outcomes(
+    organization_id: int,
+    project_ids: list[int],
+    item_type: TraceItemType.ValueType,
+    start: datetime,
+    end: datetime,
+    last_ingested_at: datetime | None,
+    delay_seconds: float | None,
+) -> bool | None:
+    """
+    Wrapper around `has_accepted_outcomes` cached by organization, projects and item type.
+    """
+    ttl = options.get("ingestion-delay.measurement-cache-seconds")
+    if ttl <= 0:
+        return has_accepted_outcomes(organization_id, project_ids, item_type, start, end)
+
+    key = _outcomes_cache_key(
+        organization_id, project_ids, item_type, last_ingested_at, delay_seconds
+    )
+    cached = cache.get(key)
+    if cached is not None:
+        metrics.incr("ingestion_delay.outcomes_cache", tags={"result": "hit"})
+        return cached
+
+    metrics.incr("ingestion_delay.outcomes_cache", tags={"result": "miss"})
+    accepted = has_accepted_outcomes(organization_id, project_ids, item_type, start, end)
+
+    if accepted is not None:
+        cache.set(key, accepted, ttl)
+    return accepted

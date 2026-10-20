@@ -25,7 +25,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.cell import get_test_env_directory
+from sentry.testutils.cell import get_test_env_directory, override_cells
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -215,6 +215,32 @@ class OrganizationsControlListTest(OrganizationIndexTest):
 
         assert [item["id"] for item in response.data] == [str(larger_org.id), str(smaller_org.id)]
 
+    def test_excludes_organizations_in_undefined_cell(self) -> None:
+        us_org = self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
+        us_cell = get_test_env_directory().get_cell_by_name("us")
+        assert us_cell is not None
+
+        # Drop "de" from the configured cells, as if it were absent from SENTRY_CELLS
+        with override_cells([us_cell]):
+            response = self.get_success_response()
+
+        assert None not in response.data
+        assert [item["id"] for item in response.data] == [str(us_org.id)]
+
+    def test_ownership_excludes_organizations_in_undefined_cell(self) -> None:
+        us_org = self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
+        us_cell = get_test_env_directory().get_cell_by_name("us")
+        assert us_cell is not None
+
+        # Drop "de" from the configured cells, as if it were absent from SENTRY_CELLS
+        with override_cells([us_cell]):
+            response = self.get_success_response(qs_params={"owner": 1})
+
+        assert all(item["organization"] is not None for item in response.data)
+        assert [item["organization"]["id"] for item in response.data] == [str(us_org.id)]
+
     def test_response_compatible_with_cell(self) -> None:
         # The control listing is being built out to replace the cell listing.
         # Until that swap happens, every field the control side returns must
@@ -387,23 +413,6 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             data = {"name": "Denied co", "slug": "denied", "dataStorageLocation": "moon"}
             resp = self.get_error_response(**data)
             assert resp.status_code == 400, "Staff cannot create orgs in invalid locales"
-
-    @override_options(
-        {
-            "provision_organization.override.rate": 1.0,
-            "provision_organization.override.mapping": {"us": "de"},
-        }
-    )
-    def test_locality_to_cell_overrides(self) -> None:
-        # When these options are active we can redirect one storage location to another.
-        response = self.get_success_response(
-            name="implicit org", slug="implicit-org", dataStorageLocation="us"
-        )
-
-        organization_id = response.data["id"]
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            mapping = OrganizationMapping.objects.get(organization_id=organization_id)
-        assert mapping.cell_name == "de"
 
     def test_invalid_slug_values(self) -> None:
         with self.options({"api.rate-limit.org-create": 9001}):

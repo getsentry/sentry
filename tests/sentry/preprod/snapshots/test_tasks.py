@@ -730,45 +730,6 @@ def test_build_comparison_plan_sibling_added_uses_snapshot_manifest_dimensions()
     assert sibling_candidates["added.png"].pixel_count == expected
 
 
-def test_build_comparison_plan_records_sibling_without_candidates_when_disabled() -> None:
-    head = _manifest(
-        {
-            "changed.png": ("c-head", 10, 10),
-            "added.png": ("add-head", 20, 20),
-            "renamed.png": ("ren-head", 10, 10),
-            "same.png": ("same", 10, 10),
-        },
-        diff_threshold=0.05,
-    )
-    base = _manifest(
-        {
-            "changed.png": ("c-base", 10, 10),
-            "old.png": ("ren-head", 10, 10),
-            "same.png": ("same", 10, 10),
-        }
-    )
-    sibling = _sibling(
-        7,
-        {
-            "changed.png": ComparisonImageResult(
-                status="changed", head_hash="c-sib", base_hash="c-base"
-            ),
-            "added.png": ComparisonImageResult(status="added", head_hash="add-head"),
-            "renamed.png": ComparisonImageResult(
-                status="renamed", head_hash="ren-sib", previous_image_file_name="old.png"
-            ),
-            "same.png": ComparisonImageResult(
-                status="unchanged", head_hash="same", base_hash="same"
-            ),
-        },
-    )
-    plan = _build_comparison_plan(head, base, 1, 2, sibling=sibling, diff_sibling_images=False)
-    assert plan.sibling_artifact_id == 7
-    assert plan.sibling_comparison_key == "key/7/comparison.json"
-    kinds = [c.kind for chunk in plan.chunks for c in chunk.candidates]
-    assert "sibling" not in kinds
-
-
 def test_build_comparison_plan_skips_sibling_candidate_for_unchanged_head_image() -> None:
     head = _manifest({"same.png": ("same", 10, 10)})
     base = _manifest({"same.png": ("same", 10, 10)})

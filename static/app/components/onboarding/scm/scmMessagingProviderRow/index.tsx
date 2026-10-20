@@ -1,11 +1,11 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import type {ReactNode} from 'react';
+import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Tag} from '@sentry/scraps/badge';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
@@ -17,9 +17,6 @@ import type {
   ScmMessagingSetup,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {IconInfo} from 'sentry/icons/iconInfo';
-import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
   IntegrationWithConfig,
@@ -28,8 +25,10 @@ import type {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
 import {RowActions} from './action';
+import {ProviderLogo} from './logo';
 import {openMsTeamsConnectionModal} from './msTeamsConnection';
 import {RowSubtitle} from './subtitle';
 import type {RowVisualState} from './types';
@@ -286,15 +285,47 @@ export function ScmMessagingProviderRow({
 
   const errorMessage = getInstallErrorMessage(installState);
 
+  // Every row transition swaps the actions in place, so the control the user
+  // activated unmounts and the browser drops focus to the body. Move it to the
+  // first control of the new state instead. The picker takes focus itself.
+  // Only transitions the user starts in this row are listed: a background
+  // refetch can promote installable to choose-destination on its own, and that
+  // must not pull focus from wherever the user is.
+  const focusRef = useRef<HTMLButtonElement>(null);
+  const previousVisualStateRef = useRef(visualState);
+  useEffect(() => {
+    const previous = previousVisualStateRef.current;
+    previousVisualStateRef.current = visualState;
+    if (previous === visualState || visualState === 'configuring') {
+      return;
+    }
+    const previousUnmountedControl =
+      previous === 'configuring' ||
+      previous === 'removing' ||
+      previous === 'installing' ||
+      previous === 'loading';
+    if (previousUnmountedControl || visualState === 'removing') {
+      focusRef.current?.focus();
+    }
+  }, [visualState]);
+
   return (
-    <Container border={visualState === 'removing' ? 'danger' : 'primary'} radius="lg">
+    <MotionContainer
+      background="primary"
+      border={visualState === 'removing' ? 'danger' : 'primary'}
+      radius="xl"
+      {...ONBOARDING_ENTER}
+    >
       <Stack>
         {visualState === 'install-error' && (
-          <Stack padding="md" gap="md" align="start">
+          <Stack padding="lg xl" gap="md" align="start">
             <Alert
               variant="danger"
+              role="alert"
               trailingItems={
-                <Alert.Button onClick={handleRetryInstall}>{t('Try again')}</Alert.Button>
+                <Alert.Button ref={focusRef} onClick={handleRetryInstall}>
+                  {t('Try again')}
+                </Alert.Button>
               }
             >
               {errorMessage || t('Installation failed. Please try again.')}
@@ -303,39 +334,38 @@ export function ScmMessagingProviderRow({
         )}
 
         {visualState !== 'install-error' && (
-          <Flex padding="lg" gap="md" align="center" justify="between">
-            <Flex gap="md" align="center" style={{flex: 1, minWidth: 0}}>
-              <Container flexShrink={0} paddingTop="2xs">
-                <PluginIcon pluginId={resolvedProvider.providerKey} size={28} />
+          <Flex padding="lg xl" gap="xl" align="center" justify="between">
+            <Flex gap="xl" align="center" style={{flex: 1, minWidth: 0}}>
+              <Container
+                flexShrink={0}
+                paddingTop="2xs"
+                // The confirmation replaces the provider name, so the logo
+                // names the provider for screen readers. Elsewhere the name is
+                // adjacent text, and the logo stays decorative.
+                role={visualState === 'removing' ? 'img' : undefined}
+                aria-label={
+                  visualState === 'removing' ? resolvedProvider.provider.name : undefined
+                }
+              >
+                <ProviderLogo providerKey={resolvedProvider.providerKey} />
               </Container>
               <Stack gap="sm">
-                <Flex gap="xs" align="center">
-                  <Text bold size="md">
+                <Flex gap="md" align="center">
+                  <Text bold size="lg">
                     {visualState === 'removing'
                       ? t('Remove this destination?')
                       : resolvedProvider.provider.name}
                   </Text>
                   {resolvedProvider.status !== 'connected' &&
                     visualState !== 'removing' && (
-                      <Tooltip
+                      <InfoTip
                         title={
                           SCM_MESSAGING_PROVIDER_TOOLTIPS[resolvedProvider.providerKey]
                         }
-                      >
-                        <Flex align="center">
-                          <IconInfo size="xs" variant="muted" />
-                        </Flex>
-                      </Tooltip>
+                        size="xs"
+                        variant="muted"
+                      />
                     )}
-                  {resolvedProvider.status === 'connected' &&
-                    visualState !== 'removing' &&
-                    (isConfigured ? (
-                      <Tag variant="success" icon={<IconCheckmark />}>
-                        {t('Connected')}
-                      </Tag>
-                    ) : (
-                      <Tag variant="info">{t('Authorized')}</Tag>
-                    ))}
                 </Flex>
                 <RowSubtitle
                   visualState={visualState}
@@ -345,8 +375,9 @@ export function ScmMessagingProviderRow({
               </Stack>
             </Flex>
 
-            <Flex gap="sm" align="center" style={{flexShrink: 0}}>
+            <Flex gap="md" align="center" style={{flexShrink: 0}}>
               <RowActions
+                focusRef={focusRef}
                 visualState={visualState}
                 resolvedProvider={resolvedProvider}
                 onConnect={handleConnectClick}
@@ -382,6 +413,8 @@ export function ScmMessagingProviderRow({
             </Container>
           )}
       </Stack>
-    </Container>
+    </MotionContainer>
   );
 }
+
+const MotionContainer = motion.create(Container);

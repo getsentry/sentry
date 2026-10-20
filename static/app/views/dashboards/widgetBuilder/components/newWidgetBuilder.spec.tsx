@@ -143,7 +143,6 @@ describe('NewWidgetBuilder', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Errors'}));
     expect(await screen.findByRole('option', {name: 'Errors'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Transactions'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Spans'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Issues'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();

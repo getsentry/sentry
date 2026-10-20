@@ -1,4 +1,3 @@
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -83,33 +82,28 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
 
   return (
     <DetailLayout>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Monitors'),
-              to: makeMonitorBasePathname(organization.slug),
-            },
-            {
-              type: 'link',
-              label: getDetectorTypeLabel(detector.type),
-              to: makeMonitorTypePathname(organization.slug, detector.type),
-            },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: project.slug,
-            leadingGraphic: (
-              <ProjectBadge disableLink hideName project={project} avatarSize={16} />
-            ),
-          }}
-        />
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: project.slug,
+          leadingGraphic: (
+            <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+          ),
+        }}
+        items={[
+          {
+            type: 'link',
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            type: 'link',
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+        ]}
+      />
       <MonitorFeedbackButton />
       <DetailLayout.Body>
         <DetailLayout.Main>

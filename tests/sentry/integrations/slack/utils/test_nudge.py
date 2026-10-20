@@ -5,59 +5,65 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
 FEATURE_FLAG = "organizations:slack-reinstall-nudge-on-issue-alert"
+NOTIFICATION_UUID = "7f4b5c2e-2d0c-4d55-9a6f-1d3c0a7e9b21"
 
 
 class ShouldSendNudgeBlockTest(TestCase):
-    channel_id = "C1234567890"
-
-    def setUp(self) -> None:
-        super().setUp()
-        # By default make the random gate pass; individual tests override this.
-        patcher = patch("sentry.integrations.slack.utils.nudge.random.random", return_value=0.0)
-        patcher.start()
-        self.addCleanup(patcher.stop)
-
     def test_no_feature_flag(self) -> None:
-        # Feature flag off: never post, even though the random gate passes.
-        assert (
-            should_send_nudge_block(channel_id=self.channel_id, organization=self.organization)
-            is False
-        )
-
-    @with_feature(FEATURE_FLAG)
-    def test_random_gate_fails(self) -> None:
-        # Default nudge frequency is 0.3 (30%), so 0.5 should fail the check
-        with patch("sentry.integrations.slack.utils.nudge.random.random", return_value=0.5):
+        with self.options({"slack.nudge-frequency": 1.0}):
             assert (
-                should_send_nudge_block(channel_id=self.channel_id, organization=self.organization)
+                should_send_nudge_block(
+                    organization=self.organization, notification_uuid=NOTIFICATION_UUID
+                )
                 is False
             )
 
     @with_feature(FEATURE_FLAG)
-    def test_custom_nudge_frequency(self) -> None:
-        # Set a custom nudge frequency to 50%
-        with self.options({"slack.nudge-frequency": 0.5}):
-            # Random value 0.4 should pass with 50% threshold
-            with patch("sentry.integrations.slack.utils.nudge.random.random", return_value=0.4):
-                assert (
-                    should_send_nudge_block(
-                        channel_id=self.channel_id, organization=self.organization
-                    )
-                    is True
+    def test_posts_block(self) -> None:
+        with self.options({"slack.nudge-frequency": 1.0}):
+            assert (
+                should_send_nudge_block(
+                    organization=self.organization, notification_uuid=NOTIFICATION_UUID
                 )
+                is True
+            )
 
-            # Random value 0.6 should fail with 50% threshold
-            with patch("sentry.integrations.slack.utils.nudge.random.random", return_value=0.6):
+    @with_feature(FEATURE_FLAG)
+    def test_zero_frequency(self) -> None:
+        with self.options({"slack.nudge-frequency": 0.0}):
+            assert (
+                should_send_nudge_block(
+                    organization=self.organization, notification_uuid=NOTIFICATION_UUID
+                )
+                is False
+            )
+
+    @with_feature(FEATURE_FLAG)
+    def test_keyed_on_notification_uuid(self) -> None:
+        with self.options({"slack.nudge-frequency": 0.5}):
+            decisions = {
+                uuid: should_send_nudge_block(
+                    organization=self.organization, notification_uuid=uuid
+                )
+                for uuid in (f"{i:032x}" for i in range(20))
+            }
+            assert set(decisions.values()) == {True, False}
+            for uuid, decision in decisions.items():
                 assert (
-                    should_send_nudge_block(
-                        channel_id=self.channel_id, organization=self.organization
-                    )
-                    is False
+                    should_send_nudge_block(organization=self.organization, notification_uuid=uuid)
+                    is decision
                 )
 
     @with_feature(FEATURE_FLAG)
-    def test_posts_block(self) -> None:
-        assert (
-            should_send_nudge_block(channel_id=self.channel_id, organization=self.organization)
-            is True
-        )
+    def test_random_without_notification_uuid(self) -> None:
+        with self.options({"slack.nudge-frequency": 0.5}):
+            with patch("sentry.options.rollout.random.random", return_value=0.4):
+                assert (
+                    should_send_nudge_block(organization=self.organization, notification_uuid=None)
+                    is True
+                )
+            with patch("sentry.options.rollout.random.random", return_value=0.6):
+                assert (
+                    should_send_nudge_block(organization=self.organization, notification_uuid=None)
+                    is False
+                )

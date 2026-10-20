@@ -96,6 +96,24 @@ class TestGetRepoFromCodeMappings(TestCase):
         providers = {r["provider"] for r in repos}
         assert providers == {"integrations:github", "integrations:gitlab"}
 
+    def test_cursor_origin_repos_need_the_feature_flag(self) -> None:
+        project = self.create_project()
+        origin_repo = self.create_repo(
+            name="acme/rocket",
+            provider="integrations:cursor_origin",
+            external_id="r_01example",
+            integration_id=456,
+        )
+        self.create_code_mapping(project=project, repo=origin_repo)
+
+        assert get_autofix_repos_from_project_code_mappings(project) == []
+
+        with self.feature("organizations:seer-cursor-origin-support"):
+            repos = get_autofix_repos_from_project_code_mappings(project)
+        assert [(r["provider"], r["owner"], r["name"]) for r in repos] == [
+            ("integrations:cursor_origin", "acme", "rocket")
+        ]
+
     def test_filters_out_disabled_repos(self) -> None:
         project = self.create_project()
         active_repo = self.create_repo(

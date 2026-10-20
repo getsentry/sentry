@@ -207,7 +207,10 @@ describe('OrganizationMemberDetail', () => {
         },
       });
 
-      expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Remove'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('joins a team and assign a team-role', async () => {

@@ -1,6 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -11,6 +10,7 @@ import {
   useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -39,14 +39,12 @@ export function Breadcrumbs() {
   const clearSearchTerm = () => setSearchTerm('');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     overscan: 30,
   });
-
-  const virtualItems = virtualizer.getVirtualItems();
 
   // Derive visible range from virtual items for jump buttons
   // Filter to only items actually visible in the viewport (not overscan items)
@@ -115,7 +113,7 @@ export function Breadcrumbs() {
     autoScrollEnabled,
     currentTime,
     frames: items,
-    virtualizer: scrollContainerRef.current ? virtualizer : null,
+    virtualizer,
   });
 
   const handleShowSnipppet = useCallback((index: number) => {
@@ -146,8 +144,9 @@ export function Breadcrumbs() {
                 {t('No breadcrumbs recorded')}
               </NoRowRenderer>
             ) : (
-              <VirtualizedContent style={{height: virtualizer.getTotalSize()}}>
+              <VirtualizedContent style={{height: totalSize}}>
                 <VirtualOffset offset={virtualItems[0]?.start ?? 0}>
+                  {/* oxlint-disable-next-line react/refs */}
                   {virtualItems.map(virtualItem => {
                     const item = items[virtualItem.index]!;
                     return (

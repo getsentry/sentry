@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 describe('viewLogsSamplesTarget', () => {
   it('does not add a filter for an empty group by', () => {
@@ -46,6 +46,29 @@ describe('viewLogsSamplesTarget', () => {
     expect(target.query.aggregateField).toBe(location.query.aggregateField);
     expect(target.query.logsAggregateSortBys).toBe('-count(message)');
     expect(target.query.logsQuery).toBe('');
+  });
+
+  it('adds a boolean group by value to the samples query', () => {
+    const location = LocationFixture({
+      query: {
+        logsQuery: 'message:resolver.deprecated_function_used',
+      },
+    });
+    const target = viewLogsSamplesTarget({
+      location,
+      search: new MutableSearch('message:resolver.deprecated_function_used'),
+      fields: ['trace', 'message', 'timestamp'],
+      groupBys: ['tags[api_token_is_sentry_app,boolean]'],
+      visualizes: [new VisualizeFunction('count(message)')],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      row: {'tags[api_token_is_sentry_app,boolean]': true},
+      projects: [ProjectFixture()],
+    });
+
+    expect(target.query.mode).toBe('samples');
+    expect(target.query.logsQuery).toBe(
+      'message:resolver.deprecated_function_used tags[api_token_is_sentry_app,boolean]:true'
+    );
   });
 });
 

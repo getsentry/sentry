@@ -1,3 +1,6 @@
+import {IconCircle} from '@sentry/icons/circle';
+import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+
 import {Container} from '@sentry/scraps/layout';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 
@@ -5,7 +8,8 @@ import * as Storybook from 'sentry/stories';
 
 type ItemState = {disabled: boolean; isFocused: boolean; isSelected: boolean};
 
-const leadingItems = (state: ItemState) => (state.isSelected ? '✅' : '⬜');
+const leadingItems = ({isSelected}: ItemState) =>
+  isSelected ? <IconCircleCheckmark aria-hidden /> : <IconCircle aria-hidden />;
 
 export function StatesDemo() {
   return (

@@ -1,6 +1,7 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -9,8 +10,9 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
+import {CodeModeInput} from 'sentry/components/ai/toolDetails/codeModeInput';
+import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -18,31 +20,50 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {
+  EvaluationInputTab,
+  EvaluationOutputTab,
+} from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
+import {
+  MemoryInputTab,
+  MemoryOutputTab,
+} from 'sentry/views/explore/conversations/components/memorySpanTabs';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
+import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getCodeModeInput,
+  isCodeModeNode,
+} from 'sentry/views/insights/pages/agents/utils/codeMode';
+import {
+  getNodeEvaluation,
+  type Evaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {getNodeMemory} from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
 import {
   getDurationComparison,
   MIN_PCT_DURATION_DIFFERENCE,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
-import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
-import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
-import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/durationComparison';
+import {getHighlightedSpanAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/highlightedAttributes';
+import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
+import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {
   getAIInputMessages,
   getAIToolInput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {
   getAIOutputData,
   getAIToolOutput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AttributesContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
 
 const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
@@ -114,17 +135,31 @@ export function ConversationSpanDetail({
     projectId: eapValue ? eapValue.project_id.toString() : '',
     traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details',
+    referrer: 'api.explore.span-item-details',
     timestamp: eapValue?.start_timestamp,
     enabled: Boolean(eapValue),
   });
+  const attributes = data?.attributes;
+
+  // Memoized so the invalid-evaluation report fires once per span.
+  const evaluation = useMemo(
+    () => (node && !isAttributesLoading ? getNodeEvaluation(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
+  useInvalidEvaluationDetection(evaluation);
+
+  const memory = useMemo(
+    () => (node && !isAttributesLoading ? getNodeMemory(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
+
   if (isLoading || !node) {
     return <SpanDetailSkeleton embedded={embedded} />;
   }
 
-  const attributes = data?.attributes;
-
-  const title = node.op || node.description || t('Span');
+  // Memory spans share a generic span op in the trace waterfall, so name the
+  // heading after the operation to distinguish search, create, update, etc.
+  const title = memory?.operation || node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
     avgDuration,
@@ -170,7 +205,7 @@ export function ConversationSpanDetail({
         {isAttributesLoading ? (
           <SpanMetadataSkeleton />
         ) : (
-          <SpanMetadata node={node} attributes={attributes} />
+          <SpanMetadata node={node} attributes={attributes} evaluation={evaluation} />
         )}
       </Stack>
 
@@ -215,10 +250,29 @@ export function ConversationSpanDetail({
               `}
             >
               <TabPanels.Item key="input">
-                <InputTab node={node} attributes={attributes} />
+                {memory ? (
+                  <MemoryInputTab memory={memory} />
+                ) : evaluation?.rawInput ? (
+                  <EvaluationInputTab
+                    input={evaluation.input}
+                    raw={evaluation.rawInput}
+                  />
+                ) : (
+                  <InputTab node={node} attributes={attributes} />
+                )}
               </TabPanels.Item>
               <TabPanels.Item key="output">
-                <OutputTab node={node} attributes={attributes} />
+                {memory ? (
+                  <MemoryOutputTab memory={memory} />
+                ) : evaluation?.rawOutput ? (
+                  <EvaluationOutputTab
+                    answers={evaluation.answers}
+                    questions={evaluation.input?.questions}
+                    raw={evaluation.rawOutput}
+                  />
+                ) : (
+                  <OutputTab node={node} attributes={attributes} />
+                )}
               </TabPanels.Item>
               <TabPanels.Item key="attributes">
                 <AttributesTab node={node} attributes={attributes} />
@@ -234,8 +288,10 @@ export function ConversationSpanDetail({
 function SpanMetadata({
   node,
   attributes,
+  evaluation,
 }: {
   attributes: SpanAttributes;
+  evaluation: Evaluation | null;
   node: AITraceSpanNode;
 }) {
   const rows = getHighlightedSpanAttributes({
@@ -243,6 +299,18 @@ function SpanMetadata({
     spanId: node.id,
     attributes: attributes ?? node.attributes,
   });
+  // Skip the row when no answer has a short label to show.
+  if (evaluation?.answers?.some(answer => answer.kind !== 'invalid')) {
+    rows.push({
+      name: t('Result'),
+      value: (
+        <EvaluationResultSummary
+          answers={evaluation.answers}
+          questions={evaluation.input?.questions}
+        />
+      ),
+    });
+  }
 
   if (rows.length === 0) {
     return null;
@@ -281,6 +349,11 @@ function InputTab({
 }) {
   const {messages} = getAIInputMessages(node, attributes);
   const toolArgs = getAIToolInput(node, attributes);
+  const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
+
+  if (codeInput) {
+    return <CodeModeInput key={node.id} {...codeInput} />;
+  }
   const embeddingsInput = getTraceNodeAttribute(
     'gen_ai.embeddings.input',
     node,
@@ -337,14 +410,21 @@ function OutputTab({
     attributes
   );
   const toolOutput = getAIToolOutput(node, attributes);
+  const hasToolOutput = toolOutput !== undefined;
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
   const clipReasoning = Boolean(
-    responseText || responseObject || toolCalls || toolOutput
+    responseText || responseObject || toolCalls || hasToolOutput
   );
 
-  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
+  if (
+    !reasoningText &&
+    !responseText &&
+    !responseObject &&
+    !toolCalls &&
+    !hasToolOutput
+  ) {
     return <EmptyTab message={t('No output for this span')} />;
   }
 
@@ -405,13 +485,8 @@ function OutputTab({
           />
         </Fragment>
       ) : null}
-      {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON
-          key={`${node.id}:tool-output`}
-          value={toolOutput}
-          maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-        />
+      {hasToolOutput ? (
+        <ToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
       ) : null}
     </Fragment>
   );

@@ -33,7 +33,7 @@ describe('trace embed', () => {
     // expand into one — nor fetch the trace to try.
     const traceRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/trace/${traceId}/`,
-      body: {transactions: [], orphan_errors: []},
+      body: [],
     });
 
     renderEmbed({name: 'trace', data: {traceId, timestamp}});

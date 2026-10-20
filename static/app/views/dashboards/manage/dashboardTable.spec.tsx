@@ -14,6 +14,7 @@ import {
 
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 async function openRowActions(rowIndex: number) {
   await userEvent.click(screen.getAllByTestId('dashboard-actions')[rowIndex]!);
@@ -198,15 +199,20 @@ describe('Dashboards - DashboardTable', () => {
     renderGlobalModal();
 
     await openRowActions(1);
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Delete Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    await userEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
-    );
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        (_, element) =>
+          element?.textContent ===
+          'Are you sure you want to delete the Dashboard 2 dashboard?'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', {name: /confirm/i}));
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
@@ -227,9 +233,7 @@ describe('Dashboards - DashboardTable', () => {
     renderGlobalModal();
 
     await openRowActions(1);
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Duplicate Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     expect(createMock).not.toHaveBeenCalled();
 
@@ -262,9 +266,7 @@ describe('Dashboards - DashboardTable', () => {
     renderGlobalModal();
 
     await openRowActions(1);
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Duplicate Dashboard'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     expect(postMock).not.toHaveBeenCalled();
 
@@ -308,6 +310,122 @@ describe('Dashboards - DashboardTable', () => {
       await screen.findByRole('heading', {name: 'View Permissions'})
     ).toBeInTheDocument();
     expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
+  });
+
+  // Kept deliberately in step with the dashboard detail page, so the same
+  // dashboard offers its actions in the same order wherever it is acted on.
+  it('orders its actions the same way the detail page does', async () => {
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={dashboards}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    await openRowActions(1);
+    await screen.findByRole('menuitemradio', {name: 'Rename'});
+
+    expect(
+      screen.getAllByRole('menuitemradio').map(item => item.textContent?.trim())
+    ).toEqual(['Rename', 'Duplicate', 'View Permissions', 'Delete']);
+  });
+
+  it('offers neither rename nor delete on a prebuilt dashboard', async () => {
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={[
+          DashboardListItemFixture({
+            id: '4',
+            title: 'Web Vitals',
+            prebuiltId: PrebuiltDashboardId.WEB_VITALS,
+          }),
+        ]}
+        location={location}
+        isOnlyPrebuilt
+      />
+    );
+
+    await openRowActions(0);
+
+    // The endpoint refuses both on a prebuilt dashboard, so neither is offered
+    // rather than one being hidden and the other shown but disabled.
+    expect(await screen.findByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
+  });
+
+  it('hides the actions that write to a dashboard without edit access', async () => {
+    const organizationWithoutAdmin = OrganizationFixture({
+      access: ['org:read'],
+      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithoutAdmin}
+        dashboards={[
+          DashboardListItemFixture({
+            id: '3',
+            title: 'Someone Elses Dashboard',
+            createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+          }),
+        ]}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    await openRowActions(0);
+
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
+    // Duplicating writes a new dashboard rather than changing this one.
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+    ).toBeInTheDocument();
+  });
+
+  it('renames a dashboard from the row actions menu', async () => {
+    const renameMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/',
+      method: 'PUT',
+      body: {id: '2', title: 'Renamed Dashboard'},
+    });
+    const onDashboardsChange = jest.fn();
+
+    render(
+      <DashboardTable
+        onDashboardsChange={onDashboardsChange}
+        organization={organization}
+        dashboards={dashboards}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    renderGlobalModal();
+
+    await openRowActions(1);
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
+
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.clear(within(dialog).getByRole('textbox'));
+    await userEvent.type(within(dialog).getByRole('textbox'), 'Renamed Dashboard');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(renameMock).toHaveBeenCalled());
+    expect(renameMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/2/',
+      expect.objectContaining({method: 'PUT', data: {title: 'Renamed Dashboard'}})
+    );
+    await waitFor(() => expect(onDashboardsChange).toHaveBeenCalled());
   });
 
   it('renders favorite column', async () => {

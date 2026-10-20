@@ -38,8 +38,15 @@ describe('WidgetBuilderXAxisSelector', () => {
     });
   });
 
-  function renderSelector() {
-    return render(<WidgetBuilderXAxisSelector />, {
+  it('fetches attributes from the server while typing', async () => {
+    const searchAttributesMock = MockApiClient.addMockResponse({
+      url: ATTRIBUTES_URL,
+      method: 'GET',
+      body: [cappedAttribute, genAiAttribute],
+      match: [MockApiClient.matchQuery({substringMatch: 'gen_ai'})],
+    });
+
+    render(<WidgetBuilderXAxisSelector />, {
       organization,
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -53,17 +60,6 @@ describe('WidgetBuilderXAxisSelector', () => {
         route: DASHBOARD_WIDGET_BUILDER_ROUTE,
       },
     });
-  }
-
-  it('fetches attributes from the server while typing', async () => {
-    const searchAttributesMock = MockApiClient.addMockResponse({
-      url: ATTRIBUTES_URL,
-      method: 'GET',
-      body: [cappedAttribute, genAiAttribute],
-      match: [MockApiClient.matchQuery({substringMatch: 'gen_ai'})],
-    });
-
-    renderSelector();
 
     expect(await screen.findByText('X-Axis')).toBeInTheDocument();
 

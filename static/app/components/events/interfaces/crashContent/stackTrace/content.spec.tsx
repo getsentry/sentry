@@ -89,6 +89,34 @@ describe('StackTrace', () => {
     expect(frameFunction[4]).toHaveTextContent('build_msg');
   });
 
+  it.each(['matching', 'missing'] as const)(
+    'shows the full filename when the absolute path is %s',
+    async absolutePath => {
+      const filename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          event={event}
+          data={{
+            ...data,
+            frames: [
+              {
+                ...data.frames[0]!,
+                filename,
+                absPath: absolutePath === 'matching' ? filename : null,
+              },
+            ],
+          }}
+        />
+      );
+
+      await userEvent.hover(screen.getByTestId('filename'));
+      expect(
+        await screen.findByText(filename, {selector: '[data-tooltip]'})
+      ).toBeVisible();
+    }
+  );
+
   it('collapse/expand frames by clicking anywhere in the frame element', async () => {
     render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 

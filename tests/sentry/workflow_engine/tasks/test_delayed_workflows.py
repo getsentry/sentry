@@ -284,7 +284,7 @@ class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
                 "sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"
             ) as mock_fire,
             patch(
-                "sentry.workflow_engine.processors.delayed_workflow.emit_workflow_evaluation_logs"
+                "sentry.workflow_engine.processors.delayed_workflow.emit_evaluations"
             ) as mock_emit,
         ):
             process_delayed_workflows(self.batch_client, self.project.id)
@@ -293,6 +293,7 @@ class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
         mock_emit.assert_called_once()
         result = mock_emit.call_args.kwargs["result"]
         assert isinstance(result, DelayedWorkflowEvaluationResult)
+        assert result.project_id == self.project.id
         assert result.artifacts[0].evaluation_phase == EvaluationPhase.DELAYED
 
         final_data = project_client.get_hash_data(batch_key=None)

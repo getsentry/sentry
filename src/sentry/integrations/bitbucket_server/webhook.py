@@ -1,7 +1,10 @@
+import hashlib
+import hmac
 import logging
 from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime, timezone
+from enum import StrEnum
 from typing import Any
 
 import orjson
@@ -12,6 +15,7 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint
@@ -24,16 +28,43 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
+from sentry.utils import metrics
 from sentry.web.frontend.base import cell_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
 
 PROVIDER_NAME = "integrations:bitbucket_server"
+
+
+class SignatureResult(StrEnum):
+    VALID = "valid"
+    INVALID = "invalid"
+    # the repo has a secret but the delivery isn't signed
+    MISSING = "missing"
+    # the delivery is signed but the repo has no secret to check it against
+    UNVERIFIABLE = "unverifiable"
+    UNSIGNED = "unsigned"
+
+
+def check_signature(
+    body: bytes, secret: str | None, signature_header: str | None
+) -> SignatureResult:
+    """Checks an ``X-Hub-Signature: sha256=<hex>`` header against the repo's webhook secret."""
+    if not secret:
+        return SignatureResult.UNVERIFIABLE if signature_header else SignatureResult.UNSIGNED
+    if not signature_header:
+        return SignatureResult.MISSING
+
+    method, _, signature = signature_header.partition("=")
+    expected = hmac.new(secret.encode("utf-8"), msg=body, digestmod=hashlib.sha256).hexdigest()
+    if method == "sha256" and hmac.compare_digest(expected.encode(), signature.encode()):
+        return SignatureResult.VALID
+    return SignatureResult.INVALID
 
 
 class BitbucketServerWebhook(SCMWebhook, ABC):
@@ -62,24 +93,15 @@ class PushEventWebhook(BitbucketServerWebhook):
         if not (
             (organization := kwargs.get("organization"))
             and (integration_id := kwargs.get("integration_id"))
+            and (repo := kwargs.get("repo"))
         ):
-            raise ValueError("Organization and integration_id must be provided")
+            raise ValueError("Organization, integration_id and repo must be provided")
 
         with IntegrationWebhookEvent(
             interaction_type=self.event_type,
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
             provider_key=self.provider,
         ).capture() as lifecycle:
-            try:
-                repo = Repository.objects.get(
-                    organization_id=organization.id,
-                    provider=PROVIDER_NAME,
-                    external_id=str(event["repository"]["id"]),
-                )
-            except Repository.DoesNotExist as e:
-                lifecycle.record_halt(halt_reason=e)
-                raise Http404()
-
             provider = repo.get_provider()
             try:
                 installation = provider.get_installation(integration_id, organization.id)
@@ -122,7 +144,7 @@ class PushEventWebhook(BitbucketServerWebhook):
                     author_email = commit["author"]["emailAddress"]
 
                     # its optional, lets just throw it out for now
-                    if author_email is None or len(author_email) > 75:
+                    if author_email is None or len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                         author = None
                     elif author_email not in authors:
                         authors[author_email] = author = CommitAuthor.objects.get_or_create(
@@ -215,9 +237,52 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             )
             return HttpResponse(status=400)
 
+        try:
+            external_id = str(event["repository"]["id"])
+        except (KeyError, TypeError):
+            logger.warning(
+                "%s.webhook.missing-repository",
+                PROVIDER_NAME,
+                extra={"organization_id": organization.id, "integration_id": integ_id},
+            )
+            return HttpResponse(status=400)
+
+        try:
+            repo = Repository.objects.get(
+                organization_id=organization.id,
+                provider=PROVIDER_NAME,
+                external_id=external_id,
+                integration_id=integ_id,
+            )
+        except Repository.DoesNotExist:
+            raise Http404()
+
+        signature_result = check_signature(
+            body, repo.config.get("webhook_secret"), request.META.get("HTTP_X_HUB_SIGNATURE")
+        )
+        metrics.incr(
+            "bitbucket_server.webhook.signature",
+            tags={"result": signature_result},
+            sample_rate=1.0,
+        )
+        if signature_result != SignatureResult.VALID and options.get(
+            "bitbucket_server.webhook.signature-enforcement.enabled"
+        ):
+            logger.warning(
+                "%s.webhook.rejected-signature",
+                PROVIDER_NAME,
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integ_id,
+                    "repository_id": repo.id,
+                    "result": signature_result,
+                },
+            )
+            return HttpResponse(status=401)
+
         event_handler = handler()
 
         with webhook_viewer_context(organization.id):
-            event_handler(event, organization=organization, integration_id=integ_id)
+            event_handler(event, organization=organization, integration_id=integ_id, repo=repo)
 
         return HttpResponse(status=204)

@@ -231,11 +231,7 @@ def _resolve_message_content(msg: RawMessage, role: str) -> Any:
         return _collapse_parts(msg["parts"])
 
     content = _try_parse_json_recursive(msg.get("content"))
-    return content if role == "tool" else _render_text_content(content)
-
-
-def _render_text_content(content: Any) -> Any:
-    if isinstance(content, list):
+    if role != "tool" and isinstance(content, list):
         return _extract_text_from_content_parts(content)
     return content
 

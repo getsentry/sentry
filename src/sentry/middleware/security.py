@@ -5,6 +5,8 @@ from rest_framework.response import Response
 
 from sentry.utils import json
 
+TRUSTED_TYPES_HEADER = "Content-Security-Policy-Report-Only"
+
 
 class SecurityHeadersMiddleware(MiddlewareMixin):
     """
@@ -16,6 +18,8 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
             response.setdefault("X-Frame-Options", "deny")
         response.setdefault("X-Content-Type-Options", "nosniff")
         response.setdefault("X-XSS-Protection", "1; mode=block")
+
+        self.add_trusted_types_header(response)
 
         # Add COOP and Report-To headers if COOP_ENABLED
         if getattr(settings, "COOP_ENABLED", False):
@@ -41,3 +45,22 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
                 )
 
         return response
+
+    def add_trusted_types_header(self, response: Response) -> None:
+        if not getattr(settings, "TRUSTED_TYPES_ENABLED", False):
+            return
+
+        if getattr(settings, "CSP_REPORT_ONLY", False):
+            return
+
+        directives = ["require-trusted-types-for 'script'"]
+
+        policies = getattr(settings, "TRUSTED_TYPES_POLICIES", [])
+        if policies:
+            directives.append("trusted-types " + " ".join(policies))
+
+        report_uri = getattr(settings, "TRUSTED_TYPES_REPORT_URI", None)
+        if report_uri:
+            directives.append(f"report-uri {report_uri}")
+
+        response[TRUSTED_TYPES_HEADER] = "; ".join(directives)

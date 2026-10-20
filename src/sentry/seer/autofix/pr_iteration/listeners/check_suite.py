@@ -3,6 +3,7 @@ import logging
 import orjson
 import sentry_sdk
 from pydantic import ValidationError
+from sentry_sdk import traces
 
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
@@ -33,19 +34,18 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
+    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.utils import metrics
-from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
 
-@trace
+@traces.trace
 def _retrigger_deferred_iteration(
     log_ctx: PrIterationLogContext, resolved: ResolvedGreenCheckSuite
 ) -> None:
@@ -125,32 +125,44 @@ def _retrigger_deferred_iteration(
 
 
 @scm_event_stream.listen_for(event_type="check_suite")
-def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
-    with (
-        sentry_sdk.isolation_scope(),
-        start_span(
+def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent) -> None:
+    """Drop suites we can't act on, then queue the rest for a task that can retry."""
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.check_suite_listener",
-            op="function",
-            transaction=True,
-        ),
-    ):
-        return _handle_check_suite_event(check_suite_event)
+            attributes={"sentry.op": "function"},
+            parent_span=None,
+        ):
+            if check_suite_event.action != "completed":
+                return None
+
+            conclusion = check_suite_event.check_suite["conclusion"]
+            is_green = conclusion in GREEN_CONCLUSIONS
+            if not is_green and conclusion not in FAILURE_CONCLUSIONS:
+                return None
+
+            # Drop suites nobody behind the installation can act on
+            gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
+            if not resolve_check_suite_flag_gate(
+                check_suite_event, gate_flags
+            ).flagged_organization_ids:
+                return None
+
+            # Lazy: the task module can't load while this listener registers in AppConfig.ready.
+            from sentry.scm.private.ipc import serialize_check_suite_event
+            from sentry.tasks.seer.pr_iteration import process_pr_iteration_check_suite
+
+            process_pr_iteration_check_suite.delay(
+                event_data=serialize_check_suite_event(check_suite_event)
+            )
+            return None
 
 
-def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):
-    if check_suite_event.action != "completed":
-        return None
-
+def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
+    """Act on a suite the listener let through; run by ``process_pr_iteration_check_suite``."""
     conclusion = check_suite_event.check_suite["conclusion"]
     is_green = conclusion in GREEN_CONCLUSIONS
-
-    if not is_green and conclusion not in FAILURE_CONCLUSIONS:
-        return None
-
-    # Drop suites nobody behind the installation can act on
-    gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
-    if not resolve_check_suite_flag_gate(check_suite_event, gate_flags).flagged_organization_ids:
-        return None
 
     if is_green:
         resolved = resolve_green_check_suite(check_suite_event)
@@ -242,13 +254,11 @@ def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):
         group_id=autofix_run.group_id,
     )
 
-    # Report failures here rather than only in the SCM event stream so they
-    # are searchable under the PR-iteration identity. Swallow so
-    # ``exec_listener`` does not emit a second Sentry event of the same
-    # failure; increment the metric so a counter still exists after the SCM
-    # ``run_listener.failed`` tag goes quiet.
+    # Report failures here so they are searchable under the PR-iteration
+    # identity, and swallow them so the task worker does not report the same
+    # failure a second time.
     try:
-        enqueued = try_enqueue_autofix_feedback(
+        enqueue_autofix_feedback(
             log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
@@ -257,12 +267,6 @@ def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):
             referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
             run_state=agent_state,
         )
-        if not enqueued:
-            # Feedback is rejected for a stale head or for the iteration hard cap.
-            # In the cap case the run would otherwise just go quiet, so hand the PR
-            # to a human instead (the handler re-checks which case applies).
-            assign_user_for_exhausted_cap(source.event, autofix_run)
-            return None
 
         # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
         # a delayed consume rather than dropping the scheduled task entirely). It logs
@@ -273,13 +277,17 @@ def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):
         # stream.py is loaded in AppConfig.ready before options init.
         from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 
-        trigger_consume_pr_iteration_feedback(
+        decision = trigger_consume_pr_iteration_feedback(
             log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
             feedback=feedback,
             run_state=agent_state,
         )
+        if decision.task is None and decision.reason == "hard_cap_reached":
+            # Nothing will drain this suite and the run would otherwise just go
+            # quiet, so hand the PR to a human instead.
+            assign_user_for_exhausted_cap(source.event, autofix_run)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(

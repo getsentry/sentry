@@ -79,7 +79,7 @@ function setupMocks() {
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/explore/saved/',
+    url: '/organizations/org-slug/explore/all-queries/',
     body: [],
   });
   MockApiClient.addMockResponse({
@@ -96,6 +96,40 @@ describe('mobile navigation', () => {
 
   afterEach(() => {
     document.getElementById('main')?.remove();
+  });
+
+  it('navigates account settings without an organization', async () => {
+    document.getElementById('main')?.remove();
+
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: null,
+        initialRouterConfig: {location: {pathname: '/settings/account/details/'}},
+      }
+    );
+
+    expect(
+      screen.queryByRole('button', {name: 'Command Palette'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+
+    const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+    expect(within(secondaryNav).getAllByRole('link')).toHaveLength(10);
+    await userEvent.click(within(secondaryNav).getByRole('link', {name: 'Security'}));
+    expect(router.location.pathname).toBe('/settings/account/security/');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close main menu'}));
+    expect(
+      screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Email Addresses'}));
+    expect(router.location.pathname).toBe('/settings/account/emails/');
   });
 
   describe('accessibility', () => {

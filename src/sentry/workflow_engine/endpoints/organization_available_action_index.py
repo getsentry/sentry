@@ -35,6 +35,7 @@ from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import (
     get_available_action_integrations_for_org,
     get_integration_services,
+    is_action_permitted,
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
@@ -161,6 +162,11 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             ActionHandlerSerializer(),
                             action_type=action_type,
                             integrations=integrations,
+                            disabled_reason=(
+                                None
+                                if is_action_permitted(Action.Type(action_type), organization)
+                                else "plan"
+                            ),
                         )
                     )
 

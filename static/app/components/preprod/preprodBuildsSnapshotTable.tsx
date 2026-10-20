@@ -1,14 +1,14 @@
 import type {ReactNode} from 'react';
+import {IconCommit} from '@sentry/icons/commit';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   BuildDetailsApiResponse,

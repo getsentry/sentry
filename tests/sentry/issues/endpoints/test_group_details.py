@@ -177,9 +177,15 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         comments_url = f"/api/0/issues/{group.id}/comments/"
         response = self.client.post(comments_url, format="json", data={"text": "original"})
         assert response.status_code == 201, response.content
-        activity_id = response.data["data"]["comment_id"]
+        comment_id = response.data["commentId"]
+        entry = GroupActionLogEntry.objects.get(
+            group_id=group.id, type=GroupActionType.COMMENT.value
+        )
+        entry_id = str(entry.id)
+        assert response.data["id"] == entry_id
+        assert int(comment_id) == entry.data["comment_id"]
 
-        # Put the comment at the oldest edge of the 99-entry action-log window.
+        # Put the comment at the oldest edge of the 99-item mixed feed.
         for _ in range(98):
             self.create_group_action_log_entry(group=group, type=GroupActionType.RESOLVE)
 
@@ -190,40 +196,34 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         notes = [item for item in response.data["activity"] if item["type"] == "note"]
         assert len(notes) == 1
-        note_id = notes[0]["commentId"]
-        assert note_id == str(activity_id)
-        assert notes[0]["id"] == note_id
-
-        entry = GroupActionLogEntry.objects.get(
-            group_id=group.id, type=GroupActionType.COMMENT.value
-        )
-        assert entry.data["comment_id"] == activity_id
+        assert notes[0]["commentId"] == comment_id
+        assert notes[0]["id"] == comment_id
 
         # the comment reference served by the feed round-trips through edit ...
         response = self.client.put(
-            f"{comments_url}{note_id}/", format="json", data={"text": "edited"}
+            f"{comments_url}{comment_id}/", format="json", data={"text": "edited"}
         )
         assert response.status_code == 200, response.content
-        assert response.data["id"] == note_id
-        assert response.data["commentId"] == note_id
+        assert response.data["id"] == entry_id
+        assert response.data["commentId"] == comment_id
         assert response.data["data"]["text"] == "edited"
 
-        # ... the feed folds the appended COMMENT_EDIT back into the comment ...
+        # ... the feed reads the updated Activity without folding COMMENT_EDIT ...
         response = self.client.get(details_url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data["activity"]) == 100
-        assert response.data["activity"][-2]["id"] == note_id
+        assert response.data["activity"][-2]["id"] == comment_id
         notes = [item for item in response.data["activity"] if item["type"] == "note"]
         assert len(notes) == 1
-        assert notes[0]["id"] == note_id
-        assert notes[0]["commentId"] == note_id
+        assert notes[0]["id"] == comment_id
+        assert notes[0]["commentId"] == comment_id
         assert notes[0]["data"]["text"] == "edited"
 
         # ... and delete
-        response = self.client.delete(f"{comments_url}{note_id}/", format="json")
+        response = self.client.delete(f"{comments_url}{comment_id}/", format="json")
         assert response.status_code == 204, response.status_code
 
-        # ... after which the COMMENT_DELETE drops the comment from the feed
+        # ... after which the deleted Activity is absent from the feed.
         response = self.client.get(details_url, format="json")
         assert response.status_code == 200, response.content
         assert [item for item in response.data["activity"] if item["type"] == "note"] == []
@@ -232,19 +232,52 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_group_action_log_served_when_enabled(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group,
+                type=ActivityType.NOTE.value,
+                user_id=self.user.id,
+                data={"text": "current text"},
+            )
         self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
-            data={"comment_id": 123, "text": "hello world"},
+            data={"comment_id": note.id, "text": "stale text"},
+            idempotency_key=f"activity:{note.id}",
+            source="web",
         )
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        with mock.patch.object(Activity.objects, "get_activities_for_group") as get_activity:
+            response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        get_activity.assert_not_called()
+
+        assert [item["type"] for item in response.data["activity"]] == ["note", "first_seen"]
+        assert response.data["activity"][0]["id"] == str(note.id)
+        assert response.data["activity"][0]["data"]["text"] == "current text"
+        assert response.data["activity"][0]["source"] == "web"
+
+    @action_log_activity_enabled()
+    def test_group_action_log_empty_falls_back_to_activity(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group,
+                type=ActivityType.NOTE.value,
+                user_id=self.user.id,
+                data={"text": "legacy comment"},
+            )
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-
         assert [item["type"] for item in response.data["activity"]] == ["note", "first_seen"]
+        assert response.data["activity"][0]["commentId"] == str(note.id)
+        assert response.data["activity"][0]["data"]["text"] == "legacy comment"
 
     def test_group_action_log_ignored_when_disabled(self) -> None:
         self.login_as(user=self.user)
@@ -349,7 +382,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"url": "https://example.com/browse/api-123", "displayName": "api-123"}
         ]
         mock_integration_service.get_integrations.assert_called_once_with(
-            organization_id=group.organization.id
+            organization_id=group.organization.id, integration_ids=[integration.id]
         )
 
     def test_permalink_superuser(self) -> None:
@@ -518,6 +551,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
+        self._options_ctx = self.options(
+            {"issues.derived_data.status_reconciliation.enabled": True}
+        )
+        self._options_ctx.__enter__()
+        self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
         self.login_as(user=self.user)
 
     def _get(self, group: Group) -> None:
@@ -528,8 +566,12 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
-    def test_diverged_closed_logs_and_skips_action(
-        self, mock_logger: mock.MagicMock, mock_metrics: mock.MagicMock
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_diverged_closed_logs_and_dispatches_reconcile(
+        self,
+        mock_apply_async: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
     ) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         self.create_group_derived_data(group=group, data={"status": "open"})
@@ -538,6 +580,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_apply_async.assert_called_once_with(kwargs={"group_id": group.id}, countdown=5 * 60)
         mock_logger.info.assert_called_once_with(
             "issues.status_reconciliation.diverged",
             extra={
@@ -562,8 +605,12 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
-    def test_diverged_open_logs_and_skips_action(
-        self, mock_logger: mock.MagicMock, mock_metrics: mock.MagicMock
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_diverged_open_logs_and_dispatches_reconcile(
+        self,
+        mock_apply_async: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
     ) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         self.create_group_derived_data(group=group, data={"status": "closed"})
@@ -572,6 +619,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_apply_async.assert_called_once_with(kwargs={"group_id": group.id}, countdown=5 * 60)
         mock_logger.info.assert_called_once_with(
             "issues.status_reconciliation.diverged",
             extra={
@@ -595,7 +643,10 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
-    def test_aligned_status_skips(self, mock_metrics: mock.MagicMock) -> None:
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_aligned_status_skips(
+        self, mock_apply_async: mock.MagicMock, mock_metrics: mock.MagicMock
+    ) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
         self.create_group_derived_data(group=group, data={"status": "closed"})
 
@@ -603,11 +654,38 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_apply_async.assert_not_called()
         mock_metrics.incr.assert_any_call(
             "issues.status_reconciliation.checked",
             sample_rate=1.0,
             tags={"result": "aligned", "source": "read_path"},
         )
+
+    @override_options({"issues.derived_data.status_reconciliation.enabled": False})
+    @with_feature("projects:issue-status-reconciliation")
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_disabled_reconciliation_does_not_schedule(
+        self, mock_apply_async: mock.MagicMock
+    ) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
+        self.create_group_derived_data(group=group, data={"status": "open"})
+
+        self._get(group)
+
+        mock_apply_async.assert_not_called()
+
+    @with_feature("projects:issue-status-reconciliation")
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
+    def test_derived_not_expected_correct_does_not_schedule(
+        self, mock_apply_async: mock.MagicMock
+    ) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
+        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
+        self.create_group_derived_data(group=group, data={"status": "open"})
+
+        self._get(group)
+
+        mock_apply_async.assert_not_called()
 
     @with_feature("projects:issue-status-reconciliation")
     def test_no_derived_data_skips(self) -> None:
@@ -673,6 +751,37 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
 
 class GroupUpdateTest(APITestCase):
+    def test_invalid_request_body(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        for url in (
+            f"/api/0/issues/{group.id}/",
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+        ):
+            for data in ("null", "[]", '"invalid"', "0", "false"):
+                response = self.client.put(url, data=data, content_type="application/json")
+
+                assert response.status_code == 400, response.content
+                assert "non_field_errors" in response.data
+                group.refresh_from_db()
+                assert group.status == GroupStatus.UNRESOLVED
+
+    def test_empty_request_body(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        for url in (
+            f"/api/0/issues/{group.id}/",
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+        ):
+            for data in ("", "{}"):
+                response = self.client.put(url, data=data, content_type="application/json")
+
+                assert response.status_code == 200, response.content
+                group.refresh_from_db()
+                assert group.status == GroupStatus.UNRESOLVED
+
     def test_resolve(self) -> None:
         self.login_as(user=self.user)
 
@@ -1067,11 +1176,21 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=True
         ).exists()
 
+        resp = self.client.get(url)
+        assert resp.status_code == 200, resp.content
+        assert [(user["id"], user["type"]) for user in resp.data["participants"]] == [
+            (str(self.user.id), "user")
+        ]
+
         resp = self.client.put(url, data={"isSubscribed": "false"})
         assert resp.status_code == 200, resp.content
         assert GroupSubscription.objects.filter(
             user_id=self.user.id, group=group, is_active=False
         ).exists()
+
+        resp = self.client.get(url)
+        assert resp.status_code == 200, resp.content
+        assert resp.data["participants"] == []
 
     def test_discard(self) -> None:
         self.login_as(user=self.user)

@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type {To} from 'react-router-dom';
+import type {To} from 'react-router';
 import {
   closestCenter,
   DndContext,
@@ -29,6 +29,9 @@ import {CSS} from '@dnd-kit/utilities';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
@@ -40,7 +43,6 @@ import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {IconChevron, IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -49,7 +51,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_HEADER_HEIGHT,
@@ -272,20 +273,16 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       columns="1fr auto"
       align="center"
       borderBottom="primary"
-      height={
-        isMobile ? `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px` : `${PRIMARY_HEADER_HEIGHT}px`
-      }
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding={isMobile ? 'md lg' : '0 md 0 xl'}
     >
-      <div>
-        <Text size="md" bold>
-          {props.children}
-        </Text>
-      </div>
+      <Text size="md" bold>
+        {props.children}
+      </Text>
       <div>
         {isMobile ? (
           <Button
-            size="xs"
+            size="sm"
             icon={<IconClose />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
@@ -293,7 +290,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
           />
         ) : (
           <Button
-            size="xs"
+            size="sm"
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
@@ -416,7 +413,7 @@ function SecondaryNavigationLink({
   onClick,
   ...linkProps
 }: SecondaryNavigationItemProps) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const location = useLocation();
   const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =

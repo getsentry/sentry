@@ -28,8 +28,10 @@ const getSpanFieldDefinition = (key: string) => {
 function ArithmeticBuilderWrapper({
   expression,
   references,
+  menuPresentation,
 }: {
   expression: string;
+  menuPresentation?: 'floating' | 'panel';
   references?: Set<string>;
 }) {
   return (
@@ -39,6 +41,7 @@ function ArithmeticBuilderWrapper({
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       references={references}
+      menuPresentation={menuPresentation}
     />
   );
 }
@@ -335,4 +338,60 @@ describe('ArithmeticBuilder', () => {
       );
     }).toThrow('Invalid reference: !invalid');
   });
+
+  it('keeps suggestions in the same panel as the input', async () => {
+    render(<ArithmeticBuilderWrapper expression="" menuPresentation="panel" />);
+
+    const panel = screen.getByTestId('arithmetic-builder-panel');
+    await userEvent.click(screen.getByTestId('arithmetic-builder-input'));
+
+    const listbox = await screen.findByRole('listbox');
+    expect(panel).toContainElement(listbox);
+    expect(panel).toContainElement(screen.getByTestId('arithmetic-builder-input'));
+  });
+
+  it('closes equation suggestions when focusing another token in panel mode', async () => {
+    render(
+      <ArithmeticBuilderWrapper
+        expression="avg(span.duration)"
+        menuPresentation="panel"
+      />
+    );
+
+    const trailingInput = screen.getAllByRole('combobox', {name: 'Add a term'}).at(-1)!;
+    await userEvent.click(trailingInput);
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('combobox', {name: 'Select an attribute', hidden: true})
+    );
+
+    expect(screen.getAllByRole('listbox')).toHaveLength(1);
+  });
+
+  it.each(['padding', 'gap'])(
+    'preserves equation editing when clicking panel %s',
+    async target => {
+      render(<ArithmeticBuilderWrapper expression="" menuPresentation="panel" />);
+
+      const input = screen.getByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg');
+      const option = await screen.findByRole('option', {name: 'avg'});
+
+      const panel = screen.getByTestId('arithmetic-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('avg');
+      expect(option).toBeInTheDocument();
+
+      await userEvent.click(option);
+      expect(
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
+      ).toBeInTheDocument();
+    }
+  );
 });

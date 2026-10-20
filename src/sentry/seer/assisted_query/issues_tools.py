@@ -3,13 +3,16 @@ import re
 from typing import Any
 
 from sentry.api.client import ApiClient, ApiError
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team, TeamStatus
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.public_caller import public_caller_restricted, scope_projects
 from sentry.seer.sentry_data_models import (
     ExecuteIssuesQuerySuccessResponse,
     ExecuteQueryErrorResponse,
@@ -260,10 +263,11 @@ def _get_release_values(organization: Organization, project_ids: list[int]) -> l
 
     Returns a list of recent release versions for the organization/projects.
     """
-    queryset = Release.objects.filter(organization=organization)
+    project_filter: dict[str, Any] = {"projects__status": ObjectStatus.ACTIVE}
+    if project_ids and ALL_ACCESS_PROJECT_ID not in project_ids:
+        project_filter["projects__id__in"] = project_ids
 
-    if project_ids:
-        queryset = queryset.filter(projects__id__in=project_ids)
+    queryset = Release.objects.filter(organization=organization, **project_filter)
 
     # Get most recent releases
     versions = queryset.order_by("-date_added").values_list("version", flat=True).distinct()[:50]
@@ -307,7 +311,7 @@ def _get_built_in_field_values(
     Args:
         attribute_key: The built-in field key (e.g., "is", "issue.priority", "assigned_or_suggested")
         organization: Organization instance
-        project_ids: List of project IDs to query
+        project_ids: List of project IDs to query. An empty list queries all accessible projects.
         tag_keys: Optional list of tag keys (used for 'has' field)
 
     Returns:
@@ -357,7 +361,7 @@ def _get_built_in_issue_fields(
 
     Args:
         organization: Organization instance
-        project_ids: List of project IDs to query
+        project_ids: List of project IDs to query. An empty list queries all accessible projects.
         tag_keys: List of tag keys from the tags API (used for 'has' field values)
 
     Returns:
@@ -438,7 +442,7 @@ def get_issue_filter_keys(
 
     Args:
         org_id: Organization ID
-        project_ids: List of project IDs to query
+        project_ids: List of project IDs to query. An empty list queries all accessible projects.
         stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
         start: Start date for the query (ISO string). Must be provided with end.
         end: End date for the query (ISO string). Must be provided with start.
@@ -456,10 +460,15 @@ def get_issue_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return IssueFilterKeysResponse(tags=[], feature_flags=[], built_in_fields=[])
+    project_ids = scoped.project_ids or []
+
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     base_params: dict[str, Any] = {
-        "project": project_ids,
+        "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         "referrer": Referrer.SEER_RPC,
     }
     if stats_period:
@@ -547,7 +556,7 @@ def get_filter_key_values(
 
     Args:
         org_id: Organization ID
-        project_ids: List of project IDs to query
+        project_ids: List of project IDs to query. An empty list queries all accessible projects.
         attribute_key: The attribute/tag key to get values for (e.g., "is", "issue.priority", "organization.slug")
         substring: Optional substring to filter values. Only values containing this substring will be returned.
         stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
@@ -567,6 +576,11 @@ def get_filter_key_values(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
+
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return FilterKeyValuesResponse(__root__=[])
+    project_ids = scoped.project_ids or []
 
     # Check if this is a built-in field first
     # For 'has' field, we need to get tag keys first
@@ -592,7 +606,7 @@ def get_filter_key_values(
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     base_params: dict[str, Any] = {
-        "project": project_ids,
+        "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         "sort": "-count",
         "referrer": Referrer.SEER_RPC,
     }
@@ -681,7 +695,7 @@ def execute_issues_query(
 
     Args:
         org_id: Organization ID
-        project_ids: List of project IDs to query
+        project_ids: List of project IDs to query. An empty list queries all accessible projects.
         query: Search query string (e.g., "is:unresolved")
         stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
         start: Start date for the query (ISO string). Must be provided with end.
@@ -698,11 +712,16 @@ def execute_issues_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return ExecuteIssuesQuerySuccessResponse(__root__=[])
+    project_ids = scoped.project_ids or []
+
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     params: dict[str, Any] = {
         "query": query,
-        "project": project_ids,
+        "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         "limit": limit,
         "collapse": ["stats", "unhandled"],
         "shortIdLookup": 1,
@@ -724,7 +743,19 @@ def execute_issues_query(
             path=f"/organizations/{organization.slug}/issues/",
             params=params,
         )
-        return ExecuteIssuesQuerySuccessResponse(__root__=resp.data)
+        # shortIdLookup resolves with project_ids=None and then keeps every issue
+        # the synthetic org key can see, which is the whole org. Drop anything
+        # outside the caller's projects.
+        data = resp.data
+        if public_caller_restricted() and isinstance(data, list):
+            allowed = {str(project_id) for project_id in project_ids}
+            data = [
+                issue
+                for issue in data
+                if isinstance(issue, dict)
+                and str((issue.get("project") or {}).get("id")) in allowed
+            ]
+        return ExecuteIssuesQuerySuccessResponse(__root__=data)
     except ApiError as e:
         if e.status_code == 400:
             detail = e.body.get("detail") if isinstance(e.body, dict) else None
@@ -756,7 +787,7 @@ def get_issues_stats(
     Args:
         org_id: Organization ID
         issue_ids: List of issue IDs to get stats for
-        project_ids: List of project IDs
+        project_ids: List of project IDs. An empty list queries all accessible projects.
         query: Search query string (e.g., "is:unresolved")
         stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Cannot be provided with start and end.
         start: Start date for the query (ISO string). Must be provided with end.
@@ -775,10 +806,34 @@ def get_issues_stats(
     if not issue_ids:
         return IssuesStatsResponse(__root__=[])
 
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return IssuesStatsResponse(__root__=[])
+    project_ids = scoped.project_ids or []
+
+    # issues-stats 400s when none of the groups are in `project`. A restricted
+    # caller asking about issues outside their projects should get an empty
+    # result, the same as the other scoped methods.
+    if public_caller_restricted():
+        numeric_ids: list[int] = []
+        for issue_id in issue_ids:
+            try:
+                numeric_ids.append(int(issue_id))
+            except (TypeError, ValueError):
+                continue
+        visible_ids = set(
+            Group.objects.filter(id__in=numeric_ids, project_id__in=project_ids).values_list(
+                "id", flat=True
+            )
+        )
+        issue_ids = [str(issue_id) for issue_id in numeric_ids if issue_id in visible_ids]
+        if not issue_ids:
+            return IssuesStatsResponse(__root__=[])
+
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     params: dict[str, Any] = {
-        "project": project_ids,
+        "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         "groups": issue_ids,
         "query": query,
         "referrer": Referrer.SEER_RPC,

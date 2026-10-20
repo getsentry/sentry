@@ -39,7 +39,7 @@ class BaseSignupVerificationView(BaseView):
     """
 
     auth_required: bool = False
-    record_analytics: bool = True
+    record_analytics: bool = False
 
     @property
     def signup_method(self) -> str:

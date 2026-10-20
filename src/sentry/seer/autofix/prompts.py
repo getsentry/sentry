@@ -51,37 +51,7 @@ def solution_prompt(
     run_state: "SeerRunState | None" = None,
     should_run_repo_checks: bool = False,
 ) -> str:
-    testing_guidance = (
-        "End your plan with a verification step that runs the repository's linter over the"
-        " changed files and the tests covering the changed code."
-        f" {_CHECK_COMMAND_SOURCES} Name them in the step."
-        if should_run_repo_checks
-        else "Do NOT include testing as part of your plan."
-    )
-    return dedent(
-        f"""\
-        Plan a solution for issue {short_id}: "{title}" (culprit: {culprit})
-
-        Based on the root cause analysis, design a solution to fix this issue.
-
-        Steps:
-        1. Review the root cause that was identified
-        2. Explore the codebase to understand the affected areas
-        3. Consider different possible approaches and pick the single most pragmatic one.
-
-        {testing_guidance}
-
-        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
-
-        When you have a solid plan, always generate the solution artifact {artifact_tool_str(artifact_key)}:
-        - one_line_summary: A concise summary of the fix in under 30 words
-        - steps: Ordered list of steps to implement the solution, each with:
-          - title: Short name for the step
-          - description: What needs to be done
-
-        Do NOT implement the solution - only plan it.
-        """
-    )
+    raise RuntimeError("Solution prompts must run through the Seer Autofix feature")
 
 
 def code_changes_prompt(

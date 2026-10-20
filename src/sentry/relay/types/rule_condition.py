@@ -72,6 +72,18 @@ class GlobCondition(TypedDict):
     value: list[str]
 
 
+class CidrCondition(TypedDict):
+    """IP address matching condition
+
+    Matches a field holding an IP address against a list of single addresses and
+    CIDR ranges. Relay ignores entries that are neither.
+    """
+
+    op: Literal["cidr"]
+    name: str
+    value: list[str]
+
+
 class IterableCondition(TypedDict):
     """Condition for iterating over a list and applying a nested condition"""
 
@@ -104,4 +116,5 @@ RuleCondition = Union[
     LteCondition,
     LtCondition,
     GlobCondition,
+    CidrCondition,
 ]

@@ -265,6 +265,10 @@ describe('isPullRequestsArtifact', () => {
     expect(isPullRequestsArtifact([makeValidPR()])).toBe(true);
   });
 
+  it('accepts a string pr_id', () => {
+    expect(isPullRequestsArtifact([{...makeValidPR(), pr_id: 'pr_01abc'}])).toBe(true);
+  });
+
   it('returns false for an empty array', () => {
     expect(isPullRequestsArtifact([])).toBe(false);
   });

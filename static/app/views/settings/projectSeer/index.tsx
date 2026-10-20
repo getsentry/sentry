@@ -587,11 +587,7 @@ function ProjectSeer({
         title={t('Project Seer Settings')}
         projectSlug={project.slug}
       />
-      <SettingsPageHeader
-        title={tct('Seer Settings for [projectName]', {
-          projectName: <code>{project.slug}</code>,
-        })}
-      />
+      <SettingsPageHeader title={t('Seer Settings for %s', project.slug)} />
       <ProjectSeerGeneralForm project={project} />
       <CursorIntegrationCta project={project} />
       <ClaudeCodeIntegrationCta project={project} />

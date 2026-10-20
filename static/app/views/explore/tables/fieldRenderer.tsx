@@ -16,13 +16,10 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {nullableValue} from 'sentry/utils/discover/emptyFieldValues';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {
-  getFieldRenderer,
-  nullableValue,
-  renderUrlCellValue,
-} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer, renderUrlCellValue} from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -51,8 +48,8 @@ import {
   isPartialSpanOrTraceData,
 } from 'sentry/views/explore/tables/tracesTable/utils';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 interface FieldProps {
   data: EventData;
@@ -61,6 +58,7 @@ interface FieldProps {
   column?: TableColumn<keyof TableDataRow>;
   disableTraceLinks?: boolean;
   extraMenuItems?: MenuItemProps[];
+  tooltipTitle?: React.ReactNode;
   unit?: string;
   usePortalOnDropdown?: boolean;
 }
@@ -73,6 +71,7 @@ export function FieldRenderer({
   allowActions,
   disableTraceLinks,
   extraMenuItems,
+  tooltipTitle,
   usePortalOnDropdown,
 }: FieldProps) {
   const userQuery = useQueryParamsQuery();
@@ -87,6 +86,7 @@ export function FieldRenderer({
       allowActions={allowActions}
       disableTraceLinks={disableTraceLinks}
       extraMenuItems={extraMenuItems}
+      tooltipTitle={tooltipTitle}
       userQuery={userQuery}
       setUserQuery={setUserQuery}
       usePortalOnDropdown={usePortalOnDropdown}
@@ -105,6 +105,7 @@ export function MultiQueryFieldRenderer({
   column,
   index,
   extraMenuItems,
+  tooltipTitle,
 }: MultiQueryFieldProps) {
   const queries = useReadQueriesFromLocation();
   const userQuery = queries[index]?.query ?? '';
@@ -117,6 +118,7 @@ export function MultiQueryFieldRenderer({
       unit={unit}
       column={column}
       extraMenuItems={extraMenuItems}
+      tooltipTitle={tooltipTitle}
       userQuery={userQuery}
       setUserQuery={(query: string) => updateQuerySearch({query})}
     />
@@ -138,6 +140,7 @@ function BaseExploreFieldRenderer({
   extraMenuItems,
   userQuery,
   setUserQuery,
+  tooltipTitle,
   usePortalOnDropdown,
 }: BaseFieldProps) {
   const location = useLocation();
@@ -302,6 +305,14 @@ function BaseExploreFieldRenderer({
 
   if (field === 'id') {
     return rendered;
+  }
+
+  if (defined(tooltipTitle)) {
+    rendered = (
+      <Tooltip title={tooltipTitle} showOnlyOnOverflow containerDisplayMode="block">
+        {rendered}
+      </Tooltip>
+    );
   }
 
   return (

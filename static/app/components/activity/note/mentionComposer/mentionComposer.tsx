@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {IconMarkdown} from '@sentry/icons/markdown';
 
 import {Button} from '@sentry/scraps/button';
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
@@ -8,7 +9,6 @@ import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
-import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {useOrgMentionPlugins} from 'sentry/utils/mentions/useOrgMentionPlugins';
@@ -123,7 +123,9 @@ export function MentionComposer(props: MentionComposerProps) {
                   onKeyDown={event => {
                     if (
                       event.key === 'Enter' &&
-                      (event.metaKey || event.ctrlKey) &&
+                      !event.shiftKey &&
+                      !event.altKey &&
+                      !event.defaultPrevented &&
                       field.state.value.text.trim() !== ''
                     ) {
                       event.preventDefault();

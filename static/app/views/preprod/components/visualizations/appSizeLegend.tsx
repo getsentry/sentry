@@ -2,7 +2,7 @@ import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
@@ -162,44 +162,28 @@ export function AppSizeLegend({
     return appSizeCategoryInfo[categoryType] ?? appSizeCategoryInfo[TreemapType.OTHER];
   };
 
-  const renderLegendItem = (
-    categoryType: TreemapType,
-    isActive: boolean,
-    options?: {
-      onClick?: () => void;
-      ref?: (el: HTMLDivElement | null) => void;
-    }
-  ) => {
-    const categoryInfo = getCategoryInfo(categoryType);
-    if (!categoryInfo) {
-      return null;
-    }
-
-    return (
-      <LegendItem
-        key={categoryType}
-        ref={options?.ref}
-        onClick={options?.onClick}
-        isActive={isActive}
-      >
-        <LegendDot style={{backgroundColor: categoryInfo.color}} isActive={isActive} />
-        <LegendLabel>{categoryInfo.displayName}</LegendLabel>
-      </LegendItem>
-    );
-  };
-
   return (
-    <LegendContainer ref={containerRef}>
+    <Container position="relative" ref={containerRef}>
       <MeasurementContainer ref={measurementRef}>
-        {/* oxlint-disable-next-line react/refs */}
         {sortedCategories.map((categoryType, index) => {
           const isActive =
             selectedCategories.size === 0 || selectedCategories.has(categoryType);
-          return renderLegendItem(categoryType, isActive, {
-            ref: el => {
-              allItemRefs.current[index] = el;
-            },
-          });
+          const categoryInfo = getCategoryInfo(categoryType);
+          return categoryInfo ? (
+            <LegendItem
+              key={categoryType}
+              ref={el => {
+                allItemRefs.current[index] = el;
+              }}
+              isActive={isActive}
+            >
+              <LegendDot
+                style={{backgroundColor: categoryInfo.color}}
+                isActive={isActive}
+              />
+              <LegendLabel>{categoryInfo.displayName}</LegendLabel>
+            </LegendItem>
+          ) : null;
         })}
       </MeasurementContainer>
 
@@ -212,12 +196,25 @@ export function AppSizeLegend({
         {visibleCategories.map(categoryType => {
           const isActive =
             selectedCategories.size === 0 || selectedCategories.has(categoryType);
-          return renderLegendItem(categoryType, isActive, {
-            onClick: () => onToggleCategory(categoryType),
-          });
+          const categoryInfo = getCategoryInfo(categoryType);
+          return categoryInfo ? (
+            <LegendItem
+              key={categoryType}
+              onClick={() => onToggleCategory(categoryType)}
+              isActive={isActive}
+            >
+              <LegendDot
+                style={{backgroundColor: categoryInfo.color}}
+                isActive={isActive}
+              />
+              <LegendLabel>{categoryInfo.displayName}</LegendLabel>
+            </LegendItem>
+          ) : null;
         })}
         {hiddenCategories.length > 0 && (
-          <MoreContainer
+          <Container
+            flexShrink={0}
+            position="relative"
             ref={moreButtonRef}
             onMouseEnter={handleMoreMouseEnter}
             onMouseLeave={handleMoreMouseLeave}
@@ -233,22 +230,29 @@ export function AppSizeLegend({
                 {hiddenCategories.map(categoryType => {
                   const isActive =
                     selectedCategories.size === 0 || selectedCategories.has(categoryType);
-                  return renderLegendItem(categoryType, isActive, {
-                    onClick: () => onToggleCategory(categoryType),
-                  });
+                  const categoryInfo = getCategoryInfo(categoryType);
+                  return categoryInfo ? (
+                    <LegendItem
+                      key={categoryType}
+                      onClick={() => onToggleCategory(categoryType)}
+                      isActive={isActive}
+                    >
+                      <LegendDot
+                        style={{backgroundColor: categoryInfo.color}}
+                        isActive={isActive}
+                      />
+                      <LegendLabel>{categoryInfo.displayName}</LegendLabel>
+                    </LegendItem>
+                  ) : null;
                 })}
               </MoreDropdown>
             )}
-          </MoreContainer>
+          </Container>
         )}
       </Flex>
-    </LegendContainer>
+    </Container>
   );
 }
-
-const LegendContainer = styled('div')`
-  position: relative;
-`;
 
 const MeasurementContainer = styled('div')`
   position: absolute;
@@ -296,11 +300,6 @@ const LegendLabel = styled('span')`
   font-size: 12px;
   color: ${p => p.theme.tokens.content.primary};
   font-weight: 400;
-`;
-
-const MoreContainer = styled('div')`
-  position: relative;
-  flex-shrink: 0;
 `;
 
 const MoreLabel = styled('span')`

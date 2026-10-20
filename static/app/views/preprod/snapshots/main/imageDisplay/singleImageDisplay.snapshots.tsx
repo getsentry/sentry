@@ -1,7 +1,3 @@
-import {ThemeProvider} from '@emotion/react';
-
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-
 import {SingleImageDisplay} from './singleImageDisplay';
 
 jest.mock('@sentry/scraps/image', () => {
@@ -50,29 +46,21 @@ jest.mock('./useD3Zoom', () => {
   };
 });
 
-const themes = {light: lightTheme, dark: darkTheme};
-
 describe('SingleImageDisplay', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    function Wrapper({children}: {children: React.ReactNode}) {
-      return (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{height: 240, width: 720}}>{children}</div>
-        </ThemeProvider>
-      );
-    }
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return <div style={{height: 240, width: 720}}>{children}</div>;
+  }
 
-    it.snapshot(
-      'basic-image-display',
-      () => (
-        <Wrapper>
-          <SingleImageDisplay
-            imageUrl="/visual-snapshots/images/head-button-light/"
-            alt="Button / light"
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-  });
+  it.snapshot(
+    'basic-image-display',
+    () => (
+      <Wrapper>
+        <SingleImageDisplay
+          imageUrl="/visual-snapshots/images/head-button-light/"
+          alt="Button / light"
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 });

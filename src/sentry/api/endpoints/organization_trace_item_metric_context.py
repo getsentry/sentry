@@ -1,5 +1,6 @@
 from typing import Never
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,9 +18,24 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.trace_item_attribute_value_context import (
+    TraceItemAttributeValueContextResponse,
     TraceItemAttributeValueContextSerializer,
 )
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
     TraceItemTypes,
@@ -36,10 +52,24 @@ from sentry.snuba.trace_metrics import TraceMetrics
 class OrganizationTraceItemMetricContextPutSerializer(serializers.Serializer[Never]):
     # Optional: when omitted we infer the type from storage, and only require it
     # when the metric name is ambiguous (stored under more than one type).
-    metricType = serializers.ChoiceField(ALLOWED_METRIC_TYPES, source="metric_type", required=False)
-    brief = serializers.CharField(max_length=280)
+    metricType = serializers.ChoiceField(
+        ALLOWED_METRIC_TYPES,
+        source="metric_type",
+        required=False,
+        help_text=(
+            "The type of the metric. Inferred when omitted; required when the metric name "
+            "is stored under more than one type."
+        ),
+    )
+    brief = serializers.CharField(
+        max_length=280, help_text="A short description of what the metric measures."
+    )
     additionalContext = serializers.CharField(
-        source="additional_context", required=False, allow_null=True, allow_blank=True
+        source="additional_context",
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Longer free-form notes about the metric. Omit to keep the stored value.",
     )
 
 
@@ -74,6 +104,7 @@ def get_metric_types_in_storage(snuba_params: SnubaParams, metric_name: str) -> 
     ]
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
@@ -82,8 +113,48 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (OrganizationEventPermission,)
 
-    def put(self, request: Request, organization: Organization, metric: str) -> Response:
-        """Create or update the authored context for a trace metric."""
+    @extend_schema(
+        operation_id="updateOrganizationTraceItemMetricContext",
+        summary="Create or Update a Trace Metric's Context",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="metric",
+                location="path",
+                required=True,
+                type=str,
+                description="The name of the trace metric to set context for.",
+            ),
+            OrganizationParams.PROJECT,
+        ],
+        request=OrganizationTraceItemMetricContextPutSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "TraceItemMetricContextResponse", TraceItemAttributeValueContextResponse
+            ),
+            201: inline_sentry_response_serializer(
+                "TraceItemMetricContextResponse", TraceItemAttributeValueContextResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemAttributeExamples.UPDATE_TRACE_ITEM_METRIC_CONTEXT,
+    )
+    def put(
+        self, request: Request, organization: Organization, metric: str
+    ) -> (
+        Response[TraceItemAttributeValueContextResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
+        """
+        Create or update the authored context (a brief description and notes) for a trace
+        metric. Metric context always applies organization-wide; `project` only limits
+        where the metric must have been seen in stored data. Returns `201` when new
+        context is created and `200` when existing context is updated.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -95,7 +166,7 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
 
         serializer = OrganizationTraceItemMetricContextPutSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
         data = serializer.validated_data
 
         try:

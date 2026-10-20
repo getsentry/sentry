@@ -19,6 +19,11 @@ describe('javascript-nextjs onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/npx @sentry\/wizard@latest -i nextjs/))
     ).toBeInTheDocument();
+
+    // States the minimum supported Next.js version
+    expect(
+      screen.getByText(textWithMarkupMatcher(/requires Next\.js 14 or later/))
+    ).toBeInTheDocument();
   });
 
   it('displays the verify instructions', () => {

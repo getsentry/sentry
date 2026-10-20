@@ -13,7 +13,7 @@ import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
-import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
+import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 
 import type {ProjectSessionsChartRequestProps} from './projectSessionsChartRequest';
 
@@ -199,8 +199,10 @@ export function ProjectSessionsAnrRequest({
         : null;
 
       setTimeseriesData(timeseriesData_);
+      // eslint-disable react-you-might-not-need-an-effect/no-derived-state
       setPreviousTimeseriesData(previousTimeseriesData_);
       setBadBehaviourSeries(badBehaviourSeries_);
+      // eslint-enable react-you-might-not-need-an-effect/no-derived-state
     }
   }, [
     data,

@@ -11,7 +11,7 @@ import {
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/utils/serialization.ts';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
   defaultMetricQuery,
@@ -167,7 +167,7 @@ describe('MetricsEquationVisualize', () => {
     const deleteButtons = screen.getAllByRole('button', {name: 'Delete Metric'});
     const equationDeleteButton = deleteButtons[deleteButtons.length - 1]!;
 
-    expect(equationDeleteButton).toBeDisabled();
+    expect(equationDeleteButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('replaces rate aggregates with defaults and deduplicates', async () => {

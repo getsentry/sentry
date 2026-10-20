@@ -1,17 +1,20 @@
 import time
 from functools import cached_property
 from unittest import mock
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
+
+from django.urls import reverse
 
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
+from sentry.api.helpers.oauth_authorize.transactions import OAUTH_AUTHORIZE_SESSION_TTL
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 from sentry.testutils.silo import control_silo_test
-from sentry.web.frontend.oauth_authorize import OAUTH_AUTHORIZE_SESSION_TTL
 
 
 @control_silo_test
@@ -25,6 +28,92 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
         )
+
+    def test_blank_pkce_challenge_returns_oauth_error(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "code_challenge": "",
+                "code_challenge_method": "S256",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["error"] == ["invalid_request"]
+
+    def test_invalid_pkce_method_returns_oauth_error(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "code_challenge": "a" * 43,
+                "code_challenge_method": "plain",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["error"] == ["invalid_request"]
+
+    def test_unregistered_callback_with_invalid_pkce(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "redirect_uri": "https://other.example/callback",
+                "code_challenge": "invalid",
+            },
+        )
+        assert response.status_code == 400
+        assert response.context["error"] == "Missing or invalid <em>redirect_uri</em> parameter."
+
+    def test_state_whitespace_is_preserved(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "scope": "invalid",
+                "state": "  opaque state  ",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["state"] == ["  opaque state  "]
+
+    def test_unauthenticated_missing_client_id(self) -> None:
+        resp = self.client.get(self.path, {"response_type": "code"})
+
+        assert resp.status_code == 400
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_unauthenticated_invalid_client_id(self) -> None:
+        resp = self.client.get(self.path, {"response_type": "code", "client_id": "invalid"})
+
+        assert resp.status_code == 400
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_unauthenticated_invalid_redirect_uri(self) -> None:
+        resp = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "redirect_uri": "https://other.example.com",
+            },
+        )
+
+        assert resp.status_code == 400
+        assert resp.context["error"] == "Missing or invalid <em>redirect_uri</em> parameter."
+
+    def test_unauthenticated_invalid_response_type(self) -> None:
+        resp = self.client.get(
+            self.path,
+            {"client_id": self.application.client_id, "response_type": "invalid"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
     def test_missing_response_type(self) -> None:
         self.login_as(self.user)
@@ -286,25 +375,31 @@ class OAuthAuthorizeCodeTest(TestCase):
             "Access to CI workflows including source map uploads, release creation, and code mappings.",
         ]
 
-    def test_unauthenticated_basic_auth(self) -> None:
+    @override_options({"auth.v2.enabled": True})
+    def test_unauthenticated_redirects_through_react_login(self) -> None:
         full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
 
         resp = self.client.get(full_path)
 
+        login_url = f"{reverse('sentry-login')}?{urlencode({'next': full_path})}"
+        self.assertRedirects(resp, login_url)
+        assert resp["X-Robots-Tag"] == "noindex, nofollow"
+        self.assertTemplateUsed("sentry/base-react.html")
+
+        assert self.client.session["_next"] == full_path
+        resp = self.client.get("/api/0/auth/config/")
         assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/login.html")
-        assert resp.context["banner"] == f"Connect Sentry to {self.application.name}"
 
         resp = self.client.post(
-            full_path,
+            "/api/0/auth/login/",
             {
                 "username": self.user.username,
                 "password": "admin",
-                "op": "login",
-                "tx_id": resp.context["tx_id"],
             },
+            content_type="application/json",
         )
-        self.assertRedirects(resp, full_path)
+        assert resp.status_code == 200, resp.json()
+        assert resp.json()["nextUri"] == full_path
 
         resp = self.client.get(full_path)
         self.assertTemplateUsed("sentry/oauth-authorize.html")
@@ -401,26 +496,30 @@ class OAuthAuthorizeCodeTest(TestCase):
         after = {k for k in self.client.session.keys() if k.startswith("oa2:")}
         assert after == before
 
-    def test_post_clears_session_entry_after_unauthenticated_login(self) -> None:
+    def test_unauthenticated_does_not_create_consent_transaction(self) -> None:
         full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
 
         resp = self.client.get(full_path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/login.html")
-        tx_id = resp.context["tx_id"]
+        assert resp.status_code == 302
+        assert not any(key.startswith("oa2:") for key in self.client.session.keys())
 
+    def test_unauthenticated_post_redirects_without_logging_in(self) -> None:
+        full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
         resp = self.client.post(
             full_path,
             {
                 "username": self.user.username,
                 "password": "admin",
                 "op": "login",
-                "tx_id": tx_id,
             },
         )
-        self.assertRedirects(resp, full_path)
-
-        assert f"oa2:{tx_id}" not in self.client.session
+        self.assertRedirects(
+            resp,
+            f"{reverse('sentry-login')}?{urlencode({'next': full_path})}",
+            fetch_redirect_response=False,
+        )
+        assert "_auth_user_id" not in self.client.session
+        assert not ApiGrant.objects.filter(user=self.user).exists()
 
 
 @control_silo_test
@@ -1177,20 +1276,12 @@ class OAuthAuthorizeCustomSchemeTest(TestCase):
 
         resp = self.client.get(full_path)
 
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/login.html")
-        assert resp.context["banner"] == f"Connect Sentry to {self.application.name}"
-
-        resp = self.client.post(
-            full_path,
-            {
-                "username": self.user.username,
-                "password": "admin",
-                "op": "login",
-                "tx_id": resp.context["tx_id"],
-            },
+        self.assertRedirects(
+            resp,
+            f"{reverse('sentry-login')}?{urlencode({'next': full_path})}",
+            fetch_redirect_response=False,
         )
-        self.assertRedirects(resp, full_path)
+        self.login_as(self.user)
 
         resp = self.client.get(full_path)
         self.assertTemplateUsed("sentry/oauth-authorize.html")

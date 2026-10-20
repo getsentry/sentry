@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 import sentry_sdk
 from django.db.models import Max
 from rest_framework import serializers
+from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -48,7 +49,6 @@ from sentry.tasks.on_demand_metrics import (
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
-from sentry.utils.tracing import set_span_data, start_span
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
@@ -486,7 +486,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         ):
             return False
 
-        return self.context.get("widget_id") is not None or features.has(
+        return self.context.get("widget_id") is not None or self._has_tracemetrics_table_feature()
+
+    def _has_tracemetrics_table_feature(self) -> bool:
+        return features.has(
             "organizations:tracemetrics-dashboard-table",
             self.context["organization"],
             actor=self.context["request"].user,
@@ -568,7 +571,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
-    def _validate_tracemetrics_equation_constraints(self, data) -> dict[str, Any]:
+    def _validate_tracemetrics_constraints(self, data) -> dict[str, Any]:
         if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
             return data
 
@@ -591,6 +594,19 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     raise serializers.ValidationError(
                         {"queries": "Heatmap widgets don't support equations."}
                     )
+        elif (
+            data.get("display_type") == DashboardWidgetDisplayTypes.TABLE
+            and self._has_tracemetrics_table_feature()
+            and all(
+                not any(is_aggregate(field) for field in query.get("fields", []))
+                for query in data.get("queries")
+            )
+        ):
+            raise serializers.ValidationError(
+                {
+                    "queries": "Application Metrics table widgets require at least one aggregate. Add an aggregate or remove this widget."
+                }
+            )
 
         return data
 
@@ -643,7 +659,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         if data.get("queries"):
             if data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
-                self._validate_tracemetrics_equation_constraints(data)
+                self._validate_tracemetrics_constraints(data)
 
             if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
                 if len(data.get("queries")) > 1:
@@ -867,6 +883,20 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             if preferred_polarity is not None and preferred_polarity not in ("+", "-", ""):
                 raise serializers.ValidationError(
                     {"thresholds": {"preferred_polarity": "Must be '+', '-', or empty string."}}
+                )
+            time_window = thresholds.get("time_window")
+            parsed_time_window = (
+                parse_stats_period(time_window) if isinstance(time_window, str) else None
+            )
+            if time_window is not None and (
+                parsed_time_window is None or parsed_time_window <= timedelta(0)
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "thresholds": {
+                            "time_window": "Time window must be a positive stats period, such as '5m', '1h', or '1d'."
+                        }
+                    }
                 )
         if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(
@@ -1137,7 +1167,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return instance
 
     def update_widgets(self, instance, widget_data):
-        with start_span(op="function", name="dashboard.update_widgets"):
+        with traces.start_span(
+            name="dashboard.update_widgets", attributes={"sentry.op": "function"}
+        ):
             widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
 
             existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
@@ -1287,24 +1319,27 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         organization = self.context["organization"]
         linked_dashboards = linked_dashboards or []
 
-        with start_span(op="function", name="dashboard.update_or_create_field_links") as span:
+        with traces.start_span(
+            name="dashboard.update_or_create_field_links", attributes={"sentry.op": "function"}
+        ) as span:
             # Get the set of fields that should exist
             new_fields = set()
             field_links_to_create = []
 
             widget_display_type = widget.display_type
             legend_type = widget.detail.get("legend_type") if widget.detail else None
-            set_span_data(
-                span,
+            span.set_attribute(
                 "linked_dashboards",
-                [
-                    {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
-                    for ld in linked_dashboards
-                ],
+                repr(
+                    [
+                        {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                        for ld in linked_dashboards
+                    ]
+                ),
             )
-            set_span_data(span, "widget_display_type", widget_display_type)
-            set_span_data(span, "query_id", query.id)
-            set_span_data(span, "widget_id", widget.id)
+            span.set_attribute("widget_display_type", widget_display_type)
+            span.set_attribute("query_id", query.id)
+            span.set_attribute("widget_id", widget.id)
 
             is_breakdown_chart = (
                 widget_display_type
@@ -1377,23 +1412,23 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 field__in=new_fields
             ).delete()
 
-            with start_span(
-                op="db.bulk_create", name="dashboard.update_or_create_field_links.bulk_create"
-            ) as span:
-                set_span_data(span, "new_fields", list(new_fields))
-                set_span_data(span, "query_id", query.id)
-                set_span_data(span, "widget_id", widget.id)
-                set_span_data(span, "widget_display_type", widget.display_type)
-                set_span_data(
-                    span,
-                    "linked_dashboards",
-                    [
-                        {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
-                        for ld in linked_dashboards
-                    ],
-                )
-                set_span_data(span, "field_links_count", len(field_links_to_create))
-
+            with traces.start_span(
+                name="dashboard.update_or_create_field_links.bulk_create",
+                attributes={
+                    "sentry.op": "db.bulk_create",
+                    "new_fields": list(new_fields),
+                    "query_id": query.id,
+                    "widget_id": widget.id,
+                    "widget_display_type": widget.display_type,
+                    "linked_dashboards": repr(
+                        [
+                            {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                            for ld in linked_dashboards
+                        ]
+                    ),
+                    "field_links_count": len(field_links_to_create),
+                },
+            ):
                 # Use bulk_create with update_conflicts to effectively upsert (i.e bulk update or create)
                 if field_links_to_create:
                     DashboardFieldLink.objects.bulk_create(

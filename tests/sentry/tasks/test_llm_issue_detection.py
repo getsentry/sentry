@@ -4,6 +4,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.db.models import F
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.issues.grouptype import AIDetectedDBGroupType
 from sentry.models.project import Project
@@ -24,7 +26,7 @@ from sentry.tasks.llm_issue_detection.trace_data import (
 )
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import ActorType, decode_viewer_context
 
 
 class LLMIssueDetectionTest(TestCase):
@@ -42,7 +44,43 @@ class LLMIssueDetectionTest(TestCase):
         response.data = b'{"has_budget": true}'
         return response
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(
+        SENTRY_SELF_HOSTED=False,
+        SEER_API_SHARED_SECRET="viewer-context-test-secret",
+    )
+    @patch(
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
+    )
+    @patch(
+        "sentry.tasks.llm_issue_detection.detection.seer_issue_detection_connection_pool.urlopen"
+    )
+    def test_seer_requests_use_system_viewer_context(
+        self,
+        mock_urlopen: Mock,
+        mock_get_transactions: Mock,
+    ) -> None:
+        mock_get_transactions.return_value = [
+            TraceMetadataWithSpanCount(trace_id="trace-id", span_count=50)
+        ]
+        mock_urlopen.side_effect = [
+            HTTPResponse(b'{"has_budget":true}', status=200),
+            HTTPResponse(b"", status=202),
+        ]
+
+        detect_llm_issues_for_org(self.organization.id)
+
+        assert mock_urlopen.call_count == 2
+        for request in mock_urlopen.call_args_list:
+            viewer_context = decode_viewer_context(
+                request.kwargs["headers"]["X-Viewer-Context"],
+                key="viewer-context-test-secret",
+            )
+            assert viewer_context.organization_id == self.organization.id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.user_id is None
+            assert viewer_context.actor_type == ActorType.SYSTEM
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
@@ -65,7 +103,7 @@ class LLMIssueDetectionTest(TestCase):
         )
         mock_seer_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
@@ -190,7 +228,7 @@ class LLMIssueDetectionTest(TestCase):
         )
         assert not mock_produce_occurrence.called
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
@@ -237,7 +275,7 @@ class LLMIssueDetectionTest(TestCase):
         assert seer_request.organization_id == self.organization.id
         assert len(seer_request.traces) == 1
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
@@ -272,7 +310,7 @@ class LLMIssueDetectionTest(TestCase):
         assert mock_seer_request.call_count == 1
         assert mock_logger_error.call_count == 1
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
@@ -290,7 +328,7 @@ class LLMIssueDetectionTest(TestCase):
 
         mock_get_transactions.assert_called_once()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
@@ -309,7 +347,7 @@ class LLMIssueDetectionTest(TestCase):
         mock_get_transactions.assert_not_called()
         mock_seer_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
@@ -330,7 +368,7 @@ class LLMIssueDetectionTest(TestCase):
             == f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/:organization_id"
         )
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
@@ -347,7 +385,7 @@ class LLMIssueDetectionTest(TestCase):
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=business" in budget_url
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
@@ -368,7 +406,7 @@ class LLMIssueDetectionTest(TestCase):
             assert len(seer_request.traces) == expected
             assert seer_request.plan_tier == plan_tier
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
@@ -393,7 +431,7 @@ class LLMIssueDetectionTest(TestCase):
 
 
 class LLMIssueDetectionProjectFilterTest(TestCase):
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"

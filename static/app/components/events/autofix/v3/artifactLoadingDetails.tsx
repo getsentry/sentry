@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 
 interface ArtifactLoadingDetailsProps {
@@ -35,12 +35,24 @@ export function ArtifactLoadingDetails({
             return null;
           }
 
+          // A block still being written can end mid-embed; streaming hides the
+          // unclosed tag until its closer arrives instead of flashing raw syntax.
+          const variant = block.loading ? 'streaming' : 'static';
+
           if (block.message.content && block.message.content !== 'Thinking...') {
-            return <Markdown key={index} raw={block.message.content} />;
+            return (
+              <SeerMarkdown key={index} raw={block.message.content} variant={variant} />
+            );
           }
 
           if (block.message.thinking_content) {
-            return <Markdown key={index} raw={block.message.thinking_content} />;
+            return (
+              <SeerMarkdown
+                key={index}
+                raw={block.message.thinking_content}
+                variant={variant}
+              />
+            );
           }
 
           return null;

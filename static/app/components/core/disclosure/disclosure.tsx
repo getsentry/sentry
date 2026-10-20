@@ -7,11 +7,10 @@ import {
 } from '@react-aria/disclosure';
 import {usePress} from '@react-aria/interactions';
 import {useDisclosureState, type DisclosureState} from '@react-stately/disclosure';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type StackProps} from '@sentry/scraps/layout';
-
-import {IconChevron} from 'sentry/icons';
 
 interface DisclosureProps
   extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>, Omit<StackProps, 'as'> {

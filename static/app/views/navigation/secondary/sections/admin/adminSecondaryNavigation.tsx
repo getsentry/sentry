@@ -3,7 +3,6 @@ import {SettingsNavigation} from 'sentry/views/settings/components/settingsNavig
 export function AdminSecondaryNavigation() {
   return (
     <SettingsNavigation
-      stickyTop="0"
       navigationObjects={[
         {
           id: 'admin-system-status',
@@ -26,6 +25,8 @@ export function AdminSecondaryNavigation() {
           ],
         },
       ]}
+      hookConfigs={[]}
+      hooks={[]}
     />
   );
 }

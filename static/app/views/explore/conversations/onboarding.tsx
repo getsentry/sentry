@@ -1,9 +1,10 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
+import {IconBot} from '@sentry/icons/bot';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconUser} from '@sentry/icons/user';
 
-import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
+import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
@@ -26,7 +27,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
-  BasePlatformOptions,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -37,14 +37,11 @@ import {
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
 import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {IconBot, IconCopy, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -57,24 +54,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CopyLLMPromptButton,
   getAgentSetupPrompt,
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  AgentIntegration,
-  DEPLOYMENT_TARGET_ICONS,
-  DEPLOYMENT_TARGET_LABELS,
-  DeploymentTarget,
-  getIntegrationDeploymentTarget,
-  NODE_AGENT_INTEGRATIONS,
-  PHP_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
-import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+  AI_AGENTS_GETTING_STARTED_DOCS_LINK,
+  AI_INSTRUMENTATION_DOCS_LINKS,
+} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
 import {
   BulletList,
   HeaderText,
@@ -82,46 +71,8 @@ import {
   PulsingIndicator,
   SubTitle,
   useOnboardingProject,
+  useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
-
-function useConversationSpanWaiter(project: Project) {
-  const {selection} = usePageFilters();
-  const [shouldRefetch, setShouldRefetch] = useState(true);
-
-  const request = useSpans(
-    {
-      search: 'has:gen_ai.conversation.id',
-      fields: ['id'],
-      limit: 1,
-      enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
-      pageFilters: {
-        ...selection,
-        projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
-      },
-    },
-    Referrer.ONBOARDING
-  );
-
-  const hasEvents = Boolean(request.data?.length);
-
-  useEffect(() => {
-    if (hasEvents && shouldRefetch) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setShouldRefetch(false);
-    }
-  }, [hasEvents, shouldRefetch]);
-
-  return request;
-}
 
 function ConversationWaitingIndicator({
   project,
@@ -130,7 +81,11 @@ function ConversationWaitingIndicator({
   onDismiss: () => void;
   project: Project;
 }) {
-  const spanRequest = useConversationSpanWaiter(project);
+  const spanRequest = useSpanWaiter({
+    project,
+    search: 'has:gen_ai.conversation.id',
+    referrer: Referrer.ONBOARDING,
+  });
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
@@ -154,18 +109,21 @@ function ConversationStepRenderer({
   stepIndex,
   isLastStep,
   onDismiss,
+  trailingItems,
 }: {
   isLastStep: boolean;
   onDismiss: () => void;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
   const theme = useTheme();
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
+      trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
         <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
@@ -292,7 +250,7 @@ function ConversationOnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <Flex justify="between" gap="2xl" padding="3xl">
+              <Flex containerType="inline-size" justify="between" gap="2xl" padding="3xl">
                 <HeaderText>
                   <Title>{t('See Exactly What Your Agent Said')}</Title>
                   <SubTitle>
@@ -312,8 +270,18 @@ function ConversationOnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{zero: 'none', xl: 'block'}}>
-                  <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
+                <Container
+                  display={{zero: 'none', xl: 'block'}}
+                  alignSelf="center"
+                  pointerEvents="none"
+                  flexShrink={0}
+                >
+                  <Image
+                    src={agentTracingEmptyStateImg}
+                    alt=""
+                    height="180px"
+                    width="auto"
+                  />
                 </Container>
               </Flex>
               <Container width="95%" margin="0 auto">
@@ -555,6 +523,13 @@ $response = (new MyAgent)
   };
 }
 
+const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
+  AgentIntegration.EVE,
+  AgentIntegration.FLUE,
+  AgentIntegration.MASTRA,
+  AgentIntegration.PI,
+]);
+
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
@@ -573,84 +548,19 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     projSlug: project?.slug,
   });
 
-  const isPythonPlatform = (project?.platform ?? '').startsWith('python');
-  const isPhpPlatform = (project?.platform ?? '').startsWith('php');
-  // Node-based platforms can deploy to either the Node runtime or Cloudflare
-  // Workers, so we let the user pick a target that tailors the instructions.
-  const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  // Cloudflare Workers projects are pinned to the Cloudflare (withSentry) setup.
-  // Cloudflare Pages bootstraps via `sentryPagesPlugin` instead, so it's left out
-  // of this selector for now and keeps its existing onboarding.
-  const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
-  const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
-  const showDeploymentTarget =
-    isNodePlatform && !isCloudflareWorkers && !isCloudflarePages;
-
-  const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
-    ? {
-        deploymentTarget: {
-          label: t('Deployment'),
-          defaultValue: DeploymentTarget.NODE,
-          items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
-            label: DEPLOYMENT_TARGET_LABELS[target],
-            value: target,
-            leadingItems: (
-              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} alt="" />
-            ),
-          })),
-        },
-      }
-    : {};
-
-  // The SDK list is no longer filtered by runtime: Node projects see every
-  // Node/Cloudflare agent SDK, and the chosen SDK drives the runtime below.
-  const integrations = isPythonPlatform
-    ? PYTHON_AGENT_INTEGRATIONS
-    : isPhpPlatform
-      ? PHP_AGENT_INTEGRATIONS
-      : NODE_AGENT_INTEGRATIONS;
-
-  const platformOptions: BasePlatformOptions = {
-    integration: {
-      label: t('Integration'),
-      items: integrations.map(integration => ({
-        label: isPhpPlatform
-          ? (currentPlatform?.name ?? t('Laravel'))
-          : AGENT_INTEGRATION_LABELS[integration],
-        value: integration,
-        leadingItems: (
-          <PlatformIcon
-            platform={
-              isPhpPlatform
-                ? (project?.platform ?? 'php-laravel')
-                : AGENT_INTEGRATION_ICONS[integration]
-            }
-            size={16}
-            alt=""
-          />
-        ),
-      })),
-    },
-    ...deploymentTargetOptions,
-  };
-
-  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
-
-  // A runtime-specific SDK (e.g. Workers AI -> Cloudflare, Mastra -> Node) pins
-  // the runtime and locks the selector; otherwise the user's dropdown choice
-  // wins (the selector defaults to Node). Cloudflare Workers projects stay
-  // pinned to Cloudflare regardless of the SDK.
-  const integrationDeploymentTarget = getIntegrationDeploymentTarget(
-    selectedPlatformOptions.integration
-  );
-  const selectedDeploymentTarget = selectedPlatformOptions.deploymentTarget as
-    | DeploymentTarget
-    | undefined;
-  const deploymentTarget = isCloudflareWorkers
-    ? DeploymentTarget.CLOUDFLARE
-    : (integrationDeploymentTarget ?? selectedDeploymentTarget);
-  const isCloudflareTarget =
-    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
+  const {
+    deploymentTarget,
+    integrationDeploymentTarget,
+    isCloudflareTarget,
+    isPhpPlatform,
+    isPythonPlatform,
+    platformOptions,
+    projectAgentIntegration,
+    selectedPlatformOptions,
+  } = useAgentOnboardingOptions({
+    platform: project?.platform,
+    platformInfo: currentPlatform,
+  });
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -707,18 +617,13 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
   const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
 
-  // Eve only drains OpenTelemetry traces to Sentry - it doesn't run the Sentry
-  // SDK, so there's no `Sentry.setConversationId` / `Sentry.setUser` to call.
-  const isEve = selectedIntegration === AgentIntegration.EVE;
-  // Flue sets the conversation ID automatically, so the manual
-  // `Sentry.setConversationId` step is redundant. It still runs the Sentry SDK,
-  // so the `Sentry.setUser` step below stays.
-  const isFlue = selectedIntegration === AgentIntegration.FLUE;
+  const setsConversationIdAutomatically =
+    INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS.has(selectedIntegration);
 
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    ...(isEve || isFlue
+    ...(setsConversationIdAutomatically
       ? []
       : [
           getConversationIdStep(
@@ -727,7 +632,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             jsPackageName
           ),
         ]),
-    ...(isPhpPlatform || isEve ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
+    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
     ...(isPhpPlatform
       ? [getPhpConversationVerifyStep()]
       : agentMonitoringDocs.verify?.(docParams) || []),
@@ -738,34 +643,31 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   return (
     <ConversationOnboardingPanel project={project} dsn={dsn.public} onDismiss={onDismiss}>
       <Stack gap="xl">
-        <Flex gap="lg" align="center" justify="between" wrap="wrap">
-          <Flex gap="sm" align="center" wrap="wrap">
-            <Text>{t('Set up')}</Text>
-            <PlatformOptionDropdown
-              platformOptions={platformOptions}
-              connectors={{deploymentTarget: t('on')}}
-              onChange={(option, value) => {
-                trackAnalytics('conversations.onboarding.interaction', {
-                  organization,
-                  action: 'select_setup_option',
-                  option,
-                  value,
-                });
-              }}
-              lockedValues={
-                integrationDeploymentTarget
-                  ? {deploymentTarget: integrationDeploymentTarget}
-                  : undefined
-              }
-            />
+        {!projectAgentIntegration && (
+          <Flex gap="lg" align="center" justify="between" wrap="wrap">
+            <Flex gap="sm" align="center" wrap="wrap">
+              <Text>{t('Set up')}</Text>
+              <PlatformOptionDropdown
+                platformOptions={platformOptions}
+                connectors={{deploymentTarget: t('on')}}
+                onChange={(option, value) => {
+                  trackAnalytics('conversations.onboarding.interaction', {
+                    organization,
+                    action: 'select_setup_option',
+                    option,
+                    value,
+                  });
+                }}
+                lockedValues={
+                  integrationDeploymentTarget
+                    ? {deploymentTarget: integrationDeploymentTarget}
+                    : undefined
+                }
+              />
+            </Flex>
           </Flex>
-          <OnboardingCopyMarkdownButton
-            borderless
-            steps={steps}
-            source="conversations_onboarding"
-          />
-        </Flex>
-        <Separator orientation="horizontal" />
+        )}
+        {!projectAgentIntegration && <Separator orientation="horizontal" />}
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps
           key={selectedIntegration}
@@ -788,6 +690,15 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
               stepIndex={index}
               isLastStep={index === steps.length - 1}
               onDismiss={onDismiss}
+              trailingItems={
+                index === 0 ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="conversations_onboarding"
+                  />
+                ) : undefined
+              }
             />
           ))}
         </GuidedSteps>
@@ -817,7 +728,7 @@ function UnsupportedPlatformOnboarding({
       <Prose>
         <Text as="p">
           {tct(
-            "Auto instrumentation isn't available for [platform] yet, but you can still get conversations working.",
+            "Auto instrumentation isn't available for [platform], but you can still get conversations working.",
             {
               platform: platformName,
             }
@@ -827,7 +738,15 @@ function UnsupportedPlatformOnboarding({
           {tct(
             '[link:Manually instrument] your agents using the Sentry SDK, or let an AI coding agent set it up for you.',
             {
-              link: <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.python} />,
+              link: (
+                <ExternalLink
+                  href={
+                    project.platform?.startsWith('javascript')
+                      ? `${AI_INSTRUMENTATION_DOCS_LINKS.javascript}manual-instrumentation/`
+                      : `${AI_INSTRUMENTATION_DOCS_LINKS.python}manual-instrumentation/`
+                  }
+                />
+              ),
             }
           )}
         </Text>
@@ -867,9 +786,7 @@ function NoDocsOnboarding({
           {tct(
             'Follow our [link:documentation] to get started, or let an AI coding agent handle the setup for you.',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-              ),
+              link: <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />,
             }
           )}
         </Text>

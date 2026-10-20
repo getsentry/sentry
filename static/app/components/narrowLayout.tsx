@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/sentry';
 
 import {logout} from 'sentry/actionCreators/account';
-import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 

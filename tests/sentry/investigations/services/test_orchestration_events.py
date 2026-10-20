@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
+from django.db import router, transaction
+from django.db.transaction import Atomic
 from django.utils import timezone
 from rest_framework import serializers
 
 from sentry.api.serializers import serialize
 from sentry.db.models.fields.bounded import I64_MAX
-from sentry.investigations.endpoints.base import investigation_ids_with_project_access
 from sentry.investigations.endpoints.serializers import InvestigationBlockSerializer
 from sentry.investigations.endpoints.validators.block import BlockUpdateValidator
 from sentry.investigations.models import (
@@ -35,6 +36,7 @@ from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     archive_investigation_with_orchestration,
     create_agentic_manual_investigation,
+    get_orchestration_projection,
     update_investigation_with_orchestration,
 )
 from sentry.investigations.services.orchestration_events import (
@@ -62,6 +64,49 @@ class SeerRunMirrorMixin:
 
 
 class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase):
+    def test_event_persists_timing_for_the_api(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+        run.update(seer_run=self.seer_run_mirror(8128))
+        timing = {
+            "startedAt": "2025-01-01T00:00:00Z",
+            "finishedAt": None,
+            "activeSince": "2025-01-01T00:05:00Z",
+            "activeTimeElapsedSeconds": 34.5,
+        }
+        receipt = deliver_orchestration_event(
+            organization_id=self.organization.id,
+            event={
+                "schema_version": 1,
+                "event_id": uuid4(),
+                "run_id": 8128,
+                "investigation_id": investigation.id,
+                "sequence": 1,
+                "generation": 1,
+                "type": "workflow_updated",
+                "payload": {
+                    "projection": {
+                        **run.projection,
+                        **timing,
+                        "runId": 8128,
+                        "status": "processing",
+                        "heartbeatAt": "2025-01-01T00:05:00Z",
+                    }
+                },
+            },
+        )
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        run.refresh_from_db()
+        assert {key: run.projection[key] for key in timing} == timing
+        projection = get_orchestration_projection(investigation)
+        assert {key: projection[key] for key in timing} == timing
+
     def test_replays_the_stored_application_status(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
@@ -472,24 +517,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             assert set(
                 block.content_execution.data_project_links.values_list("project_id", flat=True)
             ) == {self.project.id, other_project.id}
-            assert self.investigation.id not in investigation_ids_with_project_access(
-                [self.investigation], {other_project.id}
-            )
             assert (
                 serialize(
                     block,
                     self.user,
-                    InvestigationBlockSerializer(accessible_project_ids={other_project.id}),
-                )["content"]
-                == ""
-            )
-            assert (
-                serialize(
-                    block,
-                    self.user,
-                    InvestigationBlockSerializer(
-                        accessible_project_ids={self.project.id, other_project.id}
-                    ),
+                    InvestigationBlockSerializer(),
                 )["content"]
                 == "Original report"
             )
@@ -536,9 +568,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={self.project.id}),
+                InvestigationBlockSerializer(),
             )["content"]
-            == ""
+            == payload["content"]
         )
 
     def test_started_report_block_accepts_null_display(self) -> None:
@@ -783,16 +815,13 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         replacement_execution.refresh_from_db()
         assert replacement_execution.status == InvestigationBlockExecutionStatus.FAILED
         assert replacement_execution.block_id == block.id
-        assert self.investigation.id not in investigation_ids_with_project_access(
-            [self.investigation], {replacement_project.id}
-        )
         assert (
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={replacement_project.id}),
+                InvestigationBlockSerializer(),
             )["content"]
-            == ""
+            == "Original report"
         )
 
     def test_out_of_order_events_deduplicate_and_ignore_delayed_responses(self) -> None:
@@ -863,6 +892,186 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.generation == 2
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
+
+    def outer_transaction(self) -> Atomic:
+        return transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun))
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_update_schedules_investigation_updates_on_commit(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_rolled_back_workflow_update_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with pytest.raises(RuntimeError), self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            raise RuntimeError
+
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_contiguous_events_schedule_investigation_updates_once(self, mock_delay: Mock) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    2, "workflow_updated", {"projection": self.projection(workflow_version=3)}
+                )
+            )
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            mock_delay.assert_not_called()
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.last_event_sequence == 2
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_terminal_snapshot_fast_forward_schedules_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            receipt = self.deliver(
+                self.event(
+                    3,
+                    "state_snapshot",
+                    {
+                        "terminal": True,
+                        "full": True,
+                        "projection": self.projection(
+                            workflow_version=2, phase="completed", status="completed"
+                        ),
+                        "blocks": [],
+                    },
+                )
+            )
+            mock_delay.assert_not_called()
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_failure_with_projection_schedules_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1,
+                    "workflow_failed",
+                    {
+                        "projection": self.projection(workflow_version=2, status="failed"),
+                        "error": {"code": "seer_failed", "message": "Seer gave up."},
+                    },
+                )
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_failure_without_projection_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        receipt = self.deliver(
+            self.event(
+                1,
+                "workflow_failed",
+                {"error": {"code": "seer_failed", "message": "Seer gave up."}},
+            )
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_stale_event_does_not_schedule_investigation_updates(self, mock_delay: Mock) -> None:
+        self.orchestration_run.update(
+            generation=2,
+            workflow_version=2,
+            projection=self.projection(workflow_version=2, generation=2),
+        )
+
+        receipt = self.deliver(
+            self.event(1, "workflow_updated", {"projection": self.projection()}, generation=1)
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_notebook_event_does_not_schedule_investigation_updates(self, mock_delay: Mock) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "collapsed": False,
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        receipt = self.deliver(
+            self.event(
+                3,
+                "report_text_delta",
+                {"reportRevision": 1, "stableAgentKey": "summary", "delta": "text"},
+            )
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_synchronize_projection_schedules_investigation_updates(self, mock_delay: Mock) -> None:
+        with self.outer_transaction():
+            synchronize_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                projection=self.projection(workflow_version=2, phase="planning"),
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_synchronize_stale_projection_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        self.orchestration_run.update(generation=2, workflow_version=3)
+
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=2, generation=2),
+        )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        mock_delay.assert_not_called()
 
     def test_synchronize_projection_rejects_invalid_seer_run_ids(self) -> None:
         for seer_run_id in (True, 0, I64_MAX + 1):
@@ -1132,16 +1341,16 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert list(
             block.content_execution.data_project_links.values_list("project_id", flat=True)
         ) == [self.project.id]
-        restricted_user = self.create_user()
-        self.create_member(organization=self.organization, user=restricted_user)
-        restricted = serialize(
+        viewer = self.create_user()
+        self.create_member(organization=self.organization, user=viewer)
+        shared = serialize(
             block,
-            restricted_user,
-            InvestigationBlockSerializer(accessible_project_ids=set()),
+            viewer,
+            InvestigationBlockSerializer(),
         )
-        assert restricted["content"] == ""
-        assert restricted["generatedContent"] == ""
-        assert restricted["outputStatus"] == "restricted"
+        assert shared["content"] == "fresh"
+        assert shared["generatedContent"] == "fresh"
+        assert shared["outputStatus"] == InvestigationBlockExecutionStatus.RUNNING
         self.investigation.refresh_from_db()
         assert self.investigation.title == "Final title"
         assert self.investigation.summary == "Root cause found"
@@ -1176,7 +1385,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             serialize(
                 in_flight,
                 self.user,
-                InvestigationBlockSerializer(accessible_project_ids={self.project.id}),
+                InvestigationBlockSerializer(),
             )["outputStatus"]
             == InvestigationBlockExecutionStatus.RUNNING
         )

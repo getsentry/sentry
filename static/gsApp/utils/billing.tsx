@@ -1,5 +1,9 @@
+import {IconBuilding} from '@sentry/icons/building';
+import {IconGroup} from '@sentry/icons/group';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconUser} from '@sentry/icons/user';
+
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -10,6 +14,7 @@ import {
   BILLION,
   DEFAULT_TRIAL_DAYS,
   GIGABYTE,
+  MILLISECONDS_IN_HOUR,
   MILLION,
   RESERVED_BUDGET_QUOTA,
   UNLIMITED,
@@ -36,9 +41,104 @@ import type {
 } from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {titleCase} from 'getsentry/utils/titleCase';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 
-export const MILLISECONDS_IN_HOUR = 3600_000;
+const CURRENCY_LOCALE = 'en-US';
+
+/**
+ * Includes $, and cents in the price when needed.
+ *
+ * 100.01 => $100.01
+ * 100.00 => $100
+ * 100.30 => $100.30
+ * -100 => -$100
+ */
+export function displayPrice({
+  cents,
+  formatBigNum = false,
+}: {
+  cents: number;
+  formatBigNum?: boolean;
+}): string {
+  const dollars = cents / 100;
+  const prefix = dollars >= 0 ? '$' : '-$';
+
+  if (formatBigNum) {
+    return prefix + bigNumFormatter(Math.abs(dollars));
+  }
+  const hasCents = dollars % 1 !== 0;
+  if (hasCents) {
+    return displayPriceWithCents({cents});
+  }
+  return prefix + Math.abs(dollars).toLocaleString(CURRENCY_LOCALE);
+}
+
+/**
+ * Includes cents in the price when needed and excludes $ for separate formatting.
+ * Note: Use `displayPrice` if prices can be negative (ex: credits)
+ *
+ * 100.01 => 100.01
+ * 100.00 => 100
+ * 100.30 => 100.30
+ * -100 => -100
+ */
+export function formatPrice({cents}: {cents: number}): string {
+  return displayPrice({cents}).replace('$', '');
+}
+
+/**
+ * Format per unit price for events,
+ * where errors and transactions default to 5 digits
+ * and attachments should use 2 digits.
+ */
+export function displayUnitPrice({
+  cents,
+  minDigits = 5,
+  maxDigits = 7,
+}: {
+  cents: number;
+  maxDigits?: number;
+  minDigits?: number;
+}): string {
+  const dollars = cents / 100;
+
+  return (
+    '$' +
+    dollars.toLocaleString(CURRENCY_LOCALE, {
+      minimumFractionDigits: minDigits,
+      maximumFractionDigits: maxDigits,
+    })
+  );
+}
+
+/**
+ * Always include $ and cents in the price.
+ *
+ * $100.01 => $100.01
+ * $100.00 => $100.00
+ * $100.30 => $100.30
+ * -100 => -$100.00
+ */
+export function displayPriceWithCents({
+  cents,
+  minimumFractionDigits,
+  maximumFractionDigits,
+}: {
+  cents: number;
+  maximumFractionDigits?: number;
+  minimumFractionDigits?: number;
+}): string {
+  const dollars = cents / 100;
+  const prefix = dollars >= 0 ? '$' : '-$';
+
+  return (
+    prefix +
+    Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
+      minimumFractionDigits: minimumFractionDigits ?? 2,
+      maximumFractionDigits: maximumFractionDigits ?? 2,
+    })
+  );
+}
 
 function isNum(val: unknown): val is number {
   return typeof val === 'number';
@@ -118,13 +218,38 @@ export const getSlot = (
  *                with Attachments because "1K GB" is hard to read.
  * isGifted: For gifted data volumes, 0 is displayed as 0 instead of unlimited.
  * useUnitScaling: For Attachments only. Scale from kB -> MB -> GB -> TB -> etc
+ * unitType: Overrides the category's unit type, for billing platform line items
+ *           that aren't a DataCategory (see getLineItemUnitType).
  */
 type FormatOptions = {
   fractionDigits?: number;
   isAbbreviated?: boolean;
   isGifted?: boolean;
+  unitType?: LineItemUnitType;
   useUnitScaling?: boolean;
 };
+
+type LineItemUnitType = 'microCents';
+
+const MICRO_CENTS_PER_CENT = 1_000_000;
+
+/**
+ * Billing platform line items keyed by uid have no DataCategory to derive units
+ * from, so the plan declares their unit type alongside their display name.
+ */
+export function getLineItemUnitType(
+  plan: Plan,
+  category: DataCategory | string
+): LineItemUnitType | undefined {
+  return plan.categoryDisplayNames?.[category]?.unitType;
+}
+
+function formatMicroCents(microCents: number): string {
+  return displayPriceWithCents({
+    cents: microCents / MICRO_CENTS_PER_CENT,
+    minimumFractionDigits: 0,
+  });
+}
 
 /**
  * This expects values from CustomerSerializer, which contains quota/reserved
@@ -141,6 +266,15 @@ export function formatReservedWithUnits(
     isGifted: false,
   }
 ): string {
+  if (
+    options.unitType === 'microCents' &&
+    defined(reservedQuantity) &&
+    reservedQuantity !== RESERVED_BUDGET_QUOTA &&
+    !isUnlimitedReserved(reservedQuantity)
+  ) {
+    return formatMicroCents(reservedQuantity);
+  }
+
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
 
@@ -181,6 +315,10 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
+  if (options.unitType === 'microCents') {
+    return formatMicroCents(usageQuantity);
+  }
+
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
 
@@ -751,6 +889,7 @@ export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) 
 export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
+  DataCategory.TRACE_METRIC_BYTE,
   DataCategory.TRANSACTIONS,
 ]);
 
@@ -945,6 +1084,9 @@ export function productIsEnabled(
   const metricHistory = subscription.categories[billedCategory];
   if (!metricHistory) {
     return false;
+  }
+  if (metricHistory.isDisabled !== undefined) {
+    return !metricHistory.isDisabled;
   }
   const hasNonPaygAccess =
     (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;

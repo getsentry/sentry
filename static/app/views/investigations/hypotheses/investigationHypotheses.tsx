@@ -1,24 +1,29 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
-import {Disclosure} from '@sentry/scraps/disclosure';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {t, tn} from 'sentry/locale';
+import {humanize} from 'sentry/utils/string/humanize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   investigationOrchestrationQueryOptions,
   useInvestigationOrchestrationCommandMutation,
 } from 'sentry/views/investigations/api';
-import {HypothesisList} from 'sentry/views/investigations/hypotheses/hypothesisList';
+import {
+  HypothesisList,
+  HypothesisListPlaceholder,
+} from 'sentry/views/investigations/hypotheses/hypothesisList';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
   InvestigationHypothesis,
+  InvestigationHypothesisStatus,
+  InvestigationOrchestrationPhase,
   InvestigationOrchestrationStatus,
 } from 'sentry/views/investigations/types';
 
@@ -39,6 +44,19 @@ const POLL_INTERVAL_MS = 2000;
  * asking instead of polling a stopped run forever.
  */
 const COMMAND_SETTLE_MS = 30_000;
+
+/**
+ * Phases past producing hypotheses, where an empty list means the run made
+ * none. Anywhere else an empty list means "not yet", including a run that is
+ * investigating but has not written its first hypothesis.
+ */
+const SETTLED_PHASES = new Set<string>([
+  'reporting',
+  'metadata',
+  'completed',
+  'failed',
+  'cancelled',
+]);
 
 /** Statuses the agent will never move out of on its own. */
 const TERMINAL_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
@@ -83,6 +101,18 @@ type InvestigationHypothesesProps = {
    * orchestration endpoint 404s for those, and there is nothing to poll.
    */
   enabled?: boolean;
+  /**
+   * The run's phase from the investigation summary. Only used before the
+   * projection arrives, so a finished run opens collapsed instead of showing a
+   * placeholder that collapses a moment later. Optional: the projection
+   * replaces it as soon as it lands.
+   */
+  phase?: InvestigationOrchestrationPhase;
+  /**
+   * The run's status from the investigation summary, read the same way as
+   * `phase`: only until the projection arrives.
+   */
+  status?: InvestigationOrchestrationStatus;
 };
 
 /**
@@ -102,6 +132,8 @@ type InvestigationHypothesesProps = {
 export function InvestigationHypotheses({
   enabled = true,
   investigationId,
+  phase: summaryPhase,
+  status: summaryStatus,
 }: InvestigationHypothesesProps) {
   const organization = useOrganization();
   // When the last accepted command was sent, or null if none has been. A
@@ -109,7 +141,7 @@ export function InvestigationHypotheses({
   // rewrite the projection behind it.
   const [commandSentAt, setCommandSentAt] = useState<number | null>(null);
 
-  const {data: projection} = useQuery({
+  const {data: projection, isPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
     refetchInterval: query => {
@@ -129,35 +161,70 @@ export function InvestigationHypotheses({
     {onSuccess: () => setCommandSentAt(Date.now())}
   );
 
+  const phase = projection?.phase ?? summaryPhase;
   const verificationComplete =
     projection?.status === 'completed' ||
-    ['reporting', 'metadata', 'completed'].includes(projection?.phase ?? '');
+    ['reporting', 'metadata', 'completed'].includes(phase ?? '');
+  // A run that has already finished verifying when the page loads opens
+  // collapsed: the report is what the viewer came for. A run that finishes while
+  // someone watches keeps the panel as it was, so the cards they were reading
+  // don't fold away underneath them. The decision is made once, on the first
+  // projection — until then the summary's phase stands in for it — and a
+  // toggle by the viewer before that lands settles it too.
   const [panelState, setPanelState] = useState({
-    verificationComplete,
+    investigationId,
+    settled: projection !== undefined,
     expanded: !verificationComplete,
   });
 
-  if (panelState.verificationComplete !== verificationComplete) {
-    setPanelState({verificationComplete, expanded: !verificationComplete});
+  if (panelState.investigationId !== investigationId) {
+    setPanelState({
+      investigationId,
+      settled: projection !== undefined,
+      expanded: !verificationComplete,
+    });
+  } else if (
+    !panelState.settled &&
+    (projection !== undefined || panelState.expanded === verificationComplete)
+  ) {
+    setPanelState({
+      investigationId,
+      settled: projection !== undefined,
+      expanded: !verificationComplete,
+    });
   }
 
-  // The status block is the run talking, so it appears as soon as there is a
-  // run — before the first hypothesis exists, which is exactly when a viewer
-  // most needs to be told that something is happening.
+  function setExpanded(expanded: boolean) {
+    setPanelState({investigationId, settled: true, expanded});
+  }
+
+  // Nothing is known yet, so the panel goes up empty rather than appearing a
+  // moment later. A run with no hypotheses left to produce is skipped: its
+  // panel would open on placeholders and then collapse. So is a run waiting on
+  // a person — nothing will arrive until they answer.
   if (!projection) {
-    return null;
+    const worthHoldingSpaceFor =
+      enabled &&
+      isPending &&
+      summaryStatus !== 'awaiting_input' &&
+      !SETTLED_PHASES.has(phase ?? '');
+
+    return worthHoldingSpaceFor ? (
+      <Stack gap="3xl">
+        <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
+          <HypothesisListPlaceholder />
+        </HypothesesPanel>
+      </Stack>
+    ) : null;
   }
 
-  const statusBlock = getSeerStatusBlock(projection);
+  // A finished run has nothing left to report here: the findings below speak
+  // for themselves, and the header badge still says it completed. Every other
+  // state — running, waiting on input, failed, stopped — keeps the block.
+  const seerStatus = getSeerStatusBlock(projection);
+  const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
-  const completedChecks = projection.hypotheses.reduce(
-    (count, hypothesis) =>
-      count +
-      (hypothesis.verificationSteps ?? []).filter(step => step.status === 'completed')
-        .length,
-    0
-  );
 
   function setDisposition(
     hypothesis: InvestigationHypothesis,
@@ -216,68 +283,123 @@ export function InvestigationHypotheses({
     ];
   }
 
+  const hasHypotheses = projection.hypotheses.length > 0;
+  // A run waiting on a person makes no hypotheses until they answer, so a
+  // placeholder there would promise cards that are not coming.
+  const awaitingFirstHypothesis =
+    !hasHypotheses &&
+    projection.status !== 'awaiting_input' &&
+    !SETTLED_PHASES.has(projection.phase);
+
   return (
-    <Stack gap="2xl">
+    <Stack gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
-      {projection.hypotheses.length > 0 ? (
-        <Disclosure
+      {hasHypotheses || awaitingFirstHypothesis ? (
+        <HypothesesPanel
           expanded={panelState.expanded}
-          onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
-          border="primary"
-          radius="xl"
-          background="secondary"
-          padding="lg"
-          gap={panelState.expanded ? 'xl' : undefined}
-          data-test-id="investigation-run-panel"
+          hypotheses={projection.hypotheses}
+          onExpandedChange={setExpanded}
         >
-          <HypothesesTitle>
-            <Stack gap="xs" minWidth={0}>
-              <Text variant="muted" bold>
-                {t('Hypotheses')}
-              </Text>
-              <Text variant="muted" density="comfortable" bold={false}>
-                {tn(
-                  '%s plausible cause',
-                  '%s plausible causes',
-                  projection.hypotheses.length
-                )}
-                {' • '}
-                {tn('%s check completed', '%s checks completed', completedChecks)}
-              </Text>
-            </Stack>
-          </HypothesesTitle>
-          <HypothesesContent>
+          {hasHypotheses ? (
             <HypothesisList
               hypotheses={projection.hypotheses}
               primaryHypothesisId={projection.report.primaryHypothesisId}
               getActions={getActions}
             />
-          </HypothesesContent>
-        </Disclosure>
+          ) : (
+            <HypothesisListPlaceholder />
+          )}
+        </HypothesesPanel>
       ) : null}
     </Stack>
   );
 }
 
-const HypothesesTitle = styled(Disclosure.Title)`
-  :has(> &) {
-    padding: 0;
-  }
+/**
+ * Shared by the row and its placeholder so the panel keeps its shape when the
+ * first hypothesis lands — only its contents change. Uses the same card as the
+ * report's query cells.
+ */
+function HypothesesPanel({
+  children,
+  expanded,
+  hypotheses = [],
+  onExpandedChange,
+}: {
+  children: React.ReactNode;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
+  hypotheses?: InvestigationHypothesis[];
+}) {
+  const tally = getHypothesisTally(hypotheses);
 
-  && {
-    height: auto;
-    padding: 0;
-    white-space: normal;
-    text-align: left;
-  }
+  return (
+    <SeerEmbedBlock
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
+      status={
+        tally ? (
+          <Text size="sm" variant="muted" bold={false} wrap="nowrap">
+            {tally}
+          </Text>
+        ) : null
+      }
+      testId="investigation-run-panel"
+      title={t('Hypotheses')}
+    >
+      {children}
+    </SeerEmbedBlock>
+  );
+}
 
-  && > span {
-    height: auto;
-    white-space: normal;
-    align-items: flex-start;
-  }
-`;
+/**
+ * Order and labels for the tally. Pending and investigating count together.
+ */
+const TALLY_ORDER: Array<{
+  label: (count: number) => string;
+  statuses: InvestigationHypothesisStatus[];
+}> = [
+  {statuses: ['supported'], label: count => tn('%s supported', '%s supported', count)},
+  {statuses: ['accepted'], label: count => tn('%s accepted', '%s accepted', count)},
+  {
+    statuses: ['inconclusive'],
+    label: count => tn('%s inconclusive', '%s inconclusive', count),
+  },
+  {statuses: ['refuted'], label: count => tn('%s refuted', '%s refuted', count)},
+  {statuses: ['rejected'], label: count => tn('%s rejected', '%s rejected', count)},
+  {statuses: ['failed'], label: count => tn('%s failed', '%s failed', count)},
+  {statuses: ['cancelled'], label: count => tn('%s cancelled', '%s cancelled', count)},
+  {
+    statuses: ['pending', 'investigating'],
+    label: count => tn('%s investigating', '%s investigating', count),
+  },
+];
 
-const HypothesesContent = styled(Disclosure.Content)`
-  padding: 0;
-`;
+/**
+ * Counts verdicts for the panel header, e.g. "1 supported • 2 refuted".
+ * Statuses missing from `TALLY_ORDER` are counted under their own name.
+ */
+function getHypothesisTally(hypotheses: InvestigationHypothesis[]): string | null {
+  if (hypotheses.length === 0) {
+    return null;
+  }
+  const counts = new Map<InvestigationHypothesisStatus, number>();
+  for (const {effectiveStatus} of hypotheses) {
+    counts.set(effectiveStatus, (counts.get(effectiveStatus) ?? 0) + 1);
+  }
+  const known = new Set(TALLY_ORDER.flatMap(entry => entry.statuses));
+  const parts = TALLY_ORDER.flatMap(({label, statuses}) => {
+    const count = statuses.reduce(
+      (total, status) => total + (counts.get(status) ?? 0),
+      0
+    );
+    return count > 0 ? [label(count)] : [];
+  });
+  for (const [status, count] of counts) {
+    if (!known.has(status)) {
+      parts.push(`${count} ${humanize(status).toLowerCase()}`);
+    }
+  }
+  // Only the parts are translated; the bullet is punctuation.
+  return parts.join(' • ');
+}

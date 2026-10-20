@@ -1,5 +1,5 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
-import {screen} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -140,14 +140,19 @@ describe('javascript-gatsby onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('includes dataCollection configuration', () => {
+  it('includes the data collection step', async () => {
     renderWithOnboardingLayout(docs);
+
+    // The step is collapsible, so its content only renders once expanded.
+    await userEvent.click(
+      screen.getByText('Control the Data You Send to Sentry (Optional)')
+    );
 
     expect(
       screen.getByText(textWithMarkupMatcher(/dataCollection: \{/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/\/\/ httpBodies: \[\]/))
+      screen.getByText(textWithMarkupMatcher(/userInfo: false/))
     ).toBeInTheDocument();
   });
 

@@ -102,6 +102,9 @@ describe('DetectorNew', () => {
 
     render(<DetectorNew />, {organization: readOnlyOrganization});
 
-    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Next'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

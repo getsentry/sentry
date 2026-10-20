@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -6,7 +6,6 @@ import orderBy from 'lodash/orderBy';
 import {Observer} from 'mobx-react-lite';
 import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -45,37 +44,14 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
 import {hasAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
   return (
     <SentryDocumentTitle title={title ? t('%s - New Alert', title) : t('New Alert')} />
-  );
-}
-
-function AutomationBreadcrumbs() {
-  const organization = useOrganization();
-  return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Alerts'),
-              to: makeAutomationBasePathname(organization.slug),
-            },
-          ]}
-        />
-      </TopBar.Slot>
-
-      <TopBar.Slot name="title">
-        <EditableAutomationName />
-      </TopBar.Slot>
-    </Fragment>
   );
 }
 
@@ -156,7 +132,24 @@ export default function AutomationNewSettings() {
     removeError,
   } = useAutomationBuilderErrors();
 
-  const {mutateAsync: createAutomation, error} = useCreateAutomation();
+  const {mutateAsync: createAutomation, error} = useCreateAutomation({
+    suppressErrorMessage: true,
+  });
+
+  const errorContextValue = useMemo(
+    () => ({
+      errors: automationBuilderErrors,
+      setErrors: setAutomationBuilderErrors,
+      removeError,
+      mutationErrors: error?.responseJSON,
+    }),
+    [automationBuilderErrors, setAutomationBuilderErrors, removeError, error]
+  );
+
+  const builderContextValue = useMemo(
+    () => ({state, actions, showTriggerLogicTypeSelector: false}),
+    [state, actions]
+  );
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
@@ -243,29 +236,17 @@ export default function AutomationNewSettings() {
       initialData={initialData}
       onSubmit={handleSubmit}
       model={model}
+      mapFormErrors={mapAutomationFormErrors}
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <AutomationBreadcrumbs />
+          <EditableAutomationName />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
-              <AutomationBuilderErrorContext.Provider
-                value={{
-                  errors: automationBuilderErrors,
-                  setErrors: setAutomationBuilderErrors,
-                  removeError,
-                  mutationErrors: error?.responseJSON,
-                }}
-              >
-                <AutomationBuilderContext.Provider
-                  value={{
-                    state,
-                    actions,
-                    showTriggerLogicTypeSelector: false,
-                  }}
-                >
+              <AutomationBuilderErrorContext.Provider value={errorContextValue}>
+                <AutomationBuilderContext.Provider value={builderContextValue}>
                   <AutomationForm model={model} />
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>

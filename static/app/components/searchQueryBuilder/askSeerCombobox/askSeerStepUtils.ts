@@ -36,6 +36,21 @@ const TAG_INVESTIGATION_LABELS: StepLabel[] = [
  * Array format allows for variation when steps repeat.
  */
 const STEP_LABELS: Record<string, StepLabel[]> = {
+  // Code Mode
+  query_agent_api_execute: [
+    {loading: t('Investigating your tags...'), completed: t('Investigated tags')},
+    {loading: t('Building your query...'), completed: t('Built query')},
+    {loading: t('Taking a closer look...'), completed: t('Looked closer')},
+    {
+      loading: t('Double-checking everything...'),
+      completed: t('Double-checked results'),
+    },
+  ],
+  query_agent_api_search: [
+    {loading: t('Planning analysis...'), completed: t('Planned analysis')},
+    {loading: t('Reading documentation...'), completed: t('Read documentation')},
+  ],
+
   get_field_values: TAG_INVESTIGATION_LABELS,
   get_metric_candidates: [
     {loading: t('Finding matching metrics...'), completed: t('Found matching metrics')},

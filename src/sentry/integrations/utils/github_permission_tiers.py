@@ -40,6 +40,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from sentry.integrations.utils.github_permissions import (
+    GITHUB_APP_LATEST_PERMISSIONS,
     PermissionLevel,
     parse_github_app_permissions,
 )
@@ -64,28 +65,28 @@ BASELINE_TIER = PermissionTier(
     key="baseline",
     order=0,
     description=(
-        "Including issue linking, commit tracking, and keeping repository data up to date."
+        "Linking to Sentry Issues, Suspect Commits, and keeping repository data up to date."
     ),
 )
 
 PR_COMMENTS_TIER = PermissionTier(
     key="pull_request_comments",
     order=1,
-    description="Comment on pull requests to link them to the Sentry issues they caused.",
+    description="Comments on your pull requests to link them to the Sentry issues they caused.",
     introduced={"pull_requests": PermissionLevel.WRITE},
 )
 
 CODE_REVIEW_TIER = PermissionTier(
     key="code_review",
     order=2,
-    description="Review your pull requests and report the result as a check run.",
+    description="Seer Code Review: Reviews your pull requests and reports the results as a check run.",
     introduced={"checks": PermissionLevel.WRITE, "statuses": PermissionLevel.WRITE},
 )
 
 AUTOFIX_PULL_REQUESTS_TIER = PermissionTier(
     key="autofix_pull_requests",
     order=3,
-    description="Push a branch and open a pull request with a fix for an issue.",
+    description="Seer Autofix: Pushes a branch and opens a pull request with a fix for an issue.",
     introduced={"contents": PermissionLevel.WRITE},
 )
 
@@ -93,8 +94,8 @@ PR_ITERATION_TIER = PermissionTier(
     key="pr_iteration",
     order=4,
     description=(
-        "Read GitHub Actions logs and re-run jobs, so Seer can get a pull "
-        "request it opened to a passing build."
+        "Seer PR Iteration: Reads GitHub Actions logs and re-run jobs, so Seer Autofix "
+        "can get a pull request it opened to a passing build."
     ),
     introduced={
         "actions": PermissionLevel.WRITE,
@@ -169,8 +170,8 @@ def get_permission_tiers(
 
     ``permissions`` is the installation's own scope -> level map as GitHub
     reports it in ``Integration.metadata["permissions"]``; ``required_permissions``
-    is what the current app version asks for, from
-    ``GITHUB_APP_LATEST_PERMISSIONS``.
+    is what the current app version asks for. Most callers want
+    ``get_missing_permission_tiers``, which passes ``GITHUB_APP_LATEST_PERMISSIONS``.
 
     Empty when the install is current. When its permissions are not a point on
     the order we cannot trust the state, so rather than guess we log it and
@@ -211,3 +212,16 @@ def get_permission_tiers(
         return list(TIERS)
 
     return behind
+
+
+def get_missing_permission_tiers(permissions: Mapping[str, str]) -> list[PermissionTier]:
+    """The feature tiers an installation holding ``permissions`` falls short of.
+
+    Feed in the install's own scope -> level map (from
+    ``Integration.metadata["permissions"]``) and get back the tiers it is missing,
+    highest order first. A non-empty result *is* the "missing permissions" signal:
+    each tier names a feature that stops working, and an install with everything
+    the app requires comes back empty. Thin wrapper over ``get_permission_tiers``
+    that compares against ``GITHUB_APP_LATEST_PERMISSIONS``.
+    """
+    return get_permission_tiers(permissions, GITHUB_APP_LATEST_PERMISSIONS)

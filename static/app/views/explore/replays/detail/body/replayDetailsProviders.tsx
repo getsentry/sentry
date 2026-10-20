@@ -54,12 +54,12 @@ export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
   });
 
   const {mutate: markAsViewed} = useMarkReplayViewed();
+  const {id: replayId, has_viewed: hasViewed} = replayRecord;
   useEffect(() => {
-    if (projectSlug && replayRecord.id && !replayRecord.has_viewed) {
-      markAsViewed({projectSlug, replayId: replayRecord.id});
+    if (projectSlug && replayId && !hasViewed) {
+      markAsViewed({projectSlug, replayId});
     }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [markAsViewed, organization, projectSlug, replayRecord]);
+  }, [markAsViewed, projectSlug, replayId, hasViewed]);
 
   const [{playlistStart, playlistEnd, playlistSort, ...locationQuery}] =
     useQueryStates(replayDetailsParsers);

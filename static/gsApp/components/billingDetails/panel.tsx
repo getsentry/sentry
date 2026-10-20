@@ -12,6 +12,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {BillingDetailsForm} from 'getsentry/components/billingDetails/form';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
@@ -50,7 +51,11 @@ export function BillingDetailsPanel({
   } = useBillingDetails();
 
   useEffect(() => {
-    if (loadError && loadError.status !== 401 && loadError.status !== 403) {
+    if (
+      loadError &&
+      (!(loadError instanceof RequestError) ||
+        (loadError.status !== 401 && loadError.status !== 403))
+    ) {
       Sentry.captureException(loadError);
     }
   }, [loadError]);
@@ -59,6 +64,7 @@ export function BillingDetailsPanel({
     if (expandInitially && !isLoading && !hasSomeBillingDetails(billingDetails)) {
       // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setExpandInitially(false);
     }
   }, [isLoading, billingDetails, expandInitially]);
@@ -116,19 +122,10 @@ export function BillingDetailsPanel({
                   t('An unknown error occurred.')
               );
             }}
-            extraButton={
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setIsEditing(false);
-                  setFormError(null);
-                }}
-                aria-label={t('Cancel editing business address')}
-              >
-                {t('Cancel')}
-              </Button>
-            }
+            onCancel={() => {
+              setIsEditing(false);
+              setFormError(null);
+            }}
             analyticsEvent={analyticsEvent}
           />
         ) : billingDetails && hasSomeBillingDetails(billingDetails) ? (

@@ -2,9 +2,19 @@ from __future__ import annotations
 
 from unittest import mock
 
+import orjson
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from drf_spectacular.settings import patched_settings
+from openapi_schema_validator import OAS30Validator
+from rest_framework.response import Response
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
+from urllib3.response import HTTPResponse
 
+import sentry.apidocs.extensions  # noqa: F401
+from sentry.apidocs.hooks import CustomGenerator
+from sentry.investigations.apidocs import PRIVATE_SCHEMA_SETTINGS
 from sentry.investigations.models import (
     Investigation,
     InvestigationOrchestrationRun,
@@ -17,10 +27,13 @@ from sentry.investigations.templates.types import (
 )
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
+from sentry.tasks.seer.investigation import dispatch_investigation_orchestration_create
+from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 FEATURE = "organizations:investigations"
 
@@ -123,6 +136,75 @@ class OrganizationInvestigationIndexTest(APITestCase):
         run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
         dispatch.assert_called_once_with(run.id)
 
+    @override_settings(
+        SEER_API_SHARED_SECRET="viewer-context-test-secret",
+        SENTRY_VIEWER_CONTEXT_ENABLED=True,
+    )
+    @mock.patch(
+        "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
+    )
+    @mock.patch("sentry.tasks.seer.investigation.synchronize_orchestration_projection")
+    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")
+    @mock.patch("sentry.investigations.services.orchestration.transaction.on_commit")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_agentic_creation_propagates_user_context_to_seer(
+        self,
+        dispatch: mock.Mock,
+        on_commit: mock.Mock,
+        mock_urlopen: mock.Mock,
+        synchronize_projection: mock.Mock,
+        dispatch_commands: mock.Mock,
+    ) -> None:
+        activations: list[TaskActivation] = []
+
+        def capture_dispatch(run_id: int) -> None:
+            activations.append(
+                dispatch_investigation_orchestration_create.create_activation(
+                    args=[run_id], kwargs={}
+                )
+            )
+
+        dispatch.side_effect = capture_dispatch
+        on_commit.side_effect = lambda callback, **kwargs: callback()
+
+        response = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        assert len(activations) == 1
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps(
+                {
+                    "runId": 123,
+                    "created": True,
+                    "projection": {
+                        **run.projection,
+                        "heartbeatAt": timezone.now().isoformat(),
+                    },
+                }
+            ),
+            status=200,
+        )
+
+        with ViewerContextHook().on_execute(dict(activations[0].headers)):
+            dispatch_investigation_orchestration_create(run.id)
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
+        synchronize_projection.assert_called_once()
+        dispatch_commands.assert_called_once_with(run.id)
+
     def test_agentic_creation_rejects_an_inaccessible_project_atomically(self) -> None:
         foreign_project = self.create_project(organization=self.create_organization())
 
@@ -187,17 +269,20 @@ class OrganizationInvestigationIndexTest(APITestCase):
 
     def test_regular_member_can_create_an_investigation(self) -> None:
         member_user = self.create_user()
-        self.create_member(organization=self.organization, user=member_user, role="member")
+        self.create_member(
+            organization=self.organization, user=member_user, role="member", teams=[]
+        )
         self.login_as(member_user)
 
         response = self.client.post(
             self.collection_url,
-            data={"title": "Created by member"},
+            data={"title": "Created by member", "projectIds": [self.project.id]},
             format="json",
         )
 
         assert response.status_code == 201, response.data
         assert response.data["createdBy"] == str(member_user.id)
+        assert response.data["projectIds"] == [self.project.id]
 
     def test_manual_creation_rejects_inaccessible_project(self) -> None:
         other_organization = self.create_organization()
@@ -388,3 +473,66 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.status_code == 200, response.data
         assert [item["title"] for item in response.data] == ["Listed"]
         assert response.data[0]["isFavorited"] is False
+
+    def test_private_schema_matches_frontend_responses(self) -> None:
+        with patched_settings(PRIVATE_SCHEMA_SETTINGS):
+            schema = CustomGenerator().get_schema(public=True)
+        base = "/api/0/organizations/{organization_id_or_slug}/investigations/"
+        detail_path = base + "{investigation_id}/"
+
+        def validate_response(response: Response, method: str, path: str) -> None:
+            assert 200 <= response.status_code < 300, response.data
+            response_schema = schema["paths"][path][method]["responses"][str(response.status_code)][
+                "content"
+            ]["application/json"]["schema"]
+            OAS30Validator({**response_schema, "components": schema["components"]}).validate(
+                orjson.loads(response.content)
+            )
+
+        created = self.client.post(
+            self.collection_url,
+            data={"title": "Checkout latency", "projectIds": [self.project.id]},
+            format="json",
+        )
+        validate_response(created, "post", base)
+        validate_response(self.client.get(self.collection_url), "get", base)
+        detail_url = f"{self.collection_url}{created.data['id']}/"
+        block = self.client.post(
+            detail_url + "blocks/",
+            data={
+                "investigationVersion": created.data["version"],
+                "kind": "text",
+                "content": "Initial observations",
+            },
+            format="json",
+        )
+        validate_response(block, "post", detail_path + "blocks/")
+        detail = self.client.get(detail_url)
+        validate_response(detail, "get", detail_path)
+        comment = self.client.post(
+            detail_url + "comments/",
+            data={"body": "Latency rose after deployment.", "blockId": int(block.data["id"])},
+            format="json",
+        )
+        validate_response(comment, "post", detail_path + "comments/")
+        validate_response(
+            self.client.get(detail_url + "comments/"), "get", detail_path + "comments/"
+        )
+        validate_response(
+            self.client.get(detail_url + "comment-counts/"), "get", detail_path + "comment-counts/"
+        )
+        validate_response(
+            self.client.put(detail_url + "presence/"), "put", detail_path + "presence/"
+        )
+        validate_response(
+            self.client.get(detail_url + "title-generation/"),
+            "get",
+            detail_path + "title-generation/",
+        )
+
+        agentic = self.client.post(
+            self.collection_url, data={"source": {"type": "manual"}}, format="json"
+        )
+        validate_response(agentic, "post", base)
+        orchestration = self.client.get(f"{self.collection_url}{agentic.data['id']}/orchestration/")
+        validate_response(orchestration, "get", detail_path + "orchestration/")

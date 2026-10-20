@@ -13,7 +13,6 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Sequence
 
-from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -23,7 +22,6 @@ from sentry.issues.action_log.types import (
 )
 
 if TYPE_CHECKING:
-    from sentry.hybridcloud.models.outbox import CellOutboxBase
     from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -57,12 +55,7 @@ class ActionContext:
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
 
 
-def _get_outbox_identifier(outbox_model: type[CellOutboxBase]) -> int:
-    from sentry import options
-
-    if options.get("issues.action_log.use_db_sequence_for_outbox_identifier"):
-        return outbox_model.next_object_identifier()
-
+def _get_outbox_identifier() -> int:
     # This only needs to be unique among currently stored outboxes for the same group,
     # typically one or two rows. Even with 10k rows, the collision probability for
     # positive signed bigint is about 1 in 184 billion.
@@ -163,7 +156,7 @@ def publish_action(
         "actor_type": actor.actor_type.value,
         "actor_id": actor.actor_id,
         "source": source,
-        "data": action.dict(),
+        "data": action.json_dict(),
         "force_async_derived": force_async_derived,
     }
 
@@ -184,7 +177,7 @@ def publish_action(
                 shard_scope=OutboxScope.GROUP_SCOPE,
                 shard_identifier=group_id,
                 category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-                object_identifier=_get_outbox_identifier(GroupActionLogOutbox),
+                object_identifier=_get_outbox_identifier(),
                 payload=payload,
             )
             outbox.save()
@@ -239,6 +232,8 @@ def publish_actions_from_context_bulk(
 
     Input is a sequence of tuples of (GroupAction, Project, GroupID, IdempotencyKey)
     """
+    from sentry.hybridcloud.models.outbox import outbox_context
+
     if len(actions) == 0:
         return
 

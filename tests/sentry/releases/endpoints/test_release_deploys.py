@@ -235,12 +235,39 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
-        assert release.new_last_deploy_id == deploy.id
 
         rpe = ReleaseProjectEnvironment.objects.get(
             project=self.project, release=release, environment=environment
         )
         assert rpe.last_deploy_id == deploy.id
+
+    def test_null_date_finished_defaults_to_now(self) -> None:
+        release = self.create_release(project=self.project, version="1")
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+
+        before = datetime.datetime.now(datetime.UTC)
+        response = self.client.post(
+            url,
+            data={
+                "environment": "production",
+                "dateStarted": "2020-01-01T00:00:00Z",
+                "dateFinished": None,
+            },
+            format="json",
+        )
+        after = datetime.datetime.now(datetime.UTC)
+        assert response.status_code == 201, response.content
+
+        deploy = Deploy.objects.get(id=response.data["id"])
+        assert deploy.date_started == datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
+        assert before <= deploy.date_finished <= after
 
     def test_with_project_slugs(self) -> None:
         project_bar = self.create_project(organization=self.org, name="bar")
@@ -282,7 +309,6 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
-        assert release.new_last_deploy_id == deploy.id
 
         rpe = ReleaseProjectEnvironment.objects.get(
             project=self.project, release=release, environment=environment
@@ -338,7 +364,6 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
-        assert release.new_last_deploy_id == deploy.id
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project=self.project, release=release, environment=environment
@@ -389,7 +414,6 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.total_deploys == 1
         assert release.last_deploy_id == deploy.id
-        assert release.new_last_deploy_id == deploy.id
 
         rpe = ReleaseProjectEnvironment.objects.get(
             project=self.project, release=release, environment=environment

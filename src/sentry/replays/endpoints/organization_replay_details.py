@@ -21,6 +21,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
@@ -270,35 +271,38 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
 
-        # Use EAP query if feature flag is enabled
-        if features.has("organizations:replay-details-eap-query", organization, actor=request.user):
-            snuba_response = query_replay_instance_eap(
-                project_ids=project_ids,
-                replay_ids=[replay_id],
-                start=filter_params["start"],
-                end=filter_params["end"],
-                organization_id=organization.id,
-                request_user_id=request.user.id,
-            )["data"]
-
-            if snuba_response:
-                urls = _query_replay_urls_eap(
-                    replay_id=replay_id,
+        with handle_query_errors():
+            # Use EAP query if feature flag is enabled
+            if features.has(
+                "organizations:replay-details-eap-query", organization, actor=request.user
+            ):
+                snuba_response = query_replay_instance_eap(
                     project_ids=project_ids,
+                    replay_ids=[replay_id],
                     start=filter_params["start"],
                     end=filter_params["end"],
                     organization_id=organization.id,
+                    request_user_id=request.user.id,
+                )["data"]
+
+                if snuba_response:
+                    urls = _query_replay_urls_eap(
+                        replay_id=replay_id,
+                        project_ids=project_ids,
+                        start=filter_params["start"],
+                        end=filter_params["end"],
+                        organization_id=organization.id,
+                    )
+                    snuba_response[0]["urls_sorted"] = urls
+            else:
+                snuba_response = query_replay_instance(
+                    project_id=project_ids,
+                    replay_id=replay_id,
+                    start=filter_params["start"],
+                    end=filter_params["end"],
+                    organization=organization,
+                    request_user_id=request.user.id,
                 )
-                snuba_response[0]["urls_sorted"] = urls
-        else:
-            snuba_response = query_replay_instance(
-                project_id=project_ids,
-                replay_id=replay_id,
-                start=filter_params["start"],
-                end=filter_params["end"],
-                organization=organization,
-                request_user_id=request.user.id,
-            )
 
         replay_data = process_raw_response(
             snuba_response,

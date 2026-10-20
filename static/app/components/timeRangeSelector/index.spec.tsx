@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
@@ -12,12 +13,10 @@ const organization = OrganizationFixture({features: ['open-membership']});
 describe('TimeRangeSelector', () => {
   const onChange = jest.fn();
 
-  function getComponent(props = {}) {
+  function ExampleTimeRangeSelector(
+    props: Partial<ComponentProps<typeof TimeRangeSelector>>
+  ) {
     return <TimeRangeSelector showAbsolute showRelative onChange={onChange} {...props} />;
-  }
-
-  function renderComponent(props = {}) {
-    return render(getComponent(props));
   }
 
   beforeEach(() => {
@@ -32,7 +31,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('renders when given relative period', async () => {
-    renderComponent({relative: '9d'});
+    render(<ExampleTimeRangeSelector relative="9d" />);
     expect(await screen.findByRole('button', {name: '9D'})).toBeInTheDocument();
   });
 
@@ -46,7 +45,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('hides relative options', async () => {
-    renderComponent({showRelative: false, start: '0', end: '0'});
+    render(<ExampleTimeRangeSelector showRelative={false} start="0" end="0" />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
@@ -63,7 +62,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('hides absolute selector', async () => {
-    renderComponent({showAbsolute: false});
+    render(<ExampleTimeRangeSelector showAbsolute={false} />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
@@ -73,7 +72,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('can select an absolute date range', async () => {
-    renderComponent();
+    render(<ExampleTimeRangeSelector />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Absolute date'}));
@@ -104,7 +103,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('can select an absolute range with utc enabled', async () => {
-    renderComponent({utc: true});
+    render(<ExampleTimeRangeSelector utc />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Absolute date'}));
@@ -136,7 +135,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('keeps time inputs focused while interacting with them', async () => {
-    renderComponent();
+    render(<ExampleTimeRangeSelector />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Absolute date'}));
@@ -151,7 +150,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('switches from relative to absolute and then toggling UTC (starting with UTC)', async () => {
-    renderComponent({relative: '7d', utc: true});
+    render(<ExampleTimeRangeSelector relative="7d" utc />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Absolute date'}));
@@ -173,7 +172,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('switches from relative to absolute and then toggling UTC (starting with non-UTC)', async () => {
-    renderComponent({relative: '7d', utc: false});
+    render(<ExampleTimeRangeSelector relative="7d" utc={false} />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Absolute date'}));
@@ -194,12 +193,14 @@ describe('TimeRangeSelector', () => {
   });
 
   it('uses the default absolute date', async () => {
-    renderComponent({
-      defaultAbsolute: {
-        start: new Date('2017-10-10T00:00:00.000Z'),
-        end: new Date('2017-10-17T23:59:59.000Z'),
-      },
-    });
+    render(
+      <ExampleTimeRangeSelector
+        defaultAbsolute={{
+          start: new Date('2017-10-10T00:00:00.000Z'),
+          end: new Date('2017-10-17T23:59:59.000Z'),
+        }}
+      />
+    );
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Absolute date'}));
@@ -210,7 +211,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('can select arbitrary relative time ranges', async () => {
-    renderComponent();
+    render(<ExampleTimeRangeSelector />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
@@ -247,7 +248,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('respects maxPickableDays for defaults', async () => {
-    renderComponent({maxPickableDays: 30});
+    render(<ExampleTimeRangeSelector maxPickableDays={30} />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
@@ -255,7 +256,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('respects maxPickableDays for arbitrary time ranges', async () => {
-    renderComponent({maxPickableDays: 30});
+    render(<ExampleTimeRangeSelector maxPickableDays={30} />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
@@ -283,7 +284,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('cannot select arbitrary relative time ranges with disallowArbitraryRelativeRanges', async () => {
-    renderComponent({disallowArbitraryRelativeRanges: true});
+    render(<ExampleTimeRangeSelector disallowArbitraryRelativeRanges />);
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 

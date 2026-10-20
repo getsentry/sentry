@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import qs from 'query-string';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -199,6 +200,56 @@ describe('MetricPanel', () => {
     // Orientation controls should NOT be present in the refreshed UI
     expect(screen.queryByRole('button', {name: 'Table bottom'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
+  });
+
+  describe('dropped data layer', () => {
+    function mockDroppedData() {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-dropped/`,
+        method: 'GET',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+        ],
+        body: {
+          meta: {dataset: 'tracemetrics', start: 0, end: 0, interval: 0},
+          droppedEvents: [DroppedEventFixture()],
+          acceptedEvents: [],
+        },
+      });
+    }
+
+    it('shows the Layers control when metrics were dropped', async () => {
+      mockDroppedData();
+      setupEventsMock(
+        createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
+        [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]
+      );
+
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-data-fidelity-annotations'],
+        },
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      });
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+    });
+
+    it('hides the Layers control without the feature flag', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      });
+
+      expect(
+        await screen.findByTestId('metric-panel-chart-type-select')
+      ).toBeInTheDocument();
+      expect(droppedDataMock).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
   });
 
   it('uses the internal expression as the chart title for equations', async () => {
@@ -528,7 +579,6 @@ describe('MetricPanel', () => {
         performanceIssuesCount: 0,
         spansCount: 2,
         spansCountMap: {},
-        transactionChildCountMap: [],
         uptimeCount: 0,
       },
     });

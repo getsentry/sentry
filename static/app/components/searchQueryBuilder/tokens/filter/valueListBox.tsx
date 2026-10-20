@@ -4,13 +4,15 @@ import styled from '@emotion/styled';
 
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
+import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {type Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
-import {isWildcardOperator} from 'sentry/components/searchSyntax/utils';
+import {isRegexOperator, isWildcardOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 
 interface ConstrainAndAlignListBoxArgs {
@@ -71,12 +73,18 @@ function WildcardFooter({
   canUseWildcard: boolean;
   token: TokenResult<Token.FILTER>;
 }) {
+  if (isRegexOperator(token.operator)) {
+    return <Container>{t('Regular expression (RE2 syntax)')}</Container>;
+  }
+
   if (isWildcardOperator(token.operator)) {
-    return <Label>{t('Switch to "is" operator to use wildcard (*) matching')}</Label>;
+    return (
+      <Container>{t('Switch to "is" operator to use wildcard (*) matching')}</Container>
+    );
   }
 
   if (canUseWildcard) {
-    return <Label>{t('Wildcard (*) matching allowed')}</Label>;
+    return <Container>{t('Wildcard (*) matching allowed')}</Container>;
   }
 
   return null;
@@ -101,13 +109,15 @@ function Footer({
   isMultiSelect: boolean;
   token: TokenResult<Token.FILTER>;
 }) {
-  if (!isMultiSelect && !canUseWildcard) {
+  if (!isMultiSelect && !canUseWildcard && !isRegexOperator(token.operator)) {
     return null;
   }
 
   return (
     <FooterContainer>
-      {isMultiSelect ? <Label>{t('Use the checkboxes to select multiple')}</Label> : null}
+      {isMultiSelect ? (
+        <Container>{t('Use the checkboxes to select multiple')}</Container>
+      ) : null}
       <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
     </FooterContainer>
   );
@@ -130,6 +140,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   token,
   wrapperRef,
 }: ValueListBoxProps<T>) {
+  const {menuPresentation} = useSearchQueryBuilderLayout();
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
     0
@@ -140,7 +151,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     (element: HTMLUListElement | null) => {
       listBoxRef.current = element;
 
-      if (!element) {
+      if (!element || menuPresentation === 'panel') {
         return;
       }
 
@@ -166,10 +177,10 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
         observer.disconnect();
       };
     },
-    [listBoxRef, popoverRef, wrapperRef]
+    [listBoxRef, menuPresentation, popoverRef, wrapperRef]
   );
 
-  if (!isOpen || (!anyItemsShowing && !isLoading)) {
+  if (!isOpen || (!anyItemsShowing && !isLoading && !isRegexOperator(token.operator))) {
     return null;
   }
 
@@ -184,6 +195,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
           <Fragment>
             <StyledListBox
               {...listBoxProps}
+              fullWidth={menuPresentation === 'panel'}
               ref={listBoxRefCallback}
               listState={state}
               hasSearch={!!filterValue}
@@ -224,9 +236,11 @@ const SectionedOverlay = styled(Overlay)`
   width: min-content;
 `;
 
-const StyledListBox = styled(ListBox)`
-  width: min-content;
-  min-width: 200px;
+const StyledListBox = styled(ListBox, {
+  shouldForwardProp: prop => prop !== 'fullWidth',
+})<{fullWidth: boolean}>`
+  width: ${p => (p.fullWidth ? '100%' : 'min-content')};
+  min-width: ${p => (p.fullWidth ? '0' : '200px')};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
@@ -251,5 +265,3 @@ const LoadingWrapper = styled('div')<{height?: string; width?: string}>`
   height: ${p => p.height ?? '140px'};
   width: ${p => p.width ?? '200px'};
 `;
-
-const Label = styled('div')``;

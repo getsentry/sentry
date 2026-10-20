@@ -6,6 +6,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {getInstallContent} from './utils';
@@ -13,12 +14,9 @@ import {getInstallContent} from './utils';
 export const onboarding: OnboardingConfig = {
   introduction: () => (
     <p>
-      {tct(
-        "Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.",
-        {
-          remixLink: <ExternalLink href="https://remix.run/" />,
-        }
-      )}
+      {tct("Sentry's integration with [remixLink:Remix] supports Remix 2.x.", {
+        remixLink: <ExternalLink href="https://remix.run/" />,
+      })}
     </p>
   ),
   install: (params: DocsParams) => [
@@ -46,6 +44,10 @@ export const onboarding: OnboardingConfig = {
         copyDsnFieldBlock(params),
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/remix/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {

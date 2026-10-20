@@ -119,19 +119,23 @@ class WebhookTest(APITestCase):
         )
 
     @patch("sentry.integrations.github.webhook.metrics")
-    @patch.object(GitHubIntegrationsWebhookEndpoint, "get_secret", return_value=None)
-    def test_missing_secret_emits_hmac_failure_metric(
-        self, mock_get_secret: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        self.client.post(
+    def test_missing_secret_rejects_empty_key_signature(self, mock_metrics: MagicMock) -> None:
+        options.delete("github-app.webhook-secret")
+        assert not options.get("github-app.webhook-secret")
+
+        signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", PUSH_EVENT_EXAMPLE_INSTALLATION.encode("utf-8"), ""
+        )
+        response = self.client.post(
             path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_HUB_SIGNATURE=f"sha1={signature}",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
+        assert response.status_code == 401
         mock_metrics.incr.assert_called_with(
             "github.webhook.hmac_failure",
             tags={"reason": "missing_secret"},
@@ -1415,7 +1419,7 @@ class PullRequestEventWebhookTest(APITestCase):
         self._post_pull_request_event(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
 
         pr = PullRequest.objects.get(repository_id=repo.id, key="1")
-        assert pr.external_id == 34778301
+        assert pr.external_id == "34778301"
 
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     def test_github_delivery_id_extracted_and_passed_to_processors(
@@ -1548,7 +1552,7 @@ class PullRequestEventWebhookTest(APITestCase):
         pr = prs[0]
 
         assert pr.key == "1"
-        assert pr.external_id == 34778301
+        assert pr.external_id == "34778301"
         assert (
             pr.message
             == "This is a pretty simple change that we need to pull into master. Fixes BAR-7"

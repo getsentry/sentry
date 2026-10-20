@@ -610,6 +610,7 @@ export function SentryAppExternalForm({
     setDynamicFieldValues(
       getTriggerFieldValues(nextInitialValues, nextTriggerFieldNames)
     );
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setFormInitialValues(nextInitialValues);
     setExternalDefaultValues({});
     setAsyncOptionsCache({});
@@ -649,6 +650,7 @@ export function SentryAppExternalForm({
     let isCancelled = false;
 
     const runPrefetch = async () => {
+      // oxlint-disable-next-line react/todo
       try {
         const cascadeResult = await cascadeFetchDependents({
           seedTriggers,
@@ -966,6 +968,7 @@ export function SentryAppExternalForm({
             impactedFields: [...allImpactedNames],
           },
         });
+        // oxlint-disable-next-line react/todo
       } finally {
         if (requestVersion === dependentFetchVersionRef.current) {
           setIsFetchingDependentFields(false);

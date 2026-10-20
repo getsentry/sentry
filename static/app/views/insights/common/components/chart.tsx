@@ -2,6 +2,7 @@ import type {RefObject} from 'react';
 import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import * as echarts from 'echarts/core';
 import type {
   TooltipFormatterCallback,
@@ -19,7 +20,7 @@ import ChartZoom, {type ZoomRenderProps} from 'sentry/components/charts/chartZoo
 import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
@@ -30,7 +31,6 @@ import {
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconWarning} from 'sentry/icons';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
@@ -39,21 +39,13 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
+
+export {ChartType, isChartType} from 'sentry/views/insights/common/components/chartTypes';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
 type PairOfSeries = [Series[], Series[]];
-
-export enum ChartType {
-  BAR = 0,
-  LINE = 1,
-  AREA = 2,
-  HEATMAP = 3,
-}
-
-export function isChartType(value: any): value is ChartType {
-  return typeof value === 'number' && Object.values(ChartType).includes(value);
-}
 
 interface ChartRenderingProps {
   height: number;
@@ -244,6 +236,17 @@ export function Chart({
   const height = renderingContext?.height ?? chartHeight;
   const isLegendVisible = renderingContext?.isFullscreen ?? showLegend;
 
+  const {releaseSeries} = useReleaseSeries({
+    start,
+    end,
+    queryExtra: undefined,
+    period,
+    utc,
+    projects,
+    environments,
+    enabled: renderingContext?.isFullscreen ?? false,
+  });
+
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = ref || defaultRef;
 
@@ -294,9 +297,6 @@ export function Chart({
       return 1;
     }
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
-    // React Compiler treats one of these dependencies as mutated later in the
-    // component, so it cannot prove the memoization is preserved.
-    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [bucketSize, lastBucketTimestamp]);
 
   // TODO: Support bar charts
@@ -472,23 +472,11 @@ export function Chart({
     <ChartZoom saveOnZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps =>
         renderingContext?.isFullscreen ? (
-          <ReleaseSeries
-            start={start}
-            end={end}
-            queryExtra={undefined}
-            period={period}
-            utc={utc}
-            projects={projects}
-            environments={environments}
-          >
-            {({releaseSeries}) => (
-              <ChartWithSeries
-                {...chartWithSeriesProps}
-                releaseSeries={releaseSeries}
-                zoomRenderProps={zoomRenderProps}
-              />
-            )}
-          </ReleaseSeries>
+          <ChartWithSeries
+            {...chartWithSeriesProps}
+            releaseSeries={releaseSeries}
+            zoomRenderProps={zoomRenderProps}
+          />
         ) : (
           <ChartWithSeries {...chartWithSeriesProps} zoomRenderProps={zoomRenderProps} />
         )

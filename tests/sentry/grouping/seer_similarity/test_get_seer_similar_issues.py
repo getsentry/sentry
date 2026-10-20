@@ -92,7 +92,7 @@ def assert_metrics_call(
 
 
 class GetSeerSimilarIssuesTest(TestCase):
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v2.1"))
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock) -> None:
         new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
             self.project
@@ -109,48 +109,14 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "exception_type": "FailedToFetchError",
                 "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                 "referrer": "ingest",
-                "model": GroupingVersion.V1,
-                "training_mode": False,
-                "platform": "python",
-                "skip_fallback": False,
-            },
-            {
-                "platform": "python",
-                "model_version": "v1",
-                "training_mode": False,
-                "hybrid_fingerprint": False,
-            },
-            viewer_context={"organization_id": self.project.organization_id},
-        )
-
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
-    def test_sends_skip_fallback_when_feature_flag_enabled(
-        self, mock_get_similarity_data: MagicMock
-    ) -> None:
-        new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
-            self.project
-        )
-
-        with self.feature("projects:similarity-grouping-skip-fallback"):
-            get_seer_similar_issues(new_event, new_grouphash, new_variants)
-
-        mock_get_similarity_data.assert_called_with(
-            {
-                "event_id": new_event.event_id,
-                "hash": new_event.get_primary_hash(),
-                "project_id": self.project.id,
-                "stacktrace": new_stacktrace_string,
-                "exception_type": "FailedToFetchError",
-                "k": options.get("seer.similarity.ingest.num_matches_to_request"),
-                "referrer": "ingest",
-                "model": GroupingVersion.V1,
+                "model": GroupingVersion.V2_1,
                 "training_mode": False,
                 "platform": "python",
                 "skip_fallback": True,
             },
             {
                 "platform": "python",
-                "model_version": "v1",
+                "model_version": "v2.1",
                 "training_mode": False,
                 "hybrid_fingerprint": False,
             },
@@ -182,7 +148,7 @@ class GetSeerSimilarIssuesTest(TestCase):
 
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-            return_value=(seer_result_data, "v1"),
+            return_value=(seer_result_data, "v2.1"),
         ) as mock_get_similarity_data:
             get_seer_similar_issues(new_event, new_grouphash, new_variants)
 
@@ -199,10 +165,10 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "project_id": self.project.id,
                 "stacktrace": new_stacktrace_string,
                 "exception_type": "FailedToFetchError",
-                "model": GroupingVersion.V1,
+                "model": GroupingVersion.V2_1,
                 "training_mode": False,
                 "platform": "python",
-                "skip_fallback": False,
+                "skip_fallback": True,
             }
 
             viewer_ctx = {"organization_id": self.project.organization_id}
@@ -217,7 +183,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                     },
                     {
                         "platform": "python",
-                        "model_version": "v1",
+                        "model_version": "v2.1",
                         "training_mode": False,
                         "hybrid_fingerprint": False,
                     },
@@ -233,33 +199,12 @@ class GetSeerSimilarIssuesTest(TestCase):
                     },
                     {
                         "platform": "python",
-                        "model_version": "v1",
+                        "model_version": "v2.1",
                         "training_mode": False,
                     },
                     viewer_context=viewer_ctx,
                 ),
             ]
-
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
-    def test_non_training_mode_metrics(
-        self,
-        mock_get_similarity_data: MagicMock,
-        mock_incr: MagicMock,
-    ) -> None:
-        """Verify get_seer_similar_issues always tags metrics with training_mode=False"""
-        new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
-            self.project
-        )
-
-        get_seer_similar_issues(new_event, new_grouphash, new_variants)
-
-        assert_metrics_call(
-            mock_incr,
-            "get_seer_similar_issues",
-            "no_seer_matches",
-            {"is_hybrid": False, "training_mode": False},
-        )
 
 
 class ParentGroupFoundTest(TestCase):

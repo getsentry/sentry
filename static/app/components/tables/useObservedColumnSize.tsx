@@ -19,7 +19,7 @@ function measureColumn(
   cell: HTMLTableCellElement,
   table: HTMLTableElement
 ) {
-  setProperty(element, '--column-resizer-height', `${table.offsetHeight}px`);
+  setProperty(element, '--column-resizer-height', `${table.clientHeight}px`);
   setProperty(element, '--drag-separator-target-length', `${cell.offsetHeight}px`);
 
   return {max: Math.max(table.clientWidth, cell.offsetWidth), width: cell.offsetWidth};

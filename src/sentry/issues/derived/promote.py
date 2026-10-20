@@ -21,6 +21,7 @@ from typing import Literal, NamedTuple
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import enforce_constraints
@@ -236,9 +237,11 @@ def build_and_promote_derived_data(
             )
 
     if derived is None:
-        if not Group.objects.filter(id=group_id).exists():
+        # Use the same database clock as invalidation, before reading the log.
+        started_at = Group.objects.filter(id=group_id).values_list(Now(), flat=True).get_or_none()
+        if started_at is None:
             raise Group.DoesNotExist(f"Group {group_id} does not exist")
-        generated_at = timezone.now()
+        generated_at = started_at
         derived = GroupDerivedData(
             group_id=group_id,
             generated_at=generated_at,

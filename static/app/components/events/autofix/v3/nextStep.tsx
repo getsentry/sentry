@@ -1,9 +1,13 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
@@ -27,9 +31,9 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {RepositoryWritePermissionButton} from 'sentry/components/events/autofix/v3/repositoryWritePermissionButton';
+import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconChevron} from 'sentry/icons/iconChevron';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -154,6 +158,7 @@ interface NextStepProps {
 function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
+  const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
@@ -187,6 +192,12 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     [organization, group, startStep, runId, referrer, section.index]
   );
 
+  const rethinkPrompt = t('How can this root cause be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'root_cause',
+  });
+
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
@@ -210,8 +221,10 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
         </Button>
       }
       placeholderPrompt={t('Give seer additional context to improve this root cause.')}
-      rethinkPrompt={t('How can this root cause be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink root cause')}
+      askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink root cause')} : undefined}
       codingAgentIntegrations={codingAgentIntegrations}
       codingAgentDisabledReason={codingAgentDisabledReason}
       onCodingAgentHandoff={handleCodingAgentHandoff}
@@ -222,6 +235,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
+  const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
@@ -255,6 +269,12 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     [organization, group, startStep, runId, referrer, section.index]
   );
 
+  const rethinkPrompt = t('How can this plan be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'solution',
+  });
+
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
@@ -278,8 +298,10 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
         </Button>
       }
       placeholderPrompt={t('Give seer additional context to improve this plan.')}
-      rethinkPrompt={t('How can this plan be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink plan')}
+      askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink plan')} : undefined}
       codingAgentIntegrations={codingAgentIntegrations}
       codingAgentDisabledReason={codingAgentDisabledReason}
       onCodingAgentHandoff={handleCodingAgentHandoff}
@@ -368,6 +390,7 @@ function CodeChangesNextStepContent({
 }: CodeChangesNextStepContentProps) {
   const organization = useOrganization();
   const {isPolling, createPR, startStep} = autofix;
+  const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const handleYesClick = () => {
     createPR(runId);
@@ -391,6 +414,12 @@ function CodeChangesNextStepContent({
     },
     [organization, group, startStep, runId, referrer, section.index]
   );
+
+  const rethinkPrompt = t('How can this code change be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'code_changes',
+  });
 
   return (
     <NextStepTemplate
@@ -421,8 +450,12 @@ function CodeChangesNextStepContent({
         />
       }
       placeholderPrompt={t('Give seer additional context to improve this code change.')}
-      rethinkPrompt={t('How can this code change be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink code changes')}
+      askSeer={
+        isCodeMode ? {onAsk: askSeer, prompt: t('Rethink code changes')} : undefined
+      }
     />
   );
 }
@@ -435,11 +468,24 @@ interface NextStepTemplateProps {
   onClickNo: (prompt: string) => void;
   placeholderPrompt: string;
   prompt: ReactNode;
-  rethinkPrompt: ReactNode;
+  rethinkPrompt: string;
   yesButton: ReactNode;
+  /**
+   * Set only in code mode, where "no" hands the question to Seer Agent with
+   * this prompt instead of collecting context for another Autofix step. The
+   * agent asks its own follow-ups, so the textarea is redundant there. When
+   * `rethinkInChat` is also set, the button asks through that instead.
+   */
+  askSeer?: {onAsk: (prompt: string) => void; prompt: string};
   codingAgentDisabledReason?: string;
   codingAgentIntegrations?: CodingAgentIntegration[];
   onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
+  /**
+   * When set, "no" (or "Ask Seer" in code mode) opens Seer Agent on
+   * `rethinkPrompt` instead of the textarea below, and the reader types their
+   * changes into the chat.
+   */
+  rethinkInChat?: () => void;
 }
 
 function NextStepTemplate({
@@ -452,6 +498,8 @@ function NextStepTemplate({
   placeholderPrompt,
   rethinkPrompt,
   labelRethink,
+  askSeer,
+  rethinkInChat,
   codingAgentIntegrations,
   codingAgentDisabledReason,
   onCodingAgentHandoff,
@@ -512,9 +560,22 @@ function NextStepTemplate({
     <Stack gap="lg">
       <Text>{prompt}</Text>
       <Flex gap="md">
-        <Button disabled={isProcessing} onClick={() => handleClickedNo(true)}>
-          {labelNo}
-        </Button>
+        {askSeer ? (
+          <Button
+            disabled={isProcessing}
+            icon={<IconSeer />}
+            onClick={rethinkInChat ?? (() => askSeer.onAsk(askSeer.prompt))}
+          >
+            {t('Ask Seer')}
+          </Button>
+        ) : (
+          <Button
+            disabled={isProcessing}
+            onClick={rethinkInChat ?? (() => handleClickedNo(true))}
+          >
+            {labelNo}
+          </Button>
+        )}
         <ButtonBar>
           {yesButton}
           {codingAgentIntegrations === undefined ? null : (
@@ -522,7 +583,7 @@ function NextStepTemplate({
               items={codingAgentOptions}
               isDisabled={defined(codingAgentDisabledReason)}
               trigger={(triggerProps, isOpen) => (
-                <Button
+                <OverlayTrigger.IconButton
                   {...triggerProps}
                   disabled={isProcessing || defined(codingAgentDisabledReason)}
                   tooltipProps={{title: codingAgentDisabledReason}}

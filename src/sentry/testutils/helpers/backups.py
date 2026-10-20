@@ -41,10 +41,14 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
+    ExploreSavedFormula,
     ExploreSavedQuery,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    ExploreSavedVariable,
+    KindItemTypes,
+    ParamItemTypes,
     TraceItemAttributeContext,
     TraceItemAttributeTypes,
     TraceItemAttributeValueContext,
@@ -52,7 +56,6 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -70,7 +73,8 @@ from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStat
 from sentry.models.counter import Counter
 from sentry.models.custominboundfilter import (
     CustomInboundFilter,
-    CustomInboundFilterDataType,
+    DataType,
+    LegacyFilter,
 )
 from sentry.models.dashboard import (
     Dashboard,
@@ -109,7 +113,6 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
@@ -511,8 +514,15 @@ class ExhaustiveFixtures(Fixtures):
         CustomInboundFilter.objects.create(
             project=project,
             name=f"custom-inbound-filter-{slug}",
-            data_type=CustomInboundFilterDataType.ALL,
+            data_type=DataType.ALL,
             conditions=[{"type": "release", "value": ["1.0.0"]}],
+        )
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"legacy-releases-{slug}",
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["2.0.0"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
         )
 
         # Auth*
@@ -522,11 +532,7 @@ class ExhaustiveFixtures(Fixtures):
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
         # Rule*
-        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
-        RuleActivity.objects.create(
-            rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
-        )
-        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
+        self.create_project_rule(project=project, owner_user_id=owner_id)
 
         # Environment*
         self.create_environment(project=project)
@@ -551,13 +557,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         # Incident*
-        incident = self.create_incident(org, [project])
-        IncidentActivity.objects.create(
-            incident=incident,
-            type=1,
-            comment=f"hello {slug}",
-            user_id=owner_id,
-        )
+        self.create_incident(org, [project])
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -798,6 +798,23 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             last_visited=timezone.now(),
+        )
+
+        explore_saved_formula = ExploreSavedFormula.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
+            name="formula.apdex",
+            formula="count()",
+        )
+        ExploreSavedVariable.objects.create(
+            organization=org,
+            explore_saved_formula=explore_saved_formula,
+            name="duration",
+            value="",
+            kind=KindItemTypes.PARAM,
+            param_type=ParamItemTypes.COLUMN,
+            order=0,
         )
 
         TraceItemAttributeContext.objects.create(

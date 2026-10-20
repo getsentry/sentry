@@ -209,6 +209,7 @@ export function mapSeerResponseItem(
     mode: item.mode || defaultMode,
     ...(interval ? {interval} : {}),
     ...(crossEvents.length ? {crossEvents} : {}),
+    ...(item.extra_fields?.length ? {extraFields: item.extra_fields} : {}),
   };
 }
 

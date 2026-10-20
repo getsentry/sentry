@@ -33,7 +33,9 @@ MAILBOX = MailboxName("github", "4321")
 """A provider the delivery side may reorder, so its width follows its rate."""
 
 STRICT_MAILBOX = MailboxName("jira", "4321")
-"""A provider delivered in order, so its width is fixed."""
+"""Pinned to strict ordering in tests that need a fixed width."""
+
+STRICT_JIRA_OPTIONS = {"hybridcloud.webhookpayload.skip_on_failure_providers": ["github"]}
 
 
 def redis_client() -> Any:
@@ -177,12 +179,14 @@ class MailboxBucketCountTest(TestCase):
 
         assert count == 1
 
+    @override_options(STRICT_JIRA_OPTIONS)
     def test_a_strictly_ordered_provider_has_a_fixed_width(self) -> None:
         with freeze_time("2000-01-01"):
             seed_window(STRICT_MAILBOX, payloads=10_000)
 
             assert mailbox_bucket_count(STRICT_MAILBOX) == STRICT_BUCKET_COUNT
 
+    @override_options(STRICT_JIRA_OPTIONS)
     def test_a_strictly_ordered_provider_is_not_counted(self) -> None:
         """Nothing sizes from its rate, so nothing should be paying to measure one."""
         with freeze_time("2000-01-01"):
@@ -191,16 +195,29 @@ class MailboxBucketCountTest(TestCase):
             shard = int(time() // SHARD_SECONDS)
             assert redis_client().get(_shard_key(_rate_counter_key(STRICT_MAILBOX), shard)) is None
 
+    @override_options(STRICT_JIRA_OPTIONS)
     def test_a_provider_that_starts_tolerating_reordering_starts_sizing(self) -> None:
         """The carve-out dissolves on the option that grants the tolerance, so it
         cannot outlive the constraint it exists for."""
         with freeze_time("2000-01-01"):
             seed_window(STRICT_MAILBOX, payloads=10_000)
 
+            assert mailbox_bucket_count(STRICT_MAILBOX) == STRICT_BUCKET_COUNT
+
             with override_options(
                 {"hybridcloud.webhookpayload.skip_on_failure_providers": ["jira"]}
             ):
                 assert mailbox_bucket_count(STRICT_MAILBOX) == _max_buckets()
+
+    def test_new_skip_on_failure_providers_size_from_their_rate_by_default(self) -> None:
+        with freeze_time("2000-01-01"):
+            for provider in ("jira", "jira_server", "vsts", "msteams"):
+                mailbox = MailboxName(provider, "4321")
+                assert mailbox_bucket_count(mailbox) == 1
+
+                seed_window(mailbox, payloads=10_000)
+
+                assert mailbox_bucket_count(mailbox) == _max_buckets()
 
     def test_a_redis_error_sizes_to_the_cap(self) -> None:
         with patch(

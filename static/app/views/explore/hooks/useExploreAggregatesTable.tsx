@@ -33,6 +33,11 @@ interface UseExploreAggregatesTableOptions {
   queryExtras?: RPCQueryExtras;
 }
 
+export const AGGREGATES_SAMPLE_FIELDS = [
+  `any(${SpanFields.TRACE})`,
+  `any(${SpanFields.TIMESTAMP})`,
+];
+
 export interface AggregatesTableResult {
   eventView: EventView;
   fields: string[];
@@ -82,10 +87,7 @@ function useExploreAggregatesTableImp({
   const fields = useMemo(() => {
     // When rendering the table, we want the group bys first
     // then the aggregates.
-    const allFields: string[] = [
-      `any(${SpanFields.TRACE})`,
-      `any(${SpanFields.TIMESTAMP})`,
-    ];
+    const allFields: string[] = [...AGGREGATES_SAMPLE_FIELDS];
 
     for (const aggregateField of aggregateFields) {
       if (isGroupBy(aggregateField)) {

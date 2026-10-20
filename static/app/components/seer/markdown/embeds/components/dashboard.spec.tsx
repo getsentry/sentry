@@ -53,7 +53,7 @@ describe('dashboard embed', () => {
     );
   });
 
-  it('renders a live preview of the first four dashboard widgets', async () => {
+  it('renders a live preview of the first two dashboard widgets', async () => {
     const widgets = ['Errors', 'Latency', 'Users', 'Throughput', 'Slow spans'].map(
       (title, index) =>
         WidgetFixture({
@@ -99,11 +99,11 @@ describe('dashboard embed', () => {
     );
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Latency')).toBeInTheDocument();
-    expect(screen.getByText('Users')).toBeInTheDocument();
-    expect(screen.getByText('Throughput')).toBeInTheDocument();
+    expect(screen.queryByText('Users')).not.toBeInTheDocument();
+    expect(screen.queryByText('Throughput')).not.toBeInTheDocument();
     expect(screen.queryByText('Slow spans')).not.toBeInTheDocument();
     expect(screen.getByText('5 widgets')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'View 1 more widget'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: '+ 3 additional widgets'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/123/'
     );

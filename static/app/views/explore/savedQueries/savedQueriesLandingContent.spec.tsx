@@ -8,7 +8,7 @@ describe('SavedQueriesTable', () => {
   let getSavedQueriesMock: jest.Mock;
   beforeEach(() => {
     getSavedQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: '57',
@@ -61,7 +61,7 @@ describe('SavedQueriesTable', () => {
     expect(router.location.query).toEqual({query: 'Query Name'});
 
     expect(getSavedQueriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/explore/saved/`,
+      `/organizations/${organization.slug}/explore/all-queries/`,
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'Query Name',
@@ -70,7 +70,7 @@ describe('SavedQueriesTable', () => {
       })
     );
     expect(getSavedQueriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/explore/saved/`,
+      `/organizations/${organization.slug}/explore/all-queries/`,
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'Query Name',
@@ -98,7 +98,7 @@ describe('SavedQueriesTable', () => {
 
   it('hides owned queries table when there are no results', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     render(<SavedQueriesLandingContent />, {

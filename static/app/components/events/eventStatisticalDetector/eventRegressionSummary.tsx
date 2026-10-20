@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, KeyValueListData} from 'sentry/types/group';
@@ -32,7 +32,7 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
       sectionKey={SectionKey.REGRESSION_SUMMARY}
       title={t('Regression Summary')}
     >
-      <KeyValueTableDataList data={data} shouldSort={false} />
+      <KeyValueTableCard contentItems={data.map(item => ({item}))} variant="label" />
     </FoldSection>
   );
 }

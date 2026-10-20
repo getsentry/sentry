@@ -13,6 +13,7 @@ from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
+from sentry.integrations.gitlab.client import GitLabApiRequestType
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -802,3 +803,29 @@ class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
 
         sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
         assert sha is None
+
+
+@control_silo_test
+class GitLabProjectWebhookRequestTypeTest(GitLabClientTest):
+    @responses.activate
+    @mock.patch("sentry.shared_integrations.client.base.metrics.incr")
+    def test_hook_calls_are_tagged_by_request_type(self, mock_incr: mock.MagicMock) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(responses.POST, hooks_url, status=201, json={"id": 7})
+        responses.add(responses.PUT, f"{hooks_url}/7", status=200, json={"id": 7})
+        responses.add(responses.DELETE, f"{hooks_url}/7", status=204)
+
+        self.gitlab_client.create_project_webhook(self.gitlab_id)
+        self.gitlab_client.update_project_webhook(self.gitlab_id, 7)
+        self.gitlab_client.delete_project_webhook(self.gitlab_id, 7)
+
+        for status, request_type in (
+            (201, GitLabApiRequestType.CREATE_PROJECT_WEBHOOK),
+            (200, GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK),
+            (204, GitLabApiRequestType.DELETE_PROJECT_WEBHOOK),
+        ):
+            mock_incr.assert_any_call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "gitlab", "status": status, "api_request_type": request_type},
+            )

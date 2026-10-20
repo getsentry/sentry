@@ -48,6 +48,34 @@ describe('replay embed', () => {
     });
   });
 
+  it('collapses the clip behind the replay name', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/4c1f2e3d1234567890/',
+      body: {data: null},
+    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
+
+    renderEmbed({
+      name: 'replay',
+      data: {
+        id: '4c1f2e3d1234567890',
+        eventTimestamp: '2026-08-25T16:37:12Z',
+      },
+    });
+
+    const toggle = screen.getByRole('button', {name: 'Replay 4c1f2e3d'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    // The name toggles; the header's own link is what navigates out.
+    expect(screen.getByRole('link', {name: 'View Replay'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/replays/4c1f2e3d1234567890/?event_t=2026-08-25T16%3A37%3A12Z'
+    );
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('falls back to a link at block level without a timestamp', () => {
     renderEmbed({
       name: 'replay',

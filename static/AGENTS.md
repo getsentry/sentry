@@ -6,7 +6,7 @@
 
 - **Language**: TypeScript
 - **Framework**: React 19
-- **Build Tool**: Rspack (Webpack alternative)
+- **Build Tool**: Rsbuild (powered by Rspack)
 - **Package management**: pnpm
 - **State Management**: Reflux, React Query (TanStack Query)
 - **Styling**: Emotion (CSS-in-JS), Less
@@ -15,7 +15,7 @@
 ## Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
-- `rspack.config.ts`: Frontend build configuration
+- `rsbuild.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `oxlint.config.ts`: Oxlint configuration
 - `stylelint.config.js`: CSS/styling linting
@@ -29,8 +29,18 @@
 
 ### Routing
 
-- Routes defined in `static/app/routes.tsx`
-- Use React Router v6 patterns
+- Routes defined in `static/app/router/routes.tsx`
+- Local development and deploy previews run React Router V8. Production remains
+  on V6. Application tests and typechecks run against both versions; set
+  `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run `test-ci` or `typecheck` against one.
+  `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
+- Use V8 import paths: import router APIs and types from `react-router`, and
+  `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
+  runtime through `static/app/utils/reactRouterV6` in V6 builds.
+- Only the compatibility modules may import `react-router-dom` or
+  `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
+  Use Sentry's version-neutral router tracing integration and wrapper. Keep the
+  Nuqs V6 adapter import; V8 builds and tests alias it to the V8 adapter.
 - Lazy load route components when possible
 
 ### Frontend API Calls
@@ -45,6 +55,10 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 4. ALWAYS use TypeScript
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
+
+## Linting
+
+Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. `oxlint-suppressions.json` caps existing debt per file and rule, and successful fixes lower its counts automatically. Run `pnpm run lint:js --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
 
 ## Refs
 
@@ -83,7 +97,8 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 - **Layout**: use `Flex`, `Grid`, `Stack`, `Container` — never styled `display: flex/grid`.
 - **Typography**: use `Text` and `Heading` — never raw `<p>`, `<span>`, `<div>`, or `<h1>`–`<h6>`.
 - Prefer component props over the `style` attribute; use `gap`/padding over `margin`.
-- Use responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries.
+- Use container responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries. Do not add viewport `screen:` keys; preserve existing viewport behavior with a lint suppression when a container query would change it.
+- Do not add layout `@media` or `@container` queries to Emotion styles, including tests. Use responsive primitive props. `@media` is allowed for modal sizing in `modalCss`, viewport sizing or placement in the core drawer shell, and non-layout features such as reduced motion, hover, pointer, and color scheme.
 - Split layout from typography — compose `Flex`/`Grid` with `Text`/`Heading`; don't couple them in one styled component.
 - Prefer `InfoTip`/`InfoText` over a raw `Tooltip`.
 - Add `*.stories.mdx` stories for new components.
@@ -93,7 +108,7 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 
 - **Avatars**: use `<UserAvatar/>`/`<TeamAvatar/>`/`<ProjectAvatar/>`/etc. from `static/app/components/core/avatar` (and `<AvatarList>` for lists) — never raw `<img>`.
 - **Disclosure**: use the core `<Disclosure>` component — don't hand-roll expand/collapse.
-- **Icons**: import from `sentry/icons`; keep icons in `static/app/icons`, never inline SVGs. Optimize with svgo/svgomg.
+- **Icons**: import SVG icons from explicit `@sentry/icons` subpaths (for example, `@sentry/icons/add`). Keep SvgIcon-based icons in `static/packages/icons/src`; keep app asset wrappers in `static/app/icons`. The icons package must not depend on scraps or app code. Never inline SVGs. Optimize with svgo/svgomg.
 - **Images**: import via the `sentry-images` alias (webpack loader); keep them in `static/app/images`, never reference by static path.
 
 For worked examples of all of the above, use the **`design-system`** skill.

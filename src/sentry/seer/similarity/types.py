@@ -38,8 +38,8 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     read_only: NotRequired[bool]
     event_id: NotRequired[str]
     referrer: NotRequired[str]
-    model: NotRequired[GroupingVersion]  # Model version, defaults to V1 for backward compatibility
-    training_mode: NotRequired[bool]  # whether to just insert embedding without querying
+    model: NotRequired[GroupingVersion]  # Send explicitly; Seer's default may differ during deploys
+    training_mode: NotRequired[bool]  # Populate embeddings without returning grouping suggestions
     platform: NotRequired[str]
     skip_fallback: NotRequired[bool]
 

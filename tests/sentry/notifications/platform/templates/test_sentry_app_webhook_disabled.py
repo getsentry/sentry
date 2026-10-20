@@ -14,6 +14,7 @@ from sentry.testutils.cases import TestCase
 class SentryAppWebhookDisabledTest(TestCase):
     def test_data_source(self) -> None:
         data = SentryAppWebhookDisabled(
+            organization_id=1,
             sentry_app_slug="my-app",
             sentry_app_name="My App",
             webhook_url="https://example.com/webhook",
@@ -29,6 +30,7 @@ class SentryAppWebhookDisabledTest(TestCase):
     def test_render(self) -> None:
         template = SentryAppWebhookDisabledTemplate()
         data = SentryAppWebhookDisabled(
+            organization_id=1,
             sentry_app_slug="my-app",
             sentry_app_name="My App",
             webhook_url="https://example.com/webhook",

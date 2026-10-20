@@ -172,6 +172,8 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             {"yAxes": ["count(span.duration)"], "chartType": 2}
         ]
         assert set(response.data["exploreQuery"]["projects"]) == set(self.project_ids)
+        assert response.data["exploreQuery"]["range"] == "24h"
+        assert response.data["exploreQuery"]["statsPeriod"] == "24h"
 
     def test_get_org_without_access(self) -> None:
         with self.feature(self.feature_name):
@@ -631,9 +633,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
             discover_saved_query=self.query
         ).exists()
 
-        with self.feature(
-            ["organizations:discover-query", "organizations:discover-queries-in-all-queries"]
-        ):
+        with self.feature(["organizations:discover-query"]):
             response = self.client.post(self.url(self.query.id))
 
         assert response.status_code == 204
@@ -651,9 +651,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
             last_visited=before_now(minutes=10),
         )
 
-        with self.feature(
-            ["organizations:discover-query", "organizations:discover-queries-in-all-queries"]
-        ):
+        with self.feature(["organizations:discover-query"]):
             response = self.client.post(self.url(self.query.id))
 
         assert response.status_code == 204
@@ -667,16 +665,12 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         other_user = self.create_user()
         self.create_member(organization=self.org, user=other_user)
 
-        with self.feature(
-            ["organizations:discover-query", "organizations:discover-queries-in-all-queries"]
-        ):
+        with self.feature(["organizations:discover-query"]):
             response = self.client.post(self.url(self.query.id))
         assert response.status_code == 204
 
         self.login_as(user=other_user)
-        with self.feature(
-            ["organizations:discover-query", "organizations:discover-queries-in-all-queries"]
-        ):
+        with self.feature(["organizations:discover-query"]):
             response = self.client.post(self.url(self.query.id))
         assert response.status_code == 204
 

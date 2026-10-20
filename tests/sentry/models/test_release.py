@@ -13,7 +13,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
 from sentry.issues.action_log.types import SetResolvedInReleaseAction
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.distribution import Distribution
 from sentry.models.environment import Environment
@@ -25,6 +25,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.project import Project
 from sentry.models.release import (
     Release,
     ReleaseStatus,
@@ -45,7 +46,50 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.strings import truncatechars
+
+
+@django_db_all
+@pytest.mark.parametrize("use_finalized_order", [False, True], ids=["legacy", "finalized"])
+@pytest.mark.parametrize("successor_status", [ReleaseStatus.OPEN, None], ids=["open", "null"])
+def test_next_release_excludes_archived_successors(
+    factories: Factories,
+    default_project: Project,
+    use_finalized_order: bool,
+    successor_status: int | None,
+) -> None:
+    now = timezone.now()
+    # An archived starting point is still valid; only successors are filtered.
+    anchor = factories.create_release(
+        project=default_project,
+        version="anchor",
+        date_added=now - timedelta(days=3),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    factories.create_release(
+        project=default_project,
+        version="archived-successor",
+        date_added=now - timedelta(days=2),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    with pytest.raises(Release.DoesNotExist):
+        Release.objects.get_next_release(
+            default_project, anchor, use_finalized_order=use_finalized_order
+        )
+
+    successor = factories.create_release(
+        project=default_project,
+        version="eligible-successor",
+        date_added=now - timedelta(days=1),
+        status=successor_status,
+    )
+    assert (
+        Release.objects.get_next_release(
+            default_project, anchor, use_finalized_order=use_finalized_order
+        )
+        == successor
+    )
 
 
 class NextReleaseOrderingTest(TestCase):
@@ -871,7 +915,7 @@ class SetCommitsTestCase(TestCase):
         )
         commit = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="a" * 40)
         assert commit.author is not None
-        assert commit.author.email == truncatechars(commit_email, 75)
+        assert commit.author.email == truncatechars(commit_email, COMMIT_AUTHOR_EMAIL_LENGTH)
 
     @receivers_raise_on_send()
     def test_multiple_authors(self) -> None:

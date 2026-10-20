@@ -1,6 +1,7 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.explore import utils
 from sentry.explore.endpoints.explore_saved_queries import (
     PREBUILT_SAVED_QUERIES,
     sync_prebuilt_queries,
@@ -12,6 +13,7 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
+from sentry.explore.types import SavedQueryRef, SavedQueryType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -494,6 +496,29 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "Test query" not in names
         assert str(own_query.id) in {item["id"] for item in response.data}
 
+    def test_sync_prebuilt_llm_calls_without_message_filter(self) -> None:
+        sync_prebuilt_queries(self.org)
+
+        saved_query = ExploreSavedQuery.objects.get(organization=self.org, prebuilt_id=5)
+        assert saved_query.prebuilt_version == 2
+        assert saved_query.query["query"][0]["query"] == "gen_ai.operation.type:ai_client"
+
+    def test_sync_prebuilt_llm_calls_updates_existing_message_filter(self) -> None:
+        sync_prebuilt_queries(self.org)
+        saved_query = ExploreSavedQuery.objects.get(organization=self.org, prebuilt_id=5)
+        saved_query.prebuilt_version = 1
+        saved_query.query["query"][0]["query"] = (
+            "gen_ai.operation.type:ai_client has:gen_ai.output.messages"
+        )
+        saved_query.save(update_fields=["prebuilt_version", "query"])
+
+        sync_prebuilt_queries(self.org)
+
+        saved_query.refresh_from_db()
+        assert saved_query.prebuilt_version == 2
+        assert saved_query.query["query"][0]["query"] == "gen_ai.operation.type:ai_client"
+        assert ExploreSavedQuery.objects.filter(organization=self.org, prebuilt_id=5).count() == 1
+
     def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
         sync_prebuilt_queries(self.org)
         sync_prebuilt_queries_starred(self.org, self.user)
@@ -570,8 +595,10 @@ class ExploreSavedQueriesTest(APITestCase):
             .values_list("explore_saved_query_id", flat=True)
         )
         reversed_ids = list(reversed(original_ids))
-        ExploreSavedQueryStarred.objects.reorder_starred_queries(
-            self.org, self.user.id, reversed_ids
+        utils.reorder_starred_queries(
+            self.org,
+            self.user.id,
+            [SavedQueryRef(SavedQueryType.EXPLORE, query_id) for query_id in reversed_ids],
         )
 
         sync_prebuilt_queries_starred(self.org, self.user)
@@ -855,6 +882,75 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
+
+    def test_post_with_range(self) -> None:
+        """For some reason saved queries use the old range parameter"""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with range",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert response.data["range"] == "24h"
+        assert response.data["statsPeriod"] == "24h"
+        assert response.data["interval"] == "1h"
+
+    def test_post_with_stats_period(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with stats period",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "statsPeriod": "7d",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert response.data["range"] == "7d"
+        assert response.data["statsPeriod"] == "7d"
+        assert response.data["interval"] == "1h"
+        saved_query = ExploreSavedQuery.objects.get(name="query with stats period")
+        assert saved_query.query["range"] == "7d"
+        assert "statsPeriod" not in saved_query.query
+
+    def test_post_stats_period_overrides_range(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with both periods",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "statsPeriod": "7d",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert response.data["range"] == "7d"
+        assert response.data["statsPeriod"] == "7d"
 
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):

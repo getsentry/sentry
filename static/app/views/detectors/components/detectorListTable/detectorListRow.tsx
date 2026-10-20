@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -9,6 +8,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
+import {ListItemCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
@@ -32,26 +32,22 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
       <SimpleTable.RowCell>
         <Flex gap="md">
           <Flex align="center" flexShrink={0} width="20px" height="20px">
-            <Checkbox
-              checked={selected}
-              onChange={() => onSelect(detector.id)}
-              className="select-row"
-            />
+            <ListItemCheckbox checked={selected} onChange={() => onSelect(detector.id)} />
           </Flex>
 
           <DetectorLink detector={detector} />
         </Flex>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="type">
+      <SimpleTable.RowCell>
         <DetectorTypeCell type={detector.type} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="last-issue">
+      <SimpleTable.RowCell>
         <IssueCell group={detector.latestGroup} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="assignee">
+      <SimpleTable.RowCell>
         <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="connected-automations">
+      <SimpleTable.RowCell>
         {detector.projectId && (
           <DetectorListConnectedAutomations
             automationIds={detector.workflowIds}
@@ -81,22 +77,22 @@ export function DetectorListRowSkeleton() {
           </Container>
         </Flex>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="type">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="last-issue">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="assignee">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="connected-automations">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
       {additionalColumns.map(col => (
         <Fragment key={col.id}>
           {col.renderPendingCell?.() ?? (
-            <SimpleTable.RowCell columnKey={col.id}>
+            <SimpleTable.RowCell>
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}
@@ -113,13 +109,5 @@ const DetectorSimpleTableRow = styled(SimpleTable.Row)`
   &:hover {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  @media (hover: hover) {
-    &:not(:has(:hover)):not(:has(input:checked)) {
-      .select-row {
-        ${p => p.theme.visuallyHidden}
-      }
-    }
   }
 `;

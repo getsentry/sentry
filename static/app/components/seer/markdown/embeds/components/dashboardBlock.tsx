@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconDashboard} from '@sentry/icons/dashboard';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,7 +16,6 @@ import {
   useLocalWidgetLegendSelectionState,
 } from 'sentry/components/seer/markdown/embeds/localWidgetLegendSelectionState';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconDashboard} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {dashboardDetailsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
@@ -33,8 +33,8 @@ import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
-// Keep the embed compact by showing at most a 2x2 widget grid.
-const MAX_PREVIEW_WIDGETS = 4;
+// Keep the embed compact by showing at most a single row of two widgets.
+const MAX_PREVIEW_WIDGETS = 2;
 // Limit the rows or series fetched inside each previewed widget.
 const MAX_PREVIEW_ITEMS_PER_WIDGET = 5;
 
@@ -183,7 +183,7 @@ function DashboardPreview({
       </WidgetQueryQueueProvider>
       {remainingWidgets > 0 ? (
         <Link to={href}>
-          {tn('View %s more widget', 'View %s more widgets', remainingWidgets)}
+          {tn('+ %s additional widget', '+ %s additional widgets', remainingWidgets)}
         </Link>
       ) : null}
     </Stack>
@@ -194,7 +194,7 @@ export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
   const organization = useOrganization();
   const href = normalizeUrl(`/organizations/${organization.slug}/dashboard/${id}/`);
   const {data, isError, isPending} = useQuery({
-    ...dashboardDetailsApiOptions(organization, id),
+    ...dashboardDetailsApiOptions(organization, String(id)),
     retry: false,
   });
   const dashboard = useMemo(() => (data ? getDashboardPreview(data) : undefined), [data]);

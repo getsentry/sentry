@@ -5,7 +5,7 @@ review-request flow asks one specific person. This module computes who that
 person should be. A resolvable triggering user is the sole candidate: they
 asked for the fix and are the person most invested in it landing, so Seer
 never needs to pull anyone else in. Only when no triggering user can be
-asked (e.g. Night Shift, or an identity we can't map to a GitHub login)
+asked (e.g. Agentic triage, or an identity we can't map to a GitHub login)
 does selection fan out to people who didn't opt in, in rank order:
 
 1. ``suspect_commit_author`` — the author of the issue's suspect commit; they
@@ -191,7 +191,7 @@ def _is_bot_login(login: str) -> bool:
 
 def _triggering_user_logins(seer_run: SeerRun, organization: Organization) -> list[str]:
     if seer_run.user_id is None:
-        # System runs (e.g. Night Shift) have no triggering user; the other
+        # System runs (e.g. Agentic triage) have no triggering user; the other
         # sources are what makes their PRs routable at all.
         return []
     user = user_service.get_user(user_id=seer_run.user_id)

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -17,7 +18,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -117,8 +117,8 @@ export default function ApiApplications() {
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Application Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="age">{t('Age')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="actions" />
+            <SimpleTable.HeaderCell>{t('Age')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
           </SimpleTable.HeaderRow>
         }
       >

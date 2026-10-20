@@ -17,6 +17,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {
@@ -186,6 +187,35 @@ describe('EditAutomation', () => {
     expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
   });
 
+  it('disables mutations for an all-projects alert without org:write', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    const projectScopeRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/project-scope/`,
+      body: {projectIds: [], includesAllProjects: true},
+    });
+
+    render(<AutomationEdit />, {
+      organization: alertWriterOrganization,
+      initialRouterConfig,
+    });
+
+    await waitFor(() => expect(projectScopeRequest).toHaveBeenCalled());
+    expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Disable'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
   it('updates automation', async () => {
     const mockUpdateAutomation = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
@@ -240,6 +270,33 @@ describe('EditAutomation', () => {
       expect(router.location.pathname).toBe(
         `/organizations/${organization.slug}/monitors/alerts/${automation.id}/`
       )
+    );
+  });
+
+  it('shows one error toast when the update fails validation', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {
+        actionFilters: {type: ['Organization does not allow this action type: slack']},
+      },
+    });
+
+    render(<AutomationEdit />, {organization, initialRouterConfig});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Organization does not allow this action type: slack',
+        {duration: 10000}
+      );
+    });
+    expect(indicators.addErrorMessage).toHaveBeenCalledTimes(1);
+    expect(indicators.addErrorMessage).not.toHaveBeenCalledWith(
+      'Unknown error while saving'
     );
   });
 

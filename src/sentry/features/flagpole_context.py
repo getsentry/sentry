@@ -1,8 +1,8 @@
 from dataclasses import dataclass
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 
-from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -12,6 +12,8 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 from sentry.projects.services.project import RpcProject
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+
+EvaluationContextDict = dict[str, Any]
 
 
 class InvalidContextDataException(Exception):
@@ -109,17 +111,3 @@ def user_context_transformer(data: SentryContextData) -> EvaluationContextDict:
         context_data["user_domain"] = user.email.rsplit("@", 1)[-1]
 
     return context_data
-
-
-def get_sentry_flagpole_context_builder() -> ContextBuilder[SentryContextData]:
-    """
-    Creates and returns a new sentry flagpole context builder with Organization,
-     User, and Project transformers appended to it.
-    :return:
-    """
-    return (
-        ContextBuilder[SentryContextData]()
-        .add_context_transformer(organization_context_transformer, ["organization_id"])
-        .add_context_transformer(project_context_transformer, ["project_id"])
-        .add_context_transformer(user_context_transformer)
-    )

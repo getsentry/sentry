@@ -109,8 +109,7 @@ export function OrganizationContextProvider({children}: Props) {
       // 403 but access scopes will be an empty list.
       if (user?.isSuperuser && user?.isStaff && organization?.access?.length === 0) {
         openSudo({
-          isSuperuser: true,
-          needsReload: true,
+          accessMode: 'superuser',
           closeEvents: 'none',
           closeButton: false,
         });
@@ -120,9 +119,19 @@ export function OrganizationContextProvider({children}: Props) {
     }
 
     if (user?.isSuperuser && error.status === 403) {
+      const detail: unknown = error.responseJSON?.detail;
+      const extra: unknown =
+        typeof detail === 'object' && detail !== null
+          ? (detail as Record<string, unknown>).extra
+          : undefined;
+      const targetOrgSlug: unknown =
+        typeof extra === 'object' && extra !== null
+          ? (extra as Record<string, unknown>).orgSlug
+          : undefined;
+
       openSudo({
-        isSuperuser: true,
-        needsReload: true,
+        accessMode: 'superuser',
+        orgSlug: typeof targetOrgSlug === 'string' ? targetOrgSlug : undefined,
         closeEvents: 'none',
         closeButton: false,
       });

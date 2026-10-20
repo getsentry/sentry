@@ -252,7 +252,7 @@ describe('AggregatesTab', () => {
 
     // Wait for the error state
     await waitFor(() => {
-      expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+      expect(screen.getByTestId('loading-error')).toBeInTheDocument();
     });
   });
 

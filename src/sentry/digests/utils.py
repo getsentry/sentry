@@ -11,8 +11,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.notifications.utils.participants import get_send_to
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.actor import Actor
@@ -166,7 +165,9 @@ def sort_records(records: Sequence[Record]) -> Sequence[Record]:
     return sorted(records, key=sort_func, reverse=True)
 
 
-def get_groups(digest: Digest) -> Sequence[tuple[Rule, Group, Event | GroupEvent]]:
+def get_groups(
+    digest: Digest,
+) -> Sequence[tuple[NotificationOrigin, Group, Event | GroupEvent]]:
     """
     Split a digest into groups and return it as a tuple of: the applicable
     rule, the group, and the group's first event.

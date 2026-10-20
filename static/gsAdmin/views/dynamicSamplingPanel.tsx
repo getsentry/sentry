@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconOpen} from '@sentry/icons/open';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 
@@ -20,7 +22,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SearchInput} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconArrow, IconOpen} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -234,6 +235,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
       }
     }
 
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     fetchProjectConfig();
   }, [projectId, api, regionHost]);
 

@@ -698,6 +698,10 @@ interface GroupActivityBase {
   assignee?: string;
   issue?: Group;
   sentry_app?: AvatarSentryApp;
+  /**
+   * Where the action came from, e.g. `web`, `api`, `sentry-cli`, `mcp:cursor`
+   */
+  source?: null | string;
   user?: null | User;
 }
 
@@ -707,7 +711,8 @@ export interface GroupActivityIntegrationData {
   provider_key?: string;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityNote extends GroupActivityBase {
+  commentId: string;
   data: {
     text: string;
   };
@@ -1359,10 +1364,12 @@ export interface GroupOpenPeriodActivity {
 export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
-  end: string;
+  end: string | null;
+  groupId: string;
   id: string;
   isOpen: boolean;
   lastChecked: string;
+  shortId: string | null;
   start: string;
 }
 
@@ -1475,11 +1482,7 @@ export type KeyValueListDataItem = {
    * If true, the action button will always be visible, not just on hover.
    */
   actionButtonAlwaysVisible?: boolean;
-  isContextData?: boolean;
-  isMultiValue?: boolean;
-  meta?: Meta;
   subjectDataTestId?: string;
-  subjectIcon?: React.ReactNode;
   subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
 };

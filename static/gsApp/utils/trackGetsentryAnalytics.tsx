@@ -188,12 +188,6 @@ type GetsentryEventParameters = {
   'quota_alert.clicked_snooze': QuotaAlert;
   'quota_alert.clicked_unsnooze': QuotaAlert;
   'quota_alert.shown': QuotaAlert;
-  'replay.list_page.manage_sub': UpdateProps;
-  'replay.list_page.open_modal': UpdateProps & {
-    has_price_change: undefined | boolean;
-  };
-  'replay.list_page.sent_email': UpdateProps;
-  'replay.list_page.viewed': UpdateProps;
   'sales.contact_us_clicked': {
     source: string;
   } & HasSub;
@@ -242,7 +236,6 @@ type GetsentryEventParameters = {
   'upgrade_now.alert.open_modal': UpdateProps;
   'upgrade_now.alert.viewed': UpdateProps;
   'upgrade_now.modal.manage_sub': UpdateProps;
-  'upgrade_now.modal.sent_email': UpdateProps;
   'upgrade_now.modal.update_now': UpdateProps & {
     has_price_change: undefined | boolean;
   };
@@ -254,9 +247,7 @@ type GetsentryEventParameters = {
 export type AM2UpdateSurfaces =
   | 'metrics'
   | 'profiling'
-  | 'replay_onboarding_banner'
   | 'replay_project_creation'
-  | 'replay'
   | 'subscription_page';
 type UpdateProps = Pick<Subscription, 'canSelfServe' | 'channel'> & {
   has_billing_scope: boolean;
@@ -345,11 +336,6 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'product_unavailable_upsell_alert.viewed': 'Product Unavailable Upsell: Viewed Alert',
   'product_unavailable_upsell_alert_button.clicked':
     'Product Unavailable Upsell: Clicked Alert Button',
-  'replay.list_page.manage_sub':
-    'Replay E2E Checkout: Clicked Managed Subscription from List Page',
-  'replay.list_page.open_modal': 'Replay E2E Checkout: Opened Modal from List Page',
-  'replay.list_page.sent_email': 'Replay E2E Checkout: Sent Email from List Page',
-  'replay.list_page.viewed': 'Replay E2E Checkout: Viewed List Page',
   'seer.onboarding.started': 'Seer Onboarding: Started',
   'seer.onboarding.step_changed': 'Seer Onboarding: Step Changed',
   'seer.onboarding.code_review_updated': 'Seer Onboarding: Code Review Updated',
@@ -361,7 +347,6 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'upgrade_now.alert.open_modal': 'Upgrade Now Alert: Opened Modal',
   'upgrade_now.alert.viewed': 'Upgrade Now Alert: Viewed Alert',
   'upgrade_now.modal.manage_sub': 'Upgrade Now Modal: Viewed Checkout',
-  'upgrade_now.modal.sent_email': 'Upgrade Now Modal: Sent Email',
   'upgrade_now.modal.update_now': 'Upgrade Now Modal: Clicked Update Now',
   'upgrade_now.modal.viewed': 'Upgrade Now Modal: Viewed Modal',
   'intercom_link.clicked': 'Intercom Link Clicked',

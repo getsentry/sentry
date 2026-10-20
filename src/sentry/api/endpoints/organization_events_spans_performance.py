@@ -10,6 +10,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function, Identifier, Lambda
 from snuba_sdk.orderby import Direction, OrderBy
@@ -31,7 +32,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
-from sentry.utils.tracing import start_span
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
 
@@ -346,7 +346,9 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
             zerofill_results: bool,
             comparison_delta: timedelta | None = None,
         ) -> SnubaTSResult:
-            with start_span(op="discover.discover", name="timeseries.filter_transform"):
+            with traces.start_span(
+                name="timeseries.filter_transform", attributes={"sentry.op": "discover.discover"}
+            ):
                 builder = TimeseriesQueryBuilder(
                     Dataset.Discover,
                     {},
@@ -383,7 +385,9 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     snql_query, "api.organization-events-spans-performance-stats"
                 )
 
-            with start_span(op="discover.discover", name="timeseries.transform_results"):
+            with traces.start_span(
+                name="timeseries.transform_results", attributes={"sentry.op": "discover.discover"}
+            ):
                 result = discover.zerofill(
                     results["data"],
                     snuba_params.start_date,

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDownload} from '@sentry/icons/download';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 
@@ -9,7 +10,9 @@ import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
+import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -24,7 +27,6 @@ import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {UserMisery} from 'sentry/components/userMisery';
 import {Version} from 'sentry/components/version';
-import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -36,7 +38,6 @@ import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventVi
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   ABYTE_UNITS,
-  AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
   isEquation,
@@ -89,7 +90,9 @@ import {
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ArrayValue} from './arrayValue';
-import {emptyValue, emptyStringValue} from './emptyFieldValues';
+import {emptyStringValue, emptyValue, nullableValue} from './emptyFieldValues';
+import {DURATION_UNITS, SIZE_UNITS} from './fieldUnits';
+import type {FieldFormatterType, SpecialFieldKey} from './getSortField';
 import {
   BarContainer,
   Container,
@@ -147,24 +150,10 @@ export type FieldFormatterRenderFunctionPartial = (
 ) => React.ReactNode;
 
 type FieldFormatter = {
-  isSortable: boolean;
   renderFunc: FieldFormatterRenderFunction;
 };
 
-type FieldFormatters = {
-  array: FieldFormatter;
-  boolean: FieldFormatter;
-  currency: FieldFormatter;
-  date: FieldFormatter;
-  duration: FieldFormatter;
-  integer: FieldFormatter;
-  number: FieldFormatter;
-  percent_change: FieldFormatter;
-  percentage: FieldFormatter;
-  rate: FieldFormatter;
-  size: FieldFormatter;
-  string: FieldFormatter;
-};
+type FieldFormatters = Record<FieldFormatterType, FieldFormatter>;
 
 const missingUserMisery = tct(
   'We were unable to calculate User Misery. A likely cause of this is that the user was not set. [link:Read the docs]',
@@ -177,17 +166,6 @@ const missingUserMisery = tct(
 const userAgentLocking = t(
   'This operating system does not provide detailed version information in the User-Agent HTTP header. The exact operating system version is unknown.'
 );
-
-export function nullableValue(value: string | null): string | React.ReactElement {
-  switch (value) {
-    case null:
-      return emptyValue;
-    case '':
-      return emptyStringValue;
-    default:
-      return value;
-  }
-}
 
 /**
  * Renders navigable URLs as external links.
@@ -209,36 +187,6 @@ export function renderUrlCellValue(value: unknown): React.ReactNode {
   return <ExternalLink href={value}>{value}</ExternalLink>;
 }
 
-// TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
-export const SIZE_UNITS = {
-  bit: 1 / 8,
-  byte: 1,
-  kibibyte: 1024,
-  mebibyte: 1024 ** 2,
-  gibibyte: 1024 ** 3,
-  tebibyte: 1024 ** 4,
-  pebibyte: 1024 ** 5,
-  exbibyte: 1024 ** 6,
-  kilobyte: 1000,
-  megabyte: 1000 ** 2,
-  gigabyte: 1000 ** 3,
-  terabyte: 1000 ** 4,
-  petabyte: 1000 ** 5,
-  exabyte: 1000 ** 6,
-};
-
-// TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
-export const DURATION_UNITS = {
-  nanosecond: 1 / 1000 ** 2,
-  microsecond: 1 / 1000,
-  millisecond: 1,
-  second: 1000,
-  minute: 1000 * 60,
-  hour: 1000 * 60 * 60,
-  day: 1000 * 60 * 60 * 24,
-  week: 1000 * 60 * 60 * 24 * 7,
-};
-
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
@@ -248,7 +196,6 @@ export const DURATION_UNITS = {
  */
 export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
-    isSortable: true,
     renderFunc: (field, data) => {
       const fieldValue = data[field];
       // Render empty values as "(no value)" instead of coercing them to false.
@@ -260,7 +207,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   date: {
-    isSortable: true,
     renderFunc: (field, data, baggage) => (
       <Container>
         {data[field]
@@ -281,7 +227,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   duration: {
-    isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
       return (
@@ -301,7 +246,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   rate: {
-    isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
       return (
@@ -314,7 +258,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   integer: {
-    isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
@@ -322,7 +265,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   number: {
-    isSortable: true,
     renderFunc: (field, data) => {
       if (typeof data[field] !== 'number') {
         return <NumberContainer>{emptyValue}</NumberContainer>;
@@ -340,7 +282,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   percentage: {
-    isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number'
@@ -350,7 +291,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   size: {
-    isSortable: true,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
       return (
@@ -370,7 +310,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   string: {
-    isSortable: true,
     renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
@@ -394,20 +333,17 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   array: {
-    isSortable: true,
     renderFunc: (field, data) => {
       const value = toArray(data[field]);
       return <ArrayValue value={value} />;
     },
   },
   percent_change: {
-    isSortable: true,
     renderFunc: (fieldName, data) => {
       return <PercentChangeCell deltaValue={data[fieldName]} />;
     },
   },
   currency: {
-    isSortable: true,
     renderFunc: (field, data) => {
       if (typeof data[field] !== 'number') {
         return <NumberContainer>{emptyValue}</NumberContainer>;
@@ -424,12 +360,7 @@ type SpecialFieldRenderFunc = (
 
 type SpecialField = {
   renderFunc: SpecialFieldRenderFunc;
-  sortField: string | null;
 };
-
-const DownloadCount = styled('span')`
-  padding-left: ${p => p.theme.space.sm};
-`;
 
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
@@ -467,7 +398,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
   'apdex()': {
-    sortField: 'apdex()',
     renderFunc: data => {
       const field = 'apdex()';
 
@@ -479,7 +409,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   attachments: {
-    sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
       const attachments: IssueAttachment[] = data.attachments;
 
@@ -499,15 +428,20 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           <DropdownMenu
             position="left"
             size="xs"
-            triggerProps={{
-              showChevron: false,
-              icon: (
-                <Fragment>
-                  <IconDownload variant="primary" size="sm" />
-                  <DownloadCount>{items.length}</DownloadCount>
-                </Fragment>
-              ),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                icon={
+                  <Fragment>
+                    <IconDownload variant="primary" size="sm" />
+                    <ScrapsContainer as="span" paddingLeft="sm">
+                      {items.length}
+                    </ScrapsContainer>
+                  </Fragment>
+                }
+                aria-label={t('Download attachments')}
+              />
+            )}
             items={items}
           />
         </RightAlignedContainer>
@@ -515,7 +449,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   minidump: {
-    sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
       const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
@@ -539,14 +472,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
             }
           >
             <IconDownload variant="primary" size="sm" />
-            <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
+            <ScrapsContainer as="span" paddingLeft="sm">
+              {minidump ? 1 : 0}
+            </ScrapsContainer>
           </Button>
         </RightAlignedContainer>
       );
     },
   },
   id: {
-    sortField: 'id',
     renderFunc: data => {
       const id: string | unknown = data?.id;
       if (typeof id !== 'string') {
@@ -556,7 +490,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   span_id: {
-    sortField: 'span_id',
     renderFunc: data => {
       const id: string | unknown = data?.span_id;
       if (typeof id !== 'string') {
@@ -567,7 +500,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'span.description': {
-    sortField: 'span.description',
     renderFunc: data => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
@@ -601,7 +533,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   trace: {
-    sortField: 'trace',
     renderFunc: data => {
       const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
@@ -612,7 +543,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'issue.id': {
-    sortField: 'issue.id',
     renderFunc: (data, {organization}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/issues/${data['issue.id']}/`,
@@ -628,7 +558,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   replayId: {
-    sortField: 'replayId',
     renderFunc: (data, baggage) => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
@@ -638,7 +567,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'replay.id': {
-    sortField: 'replay.id',
     renderFunc: (data, baggage) => {
       const replayId = data?.['replay.id'];
       if (typeof replayId !== 'string' || !replayId) {
@@ -648,7 +576,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'profile.id': {
-    sortField: 'profile.id',
     renderFunc: (data, {organization, projects}) => {
       const profileId: string | unknown = data?.['profile.id'];
       if (typeof profileId !== 'string' || profileId === '') {
@@ -678,7 +605,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   issue: {
-    sortField: null,
     renderFunc: (data, {organization}) => {
       const issueID = data['issue.id'];
 
@@ -708,7 +634,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   project: {
-    sortField: 'project',
     renderFunc: (data, {organization}) => {
       let slugs: string[] | undefined;
       let projectIds: number[] | undefined;
@@ -746,21 +671,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   // Two different project ID fields are being used right now. `project_id` is shared between all datasets, but `project.id` is the new one used in spans
   project_id: {
-    sortField: 'project_id',
     renderFunc: (data, baggage) => {
       const projectId = data.project_id;
       return <NumberContainer>{getProjectIdLink(projectId, baggage)}</NumberContainer>;
     },
   },
   'project.id': {
-    sortField: 'project.id',
     renderFunc: (data, baggage) => {
       const projectId = data['project.id'];
       return <Container>{getProjectIdLink(projectId, baggage)}</Container>;
     },
   },
   user: {
-    sortField: 'user',
     renderFunc: data => {
       if (data.user?.split) {
         const [key, value] = data.user.split(':');
@@ -782,7 +704,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'user.display': {
-    sortField: 'user.display',
     renderFunc: data => {
       if (data['user.display']) {
         const userObj = {
@@ -801,7 +722,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'count_unique(user)': {
-    sortField: 'count_unique(user)',
     renderFunc: data => {
       const count = data.count_unique_user ?? data['count_unique(user)'];
       if (typeof count === 'number') {
@@ -819,7 +739,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   device: {
-    sortField: 'device',
     renderFunc: data => {
       if (typeof data.device === 'string') {
         return <Container>{deviceNameMapper(data.device) || data.device}</Container>;
@@ -829,7 +748,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   adoption_stage: {
-    sortField: 'adoption_stage',
     renderFunc: data => {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
@@ -842,7 +760,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   release: {
-    sortField: 'release',
     renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
@@ -859,7 +776,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       ),
   },
   'error.handled': {
-    sortField: 'error.handled',
     renderFunc: data => {
       const values = data['error.handled'];
       // Transactions will have null, and default events have no handled attributes.
@@ -875,7 +791,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   [SpanFields.IS_STARRED_TRANSACTION]: {
-    sortField: null,
     renderFunc: data => (
       <StarredSegmentCell
         projectSlug={data[SpanFields.PROJECT]}
@@ -886,7 +801,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   team_key_transaction: {
-    sortField: null,
     renderFunc: (data, {organization}) => (
       <TeamKeyTransactionField
         isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
@@ -897,7 +811,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   'trend_percentage()': {
-    sortField: 'trend_percentage()',
     renderFunc: data => (
       <NumberContainer>
         {typeof data.trend_percentage === 'number'
@@ -907,7 +820,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   timestamp: {
-    sortField: 'timestamp',
     renderFunc: data => {
       const timestamp = data.timestamp;
       if (!timestamp) {
@@ -924,7 +836,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'timestamp.to_hour': {
-    sortField: 'timestamp.to_hour',
     renderFunc: data => (
       <Container>
         {getDynamicText({
@@ -935,7 +846,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   'timestamp.to_day': {
-    sortField: 'timestamp.to_day',
     renderFunc: data => (
       <Container>
         {getDynamicText({
@@ -946,7 +856,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   'span.status_code': {
-    sortField: 'span.status_code',
     renderFunc: data => (
       <Container>
         {data['span.status_code'] ? (
@@ -958,7 +867,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   'performance_score(measurements.score.total)': {
-    sortField: 'performance_score(measurements.score.total)',
     renderFunc: data => {
       const score = data['performance_score(measurements.score.total)'];
       if (typeof score !== 'number') {
@@ -972,7 +880,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'opportunity_score(measurements.score.total)': {
-    sortField: 'opportunity_score(measurements.score.total)',
     renderFunc: data => {
       const score = data['opportunity_score(measurements.score.total)'];
       if (typeof score !== 'number') {
@@ -984,7 +891,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'browser.name': {
-    sortField: 'browser.name',
     renderFunc: data => {
       const browserName = data['browser.name'];
       if (typeof browserName !== 'string' || !browserName) {
@@ -1000,7 +906,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   browser: {
-    sortField: 'browser',
     renderFunc: data => {
       const browser = data.browser;
       if (typeof browser !== 'string' || !browser) {
@@ -1016,7 +921,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'os.name': {
-    sortField: 'os.name',
     renderFunc: data => {
       const osName = data['os.name'];
       if (typeof osName !== 'string' || !osName) {
@@ -1032,7 +936,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   os: {
-    sortField: 'os',
     renderFunc: data => {
       const os = data.os;
       if (typeof os !== 'string' || !os) {
@@ -1056,7 +959,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   [SpanFields.GEN_AI_REQUEST_MODEL]: {
-    sortField: SpanFields.GEN_AI_REQUEST_MODEL,
     renderFunc: data => {
       const modelId = data[SpanFields.GEN_AI_REQUEST_MODEL];
 
@@ -1068,7 +970,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   [SpanFields.GEN_AI_RESPONSE_MODEL]: {
-    sortField: SpanFields.GEN_AI_RESPONSE_MODEL,
     renderFunc: data => {
       const modelId = data[SpanFields.GEN_AI_RESPONSE_MODEL];
 
@@ -1080,10 +981,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   [SpanFields.GEN_AI_OUTPUT_MESSAGES]: {
-    sortField: SpanFields.GEN_AI_OUTPUT_MESSAGES,
     renderFunc: data => renderAIOutputMessages(data[SpanFields.GEN_AI_OUTPUT_MESSAGES]),
   },
-};
+} satisfies Record<SpecialFieldKey, SpecialField>;
 
 /**
  * Returns a logo icon component for operating system (OS) and browser related fields
@@ -1238,43 +1138,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     },
 };
 
-/**
- * Get the sort field name for a given field if it is special or fallback
- * to the generic type formatter.
- */
-export function getSortField(
-  field: string,
-  tableMeta: MetaType | undefined
-): string | null {
-  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
-    return SPECIAL_FIELDS[field]!.sortField;
-  }
-
-  if (!tableMeta) {
-    return field;
-  }
-
-  if (isEquation(field)) {
-    return field;
-  }
-
-  for (const alias in AGGREGATIONS) {
-    if (field.startsWith(alias)) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return AGGREGATIONS[alias].isSortable ? field : null;
-    }
-  }
-
-  const fieldType = tableMeta[field];
-  if (Object.hasOwn(FIELD_FORMATTERS, fieldType)) {
-    return FIELD_FORMATTERS[fieldType as keyof typeof FIELD_FORMATTERS].isSortable
-      ? field
-      : null;
-  }
-
-  return null;
-}
-
 const isDurationValue = (data: EventData, field: string): boolean => {
   return field in data && typeof data[field] === 'number';
 };
@@ -1312,7 +1175,7 @@ export const spanOperationRelativeBreakdownRenderer = (
   }
 
   return (
-    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+    <Flex position="relative" data-test-id="relative-ops-breakdown">
       {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;
@@ -1378,14 +1241,9 @@ export const spanOperationRelativeBreakdownRenderer = (
           <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
-    </RelativeOpsBreakdown>
+    </Flex>
   );
 };
-
-const RelativeOpsBreakdown = styled('div')`
-  position: relative;
-  display: flex;
-`;
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;

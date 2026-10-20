@@ -1,10 +1,12 @@
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
+import {CrashReportPreviewButton} from 'sentry/views/investigations/__stories__/crashReportPreviewButton';
 import {
   InvestigationFixtureApi,
   investigationExecutionFixtureKey,
 } from 'sentry/views/investigations/__stories__/investigationFixtureApi';
+import {StoryTopBar} from 'sentry/views/investigations/__stories__/storyTopBar';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationBlockExecutionFixture,
@@ -12,6 +14,7 @@ import {
   InvestigationBreachedMetricDetailFixture,
   InvestigationDetailFixture,
   InvestigationFailedDetailFixture,
+  InvestigationOrchestrationFixture,
   InvestigationAwaitingInputExecutionFixture,
   InvestigationExecutionDetailFixture,
   InvestigationQueryOutputFixture,
@@ -19,6 +22,7 @@ import {
   InvestigationTitleGenerationFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
+import {RouteError} from 'sentry/views/routeError';
 
 const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   id: 'completed-checkout-regression',
@@ -37,6 +41,7 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
     type: 'metric_open_period',
     ref: {groupId: 'metric-alert-42', openPeriodId: 'open-period-17'},
     revision: 1,
+    snapshot: {monitor: {id: '42', name: 'Checkout p95 latency'}},
   },
   blocks: [
     InvestigationBlockFixture({
@@ -152,6 +157,30 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   ],
 });
 
+// The completed investigation above, with a finished agentic run behind it.
+const agenticReportInvestigation = {
+  ...completedInvestigation,
+  id: 'completed-agentic-report',
+  status: 'active',
+  orchestration: {
+    phase: 'completed',
+    status: 'completed',
+    heartbeatAt: '2026-08-18T16:19:42Z',
+    notebookRevision: 8,
+  },
+};
+
+const agenticReportOrchestration = InvestigationOrchestrationFixture({
+  investigationId: agenticReportInvestigation.id,
+  phase: 'completed',
+  status: 'completed',
+  startedAt: '2026-08-18T16:02:14Z',
+  finishedAt: '2026-08-18T16:06:19Z',
+  activeSince: null,
+  activeTimeElapsedSeconds: 245,
+  report: {...InvestigationOrchestrationFixture().report, status: 'completed'},
+});
+
 const manualInvestigation = InvestigationDetailFixture({
   id: 'manual-invoice-timeouts',
   title: 'Invoice PDF timeouts in eu-west-1',
@@ -237,6 +266,92 @@ const runningInvestigation = InvestigationRunningDetailFixture({
       dependencies: ['running-summary', 'running-query'],
     }),
   ],
+});
+
+const skeletonSummaryExecutionId = 'skeleton-summary-execution';
+const skeletonQueryExecutionId = 'skeleton-query-execution';
+const skeletonInvestigation = InvestigationDetailFixture({
+  id: 'skeleton-investigation',
+  title: 'Checkout latency after the payments-api deploy',
+  status: 'active',
+  sourceType: 'metric_open_period',
+  template: {key: 'breached_metric', version: 1},
+  blocks: [
+    InvestigationBlockFixture({
+      id: 'skeleton-summary',
+      title: 'Analyze the breach',
+      content: '',
+      outputStatus: 'running',
+      config: {autoRun: true},
+      currentExecution: InvestigationBlockExecutionFixture({
+        id: skeletonSummaryExecutionId,
+        status: 'running',
+        completedAt: null,
+      }),
+    }),
+    InvestigationBlockFixture({
+      id: 'skeleton-query',
+      position: 1,
+      kind: 'query',
+      title: 'Compare affected releases',
+      content: '',
+      generationPrompt: 'Compare event volume and users across active releases.',
+      outputStatus: 'running',
+      config: {autoRun: true},
+      dependencies: ['skeleton-summary'],
+      currentExecution: InvestigationBlockExecutionFixture({
+        id: skeletonQueryExecutionId,
+        status: 'running',
+        completedAt: null,
+      }),
+    }),
+  ],
+});
+
+const reportingInvestigation = InvestigationDetailFixture({
+  id: 'reporting-investigation',
+  title: 'Checkout latency after the payments-api deploy',
+  status: 'active',
+  sourceType: 'metric_open_period',
+  template: {key: 'breached_metric', version: 1},
+  orchestration: {
+    phase: 'reporting',
+    status: 'processing',
+    heartbeatAt: '2026-08-27T15:31:22Z',
+    notebookRevision: 5,
+  },
+  blocks: [
+    InvestigationBlockFixture({
+      id: 'reporting-summary',
+      title: 'What happened',
+      outputStatus: 'available',
+      output: {
+        schemaVersion: 1,
+        markdown:
+          'Checkout latency rose from **420 ms to 1.84 s** immediately after the `payments-api` deploy.',
+      },
+      currentExecution: InvestigationBlockExecutionFixture({
+        id: 'reporting-summary-execution',
+      }),
+    }),
+  ],
+});
+
+// A run waiting on a person makes no hypotheses until they answer, so the
+// hypotheses row stays hidden instead of holding placeholders open.
+const awaitingInputRunInvestigation = InvestigationDetailFixture({
+  id: 'awaiting-input-run-investigation',
+  title: 'Checkout latency after the payments-api deploy',
+  status: 'active',
+  sourceType: 'metric_open_period',
+  template: {key: 'breached_metric', version: 1},
+  orchestration: {
+    phase: 'intake',
+    status: 'awaiting_input',
+    heartbeatAt: '2026-08-27T15:31:22Z',
+    notebookRevision: 1,
+  },
+  blocks: [],
 });
 
 const awaitingInputExecutionId = 'awaiting-input-execution';
@@ -330,6 +445,18 @@ const archivedInvestigation = InvestigationDetailFixture({
 });
 
 export default Storybook.story('Investigations — Detail', story => {
+  story('Completed agentic report', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-agentic-report"
+      details={[agenticReportInvestigation]}
+      orchestration={{[agenticReportInvestigation.id]: agenticReportOrchestration}}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={agenticReportInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
   story('Completed with every output type', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-completed"
@@ -405,6 +532,71 @@ export default Storybook.story('Investigations — Detail', story => {
     </InvestigationFixtureApi>
   ));
 
+  story('Cells Seer is still writing', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-skeleton"
+      details={[skeletonInvestigation]}
+      executions={{
+        [investigationExecutionFixtureKey(
+          'skeleton-summary',
+          skeletonSummaryExecutionId
+        )]: InvestigationExecutionDetailFixture({
+          id: skeletonSummaryExecutionId,
+          status: 'running',
+          partialMarkdown: null,
+          blocks: [],
+        }),
+        [investigationExecutionFixtureKey('skeleton-query', skeletonQueryExecutionId)]:
+          InvestigationExecutionDetailFixture({
+            id: skeletonQueryExecutionId,
+            status: 'running',
+            blocks: [],
+          }),
+      }}
+    >
+      <Container minHeight="520px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={skeletonInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Report pending while the run is still reporting', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-reporting"
+      details={[reportingInvestigation]}
+      orchestration={{
+        [reportingInvestigation.id]: InvestigationOrchestrationFixture({
+          investigationId: reportingInvestigation.id,
+          phase: 'reporting',
+          status: 'processing',
+        }),
+      }}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={reportingInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Agentic run awaiting input before any hypotheses', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-awaiting-input-run"
+      details={[awaitingInputRunInvestigation]}
+      orchestration={{
+        [awaitingInputRunInvestigation.id]: InvestigationOrchestrationFixture({
+          investigationId: awaitingInputRunInvestigation.id,
+          phase: 'intake',
+          status: 'awaiting_input',
+          hypotheses: [],
+        }),
+      }}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={awaitingInputRunInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
   story('Awaiting user input', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-awaiting-input"
@@ -475,7 +667,10 @@ export default Storybook.story('Investigations — Detail', story => {
       details={[archivedInvestigation]}
     >
       <Container minHeight="360px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={archivedInvestigation.id} />
+        {/* The top bar shows the disabled Comment button. */}
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={archivedInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -492,13 +687,17 @@ export default Storybook.story('Investigations — Detail', story => {
   ));
 
   story('Error', () => (
-    <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-detail-error"
-      mode="error"
-    >
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId="error-investigation" />
-      </Container>
-    </InvestigationFixtureApi>
+    <Stack gap="md" align="start">
+      <CrashReportPreviewButton />
+      <Stack
+        minHeight="420px"
+        width="100%"
+        padding="2xl 3xl"
+        border="primary"
+        radius="md"
+      >
+        <RouteError />
+      </Stack>
+    </Stack>
   ));
 });

@@ -77,10 +77,10 @@ describe('getHighlightTagData', () => {
 
     expect(highlightTagData).toHaveLength(highlightTagsSet.size);
     for (const content of highlightTagData) {
-      expect(highlightTagsSet.has(content.originalTag.key)).toBe(true);
+      expect(highlightTagsSet.has(content.original.key)).toBe(true);
     }
     const missingTagHighlightFromEvent = highlightTagData.find(
-      td => td.originalTag.key === missingTag
+      td => td.original.key === missingTag
     );
     expect(missingTagHighlightFromEvent?.value).toBe(EMPTY_HIGHLIGHT_DEFAULT);
   });

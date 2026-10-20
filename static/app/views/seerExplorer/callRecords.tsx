@@ -19,7 +19,17 @@ import type {CallRecord} from 'sentry/views/seerExplorer/types';
  * A row matching a rule in `links.tsx` is labeled by that rule instead.
  */
 export function callRecordLabel(record: CallRecord): string | null {
-  return record.llm_description?.trim() || record.title?.trim() || null;
+  const description = record.llm_description?.trim();
+  if (description) {
+    return description;
+  }
+
+  const title = record.title?.trim();
+  if (!title) {
+    return null;
+  }
+
+  return callRecordInputQuery(record) ? title.replace(/ for \[.*\]$/, '…') : title;
 }
 
 /** Short display names for the providers seer can call. */

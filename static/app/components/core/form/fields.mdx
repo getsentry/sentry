@@ -9,7 +9,12 @@ resources:
 
 import {Container} from '@sentry/scraps/layout';
 
-import {BaseFieldDemo} from './__stories__/formDemos';
+import {
+  BaseFieldDemo,
+  CheckboxFieldDemo,
+  CompactSelectFieldDemo,
+  NumberFieldDemo,
+} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -43,6 +48,9 @@ Text input for single-line string values.
 </form.AppField>
 ```
 
+Use `leadingItems` to display content such as a currency symbol before the
+editable value.
+
 ## Number
 
 Numeric input with optional min/max/step constraints.
@@ -57,6 +65,32 @@ Numeric input with optional min/max/step constraints.
         min={0}
         max={120}
         step={1}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+### Leading items
+
+`Number` supports the same `leadingItems` slot as `Input` for prefixes such as
+currency symbols.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <NumberFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="amount">
+  {field => (
+    <field.Layout.Row label={t('Amount')}>
+      <field.Number
+        leadingItems="$"
+        value={field.state.value}
+        onChange={field.handleChange}
+        min={0}
       />
     </field.Layout.Row>
   )}
@@ -139,6 +173,38 @@ Add the `multiple` prop for multi-select. The field value should be an array.
 </form.AppField>
 ```
 
+## CompactSelect
+
+A select with a button trigger. It supports search, custom triggers, and single or
+multiple selection. Pass raw values to `value` and `onChange`, as with `field.Select`.
+An empty single selection uses `null`.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <CompactSelectFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="country">
+  {field => (
+    <field.Layout.Row label={t('Country')}>
+      <field.CompactSelect
+        value={field.state.value}
+        onChange={field.handleChange}
+        options={[
+          {value: 'us', label: 'United States'},
+          {value: 'uk', label: 'United Kingdom'},
+        ]}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+Custom `trigger` callbacks receive the form and overlay props already merged. Forward
+these props to `OverlayTrigger.Button` or `OverlayTrigger.IconButton`.
+
 ## SelectAsync
 
 Async search select that loads options from an API. Pass `queryOptions` to configure the data fetching.
@@ -159,6 +225,56 @@ Async search select that loads options from an API. Pass `queryOptions` to confi
   )}
 </form.AppField>
 ```
+
+## Checkbox
+
+Boolean choice with a label and optional hint text. The hint aligns beneath the label.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <CheckboxFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="subscribe">
+  {field => (
+    <field.Checkbox
+      checked={field.state.value}
+      onChange={field.handleChange}
+      label={t('Send me the newsletter')}
+      hintText={t('Get product updates by email.')}
+    />
+  )}
+</form.AppField>
+```
+
+### Checkbox group
+
+Use `field.Checkbox.Group` for multiple selections stored as one string array.
+Put the layout inside the group so its label names the group rather than an individual input.
+Each `field.Checkbox.Item` has its own checkbox label. Use layout primitives to arrange the items.
+
+```jsx
+<form.AppField name="scopes">
+  {field => (
+    <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
+      <field.Layout.Stack label={t('Scopes')} required>
+        <field.Checkbox.Item value="read">{t('Read')}</field.Checkbox.Item>
+        <field.Checkbox.Item value="write">{t('Write')}</field.Checkbox.Item>
+      </field.Layout.Stack>
+    </field.Checkbox.Group>
+  )}
+</form.AppField>
+```
+
+The group handles validation status, focus, and auto-save. Pass `disabled` to the group
+to disable every item, or to an item to disable one option. A string passed to the group's
+`disabled` prop provides a tooltip with the reason.
+
+Validate the array in the schema, for example with `z.array(z.string()).min(1)`.
+Keep a single array field rather than a boolean field for every option, so selections
+without a rendered item are preserved.
 
 ## Switch
 

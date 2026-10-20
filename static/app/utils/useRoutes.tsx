@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
 /**
- * @deprecated Please do not use this. Switch to useMatches() from 'react-router-dom'
+ * @deprecated Please do not use this. Switch to useMatches() from 'react-router'
  *
  * See https://github.com/getsentry/frontend-tsc/issues/78
  */

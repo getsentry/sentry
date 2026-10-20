@@ -42,16 +42,23 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     OrFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
+from sentry.search.eap.columns import (
+    ColumnDefinitions,
+    ResolvedAttribute,
+    ResolvedColumn,
+    ResolvedLiteral,
+)
 from sentry.search.eap.constants import (
     DOUBLE,
     MAX_ROLLUP_POINTS,
     SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME,
+    TIMESTAMP_ALIAS,
     VALID_GRANULARITIES,
 )
 from sentry.search.eap.resolver import SearchResolver
@@ -69,7 +76,6 @@ from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, Sn
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import json, metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -111,6 +117,25 @@ class TableQuery:
     limit_by: LimitBy | None = None
 
 
+def ensure_flextime_query_orderby(query: TableQuery) -> None:
+    """Put flextime's id sort last, appending it when it is missing.
+
+    See ``_enforce_flextime_routing_orders_by_timestamp_and_item_id``:
+    https://github.com/getsentry/snuba/blob/d22210b3f06a67df98e04b6a61b873633112d60e/snuba/web/rpc/v1/endpoint_trace_item_table.py#L236-L268
+    """
+    if query.sampling_mode != SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+        return
+    orderby = [column for column in (query.orderby or []) if column.lstrip("-").strip()]
+    if not orderby:
+        return
+    if orderby[-1] != "-id":
+        orderby = [column for column in orderby if column.lstrip("-") != "id"]
+        orderby.append("-id")
+    if "id" not in query.selected_columns:
+        query.selected_columns = [*query.selected_columns, "id"]
+    query.orderby = orderby
+
+
 @dataclass
 class TableRequest:
     """Container for rpc requests"""
@@ -126,6 +151,14 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
             if row[axis] and row[axis] != 0:
                 return True
     return False
+
+
+def apply_resolved_literals(timeseries: SnubaData, resolved_fields: list[ResolvedColumn]) -> None:
+    """Copy constant equations onto each bucket. They are not sent to Snuba."""
+    for resolved_field in resolved_fields:
+        if isinstance(resolved_field, ResolvedLiteral):
+            for row in timeseries:
+                row[resolved_field.public_alias] = resolved_field.value
 
 
 class RPCBase:
@@ -267,6 +300,7 @@ class RPCBase:
     @classmethod
     def get_table_rpc_request(cls, query: TableQuery) -> TableRequest:
         """Make the query"""
+        ensure_flextime_query_orderby(query)
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
         if query.sampling_mode is not None:
@@ -424,6 +458,24 @@ class RPCBase:
                 columns=limit_by_columns, limit=query.limit_by.limit
             )
 
+        if query.sampling_mode == SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+            if len(resolved_orderby) == 0:
+                raise InvalidSearchQuery(
+                    "You must orderby -timestamp and -id to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
+
+            # Snuba paginates flextime by walking timestamp backward.
+            # The first order by has to be that column, descending.
+            first_orderby = resolved_orderby[0]
+            if not first_orderby.descending or first_orderby.column.label != TIMESTAMP_ALIAS:
+                raise InvalidSearchQuery(
+                    "Your first orderby must be -timestamp to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
+            if any(not order_by.descending for order_by in resolved_orderby):
+                raise InvalidSearchQuery(
+                    "Your orderby must be descending to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
+
         page_token = (
             PageToken(offset=query.offset) if query.page_token is None else query.page_token
         )
@@ -447,7 +499,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def _run_table_query(
         cls,
         query: TableQuery,
@@ -496,7 +548,7 @@ class RPCBase:
         raise NotImplementedError()
 
     @classmethod
-    @trace
+    @traces.trace
     def run_bulk_table_queries(
         cls, queries: list[TableQuery], debug: str | bool = False
     ) -> dict[str, EAPResponse]:
@@ -864,7 +916,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_timeseries_query(
         cls,
         *,
@@ -919,6 +971,7 @@ class RPCBase:
                 params.timeseries_granularity_secs,
                 ["time"],
             )
+        apply_resolved_literals(result.timeseries, aggregates)
 
         if comparison_delta is not None:
             if len(rpc_request.expressions) != 1:
@@ -960,7 +1013,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
@@ -1007,7 +1060,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_top_events_timeseries_query(
         cls,
         *,
@@ -1135,21 +1188,24 @@ class RPCBase:
                         int(groupby_attributes[resolved_groupby.internal_name])
                     ]
                 else:
-                    resolved_groupby, context = search_resolver.resolve_attribute(col)
+                    resolved_groupby, contexts = search_resolver.resolve_attribute(col)
 
                     # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
                     # Since timeseries run the query with the original column, we need to map
                     # them correctly so they map the table result. We need to map both the column name
                     # and the values.
-                    if context is not None:
-                        resolved_groupby = search_resolver.map_context_to_original_column(context)
+                    for context in contexts:
+                        if context is not None:
+                            resolved_groupby = search_resolver.map_context_to_original_column(
+                                context
+                            )
 
-                    groupby_value = groupby_attributes[resolved_groupby.internal_name]
-                    if context is not None:
-                        groupby_value = context.constructor(params, search_resolver).value_map[
-                            groupby_value
-                        ]
-                        groupby_attributes[resolved_groupby.internal_name] = groupby_value
+                        groupby_value = groupby_attributes[resolved_groupby.internal_name]
+                        if context is not None:
+                            groupby_value = context.constructor(params, search_resolver).value_map[
+                                groupby_value
+                            ]
+                            groupby_attributes[resolved_groupby.internal_name] = groupby_value
 
                     remapped_groupby[col] = groupby_value
 
@@ -1161,6 +1217,7 @@ class RPCBase:
             result_key = create_result_key(row, groupby_columns, {})
             result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key], config)
+            apply_resolved_literals(result.timeseries, aggregates)
             final_result[result_key] = SnubaTSResult(
                 {
                     "data": result.timeseries,
@@ -1178,6 +1235,7 @@ class RPCBase:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries], config
             )
+            apply_resolved_literals(result.timeseries, aggregates)
             if check_timeseries_has_data(result.timeseries, y_axes):
                 final_result[OTHER_KEY] = SnubaTSResult(
                     {

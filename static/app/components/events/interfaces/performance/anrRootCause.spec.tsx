@@ -5,10 +5,10 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 
-jest.mock('sentry/views/performance/newTraceDetails/traceApi/useTrace', () => {
+jest.mock('sentry/views/performance/traceDetails/traceApi/useTrace', () => {
   return {
     useTrace: jest.fn(() => ({
       data: [],

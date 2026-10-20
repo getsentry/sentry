@@ -61,7 +61,7 @@ describe('SeerDrawerContent', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
     expect(startStep).toHaveBeenCalledWith('root_cause', {
-      enableBashTools: undefined,
+      enableBashMode: undefined,
     });
   });
 
@@ -79,6 +79,6 @@ describe('SeerDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
-    expect(startStep).toHaveBeenCalledWith('root_cause', {enableBashTools: true});
+    expect(startStep).toHaveBeenCalledWith('root_cause', {enableBashMode: true});
   });
 });

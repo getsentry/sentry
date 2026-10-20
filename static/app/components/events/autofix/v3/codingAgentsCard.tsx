@@ -1,9 +1,10 @@
 import {useMemo} from 'react';
+import {IconBot} from '@sentry/icons/bot';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {getCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
@@ -20,9 +21,8 @@ import {
 import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconBot} from 'sentry/icons/iconBot';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
@@ -81,7 +81,7 @@ export function CodingAgentsCard({section}: CodingAgentsCardProps) {
             </Flex>
             {codingAgent.results?.map((result, index) =>
               result.description ? (
-                <Markdown key={index} raw={result.description} />
+                <SeerMarkdown key={index} raw={result.description} />
               ) : null
             )}
             <Flex direction="row" gap="md" wrap="wrap">
