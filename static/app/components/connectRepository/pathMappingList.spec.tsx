@@ -192,6 +192,25 @@ describe('PathMappingList', () => {
       expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
     });
+
+    it('keeps a prefix edit on the open row after deleting a row above it', async () => {
+      renderList({initialPathMappings: MAPPINGS});
+
+      const [, secondExpand] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(secondExpand!);
+      const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      await userEvent.click(firstDelete!);
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'lib'
+      );
+      await userEvent.tab();
+
+      expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
+      expect(screen.getAllByText('lib/')).not.toHaveLength(0);
+    });
   });
 
   describe('duplicate mappings', () => {
