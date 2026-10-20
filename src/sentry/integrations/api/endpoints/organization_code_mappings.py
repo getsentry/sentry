@@ -3,7 +3,7 @@ from typing import Any
 from django.db import router, transaction
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
-from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -184,6 +184,15 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return self.instance
 
 
+class CreateOrganizationCodeMappingRequestSerializer(RepositoryProjectPathConfigSerializer):
+    integration_id = serializers.IntegerField(
+        help_text="The ID of the installed integration that provides the repository."
+    )
+
+    class Meta(RepositoryProjectPathConfigSerializer.Meta):
+        fields = [*RepositoryProjectPathConfigSerializer.Meta.fields, "integration_id"]
+
+
 class OrganizationIntegrationMixin:
     def get_organization_integration(self, organization, integration_id):
         org_integration = integration_service.get_organization_integration(
@@ -296,36 +305,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         summary="Create an Organization Code Mapping",
         description="Create a repository path mapping for a project and installed integration.",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=inline_serializer(
-            name="CreateOrganizationCodeMappingRequest",
-            fields={
-                "integrationId": serializers.IntegerField(
-                    help_text="The ID of the installed integration that provides the repository."
-                ),
-                "repositoryId": serializers.IntegerField(
-                    help_text="The ID of the repository to map."
-                ),
-                "projectId": serializers.IntegerField(
-                    help_text="The ID of the project to map to the repository."
-                ),
-                "stackRoot": serializers.CharField(
-                    allow_blank=True,
-                    help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot.",
-                ),
-                "sourceRoot": serializers.CharField(
-                    allow_blank=True,
-                    help_text=(
-                        "The repository path prefix that replaces stackRoot. For example, "
-                        "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
-                    ),
-                ),
-                "defaultBranch": serializers.CharField(
-                    allow_blank=True,
-                    required=False,
-                    help_text="The repository branch used when a release has no branch specified.",
-                ),
-            },
-        ),
+        request=CreateOrganizationCodeMappingRequestSerializer,
         responses={
             201: inline_sentry_response_serializer(
                 "OrganizationCodeMappingResponse", RepositoryProjectPathConfigSerializerResponse

@@ -2,7 +2,7 @@ from pathlib import PurePath, PureWindowsPath
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import unquote, urlparse, urlunparse
 
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -181,35 +181,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
             "must be nonempty; otherwise the request returns 400."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
-        request=inline_serializer(
-            name="PathMappingRequest",
-            fields={
-                "stackPath": serializers.CharField(
-                    help_text="A file path as it appears in a stack trace frame."
-                ),
-                "sourceUrl": serializers.URLField(
-                    help_text="The URL of the same file in the connected source code repository."
-                ),
-                "absPath": serializers.CharField(
-                    required=False,
-                    allow_null=True,
-                    allow_blank=True,
-                    help_text="The absolute path of the file in the stack trace frame. Required and nonempty when platform is java.",
-                ),
-                "module": serializers.CharField(
-                    required=False,
-                    allow_null=True,
-                    allow_blank=True,
-                    help_text="The module containing the stack trace frame. Required and nonempty when platform is java.",
-                ),
-                "platform": serializers.CharField(
-                    required=False,
-                    allow_null=True,
-                    allow_blank=True,
-                    help_text="The platform of the event containing the stack trace frame.",
-                ),
-            },
-        ),
+        request=PathMappingSerializer,
         responses={
             200: inline_sentry_response_serializer("RepoPathParsing", RepoPathParsingResponse),
             400: RESPONSE_BAD_REQUEST,

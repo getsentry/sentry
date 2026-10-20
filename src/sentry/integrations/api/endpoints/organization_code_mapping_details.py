@@ -2,8 +2,8 @@ from typing import Any
 
 from django.db.models.deletion import ProtectedError
 from django.http import Http404
-from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
-from rest_framework import serializers, status
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -97,33 +97,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
                 description="The ID of the code mapping to update.",
             ),
         ],
-        request=inline_serializer(
-            name="UpdateOrganizationCodeMappingRequest",
-            fields={
-                "repositoryId": serializers.IntegerField(
-                    help_text="The ID of the repository to map."
-                ),
-                "projectId": serializers.IntegerField(
-                    help_text="The ID of the project to map to the repository."
-                ),
-                "stackRoot": serializers.CharField(
-                    allow_blank=True,
-                    help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot.",
-                ),
-                "sourceRoot": serializers.CharField(
-                    allow_blank=True,
-                    help_text=(
-                        "The repository path prefix that replaces stackRoot. For example, "
-                        "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
-                    ),
-                ),
-                "defaultBranch": serializers.CharField(
-                    allow_blank=True,
-                    required=False,
-                    help_text="The repository branch used when a release has no branch specified.",
-                ),
-            },
-        ),
+        request=RepositoryProjectPathConfigSerializer,
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationCodeMappingResponse", RepositoryProjectPathConfigSerializerResponse
