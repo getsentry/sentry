@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1224_retire_rulesnooze"),
+        ("sentry", "1229_drop_group_times_seen_index"),
     ]
 
     operations = [
