@@ -30,10 +30,26 @@ jobs:
       - name: Prune suppression budgets
         run: pnpm run lint:js --prune
 
+      - name: Bundle suppression budgets
+        env:
+          SUPPRESSION_BUNDLE: ${{ runner.temp }}/suppressions.json
+        run: |
+          node --input-type=module <<'NODE'
+          import {execFileSync} from 'node:child_process';
+          import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+          const files = execFileSync('git', [
+            'ls-files', '-z', '--', 'oxlint-suppressions.json', '**/oxlint-suppressions.json',
+          ], {encoding: 'utf8'}).split('\0').filter(Boolean);
+          const budgets = Object.fromEntries(files.map(file => [
+            file, existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {},
+          ]));
+          writeFileSync(process.env.SUPPRESSION_BUNDLE, JSON.stringify(budgets));
+          NODE
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pruned-oxlint-suppressions
-          path: oxlint-suppressions.json
+          path: ${{ runner.temp }}/suppressions.json
           if-no-files-found: error
           retention-days: 1
 
@@ -54,26 +70,8 @@ jobs:
 
       - name: Validate suppression reductions
         env:
-          PRUNED_FILE: ${{ runner.temp }}/pruned-oxlint-suppressions/oxlint-suppressions.json
-        run: |
-          node <<'NODE'
-          const assert = require('node:assert/strict');
-          const fs = require('node:fs');
-          const original = JSON.parse(fs.readFileSync('oxlint-suppressions.json', 'utf8'));
-          const pruned = JSON.parse(fs.readFileSync(process.env.PRUNED_FILE, 'utf8'));
-          const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-          assert(isObject(pruned), 'Suppressions must be an object');
-          for (const [file, rules] of Object.entries(pruned)) {
-            assert(Object.hasOwn(original, file), `Unexpected file: ${file}`);
-            assert(isObject(rules), `Invalid rules: ${file}`);
-            for (const [rule, budget] of Object.entries(rules)) {
-              assert(Object.hasOwn(original[file], rule), `Unexpected rule: ${file} ${rule}`);
-              assert(isObject(budget) && Object.keys(budget).length === 1 && Object.hasOwn(budget, 'count'), `Invalid budget: ${file} ${rule}`);
-              assert(Number.isSafeInteger(budget.count) && budget.count >= 0 && budget.count <= original[file][rule].count, `Invalid count: ${file} ${rule}`);
-            }
-          }
-          fs.writeFileSync('oxlint-suppressions.json', JSON.stringify(pruned, null, 2) + '\n');
-          NODE
+          PRUNED_DIRECTORY: ${{ runner.temp }}/pruned-oxlint-suppressions
+        run: node .github/workflows/scripts/validate-pruned-suppressions.js "$PRUNED_DIRECTORY"
 
       - name: Get internal bot token
         id: bot
@@ -89,7 +87,7 @@ jobs:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
           BOT_LOGIN: ${{ steps.bot.outputs.app-slug }}[bot]
         run: |
-          if git diff --quiet -- oxlint-suppressions.json; then
+          if git diff --quiet -- oxlint-suppressions.json '**/oxlint-suppressions.json'; then
             exit 0
           fi
           gh auth setup-git
@@ -98,7 +96,7 @@ jobs:
           git config user.email "$BOT_ID+$BOT_LOGIN@users.noreply.github.com"
           BRANCH="bot/prune-oxlint-suppressions"
           git switch -C "$BRANCH"
-          git add oxlint-suppressions.json
+          git add -u -- ':(glob)**/oxlint-suppressions.json'
           git commit -m "chore(lint): prune oxlint suppressions"
           git push -f origin "$BRANCH"
           PR=$(gh pr list --base master --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
