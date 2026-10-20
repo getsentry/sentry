@@ -838,7 +838,6 @@ from .endpoints.organization_events_trends import (
 )
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_validate import OrganizationEventsValidateEndpoint
-from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
@@ -2005,11 +2004,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-trends/$",
         OrganizationEventsTrendsEndpoint.as_view(),
         name="sentry-api-0-organization-events-trends",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-vitals/$",
-        OrganizationEventsVitalsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-vitals",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-has-measurements/$",

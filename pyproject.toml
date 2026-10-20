@@ -515,7 +515,6 @@ module = [
     "sentry.api.endpoints.organization_events_trace",
     "sentry.api.endpoints.organization_events_trends",
     "sentry.api.endpoints.organization_events_trends_v2",
-    "sentry.api.endpoints.organization_events_vitals",
     "sentry.api.endpoints.organization_fork",
     "sentry.api.endpoints.organization_insights_tree",
     "sentry.api.endpoints.organization_intercom_jwt",
