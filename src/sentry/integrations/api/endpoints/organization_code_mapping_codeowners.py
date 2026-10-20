@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.utils import to_valid_int_id
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
@@ -50,7 +51,7 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
                 "project_repository__project",
                 "project_repository__repository",
             ).get(
-                id=config_id,
+                id=to_valid_int_id("config_id", config_id, raise_404=True),
                 organization_id=organization.id,
             )
         except RepositoryProjectPathConfig.DoesNotExist:
