@@ -1,8 +1,7 @@
 import logging
 from typing import Any
 
-from django.conf import settings
-
+from sentry import options
 from sentry.utils.services import Service
 
 from .types import ChartSize, ChartType
@@ -28,7 +27,7 @@ class ChartRenderer(Service):
         """
         Checks that the chart rendering service is enabled
         """
-        return settings.SENTRY_CHART_RENDERING_ENABLED
+        return bool(options.get("chart-rendering.enabled", False))
 
     def generate_chart(self, style: ChartType, data: Any, size: ChartSize | None = None) -> str:
         """Produces a chart. Returns the public URL for the chart"""

@@ -1,8 +1,8 @@
 from typing import Any
 
 import orjson
-from django.conf import settings
 
+from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import MigratingIdentityId
 from sentry.identity.oauth2 import OAuth2Provider
@@ -34,10 +34,10 @@ class GoogleIdentityProvider(OAuth2Provider):
     oauth_scopes = ("email",)
 
     def get_oauth_client_id(self):
-        return settings.SENTRY_AUTH_GOOGLE_CLIENT_ID
+        return options.get("auth-google.client-id")
 
     def get_oauth_client_secret(self):
-        return settings.SENTRY_AUTH_GOOGLE_CLIENT_SECRET
+        return options.get("auth-google.client-secret")
 
     def build_identity(self, state):
         data = state.get("data", {})

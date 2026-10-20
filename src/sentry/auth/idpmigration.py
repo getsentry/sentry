@@ -10,6 +10,7 @@ from django.conf import settings
 from django.urls import reverse
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
+from sentry import options
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.users.models.user import User
@@ -92,7 +93,7 @@ class AccountConfirmLink:
             "verification_key": self.verification_code,
         }
         msg = MessageBuilder(
-            subject=f"{settings.EMAIL_SUBJECT_PREFIX}Confirm Account",
+            subject="{}Confirm Account".format(options.get("mail.subject-prefix")),
             template="sentry/emails/idp_verification_email.txt",
             html_template="sentry/emails/idp_verification_email.html",
             type="user.confirm_email",

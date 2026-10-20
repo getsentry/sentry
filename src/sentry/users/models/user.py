@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from string import ascii_letters, digits
 from typing import Any, ClassVar
 
-from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
@@ -337,6 +336,7 @@ class User(Model, AbstractBaseUser):
     def send_signed_url_confirm_email_singular(
         self, email: str, signed_data: str, is_new_user: bool = False
     ) -> None:
+        from sentry import options
         from sentry.utils.email import MessageBuilder
 
         context = {
@@ -347,7 +347,7 @@ class User(Model, AbstractBaseUser):
         }
 
         msg = MessageBuilder(
-            subject=f"{settings.EMAIL_SUBJECT_PREFIX}Confirm Email",
+            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
             template="sentry/emails/confirm_email.txt",
             html_template="sentry/emails/confirm_email.html",
             type="user.confirm_email",
@@ -356,6 +356,7 @@ class User(Model, AbstractBaseUser):
         msg.send_async([email])
 
     def send_confirm_email_singular(self, email: UserEmail, is_new_user: bool = False) -> None:
+        from sentry import options
         from sentry.utils.email import MessageBuilder
 
         if not email.hash_is_valid():
@@ -371,7 +372,7 @@ class User(Model, AbstractBaseUser):
             "is_new_user": is_new_user,
         }
         msg = MessageBuilder(
-            subject=f"{settings.EMAIL_SUBJECT_PREFIX}Confirm Email",
+            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
             template="sentry/emails/confirm_email.txt",
             html_template="sentry/emails/confirm_email.html",
             type="user.confirm_email",

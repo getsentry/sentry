@@ -4,6 +4,8 @@ from urllib.parse import quote
 import requests
 from django.conf import settings
 
+from sentry import options
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,15 +47,15 @@ def phone_number_as_e164(num: str) -> str:
 
 
 def sms_available() -> bool:
-    backend = settings.SENTRY_SMS_BACKEND
+    backend = options.get("sms.backend")
     return (backend == "console" and settings.DEBUG) or (
-        backend == "twilio" and bool(settings.SENTRY_SMS_TWILIO_ACCOUNT)
+        backend == "twilio" and bool(options.get("sms.twilio-account"))
     )
 
 
 def send_sms(body: str, to: str, from_: str | None = None) -> bool:
     phone_number = phone_number_as_e164(to)
-    backend = settings.SENTRY_SMS_BACKEND
+    backend = options.get("sms.backend")
 
     if backend == "console":
         if not settings.DEBUG:
@@ -64,7 +66,7 @@ def send_sms(body: str, to: str, from_: str | None = None) -> bool:
     if backend != "twilio":
         raise RuntimeError(f"Unknown SMS backend: {backend}")
 
-    account = settings.SENTRY_SMS_TWILIO_ACCOUNT
+    account = options.get("sms.twilio-account")
     if not account:
         raise RuntimeError("SMS backend is not configured.")
     if account[:2] != "AC":
@@ -73,8 +75,8 @@ def send_sms(body: str, to: str, from_: str | None = None) -> bool:
 
     rv = requests.post(
         url,
-        auth=(account, settings.SENTRY_SMS_TWILIO_TOKEN),
-        data={"To": phone_number, "From": settings.SENTRY_SMS_TWILIO_NUMBER, "Body": body},
+        auth=(account, options.get("sms.twilio-token")),
+        data={"To": phone_number, "From": options.get("sms.twilio-number"), "Body": body},
     )
     if not rv.ok:
         logging.error(

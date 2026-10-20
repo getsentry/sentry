@@ -106,8 +106,6 @@ def get_option_value(function, option):
 
     # if we don't have the settings set, read from our options
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
-        if option == OPTION_ACCOUNT_NUMBER:
-            return settings.SENTRY_AWS_LAMBDA_ACCOUNT_NUMBER
         return options.get(option_field)
 
     # otherwise, read from the cache

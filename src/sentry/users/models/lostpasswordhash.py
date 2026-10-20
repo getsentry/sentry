@@ -64,6 +64,7 @@ class LostPasswordHash(Model):
 
     @classmethod
     def _send_email(cls, mode: str, user: User | RpcUser, hash: str, extra: dict[str, Any]) -> None:
+        from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
 
@@ -85,7 +86,7 @@ class LostPasswordHash(Model):
             subject = "Set Username and Password for Your Relocated Sentry.io Account"
 
         msg = MessageBuilder(
-            subject=f"{settings.EMAIL_SUBJECT_PREFIX}{subject}",
+            subject="{}{}".format(options.get("mail.subject-prefix"), subject),
             template=f"sentry/emails/{template}.txt",
             html_template=f"sentry/emails/{template}.html",
             type="user.password_recovery",

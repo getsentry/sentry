@@ -1,5 +1,4 @@
 import orjson
-from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -7,6 +6,7 @@ from rest_framework.response import Response
 from sentry_relay.auth import validate_register_response
 from sentry_relay.exceptions import UnpackErrorSignatureExpired
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import is_internal_relay, relay_from_id
@@ -61,7 +61,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 {"detail": "Missing relay signature"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        secret = settings.SECRET_KEY
+        secret = options.get("system.secret-key")
 
         try:
             validated = validate_register_response(request.body, sig, secret)

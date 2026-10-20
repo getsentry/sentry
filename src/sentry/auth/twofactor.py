@@ -1,9 +1,9 @@
 from urllib.parse import urlencode
 
-from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.utils.email import MessageBuilder
 from sentry.utils.geo import geo_by_addr
@@ -62,7 +62,7 @@ def send_2fa_rate_limit_notification(*, user_id: int, email: str, ip_address: st
     subject = "Suspicious Activity Detected"
     template = "mfa-too-many-attempts"
     message = MessageBuilder(
-        subject=f"{settings.EMAIL_SUBJECT_PREFIX}{subject}",
+        subject="{}{}".format(options.get("mail.subject-prefix"), subject),
         template=f"sentry/emails/{template}.txt",
         html_template=f"sentry/emails/{template}.html",
         type="user.mfa-too-many-attempts",

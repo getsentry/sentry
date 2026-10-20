@@ -1,14 +1,21 @@
 # Deployment configuration
 
-Deployment configuration is read from Django settings when the process starts.
-Changes to these values require restarting the process. Values stored with
-`sentry config set` for the keys below are no longer read by their consumers.
-Use `config.yml`, `SENTRY_OPTIONS` in `sentry.conf.py`, or the corresponding
-Django setting instead.
+This preparation release adds Django settings and promotion from `config.yml`
+and `SENTRY_OPTIONS`. Integration credentials, email configuration and operational
+flags continue to use their existing option readers and precedence. Existing
+Option/ControlOption rows remain effective. Configuring a new setting alone does
+not change those readers; deployment writers must continue writing the legacy
+option as well until the consumer cutover.
 
-An explicitly configured option key overrides its corresponding new setting.
-Registered defaults and `None` option values do not replace a direct setting.
-Existing GitHub login and email mappings retain their original bootstrap
+The later consumer cutover switches the keys below to deployment settings.
+Changes then require restarting the process. Before that cutover, reconcile each
+candidate setting with the effective option value, including database rows and
+runtime overrides. A nonempty candidate is insufficient: a differing stored
+credential can currently take precedence over its configured fallback.
+
+During preparation, an explicitly configured option key is promoted to its
+candidate setting. Registered defaults and `None` option values do not replace a
+direct setting. Existing GitHub login and email mappings retain their bootstrap
 precedence and backend aliases. Setup wizard email credentials remain options.
 
 Single organization mode reuses the GitHub integration app's client ID and
@@ -24,8 +31,8 @@ credentials into the login settings, even without the application initializer's
 legacy app remap. This changes unused GitHub login settings in API gateway
 bootstrap; API gateway has no GitHub login consumers.
 
-The symbolicator, symbol server, and chart rendering enablement flags are
-also deployment settings; they no longer change while the process is running.
+The symbolicator, symbol server, and chart rendering enablement flags remain
+runtime options until the consumer cutover.
 
 `system.support-email` continues to use the legacy option read while the admin
 API accepts updates. `SENTRY_SYSTEM_SUPPORT_EMAIL` is prepared for the later
@@ -124,9 +131,17 @@ Deploy this setting support and the application state API before GetSentry
 changes its deployment writers or newsletter state consumer. GetSentry's normal
 Sentry dependency bump must include both parts of this readiness change.
 Preserve the legacy option registrations and explicit option promotion during
-that rollout. Verify the environment inputs and candidate settings against every
-serving workload before removing legacy option promotion. Pause legacy ConfigMap
-delivery and drain or cancel queued and in-flight legacy applies before removing
+that rollout. Verify effective-value equality for every mapped key in every
+serving workload before deploying the consumer cutover. Compare the currently served option value
+with the candidate setting, including intentionally empty and false values, old
+aliases, database precedence and credential rotations. Keep this evidence private;
+never log secret values. Confirm Slack uses HMAC whenever it currently uses HMAC;
+a configured verification token cannot substitute for a missing signing secret.
+No production parity evidence is supplied by this PR. The cutover must remain
+blocked until this verification is complete. Continue both legacy and new writes
+through the handover; remove the legacy writes only after every reader migrates.
+
+Pause legacy ConfigMap delivery and drain or cancel queued and in-flight legacy applies before removing
 deployment declarations from source. Protect exact ConfigMap revisions and rows;
 old watchers must see unchanged legacy ConfigMaps until stopped, while new
 namespace delivery remains active. Source merges do not prove serving rollout.

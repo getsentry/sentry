@@ -2658,8 +2658,6 @@ SENTRY_PROFILES_FILE_STORAGE_CONFIG: dict[str, Any] = {
 }
 SENTRY_CONTROL_FILE_STORAGE_BACKEND = ""
 SENTRY_CONTROL_FILE_STORAGE_CONFIG: dict[str, Any] = {}
-# Deployment writers record explicit settings while deprecated aliases coexist.
-# Remove this provenance after those writers and their legacy remaps are retired.
 SENTRY_CONFIGURED_OPTION_SETTINGS: frozenset[str] = frozenset()
 SENTRY_AUTH_FLY_CLIENT_SECRET = ""
 SENTRY_AUTH_GOOGLE_CLIENT_SECRET = ""
@@ -3133,9 +3131,9 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
-# `SENTRY_SYMBOLICATOR_OPTIONS`.
+# `symbolicator.options`.
 # The settings here are intentionally empty and will fall back to
-# `SENTRY_SYMBOLICATOR_OPTIONS` for deployments with a single pool.
+# `symbolicator.options` for backwards compatibility.
 SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",

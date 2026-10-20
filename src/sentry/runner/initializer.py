@@ -117,11 +117,6 @@ self_hosted_options_mapper = {
     "filestore.control.options": "SENTRY_CONTROL_FILE_STORAGE_CONFIG",
 }
 
-# Options whose consumers now read Django settings. Values configured for the
-# option key (config.yml or SENTRY_OPTIONS) are still promoted into the setting,
-# in every mode, until deployments configure the setting directly. Registered
-# defaults are never promoted, so a setting configured directly is never
-# overwritten.
 migrated_options_mapper = {
     "auth-fly.client-secret": "SENTRY_AUTH_FLY_CLIENT_SECRET",
     "auth-google.client-secret": "SENTRY_AUTH_GOOGLE_CLIENT_SECRET",
@@ -200,7 +195,7 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     required to even initialize the rest of the app.
     """
     # Make sure our options have gotten registered
-    from sentry.options import load_defaults
+    from sentry.options import load_defaults, lookup_key
 
     load_defaults()
 
@@ -233,8 +228,6 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
 
     # First move options from settings into options
     for k, v in options_mapper.items():
-        # A modern credential pair owns empty partners. Explicit app option
-        # keys also take precedence over synthesized legacy login values.
         if (
             settings.SENTRY_SINGLE_ORGANIZATION
             and k in ("github-app.client-id", "github-app.client-secret")
@@ -277,12 +270,18 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
                 # Escalate the few needed to actually get the app bootstrapped into settings
                 setattr(settings, effective_mapper[k], v)
 
+    for key in ("mail.backend", "mail.subject-prefix"):
+        setting = options_mapper[key]
+        if getattr(settings, setting, DEAD) is DEAD:
+            value = lookup_key(key).default()
+            if key == "mail.backend":
+                value = settings.SENTRY_EMAIL_BACKEND_ALIASES.get(value, value)
+            setattr(settings, setting, value)
+
     for k, v in settings.SENTRY_OPTIONS.items():
         if k in migrated_options_mapper and v is not None:
             setattr(settings, migrated_options_mapper[k], v)
 
-    # Single organization mode reuses the GitHub integration app for SSO. The
-    # remap in initialize_app handles the option key; this handles the setting.
     if settings.SENTRY_SINGLE_ORGANIZATION:
         if {
             "SENTRY_GITHUB_APP_CLIENT_ID",
@@ -681,7 +680,6 @@ def apply_legacy_settings(settings: Any) -> None:
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
-            # An explicit deployment assignment owns even an empty secret.
             if effective_mapper.get(new) in settings.SENTRY_CONFIGURED_OPTION_SETTINGS:
                 continue
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))

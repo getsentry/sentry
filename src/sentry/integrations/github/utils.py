@@ -5,7 +5,6 @@ import datetime
 import time
 from urllib.parse import parse_qs, urlparse
 
-from django.conf import settings
 from rest_framework.response import Response
 
 from sentry import options
@@ -29,9 +28,9 @@ def is_github_bot_login(login: str | None) -> bool:
 
 def get_jwt(github_id: str | None = None, github_private_key: str | None = None) -> str:
     if github_id is None:
-        github_id = str(settings.SENTRY_GITHUB_APP_ID)
+        github_id = str(options.get("github-app.id"))
     if github_private_key is None:
-        github_private_key = settings.SENTRY_GITHUB_APP_PRIVATE_KEY
+        github_private_key = options.get("github-app.private-key")
     exp_ = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
     exp = calendar.timegm(exp_.timetuple())
     # Generate the JWT

@@ -1,3 +1,4 @@
+import copy
 import types
 from unittest.mock import patch
 
@@ -5,6 +6,7 @@ import pytest
 from django.core.cache import caches
 from django.test import override_settings
 
+from sentry.conf.server import DEAD, SENTRY_EMAIL_BACKEND_ALIASES
 from sentry.hybridcloud.models.outbox import CellOutboxBase
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.options import default_store
@@ -190,6 +192,50 @@ def test_bootstrap_options_mail_aliases(settings) -> None:
     settings.SENTRY_OPTIONS = {"mail.backend": "dummy"}
     bootstrap_options(settings)
     assert settings.EMAIL_BACKEND == "alias-for-dummy"
+
+
+def test_bootstrap_options_mail_defaults(settings) -> None:
+    settings.EMAIL_BACKEND = DEAD
+    settings.EMAIL_SUBJECT_PREFIX = DEAD
+    settings.SENTRY_EMAIL_BACKEND_ALIASES = SENTRY_EMAIL_BACKEND_ALIASES
+
+    bootstrap_options(settings)
+
+    assert settings.EMAIL_SUBJECT_PREFIX == "[Sentry]"
+    assert settings.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
+    assert settings.SENTRY_OPTIONS == {}
+
+
+@pytest.mark.parametrize("prefix", ["[Custom]", ""])
+def test_bootstrap_options_preserves_explicit_mail_prefix(settings, prefix) -> None:
+    settings.EMAIL_SUBJECT_PREFIX = prefix
+
+    with pytest.warns(DeprecatedSettingWarning):
+        bootstrap_options(settings)
+
+    assert settings.EMAIL_SUBJECT_PREFIX == prefix
+
+
+@pytest.mark.parametrize("prefix", ["[Custom]", ""])
+@pytest.mark.parametrize("source", ["SENTRY_OPTIONS", "SENTRY_DEFAULT_OPTIONS"])
+def test_bootstrap_options_promotes_mail_prefix(settings, prefix, source) -> None:
+    settings.EMAIL_SUBJECT_PREFIX = DEAD
+    setattr(settings, source, {"mail.subject-prefix": prefix})
+
+    bootstrap_options(settings)
+
+    assert settings.EMAIL_SUBJECT_PREFIX == prefix
+
+
+@pytest.mark.parametrize("prefix", ["[Custom]", ""])
+def test_bootstrap_options_config_mail_prefix_precedes_settings(settings, config_yml, prefix) -> None:
+    settings.EMAIL_SUBJECT_PREFIX = "[Setting]"
+    settings.SENTRY_OPTIONS["mail.subject-prefix"] = "[Option]"
+    config_yml.write(f"mail.subject-prefix: '{prefix}'\n")
+
+    bootstrap_options(settings, str(config_yml))
+
+    assert settings.EMAIL_SUBJECT_PREFIX == prefix
 
 
 def test_bootstrap_options_missing_file(settings) -> None:
@@ -496,14 +542,14 @@ def test_deployment_options_promote_explicit_values(
     from yaml import safe_dump
 
     settings.SENTRY_SELF_HOSTED = self_hosted
+    config_settings = copy.copy(settings)
     settings.SENTRY_OPTIONS = {key: value}
     bootstrap_options(settings)
     assert getattr(settings, setting_name) == value
 
-    settings.SENTRY_OPTIONS = {}
     config_yml.write(safe_dump({key: value}))
-    bootstrap_options(settings, str(config_yml))
-    assert getattr(settings, setting_name) == value
+    bootstrap_options(config_settings, str(config_yml))
+    assert getattr(config_settings, setting_name) == value
 
 
 @pytest.mark.parametrize("self_hosted", [False, True])

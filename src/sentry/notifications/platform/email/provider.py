@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.message import make_msgid
 from django.utils.html import escape
@@ -85,7 +84,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         # Required by RFC 2822 (https://www.rfc-editor.org/rfc/rfc2822.html)
         headers = dict(rendered_template.email_headers or {})
         headers.setdefault("Message-Id", make_msgid(domain=get_from_email_domain()))
-        if settings.SENTRY_MAIL_ENABLE_REPLIES and "X-Sentry-Reply-To" in headers:
+        if options.get("mail.enable-replies") and "X-Sentry-Reply-To" in headers:
             headers["Reply-To"] = headers["X-Sentry-Reply-To"]
 
         email = EmailMultiAlternatives(

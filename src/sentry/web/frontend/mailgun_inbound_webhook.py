@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from email_reply_parser import EmailReplyParser
 
+from sentry import options
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organizationmapping import OrganizationMapping
@@ -41,7 +42,7 @@ class MailgunInboundWebhookView(View):
         signature = request.POST["signature"]
         timestamp = request.POST["timestamp"]
 
-        key = settings.SENTRY_MAILGUN_API_KEY
+        key = options.get("mail.mailgun-api-key")
         if not key:
             logger.error("mailgun.api-key-missing")
             return HttpResponse(status=500)

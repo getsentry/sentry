@@ -1,5 +1,4 @@
-from django.conf import settings
-
+from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.types import IntegrationProviderSlug
@@ -32,10 +31,10 @@ class SlackIdentityProvider(OAuth2Provider):
         return "https://slack.com/api/oauth.v2.access"
 
     def get_oauth_client_id(self):
-        return settings.SENTRY_SLACK_CLIENT_ID
+        return options.get("slack.client-id")
 
     def get_oauth_client_secret(self):
-        return settings.SENTRY_SLACK_CLIENT_SECRET
+        return options.get("slack.client-secret")
 
     def get_user_scopes(self):
         return self.config.get("user_scopes", self.user_scopes)
@@ -79,10 +78,10 @@ class SlackStagingIdentityProvider(SlackIdentityProvider):
     name = "Slack (Staging)"
 
     def get_oauth_client_id(self):
-        return settings.SENTRY_SLACK_STAGING_CLIENT_ID
+        return options.get("slack-staging.client-id")
 
     def get_oauth_client_secret(self):
-        return settings.SENTRY_SLACK_STAGING_CLIENT_SECRET
+        return options.get("slack-staging.client-secret")
 
     def build_identity(self, data):
         production_identity = super().build_identity(data)

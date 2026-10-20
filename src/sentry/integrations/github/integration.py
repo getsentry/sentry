@@ -8,7 +8,6 @@ from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import parse_qsl
 
-from django.conf import settings
 from django.db.models import Count
 from django.http.request import HttpRequest
 from django.urls import reverse
@@ -16,7 +15,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import CharField
 
-from sentry import features
+from sentry import features, options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
@@ -833,7 +832,7 @@ class GitHubInstallationError(StrEnum):
 
 
 def get_install_app_url() -> str:
-    name = settings.SENTRY_GITHUB_APP_NAME
+    name = options.get("github-app.name")
     return f"https://github.com/apps/{slugify(name)}"
 
 
