@@ -316,7 +316,9 @@ describe('DropdownMenu', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const search = screen.getByRole('textbox', {
+      name: 'Search projects',
+    }) as HTMLInputElement;
     await userEvent.type(search, 'sentry');
     search.setSelectionRange(3, 3);
     await userEvent.keyboard('{ArrowLeft}');

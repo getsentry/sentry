@@ -284,22 +284,20 @@ function DropdownMenuList({
               </Menu.Header>
             )}
             {search && (
-              <Container padding="xs">
-                <Menu.Search
-                  aria-label={search.placeholder ?? 'Search'}
-                  placeholder={search.placeholder ?? 'Search…'}
-                  value={search.value}
-                  onChange={event => search.onChange(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === 'ArrowDown') {
-                      event.preventDefault();
-                      menuRef.current
-                        ?.querySelector<HTMLElement>('[role^="menuitem"]')
-                        ?.focus();
-                    }
-                  }}
-                />
-              </Container>
+              <Menu.Search
+                aria-label={search.placeholder ?? 'Search'}
+                placeholder={search.placeholder ?? 'Search…'}
+                value={search.value}
+                onChange={event => search.onChange(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    menuRef.current
+                      ?.querySelector<HTMLElement>('[role^="menuitem"]')
+                      ?.focus();
+                  }
+                }}
+              />
             )}
             <DropdownMenuListWrap
               ref={menuRef}

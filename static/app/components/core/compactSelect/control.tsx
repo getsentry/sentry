@@ -582,18 +582,16 @@ export function Control<Value extends SelectKey>({
                   </Menu.Header>
                 )}
                 {searchEnabled && (
-                  <Container padding="xs">
-                    <Menu.Search
-                      ref={searchRef}
-                      data-1p-ignore
-                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
-                      value={searchInputValue}
-                      onFocus={onSearchFocus}
-                      onBlur={onSearchBlur}
-                      onChange={e => updateSearch(e.target.value)}
-                      {...searchKeyboardProps}
-                    />
-                  </Container>
+                  <Menu.Search
+                    ref={searchRef}
+                    data-1p-ignore
+                    placeholder={normalizedSearch?.placeholder ?? 'Search…'}
+                    value={searchInputValue}
+                    onFocus={onSearchFocus}
+                    onBlur={onSearchBlur}
+                    onChange={e => updateSearch(e.target.value)}
+                    {...searchKeyboardProps}
+                  />
                 )}
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
