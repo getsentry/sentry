@@ -290,7 +290,7 @@ class CursorOriginPullRequestWebhookTest(APITestCase):
         body = orjson.dumps(envelope)
         timestamp = str(int(time.time()))
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             mock.patch(KEYS, return_value=[self.public]),
         ):
             response = self.client.post(
