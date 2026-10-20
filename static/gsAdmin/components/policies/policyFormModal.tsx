@@ -213,15 +213,15 @@ export function PolicyFormModal({
                 label="File"
                 hintText="Upload a PDF instead of entering a URL."
               >
-                <field.Base ref={fileInputRef} disabled={mutation.isPending}>
+                <field.Base<HTMLButtonElement> disabled={mutation.isPending}>
                   {(baseProps, {indicator}) => (
                     <Flex align="center" gap="md">
                       <input
-                        {...baseProps}
+                        ref={fileInputRef}
                         type="file"
                         accept=".pdf"
                         hidden
-                        style={{display: 'none'}}
+                        disabled={baseProps.disabled}
                         onChange={event => {
                           const file = event.target.files?.[0];
                           if (!file) {
@@ -243,8 +243,8 @@ export function PolicyFormModal({
                         }}
                       />
                       <Button
+                        {...baseProps}
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={baseProps.disabled}
                       >
                         Choose File
                       </Button>
