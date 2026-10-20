@@ -21,6 +21,7 @@ from sentry.integrations.source_code_management.url import url_is_under
         pytest.param("https://host:8443/acme/a.py", "https://host/acme", False, id="other-port"),
         pytest.param("https://host/acme/a.py", "https://other/acme", False, id="other-host"),
         pytest.param("not a url", "https://host", False, id="not-a-url"),
+        pytest.param("host/acme/a.py", "host/acme", False, id="base-without-host"),
     ],
 )
 def test_url_is_under(url: str, base: str, expected: bool) -> None:
