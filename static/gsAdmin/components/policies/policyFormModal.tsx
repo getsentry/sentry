@@ -66,6 +66,7 @@ export function PolicyFormModal({
   initialVersion = '',
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chooseFileButtonRef = useRef<HTMLButtonElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
   const mutation = useMutation({
     mutationFn: fetchMutation<Policy | PolicyRevision>,
@@ -244,6 +245,7 @@ export function PolicyFormModal({
                       />
                       <Button
                         {...baseProps}
+                        ref={chooseFileButtonRef}
                         onClick={() => fileInputRef.current?.click()}
                       >
                         Choose File
@@ -265,6 +267,7 @@ export function PolicyFormModal({
                               fileInputRef.current.value = '';
                             }
                             field.handleChange(null);
+                            chooseFileButtonRef.current?.focus();
                           }}
                         />
                       )}
