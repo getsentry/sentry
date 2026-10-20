@@ -1,16 +1,11 @@
 import type {LocationDescriptor} from 'history';
 
 import type {Responsive} from '@sentry/scraps/layout';
+import type {ButtonVariant} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import type {AnalyticsProps} from '@sentry/scraps/trackingContext';
 
-export type ButtonVariant =
-  | 'secondary'
-  | 'primary'
-  | 'danger'
-  | 'warning'
-  | 'link'
-  | 'transparent';
+export type {ButtonVariant} from '@sentry/scraps/theme';
 
 export type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
 

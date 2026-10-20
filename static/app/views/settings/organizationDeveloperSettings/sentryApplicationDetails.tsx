@@ -28,9 +28,6 @@ import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {InputCopyButton, TextCopyInput} from 'sentry/components/textCopyInput';
 import {
@@ -1088,42 +1085,41 @@ function SentryAppEditForm({
         onEventsChange={events => form.setFieldValue('events', events)}
       />
 
-      {isInternal && (
-        <SimpleTable
-          columns={APP_TOKEN_COLUMNS}
-          header={
-            <SimpleTable.HeaderRow>
-              <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell align="right">
-                <Tooltip
-                  disabled={hasTokenAccess()}
-                  title={t(
-                    'You must be a Manager or Owner to create authentication tokens.'
-                  )}
-                >
-                  <Button
-                    size="xs"
-                    icon={<IconAdd />}
-                    onClick={onAddToken}
-                    disabled={!hasTokenAccess()}
-                    data-test-id="token-add"
+      <Stack gap="xl">
+        {isInternal && (
+          <SimpleTable
+            columns={APP_TOKEN_COLUMNS}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell align="right">
+                  <Tooltip
+                    disabled={hasTokenAccess()}
+                    title={t(
+                      'You must be a Manager or Owner to create authentication tokens.'
+                    )}
                   >
-                    {t('New Token')}
-                  </Button>
-                </Tooltip>
-              </SimpleTable.HeaderCell>
-            </SimpleTable.HeaderRow>
-          }
-        >
-          {renderTokens()}
-        </SimpleTable>
-      )}
+                    <Button
+                      size="xs"
+                      icon={<IconAdd />}
+                      onClick={onAddToken}
+                      disabled={!hasTokenAccess()}
+                      data-test-id="token-add"
+                    >
+                      {t('New Token')}
+                    </Button>
+                  </Tooltip>
+                </SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
+            }
+          >
+            {renderTokens()}
+          </SimpleTable>
+        )}
 
-      <Panel>
-        <PanelHeader>{t('Credentials')}</PanelHeader>
-        <PanelBody>
+        <form.FieldGroup title={t('Credentials')}>
           {!isInternal && (
             <form.AppField name="clientId">
               {field => (
@@ -1164,8 +1160,8 @@ function SentryAppEditForm({
                     />
                   </Tooltip>
                 ) : (
-                  <ClientSecret>
-                    <HiddenSecret>{t('hidden')}</HiddenSecret>
+                  <Flex justify="end" align="center" gap="xl">
+                    <Text italic>{t('hidden')}</Text>
                     {hasTokenAccess() ? (
                       <Confirm
                         onConfirm={rotateClientSecret}
@@ -1177,13 +1173,13 @@ function SentryAppEditForm({
                         <Button variant="danger">{t('Rotate client secret')}</Button>
                       </Confirm>
                     ) : undefined}
-                  </ClientSecret>
+                  </Flex>
                 )}
               </field.Layout.Row>
             )}
           </form.AppField>
-        </PanelBody>
-      </Panel>
+        </form.FieldGroup>
+      </Stack>
 
       <Flex justify="end" paddingTop="xl">
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
@@ -1194,16 +1190,4 @@ function SentryAppEditForm({
 
 const InlineTextButton = styled(Button)`
   font-size: inherit;
-`;
-
-const HiddenSecret = styled('span')`
-  width: 100px;
-  font-style: italic;
-`;
-
-const ClientSecret = styled('div')`
-  display: flex;
-  justify-content: right;
-  align-items: center;
-  margin-right: 0;
 `;

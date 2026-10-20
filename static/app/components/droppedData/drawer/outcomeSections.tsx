@@ -29,11 +29,44 @@ function byEventsDesc(a: {events: number}, b: {events: number}): number {
   return b.events - a.events;
 }
 
+export interface OutcomeGroups {
+  intentional: OutcomeSection[];
+  unintentional: OutcomeSection[];
+}
+
 export function droppedEventsToOutcomeSections(
   droppedEvents: DroppedEventsBucket[],
   acceptedEvents: DroppedEventsBucket[]
 ): OutcomeSection[] {
   const totalEvents = sumCounts(droppedEvents) + sumCounts(acceptedEvents);
+  return buildOutcomeSections(droppedEvents, totalEvents);
+}
+
+export function droppedEventsToOutcomeGroups(
+  droppedEvents: DroppedEventsBucket[],
+  acceptedEvents: DroppedEventsBucket[]
+): OutcomeGroups {
+  const totalEvents = sumCounts(droppedEvents) + sumCounts(acceptedEvents);
+  const unintentional: DroppedEventsBucket[] = [];
+  const intentional: DroppedEventsBucket[] = [];
+  for (const event of droppedEvents) {
+    if (event.tags.includes('unintentional')) {
+      unintentional.push(event);
+    } else {
+      intentional.push(event);
+    }
+  }
+
+  return {
+    unintentional: buildOutcomeSections(unintentional, totalEvents),
+    intentional: buildOutcomeSections(intentional, totalEvents),
+  };
+}
+
+function buildOutcomeSections(
+  droppedEvents: DroppedEventsBucket[],
+  totalEvents: number
+): OutcomeSection[] {
   const share = (events: number) => (totalEvents === 0 ? 0 : events / totalEvents);
 
   const reasonsByOutcome = new Map<string, Map<string, ReasonTotals>>();

@@ -58,6 +58,7 @@ from sentry.search.eap.constants import (
     DOUBLE,
     MAX_ROLLUP_POINTS,
     SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME,
+    TIMESTAMP_ALIAS,
     VALID_GRANULARITIES,
 )
 from sentry.search.eap.resolver import SearchResolver
@@ -114,6 +115,25 @@ class TableQuery:
     extra_conditions: TraceItemFilter | None = None
     max_string_length: int | None = None
     limit_by: LimitBy | None = None
+
+
+def ensure_flextime_query_orderby(query: TableQuery) -> None:
+    """Put flextime's id sort last, appending it when it is missing.
+
+    See ``_enforce_flextime_routing_orders_by_timestamp_and_item_id``:
+    https://github.com/getsentry/snuba/blob/d22210b3f06a67df98e04b6a61b873633112d60e/snuba/web/rpc/v1/endpoint_trace_item_table.py#L236-L268
+    """
+    if query.sampling_mode != SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+        return
+    orderby = [column for column in (query.orderby or []) if column.lstrip("-").strip()]
+    if not orderby:
+        return
+    if orderby[-1] != "-id":
+        orderby = [column for column in orderby if column.lstrip("-") != "id"]
+        orderby.append("-id")
+    if "id" not in query.selected_columns:
+        query.selected_columns = [*query.selected_columns, "id"]
+    query.orderby = orderby
 
 
 @dataclass
@@ -280,6 +300,7 @@ class RPCBase:
     @classmethod
     def get_table_rpc_request(cls, query: TableQuery) -> TableRequest:
         """Make the query"""
+        ensure_flextime_query_orderby(query)
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
         if query.sampling_mode is not None:
@@ -436,6 +457,24 @@ class RPCBase:
             resolved_limit_by = TraceItemTableRequest.LimitBy(
                 columns=limit_by_columns, limit=query.limit_by.limit
             )
+
+        if query.sampling_mode == SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+            if len(resolved_orderby) == 0:
+                raise InvalidSearchQuery(
+                    "You must orderby -timestamp and -id to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
+
+            # Snuba paginates flextime by walking timestamp backward.
+            # The first order by has to be that column, descending.
+            first_orderby = resolved_orderby[0]
+            if not first_orderby.descending or first_orderby.column.label != TIMESTAMP_ALIAS:
+                raise InvalidSearchQuery(
+                    "Your first orderby must be -timestamp to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
+            if any(not order_by.descending for order_by in resolved_orderby):
+                raise InvalidSearchQuery(
+                    "Your orderby must be descending to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
 
         page_token = (
             PageToken(offset=query.offset) if query.page_token is None else query.page_token

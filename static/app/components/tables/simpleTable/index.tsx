@@ -13,10 +13,10 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {fullWidthCellStyle, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   type ColumnAlign,
   HeaderCellContent,

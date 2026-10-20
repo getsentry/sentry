@@ -251,6 +251,33 @@ Boolean choice with a label and optional hint text. The hint aligns beneath the 
 </form.AppField>
 ```
 
+### Checkbox group
+
+Use `field.Checkbox.Group` for multiple selections stored as one string array.
+Put the layout inside the group so its label names the group rather than an individual input.
+Each `field.Checkbox.Item` has its own checkbox label. Use layout primitives to arrange the items.
+
+```jsx
+<form.AppField name="scopes">
+  {field => (
+    <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
+      <field.Layout.Stack label={t('Scopes')} required>
+        <field.Checkbox.Item value="read">{t('Read')}</field.Checkbox.Item>
+        <field.Checkbox.Item value="write">{t('Write')}</field.Checkbox.Item>
+      </field.Layout.Stack>
+    </field.Checkbox.Group>
+  )}
+</form.AppField>
+```
+
+The group handles validation status, focus, and auto-save. Pass `disabled` to the group
+to disable every item, or to an item to disable one option. A string passed to the group's
+`disabled` prop provides a tooltip with the reason.
+
+Validate the array in the schema, for example with `z.array(z.string()).min(1)`.
+Keep a single array field rather than a boolean field for every option, so selections
+without a rendered item are preserved.
+
 ## Switch
 
 Boolean toggle for on/off values. Uses `checked` instead of `value`.
