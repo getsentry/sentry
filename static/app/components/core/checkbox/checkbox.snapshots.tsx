@@ -1,6 +1,33 @@
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 
 describe('Checkbox', () => {
+  describe.each([
+    {mode: 'editable', disabled: false, readOnly: false},
+    {mode: 'disabled', disabled: true, readOnly: false},
+    {mode: 'read-only', disabled: false, readOnly: true},
+  ])('$mode interaction feedback', ({mode, disabled, readOnly}) => {
+    describe.each([false, true])('checked %s', checked => {
+      it.snapshot.each(['hover', 'active'] as const)(
+        '%s',
+        () => (
+          <div style={{padding: 8}}>
+            <Checkbox
+              aria-label="Example checkbox"
+              checked={checked}
+              disabled={disabled}
+              readOnly={readOnly}
+              onChange={() => {}}
+            />
+          </div>
+        ),
+        state => ({
+          tags: {mode, checked: String(checked), state, area: 'core'},
+          interaction: {[state]: 'input[type="checkbox"]'},
+        })
+      );
+    });
+  });
+
   it.snapshot.each<CheckboxProps['checked']>([false, true, 'indeterminate'])(
     'checked-%s',
     checked => (
