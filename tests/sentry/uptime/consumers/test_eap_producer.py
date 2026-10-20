@@ -161,3 +161,31 @@ class EAPProducerIntegrationTestCase(TestCase):
         )
         codec = get_topic_codec(Topic.SNUBA_ITEMS)
         assert [codec.decode(payload.value)] == expected_trace_items
+
+    @patch("sentry.uptime.consumers.eap_producer._eap_items_producer")
+    @patch("sentry.uptime.consumers.eap_producer.get_topic_definition")
+    def test_produce_with_known_is_triggered(
+        self, mock_get_topic: MagicMock, mock_producer: MagicMock
+    ) -> None:
+        """Test that a passed is_triggered is used instead of the stored detector state"""
+        mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
+        mock_producer_instance = MagicMock()
+        mock_producer.produce = mock_producer_instance
+
+        result = self.create_check_result()
+        metric_tags = {"status": "success", "region": "us-east-1"}
+
+        with self.assertNumQueries(0):
+            produce_eap_uptime_result(
+                detector=self.detector,
+                result=result,
+                metric_tags=metric_tags,
+                is_triggered=True,
+            )
+
+        _, payload = mock_producer_instance.call_args[0]
+        expected_trace_items = convert_uptime_result_to_trace_items(
+            self.project, result, IncidentStatus.IN_INCIDENT
+        )
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+        assert [codec.decode(payload.value)] == expected_trace_items

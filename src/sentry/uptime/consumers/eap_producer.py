@@ -42,16 +42,23 @@ def produce_eap_uptime_result(
     detector: Detector,
     result: CheckResult,
     metric_tags: dict[str, str],
+    is_triggered: bool | None = None,
 ) -> None:
     """
     Produces TraceItems to the EAP topic for uptime check results.
 
     Uses the converter to create TraceItems and publishes them to the
     snuba-items topic for EAP ingestion.
+
+    Pass `is_triggered` when the detector state is already known to avoid
+    reading it again.
     """
     try:
-        detector_state = detector.detectorstate_set.first()
-        if detector_state and detector_state.is_triggered:
+        if is_triggered is None:
+            detector_state = detector.detectorstate_set.first()
+            is_triggered = bool(detector_state and detector_state.is_triggered)
+
+        if is_triggered:
             incident_status = IncidentStatus.IN_INCIDENT
         else:
             incident_status = IncidentStatus.NO_INCIDENT

@@ -13,7 +13,9 @@ from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
+from django.db import connections, router
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_DISALLOWED_BY_ROBOTS,
     CHECKSTATUS_FAILURE,
@@ -68,6 +70,7 @@ from sentry.uptime.utils import (
     build_last_update_key,
     get_cluster,
 )
+from sentry.workflow_engine.models import DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -1166,6 +1169,75 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         trace_item = self.decode_trace_item(mock_produce.call_args.args[1].value)
         assert trace_item.attributes["incident_status"].int_value == 1
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    def test_produces_snuba_uptime_results_reuses_evaluated_state(
+        self, mock_produce: MagicMock
+    ) -> None:
+        """
+        The EAP producer uses the state from detector evaluation instead of
+        reading DetectorState again
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        table = DetectorState._meta.db_table
+        with CaptureQueriesContext(connections[router.db_for_read(DetectorState)]) as queries:
+            self.send_result(result)
+        state_reads = [
+            q["sql"]
+            for q in queries.captured_queries
+            if q["sql"].startswith("SELECT") and f'FROM "{table}"' in q["sql"]
+        ]
+        assert len(state_reads) == 1
+
+        trace_item = self.decode_trace_item(mock_produce.call_args.args[1].value)
+        assert trace_item.attributes["incident_status"].int_value == 0
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    def test_produces_snuba_uptime_results_in_incident_without_issue(
+        self, mock_produce: MagicMock
+    ) -> None:
+        """
+        The detector is still in an incident when issue creation is disabled
+        """
+        self.detector.config.update({"downtime_threshold": 1, "recovery_threshold": 1})
+        self.detector.save()
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_FAILURE,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        with self.options({"uptime.create-issues": False}):
+            self.send_result(result)
+
+        trace_item = self.decode_trace_item(mock_produce.call_args.args[1].value)
+        assert trace_item.attributes["incident_status"].int_value == 1
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    def test_produces_snuba_uptime_results_recovered(self, mock_produce: MagicMock) -> None:
+        """
+        A check that resolves the incident is labeled with the state after
+        evaluation
+        """
+        self.detector.config.update({"downtime_threshold": 1, "recovery_threshold": 1})
+        self.detector.save()
+        detector_state = self.detector.detectorstate_set.get()
+        detector_state.update(state=DetectorPriorityLevel.HIGH, is_triggered=True)
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        self.send_result(result)
+
+        detector_state.refresh_from_db()
+        assert not detector_state.is_triggered
+        trace_item = self.decode_trace_item(mock_produce.call_args.args[1].value)
+        assert trace_item.attributes["incident_status"].int_value == 0
 
     @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
     def test_produces_eap_uptime_results(self, mock_produce: MagicMock) -> None:

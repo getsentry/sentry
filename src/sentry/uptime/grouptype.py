@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, override
 
@@ -19,8 +19,14 @@ from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.uptime.utils import build_fingerprint, generate_scheduled_check_times_ms
 from sentry.utils import json, metrics
-from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
+from sentry.workflow_engine.handlers.detector.base import (
+    DetectorOccurrence,
+    EventData,
+    GroupedDetectorEvaluationResult,
+)
 from sentry.workflow_engine.handlers.detector.stateful import (
+    DetectorStateData,
+    DetectorStateManager,
     DetectorThresholds,
     StatefulDetectorHandler,
 )
@@ -36,6 +42,16 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class UptimeEvaluatedState:
+    """
+    Detector state after the uptime detector evaluates a check. Filled in by
+    UptimeDetectorHandler so callers don't need to read DetectorState again.
+    """
+
+    is_triggered: bool | None = None
+
+
 @dataclass(frozen=True)
 class UptimePacketValue:
     """
@@ -45,6 +61,7 @@ class UptimePacketValue:
     check_result: CheckResult
     subscription: UptimeSubscription
     metric_tags: dict[str, str]
+    evaluated_state: UptimeEvaluatedState = field(default_factory=UptimeEvaluatedState)
 
 
 def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
@@ -102,7 +119,44 @@ def build_event_data(result: CheckResult, detector: Detector) -> EventData:
     }
 
 
+class UptimeDetectorStateManager(DetectorStateManager):
+    """
+    Tracks whether the detector is triggered as of the most recent read or
+    enqueued update.
+    """
+
+    is_triggered: bool | None = None
+
+    @override
+    def get_state_data(
+        self, group_keys: list[DetectorGroupKey]
+    ) -> dict[DetectorGroupKey, DetectorStateData]:
+        state = super().get_state_data(group_keys)
+        # Uptime does not use stateful detector value grouping
+        if None in state:
+            self.is_triggered = state[None].is_triggered
+        return state
+
+    @override
+    def enqueue_state_update(
+        self,
+        group_key: DetectorGroupKey,
+        is_triggered: bool,
+        priority: DetectorPriorityLevel,
+        activation_id: int | None = None,
+    ) -> None:
+        super().enqueue_state_update(group_key, is_triggered, priority, activation_id)
+        if group_key is None:
+            self.is_triggered = is_triggered
+
+
 class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStatus]):
+    state_manager: UptimeDetectorStateManager
+
+    def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
+        super().__init__(detector, thresholds)
+        self.state_manager = UptimeDetectorStateManager(detector, list(self._thresholds.keys()))
+
     @override
     @property
     def thresholds(self) -> DetectorThresholds:
@@ -127,6 +181,16 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
     @override
     def extract_dedupe_value(self, data_packet: DataPacket[UptimePacketValue]) -> int:
         return int(data_packet.packet.check_result["scheduled_check_time_ms"])
+
+    @override
+    def evaluate(
+        self, data_packet: DataPacket[UptimePacketValue]
+    ) -> GroupedDetectorEvaluationResult:
+        result = super().evaluate(data_packet)
+        # State updates are committed by now, so this is the state the
+        # detector is left in after this check.
+        data_packet.packet.evaluated_state.is_triggered = self.state_manager.is_triggered
+        return result
 
     @override
     def _evaluate(

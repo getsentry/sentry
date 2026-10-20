@@ -449,13 +449,19 @@ def process_result_internal(
     # measurement of delay/duration.
     record_check_metrics(result, detector, {"mode": mode_name, **metric_tags})
 
+    # Detector state after handling the result, when known. Left as None if
+    # the detector wasn't evaluated, so the EAP producer reads it instead.
+    is_triggered: bool | None = None
+
     Mode = UptimeMonitorMode
     try:
         match detector.config["mode"]:
             case Mode.AUTO_DETECTED_ONBOARDING:
                 handle_onboarding_result(detector, uptime_subscription, result, metric_tags.copy())
             case Mode.AUTO_DETECTED_ACTIVE | Mode.MANUAL:
-                handle_active_result(detector, uptime_subscription, result, metric_tags.copy())
+                is_triggered = handle_active_result(
+                    detector, uptime_subscription, result, metric_tags.copy()
+                )
             case _:
                 logger.error(
                     "Unknown subscription mode",
@@ -466,7 +472,7 @@ def process_result_internal(
 
     # EAP production _must_ happen after handling the result, since we
     # may mutate the UptimeSubscription when we determine we're in an incident
-    produce_eap_uptime_result(detector, result, metric_tags.copy())
+    produce_eap_uptime_result(detector, result, metric_tags.copy(), is_triggered=is_triggered)
 
     # Track the last update date to allow deduplication
     last_update_key = build_last_update_key(detector)
@@ -484,7 +490,11 @@ def handle_active_result(
     uptime_subscription: UptimeSubscription,
     result: CheckResult,
     metric_tags: dict[str, str],
-):
+) -> bool | None:
+    """
+    Evaluates the result against the detector. Returns whether the detector is
+    triggered afterwards, or None if that isn't known.
+    """
     packet = UptimePacketValue(
         check_result=result,
         subscription=uptime_subscription,
@@ -494,6 +504,7 @@ def handle_active_result(
         DataPacket(source_id=str(uptime_subscription.id), packet=packet),
         [detector],
     )
+    return packet.evaluated_state.is_triggered
 
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
