@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Container, Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {ChartLegend, type LegendItem} from 'sentry/components/charts/chartLegend';
 import {
@@ -103,40 +103,48 @@ export function DroppedDataChart({
     .reduce((sum, event) => sum + event.count, 0);
 
   return (
-    <Container
-      border="primary"
-      radius="lg"
-      padding="md xl xl xl"
-      style={{borderColor: theme.tokens.graphics.neutral.moderate}}
-    >
-      <Flex align="center" gap="xl" paddingBottom="md">
-        <Text size="lg" bold wrap="nowrap">
-          {t('%s Dropped Events', formatAbbreviatedNumber(totalDropped))}
+    <Stack gap="md">
+      <Stack gap="sm">
+        <Heading as="h2" size="lg">
+          {t('%s dropped and filtered events', formatAbbreviatedNumber(totalDropped))}
+        </Heading>
+        {/* TODO: Only mention Seer once the Ask Seer button is limited to organizations with Seer access. */}
+        <Text size="sm">
+          {t(
+            'Your filtered events are broken down by category below. Use Seer to understand what each category means and how to fix common causes of unintentional data loss.'
+          )}
         </Text>
-        <Container flex="1" minWidth="0">
+      </Stack>
+      <Container
+        border="primary"
+        radius="lg"
+        padding="md xl xl xl"
+        style={{borderColor: theme.tokens.graphics.neutral.moderate}}
+      >
+        <Container paddingBottom="md">
           <ChartLegend
             items={legendItems}
             selected={selection}
             onSelectionChange={onSelectionChange}
           />
         </Container>
-      </Flex>
-      <Container height={CHART_HEIGHT}>
-        {plottables.length > 0 ? (
-          <TimeSeriesWidgetVisualization plottables={plottables} showLegend="never" />
-        ) : legendItems.length > 0 ? (
-          <Flex height="100%" align="center">
-            <EmptyState
-              title={t('No outcomes selected.')}
-              description={t(
-                'Select an outcome in the legend to see its dropped events.'
-              )}
-            />
-          </Flex>
-        ) : (
-          <TimeSeriesWidgetVisualization.NoData />
-        )}
+        <Container height={CHART_HEIGHT}>
+          {plottables.length > 0 ? (
+            <TimeSeriesWidgetVisualization plottables={plottables} showLegend="never" />
+          ) : legendItems.length > 0 ? (
+            <Flex height="100%" align="center">
+              <EmptyState
+                title={t('No outcomes selected.')}
+                description={t(
+                  'Select an outcome in the legend to see its dropped events.'
+                )}
+              />
+            </Flex>
+          ) : (
+            <TimeSeriesWidgetVisualization.NoData />
+          )}
+        </Container>
       </Container>
-    </Container>
+    </Stack>
   );
 }
