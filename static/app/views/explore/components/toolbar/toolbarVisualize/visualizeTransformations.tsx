@@ -25,7 +25,7 @@ const KIND_OPTIONS: Array<SelectOption<Transformation['kind']>> = [
 ];
 const FILL_OPTIONS: Array<SelectOption<FillMethod>> = [
   {value: 'zero', label: t('Zero')},
-  {value: 'locf', label: t('Previous value')},
+  {value: 'locf', label: t('LOCF')},
   {value: 'linear', label: t('Linear')},
 ];
 const SMOOTH_OPTIONS: Array<SelectOption<SmoothMethod>> = [
@@ -106,6 +106,11 @@ export function VisualizeTransformations({transformations, onChange}: Props) {
     return null;
   }
 
+  const kindOptions = KIND_OPTIONS.map(option => ({
+    ...option,
+    disabled: transformations.some(raw => raw.startsWith(`${option.value}(`)),
+  }));
+
   return (
     <Stack gap="sm">
       {transformations.map((raw, index) => {
@@ -136,13 +141,27 @@ export function VisualizeTransformations({transformations, onChange}: Props) {
                       />
                     )}
                     onChange={({value}) => {
-                      if (value !== transformation.kind) {
-                        replace(
-                          value === 'fill'
-                            ? {kind: 'fill', method: 'zero'}
-                            : defaultSmooth('sma')
-                        );
+                      if (value === transformation.kind) {
+                        return;
                       }
+                      const otherIndex = transformations.findIndex(
+                        (candidate, candidateIndex) =>
+                          candidateIndex !== index && candidate.startsWith(`${value}(`)
+                      );
+                      const otherTransformation = transformations[otherIndex];
+                      if (otherTransformation !== undefined) {
+                        onChange(
+                          transformations
+                            .toSpliced(index, 1, otherTransformation)
+                            .toSpliced(otherIndex, 1, raw)
+                        );
+                        return;
+                      }
+                      replace(
+                        value === 'fill'
+                          ? {kind: 'fill', method: 'zero'}
+                          : defaultSmooth('sma')
+                      );
                     }}
                   />
                   {transformation.kind === 'fill' ? (
@@ -235,7 +254,8 @@ export function VisualizeTransformations({transformations, onChange}: Props) {
         );
       })}
       <CompactSelect
-        options={KIND_OPTIONS}
+        options={kindOptions}
+        disabled={transformations.length >= KIND_OPTIONS.length}
         value={undefined}
         trigger={props => (
           <OverlayTrigger.Button {...props} variant="link" size="zero" icon={<IconAdd />}>

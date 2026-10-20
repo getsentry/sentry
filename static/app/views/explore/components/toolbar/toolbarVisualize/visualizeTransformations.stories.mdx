@@ -16,14 +16,14 @@ import {VisualizeTransformations} from './visualizeTransformations';
 
 The span and log toolbars store each series' ordered transformations in URL query parameters.
 The editor appears when the organization has the interpolation-and-smoothing feature.
+Each series allows one Fill and one Smooth transformation, with two rows maximum.
+When both functions are present, selecting the other type swaps their order and preserves their settings.
 
 export function TransformationExample() {
   const organization = useOrganization();
   const [transformations, setTransformations] = useState([
     'fill(zero)',
     'smooth(sma,10)',
-    'smooth(ema,10,0.25)',
-    'smooth(asap,10)',
   ]);
   return (
     <OrganizationContext
