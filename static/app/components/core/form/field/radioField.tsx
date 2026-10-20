@@ -63,7 +63,7 @@ interface RadioItemProps {
 }
 
 function RadioItem({children, value, description}: RadioItemProps) {
-  const {isChecked, onChange, ...fieldProps} = useGroupItemContext();
+  const {checked, onChange, ...fieldProps} = useGroupItemContext(value);
   const descriptionId = useId();
 
   return (
@@ -72,7 +72,7 @@ function RadioItem({children, value, description}: RadioItemProps) {
         {...fieldProps}
         aria-describedby={description ? descriptionId : undefined}
         value={value}
-        checked={isChecked(value)}
+        checked={checked}
         onChange={() => onChange(value, true)}
       />
       <Stack gap="xs" paddingTop="xs">

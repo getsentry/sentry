@@ -84,11 +84,11 @@ export function CheckboxGroupItem({
   disabled?: boolean;
 }) {
   const {
-    isChecked,
+    checked,
     onChange,
     disabled: groupDisabled,
     ...fieldProps
-  } = useGroupItemContext();
+  } = useGroupItemContext(itemValue);
   const id = useId();
 
   return (
@@ -97,7 +97,7 @@ export function CheckboxGroupItem({
         {...fieldProps}
         id={id}
         value={itemValue}
-        checked={isChecked(itemValue)}
+        checked={checked}
         disabled={groupDisabled || disabled}
         onChange={event => onChange(itemValue, event.target.checked)}
       />

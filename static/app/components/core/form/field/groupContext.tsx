@@ -26,10 +26,11 @@ export function useGroupContext() {
   return useContext(GroupContext);
 }
 
-export function useGroupItemContext() {
+export function useGroupItemContext(value: string) {
   const context = useGroupContext();
   if (!context) {
     throw new Error('Group items must be used within a form field group');
   }
-  return context;
+  const {isChecked, ...fieldProps} = context;
+  return {...fieldProps, checked: isChecked(value)};
 }
