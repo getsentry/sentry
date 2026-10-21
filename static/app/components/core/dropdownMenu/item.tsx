@@ -8,7 +8,6 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
-import {Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Menu, type ListItemProps} from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
@@ -267,9 +266,12 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
           ? leadingItems
           : itemState => (
               <Fragment>
-                <Container as="span" visibility={isSelected ? 'visible' : 'hidden'}>
-                  <IconCheckmark size="md" variant="accent" aria-hidden />
-                </Container>
+                <IconCheckmark
+                  size="md"
+                  variant="accent"
+                  aria-hidden
+                  visibility={isSelected ? 'visible' : 'hidden'}
+                />
                 {typeof leadingItems === 'function'
                   ? leadingItems(itemState)
                   : leadingItems}
