@@ -275,3 +275,50 @@ class OAuthDevicePostTest(APITestCase):
         self.get_error_response(userCode=self.device.user_code, op="approve", status_code=400)
         self.device.refresh_from_db()
         assert self.device.status == DeviceCodeStatus.PENDING
+
+    def test_selected_scopes_narrow_device_token(self) -> None:
+        self.device.update(scope_list=["project:read", "project:write"])
+        self.prepare()
+        self.get_success_response(
+            userCode=self.device.user_code, op="approve", scopes=["project:read"]
+        )
+        self.device.refresh_from_db()
+        assert self.device.scope_list == ["project:read"]
+        assert ApiAuthorization.objects.get(
+            application=self.application, user=self.user
+        ).scope_list == ["project:read"]
+
+        polled = self.client.post(
+            reverse("sentry-oauth-token"),
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device.device_code,
+                "client_id": self.application.client_id,
+                "client_secret": self.application.client_secret,
+            },
+            format="multipart",
+        )
+        assert polled.status_code == 200
+        assert polled.json()["scope"] == "project:read"
+        token = ApiToken.objects.get(application=self.application, user=self.user)
+        assert token.scope_list == ["project:read"]
+
+    def test_unrequested_selected_scope_can_be_corrected(self) -> None:
+        self.prepare()
+        response = self.get_error_response(
+            userCode=self.device.user_code,
+            op="approve",
+            scopes=["project:read", "project:write"],
+            status_code=400,
+        )
+        assert "scopes" in response.data
+        self.device.refresh_from_db()
+        assert self.device.status == DeviceCodeStatus.PENDING
+        assert self.device.scope_list == ["project:read"]
+        assert not ApiAuthorization.objects.filter(application=self.application).exists()
+
+        self.get_success_response(
+            userCode=self.device.user_code, op="approve", scopes=["project:read"]
+        )
+        self.device.refresh_from_db()
+        assert self.device.status == DeviceCodeStatus.APPROVED

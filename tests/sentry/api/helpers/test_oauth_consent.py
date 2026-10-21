@@ -9,6 +9,7 @@ from django.test import override_settings
 
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
+    InvalidScopeSelection,
     OrganizationSelectionError,
     get_organization_options,
     get_permission_descriptions,
@@ -16,6 +17,7 @@ from sentry.api.helpers.oauth_consent import (
     has_existing_consent,
     persist_authorization,
     resolve_organization,
+    select_granted_scopes,
 )
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.models.apiauthorization import ApiAuthorization
@@ -242,3 +244,21 @@ def test_resource_access_descriptions() -> None:
     (ci,) = get_permission_groups(["org:ci"])
     assert ci["accessDescriptions"] == {}
     assert ci["description"]
+
+
+def test_select_granted_scopes_defaults_to_requested() -> None:
+    assert select_granted_scopes(["project:read", "org:read"], None) == ["project:read", "org:read"]
+
+
+def test_select_granted_scopes_narrows_in_request_order() -> None:
+    requested = ["org:read", "project:read", "project:write"]
+    assert select_granted_scopes(requested, ["project:read", "org:read"]) == [
+        "org:read",
+        "project:read",
+    ]
+    assert select_granted_scopes(requested, []) == []
+
+
+def test_select_granted_scopes_rejects_unrequested_scope() -> None:
+    with pytest.raises(InvalidScopeSelection):
+        select_granted_scopes(["project:read"], ["project:read", "project:write"])

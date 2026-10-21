@@ -296,6 +296,30 @@ def resolve_organization(
     return organization_id
 
 
+class InvalidScopeSelection(Exception):
+    public_message = "Selected permissions must be a subset of the requested permissions."
+
+    def __init__(self) -> None:
+        super().__init__(self.public_message)
+
+
+def select_granted_scopes(requested: Sequence[str], selected: Sequence[str] | None) -> list[str]:
+    """Narrow the requested scopes to the ones the user chose to grant.
+
+    Omitting a selection grants every requested scope. A selection may only
+    remove scopes; granting a scope the application did not request is rejected.
+    """
+    if selected is None:
+        return list(requested)
+
+    selected_scopes = set(selected)
+    if not selected_scopes.issubset(requested):
+        raise InvalidScopeSelection()
+
+    # Preserve request order so issued grants read like the original request.
+    return [scope for scope in dict.fromkeys(requested) if scope in selected_scopes]
+
+
 def has_existing_consent(application: ApiApplication, user_id: int, scopes: Sequence[str]) -> bool:
     # Organization-scoped consent requires an explicit selection on each request.
     if application.requires_org_level_access:

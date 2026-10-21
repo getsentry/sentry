@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from enum import Enum
 from typing import Literal, TypedDict
 
@@ -9,6 +10,7 @@ from sentry.api.helpers.oauth_consent import (
     OAuthDecision,
     persist_authorization,
     resolve_organization,
+    select_granted_scopes,
 )
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apidevicecode import (
@@ -97,6 +99,7 @@ def complete_device_request(
     user_id: int,
     decision: OAuthDecision,
     selected_organization_id: str | None = None,
+    selected_scopes: Sequence[str] | None = None,
 ) -> Literal["approved", "denied"]:
     # Hold the pending request until both its decision and authorization commit.
     with transaction.atomic(router.db_for_write(ApiDeviceCode)):
@@ -111,17 +114,21 @@ def complete_device_request(
 
         validate_device_request(device)
         organization_id = None
+        scope_list = device.scope_list
         if decision == "approve":
             organization_id = resolve_organization(
                 device.application, user_id, selected_organization_id
             )
-            persist_authorization(device.application, user_id, device.get_scopes(), organization_id)
+            scope_list = select_granted_scopes(device.get_scopes(), selected_scopes)
+            persist_authorization(device.application, user_id, scope_list, organization_id)
 
         status: Literal["approved", "denied"] = "approved" if decision == "approve" else "denied"
         device.update(
             status=status,
             user_id=user_id if decision == "approve" else None,
             organization_id=organization_id,
+            # Token exchange issues the device token from this list, so store what was granted.
+            scope_list=scope_list,
         )
 
     if decision == "approve":

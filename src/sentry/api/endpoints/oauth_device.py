@@ -15,6 +15,7 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
+    InvalidScopeSelection,
     get_organization_options,
 )
 from sentry.api.helpers.oauth_device import (
@@ -172,10 +173,16 @@ class OAuthDeviceEndpoint(Endpoint):
         )
         try:
             status = complete_device_request(
-                device.id, request.user.id, decision["op"], decision["selected_organization_id"]
+                device.id,
+                request.user.id,
+                decision["op"],
+                decision["selected_organization_id"],
+                decision["scopes"],
             )
         except InvalidOrganizationSelection as exc:
             raise ValidationError({"selectedOrganizationId": exc.public_message}) from exc
+        except InvalidScopeSelection as exc:
+            raise ValidationError({"scopes": exc.public_message}) from exc
 
         request.session.pop(f"oa2:{device.user_code}", None)
         return Response(
