@@ -5,7 +5,6 @@ import trimStart from 'lodash/trimStart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -51,8 +50,7 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  // TODO: Narrow to WidgetTimeSeries[] once every widget query hook returns it
-  timeseriesResults?: Array<Series | WidgetTimeSeries>;
+  timeseriesResults?: WidgetTimeSeries[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
@@ -71,8 +69,7 @@ export type GenericWidgetQueriesResult = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
-  // TODO: Narrow to WidgetTimeSeries[] once every widget query hook returns it
-  timeseriesResults?: Array<Series | WidgetTimeSeries>;
+  timeseriesResults?: WidgetTimeSeries[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;
