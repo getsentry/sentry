@@ -223,7 +223,12 @@ const ActiveThreadName = styled('span')`
 `;
 
 const HeaderTable = styled(SimpleTable)`
-  padding: 0 ${p => p.theme.space['3xl']};
+  padding: 0 calc(${p => p.theme.space.xs} + ${p => p.theme.space.sm}) 0
+    calc(
+      ${p => p.theme.space.xs} + ${p => p.theme.space.md} + ${p => p.theme.space['2xl']} +
+        ${p => p.theme.space.xs}
+    );
+  scrollbar-gutter: stable;
   background: ${p => p.theme.tokens.background.secondary};
   border-width: 1px 0;
   border-radius: 0;
