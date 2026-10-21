@@ -119,12 +119,14 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  negated = false
 ) {
+  const filterText = getInitialFilterText(key, getFieldDefinition(key));
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key))
+    negated ? `!${filterText}` : filterText
   );
 }
 
@@ -878,8 +880,11 @@ function SearchQueryBuilderInputInternal({
               return textToken.key.text === filterValue;
             })
           ) {
+            // Look up `!key:` by its key alone, or it gets no field definition and
+            // becomes a plain string filter
+            const negated = filterValue.startsWith('!');
             const filterKey = resolveFilterKey({
-              key: filterValue,
+              key: negated ? filterValue.slice(1) : filterValue,
               filterKeys,
               getSuggestedFilterKey,
               loadedItems: sortedFilteredItems,
@@ -894,7 +899,8 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition
+                getFieldDefinition,
+                negated
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
