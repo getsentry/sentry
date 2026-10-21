@@ -199,7 +199,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline: renders a compact link with the short id. ' +
       'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
-      'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
+      'When referencing 2+ issues, use one `issuesQuery` listing their short IDs, ' +
+      'e.g. `issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -790,9 +791,12 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issuesQuery: {
     description:
-      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
-      'including a specific list of issue IDs such as ' +
-      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms. ' +
+      'Issue search has no OR, and space-separated terms are ANDed, so match any ' +
+      'of several values with ONE filter holding a bracketed list: ' +
+      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. Never repeat a key — ' +
+      '`issue:JAVASCRIPT-22SP issue:JAVASCRIPT-39HX` asks for a single issue with ' +
+      'both IDs and matches nothing. ' +
       'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
       'use `issue.id:[7716642857,7716642858]` instead. ' +
       'Inline renders a link; block renders the first five matching issues with ' +
