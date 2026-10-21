@@ -7,7 +7,7 @@ import pytest
 from django.test import override_settings
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -977,12 +977,12 @@ class TestSeerAgentOperatorAccess(TestCase):
 
 class TestSeerOperatorCompletionHook(TestCase):
     @patch("sentry.seer.entrypoints.operator.refresh_agent_run.apply_async")
-    @patch("sentry.seer.entrypoints.operator._refresh_agent_run")
-    def test_execute_refreshes_inline(self, mock_refresh, mock_apply_async):
+    def test_execute_only_queues_a_refresh(self, mock_apply_async):
         SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
 
-        mock_refresh.assert_called_once_with(self.organization, MOCK_RUN_ID)
-        mock_apply_async.assert_not_called()
+        mock_apply_async.assert_called_once_with(
+            kwargs={"organization_id": self.organization.id, "run_id": MOCK_RUN_ID}
+        )
 
 
 class TestRefreshAgentRun(TestCase):
@@ -1500,6 +1500,19 @@ class TestProcessInvestigationUpdates(TestCase):
 
         entrypoint_cls.on_investigation_update.assert_not_called()
         assert_failure_metric(mock_record, "organization_not_found")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_busy_lock_raises_for_task_retry(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        entrypoint_cls.on_investigation_update.side_effect = UnableToAcquireLock("locked")
+        self._set_cache("slack", self.cache_payload)
+
+        with pytest.raises(UnableToAcquireLock):
+            self._process({"slack": entrypoint_cls})
+
+        outcomes = [call.args[0] for call in mock_record.mock_calls]
+        assert outcomes.count(EventLifecycleOutcome.HALTED) == 2
+        assert EventLifecycleOutcome.FAILURE not in outcomes
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_entrypoint_failure_does_not_stop_others(self, mock_record: Mock) -> None:
