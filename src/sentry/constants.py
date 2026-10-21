@@ -194,6 +194,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "sales",
         "security",
         "securityportal",
+        "seer",
         "sentry-apps",
         "services",
         "settings",
