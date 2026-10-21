@@ -78,6 +78,7 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
+        'jest', // CI runner and regression tests resolve Jest from tests/js.
         'react-router-v8', // Knip cannot trace the conditional Rspack package alias.
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
