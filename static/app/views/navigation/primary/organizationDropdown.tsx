@@ -151,8 +151,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             label: t('Project Settings'),
             hidden: props.hideCurrentOrganizationLinks,
             children: [
-              ...projects
-                .filter(project => project.isBookmarked)
+              ...sortProjects(projects.filter(project => project.isBookmarked))
                 .slice(0, 5)
                 .map(project =>
                   makeProjectMenuItem(project, organization, navigate, 'starred-project')

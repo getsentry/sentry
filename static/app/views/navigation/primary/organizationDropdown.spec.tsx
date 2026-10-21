@@ -90,6 +90,28 @@ describe('OrganizationDropdown', () => {
     );
   });
 
+  it('shows the first five bookmarked projects in settings order', async () => {
+    ProjectsStore.loadInitialData(
+      ['project-z', 'project-f', 'project-b', 'project-e', 'project-a', 'project-c'].map(
+        (slug, index) => ProjectFixture({id: String(index), slug, isBookmarked: true})
+      )
+    );
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    expect(
+      screen
+        .getAllByRole('menuitemradio', {name: /^project-/})
+        .map(item => item.textContent)
+    ).toEqual(['project-a', 'project-b', 'project-c', 'project-e', 'project-f']);
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'project-z'})
+    ).not.toBeInTheDocument();
+  });
+
   it('bookmarks a project without navigating away from the settings v3 menu', async () => {
     const project = ProjectFixture({
       id: '1',
