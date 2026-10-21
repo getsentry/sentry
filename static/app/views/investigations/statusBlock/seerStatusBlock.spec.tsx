@@ -67,6 +67,45 @@ describe('SeerStatusBlock', () => {
     expect(screen.getByText('Query spans')).not.toBeVisible();
   });
 
+  it("shows the agent's reasoning between its calls, in the order they happened", () => {
+    render(
+      <SeerStatusBlock
+        variant="running"
+        title="Seer is gathering context"
+        toolActivity={[
+          {
+            id: 'r1',
+            kind: 'thought',
+            status: 'completed',
+            title: 'Start with the error spans.',
+            text: 'Start with the error spans.',
+          },
+          {id: 'a', kind: 'api', status: 'completed', title: 'Query spans'},
+          {
+            id: 'r2',
+            kind: 'thought',
+            status: 'completed',
+            title: 'The baseline looks backwards.',
+            text: 'The baseline looks backwards.\n\nCheck the environment filter.',
+          },
+        ]}
+      />
+    );
+
+    const thinking = screen.getByTestId('seer-status-block-thinking');
+    // Reasoning came last, but the block is still titled by what the agent did.
+    expect(
+      within(thinking).getByRole('button', {name: /Query spans/})
+    ).toBeInTheDocument();
+    const first = within(thinking).getByText('Start with the error spans.');
+    const call = within(thinking).getAllByText('Query spans').at(-1)!;
+    const second = within(thinking).getByText('Check the environment filter.');
+    expect(first.compareDocumentPosition(call)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(call.compareDocumentPosition(second)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    // Reasoning is prose, not a call, so only the call carries a status glyph.
+    expect(within(thinking).getAllByLabelText('Succeeded')).toHaveLength(1);
+  });
+
   it('announces a queued call as waiting, not as awaiting approval', () => {
     render(
       <SeerStatusBlock
