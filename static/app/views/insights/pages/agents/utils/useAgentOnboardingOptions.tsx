@@ -14,7 +14,9 @@ import {
   DEPLOYMENT_TARGET_LABELS,
   DeploymentTarget,
   getDefaultAgentIntegration,
+  getDeploymentTargets,
   getIntegrationDeploymentTarget,
+  getProjectDeploymentTargets,
   hidesDeploymentTargetSelector,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
@@ -36,11 +38,14 @@ export function useAgentOnboardingOptions({
   const isCloudflareWorkers = platformId === 'node-cloudflare-workers';
   const isCloudflarePages = platformId === 'node-cloudflare-pages';
   const projectAgentIntegration = getDefaultAgentIntegration(platform);
+  // Framework projects normally pin both the SDK and the runtime, but some let
+  // the user pick the runtime the framework runs on.
+  const hasProjectDeploymentTargets = !!getProjectDeploymentTargets(platform);
   const showDeploymentTarget =
     isNodePlatform &&
     !isCloudflareWorkers &&
     !isCloudflarePages &&
-    !projectAgentIntegration;
+    (!projectAgentIntegration || hasProjectDeploymentTargets);
 
   const integrations = projectAgentIntegration
     ? [projectAgentIntegration]
@@ -78,7 +83,7 @@ export function useAgentOnboardingOptions({
           deploymentTarget: {
             label: t('Deployment'),
             defaultValue: DeploymentTarget.NODE,
-            items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
+            items: getDeploymentTargets(platform).map(target => ({
               label: DEPLOYMENT_TARGET_LABELS[target],
               value: target,
               leadingItems: (
@@ -95,9 +100,9 @@ export function useAgentOnboardingOptions({
   };
 
   const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
-  const integrationDeploymentTarget = getIntegrationDeploymentTarget(
-    selectedPlatformOptions.integration
-  );
+  const integrationDeploymentTarget = hasProjectDeploymentTargets
+    ? undefined
+    : getIntegrationDeploymentTarget(selectedPlatformOptions.integration);
   const selectedDeploymentTarget = Object.values(DeploymentTarget).find(
     target => target === selectedPlatformOptions.deploymentTarget
   );
@@ -109,18 +114,21 @@ export function useAgentOnboardingOptions({
   // options above still resolve the selection from the URL.
   const {deploymentTarget: _deploymentTargetOption, ...optionsWithoutDeploymentTarget} =
     platformOptions;
+  // Framework projects fix the SDK, so only their runtime selector is rendered.
+  const {integration: _integrationOption, ...optionsWithoutIntegration} = platformOptions;
 
   return {
     deploymentTarget,
     integrationDeploymentTarget,
-    isCloudflareTarget:
-      isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE,
     isPhpPlatform,
     isPythonPlatform,
-    platformOptions: hidesDeploymentTargetSelector(selectedPlatformOptions.integration)
-      ? optionsWithoutDeploymentTarget
-      : platformOptions,
+    platformOptions: hasProjectDeploymentTargets
+      ? optionsWithoutIntegration
+      : hidesDeploymentTargetSelector(selectedPlatformOptions.integration)
+        ? optionsWithoutDeploymentTarget
+        : platformOptions,
     projectAgentIntegration,
     selectedPlatformOptions,
+    showPlatformOptions: !projectAgentIntegration || hasProjectDeploymentTargets,
   };
 }

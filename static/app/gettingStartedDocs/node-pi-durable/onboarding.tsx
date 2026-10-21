@@ -27,8 +27,17 @@ enum PiDurableRuntime {
 }
 
 function getRuntime(params: DocsParams): PiDurableRuntime {
-  if (params.platformOptions?.deploymentTarget === DeploymentTarget.CLOUDFLARE) {
-    return PiDurableRuntime.CLOUDFLARE;
+  // Pi Durable projects pick any runtime; Cloudflare Workers projects force the
+  // Cloudflare target.
+  switch (params.platformOptions?.deploymentTarget) {
+    case DeploymentTarget.CLOUDFLARE:
+      return PiDurableRuntime.CLOUDFLARE;
+    case DeploymentTarget.BUN:
+      return PiDurableRuntime.BUN;
+    case DeploymentTarget.DENO:
+      return PiDurableRuntime.DENO;
+    default:
+      break;
   }
   if (params.platformKey === 'bun') {
     return PiDurableRuntime.BUN;
