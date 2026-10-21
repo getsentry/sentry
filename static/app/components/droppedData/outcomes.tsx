@@ -6,16 +6,17 @@ import {
 } from 'sentry/components/droppedData/reasonInfo';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
-// Customer-facing names for datasets. The raw DiscoverDatasets values are
-// internal (e.g. `ourlogs`, `tracemetrics`) and must never reach a user.
+// Customer-facing names for datasets, keyed by the raw DiscoverDatasets values
+// (`ourlogs`, `tracemetrics`, …) which are internal and must never reach a user.
+// Keyed by literal rather than the enum to keep this a type-only import.
 const DATASET_LABELS: Partial<Record<DiscoverDatasets, string>> = {
-  [DiscoverDatasets.ERRORS]: t('error'),
-  [DiscoverDatasets.OURLOGS]: t('log'),
-  [DiscoverDatasets.SPANS]: t('span'),
-  [DiscoverDatasets.TRACEMETRICS]: t('application metric'),
+  errors: t('error'),
+  ourlogs: t('log'),
+  spans: t('span'),
+  tracemetrics: t('application metric'),
 };
 
 function datasetLabel(dataset: DiscoverDatasets): string {
