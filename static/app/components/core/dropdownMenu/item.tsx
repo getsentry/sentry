@@ -199,7 +199,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     state.selectionManager,
   ]);
 
-  // Open submenu on arrow right key press
+  // ArrowRight opens a submenu or moves focus to an adjacent action.
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
       if (e.key === 'ArrowRight' && isSubmenu) {
@@ -207,6 +207,8 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
         return;
       }
 
+      // The trailing action sits outside the focusable menu item. Move to its
+      // enabled button only when focus is still on the item itself.
       if (e.key === 'ArrowRight' && document.activeElement === innerWrapRef.current) {
         const actionButton = trailingActionRef.current?.querySelector<HTMLButtonElement>(
           'button:not(:disabled)'
