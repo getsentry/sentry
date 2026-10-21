@@ -95,6 +95,42 @@ def _record_api_error(
     )
 
 
+def _stop_for_missing_webhook(
+    *,
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    project: str,
+    repository_slug: str,
+    webhook_id: int,
+    webhook_secret: str,
+    status_code: int,
+) -> None:
+    outcome = WebhookRepairOutcome.MISSING_WEBHOOK
+    if not repository_service.update_repository_config(
+        organization_id=organization_id,
+        id=repository_id,
+        config_updates={"webhook_repair_pending": False},
+        expected_integration_id=integration_id,
+        expected_config={
+            "project": project,
+            "repo": repository_slug,
+            "webhook_id": webhook_id,
+            "webhook_secret": webhook_secret,
+            "webhook_repair_pending": True,
+        },
+    ):
+        outcome = WebhookRepairOutcome.CONFLICT
+    _record_outcome(
+        outcome,
+        integration_id=integration_id,
+        organization_id=organization_id,
+        repository_id=repository_id,
+        webhook_id=webhook_id,
+        status_code=status_code,
+    )
+
+
 @instrumented_task(
     name="sentry.tasks.integrations.bitbucket_server.repair_repository_webhook",
     namespace=integrations_tasks,
@@ -245,11 +281,15 @@ def repair_repository_webhook(
             webhook = client.get_hook(project, repository_slug, webhook_id)
         except ApiError as error:
             if error.code == 404:
-                _record_outcome(
-                    WebhookRepairOutcome.MISSING_WEBHOOK,
+                _stop_for_missing_webhook(
+                    integration_id=integration_id,
+                    organization_id=organization_id,
+                    repository_id=repository_id,
+                    project=project,
+                    repository_slug=repository_slug,
                     webhook_id=webhook_id,
+                    webhook_secret=webhook_secret,
                     status_code=error.code,
-                    **context,
                 )
                 return
             raise
@@ -263,11 +303,15 @@ def repair_repository_webhook(
             )
         except ApiError as error:
             if error.code == 404:
-                _record_outcome(
-                    WebhookRepairOutcome.MISSING_WEBHOOK,
+                _stop_for_missing_webhook(
+                    integration_id=integration_id,
+                    organization_id=organization_id,
+                    repository_id=repository_id,
+                    project=project,
+                    repository_slug=repository_slug,
                     webhook_id=webhook_id,
+                    webhook_secret=webhook_secret,
                     status_code=error.code,
-                    **context,
                 )
                 return
             raise

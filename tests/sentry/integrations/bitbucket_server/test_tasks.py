@@ -198,8 +198,49 @@ class RepairRepositoryWebhookTest(TestCase):
 
                 self.bitbucket_client.create_hook.assert_not_called()
                 self.bitbucket_client.delete_hook.assert_not_called()
-                self.update_config.assert_not_called()
+                self.update_config.assert_called_once_with(
+                    organization_id=self.organization_id,
+                    id=self.repository_id,
+                    config_updates={"webhook_repair_pending": False},
+                    expected_integration_id=self.integration_id,
+                    expected_config={
+                        "project": "PROJ",
+                        "repo": "repository",
+                        "webhook_id": 123,
+                        "webhook_secret": "existing-secret",
+                        "webhook_repair_pending": True,
+                    },
+                )
                 self.assert_outcome("missing_webhook")
+
+    def test_missing_remote_hook_marks_new_repair_not_pending(self) -> None:
+        self.repository.config.pop("webhook_secret")
+        self.repository.config.pop("webhook_repair_pending")
+        self.bitbucket_client.get_hook.side_effect = ApiError("missing", code=404)
+
+        with patch(
+            "sentry.integrations.bitbucket_server.tasks.secrets.token_hex",
+            return_value="generated-secret",
+        ):
+            self.run_task()
+
+        assert self.update_config.call_count == 2
+        assert self.update_config.call_args_list[0].kwargs["config_updates"] == {
+            "webhook_secret": "generated-secret",
+            "webhook_repair_pending": True,
+        }
+        assert self.update_config.call_args_list[1].kwargs["config_updates"] == {
+            "webhook_repair_pending": False
+        }
+        self.assert_outcome("missing_webhook")
+
+    def test_missing_remote_hook_state_conflict_is_observable(self) -> None:
+        self.bitbucket_client.get_hook.side_effect = ApiError("missing", code=404)
+        self.update_config.return_value = False
+
+        self.run_task()
+
+        self.assert_outcome("conflict")
 
     def test_authorization_failure_does_not_create_or_retry(self) -> None:
         for status_code in (401, 403):
