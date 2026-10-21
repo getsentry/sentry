@@ -21,10 +21,16 @@ const coreComponentFiles = [
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
 
+const tableComponentFiles = [
+  'static/app/components/core/table/**/*.{ts,tsx}',
+  'static/app/components/tables/**/*.{ts,tsx}',
+];
+
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
     '@sentry/scraps/prefer-container-responsive-props': 'error',
   },
@@ -32,6 +38,15 @@ export const incubator = defineConfig({
     {
       files: coreComponentFiles,
       rules: {'@sentry/scraps/prefer-primitives': 'off'},
+    },
+    {
+      files: [
+        ...tableComponentFiles,
+        ...testFiles,
+        '**/*.stories.{ts,tsx}',
+        'static/app/stories/**/*.{ts,tsx}',
+      ],
+      rules: {'@sentry/scraps/no-manual-table': 'off'},
     },
     {
       files: testFiles,
@@ -132,6 +147,12 @@ const config = defineConfig({
       {
         type: 'icons',
         pattern: 'static/packages/icons/src',
+        partialMatch: false,
+      },
+      // Domain badges stay in the app after the generic badge primitives move.
+      {
+        type: 'sentry',
+        pattern: 'static/app/components/core/badge',
         partialMatch: false,
       },
       // Keep core stories inside Scraps; story-files still classifies them as stories.

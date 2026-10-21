@@ -661,7 +661,7 @@ class OrganizationAgentTokenTest(APITestCase):
             scope_list=list(scopes),
         )
 
-    def test_mint_defaults_to_readonly(self) -> None:
+    def test_mint_defaults_to_readonly_and_default_writes(self) -> None:
         self.login_as(self.owner)
         with self.feature(FLAG):
             resp = self._mint(sessionId="s1")
@@ -672,7 +672,11 @@ class OrganizationAgentTokenTest(APITestCase):
         assert claims["org"] == self.org.id
         assert claims["sid"] == "s1"
         assert "org:write" not in claims["scopes"]
-        assert set(claims["scopes"]) <= agent_token.readonly_scopes()
+        assert "event:write" not in claims["scopes"]
+        assert "seer:write" in claims["scopes"]
+        assert set(claims["scopes"]) <= (
+            agent_token.readonly_scopes() | agent_token.AGENT_DEFAULT_WRITE_SCOPES
+        )
 
     def test_feature_off_is_not_found(self) -> None:
         self.login_as(self.owner)

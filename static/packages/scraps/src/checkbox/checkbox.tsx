@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';

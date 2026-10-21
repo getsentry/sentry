@@ -2,11 +2,10 @@ import isPropValid from '@emotion/is-prop-valid';
 import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
-import type {LocationDescriptor} from 'history';
 import type {DistributedOmit} from 'type-fest';
 
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
@@ -56,12 +55,12 @@ export function LinkButton({
           disabled
             ? // Disabled links are just text - this should have never been supported in the first place.
               // We cast it to the correct value to avoid a rightfully raised type error.
-              (undefined as unknown as LocationDescriptor)
+              (undefined as unknown as LinkProps['to'])
             : 'to' in props
               ? props.to
               : // Disabled links are just text - this should have never been supported in the first place.
                 // We cast it to the correct value to avoid a rightfully raised type error.
-                (undefined as unknown as LocationDescriptor)
+                (undefined as unknown as LinkProps['to'])
         }
       >
         <Flex

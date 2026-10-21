@@ -1,12 +1,15 @@
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
 import {IconFire} from '@sentry/icons/fire';
-
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from '@testing-library/react';
+import {userEvent} from '@testing-library/user-event';
 
 import {Tag} from '@sentry/scraps/badge';
+import {lightTheme} from '@sentry/scraps/theme';
 
 describe('Tag', () => {
   it('basic', () => {
-    render(<Tag variant="muted">Text</Tag>);
+    render(<Tag variant="muted">Text</Tag>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
@@ -14,7 +17,8 @@ describe('Tag', () => {
     render(
       <Tag icon={<IconFire data-test-id="icon-fire" />} variant="danger">
         Error
-      </Tag>
+      </Tag>,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByText('Error')).toBeInTheDocument();
     expect(screen.getByTestId('icon-fire')).toBeInTheDocument();
@@ -26,7 +30,8 @@ describe('Tag', () => {
     render(
       <Tag variant="info" onDismiss={mockCallback}>
         Dismissable
-      </Tag>
+      </Tag>,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByText('Dismissable')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Dismiss'})).toBeInTheDocument();
@@ -36,3 +41,7 @@ describe('Tag', () => {
     expect(mockCallback).toHaveBeenCalledTimes(1);
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
