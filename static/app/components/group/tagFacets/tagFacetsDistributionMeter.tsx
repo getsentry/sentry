@@ -7,7 +7,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -213,7 +213,7 @@ export function TagFacetsDistributionMeter({
   );
 
   return (
-    <TagSummary>
+    <Container marginBottom="xl">
       <details open aria-expanded={expanded} onClick={e => e.preventDefault()}>
         <StyledSummary>
           <TagHeader onClick={() => setExpanded(!expanded)}>
@@ -223,13 +223,9 @@ export function TagFacetsDistributionMeter({
         </StyledSummary>
         {legendContent}
       </details>
-    </TagSummary>
+    </Container>
   );
 }
-
-const TagSummary = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const TagHeader = styled('span')`
   cursor: pointer;

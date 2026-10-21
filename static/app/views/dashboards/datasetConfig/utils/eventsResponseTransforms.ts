@@ -9,6 +9,7 @@ import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
 import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {
   getTimeSeriesResultTypes,
   getTimeSeriesResultUnits,
@@ -23,13 +24,18 @@ export const eventsResponseTransforms: Pick<
     | EventsTimeSeriesResponse,
     TableData | EventsTableData
   >,
-  'transformTable' | 'transformSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
+  | 'transformTable'
+  | 'transformSeries'
+  | 'transformTimeSeries'
+  | 'getSeriesResultType'
+  | 'getSeriesResultUnit'
 > = {
   transformTable: transformEventsResponseToTable,
   transformSeries: (data, widgetQuery) =>
     isEventsTimeSeriesResponse(data)
       ? transformTimeSeriesResponseToSeries(data, widgetQuery)
       : transformEventsResponseToSeries(data, widgetQuery),
+  transformTimeSeries: transformTimeSeriesResponse,
   getSeriesResultType: data =>
     isEventsTimeSeriesResponse(data) ? getTimeSeriesResultTypes(data) : {},
   getSeriesResultUnit: data =>

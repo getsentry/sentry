@@ -7,6 +7,7 @@ import {Input} from '@sentry/scraps/input';
 import {Container as LayoutContainer, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -53,6 +54,8 @@ const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
 ];
 
 const NO_UNIT = 'none';
+
+const DESCRIPTION_MAX_LENGTH = 280;
 
 const UNIT_OPTIONS = [
   {value: NO_UNIT, label: t('No unit')},
@@ -147,49 +150,71 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
 
       <EditLayout.Body>
         <Stack gap="2xl" maxWidth={maxWidth}>
-          <Flex gap="xl" wrap="wrap">
-            <LabeledField label={t('Formula Name')}>
-              <LayoutContainer width="320px">
-                <Input
-                  value={draft.name}
-                  placeholder={t('Enter formula name')}
-                  aria-label={t('Formula name')}
-                  onChange={event => setDraft({...draft, name: event.target.value})}
+          <Stack gap="xl">
+            <Flex gap="xl" wrap="wrap">
+              <LabeledField label={t('Formula Name')}>
+                <LayoutContainer width="320px">
+                  <Input
+                    value={draft.name}
+                    placeholder={t('Enter formula name')}
+                    aria-label={t('Formula name')}
+                    onChange={event => setDraft({...draft, name: event.target.value})}
+                  />
+                </LayoutContainer>
+              </LabeledField>
+              <LabeledField label={t('Dataset')}>
+                <CompactSelect
+                  value={draft.dataset}
+                  options={DATASET_OPTIONS}
+                  trigger={({children, ...triggerProps}) => (
+                    <OverlayTrigger.Button {...triggerProps} aria-label={t('Dataset')}>
+                      <OptionSizedLabel options={DATASET_OPTIONS}>
+                        {children}
+                      </OptionSizedLabel>
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={option => setDraft({...draft, dataset: option.value})}
+                />
+              </LabeledField>
+              <LabeledField label={t('Unit')}>
+                <CompactSelect
+                  value={draft.unit ?? NO_UNIT}
+                  options={UNIT_OPTIONS}
+                  trigger={({children, ...triggerProps}) => (
+                    <OverlayTrigger.Button {...triggerProps} aria-label={t('Unit')}>
+                      <OptionSizedLabel options={UNIT_OPTIONS}>
+                        {children}
+                      </OptionSizedLabel>
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={option =>
+                    setDraft({
+                      ...draft,
+                      unit: option.value === NO_UNIT ? null : option.value,
+                    })
+                  }
+                />
+              </LabeledField>
+            </Flex>
+
+            <LabeledField label={t('Description')}>
+              <LayoutContainer maxWidth={FIELD_MAX_WIDTH}>
+                <TextArea
+                  autosize
+                  rows={2}
+                  maxLength={DESCRIPTION_MAX_LENGTH}
+                  value={draft.description ?? ''}
+                  placeholder={t(
+                    'Enter a description to help users understand your formula'
+                  )}
+                  aria-label={t('Formula description')}
+                  onChange={event =>
+                    setDraft({...draft, description: event.target.value || null})
+                  }
                 />
               </LayoutContainer>
             </LabeledField>
-            <LabeledField label={t('Dataset')}>
-              <CompactSelect
-                value={draft.dataset}
-                options={DATASET_OPTIONS}
-                trigger={({children, ...triggerProps}) => (
-                  <OverlayTrigger.Button {...triggerProps} aria-label={t('Dataset')}>
-                    <OptionSizedLabel options={DATASET_OPTIONS}>
-                      {children}
-                    </OptionSizedLabel>
-                  </OverlayTrigger.Button>
-                )}
-                onChange={option => setDraft({...draft, dataset: option.value})}
-              />
-            </LabeledField>
-            <LabeledField label={t('Unit')}>
-              <CompactSelect
-                value={draft.unit ?? NO_UNIT}
-                options={UNIT_OPTIONS}
-                trigger={({children, ...triggerProps}) => (
-                  <OverlayTrigger.Button {...triggerProps} aria-label={t('Unit')}>
-                    <OptionSizedLabel options={UNIT_OPTIONS}>{children}</OptionSizedLabel>
-                  </OverlayTrigger.Button>
-                )}
-                onChange={option =>
-                  setDraft({
-                    ...draft,
-                    unit: option.value === NO_UNIT ? null : option.value,
-                  })
-                }
-              />
-            </LabeledField>
-          </Flex>
+          </Stack>
 
           <Container>
             <FormSection title={t('Inputs')}>

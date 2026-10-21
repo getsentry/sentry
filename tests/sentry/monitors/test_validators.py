@@ -15,10 +15,11 @@ from sentry.monitors.models import (
     MonitorStatus,
     ScheduleType,
     get_cron_monitor,
+    get_detector_for_monitor,
     is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
-from sentry.monitors.utils import get_detector_for_monitor
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
@@ -30,7 +31,12 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.workflow_engine.models import DataConditionGroup, DataSource, DataSourceDetector
+from sentry.workflow_engine.models import (
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 
 
 class MonitorValidatorCreateTest(MonitorTestCase):
@@ -625,6 +631,10 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
     def test_update_status_to_disabled(self) -> None:
         """Test updating monitor status to disabled."""
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+        assert detector.enabled
+
         validator = MonitorValidator(
             instance=self.monitor,
             data={"status": "disabled"},
@@ -640,12 +650,16 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.DISABLED
+        assert not Detector.objects.get(id=detector.id).enabled
 
     @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_with_quota_check(self, mock_check_seat):
         """Test updating monitor status to active checks quota."""
         # Start with disabled monitor
         self.monitor.update(status=ObjectStatus.DISABLED)
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+        assert not detector.enabled
 
         mock_result = MagicMock()
         mock_result.assignable = True
@@ -667,6 +681,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.ACTIVE
         mock_check_seat.assert_called_once_with(seat_object=self.monitor)
+        assert Detector.objects.get(id=detector.id).enabled
 
     @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_quota_exceeded(self, mock_check_seat):
@@ -1313,6 +1328,24 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
 
         # Verify seat assignment was attempted exactly once (not double-called)
         mock_assign_seat.assert_called_once_with(seat_object=monitor)
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_with_monitor_status_disabled(self, mock_assign_seat):
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        context = {**self.context, "condition_group": condition_group}
+        data = self._get_valid_detector_data()
+        data["dataSources"][0]["status"] = "disabled"
+        validator = MonitorIncidentDetectorValidator(data=data, context=context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        detector.refresh_from_db()
+        monitor = get_cron_monitor(detector)
+        assert monitor.status == ObjectStatus.DISABLED
+        assert detector.enabled is False
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
     def test_update_enable_assigns_seat(self, mock_assign_seat):

@@ -366,6 +366,10 @@ class BitbucketIntegrationTest(APITestCase):
                 "https://notbitbucket.org/Test-Organization/sentry/src/master/src/sentry/integrations/bitbucket/integration.py",
                 False,
             ),
+            (
+                "https://bitbucket.org.evil.com/Test-Organization/sentry/src/master/src/app.py",
+                False,
+            ),
             ("https://jianyuan.io", False),
         ]
         for source_url, matches in test_cases:

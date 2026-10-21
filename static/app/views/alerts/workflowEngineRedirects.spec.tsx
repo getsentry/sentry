@@ -11,8 +11,12 @@ import {
   withMetricIssueRedirect,
   withOpenPeriodRedirect,
 } from 'sentry/views/alerts/workflowEngineRedirects';
-import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
+import {
+  makeMonitorBasePathname,
   makeMonitorCreatePathname,
   makeMonitorDetailsPathname,
   makeMonitorEditPathname,
@@ -52,6 +56,32 @@ describe('workflowEngineRedirects', () => {
           makeAutomationDetailsPathname(organization.slug, 'workflow-1')
         );
       });
+    });
+
+    it('redirects to the automations list without looking up the workflow when redirects are disabled', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
+      });
+      const workflowRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/alert-rule-workflow/`,
+        body: {alertRuleId: '1', ruleId: '1', workflowId: 'workflow-1'},
+      });
+
+      const Wrapped = withAutomationDetailsRedirect(TestComponent);
+      const initialRouterConfig: RouterConfig = {
+        route: '/organizations/:orgId/alerts/rules/:ruleId/',
+        location: {pathname: `/organizations/${organization.slug}/alerts/rules/1/`},
+      };
+
+      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeAutomationBasePathname(organization.slug)
+        );
+      });
+      expect(workflowRequest).not.toHaveBeenCalled();
     });
   });
 
@@ -100,6 +130,30 @@ describe('workflowEngineRedirects', () => {
           makeMonitorEditPathname(organization.slug, 'det-2')
         );
       });
+    });
+
+    it('redirects to the monitors list without looking up the detector when redirects are disabled', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
+      });
+      const detectorRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/alert-rule-detector/`,
+        body: {alertRuleId: '1', detectorId: 'det-2', ruleId: '1'},
+      });
+
+      const Wrapped = withDetectorEditRedirect(TestComponent);
+      const initialRouterConfig: RouterConfig = {
+        route: '/organizations/:orgId/alerts/rules/:ruleId/',
+        location: {pathname: `/organizations/${organization.slug}/alerts/rules/1/`},
+      };
+
+      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(makeMonitorBasePathname(organization.slug));
+      });
+      expect(detectorRequest).not.toHaveBeenCalled();
     });
   });
 
@@ -166,6 +220,27 @@ describe('workflowEngineRedirects', () => {
         expect(router.location.pathname).toBe(
           makeMonitorDetailsPathname(organization.slug, 'detector-3')
         );
+      });
+    });
+
+    it('redirects to the monitors list when legacy redirects are disabled', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
+      });
+
+      const Wrapped = withDetectorDetailsRedirect(TestComponent);
+      const initialRouterConfig: RouterConfig = {
+        route: '/organizations/:orgId/alerts/:ruleId/:detectorId/',
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/1/detector-3/`,
+        },
+      };
+
+      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(makeMonitorBasePathname(organization.slug));
       });
     });
 

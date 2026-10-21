@@ -199,7 +199,7 @@ describe('spansWidgetQueries', () => {
 
     render(
       <SpansWidgetQueries widget={widget} dashboardFilters={{}}>
-        {({timeseriesResults}) => <div>{timeseriesResults?.[0]?.data?.[0]?.value}</div>}
+        {({timeseriesResults}) => <div>{timeseriesResults?.length}</div>}
       </SpansWidgetQueries>,
       {organization}
     );

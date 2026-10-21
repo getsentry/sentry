@@ -1,6 +1,8 @@
 import logging
 from typing import Any, NotRequired, TypedDict
 
+from taskbroker_client.retry import Retry
+
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
@@ -9,6 +11,7 @@ from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.telemetry import record_investigation_started
 from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -49,6 +52,7 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
@@ -89,6 +93,8 @@ logger = logging.getLogger(__name__)
 # incidents, since a run should not take nearly that long to complete.
 PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 PROCESS_INVESTIGATION_TIMEOUT_SECONDS = 60
+
+AGENT_REFRESH_TIMEOUT_SECONDS = 60
 
 
 def has_seer_autofix_entrypoint_access(
@@ -666,12 +672,7 @@ class SeerInvestigationOperator[CachePayloadT]:
 
             record_investigation_started(investigation)
 
-            with SeerOperatorEventLifecycleMetric(
-                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_INVESTIGATION,
-                entrypoint_key=self.entrypoint.key,
-            ).capture():
-                self.entrypoint.on_trigger_investigation_success(investigation=investigation)
-
+            # Cache before any Slack call so a failed callback can't cut the thread off from updates.
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_INVESTIGATION_CACHE_PAYLOAD,
                 entrypoint_key=self.entrypoint.key,
@@ -683,6 +684,17 @@ class SeerInvestigationOperator[CachePayloadT]:
                 investigation_id=investigation.id,
                 cache_payload=cache_payload,
             )
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_INVESTIGATION,
+                entrypoint_key=self.entrypoint.key,
+            ).capture() as ept_lifecycle:
+                try:
+                    self.entrypoint.on_trigger_investigation_success(investigation=investigation)
+                except Exception as e:
+                    ept_lifecycle.record_failure(failure_reason=e)
+
+            process_investigation_updates.delay(investigation_id=investigation.id)
             return investigation, True
 
 
@@ -890,7 +902,7 @@ def process_autofix_updates(
     name="sentry.seer.entrypoints.operator.process_investigation_updates",
     namespace=seer_tasks,
     processing_deadline_duration=PROCESS_INVESTIGATION_TIMEOUT_SECONDS,
-    retry=None,
+    retry=Retry(times=4, delay=5, on=(UnableToAcquireLock,)),
 )
 def process_investigation_updates(*, investigation_id: int) -> None:
     """
@@ -950,6 +962,10 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             ).capture() as ept_lifecycle:
                 try:
                     entrypoint_cls.on_investigation_update(cache_payload=cache_payload, run=run)
+                except UnableToAcquireLock as e:
+                    ept_lifecycle.record_halt(halt_reason=e)
+                    lifecycle.record_halt(halt_reason=e)
+                    raise
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
 
@@ -1012,79 +1028,106 @@ def get_autofix_explorer_status(
     return None
 
 
-class SeerOperatorCompletionHook(AgentOnCompletionHook):
-    """Completion hook that notifies all entrypoints when a Seer Agent invocation yields.
+@instrumented_task(
+    name="sentry.seer.entrypoints.operator.refresh_agent_run",
+    namespace=seer_tasks,
+    processing_deadline_duration=AGENT_REFRESH_TIMEOUT_SECONDS,
+    retry=Retry(times=10, delay=10, on=(IntegrationError, UnableToAcquireLock)),
+)
+def refresh_agent_run(*, organization_id: int, run_id: int) -> None:
+    """Make every entrypoint for a Seer Agent run match the run's latest state."""
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return
 
-    Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
-    registry and calls on_agent_update for each entrypoint that has access and
-    has a cached payload for this run.
+    # One refresh per run at a time; a busy lock raises, so the task retries later.
+    lock = locks.get(
+        f"seer:operator:agent-refresh:{run_id}",
+        duration=AGENT_REFRESH_TIMEOUT_SECONDS,
+        name="seer_operator_agent_refresh",
+    )
+    with lock.acquire():
+        _refresh_agent_run(organization, run_id)
+
+
+def _refresh_agent_run(organization: Organization, run_id: int) -> None:
+    """Notify each entrypoint that has a cached payload for the run."""
+    with SeerOperatorEventLifecycleMetric(
+        interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AGENT_COMPLETION,
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {
+                "run_id": str(run_id),
+                "organization_id": organization.id,
+            }
+        )
+
+        if not SeerAgentOperator.has_access(organization=organization):
+            lifecycle.record_halt(halt_reason="no_operator_access")
+            return
+
+        summary: str | None = None
+        try:
+            state = fetch_run_status(run_id, organization)
+            for block in reversed(state.blocks):
+                if block.message.role == "user":
+                    break
+                if block.message.role == "assistant" and block.message.content:
+                    summary = block.message.content
+                    break
+        except Exception as e:
+            lifecycle.record_failure(failure_reason=e)
+            return
+
+        for (
+            entrypoint_key,
+            entrypoint_cls,
+        ) in agent_entrypoint_registry.registrations.items():
+            if not entrypoint_cls.has_access(organization=organization):
+                continue
+
+            from sentry.seer.entrypoints.slack.entrypoint import SlackAgentCachePayload
+
+            cache_payload = SeerOperatorAgentCache[SlackAgentCachePayload].get(
+                entrypoint_key=str(entrypoint_key),
+                run_id=run_id,
+            )
+            if not cache_payload:
+                continue
+
+            if cache_payload.get("organization_id") != organization.id:
+                # run_id is globally unique in Seer, so only one entrypoint will
+                # have a cache entry per run. An org mismatch here is anomalous;
+                # return rather than continue to abort the entire method.
+                lifecycle.record_failure(failure_reason="org_mismatch")
+                return
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AGENT_UPDATE,
+                entrypoint_key=str(entrypoint_key),
+            ).capture() as ept_lifecycle:
+                try:
+                    entrypoint_cls.on_agent_update(
+                        cache_payload=cache_payload,
+                        summary=summary,
+                        run_id=run_id,
+                        pending_user_input=state.pending_user_input,
+                    )
+                except IntegrationError:
+                    # The refresh task retries integration errors.
+                    raise
+                except Exception as e:
+                    ept_lifecycle.record_failure(failure_reason=e)
+
+
+class SeerOperatorCompletionHook(AgentOnCompletionHook):
+    """Completion hook that queues a refresh of every entrypoint for a Seer Agent run.
+
+    It only queues the work, so Seer gets a quick success; the task does the refresh and retries.
     """
 
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
-        with SeerOperatorEventLifecycleMetric(
-            interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AGENT_COMPLETION,
-        ).capture() as lifecycle:
-            lifecycle.add_extras(
-                {
-                    "run_id": str(run_id),
-                    "organization_id": organization.id,
-                }
-            )
-
-            if not SeerAgentOperator.has_access(organization=organization):
-                lifecycle.record_halt(halt_reason="no_operator_access")
-                return
-
-            summary: str | None = None
-            try:
-                state = fetch_run_status(run_id, organization)
-                for block in reversed(state.blocks):
-                    if block.message.role == "user":
-                        break
-                    if block.message.role == "assistant" and block.message.content:
-                        summary = block.message.content
-                        break
-            except Exception as e:
-                lifecycle.record_failure(failure_reason=e)
-                return
-
-            for (
-                entrypoint_key,
-                entrypoint_cls,
-            ) in agent_entrypoint_registry.registrations.items():
-                if not entrypoint_cls.has_access(organization=organization):
-                    continue
-
-                from sentry.seer.entrypoints.slack.entrypoint import SlackAgentCachePayload
-
-                cache_payload = SeerOperatorAgentCache[SlackAgentCachePayload].get(
-                    entrypoint_key=str(entrypoint_key),
-                    run_id=run_id,
-                )
-                if not cache_payload:
-                    continue
-
-                if cache_payload.get("organization_id") != organization.id:
-                    # run_id is globally unique in Seer, so only one entrypoint will
-                    # have a cache entry per run. An org mismatch here is anomalous;
-                    # return rather than continue to abort the entire method.
-                    lifecycle.record_failure(failure_reason="org_mismatch")
-                    return
-
-                with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AGENT_UPDATE,
-                    entrypoint_key=str(entrypoint_key),
-                ).capture() as ept_lifecycle:
-                    try:
-                        entrypoint_cls.on_agent_update(
-                            cache_payload=cache_payload,
-                            summary=summary,
-                            run_id=run_id,
-                            pending_user_input=state.pending_user_input,
-                        )
-                    except IntegrationError:
-                        # Seer's completion-hook delivery task retries failed RPC calls.
-                        raise
-                    except Exception as e:
-                        ept_lifecycle.record_failure(failure_reason=e)
+        # If queueing fails this raises, and Seer retries the hook.
+        refresh_agent_run.apply_async(kwargs={"organization_id": organization.id, "run_id": run_id})

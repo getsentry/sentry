@@ -243,7 +243,7 @@ describe('Discover > ResultsChart', () => {
       renderChart(DiscoverDatasets.ERRORS);
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
-      await userEvent.click(screen.getByRole('option', {name: 'Dropped Data'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Dropped Events'}));
 
       expect(screen.getByLabelText('Chart layers')).toBeInTheDocument();
     });

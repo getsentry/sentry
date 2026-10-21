@@ -1,32 +1,13 @@
 import type {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils/defined';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
-import type {
-  EventsTimeSeriesResponse,
-  IngestionMeta,
-} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {getLegacySeriesName} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export type WidgetSeries = Series & {
-  ingestion?: IngestionMeta;
   timeSeries?: TimeSeries;
 };
-
-function hasIngestionMeta(
-  series: Series
-): series is WidgetSeries & {ingestion: IngestionMeta} {
-  return 'ingestion' in series && defined(series.ingestion);
-}
-
-export function getIngestionCompleteThrough(series: Series[]): number | undefined {
-  const timestamps = series
-    .filter(hasIngestionMeta)
-    .map(item => item.ingestion.completeThrough)
-    .filter(defined);
-  return timestamps.length > 0 ? Math.min(...timestamps) : undefined;
-}
 
 /**
  * Transforms the response from `/events-timeseries/` into a structure that matches
@@ -55,7 +36,6 @@ export function transformTimeSeriesResponseToSeries(
         value: item.value ?? 0,
       })),
       timeSeries,
-      ingestion: data.meta?.ingestion,
     }));
 }
 
