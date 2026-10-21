@@ -60,31 +60,7 @@ class Migration(CheckedMigration):
                 "db_table": "seer_workflowtriggerbinding",
             },
         ),
-        # Reuse the deployed schedule_id column; create the replacement index before
-        # dropping the old one so existing cron deduplication stays enforced.
         migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AddConstraint(
-                    model_name="seerworkflowrun",
-                    constraint=models.UniqueConstraint(
-                        fields=("workflow_config", "schedule_id"),
-                        condition=models.Q(schedule_id__isnull=False)
-                        & ~models.Q(extras__contains={"status": "rejected"}),
-                        name="seer_workflowrun_config_trigger_uniq",
-                    ),
-                ),
-                migrations.AddIndex(
-                    model_name="seerworkflowrun",
-                    index=models.Index(
-                        fields=["workflow_config", "schedule_id"],
-                        name="seer_wfrun_config_trigger_idx",
-                    ),
-                ),
-                migrations.RemoveConstraint(
-                    model_name="seerworkflowrun",
-                    name="seer_nightshiftrun_unique_org_config_schedule",
-                ),
-            ],
             state_operations=[
                 migrations.RemoveConstraint(
                     model_name="seerworkflowrun",
@@ -103,17 +79,9 @@ class Migration(CheckedMigration):
                 migrations.AddConstraint(
                     model_name="seerworkflowrun",
                     constraint=models.UniqueConstraint(
-                        fields=("workflow_config", "trigger_key"),
-                        condition=models.Q(trigger_key__isnull=False)
-                        & ~models.Q(extras__contains={"status": "rejected"}),
-                        name="seer_workflowrun_config_trigger_uniq",
-                    ),
-                ),
-                migrations.AddIndex(
-                    model_name="seerworkflowrun",
-                    index=models.Index(
-                        fields=["workflow_config", "trigger_key"],
-                        name="seer_wfrun_config_trigger_idx",
+                        fields=("organization", "workflow_config", "trigger_key"),
+                        condition=models.Q(trigger_key__isnull=False),
+                        name="seer_nightshiftrun_unique_org_config_schedule",
                     ),
                 ),
             ],

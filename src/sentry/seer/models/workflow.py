@@ -171,17 +171,12 @@ class SeerWorkflowRun(DefaultFieldsModel):
             models.Index(fields=["organization", "date_added"]),
             models.Index(fields=["date_added"]),
             models.Index(fields=["workflow_config", "date_added"]),
-            models.Index(
-                fields=["workflow_config", "trigger_key"],
-                name="seer_wfrun_config_trigger_idx",
-            ),
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["workflow_config", "trigger_key"],
-                condition=models.Q(trigger_key__isnull=False)
-                & ~models.Q(extras__contains={"status": "rejected"}),
-                name="seer_workflowrun_config_trigger_uniq",
+                fields=["organization", "workflow_config", "trigger_key"],
+                condition=models.Q(trigger_key__isnull=False),
+                name="seer_nightshiftrun_unique_org_config_schedule",
             ),
         ]
 
