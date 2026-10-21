@@ -282,6 +282,23 @@ function DropdownMenuList({
     }),
     [rootOverlayState, overlayState, state, safetyTriangle]
   );
+  const searchInput = search && (
+    <Search
+      padding={menuTitle ? '0' : undefined}
+      showIcon={search.showIcon}
+      size={search.size}
+      aria-label={search.placeholder ?? 'Search'}
+      placeholder={search.placeholder ?? 'Search…'}
+      value={search.value}
+      onChange={event => search.onChange(event.target.value)}
+      onKeyDown={event => {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          menuRef.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
+        }
+      }}
+    />
+  );
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper
@@ -302,28 +319,12 @@ function DropdownMenuList({
                 }}
               >
                 {menuTitle && (
-                  <Header padding="sm lg" borderBottom={search ? 'none' : 'muted'}>
-                    <Title>{menuTitle}</Title>
+                  <Header padding={search ? 'xs' : 'sm lg'}>
+                    <Title padding={search ? 'sm lg' : undefined}>{menuTitle}</Title>
+                    {searchInput}
                   </Header>
                 )}
-                {search && (
-                  <Search
-                    showIcon={search.showIcon}
-                    size={search.size}
-                    aria-label={search.placeholder ?? 'Search'}
-                    placeholder={search.placeholder ?? 'Search…'}
-                    value={search.value}
-                    onChange={event => search.onChange(event.target.value)}
-                    onKeyDown={event => {
-                      if (event.key === 'ArrowDown') {
-                        event.preventDefault();
-                        menuRef.current
-                          ?.querySelector<HTMLElement>('[role^="menuitem"]')
-                          ?.focus();
-                      }
-                    }}
-                  />
-                )}
+                {!menuTitle && searchInput}
                 <DropdownMenuListWrap
                   ref={menuRef}
                   hasTitle={!!menuTitle}
