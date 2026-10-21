@@ -332,7 +332,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: WebVitalTitle(frame),
+          title: <WebVitalTitle frame={frame} />,
           icon: <IconHappy size="xs" />,
         };
       case 'needs-improvement':
@@ -343,7 +343,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: WebVitalTitle(frame),
+          title: <WebVitalTitle frame={frame} />,
           icon: <IconMeh size="xs" />,
         };
       default:
@@ -354,7 +354,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: WebVitalTitle(frame),
+          title: <WebVitalTitle frame={frame} />,
           icon: <IconSad size="xs" />,
         };
     }
@@ -464,7 +464,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
 };
 
-const MAPPER_DEFAULT = (frame: any): Details => ({
+// Keep this lowercase. React Compiler treats capitalized functions that create
+// JSX as components, and this one is called from event handlers.
+const defaultMapper = (frame: any): Details => ({
   colorGraphicsToken: 'neutral',
   description: frame.message ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,
@@ -474,11 +476,11 @@ const MAPPER_DEFAULT = (frame: any): Details => ({
 
 export function getFrameDetails(frame: ReplayFrame): Details {
   const key = getFrameOpOrCategory(frame);
-  const fn = MAPPER_FOR_FRAME[key] ?? MAPPER_DEFAULT;
+  const fn = MAPPER_FOR_FRAME[key] ?? defaultMapper;
   try {
     return fn(frame);
   } catch (error) {
-    return MAPPER_DEFAULT(frame);
+    return defaultMapper(frame);
   }
 }
 
@@ -517,7 +519,7 @@ function stringifyNodeAttributes(node: ClickFrameNode | undefined) {
   }`;
 }
 
-function WebVitalTitle(frame: WebVitalFrame) {
+function WebVitalTitle({frame}: {frame: WebVitalFrame}) {
   const vitalDefinition = function () {
     switch (frame.description) {
       case 'cumulative-layout-shift':

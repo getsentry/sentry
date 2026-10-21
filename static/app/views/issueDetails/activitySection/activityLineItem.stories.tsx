@@ -1,8 +1,4 @@
-import type {ReactNode} from 'react';
-import {useId, useState} from 'react';
-
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -10,19 +6,17 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/group';
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 const user = {
   id: '1',
@@ -286,6 +280,23 @@ const note = activity(GroupActivityType.NOTE, {
   text: 'This started after the latest deploy.',
 });
 
+const sourceActivities = [
+  {...note, id: 'mcp-claude-code', source: 'mcp:claude-code'},
+  {...activity(GroupActivityType.SET_RESOLVED), source: 'mcp:cursor'},
+  {
+    ...activity(GroupActivityType.ASSIGNED, {assignee: user.id, assigneeType: 'user'}),
+    source: 'mcp:codex',
+  },
+  {...activity(GroupActivityType.SET_IGNORED), source: 'mcp:copilot'},
+  {...activity(GroupActivityType.SET_UNRESOLVED), source: 'mcp'},
+  {...activity(GroupActivityType.SET_RESOLVED), source: 'api'},
+  {...activity(GroupActivityType.SET_RESOLVED, {}, null), source: 'api'},
+  {
+    ...activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {version: 'frontend@1.0.0'}),
+    source: 'sentry-cli',
+  },
+];
+
 const seerPullRequest = {
   provider: 'GitHub',
   pull_request: {
@@ -362,54 +373,17 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
 ]);
 
 export default Storybook.story('Issue Activity', story => {
-  const activityStory = (name: string, render: () => ReactNode) =>
-    story(name, () => <ActivityStory>{render()}</ActivityStory>);
-
-  activityStory('Resolution', () => <ResolutionExamples />);
-  activityStory('Archived', () => <ActivityExamples items={archivedActivities} />);
-  activityStory('Assignment', () => <ActivityExamples items={assignmentActivities} />);
-  activityStory('Priority and escalation', () => (
-    <ActivityExamples items={priorityActivities} />
-  ));
-  activityStory('Source control', () => (
-    <ActivityExamples items={sourceControlActivities} />
-  ));
-  activityStory('Issue changes', () => <ActivityExamples items={issueActivities} />);
-  activityStory('Comments', () => <CommentExample />);
-  activityStory('Seer', () => <ActivityExamples items={seerActivities} />);
-  activityStory('Collapsed Seer', () => (
-    <ActivityFeedExamples items={collapsedSeerActivities} />
-  ));
+  story('Resolution', () => <ResolutionExamples />);
+  story('Archived', () => <ActivityExamples items={archivedActivities} />);
+  story('Assignment', () => <ActivityExamples items={assignmentActivities} />);
+  story('Priority and escalation', () => <ActivityExamples items={priorityActivities} />);
+  story('Source control', () => <ActivityExamples items={sourceControlActivities} />);
+  story('Issue changes', () => <ActivityExamples items={issueActivities} />);
+  story('Comments', () => <CommentExample />);
+  story('Sources', () => <ActivityExamples items={sourceActivities} />);
+  story('Seer', () => <ActivityExamples items={seerActivities} />);
+  story('Collapsed Seer', () => <ActivityFeedExamples items={collapsedSeerActivities} />);
 });
-
-function ActivityStory({children}: {children: ReactNode}) {
-  const checkboxId = useId();
-  const organization = useOrganization();
-  const [showProgress, setShowProgress] = useState(false);
-  const features = organization.features.filter(
-    feature => feature !== 'issue-activity-progress'
-  );
-
-  if (showProgress) {
-    features.push('issue-activity-progress');
-  }
-
-  return (
-    <OrganizationContext.Provider value={{...organization, features}}>
-      <Stack gap="lg">
-        <Flex as="label" align="center" gap="sm" htmlFor={checkboxId}>
-          <Checkbox
-            id={checkboxId}
-            checked={showProgress}
-            onChange={() => setShowProgress(value => !value)}
-          />
-          <Text>Show progress indicators</Text>
-        </Flex>
-        {children}
-      </Stack>
-    </OrganizationContext.Provider>
-  );
-}
 
 function ResolutionExamples() {
   return (
@@ -474,7 +448,7 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
-    <ActivityLineList>
+    <Timeline.Container>
       {items.map((item, index) =>
         item.type === 'activity' && isActivityNote(item.activity) ? (
           <ActivityLineNote
@@ -493,7 +467,7 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
           />
         )
       )}
-    </ActivityLineList>
+    </Timeline.Container>
   );
 }
 
@@ -505,13 +479,13 @@ function CommentExample() {
   }
 
   return (
-    <ActivityLineList>
+    <Timeline.Container>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
         inputVariant="full"
         onDelete={async () => {}}
         onUpdate={async () => {}}
       />
-    </ActivityLineList>
+    </Timeline.Container>
   );
 }

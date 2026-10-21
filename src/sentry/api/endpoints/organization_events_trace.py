@@ -41,7 +41,6 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import base32_encode, format_grouped_length
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id, is_span_id
 
@@ -967,7 +966,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
     ) -> None:
         with traces.start_span(
             name="recording.analytics", attributes={"sentry.op": "recording.analytics"}
-        ):
+        ) as span:
             len_transactions = len(transactions)
 
             sentry_sdk.set_tag("trace_view.trace", trace_id)
@@ -980,7 +979,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             sentry_sdk.set_attribute(
                 "trace_view.transactions.grouped", format_grouped_length(len_transactions)
             )
-            set_span_attribute("trace_view.transactions", len_transactions)
+            span.set_attribute("trace_view.transactions", len_transactions)
 
             projects: set[int] = set()
             for transaction in transactions:
@@ -993,7 +992,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             sentry_sdk.set_attribute(
                 "trace_view.projects.grouped", format_grouped_length(len_projects)
             )
-            set_span_attribute("trace_view.projects", len_projects)
+            span.set_attribute("trace_view.projects", len_projects)
 
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
         if not request.user.is_authenticated:

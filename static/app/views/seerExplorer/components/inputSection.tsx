@@ -165,9 +165,9 @@ export function InputSection({
   // Render disabled input element if not enabled
   if (!enabled) {
     return (
-      <InputBlock>
+      <Container background="primary" width="100%" position="sticky" bottom="0">
         {prLinksBar}
-        <InputRow>
+        <Flex align="end" margin="lg xl" gap="sm">
           <StyledInputGroup>
             <InputGroup.TextArea
               disabled
@@ -180,8 +180,8 @@ export function InputSection({
               data-test-id="seer-explorer-input"
             />
           </StyledInputGroup>
-        </InputRow>
-      </InputBlock>
+        </Flex>
+      </Container>
     );
   }
 
@@ -276,9 +276,9 @@ export function InputSection({
   }
 
   return (
-    <InputBlock>
+    <Container background="primary" width="100%" position="sticky" bottom="0">
       {prLinksBar}
-      <InputRow>
+      <Flex align="end" margin="lg xl" gap="sm">
         <StyledComposer
           isWarningPlaceholder={interruptState === 'completed'}
           ref={composerRef}
@@ -329,8 +329,8 @@ export function InputSection({
             onToggleMenu={onPRWidgetClick}
           />
         )}
-      </InputRow>
-    </InputBlock>
+      </Flex>
+    </Container>
   );
 }
 
@@ -349,19 +349,6 @@ const StyledComposer = styled(Composer, {
 `;
 
 // Styled components
-const InputBlock = styled('div')`
-  width: 100%;
-  background: ${p => p.theme.tokens.background.primary};
-  position: sticky;
-  bottom: 0;
-`;
-
-const InputRow = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  gap: ${p => p.theme.space.sm};
-  margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-`;
 
 const StyledInputGroup = styled(InputGroup)`
   flex: 1;

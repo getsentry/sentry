@@ -1,4 +1,4 @@
-import {createContext, useContext, useId} from 'react';
+import {useId} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
@@ -8,28 +8,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {useAutoSaveIndicator} from './baseField';
 import {useLabelId} from './fieldIds';
-import {GroupProvider} from './groupContext';
+import {GroupProvider, useGroupItemContext, type GroupContextValue} from './groupContext';
 import {FieldMeta} from './meta';
-
-// Context for Radio.Group -> Radio.Item communication
-interface RadioContextValue {
-  'aria-invalid': boolean;
-  disabled: boolean;
-  name: string;
-  onBlur: () => void;
-  onChange: (value: string) => void;
-  selectedValue: string;
-}
-
-const RadioContext = createContext<RadioContextValue | null>(null);
-
-function useRadioContext() {
-  const ctx = useContext(RadioContext);
-  if (!ctx) {
-    throw new Error('Radio.Item must be used within Radio.Group');
-  }
-  return ctx;
-}
 
 // Radio.Group component
 interface RadioGroupProps {
@@ -47,9 +27,9 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
 
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
-  const contextValue: RadioContextValue = {
+  const contextValue: GroupContextValue = {
     name: field.name,
-    selectedValue: value,
+    isChecked: itemValue => itemValue === value,
     onChange: (newValue: string) => {
       onChange(newValue);
       if (autoSaveContext) {
@@ -65,14 +45,12 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
   };
 
   return (
-    <GroupProvider>
-      <RadioContext value={contextValue}>
-        <Flex role="radiogroup" aria-labelledby={labelId} gap="sm" align="center">
-          {children}
-          {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
-          <FieldMeta.Status disabled={disabled} />
-        </Flex>
-      </RadioContext>
+    <GroupProvider value={contextValue}>
+      <Flex role="radiogroup" aria-labelledby={labelId} gap="sm" align="center">
+        {children}
+        {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
+        <FieldMeta.Status disabled={disabled} />
+      </Flex>
     </GroupProvider>
   );
 }
@@ -85,7 +63,7 @@ interface RadioItemProps {
 }
 
 function RadioItem({children, value, description}: RadioItemProps) {
-  const {selectedValue, onChange, ...fieldProps} = useRadioContext();
+  const {checked, onChange, ...fieldProps} = useGroupItemContext(value);
   const descriptionId = useId();
 
   return (
@@ -94,8 +72,8 @@ function RadioItem({children, value, description}: RadioItemProps) {
         {...fieldProps}
         aria-describedby={description ? descriptionId : undefined}
         value={value}
-        checked={selectedValue === value}
-        onChange={() => onChange(value)}
+        checked={checked}
+        onChange={() => onChange(value, true)}
       />
       <Stack gap="xs" paddingTop="xs">
         <Text bold={false}>{children}</Text>

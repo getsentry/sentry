@@ -11,6 +11,7 @@ export function DroppedEventFixture(
     start: 0,
     end: 60_000,
     count: 1,
+    tags: ['unintentional'],
     ...params,
   };
 }

@@ -48,13 +48,14 @@ def serialize_workflow_stats(
 
 
 def fetch_workflow_hourly_stats(
-    workflow: Workflow, start: datetime, end: datetime
+    workflow: Workflow, start: datetime, end: datetime, *, project_ids: Sequence[int]
 ) -> Sequence[TimeSeriesValue]:
     start = start.replace(tzinfo=timezone.utc)
     end = end.replace(tzinfo=timezone.utc)
     qs = (
         WorkflowFireHistory.objects.filter(
             workflow=workflow,
+            group__project_id__in=project_ids,
             date_added__gte=start,
             date_added__lt=end,
         )
