@@ -479,41 +479,35 @@ def test_projection_accepts_visible_broad_scan_steps() -> None:
     assert result["broadScan"]["toolActivity"][0]["id"] == "step-1"
 
 
-def thought_activity(text: str) -> dict[str, Any]:
-    return {
-        "id": "thought-1",
-        "title": "Compare the incident window with the baseline.",
-        "kind": "thought",
-        "status": "completed",
-        "text": text,
-    }
+def thought(text: str, before_activity_id: str | None = "call-1") -> dict[str, Any]:
+    return {"id": "thought-1", "text": text, "beforeActivityId": before_activity_id}
 
 
-def test_projection_accepts_the_agent_reasoning_between_calls() -> None:
+def test_projection_accepts_the_agent_reasoning_beside_its_calls() -> None:
     result = validated(
         OrchestrationProjectionSerializer,
         projection(
             broadScan={
                 "status": "running",
                 "toolActivity": [
-                    thought_activity("Compare the incident window with the baseline."),
-                    {"id": "call-1", "title": "Query spans", "kind": "api", "status": "running"},
+                    {"id": "call-1", "title": "Query spans", "kind": "api", "status": "running"}
+                ],
+                "thoughts": [
+                    thought("Compare the incident window with the baseline."),
+                    thought("That settles it.", before_activity_id=None),
                 ],
             }
         ),
     )
 
-    activity = result["broadScan"]["toolActivity"]
-    assert [entry["kind"] for entry in activity] == ["thought", "api"]
-    assert activity[0]["text"] == "Compare the incident window with the baseline."
+    thoughts = result["broadScan"]["thoughts"]
+    assert [entry["beforeActivityId"] for entry in thoughts] == ["call-1", None]
 
 
 def test_projection_rejects_reasoning_past_its_length_cap() -> None:
     rejects(
         OrchestrationProjectionSerializer,
-        projection(
-            broadScan={"status": "running", "toolActivity": [thought_activity("x" * 1_501)]}
-        ),
+        projection(broadScan={"status": "running", "thoughts": [thought("x" * 1_501)]}),
     )
 
 

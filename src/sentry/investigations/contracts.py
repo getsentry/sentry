@@ -421,10 +421,17 @@ class ProjectionErrorSerializer(RelaxedContractSerializer):
 class ToolActivitySerializer(RelaxedContractSerializer):
     id = StrictCharField(max_length=128)
     title = StrictCharField(max_length=200)
-    # A "thought" is the agent's reasoning before the calls that follow it, carried in `text`.
-    kind = serializers.ChoiceField(choices=["api", "library", "tool", "step", "thought"])
+    kind = serializers.ChoiceField(choices=["api", "library", "tool", "step"])
     status = serializers.ChoiceField(choices=["queued", "running", "completed", "failed"])
-    text = OptionalStrictCharField(MAX_THOUGHT_TEXT_CHARS)
+
+
+class ThoughtSerializer(RelaxedContractSerializer):
+    """The agent's reasoning before the calls that follow it in the same phase's tool activity."""
+
+    id = StrictCharField(max_length=128)
+    text = StrictCharField(max_length=MAX_THOUGHT_TEXT_CHARS)
+    # The tool activity entry this reasoning came before; null until a call follows it.
+    beforeActivityId = OptionalStrictCharField(128)
 
 
 class ProjectScopedSerializer(RelaxedContractSerializer):
@@ -537,6 +544,11 @@ class HypothesisSerializer(RelaxedContractSerializer):
         required=False,
         max_length=MAX_TOOL_ACTIVITIES,
     )
+    thoughts = serializers.ListField(
+        child=ThoughtSerializer(),
+        required=False,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
     evidence = serializers.ListField(
         child=EvidenceSerializer(), required=False, max_length=MAX_EVIDENCE_ITEMS
     )
@@ -557,6 +569,12 @@ class BroadScanSerializer(RelaxedContractSerializer):
     error = ProjectionErrorSerializer(required=False, allow_null=True, default=None)
     toolActivity = serializers.ListField(
         child=ToolActivitySerializer(),
+        required=False,
+        default=list,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
+    thoughts = serializers.ListField(
+        child=ThoughtSerializer(),
         required=False,
         default=list,
         max_length=MAX_TOOL_ACTIVITIES,
@@ -602,6 +620,12 @@ class ReportSerializer(RelaxedContractSerializer):
     currentBlockStatus = serializers.ChoiceField(choices=sorted(WORK_STATUSES), required=False)
     currentBlockToolActivity = serializers.ListField(
         child=ToolActivitySerializer(),
+        required=False,
+        default=list,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
+    currentBlockThoughts = serializers.ListField(
+        child=ThoughtSerializer(),
         required=False,
         default=list,
         max_length=MAX_TOOL_ACTIVITIES,
