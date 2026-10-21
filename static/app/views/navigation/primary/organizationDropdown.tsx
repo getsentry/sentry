@@ -166,6 +166,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                   search: {placeholder: t('Search'), showIcon: false, size: 'sm'},
                   maxMenuHeight: 240,
                   minMenuHeight: 240,
+                  // The submenu is a separate overlay and does not inherit the parent menu width.
                   menuWidth: 258,
                 },
                 hidden: projects.length === 0,
