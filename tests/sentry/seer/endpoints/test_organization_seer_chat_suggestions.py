@@ -68,7 +68,7 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         "sentry.seer.endpoints.organization_seer_chat_suggestions.OrganizationSeerChatSuggestionsEndpoint._can_edit_node_type"
     )
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
-    def test_skips_permission_checks_when_actions_flag_is_off(
+    def test_omits_permissions_when_actions_flag_is_off(
         self, mock_run_oneshot: MagicMock, mock_can_edit_node_type: MagicMock
     ) -> None:
         mock_run_oneshot.return_value = {"suggestions": []}
@@ -85,8 +85,8 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
 
         payload = mock_run_oneshot.call_args.args[1]
         assert payload["actions_enabled"] is False
-        assert payload["can_create_alerts"] is False
-        assert payload["can_edit_node_type"] is None
+        assert "can_create_alerts" not in payload
+        assert "can_edit_node_type" not in payload
         mock_can_edit_node_type.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")

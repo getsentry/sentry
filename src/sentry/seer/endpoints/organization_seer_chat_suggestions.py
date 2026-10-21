@@ -119,15 +119,6 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         actions_enabled = features.has(
             "organizations:seer-chat-suggestions-actions", organization, actor=request.user
         )
-        # Permission checks only matter for action suggestions, so skip them when those are off.
-        can_create_alerts = False
-        can_edit_node_type = None
-        if actions_enabled:
-            can_create_alerts = any(
-                request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
-            )
-            can_edit_node_type = self._can_edit_node_type(request, organization, route_params)
-
         payload = {
             **data,
             "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
@@ -138,11 +129,17 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             ),
             "actions_enabled": actions_enabled,
-            # Whether the user has permission to create alerts and monitors.
-            "can_create_alerts": can_create_alerts,
-            # The page's context node type, if the user can edit its item.
-            "can_edit_node_type": can_edit_node_type,
         }
+        # Permission checks only matter for action suggestions, so skip them when those are off.
+        if actions_enabled:
+            # Whether the user has permission to create alerts and monitors.
+            payload["can_create_alerts"] = any(
+                request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
+            )
+            # The page's context node type, if the user can edit its item.
+            payload["can_edit_node_type"] = self._can_edit_node_type(
+                request, organization, route_params
+            )
 
         try:
             result = run_oneshot(
