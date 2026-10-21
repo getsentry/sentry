@@ -99,20 +99,24 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
         if integration:
             installation_id = integration.external_id
 
-    return cast(
-        Repository,
-        {
-            "external_id": repo.external_id,
-            "id": repo.id,
-            "integration_id": repo.integration_id,
-            "is_active": repo.status == ObjectStatus.ACTIVE,
-            "name": repo.name,
-            "organization_id": repo.organization_id,
-            "provider_name": provider_name,
-            "web_base_url": web_base_url,
-            "installation_id": installation_id,
-        },
-    )
+    repository: dict[str, object] = {
+        "external_id": repo.external_id,
+        "id": repo.id,
+        "integration_id": repo.integration_id,
+        "is_active": repo.status == ObjectStatus.ACTIVE,
+        "name": repo.name,
+        "organization_id": repo.organization_id,
+        "provider_name": provider_name,
+        "web_base_url": web_base_url,
+        "installation_id": installation_id,
+    }
+    # A GitLab repository's name is its display name ("Group / Project"), which can't be used to
+    # address the project on its host, e.g. in a clone URL. The project's real path is only kept
+    # in its config.
+    if provider_name == "gitlab":
+        repository["path"] = repo.config.get("path")
+
+    return cast(Repository, repository)
 
 
 def report_error_to_sentry(e: Exception) -> None:
