@@ -814,7 +814,8 @@ def _apply_snapshot(
         metadata = {**metadata, "reportRevision": revision}
         metadata = _validate_event_payload("metadata_completed", metadata)
         _complete_metadata(run, metadata, bump=False)
-    if "actionRequests" in payload:
+    # An older snapshot doesn't clear the report, so its list isn't the full current one.
+    if "actionRequests" in payload and revision == _report_revision(run):
         _sync_snapshot_action_requests(run, payload["actionRequests"])
     _bump_notebook(run, run.investigation)
 

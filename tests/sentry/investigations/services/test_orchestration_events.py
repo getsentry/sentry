@@ -2887,6 +2887,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "other": InvestigationActionRequestState.SUGGESTED,
         }
 
+    def test_an_older_snapshot_with_blocks_leaves_current_requests_alone(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+        self.deliver_request(2, self.action_request("current", reportRevision=2, primary=True))
+
+        self.deliver(self.completed_snapshot(3, reportRevision=1, blocks=[], actionRequests=[]))
+
+        assert self.request_states() == {"current": InvestigationActionRequestState.SUGGESTED}
+
     def test_snapshot_without_action_requests_leaves_them_alone(self) -> None:
         self.create_investigation_action_request(investigation=self.investigation, key="current")
 
