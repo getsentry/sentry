@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useEffect, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -12,6 +12,7 @@ import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   decodeMetricsQueryParams,
+  defaultMetricQuery,
   encodeMetricQueryParams,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {
@@ -59,6 +60,28 @@ function Wrapper({children}: {children: ReactNode}) {
   return (
     <MultiMetricsQueryParamsProvider>
       <TestableMetricComponent />
+      {children}
+    </MultiMetricsQueryParamsProvider>
+  );
+}
+
+function SelectMetricWhenEmpty({index}: {index: number}) {
+  const {metric, setTraceMetric} = useMultiMetricsQueryParams()[index]!;
+
+  useEffect(() => {
+    if (!metric.name) {
+      setTraceMetric({name: `metric${index}`, type: 'counter'});
+    }
+  }, [index, metric.name, setTraceMetric]);
+
+  return null;
+}
+
+function SelectMetricsWhenEmptyWrapper({children}: {children: ReactNode}) {
+  return (
+    <MultiMetricsQueryParamsProvider>
+      <SelectMetricWhenEmpty index={0} />
+      <SelectMetricWhenEmpty index={1} />
       {children}
     </MultiMetricsQueryParamsProvider>
   );
@@ -646,6 +669,26 @@ describe('MultiMetricsQueryParamsProvider', () => {
     ).toEqual(['', 'span.op:db', '']);
     expect(result.current.metricQueries[2]!.queryParams.visualizes[0]).toBeInstanceOf(
       VisualizeEquation
+    );
+  });
+
+  it('keeps every update made by panels as they mount', async () => {
+    const emptyMetricQuery = encodeMetricQueryParams(defaultMetricQuery());
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: SelectMetricsWhenEmptyWrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {metric: [emptyMetricQuery, emptyMetricQuery]},
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(result.current.map(metricQuery => metricQuery.metric.name)).toEqual([
+        'metric0',
+        'metric1',
+      ])
     );
   });
 

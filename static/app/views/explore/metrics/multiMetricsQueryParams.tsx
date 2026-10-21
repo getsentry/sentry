@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
   type SetStateAction,
@@ -61,17 +62,31 @@ export function MultiMetricsQueryParamsProvider({
 
   const queries = useMemo(() => decodeMetricQueries(rawQueries), [rawQueries]);
 
+  // nuqs only sees its own writes once this provider's effects subscribe, which
+  // is after children's mount effects. Until a write flushes, build on it here
+  // so a second write in the same mount doesn't start from the stale URL.
+  const pendingRawQueries = useRef<string[] | null>(null);
+
   const setQueries = useCallback(
     (update: SetStateAction<BaseMetricQuery[]>) => {
-      void setRawQueries(({metric: previousRawQueries}) => {
+      let nextRawQueries: string[] | undefined;
+      const flushed = setRawQueries(({metric: stateRawQueries}) => {
+        const previousRawQueries = pendingRawQueries.current ?? stateRawQueries;
         const nextQueries =
           typeof update === 'function'
             ? update(decodeMetricQueries(previousRawQueries))
             : update;
-        const nextRawQueries = encodeMetricQueries(nextQueries);
-        return isEqual(nextRawQueries, previousRawQueries)
-          ? {}
-          : {metric: nextRawQueries};
+        nextRawQueries = encodeMetricQueries(nextQueries);
+        if (isEqual(nextRawQueries, previousRawQueries)) {
+          return {};
+        }
+        pendingRawQueries.current = nextRawQueries;
+        return {metric: nextRawQueries};
+      });
+      void flushed.finally(() => {
+        if (pendingRawQueries.current === nextRawQueries) {
+          pendingRawQueries.current = null;
+        }
       });
     },
     [setRawQueries]
