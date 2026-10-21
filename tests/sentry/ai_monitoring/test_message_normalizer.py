@@ -1,11 +1,9 @@
 import json  # noqa: S003
 from typing import Any
-from unittest.mock import patch
 
 from sentry.ai_monitoring.message_normalizer import (
     EMPTY_TEXT_CONTENT,
     extract_assistant_output,
-    normalize_ai_span,
     normalize_to_messages,
     stringify_message_content,
 )
@@ -423,100 +421,3 @@ class TestStringifyMessageContent:
 
     def test_json_encodes_structured_content(self) -> None:
         assert stringify_message_content({"question": "Weather?"}) == '{"question": "Weather?"}'
-
-
-class TestNormalizeAISpan:
-    def test_decoder_recursion_limit_preserves_raw_structured_payload(self) -> None:
-        raw = '["value"]'
-        with patch(
-            "sentry.ai_monitoring.message_normalizer.json.loads", side_effect=RecursionError
-        ):
-            result = normalize_ai_span(
-                {"span_id": "span-1", "gen_ai.input.messages": raw, "gen_ai.response.object": raw}
-            )
-        assert result["inputMessages"] == [{"role": "user", "content": "value"}]
-        assert result["responseObject"] == raw
-
-    def test_messages_instructions_and_structured_output(self) -> None:
-        row = {
-            "span_id": "generation-1",
-            "trace": "trace-1",
-            "project.id": 1,
-            "gen_ai.input.messages": json_string([{"role": "user", "content": "hello"}]),
-            "gen_ai.system_instructions": "Be helpful",
-            "gen_ai.output.messages": json_string(
-                [
-                    {
-                        "role": "assistant",
-                        "parts": [
-                            {"type": "reasoning", "text": "considering"},
-                            {"type": "text", "text": "answer"},
-                            {"type": "object", "data": {"answer": 42}},
-                            {
-                                "type": "tool_call",
-                                "id": "call-1",
-                                "name": "lookup",
-                                "arguments": {"query": "hello"},
-                            },
-                        ],
-                    }
-                ]
-            ),
-        }
-        result = normalize_ai_span(row)
-        assert result["spanId"] == "generation-1"
-        assert result["traceId"] == "trace-1"
-        assert result["projectId"] == "1"
-        assert result["inputMessages"] == [{"role": "user", "content": "hello"}]
-        assert result["systemInstructions"] == [{"role": "system", "content": "Be helpful"}]
-        assert result["responseText"] == "answer"
-        assert result["reasoning"] == "considering"
-        assert result["responseObject"] == {"type": "object", "data": {"answer": 42}}
-        assert result["toolCalls"] == [
-            {"type": "tool_call", "id": "call-1", "name": "lookup", "arguments": {"query": "hello"}}
-        ]
-
-    def test_tool_status_errors_and_results(self) -> None:
-        result = normalize_ai_span(
-            {
-                "span_id": "tool-1",
-                "gen_ai.tool.name": "lookup",
-                "span.status": "internal_error",
-                "gen_ai.tool.call.arguments": '{"query":"hello"}',
-                "gen_ai.tool.call.result": '{"error":"unavailable"}',
-                "errors": [{"issue_id": 1, "event_id": "event-1"}],
-            }
-        )
-        assert result["status"] == "internal_error"
-        assert result["errors"] == [{"issue_id": 1, "event_id": "event-1"}]
-        assert result["toolName"] == "lookup"
-        assert result["toolArguments"] == {"query": "hello"}
-        assert result["toolResult"] == {"error": "unavailable"}
-
-    def test_unsupported_payloads_are_preserved(self) -> None:
-        result = normalize_ai_span(
-            {
-                "span_id": "tool-1",
-                "gen_ai.tool.call.arguments": "{broken",
-                "anthropic.tool_result.content": "<unsupported>payload</unsupported>",
-                "gen_ai.response.object": '{"answer":42}',
-            }
-        )
-        assert result["toolArguments"] == "{broken"
-        assert result["toolResult"] == "<unsupported>payload</unsupported>"
-        assert result["responseObject"] == {"answer": 42}
-        assert result["errors"] == []
-        assert result["inputMessages"] is None
-
-    def test_canonical_input_and_result_take_priority(self) -> None:
-        result = normalize_ai_span(
-            {
-                "span_id": "tool-1",
-                "gen_ai.input.messages": "canonical",
-                "gen_ai.request.messages": "legacy",
-                "gen_ai.tool.call.result": "false",
-                "anthropic.tool_result.content": "legacy result",
-            }
-        )
-        assert result["inputMessages"] == [{"role": "user", "content": "canonical"}]
-        assert result["toolResult"] is False

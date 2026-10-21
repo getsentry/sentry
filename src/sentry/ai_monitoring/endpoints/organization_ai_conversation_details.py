@@ -21,10 +21,10 @@ from sentry.ai_monitoring.conversation_aggregates import (
     parse_conversation_aggregates,
 )
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
-from sentry.ai_monitoring.message_normalizer import NormalizedAISpan, normalize_ai_span
 from sentry.ai_monitoring.transcript.builder import TranscriptContextError
 from sentry.ai_monitoring.transcript.cursor import decode_cursor, encode_cursor
 from sentry.ai_monitoring.transcript.models import TranscriptMessageResponse
+from sentry.ai_monitoring.transcript.normalized_span import NormalizedAISpan, normalize_ai_span
 from sentry.ai_monitoring.transcript.pagination import (
     StreamPosition,
     TranscriptPosition,
@@ -822,8 +822,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         conversation_id: str,
         offset: int,
         limit: int,
-        *,
-        stable_order: bool = False,
     ) -> AIConversationQueryResult:
         query_string = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
         resolver = Spans.get_resolver(
@@ -839,9 +837,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 name="spans",
                 query_string=query_string,
                 selected_columns=AI_CONVERSATION_ATTRIBUTES,
-                orderby=["precise.start_ts", "trace", "span_id"]
-                if stable_order
-                else ["precise.start_ts"],
+                orderby=["precise.start_ts"],
                 offset=offset,
                 limit=limit,
                 referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,

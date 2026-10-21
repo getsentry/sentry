@@ -1239,7 +1239,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
     def _store_error_on_span(self, trace_id, span_id, timestamp, project=None):
         project = project or self.project
         error_data = load_data("javascript", timestamp=timestamp)
-        assert error_data is not None
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": trace_id,
@@ -1402,7 +1401,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         span_id = span["span_id"]
 
         event_data = load_data("transaction", timestamp=now)
-        assert event_data is not None
         event_data["contexts"]["trace"]["trace_id"] = trace_id
         event_data["contexts"]["trace"]["span_id"] = span_id
         event = self.store_event(event_data, project_id=self.project.id)
