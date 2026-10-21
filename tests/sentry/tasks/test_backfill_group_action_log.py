@@ -12,6 +12,7 @@ from sentry import options as real_options
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -626,13 +627,16 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         with patch.object(
             enroll_organization_projects_for_group_action_log_backfill, "apply_async"
         ) as mock_apply:
-            enroll_projects_for_group_action_log_backfill()
+            enroll_projects_for_group_action_log_backfill(chain_backfill=True)
 
         dispatched_organization_ids = {
             call.kwargs["kwargs"]["organization_id"] for call in mock_apply.call_args_list
         }
         assert dispatched_organization_ids == {first_organization.id, second_organization.id}
         assert inactive_organization.id not in dispatched_organization_ids
+        assert all(
+            call.kwargs["kwargs"]["chain_backfill"] is True for call in mock_apply.call_args_list
+        )
 
     def test_enrolls_only_eligible_legacy_projects_without_state(self) -> None:
         organization = self.create_organization()
@@ -650,17 +654,21 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         inactive_project.update(status=1)
         assert legacy_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
 
-        with self._project_feature_results(
-            {
-                legacy_project.id,
-                missing_epoch_project.id,
-                already_enrolled_project.id,
-                completed_project.id,
-                new_project.id,
-            }
-        ) as mock_has:
+        with (
+            self._project_feature_results(
+                {
+                    legacy_project.id,
+                    missing_epoch_project.id,
+                    already_enrolled_project.id,
+                    completed_project.id,
+                    new_project.id,
+                }
+            ) as mock_has,
+            patch.object(backfill_group_action_log_for_project, "apply_async") as dispatch,
+        ):
             enroll_organization_projects_for_group_action_log_backfill(organization.id)
 
+        dispatch.assert_not_called()
         assert mock_has.call_args_list == [
             mock_call("projects:issue-action-log-write-to-db", legacy_project),
             mock_call("projects:issue-action-log-write-to-db", missing_epoch_project),
@@ -701,10 +709,11 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
                 enroll_projects_for_group_action_log_backfill, "apply_async"
             ) as mock_apply,
         ):
-            enroll_projects_for_group_action_log_backfill()
+            enroll_projects_for_group_action_log_backfill(chain_backfill=True)
 
         mock_apply.assert_called_once()
         assert mock_apply.call_args.kwargs["kwargs"]["last_organization_id"] > 0
+        assert mock_apply.call_args.kwargs["kwargs"]["chain_backfill"] is True
 
     def test_project_enrollment_self_chains(self) -> None:
         organization = self.create_organization()
@@ -718,11 +727,105 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
             ) as mock_apply,
             self._project_feature_results(set()),
         ):
-            enroll_organization_projects_for_group_action_log_backfill(organization.id)
+            enroll_organization_projects_for_group_action_log_backfill(
+                organization.id, chain_backfill=True
+            )
 
         mock_apply.assert_called_once()
         assert mock_apply.call_args.kwargs["kwargs"]["organization_id"] == organization.id
         assert mock_apply.call_args.kwargs["kwargs"]["last_project_id"] > 0
+        assert mock_apply.call_args.kwargs["kwargs"]["chain_backfill"] is True
+
+    def test_chains_backfill_after_enrolling_pending_projects(self) -> None:
+        organization = self.create_organization()
+        legacy_project = self.create_project(organization=organization)
+        null_project = self.create_project(organization=organization)
+        pending_project = self.create_project(organization=organization)
+        completed_project = self.create_project(organization=organization)
+        new_project = self.create_project(organization=organization)
+        ineligible_project = self.create_project(organization=organization)
+        legacy_project.update_option("sentry:option-epoch", 15)
+        null_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, None)
+        pending_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
+        completed_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        ineligible_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
+        expected_ids = {legacy_project.id, null_project.id, pending_project.id}
+
+        def dispatch_after_enrollment(**kwargs: Any) -> None:
+            project_id = kwargs["kwargs"]["project_id"]
+            assert (
+                ProjectOption.objects.get(
+                    project_id=project_id, key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
+                ).value
+                is False
+            )
+
+        with (
+            self._project_feature_results(
+                {
+                    legacy_project.id,
+                    null_project.id,
+                    pending_project.id,
+                    completed_project.id,
+                    new_project.id,
+                }
+            ),
+            patch.object(
+                backfill_group_action_log_for_project,
+                "apply_async",
+                side_effect=dispatch_after_enrollment,
+            ) as dispatch,
+        ):
+            enroll_organization_projects_for_group_action_log_backfill(
+                organization.id, chain_backfill=True
+            )
+
+        assert {
+            call.kwargs["kwargs"]["project_id"] for call in dispatch.call_args_list
+        } == expected_ids
+        for call in dispatch.call_args_list:
+            assert call.kwargs["kwargs"] == {
+                "project_id": call.kwargs["kwargs"]["project_id"],
+                "reset": False,
+                "chain_pr_lifecycle": True,
+            }
+
+        # Reruns dispatch pending projects and skip completed projects.
+        legacy_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        with (
+            self._project_feature_results(expected_ids),
+            patch.object(backfill_group_action_log_for_project, "apply_async") as dispatch,
+        ):
+            enroll_organization_projects_for_group_action_log_backfill(
+                organization.id, chain_backfill=True
+            )
+        assert {call.kwargs["kwargs"]["project_id"] for call in dispatch.call_args_list} == {
+            null_project.id,
+            pending_project.id,
+        }
+
+    def test_chained_enrollment_finishes_backfill(self) -> None:
+        project = self.create_project()
+        project.update_option("sentry:option-epoch", 15)
+        group = self.create_group(project=project)
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            activity = self.create_group_activity(
+                group=group, type=ActivityType.SET_RESOLVED.value, data={}
+            )
+
+        with self.tasks():
+            enroll_projects_for_group_action_log_backfill(chain_backfill=True)
+
+        assert project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+        assert (
+            GroupActionLogEntry.objects.get(
+                group_id=group.id, idempotency_key=f"activity:{activity.id}"
+            ).type
+            == GroupActionType.RESOLVE
+        )
+        derived = GroupDerivedData.objects.get(group_id=group.id)
+        assert derived.pipeline_hash is not None
+        assert derived.data["status"] == "closed"
 
 
 class BackfillGroupActionLogForAllProjectsTest(TestCase):

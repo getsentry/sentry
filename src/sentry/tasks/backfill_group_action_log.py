@@ -387,8 +387,10 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
 def enroll_organization_projects_for_group_action_log_backfill(
     organization_id: int,
     last_project_id: int = 0,
+    chain_backfill: bool = False,
     **kwargs: object,
 ) -> None:
+    """Enroll an organization's projects and optionally start their backfills."""
     task_state = current_task()
     activation_id = task_state.id if task_state else None
     if activation_id and already_spawned(_ORGANIZATION_ENROLLMENT_TASK_KEY, activation_id):
@@ -446,21 +448,22 @@ def enroll_organization_projects_for_group_action_log_backfill(
         project for project in projects if features.has(_GROUP_ACTION_LOG_WRITE_FEATURE, project)
     ]
 
-    backfill_states = ProjectOption.objects.get_value_bulk(
-        eligible_projects, GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
-    )
+    backfill_states = {
+        option.project_id: option.value
+        for option in ProjectOption.objects.filter(
+            project__in=eligible_projects, key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
+        )
+    }
     projects_to_enroll = []
     for project in eligible_projects:
-        # Note that backfill_states[project] uses get_value_bulk, which will return None, ignoring the default
-        # project option value of True. This is good for us here, since we want to only enroll projects that
-        # explicitly have a None value.
-        if backfill_states[project] is not None:
+        if backfill_states.get(project.id) is not None:
             continue
         default_backfill_state = projectoptions.get_well_known_default(
             GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
             project=project,
         )
-        if default_backfill_state is not True:
+        # An explicit null overrides the epoch default and still needs backfilling.
+        if project.id in backfill_states or default_backfill_state is not True:
             projects_to_enroll.append(project)
 
     ProjectOption.objects.bulk_create(
@@ -474,12 +477,33 @@ def enroll_organization_projects_for_group_action_log_backfill(
         ],
         ignore_conflicts=True,
     )
+    ProjectOption.objects.filter(
+        project__in=projects_to_enroll,
+        key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+    ).exclude(value=True).update(value=False)
     for project in projects_to_enroll:
         ProjectOption.objects.reload_cache(
             project.id,
             "group_action_log_backfill.enrollment",
             GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
         )
+
+    if chain_backfill:
+        # Include pending projects from earlier enrollment attempts.
+        pending_project_ids = ProjectOption.objects.filter(
+            project__in=eligible_projects,
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+            value=False,
+        ).values_list("project_id", flat=True)
+        for project_id in pending_project_ids:
+            backfill_group_action_log_for_project.apply_async(
+                kwargs={
+                    "project_id": project_id,
+                    "reset": False,
+                    "chain_pr_lifecycle": True,
+                },
+                headers={"sentry-propagate-traces": False},
+            )
 
     logger.info(
         "backfill_group_action_log.organization_enrollment.batch_completed",
@@ -497,6 +521,7 @@ def enroll_organization_projects_for_group_action_log_backfill(
             kwargs={
                 "organization_id": organization_id,
                 "last_project_id": projects[-1].id,
+                "chain_backfill": chain_backfill,
             },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
@@ -514,9 +539,10 @@ def enroll_organization_projects_for_group_action_log_backfill(
 )
 def enroll_projects_for_group_action_log_backfill(
     last_organization_id: int = 0,
+    chain_backfill: bool = False,
     **kwargs: object,
 ) -> None:
-    """Dispatch project enrollment for active organizations."""
+    """Dispatch enrollment and optional backfills for active organizations."""
     task_state = current_task()
     activation_id = task_state.id if task_state else None
     if activation_id and already_spawned(_ENROLLMENT_TASK_KEY, activation_id):
@@ -559,7 +585,7 @@ def enroll_projects_for_group_action_log_backfill(
 
     for organization in organizations:
         enroll_organization_projects_for_group_action_log_backfill.apply_async(
-            kwargs={"organization_id": organization.id},
+            kwargs={"organization_id": organization.id, "chain_backfill": chain_backfill},
             headers={"sentry-propagate-traces": False},
         )
 
@@ -574,7 +600,10 @@ def enroll_projects_for_group_action_log_backfill(
 
     if len(organizations) == batch_size:
         enroll_projects_for_group_action_log_backfill.apply_async(
-            kwargs={"last_organization_id": organizations[-1].id},
+            kwargs={
+                "last_organization_id": organizations[-1].id,
+                "chain_backfill": chain_backfill,
+            },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
         )
