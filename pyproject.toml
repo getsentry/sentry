@@ -108,7 +108,7 @@ dependencies = [
   "sqlparse>=0.5.0",
   "statsd>=3.3.0",
   "structlog>=22.1.0",
-  "symbolic>=14.0.0a4",
+  "symbolic>=13.1.1",
   "taskbroker-client>=0.20.29",
   "tiktoken>=0.8.0",
   "tokenizers>=0.22.0",
@@ -421,7 +421,6 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = [
     "bitfield.*",
-    "django_picklefield.*",
     "fixtures.apidocs_test_case",
     "fixtures.gitlab",
     "fixtures.integrations.jira.mock",
@@ -702,7 +701,6 @@ module = [
     "sentry.db.models.fields.jsonfield",
     "sentry.db.models.fields.node",
     "sentry.db.models.fields.onetoone",
-    "sentry.db.models.fields.picklefield",
     "sentry.db.models.fields.slug",
     "sentry.db.models.fields.text",
     "sentry.db.models.fields.uuid",
