@@ -38,6 +38,7 @@ import {
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
 } from 'sentry/views/investigations/fixtures';
+import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {
   SeerExplorerContext,
   useSeerExplorerContext,
@@ -1677,6 +1678,7 @@ describe('Investigation detail', () => {
         block: {
           id: 'block-2',
           version: 1,
+          position: 1,
           title: 'Latency query',
           kind: 'query',
           output: InvestigationQueryOutputFixture(),
@@ -1706,6 +1708,7 @@ describe('Investigation detail', () => {
         block: {
           id: 'block-1',
           version: 1,
+          position: 0,
           title: 'Summary',
           kind: 'text',
           output: {markdown: 'Initial notes'},
@@ -2982,7 +2985,9 @@ describe('Investigation detail', () => {
     expect(openChatPrompt).toHaveBeenCalledTimes(1);
     const {prompt, context} = openChatPrompt.mock.calls[0][0];
     expect(prompt).toBe('What would you like to know about this investigation?');
-    expect(context.investigation).toEqual(
+    // The investigation's node, with its hypotheses and blocks beneath it.
+    expect(context.nodeType).toBe('investigation');
+    expect(context.data).toEqual(
       expect.objectContaining({
         id: 'investigation-1',
         title: 'Investigate database latency',
@@ -2991,8 +2996,13 @@ describe('Investigation detail', () => {
         runPhase: 'reporting',
       })
     );
-    expect(context.hypotheses).toHaveLength(3);
-    expect(context.hypotheses[0]).toEqual(
+    const childData = (nodeType: string) =>
+      context.children
+        .filter((child: LLMContextNodeSnapshot) => child.nodeType === nodeType)
+        .map((child: LLMContextNodeSnapshot) => child.data);
+    const hypotheses = childData('investigation-hypothesis');
+    expect(hypotheses).toHaveLength(3);
+    expect(hypotheses).toContainEqual(
       expect.objectContaining({
         number: 1,
         statement: 'Database or cache degradation delayed the response',
@@ -3001,10 +3011,11 @@ describe('Investigation detail', () => {
       })
     );
     // Only the blocks on screen: the query has no result yet, so it is hidden.
-    expect(context.blocks).toEqual([
+    expect(childData('investigation-block')).toEqual([
       {
         id: 'block-1',
         version: 1,
+        position: 0,
         title: 'Summary',
         kind: 'text',
         output: {markdown: 'Initial notes'},

@@ -17,6 +17,7 @@ import {
   getHypothesisCardBorder,
   HypothesisStatus,
 } from 'sentry/views/investigations/hypotheses/hypothesisStatus';
+import {HypothesisLLMContext} from 'sentry/views/investigations/investigationLLMContext';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 
 /** States where missing checks mean "not yet"; anything else finished without them. */
@@ -95,6 +96,7 @@ export function HypothesisCard({
       data-primary={isPrimary}
       data-test-id="investigation-hypothesis"
     >
+      <HypothesisLLMContext hypothesis={hypothesis} isConclusion={isPrimary} />
       <Flex justify="between" align="center" gap="sm">
         <Flex align="center" gap="md" wrap="wrap" minWidth={0}>
           <HypothesisNumber size="xs" variant="muted" tabular>

@@ -33,11 +33,12 @@ import {
   useResumeInvestigationExecutionMutation,
   useStopInvestigationExecutionMutation,
 } from 'sentry/views/investigations/api';
-import {
-  getBlockChatPrompt,
-  useInvestigationAskSeer,
-} from 'sentry/views/investigations/askSeer';
 import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
+import {
+  getBlockLLMContext,
+  getInvestigationReference,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/investigationLLMContext';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
@@ -51,6 +52,8 @@ import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {MessagePlaceholder} from 'sentry/views/seerExplorer/components/chat/shared';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -62,7 +65,7 @@ type InvestigationNotebookBlockProps = {
   onComment?: (blockId: string) => void;
 };
 
-export function InvestigationNotebookBlock({
+function InvestigationNotebookBlockInner({
   block,
   canRun,
   investigation,
@@ -86,6 +89,10 @@ export function InvestigationNotebookBlock({
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
   );
+  // Push the block into the LLM context tree for Seer Explorer. The same object
+  // is the context when "Ask Seer" asks about this block.
+  const blockLLMContext = getBlockLLMContext(block);
+  useLLMContext(blockLLMContext);
   const askSeer = useInvestigationAskSeer();
   const progressState = getBlockProgressState(block, investigation.blocks ?? []);
   const executionId = block.currentExecution?.id;
@@ -141,7 +148,16 @@ export function InvestigationNotebookBlock({
   }, [awaitingInput, activeExecutionId]);
 
   const handleAskSeer = askSeer
-    ? () => askSeer(getBlockChatPrompt({block, investigation}))
+    ? () =>
+        askSeer({
+          prompt: block.title
+            ? t('How would you like to refine or explore "%s"?', block.title)
+            : t('How would you like to refine or explore this block?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            block: blockLLMContext,
+          },
+        })
     : undefined;
 
   const actionItems: MenuItemProps[] = [
@@ -279,6 +295,11 @@ export function InvestigationNotebookBlock({
     </Stack>
   );
 }
+
+export const InvestigationNotebookBlock = registerLLMContext(
+  'investigation-block',
+  InvestigationNotebookBlockInner
+);
 
 function BlockResult({
   actions,
