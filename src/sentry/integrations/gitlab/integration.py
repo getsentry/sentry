@@ -42,6 +42,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -245,7 +246,12 @@ class GitlabIntegration(
             raise IntegrationConfigurationError(self.message_from_error(e)) from e
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+        # base_url carries the instance's path prefix, and the group path is what tells
+        # integrations on one instance apart. Installs from before October 2018 can
+        # store base_url with a trailing slash.
+        base_url = self.model.metadata["base_url"].rstrip("/")
+        group_path = self.model.metadata["domain_name"].partition("/")[2]
+        return url_is_under(url, f"{base_url}/{group_path}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]

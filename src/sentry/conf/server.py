@@ -3290,7 +3290,7 @@ SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
 SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
-    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "path": "sentry.utils.locking.backends.redis.RedisClusterLockBackend",
     "options": {"cluster": "default"},
 }
 
@@ -3384,7 +3384,6 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # the service is assumed to be healthy.
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
-    "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-store-transactions": {},
     "processing-locks": {"redis": "default"},

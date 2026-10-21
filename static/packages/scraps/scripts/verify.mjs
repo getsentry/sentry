@@ -152,6 +152,7 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
   );
   const {Hotkey} = await import(join(installed, 'dist/hotkey/index.js'));
   const {lightTheme, darkTheme} = await import(join(installed, 'dist/theme/index.js'));
+  const {Tooltip} = await import(join(installed, 'dist/tooltip/index.js'));
   for (const theme of [lightTheme, darkTheme]) {
     const html = renderToStaticMarkup(
       createElement(
@@ -192,7 +193,8 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
             {to: {pathname: '/issues/', query: {query: 'error'}, hash: 'details'}},
             'Package link'
           ),
-          createElement(ExternalLink, {href: 'https://example.com'}, 'External link')
+          createElement(ExternalLink, {href: 'https://example.com'}, 'External link'),
+          createElement(Tooltip, {title: 'Help'}, 'Tooltip trigger')
         )
       )
     );
@@ -218,6 +220,7 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       'type="radio"',
       'aria-label="Online"',
       'aria-label="⇧"',
+      'Tooltip trigger',
     ]) {
       if (!html.includes(label)) {
         throw new Error(`Server render failed for ${label}`);
