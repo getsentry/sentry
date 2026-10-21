@@ -223,6 +223,27 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
         return;
       }
 
+      if (e.key === 'ArrowRight' && document.activeElement === innerWrapRef.current) {
+        const nestedButton = innerWrapRef.current?.querySelector<HTMLButtonElement>(
+          'button:not(:disabled)'
+        );
+        if (nestedButton) {
+          e.preventDefault();
+          nestedButton.focus();
+          return;
+        }
+      }
+
+      if (
+        e.key === 'ArrowLeft' &&
+        innerWrapRef.current?.contains(document.activeElement) &&
+        document.activeElement !== innerWrapRef.current
+      ) {
+        e.preventDefault();
+        innerWrapRef.current.focus();
+        return;
+      }
+
       e.continuePropagation();
     },
   });
@@ -308,8 +329,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       innerWrapProps={{
         ...mergedMenuItemContentProps,
         onPointerDownCapture: markNestedControlPress,
-        onMouseDownCapture: markNestedControlPress,
-        onTouchStartCapture: markNestedControlPress,
         onKeyDownCapture: markNestedControlPress,
         onClickCapture: markNestedControlPress,
         onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {

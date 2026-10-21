@@ -222,6 +222,7 @@ function DropdownMenuList({
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef<HTMLUListElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
 
@@ -229,6 +230,26 @@ function DropdownMenuList({
   // root menu).
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
+      const menuItems = menuRef.current?.querySelectorAll('[role^="menuitem"]');
+      if (
+        e.key === 'ArrowDown' &&
+        searchRef.current &&
+        menuRef.current &&
+        e.target === menuItems?.item(menuItems.length - 1)
+      ) {
+        menuRef.current.scrollTop = 0;
+      }
+      if (
+        e.key === 'ArrowUp' &&
+        searchRef.current &&
+        menuRef.current &&
+        document.activeElement === menuRef.current.querySelector('[role^="menuitem"]')
+      ) {
+        e.preventDefault();
+        menuRef.current.scrollTop = 0;
+        searchRef.current.focus();
+        return;
+      }
       if (e.key === 'ArrowLeft' && parentMenuState) {
         parentMenuState.selectionManager.clearSelection();
         return;
@@ -284,6 +305,7 @@ function DropdownMenuList({
   );
   const searchInput = search && (
     <Search
+      ref={searchRef}
       padding={menuTitle ? '0' : undefined}
       showIcon={search.showIcon}
       size={search.size}
@@ -299,11 +321,21 @@ function DropdownMenuList({
       }}
     />
   );
+  const showEmptyMessage = Boolean(search?.value.trim() && stateCollection.length === 0);
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper
         zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
         {...overlayPositionProps}
+        onKeyDown={event => {
+          if (event.key === 'Escape' && parentMenuState) {
+            event.preventDefault();
+            event.stopPropagation();
+            parentMenuState.selectionManager.clearSelection();
+            return;
+          }
+          overlayPositionProps.onKeyDown?.(event);
+        }}
       >
         <DropdownMenuContext value={contextValue}>
           <Stack>
@@ -326,9 +358,10 @@ function DropdownMenuList({
                 )}
                 {!menuTitle && searchInput}
                 <DropdownMenuListWrap
+                  as="ul"
                   ref={menuRef}
-                  hasTitle={!!menuTitle}
                   disableTextSelection={disableTextSelection}
+                  flexGrow={showEmptyMessage ? 1 : undefined}
                   {...mergeProps(modifiedMenuProps, keyboardProps)}
                 >
                   <DropdownMenuCollection
@@ -340,12 +373,13 @@ function DropdownMenuList({
                     size={size}
                     state={state}
                   />
-                  {search?.value.trim() && stateCollection.length === 0 && (
+                  {showEmptyMessage && (
                     <Stack
                       as="li"
                       role="presentation"
                       align="center"
                       justify="center"
+                      flexGrow={1}
                       padding="md lg"
                     >
                       <Text variant="muted">{emptyMessage ?? t('No results found')}</Text>
@@ -601,12 +635,12 @@ function DropdownSubmenu({
   );
 }
 
-const DropdownMenuListWrap = styled('ul')<{
-  hasTitle: boolean;
+const DropdownMenuListWrap = styled(Stack)<{
   disableTextSelection?: boolean;
 }>`
-  margin: 0;
-  padding: ${p => p.theme.space.xs} 0;
+  /* Keep both insets visible while the menu items scroll. */
+  margin: ${p => p.theme.space.xs} 0;
+  padding: 0;
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
@@ -620,12 +654,6 @@ const DropdownMenuListWrap = styled('ul')<{
         -webkit-user-select: none;
         user-select: none;
       }
-    `}
-
-  ${p =>
-    p.hasTitle &&
-    css`
-      padding-top: ${p.theme.space.xs};
     `}
 
   &:focus {

@@ -53,7 +53,7 @@ interface BaseDropdownMenuProps
    */
   isDisabled?: boolean;
   /**
-   * Maximum menu width
+   * Maximum menu height
    */
   maxMenuHeight?: number;
   /**

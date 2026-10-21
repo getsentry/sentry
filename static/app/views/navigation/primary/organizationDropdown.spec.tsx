@@ -147,7 +147,10 @@ describe('OrganizationDropdown', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
     const row = screen.getByRole('menuitemradio', {name: 'javascript'});
-    await userEvent.click(within(row).getByRole('button', {name: 'Remove Bookmark'}));
+    await userEvent.hover(row);
+    await userEvent.keyboard('{ArrowRight}');
+    expect(within(row).getByRole('button', {name: 'Remove Bookmark'})).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
 
     expect(projectMock).toHaveBeenCalled();
     expect(router.location.pathname).not.toBe(
