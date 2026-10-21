@@ -35,7 +35,9 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0038_add_workflow_config_scope
 
-sentry: 1230_add_commit_new_repository_id_no_check
+sentry: 1231_drop_group_logger_indexes
+
+service_accounts: 0001_initial
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

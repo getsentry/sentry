@@ -198,6 +198,7 @@ describe('IssuePreview', () => {
     const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
     expect(within(stackTrace).getByText('an error occurred')).toBeVisible();
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
+    expect(within(stackTrace).getByTestId('core-stacktrace-frame-context')).toBeVisible();
     expect(summaryRequest).not.toHaveBeenCalled();
   });
 
@@ -309,10 +310,29 @@ describe('IssuePreview', () => {
     });
   });
 
-  it('shows the recommended stack trace alongside Seer analysis', async () => {
+  it('keeps frames expanded when historical RCA metadata has no Seer content to show', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: {...group, derivedData: fixAppliedGroup.derivedData},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: EventStacktraceExceptionFixture(),
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).getByTestId('core-stacktrace-frame-context')).toBeVisible();
+  });
+
+  it('keeps stack trace frames visible with their details collapsed alongside Seer content', async () => {
+    const event = EventStacktraceExceptionFixture();
+    const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION)!;
+    exception.data.values![0]!.stacktrace!.frames![1]!.context = [[2, 'doThing();']];
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: event,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
@@ -338,6 +358,14 @@ describe('IssuePreview', () => {
     );
     const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
+    expect(
+      within(stackTrace).queryByRole('button', {name: 'View Stack Trace Section'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(stackTrace).queryByTestId('core-stacktrace-frame-context')
+    ).not.toBeInTheDocument();
+    await userEvent.click(within(stackTrace).getByText('doThing'));
+    expect(within(stackTrace).getByTestId('core-stacktrace-frame-context')).toBeVisible();
     await userEvent.click(
       within(stackTrace).getByRole('button', {name: 'Display options'})
     );
