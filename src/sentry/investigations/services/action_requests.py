@@ -143,16 +143,41 @@ def sync_snapshot_action_requests(
 ) -> None:
     """Treat the snapshot as the full list: any live request it leaves out is superseded."""
 
-    primary: InvestigationActionRequest | None = None
+    primaries: list[InvestigationActionRequest] = []
     for item in items:
         row = upsert_action_request(run, item, replace_primary=False)
-        if item["primary"] and (primary is None or row.report_revision >= primary.report_revision):
-            primary = row
-    # Choose the primary after storing everything, so the list order doesn't matter.
-    if primary is not None:
-        _replace_primary(run.investigation, primary)
+        if item["primary"]:
+            primaries.append(row)
+    if primaries:
+        # Pick the newest revision, then a suggested request over a failed one, then the key,
+        # so the list order never decides which primary wins.
+        _replace_primary(
+            run.investigation,
+            max(
+                primaries,
+                key=lambda row: (
+                    row.report_revision,
+                    row.state == InvestigationActionRequestState.SUGGESTED,
+                    row.key,
+                ),
+            ),
+        )
     _supersede(
         InvestigationActionRequest.objects.filter(investigation=run.investigation).exclude(
             key__in=[item["key"] for item in items]
+        )
+    )
+
+
+def supersede_block_action_requests(investigation: Investigation, block_keys: Sequence[str]) -> int:
+    """Supersede the requests anchored to blocks that were just removed, since their anchor is
+    gone and the UI would have nowhere to show them.
+    """
+
+    return _supersede(
+        InvestigationActionRequest.objects.filter(
+            investigation=investigation,
+            anchor_type=InvestigationActionRequestAnchorType.BLOCK,
+            anchor_id__in=block_keys,
         )
     )

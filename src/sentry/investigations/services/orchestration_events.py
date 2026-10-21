@@ -38,6 +38,7 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.action_requests import (
     supersede_action_requests_before,
+    supersede_block_action_requests,
     sync_snapshot_action_requests,
     upsert_action_request,
     withdraw_action_request,
@@ -412,10 +413,12 @@ def _adopt_preserved_report_revision(
         )
     if discarded_ids:
         _cancel_report_executions(run, block_ids=discarded_ids)
-        InvestigationBlock.objects.filter(id__in=discarded_ids).update(
-            deleted_at=now,
-            date_updated=now,
+        discarded = InvestigationBlock.objects.filter(id__in=discarded_ids)
+        supersede_block_action_requests(
+            run.investigation,
+            [key for key in discarded.values_list("stable_agent_key", flat=True) if key],
         )
+        discarded.update(deleted_at=now, date_updated=now)
     _control(run).update({"reportRevision": revision, "reportCleared": False})
     return bool(discarded_ids)
 
@@ -938,6 +941,7 @@ def _apply_event(
                 deleted_at__isnull=True,
             ).update(deleted_at=now, date_updated=now)
             if updated:
+                supersede_block_action_requests(run.investigation, [payload["stableAgentKey"]])
                 _bump_notebook(run, run.investigation)
         elif event.type == "report_block_moved":
             block = InvestigationBlock.objects.filter(

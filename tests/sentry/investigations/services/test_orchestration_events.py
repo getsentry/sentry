@@ -2823,7 +2823,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "widen-window": InvestigationActionRequestState.SUGGESTED,
         }
 
-    def test_a_snapshot_keeps_one_primary_whatever_the_order(self) -> None:
+    def assert_snapshot_keeps_one_primary(self, order: tuple[str, str]) -> None:
         failed = self.create_investigation_action_request(
             investigation=self.investigation,
             key="failed",
@@ -2832,24 +2832,60 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             state=InvestigationActionRequestState.FAILED,
             error={"code": "validation_failed"},
         )
+        items = {
+            "newer": self.action_request("newer", primary=True),
+            "failed": self.action_request("failed", primary=True, action=failed.action_payload),
+        }
 
         self.deliver(
-            self.completed_snapshot(
-                5,
-                blocks=[],
-                actionRequests=[
-                    self.action_request("newer", primary=True),
-                    self.action_request("failed", primary=True, action=failed.action_payload),
-                ],
-            )
+            self.completed_snapshot(5, blocks=[], actionRequests=[items[key] for key in order])
         )
 
         assert self.request_states() == {
-            "newer": InvestigationActionRequestState.SUPERSEDED,
-            "failed": InvestigationActionRequestState.FAILED,
+            "newer": InvestigationActionRequestState.SUGGESTED,
+            "failed": InvestigationActionRequestState.SUPERSEDED,
         }
         failed.refresh_from_db()
         assert failed.error == {"code": "validation_failed"}
+
+    def test_a_snapshot_prefers_a_suggested_primary_listed_first(self) -> None:
+        self.assert_snapshot_keeps_one_primary(("newer", "failed"))
+
+    def test_a_snapshot_prefers_a_suggested_primary_listed_last(self) -> None:
+        self.assert_snapshot_keeps_one_primary(("failed", "newer"))
+
+    def test_removing_a_block_supersedes_the_requests_under_it(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "report_block_upserted",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "chart",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Chart",
+                    "content": "body",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver_request(
+            3, self.action_request("under", anchor={"type": "block", "id": "chart"})
+        )
+        self.deliver_request(
+            4, self.action_request("other", anchor={"type": "block", "id": "kept"})
+        )
+
+        self.deliver(
+            self.event(5, "report_block_removed", {"reportRevision": 1, "stableAgentKey": "chart"})
+        )
+
+        assert self.request_states() == {
+            "under": InvestigationActionRequestState.SUPERSEDED,
+            "other": InvestigationActionRequestState.SUGGESTED,
+        }
 
     def test_snapshot_without_action_requests_leaves_them_alone(self) -> None:
         self.create_investigation_action_request(investigation=self.investigation, key="current")
