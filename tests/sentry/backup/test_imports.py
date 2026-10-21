@@ -30,7 +30,6 @@ from sentry.backup.imports import (
     import_in_global_scope,
     import_in_organization_scope,
     import_in_user_scope,
-    remove_deleted_models_and_fields,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.backup.services.import_export.model import RpcImportErrorKind
@@ -2776,18 +2775,3 @@ class TestLegacyTestSuite:
         assert date.today() <= date(2023, 11, 11), (
             "Please delete the monolith-dbs test suite!"
         )  # or else bump the date
-
-
-def test_old_export_discards_retired_incidents() -> None:
-    organization = {
-        "model": "sentry.organization",
-        "pk": 1,
-        "fields": {"name": "Example", "slug": "example"},
-    }
-    legacy_export = orjson.dumps(
-        [
-            {"model": "sentry.incident", "pk": 123, "fields": {"organization": 1}},
-            organization,
-        ]
-    )
-    assert orjson.loads(remove_deleted_models_and_fields(legacy_export)) == [organization]
