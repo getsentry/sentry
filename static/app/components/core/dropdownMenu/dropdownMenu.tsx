@@ -60,7 +60,6 @@ interface BaseDropdownMenuProps
    * Title for the current menu.
    */
   menuTitle?: React.ReactNode;
-  menuWidth?: number;
   /**
    * Minimum menu width
    */
@@ -134,7 +133,6 @@ function DropdownMenu({
   portalContainerRef,
   shouldApplyMinWidth,
   maxMenuHeight,
-  menuWidth,
   minMenuWidth,
   // This prop is from Floating UI and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
   strategy,
@@ -200,7 +198,6 @@ function DropdownMenu({
           style: {
             ...overlayProps.style,
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
-            width: menuWidth ?? overlayProps.style?.width,
             maxHeight: maxMenuHeight ?? overlayProps.style?.maxHeight,
           },
         }}

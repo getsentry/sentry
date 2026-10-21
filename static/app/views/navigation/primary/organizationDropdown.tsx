@@ -98,7 +98,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         zIndex={theme.zIndex.modal}
         trigger={trigger}
         minMenuWidth={258}
-        menuWidth={258}
         menuTitle={
           <NavigationMenuHeader
             organization={organization}
