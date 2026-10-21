@@ -160,7 +160,11 @@ def build_snapshot_images_zip(
                     tmp,
                     key=key,
                     content_type="application/zip",
+                    # A `zip` is already compressed, so it would likely be not beneficial to compress it again.
                     compress="none",
+                    # Force this `put` to use a resumable upload, overriding the default threshold.
+                    # This already incorporates retries with exponential backoffs and allows the client to retry
+                    # from the persisted offset when the upload fails midway through.
                     resumable_threshold_bytes=0,
                 )
                 logger.info(
