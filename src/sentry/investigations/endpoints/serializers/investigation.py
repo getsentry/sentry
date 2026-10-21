@@ -117,7 +117,7 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     """
     Full notebook with ordered active blocks, parameter definitions and saved values, project
     IDs, and source context. source.snapshot is present only for source-backed investigations.
-    actionRequests lists Seer's live action requests, the primary one first.
+    actionRequests has Seer's live action requests, with the primary one first.
     """
 
     template: InvestigationTemplateSerializerResponse | None

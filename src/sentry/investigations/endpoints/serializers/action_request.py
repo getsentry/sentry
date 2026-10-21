@@ -18,7 +18,9 @@ from sentry.users.services.user.model import RpcUser
 
 
 class InvestigationActionRequestAnchorResponse(TypedDict):
-    """id is Seer's: a block's agent key or a hypothesis ID. blockId is the live block, if any."""
+    """`id` is Seer's ID: a block's agent key or a hypothesis ID. `blockId` is the live block
+    it points to, if there is one.
+    """
 
     type: str
     id: str
@@ -36,9 +38,10 @@ class InvestigationActionRequestActorResponse(TypedDict):
 
 class InvestigationActionRequestSerializerResponse(TypedDict):
     """
-    A next step Seer asked for. `primary` marks the suggested next step after a run, and
-    `anchor` places a request under a block or hypothesis. `action` is null for advice.
-    `appliedDetails` depends on the action kind, and `appliedBy` is null for an automatic apply.
+    A step Seer suggests. `primary` marks the recommended next step after a run, and `anchor`
+    puts a request under a block or hypothesis. `action` is null when it's only advice. What's
+    in `appliedDetails` depends on the action kind, and `appliedBy` is null when Sentry applied
+    it automatically.
     """
 
     id: str
