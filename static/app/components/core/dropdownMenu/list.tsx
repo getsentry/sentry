@@ -41,13 +41,11 @@ export interface DropdownMenuListProps
       | 'disallowEmptySelection'
     >,
     TreeProps<MenuItemProps> {
-  onSearchChange: (value: string) => void;
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * The open state of the current overlay that contains this menu
    */
   overlayState: OverlayState;
-  searchValue: string;
   /**
    * Whether the menu should close when an item has been clicked/selected
    */
@@ -67,7 +65,11 @@ export interface DropdownMenuListProps
    */
   menuTitle?: React.ReactNode;
   menuWidth?: string | number;
-  search?: {placeholder?: string};
+  search?: {
+    onChange: (value: string) => void;
+    value: string;
+    placeholder?: string;
+  };
   size?: MenuItemProps['size'];
   /**
    * Style overrides applied to the position wrapper. Useful for overriding
@@ -204,8 +206,6 @@ function DropdownMenuList({
   menuWidth,
   menuFooter,
   search,
-  searchValue,
-  onSearchChange,
   disableTextSelection,
   overlayState,
   overlayPositionProps,
@@ -309,8 +309,8 @@ function DropdownMenuList({
       padding={menuTitle ? '0' : undefined}
       aria-label={search.placeholder ?? 'Search'}
       placeholder={search.placeholder ?? 'Search…'}
-      value={searchValue}
-      onChange={event => onSearchChange(event.target.value)}
+      value={search.value}
+      onChange={event => search.onChange(event.target.value)}
       onKeyDown={event => {
         // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
@@ -320,9 +320,7 @@ function DropdownMenuList({
       }}
     />
   );
-  const showEmptyMessage = Boolean(
-    search && searchValue.trim() && stateCollection.length === 0
-  );
+  const showEmptyMessage = Boolean(search?.value.trim() && stateCollection.length === 0);
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper
@@ -460,11 +458,9 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   }, []);
 }
 
-export type DropdownMenuContentProps = Omit<
-  DropdownMenuListProps,
-  'searchValue' | 'onSearchChange'
-> & {
+export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'search'> & {
   items: MenuItemProps[];
+  search?: {placeholder?: string};
 };
 
 export function DropdownMenuContent({
@@ -492,9 +488,9 @@ export function DropdownMenuContent({
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      search={search}
-      searchValue={searchValue}
-      onSearchChange={setSearchValue}
+      search={
+        search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
+      }
     >
       {(item: MenuItemProps) => {
         const {onAction: _onAction, ...itemProps} = item;
