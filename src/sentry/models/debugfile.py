@@ -26,7 +26,14 @@ from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
 from django.http import HttpRequest
 from django.utils import timezone
-from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
+from symbolic.debuginfo import (
+    Archive,
+    BcSymbolMap,
+    Object,
+    UuidMapping,
+    normalize_code_id,
+    normalize_debug_id,
+)
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
 from sentry import features, options
@@ -555,6 +562,8 @@ def create_dif_from_file(
             checksum=checksum,
             debug_id=meta.debug_id,
             code_id=meta.code_id,
+            wasm_legacy_code_id=meta.legacy_code_id,
+            wasm_legacy_debug_id=meta.legacy_debug_id,
             cpu_name=meta.arch,
             object_name=object_name,
             project_id=project.id,
@@ -632,6 +641,8 @@ def create_dif_from_fileobj(
             checksum=checksum,
             debug_id=meta.debug_id,
             code_id=meta.code_id,
+            wasm_legacy_code_id=meta.legacy_code_id,
+            wasm_legacy_debug_id=meta.legacy_debug_id,
             cpu_name=meta.arch,
             object_name=object_name,
             project_id=project.id,
@@ -725,6 +736,8 @@ class DifMeta:
         debug_id: str,
         path: str,
         code_id: str | None = None,
+        legacy_code_id: str | None = None,
+        legacy_debug_id: str | None = None,
         name: str | None = None,
         data: Any | None = None,
     ):
@@ -732,6 +745,8 @@ class DifMeta:
         self.arch = arch
         self.debug_id = debug_id  # TODO(flub): should this use normalize_debug_id()?
         self.code_id = code_id
+        self.legacy_code_id = legacy_code_id
+        self.legacy_debug_id = legacy_debug_id
         self.path = path
         self.data = data
 
@@ -761,11 +776,36 @@ class DifMeta:
         if obj_id and debug_id and obj_id[:36] == debug_id[:36]:
             obj_id = debug_id
 
+        legacy_code_id = None
+        legacy_debug_id = None
+        if obj.file_format == "wasm" and obj.code_id and len(obj.code_id) == 32:
+            # (INGEST-1282) For WASM files, the "legacy" code ID is the actual
+            # code ID with its length prepended as a varuint32. In the common
+            # case that the code ID is a UUID, that means that the legacy code
+            # ID has an additional `0x10` byte at the front.
+            #
+            # Since for WASM files the debug ID is always the first 16 bytes of the
+            # code ID, in return for the additional byte at the front one byte gets
+            # dropped from the back.
+            #
+            # We recompute these legacy IDs here and write them into special fields
+            # in the `DifMeta` (and later, the `ProjectDebugFile` model).
+            # We only do this if the code ID is 16B long, because I haven't actually
+            # seen anything other than a UUID as the build ID and generalizing this
+            # would complicate the code quite a bit.
+            #
+            # These "legacy" IDs exist because of a longstanding bug in WASM build ID
+            # parsing that was fixed in https://github.com/getsentry/symbolic/pull/1093.
+            legacy_code_id = normalize_code_id(f"10{obj.code_id}")
+            legacy_debug_id = normalize_debug_id(legacy_code_id[:32])
+
         return cls(
             file_format=obj.file_format,
             arch=obj.arch,
             debug_id=obj_id,
             code_id=obj.code_id,
+            legacy_code_id=legacy_code_id,
+            legacy_debug_id=legacy_debug_id,
             path=path,
             # TODO: Extract the object name from the object
             name=name,
