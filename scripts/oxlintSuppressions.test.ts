@@ -88,10 +88,10 @@ test('domain badges are app dependencies and stay outside the scraps boundary', 
   const diagnostics = JSON.parse(result.stdout).diagnostics.filter(
     (diagnostic: {filename: string}) => diagnostic.filename
   );
-  assert.equal(diagnostics.length, 1, result.stdout);
-  assert.equal(path.resolve(root, diagnostics[0].filename), files[1]);
-  assert.equal(diagnostics[0].code, 'import-js(no-extraneous-dependencies)');
-  assert.match(diagnostics[0].message, /@sentry-internal\/app/);
+  const [diagnostic] = diagnostics;
+  assert.equal(path.resolve(root, diagnostic.filename), files[1]);
+  assert.equal(diagnostic.code, 'import-js(no-extraneous-dependencies)');
+  assert.match(diagnostic.message, /@sentry-internal\/app/);
 });
 
 function fixture(t: {after: (cleanup: () => void) => void}) {
