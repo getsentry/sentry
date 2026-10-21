@@ -134,7 +134,7 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('inherits positioning from the chart tooltip', () => {
+  it('positions the tooltip below the band', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
@@ -144,7 +144,7 @@ describe('useDroppedDataBand', () => {
 
     const tooltip = result.current.droppedDataSeries?.tooltip;
     expect(tooltip?.trigger).toBe('item');
-    expect(tooltip).not.toHaveProperty('position');
+    expect(tooltip).toHaveProperty('position', 'bottom');
   });
 
   it('collapses buckets sharing a time range into a single series datum', () => {

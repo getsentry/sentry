@@ -1,10 +1,75 @@
+from unittest.mock import MagicMock, patch
+
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion, ScheduledDeletion
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.runner.commands.deletions import deletions
 from sentry.testutils.cases import CliTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
+from sentry.viewer_context import ActorType, get_viewer_context
+
+
+class CellDeletionsCliTest(CliTestCase):
+    command = deletions
+
+    @patch("sentry.deletions.get")
+    def test_run_cell_deletion_sets_system_viewer_context(
+        self, mock_get_deletion_task: MagicMock
+    ) -> None:
+        project = self.create_project()
+        deletion = CellScheduledDeletion.schedule(project, days=0)
+
+        task = MagicMock()
+        task.should_proceed.return_value = True
+
+        def assert_viewer_context() -> bool:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == project.organization_id
+            assert viewer_context.project_id == project.id
+            assert viewer_context.user_id is None
+            assert viewer_context.actor_type == ActorType.SYSTEM
+            return False
+
+        task.chunk.side_effect = assert_viewer_context
+        mock_get_deletion_task.return_value = task
+
+        rv = self.invoke("run", "--cid", str(deletion.id))
+
+        assert rv.exit_code == 0, rv.output
+        assert "Done" in rv.output
+        task.chunk.assert_called_once_with()
+        assert get_viewer_context() is None
+
+    @patch("sentry.deletions.get")
+    def test_run_cell_deletion_restores_recorded_user_viewer_context(
+        self, mock_get_deletion_task: MagicMock
+    ) -> None:
+        project = self.create_project()
+        deletion = CellScheduledDeletion.schedule(project, days=0, actor=self.user)
+
+        task = MagicMock()
+        task.should_proceed.return_value = True
+
+        def assert_viewer_context() -> bool:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == project.organization_id
+            assert viewer_context.project_id == project.id
+            assert viewer_context.user_id == self.user.id
+            assert viewer_context.actor_type == ActorType.USER
+            return False
+
+        task.chunk.side_effect = assert_viewer_context
+        mock_get_deletion_task.return_value = task
+
+        rv = self.invoke("run", "--cid", str(deletion.id))
+
+        assert rv.exit_code == 0, rv.output
+        assert "Done" in rv.output
+        task.chunk.assert_called_once_with()
+        assert get_viewer_context() is None
 
 
 @control_silo_test

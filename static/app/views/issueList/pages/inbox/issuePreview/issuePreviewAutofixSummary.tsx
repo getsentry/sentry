@@ -14,12 +14,14 @@ const SECTION_ORDER = ['code_changes', 'solution', 'root_cause'];
 interface IssuePreviewAutofixSummaryProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
+  excludeSteps?: ReadonlySet<string>;
   readOnly?: boolean;
 }
 
 export function IssuePreviewAutofixSummary({
   autofix,
   groupId,
+  excludeSteps,
   readOnly = false,
 }: IssuePreviewAutofixSummaryProps) {
   const {runState} = autofix;
@@ -37,7 +39,7 @@ export function IssuePreviewAutofixSummary({
   const orderedSections = getOrderedAutofixSections(runState);
   const sections = SECTION_ORDER.flatMap(step => {
     const section = orderedSections.find(item => item.step === step);
-    return section ? [section] : [];
+    return section && !excludeSteps?.has(step) ? [section] : [];
   });
 
   if (!sections.length) {

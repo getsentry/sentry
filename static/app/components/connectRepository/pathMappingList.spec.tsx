@@ -184,6 +184,21 @@ describe('PathMappingList', () => {
       expect(screen.queryByText('app/')).not.toBeInTheDocument();
     });
 
+    it('keeps the open row editable after deleting a row above it', async () => {
+      renderList({initialPathMappings: MAPPINGS});
+
+      const [, secondExpand] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(secondExpand!);
+      const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      await userEvent.click(firstDelete!);
+      await userEvent.click(screen.getByRole('textbox', {name: /branch/i}));
+      await userEvent.tab();
+
+      expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('frontend');
+    });
+
     it('falls back to a fresh open row when the last mapping is deleted', async () => {
       renderList({initialPathMappings: [MAPPINGS[0]!]});
 

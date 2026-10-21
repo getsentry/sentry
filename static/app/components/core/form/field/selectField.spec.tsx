@@ -541,6 +541,27 @@ describe('SelectField keyboard navigation', () => {
     expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
   });
 
+  it('keeps focus on the input after selecting an option with the keyboard', async () => {
+    render(
+      <div>
+        <TestForm label="Favorite Fruit" />
+        <button type="button">Next field</button>
+      </div>
+    );
+
+    const input = screen.getByRole('textbox');
+    await userEvent.tab();
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    expect(screen.getByText('Banana')).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    expect(input).toHaveFocus();
+
+    await userEvent.tab();
+    expect(screen.getByRole('button', {name: 'Next field'})).toHaveFocus();
+  });
+
   it('closes menu with Escape key', async () => {
     render(<TestForm label="Favorite Fruit" />);
 

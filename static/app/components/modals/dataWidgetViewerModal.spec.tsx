@@ -4,6 +4,7 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {
@@ -213,15 +214,17 @@ describe('Modals -> DataWidgetViewerModal', () => {
         };
         jest.mocked(ReactEchartsCore).mockClear();
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           body: {
-            data: [
-              [[1646100000], [{count: 1}]],
-              [[1646120000], [{count: 1}]],
+            timeSeries: [
+              TimeSeriesFixture({
+                yAxis: 'count()',
+                values: [
+                  {timestamp: 1646100000000, value: 1},
+                  {timestamp: 1646120000000, value: 1},
+                ],
+              }),
             ],
-            start: 1646100000,
-            end: 1646120000,
-            isMetricsData: false,
           },
         });
       });
@@ -506,6 +509,10 @@ describe('Modals -> DataWidgetViewerModal', () => {
       let mockWidget!: Widget;
 
       function mockEventsStats() {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-timeseries/',
+          body: {timeSeries: []},
+        });
         return MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           body: {
