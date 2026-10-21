@@ -94,7 +94,7 @@
     "remark-mdx-frontmatter": "^6.0.0",
     "sentry": "workspace:@sentry-internal/app@*",
     "style-loader": "4.0.0",
-    "swc-plugin-component-annotate": "1.18.0",
+    "swc-plugin-component-annotate": "1.18.4",
     "ts-checker-rspack-plugin": "1.7.1",
     "tslib": "^2.8.1",
     "yaml": "2.9.0",
