@@ -10,7 +10,7 @@ describe('Checkbox', () => {
       it.snapshot.each(['hover', 'active'] as const)(
         '%s',
         () => (
-          <div style={{padding: 8}}>
+         <Container padding="md">
             <Checkbox
               aria-label="Example checkbox"
               checked={checked}
