@@ -133,7 +133,7 @@ class TestWorkflowEngineSerializer(MetricSerializerTestCase):
             action=self.critical_action, alert_rule_trigger_action_id=self.legacy_critical_action_id
         )
         self.create_detector_group(detector=self.detector, group=self.group)
-        self.expected_critical_action = [
+        self.expected_critical_action: list[dict[str, Any]] = [
             {
                 "id": str(self.legacy_critical_action_id),
                 "alertRuleTriggerId": str(self.legacy_critical_trigger_id),
@@ -148,7 +148,7 @@ class TestWorkflowEngineSerializer(MetricSerializerTestCase):
                 "priority": None,
             }
         ]
-        self.expected_triggers = [
+        self.expected_triggers: list[dict[str, Any]] = [
             {
                 "id": str(self.legacy_critical_trigger_id),
                 "alertRuleId": str(self.legacy_rule_id),
@@ -160,7 +160,7 @@ class TestWorkflowEngineSerializer(MetricSerializerTestCase):
                 "actions": self.expected_critical_action,
             }
         ]
-        self.expected = {
+        self.expected: dict[str, Any] = {
             "id": str(self.legacy_rule_id),
             "name": self.detector.name,
             "organizationId": str(self.organization.id),
@@ -205,7 +205,7 @@ class TestWorkflowEngineSerializer(MetricSerializerTestCase):
         self.create_action_alert_rule_trigger_action(
             action=self.warning_action, alert_rule_trigger_action_id=self.legacy_warning_action_id
         )
-        self.expected_warning_action = [
+        self.expected_warning_action: list[dict[str, Any]] = [
             {
                 **self.expected_critical_action[0],
                 "id": str(self.legacy_warning_action_id),
@@ -213,7 +213,7 @@ class TestWorkflowEngineSerializer(MetricSerializerTestCase):
                 "dateCreated": self.warning_action.date_added,
             }
         ]
-        self.expected_warning_trigger = {
+        self.expected_warning_trigger: dict[str, Any] = {
             **self.expected_triggers[0],
             "id": str(self.legacy_warning_trigger_id),
             "label": "warning",

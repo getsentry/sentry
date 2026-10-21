@@ -13,6 +13,7 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
+    Detector,
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -203,7 +204,7 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
             serialized = serialize(trigger, self.user, WorkflowEngineDataConditionSerializer())
             assert serialized["thresholdType"] == expected_threshold_type.value
 
-    def create_dynamic_detector(self):
+    def create_dynamic_detector(self) -> tuple[Detector, DataCondition, Action]:
         detector, workflow, _ = self.create_metric_detector(
             detection_type=AlertRuleDetectionType.DYNAMIC
         )
