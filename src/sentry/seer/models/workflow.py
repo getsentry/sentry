@@ -159,11 +159,9 @@ class SeerWorkflowRun(DefaultFieldsModel):
     workflow_config = FlexibleForeignKey(
         "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
     )
-    # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM), nullable for
-    # manual and historical runs.
-    schedule_id = models.CharField(max_length=256, null=True)
-    # Stable input identity, namespaced by trigger type (e.g. issue_created:123).
-    trigger_key = models.CharField(max_length=256, null=True)
+    # Cron windows and event identities (e.g. issue_created:123) share this key.
+    # Keep the deployed column name so existing schedule keys remain readable.
+    trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     date_completed = models.DateTimeField(null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
@@ -180,11 +178,6 @@ class SeerWorkflowRun(DefaultFieldsModel):
             ),
         ]
         constraints = [
-            models.UniqueConstraint(
-                fields=["organization", "workflow_config", "schedule_id"],
-                condition=models.Q(schedule_id__isnull=False),
-                name="seer_nightshiftrun_unique_org_config_schedule",
-            ),
             models.UniqueConstraint(
                 fields=["workflow_config", "trigger_key"],
                 condition=models.Q(trigger_key__isnull=False)
