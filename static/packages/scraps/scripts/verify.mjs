@@ -56,11 +56,30 @@ try {
   const iconsPackage = JSON.parse(
     await readFile(join(iconsRoot, 'package.json'), 'utf8')
   );
+  const iconsTsconfig = join(temporary, 'icons.tsconfig.json');
+  await writeFile(
+    iconsTsconfig,
+    JSON.stringify({
+      extends: join(iconsRoot, 'tsconfig.json'),
+      compilerOptions: {
+        rootDir: join(iconsRoot, 'src'),
+        outDir: join(installedIcons, 'dist'),
+        declarationDir: join(installedIcons, 'dist'),
+        composite: false,
+        tsBuildInfoFile: join(temporary, 'icons.tsbuildinfo'),
+      },
+      include: [join(iconsRoot, 'src')],
+      exclude: [join(iconsRoot, 'src/**/*.spec.tsx')],
+    })
+  );
   const iconsBuild = await createRslib({
     cwd: iconsRoot,
     config: {
-      lib: [{format: 'esm', bundle: false, syntax: 'es2022'}],
-      source: {entry: {index: ['./src/**', '!src/**/*.spec.tsx']}},
+      lib: [{format: 'esm', bundle: false, dts: {build: true}, syntax: 'es2022'}],
+      source: {
+        tsconfigPath: iconsTsconfig,
+        entry: {index: ['./src/**', '!src/**/*.spec.tsx']},
+      },
       output: {
         target: 'node',
         distPath: {root: join(installedIcons, 'dist')},
@@ -153,6 +172,18 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
   const {Hotkey} = await import(join(installed, 'dist/hotkey/index.js'));
   const {lightTheme, darkTheme} = await import(join(installed, 'dist/theme/index.js'));
   const {Tooltip} = await import(join(installed, 'dist/tooltip/index.js'));
+  const {Button, LinkButton, ButtonBar} = await import(
+    join(installed, 'dist/button/index.js')
+  );
+  const {InfoTip, InfoText} = await import(join(installed, 'dist/info/index.js'));
+  const {Checkbox} = await import(join(installed, 'dist/checkbox/index.js'));
+  const {Chip} = await import(join(installed, 'dist/chip/index.js'));
+  const {Disclosure} = await import(join(installed, 'dist/disclosure/index.js'));
+  const {SegmentedControl} = await import(
+    join(installed, 'dist/segmentedControl/index.js')
+  );
+  const {Alert} = await import(join(installed, 'dist/alert/index.js'));
+  const {Badge, Tag, FeatureBadge} = await import(join(installed, 'dist/badge/index.js'));
   for (const theme of [lightTheme, darkTheme]) {
     const html = renderToStaticMarkup(
       createElement(
@@ -189,6 +220,36 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
           createElement(StatusIndicator, {variant: 'success', 'aria-label': 'Online'}),
           createElement(Hotkey, {value: 'shift+k'}),
           createElement(
+            ButtonBar,
+            null,
+            createElement(
+              Button,
+              {tooltipProps: {title: 'Save changes'}},
+              'Save control'
+            ),
+            createElement(LinkButton, {to: '/settings/'}, 'Settings control')
+          ),
+          createElement(InfoTip, {title: 'Details'}),
+          createElement(InfoText, {title: 'More details'}, 'Info control'),
+          createElement(Checkbox, {'aria-label': 'Accept control'}),
+          createElement(Chip, {value: 'Chip control'}),
+          createElement(
+            Disclosure,
+            {expanded: true},
+            createElement(Disclosure.Title, null, 'Disclosure control'),
+            createElement(Disclosure.Content, null, 'Expanded content')
+          ),
+          createElement(
+            SegmentedControl,
+            {'aria-label': 'View control', value: 'one', onChange() {}},
+            createElement(SegmentedControl.Item, {key: 'one'}, 'First view'),
+            createElement(SegmentedControl.Item, {key: 'two'}, 'Second view')
+          ),
+          createElement(Alert, {variant: 'info'}, 'Alert control'),
+          createElement(Badge, {variant: 'success'}, 'Badge control'),
+          createElement(Tag, {variant: 'info'}, 'Tag control'),
+          createElement(FeatureBadge, {type: 'new'}),
+          createElement(
             Link,
             {to: {pathname: '/issues/', query: {query: 'error'}, hash: 'details'}},
             'Package link'
@@ -221,6 +282,19 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       'aria-label="Online"',
       'aria-label="⇧"',
       'Tooltip trigger',
+      'Save control',
+      'Settings control',
+      'href="/settings/"',
+      'Info control',
+      'Accept control',
+      'Chip control',
+      'Disclosure control',
+      'Expanded content',
+      'First view',
+      'Second view',
+      'Alert control',
+      'Badge control',
+      'Tag control',
     ]) {
       if (!html.includes(label)) {
         throw new Error(`Server render failed for ${label}`);
