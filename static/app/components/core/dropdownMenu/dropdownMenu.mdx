@@ -94,6 +94,32 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
 />
 ```
 
+## Selection and leading icons
+
+Set `isSelected` when an action represents an active choice. The selection checkmark appears before `leadingItems`. Set it to `false` on the other items to reserve the same space.
+
+<Storybook.Demo>
+  <DropdownMenu
+    triggerLabel="Selection with icons"
+    items={[
+      {
+        key: 'list',
+        label: 'Selected action',
+        isSelected: true,
+        leadingItems: <IconEdit size="sm" />,
+        onAction: () => {},
+      },
+      {
+        key: 'copy',
+        label: 'Unselected action',
+        isSelected: false,
+        leadingItems: <IconCopy size="sm" />,
+        onAction: () => {},
+      },
+    ]}
+  />
+</Storybook.Demo>
+
 ## Sections, Links, and Submenus
 
 Group related items by adding `children` without setting `submenu`. Use `to` for internal links and `externalHref` for external links. Set `submenu` and `children` together to create a nested menu.
