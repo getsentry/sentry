@@ -218,6 +218,13 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         assert resp.status_code == 400, resp.content
         assert resp.data == {"sourceUrl": ["Could not find repo"]}
 
+    def test_repo_name_is_prefix_of_linked_repo(self) -> None:
+        source_url = "https://github.com/getsentry/sentry-plugins/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 400, resp.content
+        assert resp.data == {"sourceUrl": ["Could not find repo"]}
+
     def test_single_file_path(self) -> None:
         source_url = (
             "https://github.com/getsentry/sentry/blob/master/src/project_stacktrace_link.py"
@@ -457,4 +464,74 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             "stackRoot": "sentry/",
             "sourceRoot": "src/sentry/",
             "defaultBranch": "master",
+        }
+
+
+class ProjectStacktraceLinkBitbucketTest(BaseStacktraceLinkTest):
+    def setUp(self) -> None:
+        super().setUp()
+
+        # Bitbucket Cloud integrations claim every bitbucket.org link, so with two
+        # workspaces connected only the repository can tell them apart.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.team_integration, _ = self.create_provider_integration_for(
+                self.org,
+                self.user,
+                provider="bitbucket",
+                name="acme",
+                external_id="connect:1234",
+                metadata={"domain_name": "bitbucket.org/acme", "type": "team"},
+            )
+            self.personal_integration, _ = self.create_provider_integration_for(
+                self.org,
+                self.user,
+                provider="bitbucket",
+                name="jdoe",
+                external_id="connect:5678",
+                metadata={"domain_name": "jdoe", "type": "user"},
+            )
+
+        self.team_repo = self.create_repo(
+            project=self.project,
+            name="acme/api",
+            provider="integrations:bitbucket",
+            integration_id=self.team_integration.id,
+            url="https://bitbucket.org/acme/api",
+        )
+        self.personal_repo = self.create_repo(
+            project=self.project,
+            name="jdoe/tools",
+            provider="integrations:bitbucket",
+            integration_id=self.personal_integration.id,
+            url="https://bitbucket.org/jdoe/tools",
+        )
+
+    def test_first_integration(self) -> None:
+        source_url = "https://bitbucket.org/acme/api/src/master/src/app/main.py"
+        stack_path = "app/main.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.team_integration.id,
+            "repositoryId": self.team_repo.id,
+            "provider": "bitbucket",
+            "stackRoot": "app/",
+            "sourceRoot": "src/app/",
+            "defaultBranch": "master",
+        }
+
+    def test_second_integration(self) -> None:
+        source_url = "https://bitbucket.org/jdoe/tools/src/main/src/app/main.py"
+        stack_path = "app/main.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.personal_integration.id,
+            "repositoryId": self.personal_repo.id,
+            "provider": "bitbucket",
+            "stackRoot": "app/",
+            "sourceRoot": "src/app/",
+            "defaultBranch": "main",
         }

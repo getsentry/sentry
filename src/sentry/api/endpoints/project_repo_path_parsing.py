@@ -23,6 +23,7 @@ from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.issues.auto_source_code_config.code_mapping import find_roots
 from sentry.issues.auto_source_code_config.errors import (
     UnexpectedPathException,
@@ -97,29 +98,35 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
             return False
 
         def repo_match(repo: Repository) -> bool:
-            return repo.url is not None and source_url.startswith(repo.url)
+            return repo.url is not None and url_is_under(source_url, repo.url)
 
         # now find the matching integration
         integrations = integration_service.get_integrations(
             organization_id=self.org_id, providers=self.providers
         )
 
-        matching_integrations = list(filter(integration_match, integrations))
+        matching_integrations = {
+            integration.id: integration
+            for integration in integrations
+            if integration_match(integration)
+        }
         if not matching_integrations:
             raise serializers.ValidationError("Could not find integration")
 
-        self.integration = matching_integrations[0]
-
-        # now find the matching repo
+        # Several integrations can claim the same link, such as two Bitbucket Cloud
+        # workspaces, so the repository decides which integration the link belongs to.
         repos = Repository.objects.filter(
-            organization_id=self.org_id, integration_id=self.integration.id, url__isnull=False
-        )
+            organization_id=self.org_id,
+            integration_id__in=matching_integrations,
+            url__isnull=False,
+        ).order_by("id")
         matching_repos = list(filter(repo_match, repos))
         if not matching_repos:
             raise serializers.ValidationError("Could not find repo")
 
         # store the repo we found
         self.repo = matching_repos[0]
+        self.integration = matching_integrations[self.repo.integration_id]
         return source_url
 
 
