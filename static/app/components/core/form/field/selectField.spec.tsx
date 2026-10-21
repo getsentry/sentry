@@ -552,6 +552,21 @@ describe('SelectField keyboard navigation', () => {
     expect(input).toHaveFocus();
   });
 
+  it('reopens the menu after being disabled and re-enabled while focused', async () => {
+    const {rerender} = render(<TestForm label="Favorite Fruit" />);
+
+    const input = screen.getByRole('textbox');
+    await userEvent.click(input);
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(input).toHaveFocus();
+
+    rerender(<TestForm label="Favorite Fruit" disabled />);
+    rerender(<TestForm label="Favorite Fruit" />);
+
+    await userEvent.click(input);
+    expect(screen.getByRole('menuitemradio', {name: 'Cherry'})).toBeInTheDocument();
+  });
+
   it('closes menu with Escape key', async () => {
     render(<TestForm label="Favorite Fruit" />);
 

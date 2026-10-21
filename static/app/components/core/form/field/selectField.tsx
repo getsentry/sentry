@@ -1,4 +1,4 @@
-import {useRef, type Ref} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -15,13 +15,80 @@ function SelectInput({
 }: React.ComponentProps<typeof components.Input> & {
   selectProps?: {'aria-invalid'?: boolean; inputRef?: Ref<{input: HTMLInputElement}>};
 }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const reactSelectInnerRef = props.innerRef;
+  // react-select types `innerRef` loosely; it receives the input element
+  const innerRef = useCallback(
+    (element: React.Ref<any>) => {
+      inputRef.current = element as unknown as HTMLInputElement | null;
+      reactSelectInnerRef(element);
+    },
+    [reactSelectInnerRef]
+  );
+  useFocusRestoreWhenReEnabled(inputRef, !!props.isDisabled);
+
   return (
     <components.Input
       {...props}
+      innerRef={innerRef}
       {...{ref: selectProps?.inputRef}}
       aria-invalid={selectProps?.['aria-invalid']}
     />
   );
+}
+
+/**
+ * react-select resets its internal `isFocused` state when it becomes disabled,
+ * but the DOM input can keep focus since we no longer blur on select. A later
+ * click then calls `focus()` on an already-focused input, no focus event fires,
+ * and the menu never opens. Once re-enabled, re-sync by moving focus back onto
+ * the input so react-select sees a real focus event and keyboard users keep
+ * their place.
+ */
+function useFocusRestoreWhenReEnabled(
+  inputRef: React.RefObject<HTMLInputElement | null>,
+  isDisabled: boolean
+) {
+  const shouldRestoreFocusRef = useRef(false);
+
+  // Some browsers move focus off the input themselves once it is disabled
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+    function onBlur() {
+      if (input?.disabled) {
+        shouldRestoreFocusRef.current = true;
+      }
+    }
+    input.addEventListener('blur', onBlur);
+    return () => input.removeEventListener('blur', onBlur);
+  }, [inputRef]);
+
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+    if (isDisabled) {
+      if (document.activeElement === input) {
+        shouldRestoreFocusRef.current = true;
+      }
+      return;
+    }
+    if (!shouldRestoreFocusRef.current) {
+      return;
+    }
+    shouldRestoreFocusRef.current = false;
+    if (document.activeElement === input) {
+      // Stale DOM focus: blur first so the following focus() emits an event
+      input.blur();
+    }
+    if (!document.activeElement || document.activeElement === document.body) {
+      input.focus();
+    }
+  }, [inputRef, isDisabled]);
 }
 
 function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
