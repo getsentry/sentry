@@ -6,6 +6,7 @@ from typing import Any, TypedDict
 
 from django.db.models import Case, Count, F, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,6 +21,20 @@ from sentry.api.event_search import QueryToken, SearchConfig, SearchFilter
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import (
     AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
@@ -320,14 +335,40 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
 
 
 class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
-    agent = serializers.ChoiceField(choices=[*AutomationCodingAgent], required=False)
-    integration_id = serializers.IntegerField(required=False)
-    stopping_point = serializers.ChoiceField(choices=[*AutofixStoppingPoint], required=False)
-    scanner_automation = serializers.BooleanField(required=False)
-    automation_tuning = serializers.ChoiceField(
-        choices=[*AutofixAutomationTuningSettings], required=False
+    agent = serializers.ChoiceField(
+        choices=[*AutomationCodingAgent],
+        required=False,
+        help_text=(
+            "The agent to use for project automation. External agents require integrationId; "
+            "seer must not be paired with integrationId."
+        ),
     )
-    pr_iteration = serializers.BooleanField(required=False)
+    integration_id = serializers.IntegerField(
+        required=False,
+        help_text=(
+            "The installed integration ID. Required with an external agent; "
+            "providing it also requires agent to be an external coding agent."
+        ),
+    )
+    stopping_point = serializers.ChoiceField(
+        choices=[*AutofixStoppingPoint],
+        required=False,
+        help_text=(
+            "The point in the workflow at which Seer should stop. Seat-based plans accept "
+            "root_cause, code_changes, and open_pr; solution is only available on usage-based plans."
+        ),
+    )
+    scanner_automation = serializers.BooleanField(
+        required=False, help_text="Whether scanner automation is enabled for the project."
+    )
+    automation_tuning = serializers.ChoiceField(
+        choices=[*AutofixAutomationTuningSettings],
+        required=False,
+        help_text="The level of automated Seer activity for the project.",
+    )
+    pr_iteration = serializers.BooleanField(
+        required=False, help_text="Whether Seer should iterate on pull requests."
+    )
 
     def _update_fields(self) -> set[str]:
         return {
@@ -395,25 +436,109 @@ class ProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
 class LegacyProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
     """Legacy Seer: accepts auto_create_pr and all tuning/stopping point values."""
 
-    auto_create_pr = serializers.BooleanField(required=False)
+    auto_create_pr = serializers.BooleanField(
+        required=False,
+        help_text="Whether Seer may automatically create a pull request (legacy setting).",
+    )
 
     def _update_fields(self) -> set[str]:
         return super()._update_fields() | {"auto_create_pr"}
 
 
+class ProjectSeerSettingsRequestSerializer(serializers.Serializer):
+    agent = serializers.ChoiceField(
+        choices=[*AutomationCodingAgent],
+        required=False,
+        help_text=(
+            "The agent to use for project automation. External agents require integrationId; "
+            "seer must not be paired with integrationId."
+        ),
+    )
+    integrationId = serializers.IntegerField(
+        required=False,
+        help_text=(
+            "The installed integration ID. Required with an external agent; "
+            "providing it also requires agent to be an external coding agent."
+        ),
+    )
+    stoppingPoint = serializers.ChoiceField(
+        choices=[*AutofixStoppingPoint],
+        required=False,
+        help_text=(
+            "The point in the workflow at which Seer should stop. Seat-based plans accept "
+            "root_cause, code_changes, and open_pr; solution is only available on usage-based plans."
+        ),
+    )
+    scannerAutomation = serializers.BooleanField(
+        required=False, help_text="Whether scanner automation is enabled for the project."
+    )
+    automationTuning = serializers.ChoiceField(
+        choices=[*AutofixAutomationTuningSettings],
+        required=False,
+        help_text="The level of automated Seer activity for the project.",
+    )
+    prIteration = serializers.BooleanField(
+        required=False, help_text="Whether Seer should iterate on pull requests."
+    )
+    autoCreatePr = serializers.BooleanField(
+        required=False,
+        help_text="Whether Seer may automatically create a pull request (legacy setting).",
+    )
+
+
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectSeerSettingsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectPermission,)
 
-    def get(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="getProjectSeerSettings",
+        summary="Get Seer Settings for a Project",
+        description="Return the current Seer automation settings configured for the project.",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectSeerSettingsResponse", SeerProjectSettingsResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(self, request: Request, project: Project) -> Response[SeerProjectSettingsResponse]:
         return Response(serialize_project(project))
 
-    def put(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="updateProjectSeerSettings",
+        summary="Update Seer Settings for a Project",
+        description=(
+            "Update one or more Seer automation settings. An external `agent` requires "
+            "`integrationId`, and providing `integrationId` requires an external `agent`; "
+            "`agent: seer` must not be paired with `integrationId`. On seat-based Seer plans, "
+            "`autoCreatePr` is ignored, `automationTuning` accepts only `off` or `medium`, and "
+            "`stoppingPoint` accepts `root_cause`, `code_changes`, or `open_pr`. "
+            "The `solution` stopping point is only available on usage-based plans."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=ProjectSeerSettingsRequestSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectSeerSettingsResponse", SeerProjectSettingsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[SeerProjectSettingsResponse] | Response[ValidationErrorResponse]:
         serializer_cls = (
             ProjectSettingsUpdateSerializer
             if is_seer_seat_based_tier_enabled(project.organization)
@@ -423,7 +548,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             data=request.data, context={"organization": project.organization}
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         update_seer_project_settings([project.id], data)
@@ -440,23 +565,88 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
 
 
 class BulkProjectSettingsUpdateSerializer(ProjectSettingsUpdateSerializer):
-    query = serializers.CharField(required=False, default="")
+    query = serializers.CharField(
+        required=False,
+        default="",
+        help_text="Apply the update to projects matching the Seer project search query.",
+    )
 
 
 class LegacyBulkProjectSettingsUpdateSerializer(LegacyProjectSettingsUpdateSerializer):
-    query = serializers.CharField(required=False, default="")
+    query = serializers.CharField(
+        required=False,
+        default="",
+        help_text="Apply the update to projects matching the Seer project search query.",
+    )
 
 
+class OrganizationSeerProjectSettingsRequestSerializer(ProjectSeerSettingsRequestSerializer):
+    query = serializers.CharField(
+        required=False,
+        default="",
+        help_text="Apply the update to projects matching the Seer project search query.",
+    )
+
+
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationSeerProjectSettings",
+        summary="List Seer Settings for Organization Projects",
+        description="List Seer settings for projects the user can access in the organization.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "query",
+                type=str,
+                description=(
+                    "Filter projects using Seer project search syntax. Supported keys and "
+                    "operators: `id` (`=`, `!=`, `IN`, `NOT IN`), `name` (`=`, `!=`), "
+                    "`reposCount` (`=`, `!=`, `>`, `<`, `>=`, `<=`), `stoppingPoint` "
+                    "(`=`, `!=`, `IN`, `NOT IN`), and `agent` (`=`, `!=`, `IN`, `NOT IN`)."
+                ),
+            ),
+            OpenApiParameter(
+                "sortBy",
+                type=str,
+                enum=[
+                    "name",
+                    "-name",
+                    "reposCount",
+                    "-reposCount",
+                    "agent",
+                    "-agent",
+                    "stoppingPoint",
+                    "-stoppingPoint",
+                ],
+                description="Field and direction used to sort results. Defaults to `name`.",
+            ),
+            CursorQueryParam,
+            OpenApiParameter(
+                "per_page", type=int, description="The maximum number of results per page."
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationSeerProjectSettingsResponse", list[SeerProjectSettingsResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[SeerProjectSettingsResponse]] | Response[DetailResponse]:
         sort_by = request.GET.get("sortBy", "name")
         order_by = SORT_FIELDS_MAPPING.get(sort_by)
         if order_by is None:
@@ -483,7 +673,32 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def put(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="updateOrganizationSeerProjectSettings",
+        summary="Update Seer Settings for Organization Projects",
+        description=(
+            "Apply one or more Seer setting changes to projects matching the optional `query`. "
+            "If `query` is omitted, the update applies to every project the user can access "
+            "in the organization; an explicitly empty `query` is rejected. An external `agent` "
+            "requires `integrationId`, and providing `integrationId` requires an external "
+            "`agent`; `agent: seer` must not be paired with `integrationId`. On seat-based Seer "
+            "plans, `autoCreatePr` is ignored, `automationTuning` accepts only `off` or `medium`, "
+            "and `stoppingPoint` accepts `root_cause`, `code_changes`, or `open_pr`. "
+            "The `solution` stopping point is only available on usage-based plans."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=OrganizationSeerProjectSettingsRequestSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer_cls = (
             BulkProjectSettingsUpdateSerializer
             if is_seer_seat_based_tier_enabled(organization)
@@ -491,7 +706,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
         )
         serializer = serializer_cls(data=request.data, context={"organization": organization})
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         search_query = data.pop("query")

@@ -1920,6 +1920,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "timeFilters": {"period": "14d"},
             },
             ("OrganizationReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
+            ("OrganizationSeerProjectSettingsEndpoint", "PUT"): {"scannerAutomation": True},
             ("OrganizationStarredServiceSpansEndpoint", "POST"): {
                 "service_span": "permission-matrix-span",
                 "project_id": self.project.id,
@@ -2064,6 +2065,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 }
             },
             ("ProjectRepoEndpoint", "POST"): {"repositoryId": self._resource("repository").id},
+            ("ProjectSeerSettingsEndpoint", "PUT"): {"scannerAutomation": True},
             ("ProjectSymbolSourcesEndpoint", "POST"): {
                 "name": "Permission matrix new source",
                 "layout": {"type": "native"},
