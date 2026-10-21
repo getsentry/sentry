@@ -91,3 +91,9 @@ def pytest_configure(config):
 
     SeleniumManager.run = staticmethod(run)
     _wrap(BaseDatabaseCreation, "create_test_db", "create_test_db")
+
+    from sentry.testutils.pytest import selenium as sentry_selenium
+
+    _wrap(sentry_selenium, "start_chrome", "start_chrome")
+    _wrap(sentry_selenium.Browser, "get", "browser.get")
+    _wrap(sentry_selenium.Browser, "set_emulated_media", "set_emulated_media")
