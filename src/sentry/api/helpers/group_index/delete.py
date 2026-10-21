@@ -18,6 +18,7 @@ from sentry.api.utils import to_valid_int_id_list
 from sentry.apidocs.response_types import ValidationErrorResponse
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
@@ -184,7 +185,10 @@ def schedule_tasks_to_delete_groups(
                     "limit": BULK_MUTATION_LIMIT,
                     "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
                 }
-            )
+        except (ValidationError, InvalidSearchQuery) as exc:
+            # InvalidSearchQuery can be raised while building the Snuba query
+            # (e.g. `issue:` with a value that isn't a valid short ID), after
+            # parsing has already succeeded. It's a client error, not a 500.
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
 
