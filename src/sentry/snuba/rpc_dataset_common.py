@@ -1017,11 +1017,11 @@ class RPCBase:
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
-        # Series are grouped by exact value, so their filters must match exactly too, or values
-        # differing only in case are dropped from both their series and "Other".
-        exact_params = resolver.params.copy()
-        exact_params.case_insensitive = False
-        exact_resolver = replace(resolver, params=exact_params)
+        exact_resolver = resolver
+        if resolver.params.case_insensitive:
+            exact_params = resolver.params.copy()
+            exact_params.case_insensitive = False
+            exact_resolver = replace(resolver, params=exact_params)
         conditions = []
         other_conditions = []
         for event in top_events["data"]:
