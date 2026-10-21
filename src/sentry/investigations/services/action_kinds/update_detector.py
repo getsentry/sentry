@@ -21,7 +21,7 @@ _DETECTOR_TEXT_LIMITS = {"query": 2_000, "aggregate": 500, "environment": 64}
 
 
 class DetectorChangesSerializer(StrictContractSerializer):
-    """The detector settings an `update_detector` action reads or writes."""
+    """The monitor settings an `update_detector` action can read or change."""
 
     timeWindowSeconds = StrictIntegerField(required=False, min_value=1, max_value=I32_MAX)
     highThreshold = StrictFloatField(required=False)
@@ -59,9 +59,10 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
 
     @classmethod
     def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
-        """Drop changes we won't apply: text over our limits, or a null current aggregate.
+        """Drop changes we won't apply: text that's over our limits, or a change to a monitor
+        with no current aggregate.
 
-        No change left makes the request advice.
+        If no changes are left, the request becomes advice.
         """
 
         before = action.get("before")

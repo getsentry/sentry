@@ -730,7 +730,7 @@ class ActionRequestAnchor(TypedDict):
 
 
 class ActionRequestItem(TypedDict):
-    """One request from Seer, after the contract validated it."""
+    """A request from Seer that has passed validation."""
 
     key: str
     reportRevision: int
@@ -739,7 +739,7 @@ class ActionRequestItem(TypedDict):
     impact: str | None
     primary: bool
     anchor: ActionRequestAnchor | None
-    # Owned by the action kind; only the kind reads inside it.
+    # The action kind owns this, so nothing else should read inside it.
     action: dict[str, Any] | None
 
 
@@ -810,13 +810,13 @@ class MetadataCompletedPayloadSerializer(_ReportRevisionMixin):
 
 
 class ActionPayloadSerializer(RelaxedContractSerializer):
-    """The base for an action kind's payload. Each kind validates its own fields."""
+    """Base class for an action kind's payload. Each kind validates its own fields."""
 
     kind = StrictCharField(max_length=64)
 
     @classmethod
     def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
-        """The action without values this kind won't accept. None keeps the request as advice."""
+        """Remove values this kind won't accept. Return None to keep the request as advice."""
         return action
 
 
@@ -882,10 +882,11 @@ def _trimmed(item: Any, *, log: bool) -> Any:
 
 
 def valid_action_request(item: Any, *, log: bool = False) -> ActionRequestItem | None:
-    """The request Sentry can store, or None.
+    """Return the request in a form Sentry can store, or None if we can't use it.
 
-    Seer can ship kinds, providers, or fields Sentry does not know yet, so a bad request is
-    dropped, never rejected with its event. Only the apply path logs, so each drop logs once.
+    Seer can ship kinds, providers, or fields before Sentry knows about them, so we drop a bad
+    request instead of rejecting its whole event. Only the apply path logs, so each drop is
+    logged once.
     """
     trimmed = _trimmed(item, log=log)
     validator = ActionRequestSerializer(data=trimmed)
