@@ -421,7 +421,6 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = [
     "bitfield.*",
-    "django_picklefield.*",
     "fixtures.apidocs_test_case",
     "fixtures.gitlab",
     "fixtures.integrations.jira.mock",
@@ -702,7 +701,6 @@ module = [
     "sentry.db.models.fields.jsonfield",
     "sentry.db.models.fields.node",
     "sentry.db.models.fields.onetoone",
-    "sentry.db.models.fields.picklefield",
     "sentry.db.models.fields.slug",
     "sentry.db.models.fields.text",
     "sentry.db.models.fields.uuid",
