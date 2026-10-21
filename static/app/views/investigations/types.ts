@@ -331,11 +331,18 @@ type InvestigationOrchestrationError = {
 
 export type InvestigationToolActivity = {
   id: string;
-  kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'step' | 'tool'>;
+  /**
+   * `thought` is the agent's reasoning before the calls that follow it, not a
+   * call: its words are in `text`, and `title` is only their first line.
+   */
+  kind: InvestigationOrchestrationOpenString<
+    'api' | 'library' | 'step' | 'thought' | 'tool'
+  >;
   status: InvestigationOrchestrationOpenString<
     'queued' | 'running' | 'completed' | 'failed'
   >;
   title: string;
+  text?: string | null;
 };
 
 type InvestigationOrchestrationEvidence = {
