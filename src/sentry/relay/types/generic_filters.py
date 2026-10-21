@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import TypedDict
 
-from .rule_condition import SerializedRuleCondition
+from .rule_condition import RuleCondition
 
 
 class GenericFilter(TypedDict):
@@ -14,7 +14,7 @@ class GenericFilter(TypedDict):
 
     id: str
     isEnabled: bool
-    condition: SerializedRuleCondition | None
+    condition: RuleCondition | None
 
 
 class GenericFiltersConfig(TypedDict):
