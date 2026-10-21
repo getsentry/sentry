@@ -1942,6 +1942,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "title": "Permission matrix dashboard mutation"
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
+            ("OrganizationCodeMappingsBulkEndpoint", "POST"): {
+                "project": self.project.slug,
+                "repository": self._resource("scm_repository").name,
+                "defaultBranch": "main",
+                "mappings": [{"stackRoot": "/app/", "sourceRoot": "src/"}],
+            },
             ("OrganizationCodeMappingsEndpoint", "POST"): {
                 "integrationId": self._resource("scm_repository").integration_id,
                 "repositoryId": self._resource("scm_repository").id,
