@@ -23,22 +23,19 @@ CONFIGS_DIR: Path = Path(__file__).with_name("configs")
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
 QUOTED_STRING_REGEX = re.compile(r'"(?:[^"\\]|\\.)*"')
-# Arrows people (and LLMs) write when they mean `->`, including an em or en dash followed by `>`
+# Lookalikes for `->`, including em and en dash variants
 LOOKALIKE_ARROW_REGEX = re.compile(r"→|⟶|⇒|➔|=>|—>|–>")
 # An unquoted matcher value swallows a `->` written directly after it
 GLUED_ARROW_REGEX = re.compile(r"[^\s-]->")
 
 
 def _blank_quoted_strings(line: str) -> str:
-    """Replace quoted strings with spaces, so arrows inside them are ignored but offsets still line up."""
+    """Blank out quoted strings without shifting offsets."""
     return QUOTED_STRING_REGEX.sub(lambda m: " " * len(m.group()), line)
 
 
 def normalize_unicode_arrows(config: str) -> str:
-    """
-    Replace a `→` written in place of `->` with `->`. Only lines with no ASCII arrow outside quoted
-    strings are changed, so a `→` inside a quoted matcher value is left alone.
-    """
+    """Replace a `→` used as a rule's arrow with `->`, leaving any inside quoted values alone."""
     lines = config.split("\n")
     for i, line in enumerate(lines):
         unquoted_line = _blank_quoted_strings(line)
@@ -52,9 +49,8 @@ def normalize_unicode_arrows(config: str) -> str:
 
 def _describe_syntax_error(e: ParseError) -> str:
     """
-    Build an error message for a config the grammar rejects. When a rule's matchers or arrow are
-    malformed, the parser backtracks to the start of the line, so look for common mistakes on that
-    line and point at them instead.
+    The parser reports a bad matcher or arrow at the start of its line, so look for common mistakes
+    on that line and point at them instead.
     """
     line_start = e.text.rfind("\n", 0, e.pos) + 1
     line_end = e.text.find("\n", e.pos)
