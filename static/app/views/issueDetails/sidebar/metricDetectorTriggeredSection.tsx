@@ -76,6 +76,7 @@ import type {
   InvestigationOrchestration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
+import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -701,20 +702,14 @@ function SeerInvestigationSection({
           .queryKey,
         {json: launchedInvestigation, headers: {}}
       );
-      navigate(
-        normalizeUrl(
-          `/organizations/${organization.slug}/explore/investigations/${launchedInvestigation.id}/`
-        )
-      );
+      navigate(getInvestigationPath(organization.slug, launchedInvestigation.id));
     },
     onError: () => addErrorMessage(t('Unable to launch investigation.')),
   });
 
   const investigationPath =
     candidate?.status === 'view'
-      ? normalizeUrl(
-          `/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`
-        )
+      ? getInvestigationPath(organization.slug, candidate.investigationId)
       : null;
 
   if (

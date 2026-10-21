@@ -4,6 +4,7 @@ import {IconCompass} from '@sentry/icons/compass';
 import {IconDashboard} from '@sentry/icons/dashboard';
 import {IconGraph} from '@sentry/icons/graph';
 import {IconIssues} from '@sentry/icons/issues';
+import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {motion, type MotionProps} from 'framer-motion';
@@ -18,6 +19,11 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
+import {
+  getInvestigationsPath,
+  isAutomationsEnabled,
+  isInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
@@ -230,6 +236,23 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
           </PrimaryNavigation.ListItem>
         )}
       </NavigationTourElement>
+
+      {(isInvestigationsEnabled(organization) || isAutomationsEnabled(organization)) && (
+        <PrimaryNavigation.ListItem>
+          <PrimaryNavigation.Link
+            to={getInvestigationsPath(organization.slug)}
+            analyticsKey="seer"
+            label={t('Seer')}
+            {...makeNavigationItemProps(
+              'seer',
+              getInvestigationsPath(organization.slug),
+              `/${prefix}/seer`
+            )}
+          >
+            <IconSeer />
+          </PrimaryNavigation.Link>
+        </PrimaryNavigation.ListItem>
+      )}
 
       <Feature
         features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
