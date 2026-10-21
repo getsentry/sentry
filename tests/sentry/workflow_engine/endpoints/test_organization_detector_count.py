@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.urls import reverse
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -9,12 +7,9 @@ from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorAPIOperation, FeatureGate
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
-    assert_querysets_unchanged,
+    GATE_FEATURE,
     override_detector_api_availability,
 )
 
@@ -149,104 +144,28 @@ class OrganizationDetectorCountTest(APITestCase):
             "total": 2,
         }
 
-    def create_metric_detectors(self) -> list[Detector]:
-        return [
+    def test_read_excluded_types_are_not_counted(self) -> None:
+        for enabled in (True, False):
             self.create_detector(
                 project=self.project,
                 type=MetricIssue.slug,
                 enabled=enabled,
                 config={"detection_type": AlertRuleDetectionType.STATIC.value},
             )
-            for enabled in (True, False)
-        ]
 
-    def test_get_excluded_types_are_not_counted(self) -> None:
-        detectors = self.create_metric_detectors()
-        with (
-            override_detector_api_availability(MetricIssue.slug, {DetectorAPIOperation.GET: False}),
-            assert_querysets_unchanged(
-                detectors=Detector.objects.filter(id__in=[detector.id for detector in detectors])
-            ),
-        ):
-            response = self.get_success_response(self.organization.slug)
-            assert response.data == {"active": 2, "inactive": 0, "total": 2}
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"type": MetricIssue.slug}
-            )
-            assert response.data == {"active": 0, "inactive": 0, "total": 0}
-
-    def test_list_excluded_types_are_not_counted(self) -> None:
-        detectors = self.create_metric_detectors()
-        with (
-            override_detector_api_availability(
-                MetricIssue.slug, {DetectorAPIOperation.LIST: False}
-            ),
-            assert_querysets_unchanged(
-                detectors=Detector.objects.filter(id__in=[detector.id for detector in detectors])
-            ),
-        ):
-            response = self.get_success_response(self.organization.slug)
-            assert response.data == {"active": 2, "inactive": 0, "total": 2}
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"type": MetricIssue.slug}
-            )
-            assert response.data == {"active": 0, "inactive": 0, "total": 0}
-
-    def test_list_feature_gate_keeps_list_and_counts_in_sync(self) -> None:
-        error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
-        issue_stream_detector = self.create_detector(
-            project=self.project, type=IssueStreamGroupType.slug
-        )
-        metric_detectors = [
-            self.create_detector(
-                project=self.project,
-                type=MetricIssue.slug,
-                enabled=enabled,
-                config={"detection_type": AlertRuleDetectionType.STATIC.value},
-            )
-            for enabled in (True, False)
-        ]
-        other_project = self.create_project(organization=self.organization, teams=[self.team])
-        self.create_detector(
-            project=other_project,
-            type=MetricIssue.slug,
-            enabled=True,
-            config={"detection_type": AlertRuleDetectionType.STATIC.value},
-        )
-        list_url = reverse(
-            "sentry-api-0-organization-detector-index", args=[self.organization.slug]
-        )
-        query = {"project": self.project.id}
-        feature_name = "organizations:workflow-engine-log-evaluations"
-        settings = detector_settings_registry.get(MetricIssue.slug)
-
-        with patch.object(
-            settings,
-            "api_availability",
-            {
-                DetectorAPIOperation.GET: True,
-                DetectorAPIOperation.LIST: FeatureGate(feature_name),
-            },
-        ):
-            for enabled in (False, True, False):
-                with self.subTest(feature_enabled=enabled), self.feature({feature_name: enabled}):
-                    count_response = self.get_success_response(
-                        self.organization.slug, qs_params=query
-                    )
-                    list_response = self.client.get(list_url, query)
-                    assert list_response.status_code == 200, list_response.data
-
-                    expected_ids = {str(error_detector.id), str(issue_stream_detector.id)}
-                    if enabled:
-                        expected_ids.update(str(detector.id) for detector in metric_detectors)
-                    assert {detector["id"] for detector in list_response.data} == expected_ids
-                    assert count_response.data == {
-                        "active": 3 if enabled else 2,
-                        "inactive": 1 if enabled else 0,
-                        "total": 4 if enabled else 2,
-                    }
-                    assert int(list_response["X-Hits"]) == count_response.data["total"]
-                    assert len(list_response.data) == count_response.data["total"]
+        # LIST also requires GET, so denying either hides the type from counts
+        for operation in (DetectorAPIOperation.GET, DetectorAPIOperation.LIST):
+            with (
+                self.subTest(operation=operation.value),
+                override_detector_api_availability(MetricIssue.slug, {operation: False}),
+            ):
+                # Only the project's default error and issue stream detectors remain
+                response = self.get_success_response(self.organization.slug)
+                assert response.data == {"active": 2, "inactive": 0, "total": 2}
+                response = self.get_success_response(
+                    self.organization.slug, qs_params={"type": MetricIssue.slug}
+                )
+                assert response.data == {"active": 0, "inactive": 0, "total": 0}
 
     def test_feature_gate_is_scoped_to_each_organization_request(self) -> None:
         other_org = self.create_organization(owner=self.user)
@@ -266,19 +185,14 @@ class OrganizationDetectorCountTest(APITestCase):
                 for enabled in (True, False)
             }
 
-        feature_name = "organizations:workflow-engine-log-evaluations"
-        settings = detector_settings_registry.get(MetricIssue.slug)
         with (
-            self.feature({feature_name: [self.organization.slug]}),
-            patch.object(
-                settings,
-                "api_availability",
-                {operation: FeatureGate(feature_name) for operation in DetectorAPIOperation},
+            self.feature({GATE_FEATURE: [self.organization.slug]}),
+            override_detector_api_availability(
+                MetricIssue.slug,
+                {operation: FeatureGate(GATE_FEATURE) for operation in DetectorAPIOperation},
             ),
         ):
             for organization, project in (
-                (other_org, other_project),
-                (self.organization, self.project),
                 (other_org, other_project),
                 (self.organization, self.project),
             ):

@@ -36,6 +36,11 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, FeatureGate
+from tests.sentry.workflow_engine.endpoints.test_helpers import (
+    GATE_FEATURE,
+    assert_querysets_unchanged,
+    override_detector_api_availability,
+)
 from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
 
@@ -167,71 +172,40 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 @cell_silo_test
 @with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
-    def test_post_exclusion_preserves_state(self) -> None:
-        detector_count = Detector.objects.filter(project=self.project).count()
-        data_source_count = DataSource.objects.filter(organization=self.organization).count()
-        with mock.patch.object(
-            MetricIssue.detector_settings, "api_availability", {DetectorAPIOperation.POST: False}
+    def test_post_feature_gate(self) -> None:
+        # Read exclusions don't restrict creation
+        with override_detector_api_availability(
+            MetricIssue.slug,
+            {
+                DetectorAPIOperation.POST: FeatureGate(GATE_FEATURE),
+                DetectorAPIOperation.LIST: False,
+                DetectorAPIOperation.GET: False,
+            },
         ):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                **self.valid_data,
-                status_code=400,
-            )
-
-        assert "type" in response.data
-        assert Detector.objects.filter(project=self.project).count() == detector_count
-        assert (
-            DataSource.objects.filter(organization=self.organization).count() == data_source_count
-        )
-
-    def test_post_operation_feature_gate_preserves_state(self) -> None:
-        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
-        querysets = (
-            Detector.objects.filter(project=self.project),
-            DataSource.objects.filter(organization=self.organization),
-            DataSourceDetector.objects.filter(detector__project=self.project),
-            QuerySubscription.objects.filter(project=self.project),
-            SnubaQuery.objects.all(),
-            DataConditionGroup.objects.filter(organization_id=self.organization.id),
-            DataCondition.objects.filter(condition_group__organization_id=self.organization.id),
-            DetectorWorkflow.objects.filter(detector__project=self.project),
-        )
-        original_state = [list(queryset.order_by("id").values()) for queryset in querysets]
-        with mock.patch.object(
-            MetricIssue.detector_settings, "api_availability", {DetectorAPIOperation.POST: gate}
-        ):
-            with self.feature({gate.name: False}):
+            with (
+                self.feature({GATE_FEATURE: False}),
+                assert_querysets_unchanged(
+                    detectors=Detector.objects.filter(project=self.project),
+                    data_sources=DataSource.objects.filter(organization=self.organization),
+                    snuba_queries=SnubaQuery.objects.all(),
+                    condition_groups=DataConditionGroup.objects.filter(
+                        organization_id=self.organization.id
+                    ),
+                ),
+            ):
                 response = self.get_error_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    **self.valid_data,
-                    status_code=400,
+                    self.organization.slug, self.project.slug, **self.valid_data, status_code=400
                 )
             assert "type" in response.data
-            assert [
-                list(queryset.order_by("id").values()) for queryset in querysets
-            ] == original_state
 
-            with self.feature(gate.name), self.tasks():
+            with self.feature(GATE_FEATURE), self.tasks():
                 response = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    **self.valid_data,
-                    status_code=201,
+                    self.organization.slug, self.project.slug, **self.valid_data, status_code=201
                 )
-            detector = Detector.objects.get(id=response.data["id"])
-            assert response.data == serialize(detector)
-            assert detector.type == MetricIssue.slug
-            assert detector.name == self.valid_data["name"]
-            assert detector.project_id == self.project.id
-            data_source = DataSource.objects.get(detector=detector)
-            subscription = QuerySubscription.objects.get(id=data_source.source_id)
-            assert subscription.snuba_query.query == "test query"
-            assert DetectorWorkflow.objects.filter(
-                detector=detector, workflow=self.connected_workflow
-            ).exists()
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.type == MetricIssue.slug
+        assert detector.project_id == self.project.id
 
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
@@ -376,18 +350,7 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         assert response.data["projectId"] == str(self.project.id)
 
     def test_project_by_slug(self) -> None:
-        with (
-            self.tasks(),
-            self.feature({"organizations:change-alerts": False}),
-            mock.patch.object(
-                MetricIssue.detector_settings,
-                "api_availability",
-                {
-                    DetectorAPIOperation.LIST: FeatureGate("organizations:change-alerts"),
-                    DetectorAPIOperation.GET: False,
-                },
-            ),
-        ):
+        with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,

@@ -8,6 +8,10 @@ from django.db.models import QuerySet
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import APIGate, DetectorAPIOperation
 
+# Any registered organization feature works as a FeatureGate in tests; this one has no
+# effect on the detector endpoints themselves.
+GATE_FEATURE = "organizations:workflow-engine-log-evaluations"
+
 
 @contextmanager
 def override_detector_api_availability(

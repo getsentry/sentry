@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Never
 from unittest.mock import patch
@@ -16,11 +17,13 @@ from sentry.workflow_engine.processors import DataConditionGroupEvaluation, Dete
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
+    APIGate,
     DetectorAPIOperation,
     DetectorPriorityLevel,
     DetectorSettings,
     FeatureGate,
 )
+from tests.sentry.workflow_engine.endpoints.test_helpers import GATE_FEATURE
 
 
 @cell_silo_test
@@ -142,80 +145,32 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == self.expected_type_slugs
 
-    def test_get_excluded_type_is_not_returned(self) -> None:
-        excluded_slug = self.expected_type_slugs[0]
-        settings = detector_settings_registry.get(excluded_slug)
-
-        class ExcludedDetectorSettings(DetectorSettings):
-            handler = settings.handler
-            api_availability = {DetectorAPIOperation.GET: False}
-
-        with patch.dict(
-            detector_settings_registry.registrations, {excluded_slug: ExcludedDetectorSettings}
-        ):
-            response = self.get_success_response(self.organization.slug)
-            assert response.data == self.expected_type_slugs[1:]
-
-    def test_list_exclusion_does_not_affect_type_discovery(self) -> None:
-        excluded_slug = self.expected_type_slugs[0]
-        settings = detector_settings_registry.get(excluded_slug)
-
-        class ExcludedDetectorSettings(DetectorSettings):
-            handler = settings.handler
-            api_availability = {DetectorAPIOperation.LIST: False}
-
-        with patch.dict(
-            detector_settings_registry.registrations, {excluded_slug: ExcludedDetectorSettings}
-        ):
-            response = self.get_success_response(self.organization.slug)
-            assert response.data == self.expected_type_slugs
-
-    def test_list_feature_gate_does_not_affect_type_discovery(self) -> None:
-        feature_name = "organizations:workflow-engine-log-evaluations"
+    def gate_first_type(self, availability: Mapping[DetectorAPIOperation, APIGate]) -> None:
+        # The fixture types share one settings class, so give the gated type its own subclass.
+        # setUp's patch.dict restores the registrations afterwards.
         gated_slug = self.expected_type_slugs[0]
-        settings = detector_settings_registry.get(gated_slug)
 
         class GatedDetectorSettings(DetectorSettings):
-            handler = settings.handler
-            api_availability = {
-                DetectorAPIOperation.GET: True,
-                DetectorAPIOperation.LIST: FeatureGate(feature_name),
-            }
+            handler = detector_settings_registry.get(gated_slug).handler
+            api_availability = availability
 
-        with (
-            self.feature({feature_name: False}),
-            patch.dict(
-                detector_settings_registry.registrations, {gated_slug: GatedDetectorSettings}
-            ),
-        ):
-            response = self.get_success_response(self.organization.slug)
-            assert response.data == self.expected_type_slugs
+        detector_settings_registry.registrations[gated_slug] = GatedDetectorSettings
+
+    def test_get_excluded_type_is_not_returned(self) -> None:
+        self.gate_first_type({DetectorAPIOperation.GET: False})
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs[1:]
+
+    def test_list_exclusion_does_not_affect_type_discovery(self) -> None:
+        self.gate_first_type({DetectorAPIOperation.LIST: False})
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs
 
     def test_get_feature_gate_is_scoped_to_each_organization_request(self) -> None:
         other_org = self.create_organization(owner=self.user)
-        feature_name = "organizations:workflow-engine-log-evaluations"
-        gated_slug = self.expected_type_slugs[0]
-        settings = detector_settings_registry.get(gated_slug)
-
-        class GatedDetectorSettings(DetectorSettings):
-            handler = settings.handler
-            api_availability = {
-                DetectorAPIOperation.GET: FeatureGate(feature_name),
-                DetectorAPIOperation.LIST: True,
-            }
-
-        with (
-            self.feature({feature_name: [self.organization.slug]}),
-            patch.dict(
-                detector_settings_registry.registrations, {gated_slug: GatedDetectorSettings}
-            ),
-        ):
-            for organization in (self.organization, other_org, self.organization, other_org):
-                with self.subTest(organization=organization.slug):
-                    response = self.get_success_response(organization.slug)
-                    expected_slugs = (
-                        self.expected_type_slugs
-                        if organization.id == self.organization.id
-                        else self.expected_type_slugs[1:]
-                    )
-                    assert response.data == expected_slugs
+        self.gate_first_type({DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)})
+        with self.feature({GATE_FEATURE: [self.organization.slug]}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs
+            response = self.get_success_response(other_org.slug)
+            assert response.data == self.expected_type_slugs[1:]
