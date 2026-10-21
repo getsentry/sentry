@@ -335,7 +335,7 @@ export function NumericFilterSelector({
       menuFooter={
         hasStagedChanges
           ? () => (
-              <Flex gap="md" justify="end" width="100%">
+              <Flex gap="md" justify="end">
                 <MenuComponents.CancelButton />
                 <MenuComponents.ApplyButton
                   disabled={!filter.isValidValue}
