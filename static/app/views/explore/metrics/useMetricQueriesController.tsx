@@ -25,7 +25,6 @@ import {
   isVisualizeFunction,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function syncUpdatedMetricQueries(
@@ -116,41 +115,43 @@ export function useMetricQueriesController({
 
   const getRowMutators = useMemo(() => {
     function updateQuery(
-      label: string,
+      rowId: string,
       update: (metricQuery: BaseMetricQuery) => BaseMetricQuery
     ) {
-      // Snapshot labels at call time: a deferred useState updater sees only the
-      // calls made before this one, and so does this snapshot.
-      const currentLabels = labels.getLabels();
+      // Read rows at call time: a deferred useState updater sees only the calls
+      // made before this one, and so does this snapshot.
+      const rowIds = labels.getRowIds();
+      const rowLabels = rowIds.map((_, j) => labels.getLabel(j));
+      const index = rowIds.indexOf(rowId);
       setQueries(previousQueries => {
-        const labeledQueries = previousQueries.map((metricQuery, j) => ({
-          ...metricQuery,
-          label: currentLabels[j] ?? getFunctionLabel(j),
-        }));
-        if (!labeledQueries.some(metricQuery => metricQuery.label === label)) {
+        if (index === -1 || previousQueries.length !== rowIds.length) {
           return previousQueries;
         }
-        const newMetricQueries = labeledQueries.map(metricQuery =>
-          metricQuery.label === label ? update(metricQuery) : metricQuery
+        const labeledQueries = previousQueries.map((metricQuery, j) => ({
+          ...metricQuery,
+          label: rowLabels[j],
+        }));
+        const newMetricQueries = labeledQueries.map((metricQuery, j) =>
+          j === index ? update(metricQuery) : metricQuery
         );
         return syncUpdatedMetricQueries(labeledQueries, newMetricQueries);
       });
     }
 
-    function createRowMutators(label: string): RowMutators {
+    function createRowMutators(rowId: string): RowMutators {
       return {
         setQueryParams: newQueryParams =>
-          updateQuery(label, metricQuery => ({
+          updateQuery(rowId, metricQuery => ({
             metric: metricQuery.metric,
             queryParams: newQueryParams,
             label: metricQuery.label,
           })),
         setTraceMetric: newTraceMetric =>
-          updateQuery(label, metricQuery => withTraceMetric(metricQuery, newTraceMetric)),
+          updateQuery(rowId, metricQuery => withTraceMetric(metricQuery, newTraceMetric)),
         removeMetric: () => {
-          const currentLabels = labels.getLabels();
-          const index = currentLabels.indexOf(label);
-          if (index === -1 || currentLabels.length <= 1) {
+          const rowIds = labels.getRowIds();
+          const index = rowIds.indexOf(rowId);
+          if (index === -1 || rowIds.length <= 1) {
             return;
           }
           // Update the label ref synchronously before the storage write so
@@ -164,10 +165,10 @@ export function useMetricQueriesController({
     return createRowMutators;
   }, [setQueries, labels]);
 
-  const queryLabelsKey = queries.map((_, i) => labels.getLabel(i)).join(',');
+  const rowIdsKey = labels.getRowIds().join(',');
   const rowMutators = useMemo(
-    () => queryLabelsKey.split(',').map(getRowMutators),
-    [queryLabelsKey, getRowMutators]
+    () => rowIdsKey.split(',').map(getRowMutators),
+    [rowIdsKey, getRowMutators]
   );
 
   return useMemo(() => {

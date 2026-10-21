@@ -597,6 +597,58 @@ describe('MultiMetricsQueryParamsProvider', () => {
     ]);
   });
 
+  it('updates only its own query when two queries share a label', async () => {
+    const aggregate = canonicalMetricQueryParam('foo');
+    const equation = JSON.stringify({
+      metric: {name: '', type: ''},
+      query: '',
+      aggregateFields: [new VisualizeEquation('equation|A * 2').serialize()],
+      aggregateSortBys: [],
+      mode: 'aggregate',
+    });
+    const {result, router} = renderHookWithProviders(
+      () => ({
+        addMetricQuery: useAddMetricQuery(),
+        metricQueries: useMultiMetricsQueryParams(),
+      }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {metric: [aggregate, canonicalMetricQueryParam('bar')]},
+          },
+        },
+      }
+    );
+    const search = new URLSearchParams([
+      ['metric', aggregate],
+      ['metric', equation],
+    ]);
+    router.navigate(`/organizations/org-slug/explore/metrics/?${search.toString()}`);
+    await waitFor(() =>
+      expect(result.current.metricQueries[1]!.queryParams.visualizes[0]).toBeInstanceOf(
+        VisualizeEquation
+      )
+    );
+    act(() => result.current.addMetricQuery());
+    const added = result.current.metricQueries[1]!;
+
+    act(() => added.setQueryParams(added.queryParams.replace({query: 'span.op:db'})));
+
+    expect(result.current.metricQueries.map(metricQuery => metricQuery.label)).toEqual([
+      'A',
+      'B',
+      'B',
+    ]);
+    expect(
+      result.current.metricQueries.map(metricQuery => metricQuery.queryParams.query)
+    ).toEqual(['', 'span.op:db', '']);
+    expect(result.current.metricQueries[2]!.queryParams.visualizes[0]).toBeInstanceOf(
+      VisualizeEquation
+    );
+  });
+
   describe('URL writes', () => {
     beforeEach(() => {
       jest.useFakeTimers();
