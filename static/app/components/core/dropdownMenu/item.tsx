@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useRef} from 'react';
+import {Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -115,14 +115,6 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
   submenuRef?: React.RefObject<HTMLElement | null>;
 }
 
-function isNestedControl(target: EventTarget | null, menuItem: HTMLElement | null) {
-  if (!(target instanceof Element) || !menuItem) {
-    return false;
-  }
-  const control = target.closest('button, a, input, select, textarea, [role="button"]');
-  return Boolean(control && control !== menuItem && menuItem.contains(control));
-}
-
 /**
  * A menu item with a label, optional details, leading and trailing elements.
  * Can also be used as a trigger button for a submenu. See:
@@ -140,13 +132,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
-  const isNestedControlPress = useRef(false);
-  const markNestedControlPress = useCallback(
-    (event: React.SyntheticEvent<HTMLElement>) => {
-      isNestedControlPress.current = isNestedControl(event.target, innerWrapRef.current);
-    },
-    []
-  );
+  const trailingActionRef = useRef<HTMLDivElement>(null);
   const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
@@ -159,6 +145,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     leadingItems,
     submenu,
     trailingItems,
+    trailingAction,
     externalHref,
     closeOnSelect: itemCloseOnSelect,
     ...itemProps
@@ -170,9 +157,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
   const actionHandler = () => {
-    if (isNestedControlPress.current) {
-      return;
-    }
     if (isLink) {
       // Close the menu after the click event has bubbled to the link
       // Only needed on links that do not unmount the menu
@@ -224,24 +208,14 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }
 
       if (e.key === 'ArrowRight' && document.activeElement === innerWrapRef.current) {
-        const nestedButton = innerWrapRef.current?.querySelector<HTMLButtonElement>(
+        const actionButton = trailingActionRef.current?.querySelector<HTMLButtonElement>(
           'button:not(:disabled)'
         );
-        if (nestedButton) {
+        if (actionButton) {
           e.preventDefault();
-          nestedButton.focus();
+          actionButton.focus();
           return;
         }
-      }
-
-      if (
-        e.key === 'ArrowLeft' &&
-        innerWrapRef.current?.contains(document.activeElement) &&
-        document.activeElement !== innerWrapRef.current
-      ) {
-        e.preventDefault();
-        innerWrapRef.current.focus();
-        return;
       }
 
       e.continuePropagation();
@@ -254,9 +228,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       key: node.key,
       onAction: actionHandler,
       onClose: () => {
-        if (isNestedControlPress.current) {
-          return;
-        }
         onClose?.();
         rootOverlayState?.close();
       },
@@ -328,9 +299,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       isFocused={isFocused}
       innerWrapProps={{
         ...mergedMenuItemContentProps,
-        onPointerDownCapture: markNestedControlPress,
-        onKeyDownCapture: markNestedControlPress,
-        onClickCapture: markNestedControlPress,
         onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
           lastPointerPosition.current = {x: event.clientX, y: event.clientY};
           // React clears currentTarget after dispatch, but hover may be deferred.
@@ -360,6 +328,17 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }}
       labelProps={labelProps}
       detailsProps={descriptionProps}
+      trailingAction={trailingAction}
+      trailingActionRef={trailingActionRef}
+      trailingActionProps={{
+        onKeyDown: event => {
+          if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            event.stopPropagation();
+            innerWrapRef.current?.focus();
+          }
+        },
+      }}
       trailingItems={
         isSubmenu ? (
           <Fragment>

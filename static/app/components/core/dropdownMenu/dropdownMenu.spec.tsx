@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 describe('DropdownMenu', () => {
-  it('keeps presses on a trailing button from selecting its menu item', async () => {
+  it('keeps presses on a trailing action from selecting its menu item', async () => {
     const originalPointerEvent = window.PointerEvent;
     Object.defineProperty(window, 'PointerEvent', {
       configurable: true,
@@ -22,7 +22,7 @@ describe('DropdownMenu', () => {
               key: 'project',
               label: 'Project',
               onAction,
-              trailingItems: <button onClick={onTrailingClick}>Bookmark</button>,
+              trailingAction: <button onClick={onTrailingClick}>Bookmark</button>,
             },
           ]}
         />
@@ -45,7 +45,7 @@ describe('DropdownMenu', () => {
     }
   });
 
-  it('keeps keyboard activation of a trailing button from selecting its menu item', async () => {
+  it('keeps keyboard activation of a trailing action from selecting its menu item', async () => {
     const onAction = jest.fn();
     const onTrailingClick = jest.fn();
 
@@ -57,7 +57,7 @@ describe('DropdownMenu', () => {
             key: 'project',
             label: 'Project',
             onAction,
-            trailingItems: <button onClick={onTrailingClick}>Bookmark</button>,
+            trailingAction: <button onClick={onTrailingClick}>Bookmark</button>,
           },
         ]}
       />
@@ -72,7 +72,7 @@ describe('DropdownMenu', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Project'})).toBeInTheDocument();
   });
 
-  it('moves keyboard focus between a menu item and its trailing button', async () => {
+  it('moves keyboard focus between a menu item and its trailing action', async () => {
     const onAction = jest.fn();
     const onTrailingClick = jest.fn();
 
@@ -84,7 +84,7 @@ describe('DropdownMenu', () => {
             key: 'project',
             label: 'Project',
             onAction,
-            trailingItems: <button onClick={onTrailingClick}>Bookmark</button>,
+            trailingAction: <button onClick={onTrailingClick}>Bookmark</button>,
           },
         ]}
       />

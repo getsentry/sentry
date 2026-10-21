@@ -149,7 +149,9 @@ describe('OrganizationDropdown', () => {
     const row = screen.getByRole('menuitemradio', {name: 'javascript'});
     await userEvent.hover(row);
     await userEvent.keyboard('{ArrowRight}');
-    expect(within(row).getByRole('button', {name: 'Remove Bookmark'})).toHaveFocus();
+    const bookmark = screen.getByRole('button', {name: 'Remove Bookmark'});
+    expect(row).not.toContainElement(bookmark);
+    expect(bookmark).toHaveFocus();
     await userEvent.keyboard('{Enter}');
 
     expect(projectMock).toHaveBeenCalled();

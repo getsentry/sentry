@@ -310,13 +310,7 @@ function makeProjectMenuItem(
     key: `${keyPrefix}-${project.id}`,
     label: project.slug,
     leadingItems: <ProjectAvatar project={project} size={16} />,
-    trailingItems: (
-      <BookmarkStar
-        project={project}
-        organization={organization}
-        onClick={event => event.stopPropagation()}
-      />
-    ),
+    trailingAction: <BookmarkStar project={project} organization={organization} />,
     onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
   };
 }

@@ -167,10 +167,12 @@ function getTextColor({
 const StyledInnerWrap = styled(Flex, {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
-    (isPropValid(prop) || ['padding', 'align', 'alignSelf'].includes(prop)) &&
-    !['disabled', 'isFocused', 'priority'].includes(prop),
+    (isPropValid(prop) ||
+      ['padding', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
+    !['disabled', 'isFocused', 'hasTrailingAction', 'priority'].includes(prop),
 })<{
   disabled: boolean;
+  hasTrailingAction: boolean;
   isFocused: boolean;
   priority: Priority;
   size?: FormSize;
@@ -205,7 +207,7 @@ const StyledInnerWrap = styled(Flex, {
   ${p =>
     p.isFocused &&
     css`
-      z-index: 1;
+      ${!p.hasTrailingAction && 'z-index: 1;'}
       /* Background to hide the previous item's divider */
       ::before {
         background: ${p.theme.tokens.background.overlay};
@@ -315,6 +317,10 @@ export type ListItemProps = {
    */
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
   /**
+   * An interactive control rendered beside, rather than inside, the focusable menu item.
+   */
+  trailingAction?: ExtraContent;
+  /**
    * Items to be added to the right of the label.
    */
   trailingItems?: ExtraContent;
@@ -328,6 +334,8 @@ interface OtherProps<T extends React.ElementType> {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: {as?: 'div' | 'p'; id?: string};
+  trailingActionProps?: React.HTMLAttributes<HTMLDivElement>;
+  trailingActionRef?: React.Ref<HTMLDivElement>;
 }
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
@@ -345,6 +353,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   disabled = false,
   leadingItems = false,
   trailingItems = false,
+  trailingAction,
   isFocused = false,
   isSelected = false,
   isPressed,
@@ -355,14 +364,19 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   tooltip,
   tooltipOptions,
   ref,
+  trailingActionRef,
+  trailingActionProps,
   ...props
 }: MenuListItemProps<T>) {
   const itemRef = useRef<HTMLElement>(null);
+  const theme = useTheme();
   const labelId = useId();
   const detailId = useId();
 
   return (
     <MenuItemWrap
+      hasTrailingAction={Boolean(trailingAction)}
+      isFocused={isFocused}
       aria-disabled={disabled}
       aria-labelledby={labelId}
       aria-describedby={detailId}
@@ -383,7 +397,9 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
         <StyledInnerWrap
           data-menu-item-content
           padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
+          paddingRight={trailingAction ? '3xl' : undefined}
           isFocused={isFocused}
+          hasTrailingAction={Boolean(trailingAction)}
           disabled={disabled}
           priority={priority}
           size={size}
@@ -446,6 +462,21 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           </StyledContentWrap>
         </StyledInnerWrap>
       </Tooltip>
+      {trailingAction && (
+        <Flex
+          ref={trailingActionRef}
+          position="absolute"
+          right={theme.space.lg}
+          top="0"
+          height="100%"
+          align="center"
+          {...trailingActionProps}
+        >
+          {typeof trailingAction === 'function'
+            ? trailingAction({disabled, isFocused, isSelected})
+            : trailingAction}
+        </Flex>
+      )}
       {showDetailsInOverlay && details && isFocused && (
         <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
           {typeof details === 'function'
@@ -530,8 +561,9 @@ const StyledOverlay = styled(Overlay)<{
   overflow: auto;
 `;
 
-const MenuItemWrap = styled('li')`
-  position: static;
+const MenuItemWrap = styled('li')<{hasTrailingAction: boolean; isFocused: boolean}>`
+  position: ${p => (p.hasTrailingAction ? 'relative' : 'static')};
+  ${p => p.hasTrailingAction && p.isFocused && 'z-index: 1;'}
   list-style-type: none;
   margin: 0;
   padding: 0 ${p => p.theme.space.xs};
