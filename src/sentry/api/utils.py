@@ -601,7 +601,7 @@ class SortBy:
     descending: bool
 
     @property
-    def order_by(self):
+    def order_by(self) -> str:
         return f"{'-' if self.descending else ''}{self.field}"
 
 

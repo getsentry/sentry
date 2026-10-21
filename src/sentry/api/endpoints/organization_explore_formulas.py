@@ -1,7 +1,7 @@
 from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from types import SimpleNamespace
-from typing import Any, Mapping, TypedDict
+from typing import Any, Mapping, NotRequired, TypedDict
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -420,7 +420,13 @@ class FormulaSerializer(RequestSerializer):
         return data
 
 
-class FormulaListSerializer(RequestSerializer):
+class FormulaListQuery(TypedDict):
+    name: NotRequired[str]
+    sortBy: SortBy
+    prebuilt: NotRequired[bool]
+
+
+class FormulaListSerializer(RequestSerializer[None, FormulaListQuery]):
     name = CharField(max_length=200, required=False)
     sortBy = CharField(max_length=200, required=False, default="name")
     prebuilt = BooleanField(required=False)
