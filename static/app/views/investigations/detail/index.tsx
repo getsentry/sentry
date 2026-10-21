@@ -44,11 +44,6 @@ import {
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {
-  getHypothesisChatPrompt,
-  getInvestigationChatPrompt,
-  useInvestigationAskSeer,
-} from 'sentry/views/investigations/askSeer';
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
@@ -65,14 +60,23 @@ import {
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {
+  getHypothesisLLMContext,
+  getInvestigationLLMContext,
+  getInvestigationReference,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/investigationLLMContext';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {
   InvestigationBlock,
   InvestigationDetail,
+  InvestigationHypothesis,
 } from 'sentry/views/investigations/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
@@ -153,7 +157,11 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
   return <InvestigationPageContent investigation={investigation} />;
 }
 
-function InvestigationPageContent({investigation}: {investigation: InvestigationDetail}) {
+function InvestigationPageContentInner({
+  investigation,
+}: {
+  investigation: InvestigationDetail;
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -325,7 +333,34 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const showDetailsHeading =
     hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
   const showActivity = isInvestigationRunDone(investigation);
+  // Push the investigation into the LLM context tree for Seer Explorer. Its
+  // hypotheses and cells register their own nodes beneath it.
+  const {getLLMContext} = useLLMContext(
+    getInvestigationLLMContext(investigation, orchestration)
+  );
   const askSeer = useInvestigationAskSeer();
+  const askSeerAboutInvestigation = askSeer
+    ? () =>
+        askSeer({
+          prompt: t('What would you like to know about this investigation?'),
+          // This node with everything beneath it, so the hypotheses and cells on
+          // screen come along.
+          context: getLLMContext(true).nodes[0],
+        })
+    : undefined;
+  const askSeerAboutHypothesis = askSeer
+    ? (hypothesis: InvestigationHypothesis) =>
+        askSeer({
+          prompt: t('What would you like to know about this hypothesis?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            hypothesis: getHypothesisLLMContext(
+              hypothesis,
+              hypothesis.id === orchestration?.report.primaryHypothesisId
+            ),
+          },
+        })
+    : undefined;
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -338,19 +373,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             trailingActions: {
               type: 'menu',
               items: [
-                ...(askSeer
+                ...(askSeerAboutInvestigation
                   ? [
                       {
                         key: 'ask-seer',
                         label: t('Ask Seer'),
-                        onAction: () =>
-                          askSeer(
-                            getInvestigationChatPrompt({
-                              investigation,
-                              orchestration,
-                              blocks: visibleBlocks,
-                            })
-                          ),
+                        onAction: askSeerAboutInvestigation,
                       },
                     ]
                   : []),
@@ -531,19 +559,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                         investigationId={investigation.id}
                         phase={investigation.orchestration.phase}
                         status={investigation.orchestration.status}
-                        onAskSeer={
-                          askSeer
-                            ? hypothesis =>
-                                askSeer(
-                                  getHypothesisChatPrompt({
-                                    hypothesis,
-                                    investigation,
-                                    primaryHypothesisId:
-                                      orchestration?.report.primaryHypothesisId ?? null,
-                                  })
-                                )
-                            : undefined
-                        }
+                        onAskSeer={askSeerAboutHypothesis}
                       />
                     ) : null}
                     {visibleBlocks.length > 0 || awaitingReportCell ? (
@@ -591,6 +607,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     </SentryDocumentTitle>
   );
 }
+
+const InvestigationPageContent = registerLLMContext(
+  'investigation',
+  InvestigationPageContentInner
+);
 
 /**
  * Text cells start a new section with a large gap. Query cells sit close to the

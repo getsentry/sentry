@@ -33,11 +33,12 @@ import {
   useResumeInvestigationExecutionMutation,
   useStopInvestigationExecutionMutation,
 } from 'sentry/views/investigations/api';
-import {
-  getCellChatPrompt,
-  useInvestigationAskSeer,
-} from 'sentry/views/investigations/askSeer';
 import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+import {
+  getCellLLMContext,
+  getInvestigationReference,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/investigationLLMContext';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
@@ -51,6 +52,8 @@ import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {MessagePlaceholder} from 'sentry/views/seerExplorer/components/chat/shared';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -62,7 +65,7 @@ type InvestigationCellProps = {
   onComment?: (blockId: string) => void;
 };
 
-export function InvestigationCell({
+function InvestigationCellInner({
   block,
   canRun,
   investigation,
@@ -86,6 +89,10 @@ export function InvestigationCell({
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
   );
+  // Push the cell into the LLM context tree for Seer Explorer. The same object
+  // is the context when "Ask Seer" asks about this cell.
+  const cellLLMContext = getCellLLMContext(block);
+  useLLMContext(cellLLMContext);
   const askSeer = useInvestigationAskSeer();
   const progressState = getCellProgressState(block, investigation.blocks ?? []);
   const executionId = block.currentExecution?.id;
@@ -141,7 +148,16 @@ export function InvestigationCell({
   }, [awaitingInput, activeExecutionId]);
 
   const handleAskSeer = askSeer
-    ? () => askSeer(getCellChatPrompt({block, investigation}))
+    ? () =>
+        askSeer({
+          prompt: block.title
+            ? t('How would you like to refine or explore "%s"?', block.title)
+            : t('How would you like to refine or explore this cell?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            cell: cellLLMContext,
+          },
+        })
     : undefined;
 
   const actionItems: MenuItemProps[] = [
@@ -279,6 +295,11 @@ export function InvestigationCell({
     </Stack>
   );
 }
+
+export const InvestigationCell = registerLLMContext(
+  'investigation-cell',
+  InvestigationCellInner
+);
 
 function CellResult({
   actions,
