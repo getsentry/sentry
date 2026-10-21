@@ -16,6 +16,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
+import {
+  isCall,
+  isThought,
+  type SeerStatusActivity,
+} from 'sentry/views/investigations/statusBlock/statusActivity';
 import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
 import {ThinkingProse} from 'sentry/views/seerExplorer/components/chat/responseGroup';
 
@@ -103,8 +108,7 @@ function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCal
  * between calls is set apart with extra space, as in the agent's thinking block;
  * reasoning at either end stays tight against the edge.
  */
-function isBetweenCalls(toolActivity: InvestigationToolActivity[], index: number) {
-  const isCall = (activity: InvestigationToolActivity) => activity.kind !== 'thought';
+function isBetweenCalls(toolActivity: SeerStatusActivity[], index: number) {
   return (
     toolActivity.slice(0, index).some(isCall) &&
     toolActivity.slice(index + 1).some(isCall)
@@ -127,14 +131,14 @@ function SeerThinking({
   toolActivity,
 }: {
   startTime?: Date;
-  toolActivity?: InvestigationToolActivity[];
+  toolActivity?: SeerStatusActivity[];
 }) {
   // Without the run's own start, the clock counts from when the block appeared,
   // as the agent's does for a response that has only just begun.
   const [appearedAt] = useState(() => new Date());
   // Reasoning never titles the block, as in the agent's: the title says what the
   // agent is doing, and stays a call.
-  const latestCall = toolActivity?.findLast(activity => activity.kind !== 'thought');
+  const latestCall = toolActivity?.findLast(isCall);
 
   return (
     <Container data-test-id="seer-status-block-thinking">
@@ -144,12 +148,12 @@ function SeerThinking({
       >
         {toolActivity?.length
           ? toolActivity.map((activity, index) =>
-              activity.kind === 'thought' ? (
+              isThought(activity) ? (
                 <ThinkingProse
                   key={activity.id}
                   data-spaced={isBetweenCalls(toolActivity, index)}
                 >
-                  <SeerMarkdown raw={activity.text || activity.title} />
+                  <SeerMarkdown raw={activity.text} />
                 </ThinkingProse>
               ) : (
                 <MessageRow key={activity.id} from="assistant" density="compact">
@@ -210,7 +214,7 @@ type SeerStatusBlockProps = {
    * Seer agent's, with the latest call as its title. Only a running block draws
    * them — once a run stops they are history, not status.
    */
-  toolActivity?: InvestigationToolActivity[];
+  toolActivity?: SeerStatusActivity[];
   /**
    * A control on the right edge of the block, such as a link to open the
    * investigation. Unlike `action`, it is not a request for input.
