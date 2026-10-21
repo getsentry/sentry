@@ -284,6 +284,15 @@ class ScmGitEndpointTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
+    def test_does_not_route_a_path_that_ends_at_the_repository(self) -> None:
+        response = self.send(
+            "GET", f"/api/0/internal/scm-git/repositories/{self.repo.id}.git/", self.fetch_grant()
+        )
+
+        assert response.status_code == 404
+        assert len(responses.calls) == 0
+
+    @responses.activate
     def test_refuses_a_route_with_a_trailing_slash(self) -> None:
         response = self.git("GET", "info/refs/", "service=git-upload-pack", self.fetch_grant())
 
