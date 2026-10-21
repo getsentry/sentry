@@ -41,11 +41,13 @@ export interface DropdownMenuListProps
       | 'disallowEmptySelection'
     >,
     TreeProps<MenuItemProps> {
+  onSearchChange: (value: string) => void;
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * The open state of the current overlay that contains this menu
    */
   overlayState: OverlayState;
+  searchValue: string;
   /**
    * Whether the menu should close when an item has been clicked/selected
    */
@@ -65,12 +67,7 @@ export interface DropdownMenuListProps
    */
   menuTitle?: React.ReactNode;
   menuWidth?: string | number;
-  /** Controlled search input state supplied by DropdownMenuContent. */
-  searchState?: {
-    onChange: (value: string) => void;
-    value: string;
-    placeholder?: string;
-  };
+  search?: {placeholder?: string};
   size?: MenuItemProps['size'];
   /**
    * Style overrides applied to the position wrapper. Useful for overriding
@@ -206,7 +203,9 @@ function DropdownMenuList({
   menuHeight,
   menuWidth,
   menuFooter,
-  searchState,
+  search,
+  searchValue,
+  onSearchChange,
   disableTextSelection,
   overlayState,
   overlayPositionProps,
@@ -304,14 +303,14 @@ function DropdownMenuList({
     }),
     [rootOverlayState, overlayState, state, safetyTriangle]
   );
-  const searchInput = searchState && (
+  const searchInput = search && (
     <Search
       ref={searchRef}
       padding={menuTitle ? '0' : undefined}
-      aria-label={searchState.placeholder ?? 'Search'}
-      placeholder={searchState.placeholder ?? 'Search…'}
-      value={searchState.value}
-      onChange={event => searchState.onChange(event.target.value)}
+      aria-label={search.placeholder ?? 'Search'}
+      placeholder={search.placeholder ?? 'Search…'}
+      value={searchValue}
+      onChange={event => onSearchChange(event.target.value)}
       onKeyDown={event => {
         // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
@@ -322,7 +321,7 @@ function DropdownMenuList({
     />
   );
   const showEmptyMessage = Boolean(
-    searchState?.value.trim() && stateCollection.length === 0
+    search && searchValue.trim() && stateCollection.length === 0
   );
   return (
     <FocusScope restoreFocus autoFocus>
@@ -344,8 +343,8 @@ function DropdownMenuList({
                 }}
               >
                 {menuTitle && (
-                  <Header padding={searchState ? 'xs' : 'sm lg'}>
-                    <Title padding={searchState ? 'sm lg' : undefined}>{menuTitle}</Title>
+                  <Header padding={search ? 'xs' : 'sm lg'}>
+                    <Title padding={search ? 'sm lg' : undefined}>{menuTitle}</Title>
                     {searchInput}
                   </Header>
                 )}
@@ -461,9 +460,11 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   }, []);
 }
 
-export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
+export type DropdownMenuContentProps = Omit<
+  DropdownMenuListProps,
+  'searchValue' | 'onSearchChange'
+> & {
   items: MenuItemProps[];
-  search?: {placeholder?: string};
 };
 
 export function DropdownMenuContent({
@@ -491,9 +492,9 @@ export function DropdownMenuContent({
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      searchState={
-        search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
-      }
+      search={search}
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
     >
       {(item: MenuItemProps) => {
         const {onAction: _onAction, ...itemProps} = item;
