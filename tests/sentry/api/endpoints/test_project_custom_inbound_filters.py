@@ -203,6 +203,27 @@ class CustomInboundFiltersTest(APITestCase):
         assert response.data["conditions"] == conditions
         assert custom_filter.conditions == conditions
 
+    def test_post_release_comparison(self) -> None:
+        conditions = [
+            {"type": "release", "operator": "gte", "value": ["1.2.0", "0.9.0"]},
+            {"type": "release", "operator": "lt", "value": ["myapp@2.0"]},
+        ]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Old versions",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
     def test_rejects_unknown_operator(self) -> None:
         with self.feature(self.features):
             response = self.get_error_response(
@@ -216,6 +237,41 @@ class CustomInboundFiltersTest(APITestCase):
         assert '"matches" is not a valid choice.' in str(
             response.data["conditions"][0]["operator"][0]
         )
+
+    def test_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[
+                    {"type": "release", "operator": "gte", "value": ["1.2.0"]},
+                    {"type": "error_message", "operator": "gt", "value": ["1.2.0"]},
+                ],
+            )
+
+        assert response.data["conditions"][0] == {}
+        assert str(response.data["conditions"][1]["operator"][0]) == (
+            "The error_message condition does not take the gt operator. It accepts glob."
+        )
+
+    def test_rejects_comparison_against_a_release_without_a_version(self) -> None:
+        cases = ["2*", "a4b7e0f9c2d1", "1.0/beta", "x" * 300]
+
+        for value in cases:
+            with self.feature(self.features):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    dataType="error",
+                    conditions=[{"type": "release", "operator": "gt", "value": ["1.0", value]}],
+                )
+
+            assert str(response.data["conditions"][0]["value"][0]) == (
+                f"{value} is not a release with a version such as 1.2.0 or myapp@1.2.0."
+            )
 
     def test_without_inbound_filters_v2_feature(self) -> None:
         with self.feature(["projects:custom-inbound-filters"]):
@@ -442,8 +498,8 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_allows_duplicate_condition_types(self) -> None:
         conditions = [
-            {"type": "release", "operator": "glob", "value": [">2"]},
-            {"type": "release", "operator": "glob", "value": ["<4"]},
+            {"type": "release", "operator": "gt", "value": ["2.0"]},
+            {"type": "release", "operator": "lt", "value": ["4.0"]},
         ]
 
         with self.feature(self.features):
@@ -741,6 +797,23 @@ class CustomInboundFilterDetailsTest(APITestCase):
             )
 
         assert str(response.data["conditions"][0]["operator"][0]) == "This field is required."
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == [
+            {"type": "release", "operator": "glob", "value": ["1."]}
+        ]
+
+    def test_put_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[{"type": "error_type", "operator": "lt", "value": ["1.0"]}],
+            )
+
+        assert str(response.data["conditions"][0]["operator"][0]) == (
+            "The error_type condition does not take the lt operator. It accepts glob."
+        )
         self.custom_filter.refresh_from_db()
         assert self.custom_filter.conditions == [
             {"type": "release", "operator": "glob", "value": ["1."]}

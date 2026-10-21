@@ -1,11 +1,12 @@
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    COMPARISON_OPERATORS,
     MAX_FILTERS_PER_PROJECT,
     TEXT_OPERATORS,
     ConditionOperator,
@@ -581,6 +582,9 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
     )
 
 
+ReleaseComparator = Literal["gt", "gte", "lt", "lte"]
+
+
 @dataclass(frozen=True)
 class _ConditionMatcher:
     """
@@ -612,6 +616,33 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
     return _pattern_matcher(lambda values: {"op": "cidr", "name": name, "value": values})
 
 
+def _release_matcher(name: str) -> _ConditionMatcher:
+    patterns = _field_matcher(name)
+
+    def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
+        if operator not in COMPARISON_OPERATORS:
+            return patterns.match(operator, values)
+        return _any_of(
+            [
+                {
+                    "op": "release",
+                    "name": name,
+                    "comparator": cast(ReleaseComparator, operator.value),
+                    "value": value,
+                }
+                for value in values
+            ]
+        )
+
+    return _ConditionMatcher(TEXT_OPERATORS | COMPARISON_OPERATORS, match)
+
+
+def _any_of(conditions: list[RuleCondition]) -> RuleCondition:
+    if len(conditions) == 1:
+        return conditions[0]
+    return {"op": "or", "inner": conditions}
+
+
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
 
 
@@ -632,10 +663,10 @@ _CONDITION_MATCHERS: Mapping[
         DataType.METRIC: _field_matcher("trace_metric.name"),
     },
     ConditionType.RELEASE: {
-        DataType.ERROR: _field_matcher("event.release"),
-        DataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
-        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
-        DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
+        DataType.ERROR: _release_matcher("event.release"),
+        DataType.LOG: _release_matcher("log.attributes.sentry.release.value"),
+        DataType.METRIC: _release_matcher("trace_metric.attributes.sentry.release.value"),
+        DataType.SPAN: _release_matcher("span.attributes.sentry.release.value"),
     },
     ConditionType.IP_ADDRESS: _client_ip_matcher,
     # Relay fills the geo from the client IP before filtering, unless the SDK sent one.

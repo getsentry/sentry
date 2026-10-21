@@ -21,16 +21,25 @@ class ConditionType(StrEnum):
 class ConditionOperator(StrEnum):
     """
     How a condition compares the field to its values. ``glob`` matches the field against
-    each value as a glob pattern.
+    each value as a glob pattern. The ordered operators compare one value as a release
+    version.
 
     A stored condition without an operator holds raw glob patterns, as with ``glob``: a
     row written before operators existed, or the row of a legacy list.
     """
 
     GLOB = "glob"
+    GT = "gt"
+    GTE = "gte"
+    LT = "lt"
+    LTE = "lte"
 
 
 TEXT_OPERATORS = frozenset({ConditionOperator.GLOB})
+
+COMPARISON_OPERATORS = frozenset(
+    {ConditionOperator.GT, ConditionOperator.GTE, ConditionOperator.LT, ConditionOperator.LTE}
+)
 
 
 class DataType(StrEnum):

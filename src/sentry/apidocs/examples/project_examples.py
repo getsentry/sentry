@@ -373,7 +373,7 @@ ERROR_RELEASE_CUSTOM_INBOUND_FILTER = {
     "conditions": [
         {"type": "error_type", "operator": "glob", "value": ["TypeError"]},
         {"type": "error_message", "operator": "glob", "value": ["*undefined*"]},
-        {"type": "release", "operator": "glob", "value": ["1.*"]},
+        {"type": "release", "operator": "lt", "value": ["2.0.0"]},
     ],
     "dateCreated": "2024-07-23T17:52:53.981206Z",
     "dateUpdated": "2024-07-23T17:52:53.981206Z",

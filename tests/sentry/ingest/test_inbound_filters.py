@@ -324,6 +324,17 @@ def release_rule_condition(values: list[str]) -> dict:
     }
 
 
+def release_version_rule_condition(comparator: str, release: str) -> dict:
+    """The catch-all shape of a version comparison."""
+    return {
+        "op": "or",
+        "inner": [
+            {"op": "release", "name": name, "comparator": comparator, "value": release}
+            for name in RELEASE_FIELDS
+        ],
+    }
+
+
 @django_db_all
 @pytest.mark.parametrize(
     ("data_type", "conditions", "expected_condition"),
@@ -444,17 +455,65 @@ def release_rule_condition(values: list[str]) -> dict:
         pytest.param(
             "all",
             [
-                {"type": "release", "operator": "glob", "value": [">2*"]},
-                {"type": "release", "operator": "glob", "value": ["<4*"]},
+                {"type": "release", "operator": "gte", "value": ["2.0"]},
+                {"type": "release", "operator": "lt", "value": ["4.0"]},
             ],
             {
                 "op": "and",
                 "inner": [
-                    release_rule_condition([">2*"]),
-                    release_rule_condition(["<4*"]),
+                    release_version_rule_condition("gte", "2.0"),
+                    release_version_rule_condition("lt", "4.0"),
                 ],
             },
             id="catch_all_release_range",
+        ),
+        pytest.param(
+            "error",
+            [
+                {"type": "release", "operator": "gt", "value": ["1.2.0"]},
+                {"type": "release", "operator": "lte", "value": ["myapp@2.0"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "gt",
+                        "value": "1.2.0",
+                    },
+                    {
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "lte",
+                        "value": "myapp@2.0",
+                    },
+                ],
+            },
+            id="release_version_comparison_on_errors",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "operator": "gt", "value": ["1.0", "2.0"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "release", "name": "event.release", "comparator": "gt", "value": "1.0"},
+                    {"op": "release", "name": "event.release", "comparator": "gt", "value": "2.0"},
+                ],
+            },
+            id="release_version_comparison_values_act_as_or",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "release", "operator": "lt", "value": ["3.0.0"]}],
+            {
+                "op": "release",
+                "name": "span.attributes.sentry.release.value",
+                "comparator": "lt",
+                "value": "3.0.0",
+            },
+            id="release_version_comparison_on_spans",
         ),
         pytest.param(
             "error",
@@ -472,14 +531,14 @@ def release_rule_condition(values: list[str]) -> dict:
             "error",
             [
                 {"type": "error_message", "operator": "glob", "value": ["*timeout*"]},
-                {"type": "release", "operator": "glob", "value": ["2.*"]},
+                {"type": "release", "operator": "gte", "value": ["2.0"]},
                 {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]},
             ],
             {
                 "op": "and",
                 "inner": [
                     error_message_rule_condition(["*timeout*"]),
-                    {"op": "glob", "name": "event.release", "value": ["2.*"]},
+                    {"op": "release", "name": "event.release", "comparator": "gte", "value": "2.0"},
                     {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
                 ],
             },
@@ -682,6 +741,11 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "release", "operator": "matches", "value": ["1.*"]}],
+    )
+    # Only a release compares as a version.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "error_type", "operator": "gt", "value": ["1.0"]}],
     )
     factories.create_project_custom_inbound_filter(default_project, conditions=[])
     valid_filter = factories.create_project_custom_inbound_filter(
