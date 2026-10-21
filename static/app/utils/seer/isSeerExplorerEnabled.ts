@@ -22,12 +22,10 @@ export function isSeerExplorerEnabled(organization: Organization | null): boolea
 
 /**
  * Whether Seer Explorer should render as a persistent, resizable split-panel
- * sidebar instead of an overlay drawer.
+ * sidebar. Orgs without Seer Explorer fall back to the overlay drawer, which
+ * other Seer entry points (e.g. Autofix) can still open.
  */
 export function useIsSeerExplorerSidebarEnabled(): boolean {
   const organization = useOrganization({allowNull: true});
-  return (
-    isSeerExplorerEnabled(organization) &&
-    !!organization?.features.includes('seer-explorer-persistent-sidebar')
-  );
+  return isSeerExplorerEnabled(organization);
 }

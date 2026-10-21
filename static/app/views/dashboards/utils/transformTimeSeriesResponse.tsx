@@ -1,8 +1,12 @@
+import {defined} from 'sentry/utils/defined';
 import {
   SERIES_NAME_PART_DELIMITER,
   SERIES_QUERY_DELIMITER,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import type {
+  EventsTimeSeriesResponse,
+  IngestionMeta,
+} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import type {
@@ -21,15 +25,15 @@ export type WidgetTimeSeries = {
 };
 
 type Options = {
+  getSeriesName?: (timeSeries: TimeSeries, widgetQuery: WidgetQuery) => string;
   meta?: Partial<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'>>;
 };
 
-/** @public */
 export function transformTimeSeriesResponse(
   response: EventsTimeSeriesResponse,
   widget: Widget,
   queryIndex: number,
-  {meta}: Options = {}
+  {getSeriesName, meta}: Options = {}
 ): WidgetTimeSeries[] {
   const widgetQuery = widget.queries[queryIndex];
   if (!widgetQuery) {
@@ -43,12 +47,14 @@ export function transformTimeSeriesResponse(
   return response.timeSeries
     .toSorted((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0))
     .map(timeSeries => {
-      const seriesName = getLegacySeriesName(
-        timeSeries,
-        widgetQuery.name,
-        hasMultipleYAxes,
-        isGroupedQuery
-      );
+      const seriesName = getSeriesName
+        ? getSeriesName(timeSeries, widgetQuery)
+        : getLegacySeriesName(
+            timeSeries,
+            widgetQuery.name,
+            hasMultipleYAxes,
+            isGroupedQuery
+          );
 
       return {
         queryIndex,
@@ -59,6 +65,20 @@ export function transformTimeSeriesResponse(
         timeSeries: {...timeSeries, meta: {...timeSeries.meta, ...meta}},
       };
     });
+}
+
+/**
+ * Widgets can contain multiple queries, each one receiving ingestion metadata
+ * independently per request. This function compares all ingestion metadata from
+ * each result and conservatively returns the meta with the earliest `completeThrough`.
+ */
+export function combineIngestionMeta(
+  responses: Array<EventsTimeSeriesResponse | undefined>
+): IngestionMeta | undefined {
+  const metas = responses.map(response => response?.meta?.ingestion).filter(defined);
+  return metas.toSorted(
+    (a, b) => (a.completeThrough ?? Infinity) - (b.completeThrough ?? Infinity)
+  )[0];
 }
 
 /**
