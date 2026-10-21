@@ -1,5 +1,7 @@
 import type {
+  Docs,
   DocsParams,
+  OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -19,7 +21,6 @@ type AgentOnboardingOptions = ReturnType<typeof useAgentOnboardingOptions>;
 
 export type ReadyAgentOnboardingSetup = AgentOnboardingOptions & {
   configureSteps: OnboardingStep[];
-  docParams: DocsParams<any>;
   dsn: ProjectKey['dsn'];
   installSteps: OnboardingStep[];
   introduction: React.ReactNode;
@@ -55,11 +56,13 @@ export function useAgentOnboardingSetup(): AgentOnboardingSetup {
     ? platforms.find(p => p.id === project.platform)
     : undefined;
 
-  const {isLoading, docs, dsn, projectKeyId} = useLoadGettingStarted({
+  const gettingStarted = useLoadGettingStarted({
     platform: currentPlatform || otherPlatform,
     orgSlug: organization.slug,
     projSlug: project?.slug,
   });
+  const {isLoading, dsn, projectKeyId} = gettingStarted;
+  const docs: Docs | null = gettingStarted.docs;
 
   const options = useAgentOnboardingOptions({
     platform: project?.platform,
@@ -77,7 +80,7 @@ export function useAgentOnboardingSetup(): AgentOnboardingSetup {
     return {status: 'loading', project};
   }
 
-  if (!agentMonitoringPlatforms.has(project.platform!)) {
+  if (!project.platform || !agentMonitoringPlatforms.has(project.platform)) {
     return {
       status: 'unsupported',
       project,
@@ -86,13 +89,14 @@ export function useAgentOnboardingSetup(): AgentOnboardingSetup {
     };
   }
 
-  const agentMonitoringDocs = docs?.agentMonitoringOnboarding;
+  const agentMonitoringDocs: OnboardingConfig | undefined =
+    docs?.agentMonitoringOnboarding;
 
   if (!agentMonitoringDocs || !dsn || !projectKeyId) {
     return {status: 'no-docs', project, dsn};
   }
 
-  const docParams: DocsParams<any> = {
+  const docParams: DocsParams = {
     api,
     projectKeyId,
     dsn,
@@ -111,7 +115,7 @@ export function useAgentOnboardingSetup(): AgentOnboardingSetup {
     },
     platformOptions: {
       ...options.selectedPlatformOptions,
-      deploymentTarget: options.deploymentTarget,
+      ...(options.deploymentTarget && {deploymentTarget: options.deploymentTarget}),
     },
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
@@ -123,7 +127,6 @@ export function useAgentOnboardingSetup(): AgentOnboardingSetup {
     status: 'ready',
     project,
     dsn,
-    docParams,
     introduction: agentMonitoringDocs.introduction?.(docParams),
     installSteps: agentMonitoringDocs.install?.(docParams) || [],
     configureSteps: agentMonitoringDocs.configure?.(docParams) || [],
