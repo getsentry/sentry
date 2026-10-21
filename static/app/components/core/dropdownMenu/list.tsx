@@ -302,7 +302,7 @@ function DropdownMenuList({
                 }}
               >
                 {menuTitle && (
-                  <Header padding="sm lg">
+                  <Header padding="sm lg" borderBottom={search ? 'none' : 'muted'}>
                     <Title>{menuTitle}</Title>
                   </Header>
                 )}
