@@ -2298,11 +2298,6 @@
       "count": 2
     }
   },
-  "utils/useHoverOverlay.timing.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
   "utils/usePrevious.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2

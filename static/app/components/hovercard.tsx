@@ -4,9 +4,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
-import {HoverOverlayGroupProvider, useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import type {UseHoverOverlayProps} from '@sentry/scraps/useHoverOverlay';
+import {HoverOverlayGroupProvider, useHoverOverlay} from '@sentry/scraps/useHoverOverlay';
 
 interface HovercardProps extends UseHoverOverlayProps {
   /**

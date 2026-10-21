@@ -18,7 +18,6 @@
 /src/sentry/tasks/                                      @getsentry/app-backend
 /.agents/skills/sentry-backend-bugs/                    @getsentry/app-backend
 /src/bitfield/                                          @getsentry/app-backend
-/src/django_picklefield/                                @getsentry/app-backend
 /src/sentry/analytics/events/                           @getsentry/app-backend @getsentry/data
 /src/sentry/core/                                       @getsentry/app-backend
 /bin/mock*                                              @getsentry/app-backend
