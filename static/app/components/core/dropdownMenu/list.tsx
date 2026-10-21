@@ -314,6 +314,16 @@ function DropdownMenuList({
       value={search.value}
       onChange={event => search.onChange(event.target.value)}
       onKeyDown={event => {
+        if (
+          event.key === 'ArrowLeft' &&
+          parentMenuState &&
+          event.currentTarget.selectionStart === 0 &&
+          event.currentTarget.selectionEnd === 0
+        ) {
+          event.preventDefault();
+          parentMenuState.selectionManager.clearSelection();
+          return;
+        }
         if (event.key === 'ArrowDown') {
           event.preventDefault();
           menuRef.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
@@ -327,15 +337,6 @@ function DropdownMenuList({
       <PositionWrapper
         zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
         {...overlayPositionProps}
-        onKeyDown={event => {
-          if (event.key === 'Escape' && parentMenuState) {
-            event.preventDefault();
-            event.stopPropagation();
-            parentMenuState.selectionManager.clearSelection();
-            return;
-          }
-          overlayPositionProps.onKeyDown?.(event);
-        }}
       >
         <DropdownMenuContext value={contextValue}>
           <Stack>

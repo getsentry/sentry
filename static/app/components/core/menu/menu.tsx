@@ -334,8 +334,7 @@ interface OtherProps<T extends React.ElementType> {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: {as?: 'div' | 'p'; id?: string};
-  trailingActionProps?: React.HTMLAttributes<HTMLDivElement>;
-  trailingActionRef?: React.Ref<HTMLDivElement>;
+  trailingActionProps?: React.ComponentPropsWithRef<'div'>;
 }
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
@@ -364,7 +363,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   tooltip,
   tooltipOptions,
   ref,
-  trailingActionRef,
   trailingActionProps,
   ...props
 }: MenuListItemProps<T>) {
@@ -464,7 +462,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
       </Tooltip>
       {trailingAction && (
         <Flex
-          ref={trailingActionRef}
           position="absolute"
           right={theme.space.lg}
           top="0"

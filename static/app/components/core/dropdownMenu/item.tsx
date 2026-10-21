@@ -329,8 +329,8 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingAction={trailingAction}
-      trailingActionRef={trailingActionRef}
       trailingActionProps={{
+        ref: trailingActionRef,
         onKeyDown: event => {
           if (event.key === 'ArrowLeft') {
             event.preventDefault();

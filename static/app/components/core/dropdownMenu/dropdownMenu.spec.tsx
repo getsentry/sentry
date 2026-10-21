@@ -333,12 +333,12 @@ describe('DropdownMenu', () => {
       'false'
     );
 
-    // Pressing Esc closes the submenu and returns focus to its parent item.
+    // ArrowLeft closes the submenu and returns focus to its parent item.
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
     expect(onOpenChange).toHaveBeenCalledTimes(3);
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
-    await userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{ArrowLeft}');
     expect(onOpenChange).toHaveBeenCalledTimes(3);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
@@ -459,14 +459,7 @@ describe('DropdownMenu', () => {
     ).not.toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
-    expect(screen.getByRole('button', {name: 'Projects'})).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    expect(
-      screen.queryByRole('textbox', {name: 'Search projects'})
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
     expect(screen.getByRole('textbox', {name: 'Search projects'})).toHaveValue('');
@@ -502,6 +495,14 @@ describe('DropdownMenu', () => {
     expect(search).toHaveValue('sentry');
     expect(search).toHaveProperty('selectionStart', 2);
     expect(screen.getByRole('menuitemradio', {name: 'sentry'})).toBeInTheDocument();
+
+    search.setSelectionRange(0, 0);
+    await userEvent.keyboard('{ArrowLeft}');
+
+    expect(
+      screen.queryByRole('textbox', {name: 'Search projects'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus();
   });
 
   it.each(['right', 'left'] as const)(
@@ -651,7 +652,7 @@ describe('DropdownMenu', () => {
     const leaf = await screen.findByRole('menuitemradio', {name: 'Run action'});
     await waitFor(() => expect(leaf).toHaveFocus());
 
-    await userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{ArrowLeft}');
     expect(
       screen.queryByRole('menuitemradio', {name: 'Run action'})
     ).not.toBeInTheDocument();
