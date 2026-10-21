@@ -14,6 +14,7 @@ import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {
@@ -126,6 +127,7 @@ function MetricIssueChartContent({
       ...dateTimeParams,
       intervalSeconds,
     });
+  const zoomToOpenPeriodRange = useZoomToOpenPeriodRange(intervalSeconds);
 
   const {
     chartProps,
@@ -135,6 +137,11 @@ function MetricIssueChartContent({
     detector,
     openPeriods,
     highlightedOpenPeriodId: openPeriod?.id,
+    onOpenPeriodClick: clickedOpenPeriod =>
+      zoomToOpenPeriodRange(
+        new Date(clickedOpenPeriod.start),
+        clickedOpenPeriod.end ? new Date(clickedOpenPeriod.end) : undefined
+      ),
     height: CHART_HEIGHT,
     enabled: !isOpenPeriodPending,
     ...cappedDateTimeParams,
