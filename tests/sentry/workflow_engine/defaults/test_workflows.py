@@ -29,7 +29,6 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.receivers.project_workflows import create_default_workflows
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
@@ -203,8 +202,7 @@ class TestEnsureDefaultWorkflows(TestCase):
         assert all(isinstance(w, Workflow) for w in workflows)
 
     def test_project_created_receiver_connects_issue_stream_detector(self) -> None:
-        project = self.create_project(create_default_detectors=False)
-        create_default_workflows(project)
+        project = self.create_project(create_default_detectors=False, fire_project_created=True)
 
         connection = DetectorWorkflow.objects.get(
             workflow__organization=project.organization, detector__project=project
