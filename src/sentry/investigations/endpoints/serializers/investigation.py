@@ -117,7 +117,8 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     """
     Full notebook with ordered active blocks, parameter definitions and saved values, project
     IDs, and source context. source.snapshot is present only for source-backed investigations.
-    actionRequests has Seer's live action requests, with the primary one first.
+    actionRequests has Seer's action requests that aren't superseded, newest report first, with
+    that report's primary at the top.
     """
 
     template: InvestigationTemplateSerializerResponse | None
@@ -242,7 +243,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         action_requests = list(
             InvestigationActionRequest.objects.filter(investigation__in=item_list)
             .exclude(state=InvestigationActionRequestState.SUPERSEDED)
-            .order_by("-primary", "-report_revision", "id")
+            .order_by("-report_revision", "-primary", "id")
         )
         serialized = serialize(
             action_requests,

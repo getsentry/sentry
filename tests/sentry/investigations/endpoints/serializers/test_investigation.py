@@ -374,26 +374,32 @@ class InvestigationActionRequestSerializationTest(TestCase):
             {"kind": "seer_task", "prompt": "Add spans"},
         ]
 
-    def test_orders_the_primary_first_and_omits_superseded_requests(self) -> None:
+    def test_orders_the_newest_report_first_and_omits_superseded_requests(self) -> None:
+        old_primary = self.add_request(
+            "old-primary",
+            report_revision=0,
+            primary=True,
+            state=InvestigationActionRequestState.WITHDRAWN,
+        )
         older = self.add_request("older", report_revision=0)
         self.add_request("superseded", state=InvestigationActionRequestState.SUPERSEDED)
-        second = self.add_request("second", report_revision=1)
-        first = self.add_request("first", report_revision=0, primary=True)
+        newer = self.add_request("newer", report_revision=1)
+        primary = self.add_request("primary", report_revision=1, primary=True)
 
         assert [row["id"] for row in self.serialize_requests()] == [
-            str(first.id),
-            str(second.id),
+            str(primary.id),
+            str(newer.id),
+            str(old_primary.id),
             str(older.id),
         ]
 
     def test_serializes_who_applied_it_failures_and_withdrawals(self) -> None:
         now = timezone.now()
-        actor = {"id": str(self.user.id), "name": "Ada Lovelace"}
         self.add_request(
             state=InvestigationActionRequestState.APPLIED,
             applied_by_id=self.user.id,
             date_applied=now,
-            applied_details={"provider": "datadog", "rerun": None, "actor": actor},
+            applied_details={"provider": "datadog", "rerun": None},
         )
         self.add_request(
             "failed",
@@ -408,7 +414,8 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         applied, failed, withdrawn = self.serialize_requests()
 
-        assert applied["appliedBy"] == actor
+        assert applied["appliedBy"] is not None
+        assert applied["appliedBy"]["id"] == str(self.user.id)
         assert applied["appliedDetails"] == {"provider": "datadog", "rerun": None}
         assert applied["dateApplied"] == now
         assert failed["state"] == "failed"
@@ -418,11 +425,11 @@ class InvestigationActionRequestSerializationTest(TestCase):
         }
         assert (withdrawn["state"], withdrawn["reason"]) == ("withdrawn", "The spikes are real.")
 
-    def test_hides_the_stored_applier_once_the_user_is_gone(self) -> None:
+    def test_shows_no_applier_once_the_user_is_gone(self) -> None:
         self.add_request(
             state=InvestigationActionRequestState.APPLIED,
             applied_by_id=None,
-            applied_details={"provider": "datadog", "rerun": None, "actor": {"id": "1"}},
+            applied_details={"provider": "datadog", "rerun": None},
         )
 
         (applied,) = self.serialize_requests()

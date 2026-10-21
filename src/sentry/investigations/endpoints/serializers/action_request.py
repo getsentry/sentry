@@ -12,9 +12,11 @@ from sentry.investigations.models import (
     InvestigationActionRequestAnchorType,
     InvestigationBlock,
 )
-from sentry.users.api.serializers.user import SerializedAvatarFields
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 
 
 class InvestigationActionRequestAnchorResponse(TypedDict):
@@ -25,15 +27,6 @@ class InvestigationActionRequestAnchorResponse(TypedDict):
     type: str
     id: str
     blockId: str | None
-
-
-class InvestigationActionRequestActorResponse(TypedDict):
-    id: str
-    name: str
-    username: str
-    email: str
-    avatarUrl: str
-    avatar: SerializedAvatarFields
 
 
 class InvestigationActionRequestSerializerResponse(TypedDict):
@@ -55,7 +48,7 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     state: str
     reason: str | None
     action: dict[str, Any] | None
-    appliedBy: InvestigationActionRequestActorResponse | None
+    appliedBy: UserSerializerResponse | None
     appliedDetails: dict[str, Any] | None
     dateApplied: datetime | None
     error: dict[str, Any] | None
@@ -94,13 +87,25 @@ class InvestigationActionRequestSerializer(
         **kwargs: Any,
     ) -> MutableMapping[InvestigationActionRequest, dict[str, Any]]:
         anchored_blocks = self._anchored_block_ids(item_list)
+        applier_ids = {item.applied_by_id for item in item_list if item.applied_by_id is not None}
+        appliers = (
+            {
+                applier["id"]: applier
+                for applier in user_service.serialize_many(
+                    filter={"user_ids": list(applier_ids)}, as_user=serialize_generic_user(user)
+                )
+            }
+            if applier_ids
+            else {}
+        )
         return {
             item: {
                 "block_id": (
                     anchored_blocks.get((item.investigation_id, item.anchor_id or ""))
                     if item.anchor_type == InvestigationActionRequestAnchorType.BLOCK
                     else None
-                )
+                ),
+                "applied_by": appliers.get(str(item.applied_by_id)),
             }
             for item in item_list
         }
@@ -129,14 +134,8 @@ class InvestigationActionRequestSerializer(
             "state": obj.state,
             "reason": obj.reason,
             "action": obj.action_payload,
-            "appliedBy": (
-                (obj.applied_details or {}).get("actor") if obj.applied_by_id is not None else None
-            ),
-            "appliedDetails": (
-                {key: value for key, value in obj.applied_details.items() if key != "actor"}
-                if obj.applied_details is not None
-                else None
-            ),
+            "appliedBy": attrs["applied_by"],
+            "appliedDetails": obj.applied_details,
             "dateApplied": obj.date_applied,
             "error": obj.error,
             "dateCreated": obj.date_added,
