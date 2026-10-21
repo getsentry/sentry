@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Literal
 
+from django.utils import timezone
 from pydantic import BaseModel, ValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -21,14 +23,22 @@ from sentry.api.utils import to_valid_int_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import Dashboard
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
+from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.utils import (
+    has_project_connected_repos,
+    is_issue_category_eligible,
+    is_seer_seat_based_tier_enabled,
+)
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatPermission,
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.oneshot import run_oneshot
+from sentry.seer.utils import runs_for_group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.organization_detector_details import (
@@ -47,6 +57,7 @@ logger = logging.getLogger(__name__)
 
 MAX_PAGE_CONTEXT_LENGTH = 50_000
 MAX_PROJECTS = 10
+AUTOFIX_RUN_RECENCY_WINDOW = timedelta(days=30)
 
 
 class ChatSuggestion(BaseModel):
@@ -125,6 +136,8 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "code_mode": features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             ),
+            # Whether Seer can suggest Autofix for the issue on the page.
+            "can_suggest_autofix": self._can_suggest_autofix(request, organization, route_params),
             # Whether the user has permission to create alerts and monitors.
             "can_create_alerts": any(
                 request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
@@ -233,6 +246,71 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 return "monitor-detail"
 
         return None
+
+    def _can_suggest_autofix(
+        self,
+        request: Request,
+        organization: Organization,
+        route_params: dict[str, str],
+    ) -> bool:
+        """Whether Seer can suggest Autofix for the issue on the page: it can likely run Autofix
+        and hasn't recently.
+
+        Only decides whether to suggest Autofix; the Autofix endpoint enforces access when run.
+
+        Checks:
+        - the org is on a seat-based Seer plan and the project has linked repos
+        - the issue belongs to this org, and the user can access its project with event:write or
+          event:admin scope
+        - its issue category is eligible
+        - no Autofix run in the last 30 days, including in-flight and errored runs
+        - the issue's only Autofix run isn't a legacy one (the issue page auto-triggers
+          explorer Autofix in that case)
+
+        Does not check:
+        - the SCM integration (a cross-silo RPC; check linked repos instead)
+        - the frontend's per-issue-type Autofix config, or sample events
+        """
+        if (group_id := _to_valid_int_id("groupId", route_params.get("groupId"))) is None:
+            return False
+
+        if not is_seer_seat_based_tier_enabled(organization):
+            return False
+
+        group = (
+            Group.objects.filter(id=group_id, project__organization_id=organization.id)
+            .select_related("project")
+            .first()
+        )
+        cutoff = timezone.now() - AUTOFIX_RUN_RECENCY_WINDOW
+        if (
+            group is None
+            or not request.access.has_project_access(group.project)
+            or not request.access.has_any_project_scope(
+                group.project, ["event:write", "event:admin"]
+            )
+            or not is_issue_category_eligible(group)
+            # Check if there are any recent completed runs.
+            or (
+                group.seer_explorer_autofix_last_triggered is not None
+                and group.seer_explorer_autofix_last_triggered >= cutoff
+            )
+            # For legacy autofix; no longer set since June 2026.
+            # If set and explorer autofix hasn't run, we automatically trigger it, so suggesting it
+            # would be redundant.
+            or (
+                group.seer_autofix_last_triggered is not None
+                and group.seer_explorer_autofix_last_triggered is None
+            )
+            # Check if there are any runs in flight.
+            or runs_for_group(group.id, AUTOFIX_FEATURE_ID)
+            .filter(run__last_triggered_at__gte=cutoff)
+            .exists()
+        ):
+            return False
+
+        # Skip checking the SCM integration since it is cross-silo and slow--just check the connected repos.
+        return has_project_connected_repos(organization, group.project)
 
 
 def _to_valid_int_id(name: str, value: str | None) -> int | None:

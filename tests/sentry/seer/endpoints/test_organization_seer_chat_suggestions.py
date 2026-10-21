@@ -1,12 +1,17 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
+from django.urls import reverse
+from django.utils import timezone
 from urllib3.exceptions import TimeoutError
 
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.seer.models import SeerApiError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 PAYLOAD = {
     "route": "/issues/:groupId/",
@@ -54,6 +59,7 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
             "code_mode": False,
             "can_create_alerts": True,
             "can_edit_node_type": None,
+            "can_suggest_autofix": False,
         }
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
@@ -338,3 +344,138 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
             )
             is None
         )
+
+    def _can_suggest_autofix(self, mock_run_oneshot: MagicMock, group_id: object) -> bool:
+        mock_run_oneshot.return_value = {"suggestions": []}
+        self.get_success_response(
+            self.organization.slug,
+            **{**PAYLOAD, "route_params": {"groupId": str(group_id)}},
+        )
+        return mock_run_oneshot.call_args.args[1]["can_suggest_autofix"]
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_can_suggest_autofix_on_seat_based_plan_with_linked_repos(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        group = self.create_group(project=self.project)
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is False
+
+        self.create_seer_project_repository(
+            project=self.project, repository=self.create_repo(project=self.project)
+        )
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is True
+
+    @with_feature("organizations:seer-added")
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_cannot_suggest_autofix_on_legacy_plan(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        self.create_seer_project_repository(
+            project=self.project, repository=self.create_repo(project=self.project)
+        )
+        group = self.create_group(project=self.project)
+
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is False
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_cannot_suggest_autofix_without_seer_plan(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        self.create_seer_project_repository(
+            project=self.project, repository=self.create_repo(project=self.project)
+        )
+        group = self.create_group(project=self.project)
+
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is False
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_can_suggest_autofix_only_with_event_write_scope(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        mock_run_oneshot.return_value = {"suggestions": []}
+        self.create_seer_project_repository(
+            project=self.project, repository=self.create_repo(project=self.project)
+        )
+        group = self.create_group(project=self.project)
+
+        for scopes, can_suggest_autofix in (
+            (["org:read", "event:read"], False),
+            (["org:read", "event:write"], True),
+        ):
+            with self.subTest(scopes=scopes):
+                with assume_test_silo_mode(SiloMode.CONTROL):
+                    token = self.create_user_auth_token(user=self.user, scope_list=scopes)
+                response = self.client.post(
+                    reverse(self.endpoint, args=[self.organization.slug]),
+                    {**PAYLOAD, "route_params": {"groupId": str(group.id)}},
+                    format="json",
+                    HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                )
+
+                assert response.status_code == 200
+                assert (
+                    mock_run_oneshot.call_args.args[1]["can_suggest_autofix"] is can_suggest_autofix
+                )
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_cannot_suggest_autofix_when_autofix_ran_recently(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        self.create_seer_project_repository(
+            project=self.project, repository=self.create_repo(project=self.project)
+        )
+        group = self.create_group(project=self.project)
+        run = self.create_seer_run(last_triggered_at=timezone.now() - timedelta(days=31))
+        self.create_seer_agent_run(run=run, source="autofix", group=group, project=self.project)
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is True
+
+        run.update(last_triggered_at=timezone.now())
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is False
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_cannot_suggest_autofix_when_autofix_step_last_triggered_recently(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        self.create_seer_project_repository(
+            project=self.project, repository=self.create_repo(project=self.project)
+        )
+        group = self.create_group(
+            project=self.project,
+            seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=31),
+        )
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is True
+
+        group.update(seer_explorer_autofix_last_triggered=timezone.now())
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is False
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_cannot_suggest_autofix_when_legacy_autofix_ran(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        self.create_seer_project_repository(
+            project=self.project, repository=self.create_repo(project=self.project)
+        )
+        group = self.create_group(
+            project=self.project,
+            seer_autofix_last_triggered=timezone.now() - timedelta(days=90),
+        )
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is False
+
+        group.update(seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=31))
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is True
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_cannot_suggest_autofix_for_another_orgs_issue(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        group = self.create_group(
+            project=self.create_project(organization=self.create_organization())
+        )
+
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is False
