@@ -12,7 +12,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -272,24 +272,6 @@ class MetricIssueContext:
             title=group.title,
         )
 
-    @classmethod
-    def from_legacy_models(
-        cls,
-        incident: Incident,
-        new_status: IncidentStatus,
-        metric_value: float | None = None,
-    ) -> MetricIssueContext:
-        return cls(
-            id=incident.id,
-            open_period_identifier=incident.identifier,
-            snuba_query=incident.alert_rule.snuba_query,
-            subscription=incident.subscription,
-            new_status=new_status,
-            metric_value=metric_value,
-            group=None,
-            title=incident.title,
-        )
-
 
 class OpenPeriodContext(BaseModel):
     """
@@ -303,12 +285,6 @@ class OpenPeriodContext(BaseModel):
     date_started: datetime
     date_closed: datetime | None = None
     id: int
-
-    @classmethod
-    def from_incident(cls, incident: Incident) -> OpenPeriodContext:
-        return cls(
-            date_started=incident.date_added, date_closed=incident.date_closed, id=incident.id
-        )
 
     @classmethod
     def from_group(cls, group: Group) -> OpenPeriodContext:

@@ -142,7 +142,9 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             status=IncidentStatus.CRITICAL.value,
         )
         mapping = self.create_incident_group_open_period(
-            incident=incident, group_open_period=open_period
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+            group_open_period=open_period,
         )
 
         self.save_issue_occurrence(priority=DetectorPriorityLevel.MEDIUM)
