@@ -23,11 +23,11 @@ class ConditionOperator(StrEnum):
     How a condition compares the field to its values. ``glob`` matches the field against
     each value as a glob pattern. The other text operators read every character of a
     value literally and match a field that equals, starts with, contains or ends with
-    any value, case-insensitively. The ordered operators compare one value as a release
-    version.
+    any value, case-insensitively. ``cidr`` matches an IP address against each value as an
+    address or a CIDR range. The ordered operators compare one value as a release version.
 
-    A stored condition without an operator holds raw glob patterns, as with ``glob``: a
-    row written before operators existed, or the row of a legacy list.
+    A stored condition without an operator holds raw values, as with ``glob`` or ``cidr``:
+    a row written before operators existed, or the row of a legacy list.
     """
 
     GLOB = "glob"
@@ -35,6 +35,7 @@ class ConditionOperator(StrEnum):
     STARTS_WITH = "starts_with"
     CONTAINS = "contains"
     ENDS_WITH = "ends_with"
+    CIDR = "cidr"
     GT = "gt"
     GTE = "gte"
     LT = "lt"
@@ -50,6 +51,8 @@ TEXT_OPERATORS = frozenset(
         ConditionOperator.ENDS_WITH,
     }
 )
+
+IP_OPERATORS = frozenset({ConditionOperator.CIDR})
 
 COMPARISON_OPERATORS = frozenset(
     {ConditionOperator.GT, ConditionOperator.GTE, ConditionOperator.LT, ConditionOperator.LTE}

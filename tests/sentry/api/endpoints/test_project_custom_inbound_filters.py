@@ -259,6 +259,24 @@ class CustomInboundFiltersTest(APITestCase):
             response.data["conditions"][0]["operator"][0]
         )
 
+    def test_rejects_operator_the_field_does_not_take(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[
+                    {"type": "release", "operator": "glob", "value": ["1.*"]},
+                    {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]},
+                ],
+            )
+
+        assert response.data["conditions"][0] == {}
+        assert str(response.data["conditions"][1]["operator"][0]) == (
+            "The ip_address condition does not take the glob operator. It accepts cidr."
+        )
+
     def test_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
         with self.feature(self.features):
             response = self.get_error_response(
@@ -289,7 +307,7 @@ class CustomInboundFiltersTest(APITestCase):
             )
 
         assert str(response.data["conditions"][0]["operator"][0]) == (
-            "The ip_address condition does not take the starts_with operator. It accepts equals."
+            "The ip_address condition does not take the starts_with operator. It accepts cidr."
         )
 
     def test_rejects_comparison_against_a_release_without_a_version(self) -> None:
@@ -418,7 +436,7 @@ class CustomInboundFiltersTest(APITestCase):
     def test_post_ip_address(self) -> None:
         """An IP condition reads the envelope, so every data type takes it."""
         conditions = [
-            {"type": "ip_address", "operator": "equals", "value": ["10.0.0.0/8", "2001:db8::1"]}
+            {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8", "2001:db8::1"]}
         ]
 
         with self.feature(self.features), outbox_runner():
@@ -466,7 +484,7 @@ class CustomInboundFiltersTest(APITestCase):
                 conditions=[
                     {
                         "type": "ip_address",
-                        "operator": "equals",
+                        "operator": "cidr",
                         "value": ["10.0.0.0/8", "10.0.0.*", "nope"],
                     }
                 ],
