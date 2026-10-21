@@ -55,7 +55,6 @@ export interface DropdownMenuListProps
    */
   disableTextSelection?: boolean;
   emptyMessage?: React.ReactNode;
-  maxMenuWidth?: number;
   /**
    * To be displayed below the menu items
    */
@@ -204,7 +203,6 @@ function DropdownMenuList({
   menuTitle,
   emptyMessage,
   menuHeight,
-  maxMenuWidth,
   menuWidth,
   menuFooter,
   search,
@@ -351,7 +349,7 @@ function DropdownMenuList({
                   height: menuHeight,
                   // The overlay positioner limits the menu to the available viewport height.
                   maxHeight: overlayPositionProps.style?.maxHeight,
-                  maxWidth: maxMenuWidth ? `min(${maxMenuWidth}px, 100%)` : '100%',
+                  maxWidth: '100%',
                 }}
               >
                 {menuTitle && (
@@ -621,7 +619,7 @@ function DropdownSubmenu({
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
           emptyMessage={options.emptyMessage}
-          maxMenuWidth={options.maxMenuWidth}
+          menuWidth={options.menuWidth}
           searchOptions={options.search}
           size={size}
           {...menuProps}

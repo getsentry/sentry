@@ -68,7 +68,7 @@ export interface MenuItemProps extends ListItemProps {
     | {
         emptyMessage?: React.ReactNode;
         maxMenuHeight?: number;
-        maxMenuWidth?: number;
+        menuWidth?: string | number;
         position?: UseOverlayProps['position'];
         search?: {placeholder?: string};
         title?: string;
