@@ -225,7 +225,7 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
       }
       menuFooter={
         hasStagedChanges ? (
-          <Flex gap="md" align="center" justify="end">
+          <Flex gap="md" align="center" justify="end" width="100%">
             <MenuComponents.CancelButton
               onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
             />

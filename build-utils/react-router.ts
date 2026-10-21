@@ -7,10 +7,11 @@ const require = createRequire(import.meta.url);
 
 export function getReactRouterConfig(env: NodeJS.ProcessEnv = process.env) {
   const useV8 =
-    (Boolean(env.NOW_GITHUB_DEPLOYMENT) || (env.NODE_ENV === 'development' && !env.CI)) &&
+    (env.NODE_ENV === 'production' ||
+      Boolean(env.NOW_GITHUB_DEPLOYMENT) ||
+      (env.NODE_ENV === 'development' && !env.CI)) &&
     env.NODE_ENV !== 'test' &&
-    !env.TEST_SUITE &&
-    !env.IS_ACCEPTANCE_TEST;
+    !env.TEST_SUITE;
   const root = path.resolve(import.meta.dirname, '..');
   const compatibilityDirectory = path.join(root, 'static/app/utils/reactRouterV6');
   const alias: NonNullable<Configuration['resolve']>['alias'] = useV8

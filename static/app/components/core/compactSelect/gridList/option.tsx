@@ -1,5 +1,4 @@
 import {Fragment, useContext, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
@@ -13,11 +12,7 @@ import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {
-  InnerWrap,
-  MenuListItem,
-  type MenuListItemProps,
-} from '@sentry/scraps/menuListItem';
+import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
@@ -89,7 +84,7 @@ export function GridListOption<T extends ListItemBase>({
     [label]
   );
 
-  const leadingItems = (node.props as MenuListItemProps).leadingItems;
+  const {leadingItems}: Pick<ListItemProps, 'leadingItems'> = node.props;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -114,7 +109,9 @@ export function GridListOption<T extends ListItemBase>({
               readOnly
             />
           ) : (
-            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+            isSelected && (
+              <IconCheckmark size={checkboxSize} variant="accent" {...checkboxProps} />
+            )
           )}
         </LeadWrap>
         {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
@@ -124,7 +121,7 @@ export function GridListOption<T extends ListItemBase>({
   }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
   return (
-    <StyledMenuListItem
+    <ListItem
       {...rowPropsMerged}
       ref={ref}
       size={size}
@@ -134,7 +131,7 @@ export function GridListOption<T extends ListItemBase>({
       isSelected={isSelected}
       isPressed={isPressed}
       isFocused={isFocusWithin}
-      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
+      priority={priority ? 'primary' : 'default'}
       innerWrapProps={gridCellProps}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
@@ -145,9 +142,3 @@ export function GridListOption<T extends ListItemBase>({
     />
   );
 }
-
-const StyledMenuListItem = styled(MenuListItem)`
-  > ${InnerWrap} {
-    padding-left: ${p => p.theme.space.md};
-  }
-`;

@@ -254,9 +254,44 @@ describe('ConversationsOverviewPage', () => {
     expect(
       banner.compareDocumentPosition(costChartTitle) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    expect(
-      screen.queryByRole('button', {name: 'Dismiss banner'})
-    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss banner'}));
+
+    expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.getByText('Estimated Cost')).toBeInTheDocument();
+  });
+
+  it('does not show the setup banner once it has been dismissed', async () => {
+    localStorage.setItem(
+      `${organization.id}:agents-charts-missing-agent-data-banner-dismissed`,
+      Date.now().toString()
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          referrer: Referrer.CHART,
+          query: LLM_QUERY,
+        }),
+      ],
+      body: {data: [{id: 'llm-span-id'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          referrer: Referrer.CHART,
+          query: AGENT_OR_TOOL_QUERY,
+        }),
+      ],
+      body: {data: []},
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(await screen.findByText('Estimated Cost')).toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
   });
 
   it('does not show the banner when the selected time range has no LLM spans', async () => {
@@ -276,13 +311,13 @@ describe('ConversationsOverviewPage', () => {
 
   it('does not apply the table search to agent charts', async () => {
     const chartRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       match: [
         MockApiClient.matchQuery({
           referrer: 'api.dashboards.widget.bar-chart',
         }),
       ],
-      body: {data: []},
+      body: {timeSeries: []},
     });
 
     render(<ConversationsOverviewPage />, {

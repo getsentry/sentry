@@ -12,7 +12,7 @@ from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.cache import never_cache
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
 from sentry.api.helpers.oauth_authorize.approval import approve_authorization
 from sentry.api.helpers.oauth_authorize.request import build_authorization_request
@@ -37,13 +37,14 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth
 from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
+from sentry.web.frontend.react_page import ReactMixin
 
 logger = logging.getLogger("sentry.oauth")
 
 
 @control_silo_view
 @method_decorator(never_cache, name="dispatch")
-class OAuthAuthorizeView(BaseView):
+class OAuthAuthorizeView(BaseView, ReactMixin):
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=20, window=1)}}
@@ -114,6 +115,9 @@ class OAuthAuthorizeView(BaseView):
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+        if options.get("auth.oauth-react-enabled"):
+            return self.handle_react(request)
+
         try:
             serializer = OAuthAuthorizeQuerySerializer(data=request.GET)
             if not serializer.is_valid():
