@@ -464,16 +464,16 @@ def release_rule_condition(values: list[str]) -> dict:
         ),
         pytest.param(
             "error",
-            [{"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]}],
+            [{"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
-            id="glob_on_ip_address_is_the_cidr_match",
+            id="cidr_on_ip_address",
         ),
         pytest.param(
             "error",
             [
                 {"type": "error_message", "operator": "glob", "value": ["*timeout*"]},
                 {"type": "release", "operator": "glob", "value": ["2.*"]},
-                {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]},
+                {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]},
             ],
             {
                 "op": "and",

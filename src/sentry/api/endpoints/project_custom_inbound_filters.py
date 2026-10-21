@@ -123,7 +123,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         required=False,
         help_text=(
             "How the field compares to `value`. `glob` matches the field against each value "
-            "as a glob pattern; on `ip_address` a value is an address or a CIDR range."
+            "as a glob pattern. `cidr` matches `ip_address` against each value as an address "
+            "or a CIDR range."
         ),
     )
     value = serializers.ListField(

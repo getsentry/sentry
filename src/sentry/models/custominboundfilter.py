@@ -21,16 +21,20 @@ class ConditionType(StrEnum):
 class ConditionOperator(StrEnum):
     """
     How a condition compares the field to its values. ``glob`` matches the field against
-    each value as a glob pattern.
+    each value as a glob pattern. ``cidr`` matches an IP address against each value as an
+    address or a CIDR range.
 
-    A stored condition without an operator holds raw glob patterns, as with ``glob``: a
-    row written before operators existed, or the row of a legacy list.
+    A stored condition without an operator holds raw values, as with ``glob`` or ``cidr``:
+    a row written before operators existed, or the row of a legacy list.
     """
 
     GLOB = "glob"
+    CIDR = "cidr"
 
 
 TEXT_OPERATORS = frozenset({ConditionOperator.GLOB})
+
+IP_OPERATORS = frozenset({ConditionOperator.CIDR})
 
 
 class DataType(StrEnum):

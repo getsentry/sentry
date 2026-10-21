@@ -217,6 +217,24 @@ class CustomInboundFiltersTest(APITestCase):
             response.data["conditions"][0]["operator"][0]
         )
 
+    def test_rejects_operator_the_field_does_not_take(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[
+                    {"type": "release", "operator": "glob", "value": ["1.*"]},
+                    {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]},
+                ],
+            )
+
+        assert response.data["conditions"][0] == {}
+        assert str(response.data["conditions"][1]["operator"][0]) == (
+            "The ip_address condition does not take the glob operator. It accepts cidr."
+        )
+
     def test_without_inbound_filters_v2_feature(self) -> None:
         with self.feature(["projects:custom-inbound-filters"]):
             self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
@@ -326,7 +344,7 @@ class CustomInboundFiltersTest(APITestCase):
     def test_post_ip_address(self) -> None:
         """An IP condition reads the envelope, so every data type takes it."""
         conditions = [
-            {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8", "2001:db8::1"]}
+            {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8", "2001:db8::1"]}
         ]
 
         with self.feature(self.features), outbox_runner():
@@ -374,7 +392,7 @@ class CustomInboundFiltersTest(APITestCase):
                 conditions=[
                     {
                         "type": "ip_address",
-                        "operator": "glob",
+                        "operator": "cidr",
                         "value": ["10.0.0.0/8", "10.0.0.*", "nope"],
                     }
                 ],
