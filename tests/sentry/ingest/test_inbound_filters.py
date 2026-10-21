@@ -153,9 +153,8 @@ def test_error_message_condition_logentry_disabled_by_default() -> None:
     }
 
 
-def test_global_generic_filters_have_disabled_definitions(settings) -> None:
-    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = CUSTOM_PATTERNS
-
+@override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS)
+def test_global_generic_filters_have_disabled_definitions() -> None:
     generic_filters = get_global_generic_filters()
 
     assert generic_filters == {
@@ -180,9 +179,8 @@ def test_global_generic_filters_have_disabled_definitions(settings) -> None:
     }
 
 
-def test_global_generic_filters_omit_custom_error_without_values(settings) -> None:
-    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = []
-
+@override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[])
+def test_global_generic_filters_omit_custom_error_without_values() -> None:
     generic_filters = get_global_generic_filters()
 
     assert generic_filters == {
@@ -205,11 +203,10 @@ def test_global_generic_filters_omit_custom_error_without_values(settings) -> No
 @django_db_all
 @pytest.mark.parametrize("inbound_filters_custom_error_values", [[], CUSTOM_PATTERNS])
 def test_shared_filter_references(
-    default_project: Project, settings, inbound_filters_custom_error_values
+    default_project: Project, inbound_filters_custom_error_values
 ) -> None:
-    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = inbound_filters_custom_error_values
-
-    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=inbound_filters_custom_error_values):
+        generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
     assert generic_filters == {
         "version": 1,
@@ -222,8 +219,8 @@ def test_shared_filter_references(
 
 
 @django_db_all
-def test_disabled_custom_error_filter_reference_omitted(default_project: Project, settings) -> None:
-    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = CUSTOM_PATTERNS
+@override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS)
+def test_disabled_custom_error_filter_reference_omitted(default_project: Project) -> None:
     default_project.update_option("filters:custom-error", "0")
 
     generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
