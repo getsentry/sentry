@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import click
 import pytest
+from django.db import DatabaseError
 
 from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.constants import ObjectStatus
@@ -744,7 +745,8 @@ class RemoveInactiveNotificationThreadsTest(TestCase):
 
         assert NotificationThread.objects.filter(id=thread.id).exists()
 
-    def test_abort_execution_stops_cleanup(self) -> None:
+    @patch("sentry.utils.metrics.incr")
+    def test_abort_execution_stops_cleanup(self, mock_incr: Any) -> None:
         thread = self._create_thread(days_old=self.RETENTION_DAYS + 5)
 
         with self.options(
@@ -754,6 +756,45 @@ class RemoveInactiveNotificationThreadsTest(TestCase):
                 remove_inactive_notification_threads(lambda model: False, set())
 
         assert NotificationThread.objects.filter(id=thread.id).exists()
+        mock_incr.assert_any_call(
+            "cleanup.notification_thread.run",
+            tags={"outcome": "aborted", "dry_run": "false"},
+            sample_rate=1.0,
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_completed_run(self, mock_incr: Any) -> None:
+        self._create_thread(days_old=self.RETENTION_DAYS + 5)
+
+        self._run()
+
+        mock_incr.assert_any_call(
+            "cleanup.notification_thread.run",
+            tags={"outcome": "completed", "dry_run": "false"},
+            sample_rate=1.0,
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_failed_run(self, mock_incr: Any) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 5)
+
+        queryset_class = type(NotificationThread.objects.none())
+        with patch.object(queryset_class, "delete", side_effect=DatabaseError("boom")):
+            self._run()
+
+        assert NotificationThread.objects.filter(id=thread.id).exists()
+        mock_incr.assert_any_call(
+            "cleanup.notification_thread.run",
+            tags={"outcome": "failed", "dry_run": "false"},
+            sample_rate=1.0,
+        )
+        mock_incr.assert_any_call(
+            "cleanup.error",
+            tags={"type": "specialized_cleanup_notification_threads"},
+            sample_rate=1.0,
+        )
+        run_names = [c.args[0] for c in mock_incr.call_args_list]
+        assert "cleanup.notification_thread.threads_deleted" not in run_names
 
     def test_respects_is_filtered(self) -> None:
         thread = self._create_thread(days_old=self.RETENTION_DAYS + 5)

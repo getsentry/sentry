@@ -1319,35 +1319,51 @@ def remove_inactive_notification_threads(
     threads_deleted = 0
     records_deleted = 0
     last_id = 0
-    while True:
-        if options.get("cleanup.abort_execution"):
-            raise CleanupExecutionAborted()
+    # Reported in finally so aborted and failed runs are visible too; the deleted
+    # counts below are only sent for runs that complete.
+    outcome = "failed"
+    try:
+        while True:
+            if options.get("cleanup.abort_execution"):
+                raise CleanupExecutionAborted()
 
-        # Walking the primary key keeps each query bounded without an index on date_added.
-        candidate_ids = list(
-            NotificationThread.objects.filter(id__gt=last_id, date_added__lt=cutoff)
-            .order_by("id")
-            .values_list("id", flat=True)[:batch_size]
+            # Walking the primary key keeps each query bounded without an index on date_added.
+            candidate_ids = list(
+                NotificationThread.objects.filter(id__gt=last_id, date_added__lt=cutoff)
+                .order_by("id")
+                .values_list("id", flat=True)[:batch_size]
+            )
+            if not candidate_ids:
+                break
+            last_id = candidate_ids[-1]
+
+            eligible = NotificationThread.objects.filter(id__in=candidate_ids).filter(
+                ~Exists(recent_successful_send)
+            )
+
+            if dry_run:
+                eligible_ids = list(eligible.values_list("id", flat=True))
+                threads_deleted += len(eligible_ids)
+                records_deleted += NotificationRecord.objects.filter(
+                    thread_id__in=eligible_ids
+                ).count()
+                continue
+
+            # Eligibility is re-evaluated in the delete itself so a reply recorded after
+            # candidates were selected keeps its thread.
+            _, deleted_by_model = eligible.delete()
+            threads_deleted += deleted_by_model.get(NotificationThread._meta.label, 0)
+            records_deleted += deleted_by_model.get(NotificationRecord._meta.label, 0)
+        outcome = "completed"
+    except CleanupExecutionAborted:
+        outcome = "aborted"
+        raise
+    finally:
+        metrics.incr(
+            "cleanup.notification_thread.run",
+            tags={"outcome": outcome, "dry_run": str(dry_run).lower()},
+            sample_rate=1.0,
         )
-        if not candidate_ids:
-            break
-        last_id = candidate_ids[-1]
-
-        eligible = NotificationThread.objects.filter(id__in=candidate_ids).filter(
-            ~Exists(recent_successful_send)
-        )
-
-        if dry_run:
-            eligible_ids = list(eligible.values_list("id", flat=True))
-            threads_deleted += len(eligible_ids)
-            records_deleted += NotificationRecord.objects.filter(thread_id__in=eligible_ids).count()
-            continue
-
-        # Eligibility is re-evaluated in the delete itself so a reply recorded after
-        # candidates were selected keeps its thread.
-        _, deleted_by_model = eligible.delete()
-        threads_deleted += deleted_by_model.get(NotificationThread._meta.label, 0)
-        records_deleted += deleted_by_model.get(NotificationRecord._meta.label, 0)
 
     tags = {"dry_run": str(dry_run).lower()}
     metrics.incr(
