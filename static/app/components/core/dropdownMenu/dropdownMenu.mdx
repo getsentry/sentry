@@ -49,6 +49,8 @@ Use `CompactSelect` when the user chooses a value that stays selected. Use `Drop
 
 Set `label` and `onAction` on each item. Keys must be unique across the complete menu, including nested submenus. Use `disabled` to prevent an item from being selected.
 
+Set `isSelected` on choice-like actions to show a checkmark before `leadingItems`. Set it to `false` on the other items to reserve the checkmark's space.
+
 <Storybook.Demo>
   <DropdownMenu
     triggerLabel="Actions"
@@ -56,24 +58,28 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
       {
         key: 'edit',
         label: 'Edit',
+        isSelected: true,
         leadingItems: <IconEdit size="sm" />,
         onAction: () => {},
       },
       {
         key: 'copy',
         label: 'Copy',
+        isSelected: false,
         leadingItems: <IconCopy size="sm" />,
         onAction: () => {},
       },
       {
         key: 'download',
         label: 'Download',
+        isSelected: false,
         leadingItems: <IconDownload size="sm" />,
         onAction: () => {},
       },
       {
         key: 'delete',
         label: 'Delete',
+        isSelected: false,
         leadingItems: <IconDelete size="sm" />,
         disabled: true,
         onAction: () => {},
@@ -86,39 +92,13 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
 <DropdownMenu
   triggerLabel="Actions"
   items={[
-    {key: 'edit', label: 'Edit', onAction: () => {}},
-    {key: 'copy', label: 'Copy', onAction: () => {}},
+    {key: 'edit', label: 'Edit', isSelected: true, onAction: () => {}},
+    {key: 'copy', label: 'Copy', isSelected: false, onAction: () => {}},
     {key: 'download', label: 'Download', onAction: () => {}},
     {key: 'delete', label: 'Delete', disabled: true, onAction: () => {}},
   ]}
 />
 ```
-
-## Selection and leading icons
-
-Set `isSelected` when an action represents an active choice. The selection checkmark appears before `leadingItems`. Set it to `false` on the other items to reserve the same space.
-
-<Storybook.Demo>
-  <DropdownMenu
-    triggerLabel="Selection with icons"
-    items={[
-      {
-        key: 'list',
-        label: 'Selected action',
-        isSelected: true,
-        leadingItems: <IconEdit size="sm" />,
-        onAction: () => {},
-      },
-      {
-        key: 'copy',
-        label: 'Unselected action',
-        isSelected: false,
-        leadingItems: <IconCopy size="sm" />,
-        onAction: () => {},
-      },
-    ]}
-  />
-</Storybook.Demo>
 
 ## Sections, Links, and Submenus
 
