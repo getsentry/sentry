@@ -692,6 +692,34 @@ describe('MultiMetricsQueryParamsProvider', () => {
     );
   });
 
+  it('builds on an external navigation after its own write lands', async () => {
+    const {result, router} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {metric: ['foo', 'bar'].map(canonicalMetricQueryParam)},
+        },
+      },
+    });
+
+    act(() => result.current[0]!.setTraceMetric({name: 'written', type: 'counter'}));
+    await waitFor(() =>
+      expect(router.location.query.metric![0]).toContain('"name":"written"')
+    );
+    const search = new URLSearchParams(
+      ['external', 'other'].map(name => ['metric', canonicalMetricQueryParam(name)])
+    );
+    router.navigate(`/organizations/org-slug/explore/metrics/?${search.toString()}`);
+    await waitFor(() => expect(result.current[0]!.metric.name).toBe('external'));
+    act(() => result.current[1]!.setTraceMetric({name: 'edited', type: 'counter'}));
+
+    expect(result.current.map(metricQuery => metricQuery.metric.name)).toEqual([
+      'external',
+      'edited',
+    ]);
+  });
+
   describe('URL writes', () => {
     beforeEach(() => {
       jest.useFakeTimers();
