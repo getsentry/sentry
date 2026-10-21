@@ -7,6 +7,7 @@ from typing import Any, Literal, TypedDict
 import pytest
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from jsonschema.exceptions import ValidationError
 from openapi_schema_validator import OAS30Validator
 from rest_framework import serializers
 
@@ -32,6 +33,17 @@ from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationOrchestrationCommandValidator,
 )
 from tests.sentry.apidocs import generate_schema
+
+
+def test_null_only_response_field() -> None:
+    schema = resolve_type_hint(type(None))
+    validator = OAS30Validator(schema)
+
+    validator.validate(None)
+    with pytest.raises(ValidationError):
+        validator.validate("123")
+    with pytest.raises(ValidationError):
+        validator.validate({})
 
 
 class NestedDict(TypedDict):

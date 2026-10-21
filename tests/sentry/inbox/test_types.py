@@ -6,10 +6,17 @@ from unittest.mock import patch
 
 import pytest
 from django.db import connections
+from openapi_schema_validator import OAS30Validator
 
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
+from sentry.inbox.response_types import (
+    InboxItemEventResponse,
+    InboxItemResponse,
+    InboxUnreadCountResponse,
+)
 from sentry.inbox.types import (
     SYSTEM_ACTOR,
     InboxActor,
@@ -63,6 +70,13 @@ class ReferenceItemType(StubItemType[SubjectReference]):
 @dataclass(frozen=True, kw_only=True)
 class MentionedData(InboxEventData):
     comment_id: int
+
+
+@pytest.mark.parametrize(
+    "response_type", [InboxItemResponse, InboxItemEventResponse, InboxUnreadCountResponse]
+)
+def test_response_types_support_openapi(response_type: type) -> None:
+    OAS30Validator.check_schema(resolve_type_hint(response_type))
 
 
 @patch.dict(inbox_item_type_registry.registrations, clear=True)

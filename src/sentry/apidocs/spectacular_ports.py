@@ -126,6 +126,9 @@ def _cycle_placeholder(hint: Any) -> dict[str, Any]:
 
 def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified as described above"""
+    if hint is type(None):
+        return {"nullable": True, "enum": [None]}
+
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
 
