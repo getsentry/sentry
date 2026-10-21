@@ -11,11 +11,11 @@ import {
 import {useAvatarColors} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import {t, tn} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 type NavigationMenuHeaderProps =
   | {organization: OrganizationSummary; projectCount: number; user?: never}

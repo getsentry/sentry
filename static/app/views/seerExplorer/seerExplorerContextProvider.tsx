@@ -465,8 +465,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           <PictureInPicturePortal pipWindow={pipWindow}>
             <SeerExplorerErrorBoundary>
               {/* Pop out the content of whichever surface is active: the decoupled
-                sidebar content when the flag is on (there is no drawer then), or
-                the drawer content otherwise. */}
+                sidebar content when Seer Explorer is enabled (there is no drawer
+                then), or the drawer content otherwise. */}
               {isSidebarMode ? (
                 <SeerExplorerContent
                   key={sidebarKey}

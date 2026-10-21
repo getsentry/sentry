@@ -25,6 +25,11 @@ disabled. The root `test-ci` command runs each workspace's test script in a
 separate Jest process, with up to two workspaces in parallel. Both commands
 exclude the root package, which owns the combined `test` watcher.
 
+`test-ci` runs app, lint, and test-support workspaces against React Router V6
+and V8. Set `SENTRY_REACT_ROUTER_VERSION=6` or `8` to select one version.
+Standalone packages and router build checks run once on V6. CI runs these only
+on V6 shard 0.
+
 CI discovers one global test list for application, test-support, and lint suites.
 Each workspace's config selects its own files from the same shard assignment.
 Icons and Scraps use `runOnFirstShard` from `scripts/jestSingleShard.js` to run

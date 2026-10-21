@@ -41,30 +41,78 @@ if (
   }
 }
 
-const result = spawnSync(
-  'pnpm',
-  [
-    '--recursive',
-    '--workspace-concurrency=2',
-    '--aggregate-output',
-    '--reporter=append-only',
-    '--no-sort',
-    '--no-bail',
-    '--no-include-workspace-root',
-    '--if-present',
-    'run',
-    'test',
-    '--ci',
-    '--watch=false',
-    '--passWithNoTests',
-    '--maxWorkers=2',
-    '--watchman=false',
-    '--colors',
-    ...args,
-  ],
-  {stdio: 'inherit'}
-);
-if (result.error) {
-  throw result.error;
+/**
+ * @param {string} command
+ * @param {string[]} argv
+ */
+function runTests(command, argv, env = process.env) {
+  const result = spawnSync(command, argv, {stdio: 'inherit', env});
+  if (result.error) {
+    throw result.error;
+  }
+  return result.status ?? 1;
 }
-process.exitCode = result.status ?? 1;
+
+/**
+ * @param {string} filter
+ * @param {string} version
+ */
+function runWorkspaceTests(filter, version) {
+  return runTests(
+    'pnpm',
+    [
+      '--recursive',
+      '--workspace-concurrency=2',
+      '--aggregate-output',
+      '--reporter=append-only',
+      '--no-sort',
+      '--no-bail',
+      '--no-include-workspace-root',
+      '--filter',
+      filter,
+      '--if-present',
+      'run',
+      'test',
+      '--ci',
+      '--watch=false',
+      '--passWithNoTests',
+      '--maxWorkers=2',
+      '--watchman=false',
+      '--colors',
+      ...args,
+    ],
+    {...process.env, SENTRY_REACT_ROUTER_VERSION: version}
+  );
+}
+
+// Once production and previews use V8, remove the version selection.
+const selectedVersion = process.env.SENTRY_REACT_ROUTER_VERSION;
+if (selectedVersion !== undefined && !['6', '8'].includes(selectedVersion)) {
+  throw new Error(`Unsupported SENTRY_REACT_ROUTER_VERSION: ${selectedVersion}`);
+}
+const versions = selectedVersion === undefined ? ['6', '8'] : [selectedVersion];
+let appStatus = 0;
+for (const version of versions) {
+  console.log(`Testing with React Router v${version}`);
+  const status = runWorkspaceTests('!./static/packages/*', version);
+  appStatus ||= status;
+}
+
+let packageStatus = 0;
+let routerBuildStatus = 0;
+// After removing the router matrix, drop the V6 condition but keep the shard-0 guard.
+if (
+  (!process.env.CI || versions.includes('6')) &&
+  (!process.env.CI ||
+    !process.env.CI_NODE_TOTAL ||
+    !process.env.CI_NODE_INDEX ||
+    process.env.CI_NODE_INDEX === '0')
+) {
+  routerBuildStatus = runTests(process.execPath, [
+    '--test',
+    'build-utils/react-router.test.ts',
+  ]);
+  packageStatus = runWorkspaceTests('./static/packages/*', '6');
+}
+
+process.exitCode = appStatus || routerBuildStatus || packageStatus;

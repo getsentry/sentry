@@ -5,7 +5,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -38,7 +37,7 @@ interface ReleaseWidgetQueriesProps {
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];
-    timeseriesResults?: Series[];
+    timeseriesResults?: GenericWidgetQueriesResult['timeseriesResults'];
   }) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;

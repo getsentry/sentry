@@ -21,6 +21,7 @@ type TableOptions = Omit<
 function TestTable({
   fields,
   tableData,
+  // oxlint-disable-next-line react/todo
   renderCell = ({rendered, wrap}: RenderCellOptions) => wrap(rendered),
   ...options
 }: Partial<TableOptions> & {

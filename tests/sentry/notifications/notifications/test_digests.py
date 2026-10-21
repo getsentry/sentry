@@ -14,6 +14,7 @@ from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
+from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
@@ -22,11 +23,9 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user_option import UserOption
-from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -68,7 +67,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             )
 
         assert event is not None
-        origin = create_notification_origin(self.rule)
+        origin = self.origin
         backend.add(
             self.key,
             event_to_record(as_group_event(event), [origin]),
@@ -102,7 +101,14 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
     def setUp(self) -> None:
         super().setUp()
-        self.rule = self.create_project_rule(project=self.project)
+        self.workflow = self.create_workflow(organization=self.organization)
+        assert self.workflow.id is not None
+        self.origin = NotificationOrigin(
+            label=self.workflow.name,
+            environment_id=self.workflow.environment_id,
+            workflow_id=self.workflow.id,
+            legacy_rule_id=None,
+        )
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
@@ -134,7 +140,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             EmailNotificationSent(
                 category="digest",
                 notification_uuid="ANY",
-                alert_id=self.rule.id,
+                alert_id=self.workflow.id,
                 project_id=self.project.id,
                 organization_id=self.organization.id,
                 id=0,
@@ -157,7 +163,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=self.rule.id,
+                alert_id=self.workflow.id,
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",
@@ -280,8 +286,8 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp_secs = int(timestamp_raw.timestamp())
         timestamp = timestamp_raw.isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
-        rule = self.create_project_rule(project=self.project)
-        workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
+        workflow = self.create_workflow(organization=self.organization, name="ja rule")
+        workflow_id = workflow.id
         event1 = self.store_event(
             data={
                 "timestamp": timestamp,
@@ -302,7 +308,12 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             project_id=self.project.id,
         )
         notification_uuid = str(uuid.uuid4())
-        origin = create_notification_origin(rule)
+        origin = NotificationOrigin(
+            label=workflow.name,
+            environment_id=workflow.environment_id,
+            workflow_id=workflow.id,
+            legacy_rule_id=None,
+        )
         backend.add(
             key,
             event_to_record(as_group_event(event1), [origin], notification_uuid),
@@ -363,8 +374,13 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         digests.enabled.return_value = True
         timestamp = before_now(days=1).isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
-        rule = self.create_project_rule(project=self.project)
-        origin = create_notification_origin(rule)
+        workflow = self.create_workflow(organization=self.organization)
+        origin = NotificationOrigin(
+            label=workflow.name,
+            environment_id=workflow.environment_id,
+            workflow_id=workflow.id,
+            legacy_rule_id=None,
+        )
         notification_uuid = str(uuid.uuid4())
 
         # Create 17 events to exceed 48 blocks (each event generates ~3 blocks)

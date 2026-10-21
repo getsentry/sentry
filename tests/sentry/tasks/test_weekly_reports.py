@@ -1729,6 +1729,7 @@ class WeeklyReportsTest(
 
         assert ctx["enhanced_privacy"]
         assert len(ctx["top_issues"]) == 0
+        assert ctx["past_issues"] == []
         assert ctx["trends"]["total_error_count"] == 2
         assert ctx["issue_summary"] is not None
 
@@ -1755,11 +1756,16 @@ class WeeklyReportsTest(
             duration=ONE_DAY * 7,
             organization=self.organization,
         )
-        ctx = factory.create_context()
+        with mock.patch.object(
+            factory, "_append_project_past_resolved_issues"
+        ) as append_past_issues:
+            ctx = factory.create_context()
 
+        append_past_issues.assert_not_called()
         for project_ctx in ctx.projects_context_map.values():
             assert project_ctx.key_error_issues == []
             assert project_ctx.key_performance_issues == []
+            assert project_ctx.past_resolved_issues == []
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_enhanced_privacy_email_does_not_contain_sensitive_data(self) -> None:
@@ -1899,7 +1905,6 @@ class WeeklyReportsTest(
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    @with_feature("organizations:weekly-report-past-issues")
     def test_past_issues_in_template_context(
         self, message_builder: mock.MagicMock, record: mock.MagicMock
     ) -> None:
@@ -1930,16 +1935,16 @@ class WeeklyReportsTest(
             self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
         )
 
+        message_builder.assert_called()
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["show_past_issues"] is True
             assert len(context["past_issues"]) == 1
             assert context["past_issues"][0]["group"].id == group1.id
             assert context["past_issues"][0]["count"] >= 1
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_past_issues_flag_off_uses_old_sections(
+    def test_no_past_issues_without_resolved_groups(
         self, message_builder: mock.MagicMock, record: mock.MagicMock
     ) -> None:
         user = self.create_user()
@@ -1963,11 +1968,13 @@ class WeeklyReportsTest(
             self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
         )
 
+        message_builder.assert_called()
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
             assert len(context["top_issues"]) == 1
+            html = render_to_string("sentry/emails/reports/body.html", context)
+            assert 'id="past-resolved-issues"' not in html
 
     @with_feature("organizations:weekly-report-spans-chart")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -2068,7 +2075,6 @@ class WeeklyReportsTest(
     def test_project_breakdown_equals_covers_project_limit(self):
         assert len(project_breakdown_colors) == TOP_SPANS_LIMIT
 
-    @with_feature("organizations:weekly-report-past-issues")
     def test_resolution_url_is_rendered_as_label_link(self) -> None:
         resolution_url = "https://github.com/getsentry/sentry/pull/5131"
         ctx = OrganizationReportContext(timezone.now().timestamp(), ONE_DAY * 7, self.organization)

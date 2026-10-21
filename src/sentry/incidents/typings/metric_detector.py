@@ -158,6 +158,10 @@ class NotificationContext:
     sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
     sentry_app_id: str | None = None
     notes: str | None = None
+    # The workflow (alert) whose action sent this notification. Only set for notifications
+    # sent through the workflow engine.
+    workflow_id: int | None = None
+    workflow_name: str | None = None
 
     @classmethod
     def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:

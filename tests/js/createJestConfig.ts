@@ -26,6 +26,9 @@ const swcConfig: SwcOptions = {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
+      optimizer: {
+        globals: {vars: {'import.meta.hot': 'undefined'}},
+      },
     },
     experimental: {
       plugins: [[fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}]],
@@ -244,6 +247,9 @@ if (testMatch?.length === 0) {
  * transformed.
  */
 const ESM_NODE_MODULES = [
+  'react-router@8\\.',
+  '@remix-run\\+route-pattern',
+  'cookie-es',
   'oxlint',
   'screenfull',
   'cbor2',
@@ -256,7 +262,7 @@ const ESM_NODE_MODULES = [
 const config: Config.InitialOptions = {
   rootDir,
   verbose: false,
-  cacheDirectory: '.cache/jest',
+  cacheDirectory: `.cache/jest/router-v${process.env.SENTRY_REACT_ROUTER_VERSION ?? '6'}`,
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
@@ -271,8 +277,6 @@ const config: Config.InitialOptions = {
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '^\\./storyManifest\\.generated$':
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
-    '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
-    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
     // The app falls back to core components until they move into scraps.
     '^@sentry/scraps/(.*)$': [
       '<rootDir>/static/packages/scraps/src/$1',
@@ -294,6 +298,7 @@ const config: Config.InitialOptions = {
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
     '<rootDir>/tests/js/sentry-test/setupReact.ts',
+    '<rootDir>/tests/js/sentry-test/setupNuqs.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     fileURLToPath(import.meta.resolve('jest-canvas-mock')),
   ],

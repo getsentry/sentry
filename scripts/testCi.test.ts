@@ -33,6 +33,7 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
     copyFileSync(path.join(root, file), path.join(directory, file));
   };
   write('package.json', '{"private":true,"type":"module"}');
+  write('build-utils/react-router.test.ts', '');
   for (const dependency of [
     '@swc-contrib/mut-cjs-exports',
     '@swc/jest',
@@ -47,6 +48,8 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
     CI: '',
     CI_NODE_TOTAL: '',
     CI_NODE_INDEX: '',
+    SENTRY_REACT_ROUTER_VERSION: '6',
+    NODE_TEST_CONTEXT: undefined,
   };
   return {directory, write, copy, env};
 }
@@ -78,7 +81,7 @@ test('CI runner discovers workspace scripts, forwards arguments, and returns fai
   assert.ok(args.includes('--if-present'));
   assert.ok(args.includes('--no-bail'));
   assert.ok(args.includes('--watch=false'));
-  assert.ok(!args.includes('--filter'));
+  assert.equal(args[args.indexOf('--filter') + 1], './static/packages/*');
   assert.deepEqual(args.slice(-4), [
     '--forceExit',
     '--testResultsProcessor',
@@ -101,6 +104,106 @@ test('CI runner discovers workspace scripts, forwards arguments, and returns fai
     '--testResultsProcessor=' +
       path.join(directory, 'tests/js/test-balancer/resultsProcessor.ts')
   );
+});
+
+test('CI runner preserves the router matrix and standalone shard guards', t => {
+  const {directory, write, env} = fixture(t);
+  const capture = path.join(directory, 'runs.jsonl');
+  const buildMarker = path.join(directory, 'router-build');
+  write(
+    'bin/pnpm',
+    `#!${process.execPath}
+import {appendFileSync} from 'node:fs';
+appendFileSync(${JSON.stringify(capture)}, JSON.stringify({
+  args: process.argv.slice(2),
+  version: process.env.SENTRY_REACT_ROUTER_VERSION,
+}) + '\\n');
+process.exit(Number(process.env.WORKSPACE_TEST_STATUS ?? 0));
+`
+  );
+  chmodSync(path.join(directory, 'bin/pnpm'), 0o755);
+  write(
+    'build-utils/react-router.test.ts',
+    `import {writeFileSync} from 'node:fs';
+writeFileSync(${JSON.stringify(buildMarker)}, 'checked');
+process.exitCode = Number(process.env.ROUTER_BUILD_TEST_STATUS ?? 0);
+`
+  );
+  const cases = [
+    {version: undefined, ci: '', shard: '', versions: ['6', '8'], standalone: true},
+    {version: '8', ci: '', shard: '', versions: ['8'], standalone: true},
+    {version: '6', ci: 'true', shard: '0', versions: ['6'], standalone: true},
+    {version: '8', ci: 'true', shard: '0', versions: ['8'], standalone: false},
+    {version: '6', ci: 'true', shard: '1', versions: ['6'], standalone: false},
+    {version: '6', ci: 'true', shard: '', versions: ['6'], standalone: true},
+  ];
+  for (const {version, ci, shard, versions, standalone} of cases) {
+    rmSync(capture, {force: true});
+    rmSync(buildMarker, {force: true});
+    const result = spawnSync(process.execPath, [path.join(root, 'scripts/testCi.js')], {
+      cwd: directory,
+      env: {
+        ...env,
+        PATH: path.join(directory, 'bin') + ':' + env.PATH,
+        SENTRY_REACT_ROUTER_VERSION: version,
+        CI: ci,
+        CI_NODE_TOTAL: shard ? '2' : '',
+        CI_NODE_INDEX: shard,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr?.toString());
+    const runs: Array<{args: string[]; version: string}> = readFileSync(capture, 'utf8')
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line));
+    assert.deepEqual(
+      runs.map(run => ({
+        filter: run.args[run.args.indexOf('--filter') + 1],
+        version: run.version,
+      })),
+      [
+        ...versions.map(router => ({filter: '!./static/packages/*', version: router})),
+        ...(standalone ? [{filter: './static/packages/*', version: '6'}] : []),
+      ]
+    );
+    assert.equal(readdirSync(directory).includes('router-build'), standalone);
+  }
+
+  rmSync(capture);
+  const failed = spawnSync(process.execPath, [path.join(root, 'scripts/testCi.js')], {
+    cwd: directory,
+    env: {
+      ...env,
+      PATH: path.join(directory, 'bin') + ':' + env.PATH,
+      SENTRY_REACT_ROUTER_VERSION: undefined,
+      WORKSPACE_TEST_STATUS: '7',
+    },
+  });
+  assert.equal(failed.status, 7, failed.stderr?.toString());
+  assert.equal(readFileSync(capture, 'utf8').trim().split('\n').length, 3);
+
+  const buildFailed = spawnSync(
+    process.execPath,
+    [path.join(root, 'scripts/testCi.js')],
+    {
+      cwd: directory,
+      env: {
+        ...env,
+        PATH: path.join(directory, 'bin') + ':' + env.PATH,
+        ROUTER_BUILD_TEST_STATUS: '3',
+      },
+    }
+  );
+  assert.notEqual(buildFailed.status, 0, buildFailed.stderr?.toString());
+
+  rmSync(capture);
+  const invalid = spawnSync(process.execPath, [path.join(root, 'scripts/testCi.js')], {
+    cwd: directory,
+    env: {...env, SENTRY_REACT_ROUTER_VERSION: '7'},
+  });
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr.toString(), /Unsupported SENTRY_REACT_ROUTER_VERSION: 7/);
+  assert.ok(!readdirSync(directory).includes('runs.jsonl'));
 });
 
 test('CI runner executes repository-relative file selections in workspace directories', async t => {
