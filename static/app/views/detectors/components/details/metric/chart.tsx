@@ -129,7 +129,7 @@ interface UseMetricDetectorChartProps {
    */
   highlightedOpenPeriodId?: string;
   /**
-   * Called when an open period marker on the chart is clicked.
+   * Called when clicking anywhere within an open period's time range.
    */
   onOpenPeriodClick?: (openPeriod: GroupOpenPeriod) => void;
   start?: string | null;
