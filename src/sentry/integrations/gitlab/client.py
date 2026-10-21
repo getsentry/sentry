@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import timedelta
 from enum import StrEnum
+from time import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
 from django.urls import reverse
 from requests import PreparedRequest
 
+from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath, safe_quote
@@ -19,11 +22,13 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.locks import locks
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode, control_silo_function
+from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -31,6 +36,19 @@ if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
 logger = logging.getLogger("sentry.integrations.gitlab")
+
+# GitLab's OAuth tokens last two hours. The margin covers the time until the caller uses the
+# token and the skew between our clock and GitLab's.
+TOKEN_MINIMUM_VALIDITY = timedelta(minutes=5)
+
+# Longer than a refresh request can take, so the lock can't expire while it's in flight.
+REFRESH_LOCK_DURATION_S = 60
+
+
+def _expires_within(identity_data: Mapping[str, Any], window: timedelta) -> bool:
+    # A token stored before Sentry recorded GitLab's expiry has none; refreshing it records one.
+    expires = identity_data.get("expires")
+    return expires is None or int(expires) < time() + window.total_seconds()
 
 
 class GitLabApiRequestType(StrEnum):
@@ -113,10 +131,38 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return prepared_request
 
     @control_silo_function
-    def get_access_token(self) -> dict[str, str | None] | None:
+    def get_access_token(
+        self, token_minimum_validity_time: timedelta = TOKEN_MINIMUM_VALIDITY
+    ) -> dict[str, str | None] | None:
+        """Return the stored token, refreshing it first if it expires within the given time.
+
+        Unlike API requests, which refresh after GitLab answers 401, a caller that hands the
+        token on can't retry, so it has to get a token that's still valid.
+        """
+        if _expires_within(self.identity.data, token_minimum_validity_time):
+            self._refresh_expiring_auth(token_minimum_validity_time)
+
         if self.identity.data["access_token"]:
             return {"access_token": self.identity.data["access_token"], "permissions": None}
         return None
+
+    def _refresh_expiring_auth(self, token_minimum_validity_time: timedelta) -> None:
+        # GitLab revokes a refresh token once it's used, so of two requests refreshing at
+        # once, one would fail. The lock makes the second wait and then use what the first
+        # stored.
+        lock = locks.get(
+            f"gitlab:refresh-identity:{self.identity.id}",
+            duration=REFRESH_LOCK_DURATION_S,
+            name="gitlab_refresh_identity",
+        )
+        with lock.blocking_acquire(initial_delay=0.1, timeout=10):
+            stored = identity_service.get_identity(filter={"id": self.identity.id})
+            if stored is None:
+                raise Identity.DoesNotExist
+            # Update in place: the refresh after a 401 in request() also reads this object.
+            self.identity.data.update(stored.data)
+            if _expires_within(self.identity.data, token_minimum_validity_time):
+                self._refresh_auth()
 
     def _refresh_auth(self):
         """

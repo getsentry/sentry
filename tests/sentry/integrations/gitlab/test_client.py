@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from time import time
+from typing import Any
 from unittest import mock
 from urllib.parse import quote
 
@@ -27,6 +29,7 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     ApiRetryError,
 )
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
 from sentry.utils.cache import cache
@@ -59,16 +62,95 @@ class GitLabClientTest(GitLabTestCase):
 
 
 @control_silo_test
+@freeze_time("2025-01-01T05:22:00Z")
 class GitLabGetAccessTokenTest(GitLabClientTest):
+    def store_identity_data(self, **data: Any) -> None:
+        identity = Identity.objects.get(id=self.gitlab_client.identity.id)
+        identity.data.update(data)
+        identity.save()
+
+    def add_refresh_response(self) -> None:
+        responses.add(
+            responses.POST,
+            self.refresh_url,
+            json={**self.refresh_response, "expires_in": 7200},
+        )
+
+    @responses.activate
     def test_returns_token_dict(self) -> None:
+        self.gitlab_client.identity.data["expires"] = int(time()) + 3600
+
         result = self.gitlab_client.get_access_token()
-        expected_token = self.gitlab_client.identity.data["access_token"]
-        assert result == {"access_token": expected_token, "permissions": None}
+
+        assert result == {"access_token": "123456789", "permissions": None}
+        assert len(responses.calls) == 0
 
     def test_returns_none_when_token_empty(self) -> None:
+        self.gitlab_client.identity.data["expires"] = int(time()) + 3600
         self.gitlab_client.identity.data["access_token"] = ""
         result = self.gitlab_client.get_access_token()
         assert result is None
+
+    @responses.activate
+    def test_refreshes_a_token_about_to_expire(self) -> None:
+        self.gitlab_client.identity.data["expires"] = int(time()) + 60
+        self.add_refresh_response()
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {"access_token": "123432sfh29uhs29347", "permissions": None}
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == self.refresh_url
+        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        assert stored["access_token"] == "123432sfh29uhs29347"
+        assert stored["refresh_token"] == "29f43sdfsk22fsj929"
+        assert stored["expires"] == int(time()) + 7200
+
+    @responses.activate
+    def test_refreshes_a_token_with_no_recorded_expiry(self) -> None:
+        assert "expires" not in self.gitlab_client.identity.data
+        self.add_refresh_response()
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {"access_token": "123432sfh29uhs29347", "permissions": None}
+        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        assert stored["expires"] == int(time()) + 7200
+
+    @responses.activate
+    def test_honours_a_longer_minimum_validity(self) -> None:
+        self.gitlab_client.identity.data["expires"] = int(time()) + 600
+        self.add_refresh_response()
+
+        result = self.gitlab_client.get_access_token(
+            token_minimum_validity_time=timedelta(minutes=15)
+        )
+
+        assert result == {"access_token": "123432sfh29uhs29347", "permissions": None}
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_uses_a_token_another_request_refreshed(self) -> None:
+        # This client still holds the expiring token, while another request has
+        # since stored a fresh one. Refreshing again would use a revoked refresh token.
+        self.gitlab_client.identity.data["expires"] = int(time()) + 60
+        self.store_identity_data(access_token="fresh-token", expires=int(time()) + 7200)
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {"access_token": "fresh-token", "permissions": None}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_raises_when_gitlab_refuses_the_refresh(self) -> None:
+        self.gitlab_client.identity.data["expires"] = int(time()) + 60
+        responses.add(responses.POST, self.refresh_url, status=400, json={"error": "invalid_grant"})
+
+        with pytest.raises(IdentityNotValid):
+            self.gitlab_client.get_access_token()
+
+        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        assert stored["access_token"] == "123456789"
 
 
 @control_silo_test

@@ -8,12 +8,14 @@ from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.utils import timezone
+from requests.exceptions import RequestException
 
 from sentry import analytics
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
     AlertRuleUiComponentWebhookSentEvent,
 )
 from sentry.api.paginator import OffsetPaginator
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus, SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
@@ -60,8 +62,14 @@ from sentry.sentry_apps.utils.webhooks import (
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationConfigurationError,
+    IntegrationError,
+)
+from sentry.users.models.identity import Identity
 from sentry.utils import json
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
@@ -658,6 +666,45 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration.refresh_from_db()
 
         return serialize_integration(integration)
+
+    def get_gitlab_access_token(self, *, integration_id: int, organization_id: int) -> str | None:
+        integration = Integration.objects.filter(
+            id=integration_id,
+            provider=IntegrationProviderSlug.GITLAB.value,
+            status=ObjectStatus.ACTIVE,
+            organizationintegration__organization_id=organization_id,
+            organizationintegration__status=ObjectStatus.ACTIVE,
+        ).first()
+        if integration is None:
+            return None
+
+        installation = integration.get_installation(organization_id=organization_id)
+        try:
+            token = installation.get_client().get_access_token()
+        except (
+            # get_client() finds no identity.
+            IntegrationConfigurationError,
+            # The identity went away during a refresh.
+            Identity.DoesNotExist,
+            # GitLab refused the refresh token, failed, or couldn't be reached.
+            IdentityNotValid,
+            ApiError,
+            RequestException,
+            # Another request's refresh took too long.
+            UnableToAcquireLock,
+        ) as e:
+            # Only the class: an error from a refresh can carry GitLab's response.
+            logger.warning(
+                "integration_service.gitlab_access_token.unavailable",
+                extra={
+                    "integration_id": integration_id,
+                    "organization_id": organization_id,
+                    "error": type(e).__name__,
+                },
+            )
+            return None
+
+        return token["access_token"] if token else None
 
     def refresh_github_permissions(
         self, *, integration_id: int, organization_id: int

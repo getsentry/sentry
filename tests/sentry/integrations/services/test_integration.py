@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from time import time
+from typing import Any
 from unittest.mock import MagicMock, patch
+
+import responses
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
@@ -25,6 +29,7 @@ from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metr
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.identity import Identity
 
 
 class BaseIntegrationServiceTest(TestCase):
@@ -664,3 +669,182 @@ class StartGracePeriodForProviderTest(TestCase):
         assert self.org1_github_oi_2.grace_period_end is None
         assert self.org1_github_oi_3.id not in lof_grace_perioded_ois
         assert self.org1_github_oi_3.grace_period_end is None
+
+
+@all_silo_test
+@freeze_time("2025-01-01T05:22:00Z")
+class GetGitlabAccessTokenTest(TestCase):
+    refresh_url = "https://gitlab.example.com/oauth/token"
+
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.org = self.organization
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            identity_provider = self.create_identity_provider(
+                type="gitlab", external_id="gitlab.example.com:1"
+            )
+            self.identity = self.create_identity(
+                user=self.user,
+                identity_provider=identity_provider,
+                external_id="1",
+                data={
+                    "access_token": "token-1",
+                    "refresh_token": "refresh-1",
+                    "expires": int(time()) + 3600,
+                },
+            )
+            self.integration = self.create_integration(
+                organization=self.org,
+                provider="gitlab",
+                external_id="gitlab.example.com:1",
+                metadata={"base_url": "https://gitlab.example.com", "verify_ssl": True},
+                oi_params={"default_auth_id": self.identity.id},
+            )
+
+    def store_identity_data(self, **data: Any) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            identity = Identity.objects.get(id=self.identity.id)
+            identity.data.update(data)
+            identity.save()
+
+    def stored_identity_data(self) -> dict[str, Any]:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return Identity.objects.get(id=self.identity.id).data
+
+    def update_org_integration(self, **fields: Any) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.org.id, integration_id=self.integration.id
+            ).update(**fields)
+
+    @responses.activate
+    def test_returns_the_stored_token(self) -> None:
+        token = integration_service.get_gitlab_access_token(
+            integration_id=self.integration.id, organization_id=self.org.id
+        )
+
+        assert token == "token-1"
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_refreshes_a_token_about_to_expire(self) -> None:
+        self.store_identity_data(expires=int(time()) + 60)
+        responses.add(
+            responses.POST,
+            self.refresh_url,
+            json={
+                "access_token": "token-2",
+                "refresh_token": "refresh-2",
+                "token_type": "bearer",
+                "created_at": int(time()),
+                "expires_in": 7200,
+            },
+        )
+
+        token = integration_service.get_gitlab_access_token(
+            integration_id=self.integration.id, organization_id=self.org.id
+        )
+
+        assert token == "token-2"
+        assert len(responses.calls) == 1
+        stored = self.stored_identity_data()
+        assert stored["access_token"] == "token-2"
+        assert stored["refresh_token"] == "refresh-2"
+        assert stored["expires"] == int(time()) + 7200
+
+    @responses.activate
+    @patch("sentry.integrations.services.integration.impl.logger")
+    def test_none_when_gitlab_refuses_the_refresh(self, mock_logger: MagicMock) -> None:
+        self.store_identity_data(expires=int(time()) + 60)
+        responses.add(responses.POST, self.refresh_url, status=400, json={"error": "invalid_grant"})
+
+        token = integration_service.get_gitlab_access_token(
+            integration_id=self.integration.id, organization_id=self.org.id
+        )
+
+        assert token is None
+        assert self.stored_identity_data()["access_token"] == "token-1"
+        mock_logger.warning.assert_called_once_with(
+            "integration_service.gitlab_access_token.unavailable",
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.org.id,
+                "error": "IdentityNotValid",
+            },
+        )
+
+    @patch("sentry.integrations.services.integration.impl.logger")
+    def test_none_without_an_identity(self, mock_logger: MagicMock) -> None:
+        self.update_org_integration(default_auth_id=None)
+
+        token = integration_service.get_gitlab_access_token(
+            integration_id=self.integration.id, organization_id=self.org.id
+        )
+
+        assert token is None
+        mock_logger.warning.assert_called_once_with(
+            "integration_service.gitlab_access_token.unavailable",
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.org.id,
+                "error": "IntegrationConfigurationError",
+            },
+        )
+
+    def test_none_for_an_unknown_integration(self) -> None:
+        assert (
+            integration_service.get_gitlab_access_token(
+                integration_id=self.integration.id + 1000, organization_id=self.org.id
+            )
+            is None
+        )
+
+    def test_none_for_another_provider(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            github = self.create_integration(
+                organization=self.org,
+                provider="github",
+                external_id="github:1",
+                metadata={"access_token": "github-token"},
+                oi_params={"default_auth_id": self.identity.id},
+            )
+
+        assert (
+            integration_service.get_gitlab_access_token(
+                integration_id=github.id, organization_id=self.org.id
+            )
+            is None
+        )
+
+    def test_none_for_a_disabled_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.filter(id=self.integration.id).update(status=ObjectStatus.DISABLED)
+
+        assert (
+            integration_service.get_gitlab_access_token(
+                integration_id=self.integration.id, organization_id=self.org.id
+            )
+            is None
+        )
+
+    def test_none_for_an_organization_without_the_install(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_org = self.create_organization(owner=self.create_user())
+
+        assert (
+            integration_service.get_gitlab_access_token(
+                integration_id=self.integration.id, organization_id=other_org.id
+            )
+            is None
+        )
+
+    def test_none_for_an_install_being_removed(self) -> None:
+        self.update_org_integration(status=ObjectStatus.PENDING_DELETION)
+
+        assert (
+            integration_service.get_gitlab_access_token(
+                integration_id=self.integration.id, organization_id=self.org.id
+            )
+            is None
+        )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from time import time
 from typing import Any
 
 import orjson
@@ -28,8 +29,13 @@ def get_oauth_data(payload):
     #   "token_type": "bearer",
     #   "refresh_token": "29f43sdfsk22fsj929",
     #   "created_at": 1536798907,
+    #   "expires_in": 7200,
     #   "scope": "api"
     # }
+    if "expires_in" in payload:
+        # Measured on our clock rather than from GitLab's created_at, since it's compared
+        # against our clock.
+        data["expires"] = int(time()) + int(payload["expires_in"])
     if "refresh_token" in payload:
         data["refresh_token"] = payload["refresh_token"]
     if "token_type" in payload:
