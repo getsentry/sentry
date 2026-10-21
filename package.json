@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "rm -f node_modules/.bin/sentry",
-    "typecheck": "node scripts/typecheck.ts",
+    "typecheck": "tsc --build tsconfig.json static/app/serviceWorker/worker/tsconfig.json --builders 2",
     "figma": "pnpm dlx @figma/code-connect@1.4.8 connect",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
@@ -86,7 +86,6 @@
     "less-loader": "^13.0.0",
     "peggy": "5.0.6",
     "react": "19.3.0",
-    "react-router-v8": "npm:react-router@8.4.0",
     "reflux": "0.4.1",
     "rehype-expressive-code": "^0.44.2",
     "remark-frontmatter": "^5.0.0",

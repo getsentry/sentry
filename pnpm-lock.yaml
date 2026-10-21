@@ -284,9 +284,6 @@ importers:
       react:
         specifier: 19.3.0
         version: 19.3.0
-      react-router-v8:
-        specifier: npm:react-router@8.4.0
-        version: react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -578,9 +575,6 @@ importers:
       '@react-types/shared':
         specifier: 3.36.0
         version: 3.36.0(react@19.3.0)
-      '@remix-run/router':
-        specifier: 1.23.4
-        version: 1.23.4
       '@rspack/core':
         specifier: 2.2.8
         version: 2.2.8(@swc/helpers@0.5.23)
@@ -601,7 +595,7 @@ importers:
         version: link:../packages/icons
       '@sentry/react':
         specifier: 11.7.0
-        version: 11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/release-parser':
         specifier: ^1.3.1
         version: 1.3.1
@@ -751,7 +745,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       papaparse:
         specifier: ^5.3.2
         version: 5.3.2
@@ -792,11 +786,8 @@ importers:
         specifier: ^3.2.1
         version: 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-router:
-        specifier: 6.30.6
-        version: 6.30.6(react@19.3.0)
-      react-router-dom:
-        specifier: 6.30.6
-        version: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: 8.4.0
+        version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-select:
         specifier: 4.3.1
         version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
@@ -911,7 +902,7 @@ importers:
         version: link:../packages/icons
       '@sentry/react':
         specifier: 11.7.0
-        version: 11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../packages/scraps
@@ -941,7 +932,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       papaparse:
         specifier: ^5.3.2
         version: 5.3.2
@@ -955,8 +946,8 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
       react-router:
-        specifier: 6.30.6
-        version: 6.30.6(react@19.3.0)
+        specifier: 8.4.0
+        version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       sentry:
         specifier: workspace:@sentry-internal/app@*
         version: link:../app
@@ -1002,7 +993,7 @@ importers:
         version: link:../packages/icons
       '@sentry/react':
         specifier: 11.7.0
-        version: 11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../packages/scraps
@@ -1049,8 +1040,8 @@ importers:
         specifier: 19.3.0
         version: 19.3.0
       react-router:
-        specifier: 6.30.6
-        version: 6.30.6(react@19.3.0)
+        specifier: 8.4.0
+        version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -1370,7 +1361,7 @@ importers:
         version: 11.7.0(@babel/core@7.29.7(supports-color@8.1.1))
       '@sentry/react':
         specifier: 11.7.0
-        version: 11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../../static/packages/scraps
@@ -1460,7 +1451,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       peggy:
         specifier: 5.0.6
         version: 5.0.6
@@ -1477,8 +1468,8 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
       react-router:
-        specifier: 6.30.6
-        version: 6.30.6(react@19.3.0)
+        specifier: 8.4.0
+        version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       sentry:
         specifier: workspace:@sentry-internal/app@*
         version: link:../../static/app
@@ -3777,10 +3768,6 @@ packages:
 
   '@remix-run/route-pattern@0.22.1':
     resolution: {integrity: sha512-czdGJWh09Lapvcqt7Vb09KlrU2PhRJ8xQaI+AItTuD9aDJ5MAgxnS38lnys6Ll+6RJEqPiaUqTwIQhVLwFvv+w==}
-
-  '@remix-run/router@1.23.4':
-    resolution: {integrity: sha512-q7j5geK7xs3UJSdm9/iytUNclBnLmYx1EnSeCFXHPeutdqgIMeFeHtUZgS3EhlKxdBEAu8OwtJCwmLrEzpSs7Q==}
-    engines: {node: '>=14.0.0'}
 
   '@rsbuild/core@2.2.12':
     resolution: {integrity: sha512-SnJ81Jf9ZGms8hUq0FGxrqlUxdHKV76VK9gxrEdtWLbTic+qRt0SIAsk5NdIr1tXFzqzQ6Fqeffs+K1EUuZEHw==}
@@ -8339,19 +8326,6 @@ packages:
       react: '>= 16.3'
       react-dom: '>= 16.3'
 
-  react-router-dom@6.30.6:
-    resolution: {integrity: sha512-0RHKZz7wwffvkU+2MFVT2NnjK44ssLEV+m0CAJaS2Ksmorrwj7WxH00jO0SOCW26/tINUnJHToXblDs33I38YQ==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      react: '>=16.8'
-      react-dom: '>=16.8'
-
-  react-router@6.30.6:
-    resolution: {integrity: sha512-5HfK7k5im7LTOB0EqCQmfvy4C13G92Ssj1VTmouTK3AJvyjKTnFuCV0vcMAD/JS+JC4DvDIBRrlAeJIFjh5VWg==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      react: '>=16.8'
-
   react-router@8.4.0:
     resolution: {integrity: sha512-JtydAkBvU9UTEe5qNC+POhu+ZBNM7rlKY2IegwXc7Idj7xfRG16x5RZrw3mju+XlqBxfvb2ky9P3jUp9WyWC1g==}
     engines: {node: '>=22.22.0'}
@@ -11629,8 +11603,6 @@ snapshots:
 
   '@remix-run/route-pattern@0.22.1': {}
 
-  '@remix-run/router@1.23.4': {}
-
   '@rsbuild/core@2.2.12(core-js@3.45.0)':
     dependencies:
       '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
@@ -12046,15 +12018,6 @@ snapshots:
       '@opentelemetry/api': 1.9.1
       '@sentry/conventions': 0.27.0
       '@sentry/core': 11.7.0
-
-  '@sentry/react@11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)':
-    dependencies:
-      '@sentry/browser': 11.7.0
-      '@sentry/conventions': 0.27.0
-      '@sentry/core': 11.7.0
-      react: 19.3.0
-    optionalDependencies:
-      react-router: 6.30.6(react@19.3.0)
 
   '@sentry/react@11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -16404,13 +16367,12 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nuqs@2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0):
+  nuqs@2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0):
     dependencies:
       '@standard-schema/spec': 1.1.0
       react: 19.3.0
     optionalDependencies:
-      react-router: 6.30.6(react@19.3.0)
-      react-router-dom: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-router: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
   object-assign@4.1.1: {}
 
@@ -17028,18 +16990,6 @@ snapshots:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       react-draggable: 4.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-
-  react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
-    dependencies:
-      '@remix-run/router': 1.23.4
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      react-router: 6.30.6(react@19.3.0)
-
-  react-router@6.30.6(react@19.3.0):
-    dependencies:
-      '@remix-run/router': 1.23.4
-      react: 19.3.0
 
   react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
