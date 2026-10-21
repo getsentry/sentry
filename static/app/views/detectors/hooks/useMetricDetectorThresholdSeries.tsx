@@ -1,10 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 
-import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
@@ -29,21 +26,6 @@ function createThresholdMarkLine(lineColor: string, threshold: number) {
       show: false,
     },
     animation: false,
-  });
-}
-
-function createThresholdMarkArea(areaColor: string, threshold: number, isAbove: boolean) {
-  return MarkArea({
-    silent: true,
-    itemStyle: {
-      color: color(areaColor).alpha(0.1).rgb().string(),
-    },
-    data: [
-      // Highlight the "safe" area - opposite of the alert condition
-      isAbove
-        ? [{yAxis: 'min'}, {yAxis: threshold}]
-        : [{yAxis: threshold}, {yAxis: 'max'}],
-    ],
   });
 }
 
@@ -227,11 +209,6 @@ export function useMetricDetectorThresholdSeries({
             type: 'dashed',
             width: 2,
           },
-          areaStyle: {
-            color: lineColor,
-            opacity: 0.2,
-            origin: isAbove ? 'end' : 'start', // Apply area style in appropriate direction
-          },
           itemStyle: {color: lineColor},
           animation: false,
           animationThreshold: 1,
@@ -262,19 +239,16 @@ export function useMetricDetectorThresholdSeries({
     if (detectionType === 'static') {
       // For static detection, use traditional horizontal threshold lines
       const thresholdSeries = thresholds.map((threshold): LineSeriesOption => {
-        const isAbove = threshold.type === DataConditionType.GREATER;
         const lineColor =
           threshold.priority === DetectorPriorityLevel.HIGH
             ? theme.colors.red400
             : theme.colors.yellow400;
-        const areaColor = lineColor;
         // Thresholds are normalized to correct scale via normalizePercentageThreshold()
         const displayThreshold = threshold.value;
 
         return {
           type: 'line',
           markLine: createThresholdMarkLine(lineColor, displayThreshold),
-          markArea: createThresholdMarkArea(areaColor, displayThreshold, isAbove),
           data: [],
         };
       });
@@ -290,13 +264,6 @@ export function useMetricDetectorThresholdSeries({
         const resolutionSeries: LineSeriesOption = {
           type: 'line',
           markLine: createThresholdMarkLine(theme.colors.green400, displayResolution),
-          markArea: createThresholdMarkArea(
-            theme.colors.green400,
-            displayResolution,
-            [DataConditionType.GREATER, DataConditionType.GREATER_OR_EQUAL].includes(
-              resolution.type
-            )
-          ),
           data: [],
         };
         additional.push(resolutionSeries);
