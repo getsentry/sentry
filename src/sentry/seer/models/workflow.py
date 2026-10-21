@@ -160,7 +160,6 @@ class SeerWorkflowRun(DefaultFieldsModel):
         "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
     )
     # Cron windows and event identities (e.g. issue_created:123) share this key.
-    # Keep the deployed column name so existing schedule keys remain readable.
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     date_completed = models.DateTimeField(null=True)
     extras = models.JSONField(db_default={}, default=dict)
