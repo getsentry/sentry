@@ -256,7 +256,7 @@ export function EnvironmentPageFilter({
       }
       menuFooter={
         hasStagedChanges ? (
-          <Flex gap="md" align="center" justify="end" width="100%">
+          <Flex gap="md" align="center" justify="end">
             <MenuComponents.CancelButton
               disabled={!hasStagedChanges}
               onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
