@@ -7,6 +7,7 @@ type InvestigationSummaryCardProps = {
   summary: string | null;
   summaryDescription: string | null;
   className?: string;
+  id?: string;
 };
 
 /**
@@ -15,6 +16,7 @@ type InvestigationSummaryCardProps = {
  */
 export function InvestigationSummaryCard({
   className,
+  id,
   summary,
   summaryDescription,
 }: InvestigationSummaryCardProps) {
@@ -33,6 +35,7 @@ export function InvestigationSummaryCard({
   return (
     <Stack
       as="section"
+      id={id}
       className={className}
       gap="lg"
       data-test-id="investigation-summary"

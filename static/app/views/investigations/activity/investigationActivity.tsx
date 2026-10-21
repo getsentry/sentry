@@ -38,10 +38,12 @@ import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/
 export function InvestigationActivity({
   investigation,
   composerRef,
+  id,
   ref,
 }: {
   investigation: InvestigationDetail;
   composerRef?: React.RefObject<HTMLDivElement | null>;
+  id?: string;
   ref?: React.Ref<HTMLElement>;
 }) {
   const {data, isPending, refetch} = useInvestigationComments(investigation.id);
@@ -56,7 +58,7 @@ export function InvestigationActivity({
   const hasOlder = parseLinkHeader(data?.headers.Link ?? null).next?.results === true;
 
   return (
-    <Stack ref={ref} as="section" gap="lg" paddingTop="2xl" borderTop="primary">
+    <Stack ref={ref} as="section" id={id} gap="lg" paddingTop="2xl" borderTop="primary">
       <Heading as="h2" size="lg">
         {t('Activity')}
       </Heading>
