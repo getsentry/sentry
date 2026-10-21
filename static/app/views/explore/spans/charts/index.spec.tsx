@@ -186,11 +186,9 @@ describe('ExploreCharts', () => {
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
 
-    it('hides the Layers control when every drop is configured', async () => {
+    it('hides the Layers control when every drop is intentional', async () => {
       const request = renderCharts({
-        droppedEvents: [
-          DroppedEventFixture({outcome: 'client_discard', reason: 'sample_rate'}),
-        ],
+        droppedEvents: [DroppedEventFixture({tags: ['intentional']})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());
@@ -212,11 +210,11 @@ describe('ExploreCharts', () => {
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
 
-      const option = await screen.findByRole('option', {name: 'Dropped Data'});
+      const option = await screen.findByRole('option', {name: 'Dropped Events'});
       expect(option).toHaveAttribute('aria-selected', 'true');
 
       await userEvent.click(option);
-      expect(await screen.findByRole('option', {name: 'Dropped Data'})).toHaveAttribute(
+      expect(await screen.findByRole('option', {name: 'Dropped Events'})).toHaveAttribute(
         'aria-selected',
         'false'
       );

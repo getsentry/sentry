@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import replace
 from typing import Literal
 from uuid import uuid4
 
@@ -23,6 +24,7 @@ from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.iterators import chunked
+from sentry.viewer_context import get_viewer_context, viewer_context_scope
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
 from .validators import ValidationError
@@ -89,7 +91,18 @@ def delete_group_list(
     GroupInbox.objects.filter(project_id=project.id, group_id__in=group_ids).delete()
 
     # Schedule a task per GROUP_CHUNK_SIZE batch of groups
-    schedule_group_deletion_tasks(project.id, group_ids, transaction_id)
+    viewer_context = get_viewer_context()
+    if viewer_context is None:
+        schedule_group_deletion_tasks(project.id, group_ids, transaction_id)
+    else:
+        with viewer_context_scope(
+            replace(
+                viewer_context,
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
+        ):
+            schedule_group_deletion_tasks(project.id, group_ids, transaction_id)
 
 
 def schedule_group_deletion_tasks(

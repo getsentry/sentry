@@ -48,7 +48,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
             run_escalating_forecast()
             group = group_list[0]
-            fetched_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
+            fetched_forecast = EscalatingGroupForecast.fetch(group)
             assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
         assert mock_generate_and_save_missing_forecasts.call_count == 1
 
@@ -71,7 +71,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
             run_escalating_forecast()
             group = group_list[0]
-            fetched_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
+            fetched_forecast = EscalatingGroupForecast.fetch(group)
             assert fetched_forecast is None
         assert mock_generate_and_save_missing_forecasts.call_count == 0
 
@@ -91,9 +91,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
             run_escalating_forecast()
             approximate_date_added = datetime.now(timezone.utc)
-            fetched_forecast = EscalatingGroupForecast.fetch(
-                group_list[0].project.id, group_list[0].id
-            )
+            fetched_forecast = EscalatingGroupForecast.fetch(group_list[0])
             assert fetched_forecast is not None
             assert fetched_forecast.project_id == group_list[0].project.id
             assert fetched_forecast.group_id == group_list[0].id
@@ -125,9 +123,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
             run_escalating_forecast()
 
-            fetched_forecast = EscalatingGroupForecast.fetch(
-                group_list[0].project.id, group_list[0].id
-            )
+            fetched_forecast = EscalatingGroupForecast.fetch(group_list[0])
 
             assert fetched_forecast is None
             self.assertNotIn("issue_forecasts.saved", record_mock.call_args)
@@ -149,9 +145,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             run_escalating_forecast()
             approximate_date_added = datetime.now(timezone.utc)
             for i in range(len(group_list)):
-                fetched_forecast = EscalatingGroupForecast.fetch(
-                    group_list[i].project.id, group_list[i].id
-                )
+                fetched_forecast = EscalatingGroupForecast.fetch(group_list[i])
                 assert fetched_forecast is not None
                 assert fetched_forecast.project_id == group_list[i].project.id
                 assert fetched_forecast.group_id == group_list[i].id
@@ -183,9 +177,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
 
             run_escalating_forecast()
             for i in range(len(group_list)):
-                fetched_forecast = EscalatingGroupForecast.fetch(
-                    group_list[i].project.id, group_list[i].id
-                )
+                fetched_forecast = EscalatingGroupForecast.fetch(group_list[i])
                 assert fetched_forecast is None
 
                 self.assertNotIn("issue_forecasts.saved", record_mock.call_args)
@@ -205,15 +197,11 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             )
 
             run_escalating_forecast()
-            first_fetched_forecast = EscalatingGroupForecast.fetch(
-                group_list[0].project.id, group_list[0].id
-            )
+            first_fetched_forecast = EscalatingGroupForecast.fetch(group_list[0])
 
             # Assert update when this is run twice
             run_escalating_forecast()
-            second_fetched_forecast = EscalatingGroupForecast.fetch(
-                group_list[0].project.id, group_list[0].id
-            )
+            second_fetched_forecast = EscalatingGroupForecast.fetch(group_list[0])
             assert first_fetched_forecast is not None
             assert second_fetched_forecast is not None
             assert first_fetched_forecast.date_added < second_fetched_forecast.date_added
@@ -239,15 +227,11 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             )
 
             run_escalating_forecast()
-            first_fetched_forecast = EscalatingGroupForecast.fetch(
-                group_list[0].project.id, group_list[0].id
-            )
+            first_fetched_forecast = EscalatingGroupForecast.fetch(group_list[0])
 
             # Assert update when this is run twice
             run_escalating_forecast()
-            second_fetched_forecast = EscalatingGroupForecast.fetch(
-                group_list[0].project.id, group_list[0].id
-            )
+            second_fetched_forecast = EscalatingGroupForecast.fetch(group_list[0])
             assert first_fetched_forecast is None
             assert second_fetched_forecast is None
 

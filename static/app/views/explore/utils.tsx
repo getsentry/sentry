@@ -193,7 +193,7 @@ function getExploreUrlFromSavedQueryUrl({
       selection: {
         datetime: {
           end: savedQuery.end ?? null,
-          period: savedQuery.range ?? null,
+          period: savedQuery.statsPeriod ?? null,
           start: savedQuery.start ?? null,
           utc: null,
         },
@@ -219,7 +219,7 @@ function getExploreUrlFromSavedQueryUrl({
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },
@@ -635,7 +635,7 @@ function getConversationsUrlFromSavedQueryUrl({
     environment: savedQuery.environment,
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
-    statsPeriod: savedQuery.range,
+    statsPeriod: savedQuery.statsPeriod,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -664,7 +664,7 @@ function getReplayUrlFromSavedQueryUrl({
     environment: savedQuery.environment,
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
-    statsPeriod: savedQuery.range,
+    statsPeriod: savedQuery.statsPeriod,
     id: savedQuery.id,
     title: savedQuery.name,
   };

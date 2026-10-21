@@ -64,6 +64,8 @@ def test_rpc_http_errors(status: int, message: str, exception: type[Exception]) 
         snuba_rpc.trace_item_details_rpc(TraceItemDetailsRequest(meta=_meta()))
 
     assert type(raised.value) is exception
+    if exception is snuba_rpc.SnubaRPCBadRequest:
+        assert str(raised.value) == message
 
 
 def test_rpc_raises_unavailable_for_unparseable_503() -> None:
