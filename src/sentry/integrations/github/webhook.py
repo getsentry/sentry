@@ -63,8 +63,8 @@ from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
     action_context_scope,
-    resolve_action_actor,
 )
+from sentry.issues.action_log.request import resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -314,13 +314,14 @@ class GitHubWebhook(SCMWebhook, ABC):
                     id__in=[install.organization_id for install in installs]
                 )
             }
-            repos = Repository.objects.filter(
+            repos_qs = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
                 external_id=str(event["repository"]["id"]),
             )
+            repos = list(repos_qs)
 
-            if not repos.exists():
+            if not repos:
                 provider = get_integration_repository_provider(integration)
 
                 config = {
@@ -349,9 +350,11 @@ class GitHubWebhook(SCMWebhook, ABC):
                     )
                     metrics.incr("github.webhook.repository_created")
 
-                repos = repos.all()
+                repos = list(repos_qs.all())
 
-            for repo in repos.exclude(status=ObjectStatus.HIDDEN):
+            for repo in repos:
+                if repo.status == ObjectStatus.HIDDEN:
+                    continue
                 self.update_repo_data(repo, event)
                 with webhook_viewer_context(repo.organization_id):
                     self._handle(

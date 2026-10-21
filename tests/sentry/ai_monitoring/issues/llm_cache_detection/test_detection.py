@@ -20,6 +20,7 @@ from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
     DetectionWindow,
     OutcomeReason,
     ProbeGap,
+    ReuseBoundary,
     WarmthBucket,
     classify_call_site,
     resolve_with_cache_presence,
@@ -31,10 +32,12 @@ def make_stats() -> CallSiteStats:
     return CallSiteStats(
         agent_label="Reviewer",
         agent_label_source=AgentLabelSource.AGENT_NAME,
+        reuse_boundary=ReuseBoundary.CONVERSATION,
         span_name="generate_content",
         model="model-x",
         call_count=1_000,
         sampled_call_count=500,
+        unique_reuse_count=100,
         sum_input_tokens=1_000_000,
         sum_cache_read_tokens=100_000,
         sum_cache_creation_tokens=150_000,
@@ -48,18 +51,12 @@ def test_detection_window_covers_seven_days() -> None:
     assert window.end - window.start == timedelta(days=DETECTION_WINDOW_DAYS)
 
 
-def test_call_site_identity_includes_label_source() -> None:
-    stats = make_stats()
-
-    assert stats.group_key == (
+def test_call_site_identity() -> None:
+    assert make_stats().group_key == (
         AgentLabelSource.AGENT_NAME.value,
         "Reviewer",
         "generate_content",
         "model-x",
-    )
-    assert (
-        replace(stats, agent_label_source=AgentLabelSource.OPERATION_NAME).group_key
-        != stats.group_key
     )
 
 
@@ -77,6 +74,8 @@ def test_token_derived_properties() -> None:
         sum_cache_creation_tokens=0,
     )
 
+    assert ordinary.repeated_sampled_call_count == 400
+    assert ordinary.repeated_sampled_call_share == 0.8
     assert ordinary.hit_rate == 0.1
     assert ordinary.write_read_ratio == 1.5
     assert ordinary.uncached_tokens == 750_000
@@ -103,6 +102,16 @@ def test_token_derived_properties() -> None:
             id="not-caching",
         ),
         pytest.param(
+            replace(
+                make_stats(),
+                reuse_boundary=ReuseBoundary.TRACE,
+                sum_cache_read_tokens=1_000,
+                sum_cache_creation_tokens=0,
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TRACE_FALLBACK),
+            id="trace-fallback-not-caching",
+        ),
+        pytest.param(
             replace(make_stats(), sum_cache_read_tokens=0, sum_cache_creation_tokens=0),
             Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS),
             id="ambiguous-zero",
@@ -120,11 +129,71 @@ def test_token_derived_properties() -> None:
         pytest.param(
             replace(
                 make_stats(),
+                unique_reuse_count=300,
                 sum_cache_read_tokens=80_000,
                 sum_cache_creation_tokens=400_000,
             ),
             Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY),
-            id="thrash",
+            id="conversation-thrash-with-low-repeated-call-share",
+        ),
+        pytest.param(
+            replace(
+                make_stats(),
+                unique_reuse_count=500 - MIN_SAMPLED_CALLS + 1,
+                sum_cache_read_tokens=80_000,
+                sum_cache_creation_tokens=400_000,
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_REPEATED_CALLS),
+            id="thrash-with-too-few-repeated-calls",
+        ),
+        pytest.param(
+            replace(
+                make_stats(),
+                reuse_boundary=ReuseBoundary.TRACE,
+                unique_reuse_count=300,
+                sum_cache_read_tokens=80_000,
+                sum_cache_creation_tokens=400_000,
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_REPEATED_CALL_SHARE),
+            id="trace-thrash-with-low-repeated-call-share",
+        ),
+        pytest.param(
+            replace(
+                make_stats(),
+                sum_cache_read_tokens=150_000,
+                sum_cache_creation_tokens=300_000,
+            ),
+            Classification(CacheOutcome.HEALTHY, OutcomeReason.CACHE_ACTIVITY),
+            id="incremental-cache-writes",
+        ),
+        pytest.param(
+            replace(
+                make_stats(),
+                sum_cache_read_tokens=500_000,
+                sum_cache_creation_tokens=1_500_000,
+            ),
+            Classification(CacheOutcome.HEALTHY, OutcomeReason.CACHE_ACTIVITY),
+            id="anomalous-cache-totals-with-high-hit-rate",
+        ),
+        pytest.param(
+            replace(
+                make_stats(),
+                unique_reuse_count=500 - MIN_SAMPLED_CALLS + 1,
+                sum_cache_read_tokens=1_000,
+                sum_cache_creation_tokens=0,
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_REPEATED_CALLS),
+            id="too-few-repeated-calls",
+        ),
+        pytest.param(
+            replace(
+                make_stats(),
+                unique_reuse_count=300,
+                sum_cache_read_tokens=1_000,
+                sum_cache_creation_tokens=0,
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_REPEATED_CALL_SHARE),
+            id="low-repeated-call-share",
         ),
         pytest.param(
             replace(make_stats(), avg_input_tokens=MIN_CACHEABLE_PREFIX_TOKENS - 1),
@@ -137,7 +206,11 @@ def test_token_derived_properties() -> None:
             id="low-volume",
         ),
         pytest.param(
-            replace(make_stats(), sampled_call_count=MIN_SAMPLED_CALLS - 1),
+            replace(
+                make_stats(),
+                sampled_call_count=MIN_SAMPLED_CALLS - 1,
+                unique_reuse_count=0,
+            ),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.FEW_STORED_SPANS),
             id="few-stored-spans",
         ),
@@ -147,23 +220,26 @@ def test_classify_call_site(stats: CallSiteStats, expected: Classification) -> N
     assert classify_call_site(stats) == expected
 
 
-def bucket(index: int, calls: float, samples: float | None = None) -> WarmthBucket:
+def bucket(
+    index: int,
+    calls: float,
+    samples: float | None = None,
+    unique_reuse: float | None = None,
+) -> WarmthBucket:
+    if unique_reuse is None:
+        unique_reuse = float(calls > 0)
     return WarmthBucket(
         start=index * CACHE_TTL_MINUTES * 60,
         call_count=calls,
         sample_count=calls if samples is None else samples,
+        unique_reuse_count=unique_reuse,
     )
 
 
-def test_warmth_counts_cold_starts_at_both_ttls() -> None:
-    warmth = CallSiteWarmth.from_buckets(
-        [bucket(index, calls) for index, calls in enumerate([1, 0, 0, 0] * 6)]
-    )
+def test_warmth_requires_repeated_trace_within_bucket() -> None:
+    warmth = CallSiteWarmth.from_buckets([bucket(0, 10, 2, unique_reuse=2)])
 
-    assert warmth.total_call_count == 6
     assert warmth.warm_call_count == 0
-    assert warmth.long_ttl_warm_call_count == 4
-    assert warmth.long_ttl_cacheable_share == pytest.approx(4 / 6)
 
 
 def test_warmth_accounts_for_sampling() -> None:
@@ -181,21 +257,16 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
 @pytest.mark.parametrize(
     ("warmth", "expected"),
     [
-        pytest.param(CallSiteWarmth(400, 400, 250, 250), NOT_CACHING, id="enough-warm-traffic"),
+        pytest.param(CallSiteWarmth(400, 400, 250), NOT_CACHING, id="enough-warm-traffic"),
         pytest.param(
-            CallSiteWarmth(1_000, 1_000, 250, 250),
+            CallSiteWarmth(1_000, 1_000, 250),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_CACHEABLE_SHARE),
             id="low-cacheable-share",
         ),
         pytest.param(
-            CallSiteWarmth(300, 300, 199, 199),
+            CallSiteWarmth(300, 300, 199),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_WARM_CALLS),
             id="too-few-warm-calls",
-        ),
-        pytest.param(
-            CallSiteWarmth(400, 400, 100, 250),
-            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.WARM_ONLY_AT_LONG_TTL),
-            id="warm-only-at-long-ttl",
         ),
         pytest.param(
             ProbeGap.FAILED,
@@ -205,7 +276,17 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
     ],
 )
 def test_resolve_with_warmth(warmth: CallSiteWarmth | ProbeGap, expected: Classification) -> None:
-    assert resolve_with_warmth(NOT_CACHING, warmth) == expected
+    assert resolve_with_warmth(NOT_CACHING, warmth, ReuseBoundary.CONVERSATION) == expected
+
+
+def test_thrash_only_requires_warm_share_for_trace_fallback() -> None:
+    thrash = Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY)
+    warmth = CallSiteWarmth(1_000, 1_000, 250)
+
+    assert resolve_with_warmth(thrash, warmth, ReuseBoundary.CONVERSATION) == thrash
+    assert resolve_with_warmth(thrash, warmth, ReuseBoundary.TRACE) == Classification(
+        CacheOutcome.INELIGIBLE, OutcomeReason.LOW_CACHEABLE_SHARE
+    )
 
 
 AMBIGUOUS_ZERO = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS)

@@ -23,8 +23,7 @@ import {
   type OnDemandBudgets,
   type Subscription,
 } from 'getsentry/types';
-import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
+import {displayBudgetName, displayPrice, hasBillingAccess} from 'getsentry/utils/billing';
 import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/pricingModal';
 import {
   getTotalBudget,

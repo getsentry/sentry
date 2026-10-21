@@ -57,7 +57,7 @@ import {
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 

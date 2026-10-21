@@ -20,12 +20,10 @@ import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {ExtraDescription} from './extraDescription';
-
-export const BULK_LIMIT = 1000;
-export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
 
 export enum ConfirmAction {
   RESOLVE = 'resolve',
@@ -181,7 +179,6 @@ export const COLUMN_BREAKPOINTS = {
   EVENTS: 'lg',
   USERS: '2xl',
   PRIORITY: '4xl',
-  PROGRESS: '2xs',
   ASSIGNEE: 'sm',
 } as const satisfies Record<string, ResponsiveKey | undefined>;
 

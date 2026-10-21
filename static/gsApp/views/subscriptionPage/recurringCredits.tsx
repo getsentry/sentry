@@ -10,9 +10,8 @@ import type {DataCategory} from 'sentry/types/core';
 
 import {useRecurringCredits} from 'getsentry/hooks/useRecurringCredits';
 import type {CreditType, Plan, RecurringCredit} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {displayPrice, formatReservedWithUnits} from 'getsentry/utils/billing';
 import {getCreditDataCategory, getPlanCategoryName} from 'getsentry/utils/dataCategory';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
 import {AlertStripedTable, PanelBodyWithTable} from './styles';
 

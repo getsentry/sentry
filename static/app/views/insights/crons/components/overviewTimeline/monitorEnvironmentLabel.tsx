@@ -87,7 +87,6 @@ const EnvWithStatus = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${p => p.theme.space.xs};
   align-items: center;
-  opacity: var(--disabled-opacity);
 `;
 
 const MonitorEnvLabel = styled('div')`
@@ -95,6 +94,4 @@ const MonitorEnvLabel = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   min-width: 0;
-
-  opacity: var(--disabled-opacity);
 `;

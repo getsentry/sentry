@@ -5,7 +5,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
@@ -42,13 +42,15 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
-  METRIC_DETECTOR_FORM_FIELDS,
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
-  useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {MetricIssuePreview} from 'sentry/views/detectors/components/forms/metric/metricIssuePreview';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
@@ -439,7 +441,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
     <Container>
       <FormSection step={step} title={t('Customize Metric')}>
         <Stack gap="xs">
-          <DatasetRow>
+          <Grid gap="xl" maxWidth="425px" columns="1fr 1fr">
             <DatasetField
               placeholder={t('Dataset')}
               flexibleControlStateSize
@@ -494,7 +496,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
                 <IntervalPicker />
               </DisabledSection>
             </Tooltip>
-          </DatasetRow>
+          </Grid>
         </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
@@ -725,13 +727,6 @@ function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProp
 
 const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
-`;
-
-const DatasetRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  max-width: 425px;
 `;
 
 const FilterRow = styled('div')<{disabled: boolean}>`

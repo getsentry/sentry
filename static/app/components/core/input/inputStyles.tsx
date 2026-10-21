@@ -1,6 +1,6 @@
 import {type Theme} from '@emotion/react';
 
-import {type FormSize, type StrictCSSObject} from 'sentry/utils/theme';
+import {type FormSize, type StrictCSSObject} from '@sentry/scraps/theme';
 
 export interface InputStylesProps {
   monospace?: boolean;

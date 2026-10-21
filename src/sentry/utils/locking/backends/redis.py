@@ -7,6 +7,8 @@ import rb
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
+from sentry import options
+from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
 from sentry.utils.locking.backends import LockBackend
 
@@ -78,6 +80,22 @@ class RedisBlasterLockBackend(BaseRedisLockBackend):
         return self.cluster.get_local_client_for_key(key)
 
 
+def _get_redis_cluster_for_locks(cluster_name: str) -> RedisCluster[str] | StrictRedis[str]:
+    try:
+        return redis.redis_clusters.get(cluster_name)
+    except KeyError as e:
+        if cluster_name not in options.get("redis.clusters"):
+            raise
+        # This is here specifically to inform self-hosted folks about what's going
+        # on when they have 2+ hosts but no is_redis_cluster. Without the nicer error
+        # the process fails with a KeyError that isn't helpful
+        raise InvalidConfiguration(
+            f"Redis cluster {cluster_name!r} cannot be used by RedisClusterLockBackend. "
+            "The lock backend needs a cluster with exactly one host, or a cluster "
+            "with is_redis_cluster set to True."
+        ) from e
+
+
 class RedisClusterLockBackend(BaseRedisLockBackend):
     cluster: RedisCluster[str] | StrictRedis[str]
 
@@ -88,7 +106,7 @@ class RedisClusterLockBackend(BaseRedisLockBackend):
         uuid: str | None = None,
     ):
         if isinstance(cluster, str):
-            cluster = redis.redis_clusters.get(cluster)
+            cluster = _get_redis_cluster_for_locks(cluster)
         super().__init__(cluster, prefix=prefix, uuid=uuid)
 
     def get_client(

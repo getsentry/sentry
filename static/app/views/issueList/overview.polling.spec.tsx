@@ -17,8 +17,8 @@ jest.mock('sentry/views/issueList/filters', () => ({
 }));
 jest.mock('sentry/components/stream/group', () => ({
   __esModule: true,
-  StreamGroup: jest.fn(({group}: {group: Group}) => <div data-test-id={group.id} />),
-  LoadingStreamGroup: jest.fn(() => <div data-test-id="loading-group" />),
+  StreamGroup: jest.fn(({group}: {group: Group}) => <tr data-test-id={group.id} />),
+  LoadingStreamGroup: jest.fn(() => <tr data-test-id="loading-group" />),
 }));
 
 jest.mock('js-cookie', () => ({

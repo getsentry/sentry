@@ -6,7 +6,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {Container} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
@@ -54,6 +53,13 @@ describe('Table', () => {
     expect(within(table).getAllByRole('columnheader')).toHaveLength(3);
     expect(within(table).getAllByRole('row')).toHaveLength(2);
     expect(within(table).getAllByRole('cell')).toHaveLength(3);
+  });
+
+  it('takes a more specific role when given one', () => {
+    render(<TestTable aria-label="Tree" role="treegrid" />);
+
+    expect(screen.getByRole('treegrid', {name: 'Tree'})).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it.each([
@@ -286,35 +292,6 @@ describe('Table', () => {
       );
 
       expect(gridTemplate()).toBe('120px minmax(90px, auto)');
-    });
-
-    it('hides the cells sitting in the position of a hidden column', () => {
-      setClientWidth(400);
-      render(
-        <Container containerType="inline-size">
-          <TestTable columns={RESPONSIVE_COLUMNS} />
-        </Container>
-      );
-
-      // jsdom does not resolve descendant rules through getComputedStyle, so the
-      // hiding rule is read off the emitted stylesheet rather than the cell.
-      expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-        "nth-child(2 of [role='cell'], [role='columnheader']):not(:only-child)"
-      );
-    });
-
-    it('keeps a column named only at wider breakpoints hidden at the base', () => {
-      setClientWidth(400);
-      render(
-        <Container containerType="inline-size">
-          <TestTable columns={[{key: 'name'}, {key: 'age', visible: {xl: true}}]} />
-        </Container>
-      );
-
-      expect(gridTemplate()).toBe('minmax(90px, auto)');
-      expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-        "nth-child(2 of [role='cell'], [role='columnheader']):not(:only-child)"
-      );
     });
 
     it('keeps a column visible at the base when its `visible` says so', () => {

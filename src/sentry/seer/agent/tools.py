@@ -14,7 +14,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import eventstore, features
-from sentry.api import client
+from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
@@ -73,6 +73,14 @@ from sentry.seer.agent.utils import (
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.autofix.utils import get_repo_url_path
+from sentry.seer.public_caller import (
+    caller_can_access_project,
+    caller_can_access_project_id,
+    caller_can_access_team,
+    public_caller_restricted,
+    restrict_projects,
+    scope_projects,
+)
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
@@ -317,6 +325,11 @@ def execute_table_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteQuerySuccessResponse(data=[])
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     # Note if both project_ids and project_slugs are provided, the API request will 400.
@@ -436,6 +449,11 @@ def execute_timeseries_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteTimeseriesQuerySuccessResponse(__root__={})
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     group_by = group_by or []
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
@@ -551,6 +569,12 @@ def execute_trace_table_query(
             extra={"org_id": organization_id},
         )
         return None
+
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteQuerySuccessResponse(data=[])
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
 
@@ -629,7 +653,11 @@ def get_trace_waterfall(
         )
         return None
 
-    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    projects = restrict_projects(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    )
+    if public_caller_restricted() and not projects:
+        return None
 
     if len(trace_id) < 32:
         full_trace_id = _get_full_trace_id(trace_id, organization, projects)
@@ -721,7 +749,9 @@ def rpc_get_profile_flamegraph(
         return ProfileFlamegraphErrorResponse(error="Organization not found")
 
     # Get all projects for the organization
-    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    projects = restrict_projects(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    )
 
     if not projects:
         logger.warning(
@@ -1831,6 +1861,8 @@ def get_team_members(
         )
     except Team.DoesNotExist:
         return None
+    if not caller_can_access_team(team):
+        return None
 
     # ``User`` lives in the control silo, so resolve the team's member ids (a region
     # query) through the user service to get emails/display names from the region the RPC
@@ -2170,13 +2202,16 @@ def get_replay_metadata(
     if not features.has("organizations:session-replay", organization):
         return None
 
-    p_ids_and_slugs = list(
-        Project.objects.filter(
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", "slug")
-    )
+    p_ids_and_slugs = [
+        (project.id, project.slug)
+        for project in restrict_projects(
+            Project.objects.filter(
+                organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            )
+        )
+    ]
 
     if not p_ids_and_slugs:
         logger.warning(
@@ -2401,13 +2436,15 @@ def get_log_attributes_for_trace(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    projects = list(
+    projects = restrict_projects(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
             **({"slug__in": project_slugs} if bool(project_slugs) else {}),
         )
     )
+    if public_caller_restricted() and not projects:
+        return TraceItemEventsResponse(data=[])
 
     snuba_params = SnubaParams(
         start=start_dt,
@@ -2478,13 +2515,15 @@ def get_metric_attributes_for_trace(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    projects = list(
+    projects = restrict_projects(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
             **({"slug__in": project_slugs} if project_slugs else {}),
         )
     )
+    if public_caller_restricted() and not projects:
+        return TraceItemEventsResponse(data=[])
 
     snuba_params = SnubaParams(
         start=start_dt,
@@ -2551,6 +2590,9 @@ def get_baseline_tag_distribution(
         Dict with "baseline_tag_distribution" containing list of
         {"tag_key": str, "tag_value": str, "count": int} entries.
     """
+
+    if not caller_can_access_project_id(organization_id, project_id):
+        return BaselineTagDistributionResponse(baseline_tag_distribution=[])
 
     group = Group.objects.get(id=group_id, project_id=project_id)
     organization = group.organization
@@ -2660,7 +2702,7 @@ def get_dsn(
         status=ObjectStatus.ACTIVE,
         slug=project_slug,
     ).first()
-    if project is None:
+    if project is None or not caller_can_access_project(project):
         return None
 
     # Mirror the filters applied by OrganizationProjectKeysEndpoint for non-superuser
