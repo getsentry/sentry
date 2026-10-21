@@ -308,20 +308,19 @@ def error_type_rule_condition(values: list[str]) -> dict:
     }
 
 
+RELEASE_FIELDS = [
+    "event.release",
+    "log.attributes.sentry.release.value",
+    "trace_metric.attributes.sentry.release.value",
+    "span.attributes.sentry.release.value",
+]
+
+
 def release_rule_condition(values: list[str]) -> dict:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
         "op": "or",
-        "inner": [
-            {"op": "glob", "name": "event.release", "value": values},
-            {"op": "glob", "name": "log.attributes.sentry.release.value", "value": values},
-            {
-                "op": "glob",
-                "name": "trace_metric.attributes.sentry.release.value",
-                "value": values,
-            },
-            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": values},
-        ],
+        "inner": [{"op": "glob", "name": name, "value": values} for name in RELEASE_FIELDS],
     }
 
 
@@ -445,8 +444,8 @@ def release_rule_condition(values: list[str]) -> dict:
         pytest.param(
             "all",
             [
-                {"type": "release", "value": [">2*"]},
-                {"type": "release", "value": ["<4*"]},
+                {"type": "release", "operator": "glob", "value": [">2*"]},
+                {"type": "release", "operator": "glob", "value": ["<4*"]},
             ],
             {
                 "op": "and",
@@ -459,9 +458,44 @@ def release_rule_condition(values: list[str]) -> dict:
         ),
         pytest.param(
             "error",
+            [{"type": "release", "operator": "glob", "value": ["1.*", "2.?"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*", "2.?"]},
+            id="glob_passes_the_values_through",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            id="glob_on_ip_address_is_the_cidr_match",
+        ),
+        pytest.param(
+            "error",
+            [
+                {"type": "error_message", "operator": "glob", "value": ["*timeout*"]},
+                {"type": "release", "operator": "glob", "value": ["2.*"]},
+                {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    error_message_rule_condition(["*timeout*"]),
+                    {"op": "glob", "name": "event.release", "value": ["2.*"]},
+                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                ],
+            },
+            id="operators_combine_with_and",
+        ),
+        pytest.param(
+            "error",
             [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
             id="ip_address_reads_the_envelope_client_ip",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "value": ["1.*", "[23].?"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*", "[23].?"]},
+            id="a_condition_without_an_operator_holds_raw_globs",
         ),
         pytest.param(
             "error",
@@ -520,8 +554,12 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
         default_project,
         data_type="error",
         conditions=[
-            {"type": "error_message", "value": ["*ConnectionError*", "Timeout*"]},
-            {"type": "release", "value": ["1.*"]},
+            {
+                "type": "error_message",
+                "operator": "glob",
+                "value": ["*ConnectionError*", "*Timeout*"],
+            },
+            {"type": "release", "operator": "glob", "value": ["1.*"]},
         ],
     )
 
@@ -553,13 +591,13 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
                                                 "name": "ty",
                                                 "value": ["*ConnectionError*"],
                                             },
-                                            {"op": "glob", "name": "ty", "value": ["Timeout*"]},
+                                            {"op": "glob", "name": "ty", "value": ["*Timeout*"]},
                                             {
                                                 "op": "glob",
                                                 "name": "value",
                                                 "value": ["*ConnectionError*"],
                                             },
-                                            {"op": "glob", "name": "value", "value": ["Timeout*"]},
+                                            {"op": "glob", "name": "value", "value": ["*Timeout*"]},
                                         ],
                                     },
                                 },
@@ -571,7 +609,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
                                 {
                                     "op": "glob",
                                     "name": "event.logentry.formatted",
-                                    "value": ["Timeout*"],
+                                    "value": ["*Timeout*"],
                                 },
                             ],
                         },
@@ -639,6 +677,11 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
             {"type": "error_type", "value": ["TypeError"]},
             {"type": "log_message", "value": ["*DEBUG*"]},
         ],
+    )
+    # An operator this revision does not know, e.g. one a newer deploy wrote.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "operator": "matches", "value": ["1.*"]}],
     )
     factories.create_project_custom_inbound_filter(default_project, conditions=[])
     valid_filter = factories.create_project_custom_inbound_filter(

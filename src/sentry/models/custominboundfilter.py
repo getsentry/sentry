@@ -18,6 +18,21 @@ class ConditionType(StrEnum):
     GEO_COUNTRY_CODE = "geo_country_code"
 
 
+class ConditionOperator(StrEnum):
+    """
+    How a condition compares the field to its values. ``glob`` matches the field against
+    each value as a glob pattern.
+
+    A stored condition without an operator holds raw glob patterns, as with ``glob``: a
+    row written before operators existed, or the row of a legacy list.
+    """
+
+    GLOB = "glob"
+
+
+TEXT_OPERATORS = frozenset({ConditionOperator.GLOB})
+
+
 class DataType(StrEnum):
     ALL = "all"
     ERROR = "error"
