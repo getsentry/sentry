@@ -61,6 +61,40 @@ describe('OrganizationDropdown', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toBeInTheDocument();
   });
 
+  it('does not link to project creation when creation is disabled', async () => {
+    const {router} = render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({
+        ...organization,
+        allowMemberProjectCreation: false,
+        features: ['settings-v3'],
+      }),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    const createProject = screen.getByRole('menuitemradio', {name: 'Create Project'});
+
+    expect(createProject).toHaveAttribute('aria-disabled', 'true');
+    expect(createProject).not.toHaveAttribute('href');
+    await userEvent.click(createProject);
+    expect(router.location.pathname).not.toContain('/projects/new/');
+  });
+
+  it('links to project creation when creation is allowed', async () => {
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({
+        ...organization,
+        access: [...organization.access, 'project:admin'],
+        features: ['settings-v3'],
+      }),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Create Project'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/insights/projects/new/`
+    );
+  });
+
   it('keeps the settings v3 menu width with a long project slug', async () => {
     const slug = 'a-very-long-project-slug-that-should-not-widen-the-menu';
     ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug, isBookmarked: true})]);

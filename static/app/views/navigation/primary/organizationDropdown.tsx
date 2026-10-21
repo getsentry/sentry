@@ -192,7 +192,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 key: 'create-project',
                 label: t('Create Project'),
                 leadingItems: <IconAdd />,
-                to: makeProjectsPathname({path: '/new/', organization}),
+                to: canCreateProject
+                  ? makeProjectsPathname({path: '/new/', organization})
+                  : undefined,
                 disabled: !canCreateProject,
               },
             ],
