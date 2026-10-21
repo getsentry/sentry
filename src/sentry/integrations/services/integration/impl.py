@@ -695,3 +695,33 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         integration.save(update_fields=["metadata"])
         return serialize_integration(integration)
+
+    def get_cursor_origin_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> str | None:
+        integration = Integration.objects.filter(
+            id=integration_id,
+            provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+            status=ObjectStatus.ACTIVE,
+            organizationintegration__organization_id=organization_id,
+            organizationintegration__status=ObjectStatus.ACTIVE,
+        ).first()
+        if integration is None:
+            return None
+
+        installation = integration.get_installation(organization_id=organization_id)
+        try:
+            token = installation.get_client().get_access_token()
+        except ApiError as e:
+            # Only the class: the error can carry Origin's response.
+            logger.warning(
+                "integration_service.cursor_origin_access_token.unavailable",
+                extra={
+                    "integration_id": integration_id,
+                    "organization_id": organization_id,
+                    "error": type(e).__name__,
+                },
+            )
+            return None
+
+        return token["access_token"] if token else None

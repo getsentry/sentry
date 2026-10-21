@@ -350,5 +350,20 @@ class IntegrationService(RpcService):
     ) -> str | None:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_cursor_origin_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> str | None:
+        """Return a Cursor Origin installation token, minting a new one if it's about to expire.
+
+        For callers outside control that hand the token on, such as the git endpoint. Origin's
+        tokens last at most 15 minutes; this returns one with at least three left.
+
+        Org-scoped like ``refresh_github_access_token``. None when the integration is missing,
+        not Cursor Origin or not active, when the organization's install is missing or not
+        active, or when Origin couldn't mint a token.
+        """
+
 
 integration_service = IntegrationService.create_delegation()
