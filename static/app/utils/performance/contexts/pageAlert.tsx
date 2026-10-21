@@ -3,8 +3,8 @@ import {createContext, Fragment, useCallback, useContext, useState} from 'react'
 import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
+import type {AlertVariant} from '@sentry/scraps/theme';
 
-import type {AlertVariant} from 'sentry/utils/theme';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 enum DismissId {

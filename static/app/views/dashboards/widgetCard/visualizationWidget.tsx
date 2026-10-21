@@ -10,11 +10,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -31,11 +32,11 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {scaleThresholdsToInterval} from 'sentry/views/dashboards/widgetCard/scaleThresholdsToInterval';
-import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {
   LegendSelection,
@@ -44,11 +45,13 @@ import type {
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -74,7 +77,7 @@ interface VisualizationWidgetProps {
   onDataFetched?: (results: {
     pageLinks?: string;
     tableResults?: any[];
-    timeseriesResults?: Series[];
+    timeseriesResults?: WidgetTimeSeries[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     timeseriesResultsUnits?: Record<string, DataUnit>;
     totalIssuesCount?: string;
@@ -137,8 +140,6 @@ function VisualizationWidgetComponent({
       {({
         timeseriesResults,
         timeseriesInterval,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
         tableResults,
         errorMessage,
         loading,
@@ -146,6 +147,7 @@ function VisualizationWidgetComponent({
         dataScanned,
         isSampled,
         sampleCount,
+        ingestion,
       }) => {
         if (errorMessage && onWidgetError) {
           onWidgetError(widget, errorMessage);
@@ -155,8 +157,6 @@ function VisualizationWidgetComponent({
           <VisualizationWidgetContent
             widget={widget}
             timeseriesResults={timeseriesResults ?? []}
-            timeseriesResultsTypes={timeseriesResultsTypes}
-            timeseriesResultsUnits={timeseriesResultsUnits}
             tableResults={tableResults}
             errorMessage={errorMessage}
             loading={loading}
@@ -168,6 +168,7 @@ function VisualizationWidgetComponent({
             dataScanned={dataScanned}
             isSampled={isSampled}
             sampleCount={sampleCount}
+            ingestion={ingestion}
             onZoom={onZoom}
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
@@ -202,12 +203,13 @@ interface VisualizationWidgetContentProps {
   loading: boolean;
   releases: Array<{timestamp: string; version: string}>;
   showReleaseAs: LoadableChartWidgetProps['showReleaseAs'];
-  timeseriesResults: Series[];
+  timeseriesResults: WidgetTimeSeries[];
   widget: TWidget;
   confidence?: Confidence;
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
+  ingestion?: IngestionMeta;
   isFullScreen?: boolean;
   isSampled?: boolean | null;
   legendSelection?: LegendSelection;
@@ -216,16 +218,12 @@ interface VisualizationWidgetContentProps {
   sampleCount?: number;
   showConfidenceWarning?: boolean;
   tableResults?: TableDataWithTitle[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
   widgetInterval?: string;
 }
 
 function VisualizationWidgetContent({
   widget,
   timeseriesResults,
-  timeseriesResultsTypes,
-  timeseriesResultsUnits,
   tableResults,
   errorMessage,
   loading,
@@ -237,6 +235,7 @@ function VisualizationWidgetContent({
   dataScanned,
   isSampled,
   sampleCount,
+  ingestion,
   onZoom,
   legendSelection,
   onLegendSelectionChange,
@@ -252,19 +251,13 @@ function VisualizationWidgetContent({
   const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
 
   const timeSeriesWithPlottable = timeseriesResults
-    .map(series => {
-      const transformed = transformWidgetSeriesToTimeSeries(
-        series,
-        widget,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits
-      );
-
-      if (!transformed) {
+    .map(({timeSeries, seriesName, queryIndex}) => {
+      const widgetQuery = widget.queries[queryIndex];
+      if (!widgetQuery) {
         return null;
       }
 
-      const {timeSeries, label, seriesName, widgetQuery} = transformed;
+      const label = formatTimeSeriesLabelForWidgetQuery(timeSeries, widget, widgetQuery);
       const plottable = createPlottableFromTimeSeriesAndWidget(
         timeSeries,
         widget,
@@ -277,7 +270,6 @@ function VisualizationWidgetContent({
       }
 
       // Match the timeseries to its corresponding table result by query index
-      const queryIndex = widget.queries.indexOf(widgetQuery);
       const tableData = tableResults?.[queryIndex]?.data;
 
       return [timeSeries, plottable, tableData] satisfies [
@@ -287,6 +279,11 @@ function VisualizationWidgetContent({
       ];
     })
     .filter(defined);
+
+  const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
+    timeSeriesWithPlottable.map(([timeSeries]) => timeSeries),
+    ingestion?.completeThrough
+  );
 
   const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
     ([_, plottable]) => plottable.needsColor
@@ -465,7 +462,7 @@ function VisualizationWidgetContent({
       isSampled={isSampled}
       loading={loading}
       sampleCount={sampleCount}
-      series={timeseriesResults}
+      series={timeseriesResults.map(({timeSeries}) => timeSeries)}
       timeseriesResults={timeseriesResults}
       widget={widget}
       yAxis={widget.queries[0]?.aggregates[0] ?? ''}
@@ -485,6 +482,7 @@ function VisualizationWidgetContent({
             onZoom={onZoom}
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
+            renderTooltipSeriesDetails={renderTooltipSeriesDetails}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -508,6 +506,7 @@ function VisualizationWidgetContent({
           onZoom={onZoom}
           legendSelection={legendSelection}
           onLegendSelectionChange={onLegendSelectionChange}
+          renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>

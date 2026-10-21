@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
@@ -71,6 +72,7 @@ class BitbucketServerRepositoryProvider(
             return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
+        webhook_secret = secrets.token_hex(32)
         try:
             resp = client.create_hook(
                 repo.config["project"],
@@ -88,6 +90,7 @@ class BitbucketServerRepositoryProvider(
                     ),
                     "active": True,
                     "events": ["repo:refs_changed", "pr:merged"],
+                    "configuration": {"secret": webhook_secret},
                 },
             )
         except Exception as e:
@@ -96,11 +99,12 @@ class BitbucketServerRepositoryProvider(
         if repository_service.update_repository_config(
             organization_id=organization.id,
             id=repo.id,
-            config_updates={"webhook_id": webhook_id},
+            config_updates={"webhook_id": webhook_id, "webhook_secret": webhook_secret},
             expected_integration_id=repo.integration_id,
             expected_config={"webhook_id": None},
         ):
             repo.config["webhook_id"] = webhook_id
+            repo.config["webhook_secret"] = webhook_secret
             return
         # The repository changed while we created the hook, so nothing would ever
         # reference or delete it.
@@ -124,13 +128,14 @@ class BitbucketServerRepositoryProvider(
                 )
 
     def on_delete_repository(self, repo):
+        webhook_id = repo.config.get("webhook_id")
+        if not webhook_id:
+            return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
         try:
-            client.delete_hook(
-                repo.config["project"], repo.config["repo"], repo.config["webhook_id"]
-            )
+            client.delete_hook(repo.config["project"], repo.config["repo"], webhook_id)
         except ApiError as exc:
             if exc.code == 404:
                 return

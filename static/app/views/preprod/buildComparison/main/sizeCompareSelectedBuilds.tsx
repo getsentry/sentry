@@ -91,8 +91,8 @@ function BuildButton({
         })
       }
     >
-      <ContentWrapper>
-        <ClippedContent>
+      <Container width="100%" position="relative">
+        <Container overflow="hidden">
           <Stack gap="xs">
             <Flex align="center" gap="sm">
               {icon}
@@ -126,7 +126,7 @@ function BuildButton({
               </Text>
             </Flex>
           </Stack>
-        </ClippedContent>
+        </Container>
         {onRemove && (
           <CloseButtonWrapper>
             <Button
@@ -142,7 +142,7 @@ function BuildButton({
             />
           </CloseButtonWrapper>
         )}
-      </ContentWrapper>
+      </Container>
     </StyledLinkButton>
   );
 }
@@ -156,15 +156,6 @@ const StyledLinkButton = styled(LinkButton)`
   > span:last-child {
     overflow: visible;
   }
-`;
-
-const ContentWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-`;
-
-const ClippedContent = styled('div')`
-  overflow: hidden;
 `;
 
 const CloseButtonWrapper = styled('div')`

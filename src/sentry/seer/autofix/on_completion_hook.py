@@ -108,6 +108,17 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
     )
 
 
+def get_run_stopping_point(
+    organization: Organization, run_id: int, state: SeerRunState
+) -> str | None:
+    """The stopping point the pipeline will continue toward: from the run's metadata,
+    falling back to the Sentry-side run mirror for runs Seer started without it (the
+    autofix feature)."""
+    return (state.metadata or {}).get("stopping_point") or _stopping_point_from_run(
+        organization, run_id
+    )
+
+
 class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
     Hook called when an agent-based autofix run completes.
@@ -527,9 +538,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         # Get pipeline metadata from state, falling back to the Sentry-side run
         # mirror for runs Seer started without it (the autofix feature).
-        raw_stopping_point = (state.metadata or {}).get(
-            "stopping_point"
-        ) or _stopping_point_from_run(organization, run_id)
+        raw_stopping_point = get_run_stopping_point(organization, run_id, state)
         if raw_stopping_point is None:
             stopping_point = None
             reached_stopping_point = True

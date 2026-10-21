@@ -41,7 +41,7 @@ import {
   type RenderCellOptions,
 } from 'sentry/views/discover/table/useEventViewTable';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -421,6 +421,7 @@ export function EventsTable({
                   return renderError(queryError);
                 }
 
+                // oxlint-disable-next-line react/todo
                 tableData ??= {data: []};
                 const pageEventsCount = tableData?.data?.length ?? 0;
                 const parsedPageLinks = parseLinkHeader(pageLinks);

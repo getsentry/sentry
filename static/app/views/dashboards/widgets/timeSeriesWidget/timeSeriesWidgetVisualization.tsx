@@ -98,6 +98,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
 
   /**
+   * Disables drag-to-zoom, so zooming never updates the URL or page filters.
+   */
+  disableZoom?: boolean;
+
+  /**
    * Dropped-data annotations rendered as a severity band between the plot and
    * the x-axis line. The band is hidden when `visible` is false or no bucket has
    * dropped data. `onClick` is called with the clicked bucket.
@@ -226,6 +231,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     onChartReady: onChartReadyZoom,
     ...chartZoomProps
   } = useChartZoom({
+    disabled: props.disableZoom,
     saveOnZoom: true,
   });
 

@@ -21,6 +21,7 @@ interface BrandPageLayoutProps {
  * Full-page layout for focused workflows paired with prominent brand artwork.
  */
 function BrandPageLayoutRoot({
+  // oxlint-disable-next-line react/todo
   artwork = (
     <BrandLayoutArt
       intrinsicHeight={ARTWORK_HEIGHT}
@@ -30,6 +31,7 @@ function BrandPageLayoutRoot({
       <AnimatedIllustration />
     </BrandLayoutArt>
   ),
+  // oxlint-disable-next-line react/todo
   background = <BrandPageBackground />,
   children,
   isArtworkActive = true,

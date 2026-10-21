@@ -40,6 +40,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 class InvalidateReleaseCacheTest(TestCase):
@@ -326,7 +327,15 @@ class ResolvedInCommitTest(TestCase):
         )
         author.preload_users()
 
-        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+        captured_contexts: list[ViewerContext | None] = []
+        with (
+            self.assertLogs("sentry.issues.action_log", level="INFO") as logs,
+            patch("sentry.models.groupassignee.issue_assigned.send_robust") as send_robust,
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            send_robust.side_effect = lambda **kwargs: captured_contexts.append(
+                get_viewer_context()
+            )
             commit = Commit.objects.create(
                 key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
                 organization_id=group.organization.id,
@@ -338,6 +347,14 @@ class ResolvedInCommitTest(TestCase):
         self.assertLinkedFromCommitDeferred(group, commit)
 
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
+        assert captured_contexts == [
+            ViewerContext(
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                user_id=user.id,
+                actor_type=ActorType.USER,
+            )
+        ]
 
         # The self-assign is attributed to the commit author, not logged as a system action.
         assign_records = [r for r in logs.records if r.__dict__.get("action") == "assign"]
@@ -452,7 +469,15 @@ class ResolvedInPullRequestTest(TestCase):
         )
         author = self._create_pull_request_author("newdev", group.organization.id)
 
-        pull_request = self._create_resolving_pull_request(group, repo, author)
+        captured_contexts: list[ViewerContext | None] = []
+        with (
+            patch("sentry.models.groupassignee.issue_assigned.send_robust") as send_robust,
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            send_robust.side_effect = lambda **kwargs: captured_contexts.append(
+                get_viewer_context()
+            )
+            pull_request = self._create_resolving_pull_request(group, repo, author)
 
         activity = Activity.objects.get(
             group=group,
@@ -461,6 +486,14 @@ class ResolvedInPullRequestTest(TestCase):
         assert activity.user_id == user.id
         assert activity.data == {"pull_request": pull_request.id}
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
+        assert captured_contexts == [
+            ViewerContext(
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                user_id=user.id,
+                actor_type=ActorType.USER,
+            )
+        ]
 
     @receivers_raise_on_send()
     def test_author_from_different_organization_does_not_set_activity_user(self) -> None:

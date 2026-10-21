@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import bisect
-from collections.abc import Collection
 from datetime import datetime, timedelta
 from re import Match
 from typing import Any
@@ -9,7 +8,6 @@ from uuid import UUID
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
@@ -20,13 +18,11 @@ from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedE
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentType,
 )
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
@@ -51,7 +47,6 @@ def create_incident(
     date_started: datetime,
     date_detected: datetime | None = None,
     detection_uuid: UUID | None = None,  # TODO: Probably remove detection_uuid?
-    projects: Collection[Project] = (),
     user: RpcUser | None = None,
     alert_rule: AlertRule | None = None,
     subscription: QuerySubscription | None = None,
@@ -71,19 +66,6 @@ def create_incident(
             alert_rule=alert_rule,
             subscription=subscription,
         )
-        if projects:
-            incident_projects = [
-                IncidentProject(incident=incident, project=project) for project in projects
-            ]
-            IncidentProject.objects.bulk_create(incident_projects)
-            # `bulk_create` doesn't send `post_save` signals, so we manually fire them here.
-            for incident_project in incident_projects:
-                post_save.send_robust(
-                    sender=type(incident_project),
-                    instance=incident_project,
-                    created=True,
-                )
-
         try:
             analytics.record(
                 IncidentCreatedEvent(

@@ -31,6 +31,7 @@ type ParamKeys =
   | 'eventId'
   | 'eventSlug'
   | 'fineTuneType'
+  | 'formulaId'
   | 'groupId'
   | 'headArtifactId'
   | 'id'

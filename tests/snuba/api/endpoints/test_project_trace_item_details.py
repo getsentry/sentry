@@ -282,6 +282,9 @@ class ProjectTraceItemDetailsEndpointTest(
         assert trace_details_response.data["attributes"] == [
             {"name": "is_transaction", "type": "bool", "value": False},
             {"name": "code.lineno", "type": "float", "value": 420.0},
+            # `http.response_content_length` is a backfilled deprecation, so both the
+            # deprecated name and its replacement are returned.
+            {"name": "http.response.body.size", "type": "float", "value": 100.0},
             {"name": "http.response_content_length", "type": "float", "value": 100.0},
             {
                 "name": "precise.finish_ts",

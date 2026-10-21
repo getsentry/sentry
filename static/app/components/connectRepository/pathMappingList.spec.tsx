@@ -115,14 +115,12 @@ describe('PathMappingList', () => {
       });
 
       await userEvent.click(first!);
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue(
-        'app/'
-      );
+      expect(
+        screen.getByRole('textbox', {name: /stack trace prefix/i})
+      ).toBeInTheDocument();
 
       await userEvent.click(second!);
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue(
-        'src/'
-      );
+      // Only one edit form open at a time.
       expect(screen.getAllByRole('textbox', {name: /stack trace prefix/i})).toHaveLength(
         1
       );
@@ -184,6 +182,21 @@ describe('PathMappingList', () => {
       expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
       expect(screen.getByText('src/')).toBeInTheDocument();
       expect(screen.queryByText('app/')).not.toBeInTheDocument();
+    });
+
+    it('keeps the open row editable after deleting a row above it', async () => {
+      renderList({initialPathMappings: MAPPINGS});
+
+      const [, secondExpand] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(secondExpand!);
+      const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      await userEvent.click(firstDelete!);
+      await userEvent.click(screen.getByRole('textbox', {name: /branch/i}));
+      await userEvent.tab();
+
+      expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('frontend');
     });
 
     it('falls back to a fresh open row when the last mapping is deleted', async () => {
@@ -288,6 +301,7 @@ describe('PathMappingList', () => {
         screen.getByRole('textbox', {name: /repository prefix/i}),
         'app/'
       );
+      await userEvent.tab();
 
       expect(
         screen.getByText(
@@ -304,6 +318,8 @@ describe('PathMappingList', () => {
         screen.getByRole('textbox', {name: /stack trace prefix/i}),
         'src/'
       );
+      // Combobox commits the typed value on blur, not on each keystroke.
+      await userEvent.tab();
 
       expect(screen.getByText(/The repository prefix is empty/)).toBeInTheDocument();
       expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
@@ -320,6 +336,7 @@ describe('PathMappingList', () => {
         screen.getByRole('textbox', {name: /repository prefix/i}),
         'app/'
       );
+      await userEvent.tab();
 
       expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
       expect(screen.queryByText(/stack trace prefix is empty/)).not.toBeInTheDocument();
@@ -455,9 +472,8 @@ describe('PathMappingList', () => {
       );
       await userEvent.tab();
 
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue(
-        'src/'
-      );
+      // Normalized value 'src/' committed on blur and shown as the selected option.
+      expect(screen.getAllByText('src/')).not.toHaveLength(0);
     });
 
     it('converts invalid branch characters to dashes', async () => {
