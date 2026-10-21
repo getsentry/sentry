@@ -946,6 +946,7 @@ class ExhaustiveFixtures(Fixtures):
         ApiDeviceCode.objects.create(
             application=app.application,
             scope_list=["openid", "profile"],
+            login_hint=owner.email,
         )
 
         # ServiceHook

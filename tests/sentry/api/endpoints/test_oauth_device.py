@@ -73,6 +73,22 @@ class OAuthDeviceGetTest(APITestCase):
         self.login_as(self.user)
         self.get_error_response(user_code="XXXX-XXXX", status_code=400)
 
+    def test_login_hint_matches_email_case_insensitively(self) -> None:
+        self.login_as(self.user)
+        self.device.update(login_hint=self.user.email.upper())
+        response = self.get_success_response(user_code=self.device.user_code)
+        assert response.data["stage"] == "consent"
+
+    def test_login_hint_rejects_other_account(self) -> None:
+        self.login_as(self.user)
+        self.device.update(login_hint="someone-else@example.com")
+        response = self.get_error_response(user_code=self.device.user_code, status_code=403)
+        assert response.data == {
+            "detail": "This request is for someone-else@example.com. "
+            "Sign in as that account to continue."
+        }
+        assert f"oa2:{self.device.user_code}" not in self.client.session
+
     def test_suspended_account(self) -> None:
         self.login_as(self.user)
         self.user.update(is_suspended=True)
@@ -198,6 +214,14 @@ class OAuthDevicePostTest(APITestCase):
         self.prepare()
         self.login_as(self.create_user())
         self.get_error_response(userCode=self.device.user_code, op="approve", status_code=400)
+
+    def test_login_hint_rejects_other_account(self) -> None:
+        self.prepare()
+        self.device.update(login_hint="someone-else@example.com")
+        self.get_error_response(userCode=self.device.user_code, op="approve", status_code=403)
+        self.device.refresh_from_db()
+        assert self.device.status == DeviceCodeStatus.PENDING
+        assert not ApiAuthorization.objects.filter(application=self.application).exists()
 
     def test_replay(self) -> None:
         self.prepare()
