@@ -1,130 +1,71 @@
 #!/usr/bin/env python3
-"""Save and restore the migrated test databases for the migration tests job.
+"""Save and restore the migrated test databases used by the migration tests.
 
-Building the test databases by running every migration from scratch takes
-about 4 minutes. A restored dump only needs the migrations added since it was
-taken, which pytest-django applies on top because the job runs with
-``--reuse-db``.
+With --reuse-db, pytest keeps a restored database and only applies the
+migrations added since it was dumped, instead of running every migration.
 
-Usage:
-  migration-test-db.py save DIR     Dump the test databases into DIR.
-  migration-test-db.py restore DIR  Load the dumps in DIR into empty test databases.
-
-``restore`` drops the restored databases again if they record a migration that
-isn't in this checkout. That happens when a PR branch is behind the master
-commit that saved the dump; pytest then builds the databases from scratch.
+Usage: migration-test-db.py save|restore DIR
 """
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import BinaryIO
 
-CONTAINER = "postgres-postgres-1"
-DATABASES = ("test_region", "test_control", "test_secondary")
+POSTGRES_CONTAINER = "postgres-postgres-1"
+POSTGRES_USER = "postgres"
+# Django's test names for the region, control and secondary databases.
+TEST_DATABASES = ("test_region", "test_control", "test_secondary")
+MIGRATION_GLOB = "src/**/migrations/*.py"
+MANIFEST = "migrations.txt"
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
-def psql(db: str, sql: str) -> str:
-    return subprocess.run(
-        ["docker", "exec", CONTAINER, "psql", "-U", "postgres", "-d", db, "-Atc", sql],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
+def migration_files() -> set[str]:
+    return {str(p.relative_to(REPO_ROOT)) for p in REPO_ROOT.glob(MIGRATION_GLOB)}
 
 
-def drop(db: str) -> None:
-    psql("postgres", f'DROP DATABASE IF EXISTS "{db}"')
+def postgres(*args: str, stdin: BinaryIO | None = None, stdout: BinaryIO | None = None) -> None:
+    subprocess.run(
+        ["docker", "exec", "-i", POSTGRES_CONTAINER, *args], check=True, stdin=stdin, stdout=stdout
+    )
 
 
 def save(cache_dir: Path) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
-    for db in DATABASES:
+    for db in TEST_DATABASES:
         with open(cache_dir / f"{db}.dump", "wb") as f:
-            subprocess.run(
-                ["docker", "exec", CONTAINER, "pg_dump", "-U", "postgres", "-Fc", db],
-                check=True,
-                stdout=f,
-            )
-        print(f"saved {db}")
-
-
-# Squashed migrations count every migration they replace, since Django records
-# those as applied too.
-LIST_DISK_MIGRATIONS = """
-from django.db.migrations.loader import MigrationLoader
-
-for key, migration in MigrationLoader(None, ignore_no_migrations=True).disk_migrations.items():
-    for app, name in (key, *migration.replaces):
-        print("migration", app, name)
-"""
-
-
-def migrations_on_disk() -> set[tuple[str, str]]:
-    out = subprocess.run(
-        ["sentry", "exec", "-c", LIST_DISK_MIGRATIONS],
-        check=True,
-        capture_output=True,
-        text=True,
-        cwd=REPO_ROOT,
-    ).stdout
-    return {
-        (parts[1], parts[2])
-        for parts in (line.split() for line in out.splitlines())
-        if len(parts) == 3 and parts[0] == "migration"
-    }
+            postgres("pg_dump", "-U", POSTGRES_USER, "--format=custom", db, stdout=f)
+    (cache_dir / MANIFEST).write_text("\n".join(sorted(migration_files())))
 
 
 def restore(cache_dir: Path) -> None:
-    dumps = [cache_dir / f"{db}.dump" for db in DATABASES]
-    if not all(d.is_file() for d in dumps):
-        print("no complete dump to restore; pytest will build the databases")
+    manifest = cache_dir / MANIFEST
+    if not manifest.is_file():
+        print("No saved databases; pytest will build them.")
         return
 
-    for db, dump in zip(DATABASES, dumps):
-        drop(db)
-        psql("postgres", f'CREATE DATABASE "{db}"')
-        with open(dump, "rb") as f:
-            subprocess.run(
-                ["docker", "exec", "-i", CONTAINER, "pg_restore", "-U", "postgres", "-d", db],
-                check=True,
-                stdin=f,
-            )
-
-    on_disk = migrations_on_disk()
-    known_apps = {app for app, _ in on_disk}
-    unknown = sorted(
-        {
-            f"{app}.{name}"
-            for db in DATABASES
-            for app, name in (
-                line.split("|")
-                for line in psql(db, "SELECT app, name FROM django_migrations").splitlines()
-            )
-            if app in known_apps and (app, name) not in on_disk
-        }
-    )
-    if unknown:
-        print(f"dump has migrations missing from this checkout: {', '.join(unknown)}")
-        print("dropping it; pytest will build the databases")
-        for db in DATABASES:
-            drop(db)
+    # A dump with migrations this checkout lacks (e.g. a branch behind master)
+    # can't be migrated forward, so build from scratch instead.
+    missing = set(manifest.read_text().split()) - migration_files()
+    if missing:
+        print(f"Saved databases include {len(missing)} unknown migrations; pytest will build them.")
         return
 
-    print(f"restored {', '.join(DATABASES)}")
+    for db in TEST_DATABASES:
+        postgres("createdb", "-U", POSTGRES_USER, db)
+        with open(cache_dir / f"{db}.dump", "rb") as f:
+            postgres("pg_restore", "-U", POSTGRES_USER, "--dbname", db, stdin=f)
 
 
 def main() -> None:
-    match sys.argv[1:]:
-        case ["save", cache_dir]:
-            save(Path(cache_dir))
-        case ["restore", cache_dir]:
-            restore(Path(cache_dir))
-        case _:
-            sys.exit(f"usage: {os.path.basename(sys.argv[0])} save|restore DIR")
+    commands = {"save": save, "restore": restore}
+    if len(sys.argv) != 3 or sys.argv[1] not in commands:
+        sys.exit(__doc__)
+    commands[sys.argv[1]](Path(sys.argv[2]))
 
 
 if __name__ == "__main__":
