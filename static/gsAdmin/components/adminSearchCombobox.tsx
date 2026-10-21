@@ -113,10 +113,10 @@ export function AdminSearchCombobox<TQueryData, TResult, TQueryKey extends Query
         {label}
       </Text>
       <Select<AdminSearchComboboxOption<TResult>>
-        inputId={inputId}
+        id={inputId}
         inputValue={inputValue}
         isLoading={isLoading}
-        isSearchable
+        searchable
         openMenuOnClick={hasInput}
         openMenuOnFocus={hasInput}
         options={selectOptions}
@@ -128,22 +128,20 @@ export function AdminSearchCombobox<TQueryData, TResult, TQueryKey extends Query
           }),
         }}
         value={null}
-        components={{
-          DropdownIndicator: null,
-          LoadingMessage: () => (
-            <Flex align="center" justify="center" padding="md">
-              <Text size="md" variant="muted">
-                Loading results…
-              </Text>
-            </Flex>
-          ),
-        }}
+        dropdownIndicator={null}
+        loadingMessage={() => (
+          <Flex align="center" justify="center" padding="md">
+            <Text size="md" variant="muted">
+              Loading results…
+            </Text>
+          </Flex>
+        )}
         filterOption={null}
         noOptionsMessage={() =>
           query.isError ? 'Unable to load results' : 'No results found'
         }
-        onInputChange={(value, action) => {
-          if (action.action !== 'input-change') {
+        onInputChange={(value, reason) => {
+          if (reason !== 'input') {
             return;
           }
           setInputValue(value);

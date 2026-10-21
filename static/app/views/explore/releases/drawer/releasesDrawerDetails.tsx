@@ -191,7 +191,7 @@ function EnsureSingleProject({
               onProjectSelect(option.value);
             }
           }}
-          isClearable={false}
+          clearable={false}
         />
       </Stack>
     </EventDrawerBody>

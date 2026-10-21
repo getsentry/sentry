@@ -1,17 +1,7 @@
 import {Component} from 'react';
 
-import type {
-  ControlProps,
-  SelectValue,
-  OptionsType,
-  OptionTypeBase,
-  ValueType,
-} from '@sentry/scraps/select';
-import {
-  Select,
-  SelectOption,
-  components as SelectComponents,
-} from '@sentry/scraps/select';
+import type {ControlProps, SelectValue} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -25,11 +15,13 @@ import type {InputFieldProps} from './inputField';
 
 const NONE_SELECTED_LABEL = t('None selected');
 
-export interface SelectFieldProps<OptionType extends OptionTypeBase>
+export interface SelectFieldProps<OptionType extends SelectValue<any>>
   extends
     Omit<InputFieldProps, 'value'>,
     Omit<
       ControlProps<OptionType>,
+      | 'ref'
+      | 'aria-invalid'
       | 'onChange'
       | 'defaultValue'
       | 'disabled'
@@ -65,7 +57,7 @@ export interface SelectFieldProps<OptionType extends OptionTypeBase>
   inFieldLabel?: string;
 }
 
-function getChoices<T extends OptionTypeBase>(props: SelectFieldProps<T>): Choices {
+function getChoices<T extends SelectValue<any>>(props: SelectFieldProps<T>): Choices {
   const choices = props.choices;
   if (typeof choices === 'function') {
     return choices(props as any);
@@ -78,11 +70,11 @@ function getChoices<T extends OptionTypeBase>(props: SelectFieldProps<T>): Choic
 }
 
 /**
- * Required to type guard for OptionsType<T> which is a readonly Array
+ * Required to type guard for readonly T[] which is a readonly Array
  */
-function isArray<T extends OptionTypeBase>(
-  maybe: T | OptionsType<T>
-): maybe is OptionsType<T> {
+function isArray<T extends SelectValue<any>>(
+  maybe: T | readonly T[]
+): maybe is readonly T[] {
   return Array.isArray(maybe);
 }
 
@@ -103,7 +95,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
   handleChange = (
     onBlur: InputFieldProps['onBlur'],
     onChange: InputFieldProps['onChange'],
-    optionObj: ValueType<OptionType, boolean>
+    optionObj: OptionType | readonly OptionType[] | null | undefined
   ) => {
     let value: any;
 
@@ -127,8 +119,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
   };
 
   render() {
-    const {allowClear, confirm, multiple, hideControlState, components, ...otherProps} =
-      this.props;
+    const {allowClear, confirm, multiple, hideControlState, ...otherProps} = this.props;
 
     return (
       <FormField {...otherProps} hideControlState flexibleControlStateSize>
@@ -143,67 +134,22 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
           model,
           name,
           placeholder,
-          isOptionDisabled,
           ...props
         }: any) => {
-          const showTempNoneOption =
-            !multiple && (props.value === undefined || props.value === null);
-
           return (
             <Tooltip title={disabledReason} disabled={!disabled}>
               <Select
                 {...props}
-                value={showTempNoneOption ? undefined : props.value}
-                options={
-                  showTempNoneOption && Array.isArray(props.options)
-                    ? [{label: NONE_SELECTED_LABEL, value: props.value}, ...props.options]
-                    : props.options
-                }
-                choices={
-                  showTempNoneOption && Array.isArray(props.choices)
-                    ? [[props.value, NONE_SELECTED_LABEL], ...props.choices]
-                    : props.choices
-                }
+                value={props.value}
                 placeholder={placeholder}
                 disabled={disabled}
-                inputId={id}
+                id={id}
                 clearable={allowClear}
                 multiple={multiple}
-                controlShouldRenderValue={!showTempNoneOption}
-                isOptionDisabled={(option: any) => {
-                  // We need to notify react-select about the disabled options here as well; otherwise, they will remain clickable.
-                  if (option.label === NONE_SELECTED_LABEL) {
-                    return true;
-                  }
-                  return typeof isOptionDisabled === 'function'
-                    ? isOptionDisabled(option)
-                    : false;
-                }}
-                components={{
-                  IndicatorsContainer: ({
-                    children,
-                    ...indicatorsProps
-                  }: React.ComponentProps<
-                    typeof SelectComponents.IndicatorsContainer
-                  >) => (
-                    <SelectComponents.IndicatorsContainer {...indicatorsProps}>
-                      {!hideControlState && (
-                        <FormFieldControlState model={model} name={name} />
-                      )}
-                      {children}
-                    </SelectComponents.IndicatorsContainer>
-                  ),
-                  Option: (
-                    optionProps: React.ComponentProps<typeof SelectComponents.Option>
-                  ) => {
-                    if (optionProps.label === NONE_SELECTED_LABEL) {
-                      // The isDisabled prop is passed here to ensure the options are styled accordingly.
-                      return <SelectOption {...optionProps} isDisabled isSelected />;
-                    }
-                    return <SelectOption {...optionProps} />;
-                  },
-                  ...components,
-                }}
+                emptyOptionLabel={NONE_SELECTED_LABEL}
+                indicator={
+                  !hideControlState && <FormFieldControlState model={model} name={name} />
+                }
                 styles={{
                   control: (provided: any) => ({
                     ...provided,

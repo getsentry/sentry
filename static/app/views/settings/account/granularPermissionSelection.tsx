@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -62,11 +63,13 @@ export function GranularPermissionSelection({permissions, onChange}: Props) {
             aria-label={label}
             name={`${label}--granular-permission`}
             value={permissions[label] ?? NO_ACCESS}
-            options={[
-              {value: NO_ACCESS, label: t('No Access')},
-              ...levels.map(level => ({value: level, label: LEVEL_LABELS[level]})),
-            ]}
-            onChange={({value}: {value: GranularPermissionLevel | typeof NO_ACCESS}) =>
+            options={
+              [
+                {value: NO_ACCESS, label: t('No Access')},
+                ...levels.map(level => ({value: level, label: LEVEL_LABELS[level]})),
+              ] satisfies Array<SelectValue<GranularPermissionLevel | typeof NO_ACCESS>>
+            }
+            onChange={({value}) =>
               onChange({...permissions, [label]: value === NO_ACCESS ? undefined : value})
             }
           />

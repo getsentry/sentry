@@ -1,19 +1,15 @@
 export {
   Select,
-  type StylesConfig,
   type ControlProps,
+  type BaseSelectProps,
   type GeneralSelectValue,
 } from './select';
 
-export {SelectOption} from './option';
-export {CheckWrap} from './styles';
-export {components, createFilter} from './reactSelectWrapper';
-export type {
-  MultiValueProps,
-  OptionsType,
-  OptionTypeBase,
-  SingleValueProps,
-  ValueType,
-} from './reactSelectWrapper';
+export {createFilter} from './filter';
 
-export type {SelectValue} from './types';
+export type {
+  SelectHandle,
+  SelectSelectionProps,
+  SelectValue,
+  StylesConfig,
+} from './types';

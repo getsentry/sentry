@@ -41,15 +41,14 @@ import {
   shouldSuggestFramework,
   toSelectedSdk,
 } from './scmPlatformHelpers';
-import {ScmSearchControl} from './scmSearchControl';
-import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
+import {ScmSearchIcon} from './scmSearchIcon';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
 type PlatformOption = (typeof platformOptions)[number];
 
 const matchesPlatformOption = createFilter({
-  stringify: (option: {data: PlatformOption; label: string; value: string}) =>
-    option.data.textValue ?? `${option.label} ${option.value}`,
+  stringify: (option: PlatformOption) =>
+    option.textValue ?? `${option.label} ${option.value}`,
 });
 
 const CHANGE_PLATFORM_CLICKED_EVENT = {
@@ -360,12 +359,7 @@ export function ScmPlatformFeaturesCore({
 
   const manualPickerFilteredOptions = useMemo(
     () =>
-      platformOptions.filter(option =>
-        matchesPlatformOption(
-          {label: option.label, value: option.value, data: option},
-          manualPickerFilter
-        )
-      ),
+      platformOptions.filter(option => matchesPlatformOption(option, manualPickerFilter)),
     [manualPickerFilter]
   );
 
@@ -389,8 +383,8 @@ export function ScmPlatformFeaturesCore({
     }
   );
 
-  function handleManualPickerSearch(query: string, {action}: {action: string}) {
-    if (action !== 'input-change') {
+  function handleManualPickerSearch(query: string, reason: 'input' | 'reset') {
+    if (reason !== 'input') {
       return;
     }
     setManualPickerFilter(query);
@@ -554,7 +548,8 @@ export function ScmPlatformFeaturesCore({
               onChange={handleManualPickerChange}
               onInputChange={handleManualPickerSearch}
               searchable
-              components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+              controlLeadingItems={<ScmSearchIcon />}
+              virtualized
               styles={manualPickerStyles}
             />
           ) : (
@@ -568,7 +563,8 @@ export function ScmPlatformFeaturesCore({
               onInputChange={handleManualPickerSearch}
               clearable
               searchable
-              components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+              controlLeadingItems={<ScmSearchIcon />}
+              virtualized
               styles={manualPickerStyles}
             />
           )}

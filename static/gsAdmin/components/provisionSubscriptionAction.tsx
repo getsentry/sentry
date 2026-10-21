@@ -194,7 +194,7 @@ const SoftCapTypeField = memo(function SoftCapTypeField({
     >
       <Select
         name={`softCapType${capitalizedApiName}`}
-        inputId={`id-softCapType${capitalizedApiName}`}
+        id={`id-softCapType${capitalizedApiName}`}
         aria-label={`Soft Cap Type ${titleName}`}
         clearable
         choices={SOFT_CAP_TYPE_CHOICES}
@@ -670,7 +670,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 <SelectFieldWrapper label="Plan" name="plan">
                   <Select
                     name="plan"
-                    inputId="id-plan"
+                    id="id-plan"
                     aria-label="Plan"
                     clearable={false}
                     choices={Object.entries(this.state.provisionablePlans)
@@ -760,7 +760,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 <SelectFieldWrapper label="Billing Interval" name="billingInterval">
                   <Select
                     name="billingInterval"
-                    inputId="id-billingInterval"
+                    id="id-billingInterval"
                     aria-label="Billing Interval"
                     choices={[
                       ['annual', 'Annual'],
@@ -801,7 +801,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 <SelectFieldWrapper label="Billing Type" name="type">
                   <Select
                     name="type"
-                    inputId="id-type"
+                    id="id-type"
                     aria-label="Billing Type"
                     choices={[
                       ['invoiced', 'Invoiced'],
@@ -831,7 +831,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   >
                     <Select
                       name="onDemandInvoicedManual"
-                      inputId="id-onDemandInvoicedManual"
+                      id="id-onDemandInvoicedManual"
                       aria-label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
                       choices={
                         // per-category max spend is only available on plans

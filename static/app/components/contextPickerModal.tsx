@@ -14,7 +14,7 @@ import type {Query} from 'history';
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import type {StylesConfig} from '@sentry/scraps/select';
+import type {SelectHandle, StylesConfig} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
@@ -83,8 +83,8 @@ type ContainerProps = SharedProps & {
   projectSlugs?: string[];
 };
 
-function autoFocusReactSelect(reactSelectRef: any) {
-  reactSelectRef?.select?.focus?.();
+function autoFocusSelect(select: SelectHandle | null) {
+  select?.focus();
 }
 
 const selectStyles: StylesConfig = {
@@ -300,15 +300,15 @@ function ContextPickerContent({
         <Stack gap="md">
           {needOrg && (
             <Select
-              ref={hasDownstreamSelector ? undefined : autoFocusReactSelect}
+              ref={hasDownstreamSelector ? undefined : autoFocusSelect}
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
               value={selectedOrgSlug}
               onChange={handleSelectOrganization}
-              components={{DropdownIndicator: null}}
+              dropdownIndicator={null}
               styles={selectStyles}
-              menuIsOpen
+              isOpen
             />
           )}
 
@@ -407,14 +407,14 @@ function ProjectSelector({
 
   return (
     <Select
-      ref={autoFocus ? autoFocusReactSelect : undefined}
+      ref={autoFocus ? autoFocusSelect : undefined}
       placeholder={t('Select a Project to continue')}
       name="project"
       options={projectOptions}
       onChange={onSelectProject}
-      components={{DropdownIndicator: null}}
+      dropdownIndicator={null}
       styles={selectStyles}
-      menuIsOpen
+      isOpen
     />
   );
 }
@@ -450,14 +450,14 @@ function TeamSelector({
 
   return (
     <Select
-      ref={autoFocus ? autoFocusReactSelect : undefined}
+      ref={autoFocus ? autoFocusSelect : undefined}
       placeholder={t('Select a Team to continue')}
       name="team"
       options={options}
       onChange={onSelectTeam}
-      components={{DropdownIndicator: null}}
+      dropdownIndicator={null}
       styles={selectStyles}
-      menuIsOpen
+      isOpen
     />
   );
 }
@@ -561,21 +561,21 @@ function ConfigPickerContent({
         <Stack gap="md">
           {needOrg && (
             <Select
-              ref={shouldShowConfigSelector ? undefined : autoFocusReactSelect}
+              ref={shouldShowConfigSelector ? undefined : autoFocusSelect}
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
               value={selectedOrgSlug}
               onChange={handleSelectOrganization}
-              components={{DropdownIndicator: null}}
+              dropdownIndicator={null}
               styles={selectStyles}
-              menuIsOpen
+              isOpen
             />
           )}
 
           {shouldShowConfigSelector && (
             <Select
-              ref={autoFocusReactSelect}
+              ref={autoFocusSelect}
               placeholder={t('Select a configuration to continue')}
               name="configurations"
               options={[
@@ -596,9 +596,9 @@ function ConfigPickerContent({
                 },
               ]}
               onChange={handleSelectConfiguration}
-              components={{DropdownIndicator: null}}
+              dropdownIndicator={null}
               styles={selectStyles}
-              menuIsOpen
+              isOpen
             />
           )}
         </Stack>
