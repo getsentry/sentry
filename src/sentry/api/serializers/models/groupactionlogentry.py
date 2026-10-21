@@ -18,6 +18,7 @@ from sentry.issues.action_log.types import (
     COMMENT_MUTATION_ACTION_TYPES,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
+    ActionSource,
     CommentAction,
     FirstSeenAction,
     GroupActionType,
@@ -41,6 +42,7 @@ from sentry.utils.action_log.activity_translator import (
     GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS,
     GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
 )
+from sentry.utils.http import LEGACY_MCP_CLIENT_FAMILY_ALIASES
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -59,6 +61,19 @@ class GroupActionLogEntrySerializerResponse(TypedDict):
     source: str | None
     data: dict[str, Any]
     dateCreated: datetime
+
+
+def _serialized_source(source: str) -> str:
+    """
+    The source as clients should see it.
+
+    Action log rows are never migrated, so rows written with a since-renamed MCP client
+    family (e.g. ``mcp:claude-desktop``) are translated to the current name here.
+    """
+    prefix, sep, family = source.partition(":")
+    if sep and prefix == ActionSource.MCP and family in LEGACY_MCP_CLIENT_FAMILY_ALIASES:
+        return f"{prefix}:{LEGACY_MCP_CLIENT_FAMILY_ALIASES[family]}"
+    return source
 
 
 def serialize_first_seen_entry(
@@ -80,7 +95,7 @@ def serialize_first_seen_entry(
         "user": None,
         "sentry_app": None,
         "type": ActivityType.FIRST_SEEN.name.lower(),
-        "source": entry.source if entry else None,
+        "source": _serialized_source(entry.source) if entry else None,
         "data": {"priority": initial_priority},
         "dateCreated": (
             entry.action.first_seen
@@ -338,6 +353,6 @@ class GroupActionLogEntrySerializer(Serializer):
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],
             "data": data,
-            "source": obj.source,
+            "source": _serialized_source(obj.source),
             "dateCreated": obj.date_added,
         }

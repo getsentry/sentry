@@ -421,6 +421,40 @@ describe('CompactSelect', () => {
     });
   });
 
+  it('keeps a hidden clear button in a titled header without a selection', async () => {
+    render(
+      <CompactSelect
+        clearable
+        menuTitle="Options"
+        value={undefined}
+        onChange={jest.fn()}
+        options={[{value: 'opt_one', label: 'Option One'}]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    expect(screen.getByText('Options')).toBeInTheDocument();
+    expect(screen.getByText('Clear').closest('button')).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
+  });
+
+  it('omits the header in an untitled menu without a selection', async () => {
+    render(
+      <CompactSelect
+        clearable
+        value={undefined}
+        onChange={jest.fn()}
+        options={[{value: 'opt_one', label: 'Option One'}]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
+  });
+
   describe('ListBox', () => {
     it('updates trigger label on selection', async () => {
       const mock = jest.fn();

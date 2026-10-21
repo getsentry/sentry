@@ -1,8 +1,7 @@
 import {IconEdit} from '@sentry/icons/edit';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
-
-import type {ButtonSize} from './types';
+import {Button, type ButtonProps, type ButtonSize} from '@sentry/scraps/button';
+import {ContainerQueryContext} from '@sentry/scraps/layout';
 
 const allVariants: Array<ButtonProps['variant']> = [
   'secondary',
@@ -20,6 +19,19 @@ describe('Button', () => {
     // Padding prevents rootElement.screenshot() from clipping shadows and focus rings.
     return <div style={{padding: 8}}>{children}</div>;
   }
+
+  // SSR cannot measure containers, so supply the breakpoint normally set by ResizeObserver.
+  it.snapshot.each(['zero', 'lg'] as const)(
+    'responsive sizing at %s',
+    breakpoint => (
+      <Wrapper>
+        <ContainerQueryContext value={breakpoint}>
+          <Button size={{zero: 'xs', lg: 'sm'}}>Responsive button</Button>
+        </ContainerQueryContext>
+      </Wrapper>
+    ),
+    breakpoint => ({tags: {breakpoint, area: 'core'}})
+  );
 
   describe.each(allVariants)('variant %s', variant => {
     describe.each(allSizes)('size %s', size => {

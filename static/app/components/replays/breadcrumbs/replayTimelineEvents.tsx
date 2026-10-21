@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Container} from '@sentry/scraps/layout';
 import type {GraphicsVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {HoverOverlayGroupProvider} from '@sentry/scraps/useHoverOverlay';
 
 import {BreadcrumbItem} from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
@@ -14,7 +15,6 @@ import {useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab'
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isWebVitalFrame} from 'sentry/utils/replays/types';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 
 const NODE_SIZES = [8, 12, 16];
 

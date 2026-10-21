@@ -1314,6 +1314,10 @@ describe('InboxPage', () => {
   it('uses action-specific icons from code changes through PR creation', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/activities/`,
+      body: {activity: [], otherPullRequests: []},
+    });
     mockAutofixResponse(
       ExplorerAutofixResponseFixture({
         autofix: ExplorerAutofixStateFixture({
@@ -1356,9 +1360,12 @@ describe('InboxPage', () => {
       expect(within(preview).getByTestId('autofix-code-changes-icon')).toBeVisible()
     );
 
-    // After starting the step, the refetch will see completed code changes.
-    mockAutofixResponse(
-      ExplorerAutofixResponseFixture({
+    // The POST can finish before the updated run state reaches the button.
+    const refresh = Promise.withResolvers<void>();
+    const refetch = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
+      asyncDelay: refresh.promise,
+      body: ExplorerAutofixResponseFixture({
         autofix: ExplorerAutofixStateFixture({
           blocks: [
             ExplorerAutofixBlockFixture({
@@ -1385,12 +1392,19 @@ describe('InboxPage', () => {
             }),
           ],
         }),
-      })
-    );
+      }),
+    });
 
     await userEvent.click(
       within(preview).getByRole('button', {name: 'Write a Code Fix'})
     );
+
+    await waitFor(() => expect(refetch).toHaveBeenCalled());
+    expect(
+      within(preview).getByRole('button', {name: 'Write a Code Fix'})
+    ).toHaveAttribute('aria-busy', 'true');
+
+    refresh.resolve();
 
     const createPullRequestButton = await within(preview).findByRole('button', {
       name: 'Create PR',
@@ -1398,6 +1412,7 @@ describe('InboxPage', () => {
     expect(
       within(createPullRequestButton).getByTestId('autofix-pull-request-icon')
     ).toBeVisible();
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('labels a coding agent pull request like a Seer one', async () => {

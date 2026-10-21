@@ -252,6 +252,15 @@ end_value = ~r"[\t\n )]|$"
 
 MAX_REGEX_PATTERN_LENGTH = 64
 
+# Each regex filter compiles on the web worker before any Snuba query runs, so we
+# bound how many (potentially expensive) filters can take parsing time per query
+MAX_REGEX_FILTERS_PER_QUERY = 16
+
+# Pattern length doesn't bound compile cost: `\p{L}{100}` is 10 characters but expands to over a
+# hundred thousand instructions. RE2 stops compiling once a program outgrows its budget, which
+# keeps the worst case to tens of milliseconds per pattern.
+MAX_REGEX_PROGRAM_MEMORY = 1024 * 1024
+
 # A newline ends the line a pattern can span, so it's tracked alongside closing delimiters
 REGEX_CLOSING_DELIMITER_OR_NEWLINE = re.compile(r"\n|//(?=[\t\n )]|\Z)")
 
@@ -456,6 +465,9 @@ def get_wildcard_op(node: Node | Sequence[Node]) -> str:
 
 _re2_options = re2.Options()
 _re2_options.log_errors = False
+_re2_options.max_mem = MAX_REGEX_PROGRAM_MEMORY
+
+RE2_PATTERN_TOO_LARGE = "pattern too large - compile failed"
 
 
 def validate_regex_pattern(key: str, pattern: str) -> None:
@@ -466,6 +478,10 @@ def validate_regex_pattern(key: str, pattern: str) -> None:
         re2.compile(pattern, _re2_options)
     except re2.error as exc:
         detail = exc.args[0].decode() if isinstance(exc.args[0], bytes) else str(exc.args[0])
+        if detail == RE2_PATTERN_TOO_LARGE:
+            raise InvalidSearchQuery(
+                f"{key}: Regex is too complex. Try fewer repetitions or narrower character classes."
+            )
         raise InvalidSearchQuery(f"{key}: Invalid regex (RE2 syntax): {detail}")
 
 
@@ -870,6 +886,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         self.config = config
         self._regex_closing_or_newline_offsets: list[int] | None = None
+        self._regex_filter_count = 0
 
         if TYPE_CHECKING:
             from sentry.search.events.builder.discover import UnresolvedQuery
@@ -1567,6 +1584,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             literal = self.visit_value(node.children[3], [])
             return self._handle_basic_filter(search_key, operator, SearchValue(literal))
 
+        self._regex_filter_count += 1
+        if self._regex_filter_count > MAX_REGEX_FILTERS_PER_QUERY:
+            raise InvalidSearchQuery(
+                f"Queries are limited to {MAX_REGEX_FILTERS_PER_QUERY} regex filters."
+            )
         if regex_pattern_length(pattern) > MAX_REGEX_PATTERN_LENGTH:
             raise regex_pattern_too_long_error(search_key.name)
         validate_regex_pattern(search_key.name, pattern)

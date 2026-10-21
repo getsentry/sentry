@@ -8,10 +8,6 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
-# The SCM flow is switching its default name from the platform to the repo
-# ("getsentry/sentry" -> "sentry"); accept both until the frontend change ships.
-REPO_PROJECT_NAME = "sentry"
-
 
 @no_silo_test
 @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
@@ -128,17 +124,15 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             '[contains(., "Django")]'
         )
 
-    def create_scm_project(
-        self, sdk_name: str, platform: str, repo_project_name: str | None = None
-    ) -> Project:
+    def create_scm_project(self, sdk_name: str, platform: str, project_name: str) -> Project:
         self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
         self.browser.click(xpath='//button[contains(., "Create project")]')
         self.browser.wait_until(xpath=f'//h2[text()="Configure {sdk_name} SDK"]')
 
         project = Project.objects.get(organization=self.org)
         assert project.platform == platform
-        assert project.name in {platform, repo_project_name}
-        assert project.slug == project.name
+        assert project.name == project_name
+        assert project.slug == project_name
         assert_existing_projects_status(
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
@@ -230,7 +224,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
 
             self.browser.wait_until(xpath='//button[contains(., "getsentry")]')
             self.select_repository()
-            self.create_scm_project("Django", "python-django", REPO_PROJECT_NAME)
+            self.create_scm_project("Django", "python-django", "sentry")
 
     def test_create_without_repository(self) -> None:
         with self.feature(
@@ -253,7 +247,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.browser.wait_until(
                 xpath='//*[@role="checkbox" and @aria-checked="true"][.//*[text()="Tracing"]]'
             )
-            self.create_scm_project("React", "javascript-react")
+            self.create_scm_project("React", "javascript-react", "javascript-react")
 
     def test_create_with_existing_integration(self) -> None:
         self.create_github_integration()
@@ -285,4 +279,4 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.browser.wait_until('input[aria-autocomplete="list"]')
 
             self.select_repository()
-            self.create_scm_project("Django", "python-django", REPO_PROJECT_NAME)
+            self.create_scm_project("Django", "python-django", "sentry")
