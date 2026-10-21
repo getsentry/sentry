@@ -173,7 +173,7 @@ class TestSentryAppAuthorizations(APITestCase):
     def _create_jwt(self, client_id: str, client_secret: str, exp: datetime | None = None) -> str:
         """Helper to create a JWT token for client_secret_jwt grant type"""
         if exp is None:
-            exp = datetime.now(UTC) + timedelta(hours=1)
+            exp = datetime.now(UTC) + timedelta(minutes=1)
 
         payload = {
             "iss": client_id,  # Issuer

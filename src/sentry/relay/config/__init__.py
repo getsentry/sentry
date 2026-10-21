@@ -58,7 +58,6 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
-    "organizations:relay-automatic-json-expansion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",

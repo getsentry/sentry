@@ -39,8 +39,9 @@ The `prepack` hook builds JavaScript and declarations with
 package manifest, README, and license ship.
 
 The `exports` field in [package.json](./package.json) defines the published API.
-Only the root, theme, tokens, and component barrels are public. Individual
-module paths remain private.
+Import from its explicit subpaths, including `@sentry/scraps/code/inlineCode`
+and `@sentry/scraps/hotkey/kbd`. The package has no root export; unlisted module
+paths remain private.
 Add an entry only when its runtime and type dependencies belong to the package
 or are declared dependencies. App stories cover more components than this API;
 for example, the hotkey story uses both `Hotkey` and `Kbd`, but only `Kbd` is

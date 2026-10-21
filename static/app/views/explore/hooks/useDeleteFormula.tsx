@@ -17,7 +17,7 @@ export function useDeleteFormula() {
         }),
         method: 'DELETE',
       }),
-    onSuccess: invalidateSavedFormulas,
+    onSuccess: (_data, id) => invalidateSavedFormulas(id),
   });
 
   return {deleteFormula};

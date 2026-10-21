@@ -5,12 +5,9 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 
 class IncidentDeletionTask(ModelDeletionTask[Incident]):
     def get_child_relations(self, instance: Incident) -> list[BaseRelation]:
-        from sentry.incidents.models.incident import IncidentProject
         from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
-        model_relations: list[BaseRelation] = [
-            ModelRelation(IncidentProject, {"incident": instance}),
-        ]
+        model_relations: list[BaseRelation] = []
 
         inc_gop = IncidentGroupOpenPeriod.objects.filter(incident_id=instance.id)
 

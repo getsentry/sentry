@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import StrEnum
 from typing import Any, Literal, TypedDict
 
@@ -187,7 +188,7 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
-    activation_creates_new_issue = True
+    regression_timeout = timedelta(hours=24)
 
     def build_detector_evidence_data(
         self,

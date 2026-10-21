@@ -118,8 +118,12 @@ class NotificationHelpersTest(TestCase):
         }
 
     def test_get_rules_uses_workflow_identity_without_legacy_rule(self) -> None:
-        rule = self.create_project_rule(self.project, include_legacy_rule_id=False)
-        origin = create_notification_origin(rule)
+        origin = NotificationOrigin(
+            label="Test Alert",
+            environment_id=None,
+            workflow_id=123,
+            legacy_rule_id=None,
+        )
 
         [rule_details] = get_rules([origin], self.organization, self.project)
 
@@ -131,9 +135,7 @@ class NotificationHelpersTest(TestCase):
         )
 
     def test_get_rules_falls_back_to_rule_id_without_embedded_identity(self) -> None:
-        rule = self.create_project_rule(
-            self.project, include_legacy_rule_id=False, include_workflow_id=False
-        )
+        rule = self.create_project_rule(self.project)
         origin = create_notification_origin(rule)
 
         [rule_details] = get_rules([origin], self.organization, self.project)

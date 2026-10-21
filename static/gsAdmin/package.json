@@ -21,7 +21,7 @@
     "moment-timezone": "0.6.2",
     "nuqs": "2.10.2",
     "papaparse": "^5.3.2",
-    "platformicons": "^9.9.0",
+    "platformicons": "^9.10.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "6.30.6",

@@ -911,7 +911,7 @@ function TransactionsDatasetDeprecationBanner({
         datetime: {
           start: savedQuery.exploreQuery.start ?? null,
           end: savedQuery.exploreQuery.end ?? null,
-          period: savedQuery.exploreQuery.range ?? null,
+          period: savedQuery.exploreQuery.statsPeriod ?? null,
           utc: selection.datetime.utc ?? null,
         },
       },
