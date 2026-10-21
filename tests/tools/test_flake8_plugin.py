@@ -216,6 +216,35 @@ class Test(ApiTestCase):
     assert _run(src, filename="tests/test_example.py") == expected
 
 
+def test_S031() -> None:
+    src = """\
+from django.conf import settings
+
+def test(settings) -> None:
+    settings.FOO = 1  # bad
+    settings.FOO["a"] = 1  # bad
+    settings.FOO["a"]["b"] += 1  # bad
+    del settings.FOO  # bad
+    del settings.FOO["a"]  # bad
+    settings.lower = 1  # ok
+    self.settings.FOO = 1  # ok
+    foo = settings.FOO  # ok
+"""
+    msg = (
+        "S031 Do not assign to settings in tests; use override_settings(...) or "
+        "override_options(...) so the change is undone in order"
+    )
+    expected = [
+        f"t.py:4:4: {msg}",
+        f"t.py:5:4: {msg}",
+        f"t.py:6:4: {msg}",
+        f"t.py:7:8: {msg}",
+        f"t.py:8:8: {msg}",
+    ]
+    assert _run(src, filename="tests/test_example.py") == expected
+    assert _run(src, filename="src/sentry/conf/server.py") == []
+
+
 def test_S012() -> None:
     src = """\
 from rest_framework.permissions import BasePermission, IsAuthenticated, SAFE_METHODS
