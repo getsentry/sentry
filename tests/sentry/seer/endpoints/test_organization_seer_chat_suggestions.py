@@ -14,7 +14,13 @@ PAYLOAD = {
 }
 
 
-@with_feature(["organizations:seer-explorer", "organizations:seer-chat-suggestions"])
+@with_feature(
+    [
+        "organizations:seer-explorer",
+        "organizations:seer-chat-suggestions",
+        "organizations:seer-chat-suggestions-actions",
+    ]
+)
 @override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-chat-suggestions"
@@ -52,9 +58,36 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
             **PAYLOAD,
             "projects": [{"slug": "frontend-web", "platform": "javascript-react"}],
             "code_mode": False,
+            "actions_enabled": True,
             "can_create_alerts": True,
             "can_edit_node_type": None,
         }
+
+    @with_feature({"organizations:seer-chat-suggestions-actions": False})
+    @patch(
+        "sentry.seer.endpoints.organization_seer_chat_suggestions.OrganizationSeerChatSuggestionsEndpoint._can_edit_node_type"
+    )
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_skips_permission_checks_when_actions_flag_is_off(
+        self, mock_run_oneshot: MagicMock, mock_can_edit_node_type: MagicMock
+    ) -> None:
+        mock_run_oneshot.return_value = {"suggestions": []}
+        dashboard = self.create_dashboard(organization=self.organization)
+
+        self.get_success_response(
+            self.organization.slug,
+            **{
+                **PAYLOAD,
+                "route": "/dashboard/:dashboardId/",
+                "route_params": {"dashboardId": str(dashboard.id)},
+            },
+        )
+
+        payload = mock_run_oneshot.call_args.args[1]
+        assert payload["actions_enabled"] is False
+        assert payload["can_create_alerts"] is False
+        assert payload["can_edit_node_type"] is None
+        mock_can_edit_node_type.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_passes_no_alert_access_when_org_disallows_member_alerts(
