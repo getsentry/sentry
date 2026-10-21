@@ -1,8 +1,7 @@
 import {type SVGIconProps} from '@sentry/icons/svgIcon';
 
 import type {ButtonProps} from '@sentry/scraps/button';
-
-import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
+import type {StrictCSSObject, Theme} from '@sentry/scraps/theme';
 
 import {
   type ButtonVariant,

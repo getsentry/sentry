@@ -1,0 +1,130 @@
+import {OAuthContextFixture} from 'sentry-fixture/oauth';
+import {UserFixture} from 'sentry-fixture/user';
+
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {ConfigStore} from 'sentry/stores/configStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {mockElementFromPoint} from 'sentry/views/authV2/authLogin/components/testUtils';
+
+import OAuthDevice from '.';
+
+const location = {pathname: '/oauth/device/', query: {user_code: 'ABCD-EFGH'}};
+const consent = {stage: 'consent', userCode: 'ABCD-EFGH', organizationOptions: []};
+
+describe('OAuthDevice', () => {
+  mockElementFromPoint();
+  const originalConfig = ConfigStore.getState();
+  beforeEach(() => {
+    ConfigStore.set('user', UserFixture());
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/context/',
+      body: {...OAuthContextFixture(), userCode: 'ABCD-EFGH'},
+    });
+    MockApiClient.addMockResponse({url: '/auth/oauth/device/', body: consent});
+  });
+  afterEach(() => ConfigStore.loadInitialData(originalConfig));
+
+  it('keeps code entry disabled until consent is ready', async () => {
+    const contextDelay = Promise.withResolvers<void>();
+    const consentDelay = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/context/',
+      body: {...OAuthContextFixture(), userCode: 'ABCD-EFGH'},
+      asyncDelay: contextDelay.promise,
+    });
+    const prepareConsent = MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      body: consent,
+      asyncDelay: consentDelay.promise,
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/context/',
+      body: {stage: 'codeEntry'},
+      match: [MockApiClient.matchQuery({user_code: ''})],
+    });
+    const {router} = render(<OAuthDevice />, {
+      initialRouterConfig: {location: {pathname: '/oauth/device/'}},
+    });
+    const input = await screen.findByRole('textbox', {name: 'Device code'});
+    await userEvent.click(input);
+    await userEvent.paste('abcd-efgh');
+    expect(input).toBeDisabled();
+    expect(input).toHaveValue('ABCDEFGH');
+    expect(router.location.query).toEqual({});
+    await act(() => {
+      contextDelay.resolve();
+      return contextDelay.promise;
+    });
+    await waitFor(() => expect(prepareConsent).toHaveBeenCalled());
+    expect(screen.getByRole('textbox', {name: 'Device code'})).toBe(input);
+    expect(input).toBeDisabled();
+    await act(() => {
+      consentDelay.resolve();
+      return consentDelay.promise;
+    });
+    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    expect(await screen.findByText('ABCD-EFGH')).toBeVisible();
+  });
+
+  it('requires explicit approval and shows completion without navigating', async () => {
+    const approve = MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      method: 'POST',
+      body: {stage: 'approved'},
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    expect(approve).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', {name: 'Authorize'}));
+    await waitFor(() =>
+      expect(
+        screen.getByText('Application authorized. Return to your device to continue.')
+      ).toBeVisible()
+    );
+    expect(approve).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {op: 'approve', userCode: 'ABCD-EFGH'}})
+    );
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+  });
+
+  it('shows denied completion', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      method: 'POST',
+      body: {stage: 'denied'},
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    await userEvent.click(await screen.findByRole('button', {name: 'Deny'}));
+    await waitFor(() =>
+      expect(
+        screen.getByText('Authorization denied. You can close this window.')
+      ).toBeVisible()
+    );
+  });
+
+  it('allows editing an expired code in place', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/context/',
+      statusCode: 400,
+      body: {detail: 'This code has expired.'},
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    await waitFor(() => expect(screen.getByText('This code has expired.')).toBeVisible());
+    const input = screen.getByRole('textbox', {name: 'Device code'});
+    expect(input).toBeEnabled();
+    expect(input).toHaveValue('ABCDEFGH');
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/context/',
+      body: {...OAuthContextFixture(), userCode: 'WXYZ-ABCD'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      body: {...consent, userCode: 'WXYZ-ABCD'},
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, 'WXYZABCD');
+    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+  });
+});

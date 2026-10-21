@@ -1,7 +1,7 @@
 import {createContext} from 'react';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import type {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from '@sentry/scraps/theme';
 
 import type {SearchMatchResult, SelectKey, SelectOptionWithKey} from './types';
 

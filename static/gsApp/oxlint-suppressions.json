@@ -1,0 +1,255 @@
+{
+  "components/ai/AiSetupDataConsent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "components/billingDetails/form.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "components/creditCardEdit/intentForms/innerIntentForm.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "components/dataConsentModal.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "components/features/disabledSelectorItems.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/features/illustrations/performanceBackground.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 2
+    }
+  },
+  "components/gsBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/navBillingStatus.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "components/productTrial/productTrialAlert.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "components/profiling/profilingUpgradeModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "components/subscriptionSettingsLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/superuser/superuserWarning.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/trialEndingModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "components/trialStartedSidebarItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "components/upgradeNowModal/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "components/upgradeNowModal/modalSamePrice.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "components/upgradeNowModal/planTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/upsellModal/details.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "components/upsellModal/featureList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/upsellModal/footer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "components/upsellModal/highlightedFeature.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/upsellModal/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/upsellProvider.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "overrides/disabledMemberView.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "overrides/integrationFeatures.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "overrides/orgStatsBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "overrides/orgStatsProfilingBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "overrides/spendVisibility/enhancedUsageStatsOrganization.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "overrides/targetedOnboardingHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "overrides/useMaxPickableDays.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 5
+    }
+  },
+  "overrides/useRouteActivatedHook.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 9
+    }
+  },
+  "views/amCheckout/components/cartDiff.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "views/amCheckout/components/unitTypeItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "views/amCheckout/components/volumeSliders.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
+  "views/amCheckout/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/amCheckout/steps/productSelect.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/invoiceDetails/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/legalAndCompliance/policyRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/seerAutomation/onboarding/onboardingLegacy.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/spendAllocations/components/allocationForm.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
+  "views/spendLimits/editModal.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
+  "views/spikeProtection/components/accordionRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/subscriptionPage/recurringCredits.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/subscriptionPage/styles.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 2
+    }
+  },
+  "views/subscriptionPage/subscriptionUpsellBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/subscriptionPage/trialAlert.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/subscriptionPage/usageAlert.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/subscriptionPage/usageOverview/components/productTrialRibbon.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/subscriptionPage/usageOverview/components/tableRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/subscriptionPage/usageTotalsTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  }
+}

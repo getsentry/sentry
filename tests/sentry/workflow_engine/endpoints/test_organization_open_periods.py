@@ -87,6 +87,13 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
         assert len(response.data) == 1
 
+    def test_open_periods_include_issue_short_id(self) -> None:
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"groupId": self.group.id}
+        )
+
+        assert response.data[0]["shortId"] == self.group.qualified_short_id
+
     def test_validation_error_when_missing_params(self) -> None:
         self.get_error_response(*self.get_url_args(), status_code=400)
 
@@ -185,6 +192,11 @@ class OrganizationOpenPeriodsTest(APITestCase):
             str(older_issue.id),
         ]
 
+        assert [open_period["shortId"] for open_period in response.data] == [
+            newer_issue.qualified_short_id,
+            older_issue.qualified_short_id,
+        ]
+
     def test_detector_id_limits_open_periods_across_issues(self) -> None:
         metric_detector = self.create_detector(type=MetricIssue.slug)
 
@@ -237,6 +249,11 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert [open_period["groupId"] for open_period in response.data] == [
             str(issue.id),
             str(issue.id),
+        ]
+
+        assert [open_period["shortId"] for open_period in response.data] == [
+            issue.qualified_short_id,
+            issue.qualified_short_id,
         ]
 
     def test_detector_id_returns_latest_issue_when_detector_reuses_issues(self) -> None:

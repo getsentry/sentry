@@ -15,6 +15,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption, components} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
+import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -48,7 +49,6 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
-import type {Theme} from 'sentry/utils/theme';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';

@@ -105,6 +105,7 @@ export type PlatformKey =
   | 'node-nestjs'
   | 'node-nodeawslambda'
   | 'node-nodegcpfunctions'
+  | 'node-pi-durable'
   | 'objc'
   | 'other'
   | 'perl'

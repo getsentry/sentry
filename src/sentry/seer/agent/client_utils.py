@@ -140,6 +140,7 @@ class AgentRunOptions(TypedDict):
     enable_coding: NotRequired[bool]
     enable_pr_context_tools: NotRequired[bool]
     enable_write_pull_request: NotRequired[bool]
+    enable_investigation_tools: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]

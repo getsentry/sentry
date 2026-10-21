@@ -16,6 +16,7 @@ export type KnownGetsentryApiUrls =
   | '/_admin/customers/$organizationIdOrSlug/queue-spike-projection/'
   | '/_admin/instance-level-oauth/'
   | '/_admin/instance-level-oauth/$clientId/'
+  | '/_admin/superuser-check/'
   | '/_admin/users/$userId/email-activity/'
   | '/_admin/users/$userId/email-bounces/'
   | '/_admin/users/$userId/suspend/'
