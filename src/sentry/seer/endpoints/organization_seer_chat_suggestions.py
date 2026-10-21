@@ -130,7 +130,6 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             ),
             "actions_enabled": actions_enabled,
         }
-        # Permission checks only matter for action suggestions, so skip them when those are off.
         if actions_enabled:
             # Whether the user has permission to create alerts and monitors.
             payload["can_create_alerts"] = any(
