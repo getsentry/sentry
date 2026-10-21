@@ -125,6 +125,13 @@ const ITEM_PADDING_BY_SIZE = {
   md: 'xs sm xs md',
 } as const;
 
+// Item size follows the form scale, where `sm` controls still use `md` text.
+const LABEL_TEXT_SIZE_BY_SIZE = {
+  xs: 'sm',
+  sm: 'md',
+  md: 'md',
+} as const;
+
 /** Resolves an item's text color from its priority and disabled state. */
 function getTextColor({
   theme,
@@ -394,7 +401,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
             <Stack padding="xs 0" align="start" gap="2xs" flex="1 0 0" minWidth="0">
               <Text
                 as="div"
-                size={size ?? 'md'}
+                size={LABEL_TEXT_SIZE_BY_SIZE[size ?? 'md']}
                 density="fixed"
                 variant={
                   disabled ? 'muted' : priority === 'default' ? undefined : priority
