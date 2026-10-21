@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0042_breached_metric_automation
 
-sentry: 1235_retire_incident
+sentry: 1236_drop_incident
 
 service_accounts: 0002_add_cell_replicas
 
