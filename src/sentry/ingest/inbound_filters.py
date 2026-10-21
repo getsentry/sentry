@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, cast
@@ -17,6 +18,7 @@ from sentry.models.custominboundfilter import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
+from sentry.relay.types.rule_condition import NotCondition
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
@@ -603,17 +605,48 @@ class _ConditionMatcher:
 _ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
-def _pattern_matcher(build: Callable[[list[str]], RuleCondition]) -> _ConditionMatcher:
-    """A field whose values are patterns, matched by ``build`` under ``glob`` or no operator."""
-    return _ConditionMatcher(TEXT_OPERATORS, lambda operator, values: build(values))
+# Relay reads `\\` as an escape for the character after it, special or not.
+_GLOB_SPECIAL_CHARS = re.compile(r"[\\*?\[\]{}]")
+
+
+def _text_glob(operator: ConditionOperator, value: str) -> str:
+    """The glob pattern that matches a field the way the literal `operator` compares it to `value`."""
+    literal = _GLOB_SPECIAL_CHARS.sub(r"\\\g<0>", value)
+    if operator is ConditionOperator.STARTS_WITH:
+        return f"{literal}*"
+    if operator is ConditionOperator.CONTAINS:
+        return f"*{literal}*"
+    if operator is ConditionOperator.ENDS_WITH:
+        return f"*{literal}"
+    return literal
+
+
+def _text_matcher(build: Callable[[list[str]], RuleCondition]) -> _ConditionMatcher:
+    """
+    A text field. ``build`` matches the values as glob patterns, which is what ``glob`` and
+    no operator pass; a literal operator turns each value into the pattern that compares
+    it the way the operator does. A negated operator is matched as the operator it
+    negates, see ``_NEGATED_OPERATORS``.
+    """
+
+    def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
+        if operator is None or operator is ConditionOperator.GLOB:
+            return build(values)
+        return build([_text_glob(operator, value) for value in values])
+
+    return _ConditionMatcher(TEXT_OPERATORS, match)
 
 
 def _field_matcher(name: str) -> _ConditionMatcher:
-    return _pattern_matcher(lambda values: {"op": "glob", "name": name, "value": values})
+    return _text_matcher(lambda values: {"op": "glob", "name": name, "value": values})
 
 
 def _cidr_matcher(name: str) -> _ConditionMatcher:
-    return _pattern_matcher(lambda values: {"op": "cidr", "name": name, "value": values})
+    # An address or range is literal already, so `equals` passes the values through.
+    return _ConditionMatcher(
+        frozenset({ConditionOperator.EQUALS}),
+        lambda operator, values: {"op": "cidr", "name": name, "value": values},
+    )
 
 
 def _release_matcher(name: str) -> _ConditionMatcher:
@@ -646,15 +679,24 @@ def _any_of(conditions: list[RuleCondition]) -> RuleCondition:
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
 
 
+# Each negated operator and the operator it negates. The negation wraps the whole match of
+# the field, so that a catch-all drops an item only when none of its fields match.
+_NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
+    ConditionOperator.DOES_NOT_START_WITH: ConditionOperator.STARTS_WITH,
+    ConditionOperator.DOES_NOT_CONTAIN: ConditionOperator.CONTAINS,
+    ConditionOperator.DOES_NOT_END_WITH: ConditionOperator.ENDS_WITH,
+}
+
+
 _CONDITION_MATCHERS: Mapping[
     ConditionType,
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
 ] = {
     ConditionType.ERROR_TYPE: {
-        DataType.ERROR: _pattern_matcher(_custom_error_type_condition),
+        DataType.ERROR: _text_matcher(_custom_error_type_condition),
     },
     ConditionType.ERROR_MESSAGE: {
-        DataType.ERROR: _pattern_matcher(_custom_error_message_condition),
+        DataType.ERROR: _text_matcher(_custom_error_message_condition),
     },
     ConditionType.LOG_MESSAGE: {
         DataType.LOG: _field_matcher("log.body"),
@@ -760,7 +802,13 @@ def _custom_filter_condition(
         matcher = matchers.get(condition_type)
         if matcher is None or (operator is not None and operator not in matcher.operators):
             return None
-        rule_conditions.append(matcher.match(operator, values))
+        negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None
+        if negated is None:
+            rule_conditions.append(matcher.match(operator, values))
+        else:
+            # A field the item does not carry matches no glob, so the negation drops the item.
+            negation: NotCondition = {"op": "not", "inner": matcher.match(negated, values)}
+            rule_conditions.append(negation)
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
