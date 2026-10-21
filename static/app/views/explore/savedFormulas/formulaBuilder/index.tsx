@@ -1,33 +1,51 @@
 import {useState} from 'react';
-import {IconClose} from '@sentry/icons/close';
+import {useTheme} from '@emotion/react';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container as LayoutContainer, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
-import {Heading} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Feature from 'sentry/components/acl/feature';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoAccess} from 'sentry/components/noAccess';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
+import {Container} from 'sentry/components/workflowEngine/ui/container';
+import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import type {
-  FormulaDataset,
-  SavedFormula,
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {
+  useGetSavedFormula,
+  type FormulaDataset,
+  type SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useSaveFormula} from 'sentry/views/explore/hooks/useSaveFormula';
-import {BuilderSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {FIELD_MAX_WIDTH} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
+  stripNamePrefix,
   toDraft,
   toRequest,
   variableNames,
   type FormulaDraft,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
+import {OptionSizedLabel} from 'sentry/views/explore/savedFormulas/formulaBuilder/optionSizedLabel';
 import {ParametersSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/parametersSection';
 import {ReferencesSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/referencesSection';
 import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
+import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
   {value: 'spans', label: t('Spans')},
@@ -37,6 +55,8 @@ const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
 
 const NO_UNIT = 'none';
 
+const DESCRIPTION_MAX_LENGTH = 280;
+
 const UNIT_OPTIONS = [
   {value: NO_UNIT, label: t('No unit')},
   ...[...Object.values(DurationUnit), ...Object.values(SizeUnit)].map(unit => ({
@@ -45,15 +65,65 @@ const UNIT_OPTIONS = [
   })),
 ];
 
-export function FormulaBuilder({
-  formula,
-  onClose,
-}: {
-  onClose: () => void;
-  formula?: SavedFormula;
-}) {
+export default function FormulaBuilderPage() {
+  const organization = useOrganization();
+  const {formulaId} = useParams<{formulaId?: string}>();
+
+  return (
+    <SentryDocumentTitle
+      title={formulaId ? t('Edit Formula') : t('Create Formula')}
+      orgSlug={organization.slug}
+    >
+      <Feature
+        features="organizations:explore-saved-formulas"
+        organization={organization}
+        renderDisabled={NoAccess}
+      >
+        <ErrorBoundary>
+          {formulaId ? <EditFormula formulaId={formulaId} /> : <FormulaBuilder />}
+        </ErrorBoundary>
+      </Feature>
+    </SentryDocumentTitle>
+  );
+}
+
+function EditFormula({formulaId}: {formulaId: string}) {
+  const {
+    data: formula,
+    isPending,
+    isError,
+    isFetchedAfterMount,
+    refetch,
+  } = useGetSavedFormula(formulaId);
+
+  if (isError) {
+    return (
+      <Layout.Body>
+        <Layout.Main width="full">
+          <LoadingError message={t('Unable to load formula')} onRetry={refetch} />
+        </Layout.Main>
+      </Layout.Body>
+    );
+  }
+
+  // The draft is only seeded on mount, so wait for a fresh fetch rather than
+  // starting from a cached copy that may predate the last save.
+  if (isPending || !isFetchedAfterMount) {
+    return <LoadingIndicator />;
+  }
+
+  return <FormulaBuilder formula={formula} />;
+}
+
+function FormulaBuilder({formula}: {formula?: SavedFormula}) {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
   const [draft, setDraft] = useState<FormulaDraft>(() => toDraft(formula));
   const {saveFormula, isSaving} = useSaveFormula();
+
+  const listPathname = makeSavedFormulasPathname({organization, path: '/'});
 
   async function handleSave() {
     try {
@@ -64,101 +134,147 @@ export function FormulaBuilder({
       return;
     }
     addSuccessMessage(t('Formula saved'));
-    onClose();
+    navigate(listPathname);
   }
 
   return (
-    <SlideOverPanel position="right" mode="passive" data-test-id="formula-builder">
-      <Flex
-        align="center"
-        justify="between"
-        borderBottom="primary"
-        height="44px"
-        padding="0 2xl"
-      >
-        <Heading as="h5" size="md">
-          {formula ? t('Edit Formula') : t('Create Formula')}
-        </Heading>
+    <EditLayout>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: formula ? stripNamePrefix(formula.name) : t('New Formula'),
+        }}
+        items={[{type: 'link', label: t('Saved Formulas'), to: listPathname}]}
+      />
+
+      <EditLayout.Body>
+        <Stack gap="2xl" maxWidth={maxWidth}>
+          <Stack gap="xl">
+            <Flex gap="xl" wrap="wrap">
+              <LabeledField label={t('Formula Name')}>
+                <LayoutContainer width="320px">
+                  <Input
+                    value={draft.name}
+                    placeholder={t('Enter formula name')}
+                    aria-label={t('Formula name')}
+                    onChange={event => setDraft({...draft, name: event.target.value})}
+                  />
+                </LayoutContainer>
+              </LabeledField>
+              <LabeledField label={t('Dataset')}>
+                <CompactSelect
+                  value={draft.dataset}
+                  options={DATASET_OPTIONS}
+                  trigger={({children, ...triggerProps}) => (
+                    <OverlayTrigger.Button {...triggerProps} aria-label={t('Dataset')}>
+                      <OptionSizedLabel options={DATASET_OPTIONS}>
+                        {children}
+                      </OptionSizedLabel>
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={option => setDraft({...draft, dataset: option.value})}
+                />
+              </LabeledField>
+              <LabeledField label={t('Unit')}>
+                <CompactSelect
+                  value={draft.unit ?? NO_UNIT}
+                  options={UNIT_OPTIONS}
+                  trigger={({children, ...triggerProps}) => (
+                    <OverlayTrigger.Button {...triggerProps} aria-label={t('Unit')}>
+                      <OptionSizedLabel options={UNIT_OPTIONS}>
+                        {children}
+                      </OptionSizedLabel>
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={option =>
+                    setDraft({
+                      ...draft,
+                      unit: option.value === NO_UNIT ? null : option.value,
+                    })
+                  }
+                />
+              </LabeledField>
+            </Flex>
+
+            <LabeledField label={t('Description')}>
+              <LayoutContainer maxWidth={FIELD_MAX_WIDTH}>
+                <TextArea
+                  autosize
+                  rows={2}
+                  maxLength={DESCRIPTION_MAX_LENGTH}
+                  value={draft.description ?? ''}
+                  placeholder={t(
+                    'Enter a description to help users understand your formula'
+                  )}
+                  aria-label={t('Formula description')}
+                  onChange={event =>
+                    setDraft({...draft, description: event.target.value || null})
+                  }
+                />
+              </LayoutContainer>
+            </LabeledField>
+          </Stack>
+
+          <Container>
+            <FormSection title={t('Inputs')}>
+              <Stack gap="2xl">
+                <ParametersSection
+                  params={draft.params}
+                  onChange={params => setDraft({...draft, params})}
+                />
+                <ReferencesSection
+                  dataset={draft.dataset}
+                  params={draft.params}
+                  references={draft.references}
+                  onChange={references => setDraft({...draft, references})}
+                />
+              </Stack>
+            </FormSection>
+          </Container>
+
+          <Container>
+            <FormSection
+              title={t('Formula')}
+              description={t(
+                'Combines the parameters and references into the value the formula returns.'
+              )}
+            >
+              <LayoutContainer maxWidth={FIELD_MAX_WIDTH}>
+                <FormulaEquationInput
+                  value={draft.formula}
+                  names={variableNames(draft)}
+                  onChange={expression => setDraft({...draft, formula: expression})}
+                />
+              </LayoutContainer>
+            </FormSection>
+          </Container>
+        </Stack>
+      </EditLayout.Body>
+
+      <EditLayout.Footer maxWidth={maxWidth}>
+        <LinkButton size="sm" to={listPathname}>
+          {t('Cancel')}
+        </LinkButton>
         <Button
-          variant="transparent"
           size="sm"
-          aria-label={t('Close Formula Builder')}
-          icon={<IconClose size="sm" />}
-          onClick={onClose}
-        />
-      </Flex>
-      <Stack gap="2xl" padding="2xl">
-        <BuilderSection
-          title={t('Formula Name')}
-          description={t('The name this formula is referenced by elsewhere in Sentry.')}
+          variant="primary"
+          disabled={!draft.name || !draft.formula}
+          busy={isSaving}
+          onClick={handleSave}
         >
-          <Flex gap="md" align="center">
-            <Container flexGrow={1}>
-              <Input
-                value={draft.name}
-                placeholder={t('Enter formula name')}
-                aria-label={t('Formula name')}
-                onChange={event => setDraft({...draft, name: event.target.value})}
-              />
-            </Container>
-            <CompactSelect
-              value={draft.dataset}
-              options={DATASET_OPTIONS}
-              trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} prefix={t('Dataset')} />
-              )}
-              onChange={option => setDraft({...draft, dataset: option.value})}
-            />
-            <CompactSelect
-              value={draft.unit ?? NO_UNIT}
-              options={UNIT_OPTIONS}
-              trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} prefix={t('Unit')} />
-              )}
-              onChange={option =>
-                setDraft({...draft, unit: option.value === NO_UNIT ? null : option.value})
-              }
-            />
-          </Flex>
-        </BuilderSection>
+          {t('Save')}
+        </Button>
+      </EditLayout.Footer>
+    </EditLayout>
+  );
+}
 
-        <ParametersSection
-          params={draft.params}
-          onChange={params => setDraft({...draft, params})}
-        />
-
-        <ReferencesSection
-          dataset={draft.dataset}
-          params={draft.params}
-          references={draft.references}
-          onChange={references => setDraft({...draft, references})}
-        />
-
-        <BuilderSection
-          title={t('Formula')}
-          description={t(
-            'Combines the parameters and references into the value the formula returns.'
-          )}
-        >
-          <FormulaEquationInput
-            value={draft.formula}
-            names={variableNames(draft)}
-            onChange={expression => setDraft({...draft, formula: expression})}
-          />
-        </BuilderSection>
-
-        <Flex gap="md" justify="end">
-          <Button onClick={onClose}>{t('Cancel')}</Button>
-          <Button
-            variant="primary"
-            disabled={!draft.name || !draft.formula}
-            busy={isSaving}
-            onClick={handleSave}
-          >
-            {t('Save')}
-          </Button>
-        </Flex>
-      </Stack>
-    </SlideOverPanel>
+function LabeledField({label, children}: {children: React.ReactNode; label: string}) {
+  return (
+    <Stack gap="md">
+      <Text bold>{label}</Text>
+      {children}
+    </Stack>
   );
 }

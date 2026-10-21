@@ -3,6 +3,7 @@ import {noDoubleDollarInterpolation} from './noDoubleDollarInterpolation.ts';
 import {noManualTable} from './noManualTable.ts';
 import {noRestrictedModuleMocks} from './noRestrictedModuleMocks.ts';
 import {noTokenImport} from './noTokenImport.ts';
+import {preferContainerResponsiveProps} from './preferContainerResponsiveProps.ts';
 import {preferInfoText} from './preferInfoText.ts';
 import {preferPrimitives} from './preferPrimitives.ts';
 import {preferStackForColumnFlex} from './preferStackForColumnFlex.ts';
@@ -17,6 +18,7 @@ export const rules = {
   'no-manual-table': noManualTable,
   'no-restricted-module-mocks': noRestrictedModuleMocks,
   'no-token-import': noTokenImport,
+  'prefer-container-responsive-props': preferContainerResponsiveProps,
   'prefer-info-text': preferInfoText,
   'prefer-primitives': preferPrimitives,
   'prefer-stack-for-column-flex': preferStackForColumnFlex,

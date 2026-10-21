@@ -18,7 +18,7 @@ describe('useInvalidEvaluationDetection', () => {
 
   it('does not report readable evaluations', () => {
     const evaluation: Evaluation = {
-      input: {state: 'text', questions: []},
+      input: {state: [{parts: [{kind: 'text', text: 'text'}]}], questions: []},
       answers: [{kind: 'boolean', key: 'authIssue', probability: 0.97}],
       rawInput: '[]',
       rawOutput: '[]',

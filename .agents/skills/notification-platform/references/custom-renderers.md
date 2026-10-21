@@ -10,11 +10,11 @@ Custom renderers replace the last step. The provider's `get_renderer()` method d
 Template.render(data) → NotificationRenderedTemplate
                               ↓
 Provider.get_renderer(data, category)
-    ├── default → DefaultRenderer.render(data, rendered_template)
-    └── custom  → CustomRenderer.render(data, rendered_template)
+    ├── default → DefaultRenderer.render(data, rendered_template, link_decorator)
+    └── custom  → CustomRenderer.render(data, rendered_template, link_decorator)
 ```
 
-The custom renderer still receives the `rendered_template`, but is free to ignore it and render directly from `data`.
+The custom renderer still receives the `rendered_template`, but is free to ignore it and render directly from `data`. It must still decorate its links (see [Links](#links)).
 
 ## When to Use
 
@@ -45,6 +45,7 @@ This renderer handles three different Seer notification data types with complete
 ```python
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationRenderedTemplate,
@@ -54,7 +55,11 @@ from sentry.notifications.platform.types import (
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         if isinstance(data, SeerAutofixTrigger):
             # Renders a single action button
@@ -78,6 +83,21 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 ```
+
+## Links
+
+`NotificationService.render_template()` decorates the template's links only when the provider uses its default renderer. A custom renderer gets the `link_decorator` instead, and must decorate each Sentry URL it emits itself:
+
+```python
+LinkButtonElement(
+    text="View in Sentry",
+    url=link_decorator.decorate_url(data.group_link),
+)
+```
+
+`decorate_url` adds the tracking parameters and records the link's kind in `link_decorator.links`, which is reported when the notification is sent. Non-Sentry URLs come back unchanged.
+
+The kind comes from `classify_link` in `tracking.py`. When a notification links to a new kind of Sentry page, add a `NotificationLink` value and match the page's path in `classify_link`, with a case in `test_classify_link`. Unmatched pages are tagged `other`.
 
 ## Provider-Side Registration
 
@@ -115,10 +135,15 @@ class MyCustomRenderer(NotificationRenderer[ProviderRenderable]):
 
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> ProviderRenderable:
         # Build provider-specific output from data
         # rendered_template is available but can be ignored
+        # Pass every Sentry URL through link_decorator.decorate_url()
         ...
 ```
 

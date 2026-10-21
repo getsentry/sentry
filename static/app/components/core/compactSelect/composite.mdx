@@ -129,7 +129,7 @@ const [day, setDay] = useState('1');
 
 Use `<CompositeSelect.ClearButton>` in `menuHeaderTrailingItems` to add a "Clear" button to the menu header. When clicked, it calls your `onClick` handler where you reset each region's value. The menu stays open, matching the behavior of the built-in clear button in `<CompactSelect>`. The component is the same styled button used internally by `<CompactSelect>`, ensuring visual consistency.
 
-Only render the button when there is an active selection to clear.
+Keep the button in the layout when there is no selection so the menu does not resize. Hide and disable it until there is a selection to clear.
 
 export function ClearButtonDemo() {
   const monthOptions = [
@@ -150,14 +150,14 @@ export function ClearButtonDemo() {
       size="sm"
       menuTitle="Filters"
       menuHeaderTrailingItems={
-        hasSelection ? (
-          <CompositeSelect.ClearButton
-            onClick={() => {
-              setMonth('');
-              setTags([]);
-            }}
-          />
-        ) : null
+        <CompositeSelect.ClearButton
+          aria-hidden={!hasSelection}
+          disabled={!hasSelection}
+          onClick={() => {
+            setMonth('');
+            setTags([]);
+          }}
+        />
       }
       trigger={props => (
         <OverlayTrigger.Button icon={<IconSentry />} {...props}>
@@ -194,14 +194,14 @@ const hasSelection = month !== null || tags.length > 0;
 <CompositeSelect
   menuTitle="Filters"
   menuHeaderTrailingItems={
-    hasSelection ? (
-      <CompositeSelect.ClearButton
-        onClick={() => {
-          setMonth(null);
-          setTags([]);
-        }}
-      />
-    ) : null
+    <CompositeSelect.ClearButton
+      aria-hidden={!hasSelection}
+      disabled={!hasSelection}
+      onClick={() => {
+        setMonth(null);
+        setTags([]);
+      }}
+    />
   }
   trigger={props => <OverlayTrigger.Button {...props}>Filters</OverlayTrigger.Button>}
 >

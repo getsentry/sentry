@@ -143,6 +143,7 @@ function TruncatedFilterDisplayValue({
         return;
       }
       isFitting = true;
+      // oxlint-disable-next-line react/todo
       try {
         const next = fitMiddleEllipsisToElement(value, fallbackMaxLength, element, multi);
         setDisplayValue(prev => (prev === next ? prev : next));

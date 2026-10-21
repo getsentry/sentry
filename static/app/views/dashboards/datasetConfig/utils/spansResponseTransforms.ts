@@ -16,6 +16,7 @@ import {
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {
   getTimeSeriesResultTypes,
   getTimeSeriesResultUnits,
@@ -144,10 +145,22 @@ export const spansResponseTransforms: Pick<
     | EventsTimeSeriesResponse,
     TableData | EventsTableData
   >,
-  'transformTable' | 'transformSeries' | 'getSeriesResultUnit' | 'getSeriesResultType'
+  | 'transformTable'
+  | 'transformSeries'
+  | 'transformTimeSeries'
+  | 'getSeriesResultUnit'
+  | 'getSeriesResultType'
 > = {
   transformTable: transformEventsResponseToTable,
   transformSeries,
+  transformTimeSeries: (data, widget, queryIndex) =>
+    transformTimeSeriesResponse(
+      isPerformanceScoreBreakdownChart(widget.queries[queryIndex]!)
+        ? transformPerformanceScoreBreakdownTimeSeries(data)
+        : data,
+      widget,
+      queryIndex
+    ),
   getSeriesResultUnit: (data, widgetQuery) => {
     if (isEventsTimeSeriesResponse(data)) {
       return getTimeSeriesResultUnits(data);
