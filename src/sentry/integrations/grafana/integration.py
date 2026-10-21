@@ -5,6 +5,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
 from django.http.request import HttpRequest
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 
@@ -18,7 +19,12 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.grafana.client import normalize_grafana_url
+from sentry.integrations.grafana.client import (
+    GrafanaVerification,
+    normalize_grafana_url,
+    validate_grafana_connection,
+    verify_grafana_connection,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -66,6 +72,13 @@ class GrafanaCredentials(TypedDict):
     token: str
 
 
+class GrafanaConfig(TypedDict):
+    url: str
+    connection_status: str
+    detail: str | None
+    last_verified_at: str
+
+
 class GrafanaCredentialsSerializer(CamelSnakeSerializer[GrafanaCredentials]):
     url = CharField(required=True, max_length=255)
     token = CharField(required=True, max_length=255)
@@ -88,6 +101,15 @@ class GrafanaCredentialsApiStep:
     ) -> PipelineStepResult:
         pipeline.bind_state("config", dict(validated_data))
         return PipelineStepResult.advance()
+
+
+def _build_config(url: str, verification: GrafanaVerification) -> GrafanaConfig:
+    return {
+        "url": url,
+        "connection_status": verification["connection_status"],
+        "detail": verification["detail"],
+        "last_verified_at": timezone.now().isoformat(),
+    }
 
 
 class GrafanaIntegration(IntegrationInstallation):
@@ -114,7 +136,11 @@ class GrafanaIntegration(IntegrationInstallation):
         ]
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        """Save URL/token edits."""
+        """Save URL/token edits, or re-test the connection when nothing changed.
+
+        Edits are rejected if the new connection fails. A re-test saves the result even when it
+        fails, so the settings page shows the current status.
+        """
         config = self.org_integration.config
         stored_token = (self.model.metadata or {}).get("token")
         if not config.get("url") or not stored_token:
@@ -122,17 +148,22 @@ class GrafanaIntegration(IntegrationInstallation):
 
         url = normalize_grafana_url(data["url"]) if data.get("url") else config["url"]
         token = data.get("token") or stored_token
-        if url == config["url"] and token == stored_token:
-            return
+        changed = url != config["url"] or token != stored_token
 
-        name = f"Grafana ({url.removeprefix('https://')})"
-        integration_service.update_integration(
-            integration_id=self.model.id, name=name, metadata={"token": token}
-        )
-        self.model.name = name
-        self.model.metadata = {"token": token}
+        if changed:
+            verification = validate_grafana_connection(url, token)
+            name = f"Grafana ({url.removeprefix('https://')})"
+            integration_service.update_integration(
+                integration_id=self.model.id, name=name, metadata={"token": token}
+            )
+            self.model.name = name
+            self.model.metadata = {"token": token}
+        else:
+            verification = verify_grafana_connection(url, token)
+
         integration_service.update_organization_integration(
-            org_integration_id=self.org_integration.id, config={"url": url}
+            org_integration_id=self.org_integration.id,
+            config=dict(_build_config(url, verification)),
         )
 
 
@@ -155,6 +186,7 @@ class GrafanaIntegrationProvider(IntegrationProvider):
 
         url = normalize_grafana_url(config["url"])
         token: str = config["token"]
+        verification = validate_grafana_connection(url, token)
 
         assert self.pipeline.organization is not None
         return {
@@ -162,7 +194,7 @@ class GrafanaIntegrationProvider(IntegrationProvider):
             "name": f"Grafana ({url.removeprefix('https://')})",
             "metadata": {"token": token},
             "post_install_data": {
-                "config": {"url": url},
+                "config": _build_config(url, verification),
             },
         }
 

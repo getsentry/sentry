@@ -565,6 +565,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         self,
         metadata: dict[str, str] | None = None,
         url: str = "https://example-stack.grafana.net",
+        connection_status: str = "connected",
         org_integration_status: int = ObjectStatus.ACTIVE,
         **kwargs: object,
     ) -> None:
@@ -574,7 +575,10 @@ class TestGetMonitoringProviderConnections(TestCase):
             external_id=str(self.organization.id),
             name="Grafana (example-stack.grafana.net)",
             metadata=metadata if metadata is not None else {"token": "glsa_org_token"},
-            oi_params={"status": org_integration_status, "config": {"url": url}},
+            oi_params={
+                "status": org_integration_status,
+                "config": {"url": url, "connection_status": connection_status},
+            },
             **kwargs,
         )
 
@@ -595,6 +599,15 @@ class TestGetMonitoringProviderConnections(TestCase):
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
         authorization = conn["encrypted_auth_headers"]["Authorization"]
         assert fernet.decrypt(authorization.encode()).decode() == "Bearer glsa_org_token"
+
+    def test_org_grafana_connection_sent_when_last_check_failed(self) -> None:
+        # The stored status is display-only.
+        self._create_org_grafana_integration(connection_status="invalid_token")
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        assert result[0]["provider_key"] == "grafana"
 
     def test_org_grafana_connection_ignores_non_active_integration(self) -> None:
         self._create_org_grafana_integration(status=ObjectStatus.DISABLED)
