@@ -7,6 +7,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -14,6 +15,7 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
+import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 
 function preciseTimestampFromMillis(timestamp: number) {
   return String(BigInt(timestamp) * 1_000_000n);
@@ -524,6 +526,150 @@ describe('useStreamingTimeseriesResult', () => {
   });
 
   describe('single axis', () => {
+    it('preserves transformed-only data when new logs arrive', () => {
+      const mockTimeseriesData = getMockSingleAxisTimeseries();
+      const transformed = {
+        ...mockTimeseriesData.data['count(message)'][0],
+        requestedTransformations: ['fill(zero)'],
+        values: [
+          {timestamp: 1000, value: 999},
+          {timestamp: 2000, value: 888},
+        ],
+      };
+      mockTimeseriesData.data['count(message)'] = [transformed];
+      const {result, rerender} = renderHookWithProviders(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          additionalWrapper: Wrapper,
+          initialProps: createMockTableData([]),
+          initialRouterConfig: defaultRouterConfig,
+          organization,
+        }
+      );
+
+      rerender(
+        createMockTableData([
+          LogFixture({
+            [OurLogKnownFieldKey.ID]: 'streamed-log',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(3000),
+          }),
+        ])
+      );
+
+      expect(result.current.data).toBe(mockTimeseriesData.data);
+      expect(result.current.data['count(message)']?.[0]?.values).toEqual([
+        {timestamp: 1000, value: 999},
+        {timestamp: 2000, value: 888},
+      ]);
+    });
+
+    it('streams raw counts using raw timing while preserving every transformed row', () => {
+      const mockTimeseriesData = getMockSingleAxisTimeseries();
+      const raw = {
+        ...mockTimeseriesData.data['count(message)'][0],
+        requestedTransformations: [],
+      };
+      const transformed = {
+        ...raw,
+        requestedTransformations: ['fill(zero)'],
+        values: [{timestamp: 100000, value: 999}],
+      };
+      const smoothed = {...transformed, requestedTransformations: ['moving_average(3)']};
+      mockTimeseriesData.data['count(message)'] = [transformed, smoothed, raw];
+      const {result, rerender} = renderHookWithProviders(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          additionalWrapper: Wrapper,
+          initialProps: createMockTableData([]),
+          initialRouterConfig: defaultRouterConfig,
+          organization,
+        }
+      );
+
+      rerender(
+        createMockTableData([
+          LogFixture({
+            id: 'streamed-log',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+          }),
+        ])
+      );
+
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)', ['fill(zero)'])
+      ).toEqual([transformed]);
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)', [
+          'moving_average(3)',
+        ])
+      ).toEqual([smoothed]);
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)')[0]?.values
+      ).toEqual([
+        {timestamp: 2000, value: 20},
+        {timestamp: 3000, value: 30},
+        {timestamp: 4000, value: 0},
+        {timestamp: 5000, value: 0},
+        {timestamp: 6000, value: 60},
+        {timestamp: 7000, value: 70},
+        {timestamp: 8000, value: 80},
+        {timestamp: 9000, value: 1, incomplete: true},
+      ]);
+      expect(calculateAverageLogsPerSecond(result.current)).toBe(261 / 7);
+    });
+
+    it('annotates new streamed groups as raw beside a transformed group', () => {
+      const mockTimeseriesData = getMockMultiGroupTimeseries();
+      const raw = {
+        ...mockTimeseriesData.data['count(message)'][0],
+        requestedTransformations: [],
+      };
+      const transformed = {...raw, requestedTransformations: ['fill(zero)']};
+      mockTimeseriesData.data['count(message)'] = [transformed, raw];
+      const {result, rerender} = renderHookWithProviders(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          additionalWrapper: Wrapper,
+          initialProps: createMockTableData([]),
+          initialRouterConfig: severityGroupByRouterConfig,
+          organization,
+        }
+      );
+
+      rerender(
+        createMockTableData([
+          LogFixture({
+            id: 'streamed-group-log',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+            severity: 'new-severity',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+          }),
+        ])
+      );
+
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)', ['fill(zero)'])
+      ).toEqual([transformed]);
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)').find(
+          row => row.yAxis === 'new-severity'
+        )
+      ).toEqual(
+        expect.objectContaining({
+          requestedTransformations: [],
+          values: expect.arrayContaining([{timestamp: 9000, value: 1, incomplete: true}]),
+        })
+      );
+    });
+
     it('should create buckets from table data and merge with timeseries', async () => {
       const mockTimeseriesData = getMockSingleAxisTimeseries();
 

@@ -23,10 +23,8 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
-import {
-  isVisualizeEquation,
-  isVisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {getVisualizeTimeseriesQueries} from 'sentry/views/explore/utils/getVisualizeTimeseriesQueries';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 export const METRIC_TIMESERIES_REFERRER = 'api.explore.tracemetrics-timeseries';
@@ -163,20 +161,32 @@ function useMetricTimeseriesImpl({
   const topEvents = useTopEvents();
   const search = useQueryParamsSearch();
   const sortBys = useQueryParamsAggregateSortBys();
+  const transformationsEnabled = organization.features.includes(
+    'explore-interpolation-and-smoothing'
+  );
+  const queries = useMemo(
+    () =>
+      transformationsEnabled
+        ? getVisualizeTimeseriesQueries(visualizes, true)
+        : visualizes.map(visualize => ({yAxis: visualize.yAxis, transformations: []})),
+    [transformationsEnabled, visualizes]
+  );
 
-  const yAxis = useMemo(() => {
-    return visualizes.map(v => v.yAxis);
-  }, [visualizes]);
+  const {yAxis, transformations} = useMemo(
+    () => ({
+      yAxis: queries.map(query => query.yAxis),
+      transformations: transformationsEnabled
+        ? queries.map(query => query.transformations)
+        : undefined,
+    }),
+    [queries, transformationsEnabled]
+  );
 
   const timeseriesResult = useSortedTimeSeries(
     {
       search,
       yAxis,
-      transformations: organization.features.includes(
-        'explore-interpolation-and-smoothing'
-      )
-        ? visualizes.map(v => (isVisualizeFunction(v) ? v.transformations : []))
-        : undefined,
+      transformations,
       interval,
       fields: [...groupBys, ...yAxis],
       enabled:

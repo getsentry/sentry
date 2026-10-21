@@ -89,8 +89,24 @@ describe('useFetchEventsTimeSeries', () => {
   });
 
   it('refetches when transformations change and reuses the original cache when cleared', async () => {
-    const original = {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]};
-    const transformed = {timeSeries: [TimeSeriesFixture({yAxis: 'avg(span.duration)'})]};
+    const original = {
+      timeSeries: [
+        TimeSeriesFixture({yAxis: 'count()', values: [{timestamp: 1, value: 1}]}),
+        TimeSeriesFixture({
+          yAxis: 'avg(span.duration)',
+          values: [{timestamp: 1, value: 2}],
+        }),
+      ],
+    };
+    const transformed = {
+      timeSeries: [
+        TimeSeriesFixture({yAxis: 'count()', values: [{timestamp: 1, value: 1}]}),
+        TimeSeriesFixture({
+          yAxis: 'avg(span.duration)',
+          values: [{timestamp: 1, value: 3}],
+        }),
+      ],
+    };
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: original,
@@ -138,7 +154,11 @@ describe('useFetchEventsTimeSeries', () => {
     await new Client().requestPromise('/organizations/org-slug/events-timeseries/', {
       query: transformedRequest.mock.lastCall![1].query,
     });
-    const url = new URL(String(fetchMock.mock.lastCall![0]), 'https://sentry.io');
+    const requestUrl = fetchMock.mock.lastCall![0]!;
+    const url = new URL(
+      requestUrl instanceof Request ? requestUrl.url : requestUrl,
+      'https://sentry.io'
+    );
     expect(url.searchParams.getAll('transformations[1]')).toEqual([
       'fill(locf)',
       'smooth(sma,5)',

@@ -129,10 +129,20 @@ export const useSortedTimeSeries = <
   );
 
   const data = useMemo(() => {
-    return (
-      result.data ? Object.groupBy(result.data.timeSeries, ts => ts.yAxis) : {}
-    ) as SeriesMap;
-  }, [result.data]);
+    if (!result.data) {
+      return {};
+    }
+
+    // Each response group repeats the requested axes in order, without an axis index.
+    const series = transformations
+      ? result.data.timeSeries.map((timeSeries, index) => ({
+          ...timeSeries,
+          requestedTransformations: transformations[index % yAxis.length] ?? [],
+        }))
+      : result.data.timeSeries;
+
+    return Object.groupBy(series, ts => ts.yAxis) as SeriesMap;
+  }, [result.data, transformations, yAxis]);
 
   return {
     ...result,

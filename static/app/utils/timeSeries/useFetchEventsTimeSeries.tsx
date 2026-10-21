@@ -191,6 +191,23 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
         staleTime: Infinity,
       }
     ),
+    select: response => {
+      const data = response.json;
+      if (transformations?.some(steps => steps.length)) {
+        const axes = Array.isArray(yAxis) ? yAxis : [yAxis];
+        if (
+          axes.length === 0 ||
+          !Array.isArray(data?.timeSeries) ||
+          data.timeSeries.length % axes.length !== 0 ||
+          data.timeSeries.some(
+            (series, index) => series.yAxis !== axes[index % axes.length]
+          )
+        ) {
+          throw new Error('Time series response did not match the requested axes.');
+        }
+      }
+      return data;
+    },
     retry: shouldRetryHandler,
     retryDelay: getRetryDelay,
     refetchOnWindowFocus: false,
