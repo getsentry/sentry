@@ -94,7 +94,7 @@ export function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
 
 const InnerCell = styled('div')<{isBold?: boolean}>`
   width: 100%;
-  padding: 0 ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.md};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

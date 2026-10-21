@@ -161,9 +161,9 @@ export function ThreadSelector({
           >
             <SimpleTable.Head>
               <HeaderRow>
-                <HeaderCell />
+                <SimpleTable.HeaderCell />
                 {sortableColumns.map(({attribute, label}) => (
-                  <HeaderCell
+                  <SimpleTable.HeaderCell
                     key={attribute}
                     divider={attribute !== SortAttribute.ID}
                     sort={sortAttribute === attribute ? sortDirection : undefined}
@@ -175,7 +175,7 @@ export function ThreadSelector({
                     }}
                   >
                     {label}
-                  </HeaderCell>
+                  </SimpleTable.HeaderCell>
                 ))}
               </HeaderRow>
             </SimpleTable.Head>
@@ -237,10 +237,4 @@ const HeaderTable = styled(SimpleTable)`
 const HeaderRow = styled(SimpleTable.HeaderRow)`
   border-bottom: none;
   border-radius: 0;
-`;
-
-// Compressed SimpleTable header padding leaves too little room for a sorted
-// label and its arrow in this narrow menu, so cells match the option padding.
-const HeaderCell = styled(SimpleTable.HeaderCell)`
-  padding: 0 ${p => p.theme.space.xs};
 `;
