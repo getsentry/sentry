@@ -6,7 +6,9 @@ import {MarkedLexer, markdownToPlainText, type Token} from '@sentry/scraps/markd
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {scrollIntoViewBelowTopBar} from 'sentry/utils/scrollIntoViewBelowTopBar';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getBlockElementId,
   getCellHeadingElement,
@@ -29,6 +31,7 @@ const SCROLL_SETTLE_MS = 150;
 export type InvestigationOutlineEntry = {
   /** Unique within the outline. */
   key: string;
+  kind: 'summary' | 'hypotheses' | 'heading' | 'activity';
   label: string;
   /** Whether the entry sits under the heading above it. */
   nested: boolean;
@@ -75,6 +78,7 @@ export function getInvestigationOutline({
     .filter(heading => heading.depth === null || heading.depth <= topDepth + 1)
     .map((heading): InvestigationOutlineEntry => ({
       key: `${heading.blockId}:${heading.headingIndex ?? 'title'}`,
+      kind: 'heading',
       label: heading.label,
       nested: heading.depth !== null && heading.depth > topDepth,
       target: {blockId: heading.blockId, headingIndex: heading.headingIndex},
@@ -96,11 +100,11 @@ export function getInvestigationOutline({
 }
 
 function getSectionEntry(
-  key: string,
+  kind: 'summary' | 'hypotheses' | 'activity',
   label: string,
   elementId: string
 ): InvestigationOutlineEntry {
-  return {key, label, nested: false, target: {elementId}};
+  return {key: kind, kind, label, nested: false, target: {elementId}};
 }
 
 function getCellHeadings(block: InvestigationBlock): CellHeading[] {
@@ -252,11 +256,44 @@ function waitToSettle(pick: {settled: boolean; timeout: number}) {
  * A rail listing the investigation's sections, which follows the reader down
  * the page and scrolls to the one they pick.
  */
-export function InvestigationOutline({entries}: {entries: InvestigationOutlineEntry[]}) {
+export function InvestigationOutline({
+  entries,
+  investigationId,
+}: {
+  entries: InvestigationOutlineEntry[];
+  investigationId: string;
+}) {
+  const organization = useOrganization();
   const [activeKey, pickEntry] = useActiveEntry(entries);
+  const navRef = useRef<HTMLElement>(null);
+  const shownFor = useRef<string | null>(null);
+
+  // Narrow pages hide the rail, so it only counts as shown once it takes up
+  // space. Reported once per investigation.
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || shownFor.current === investigationId) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (nav.getBoundingClientRect().width === 0) {
+        return;
+      }
+      observer.disconnect();
+      shownFor.current = investigationId;
+      trackAnalytics('seer.investigation.outline_shown', {
+        organization,
+        entry_count: entries.length,
+        investigation_id: investigationId,
+      });
+    });
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [entries.length, investigationId, organization]);
 
   return (
     <Stack
+      ref={navRef}
       as="nav"
       aria-label={t('On this page')}
       gap="md"
@@ -267,12 +304,21 @@ export function InvestigationOutline({entries}: {entries: InvestigationOutlineEn
     >
       <Text bold>{t('On this page')}</Text>
       <OutlineList>
-        {entries.map(entry => (
+        {entries.map((entry, position) => (
           <li key={entry.key}>
             <OutlineEntryLink
               entry={entry}
               isActive={entry.key === activeKey}
-              onPick={() => pickEntry(entry.key)}
+              onPick={() => {
+                pickEntry(entry.key);
+                trackAnalytics('seer.investigation.outline_clicked', {
+                  organization,
+                  entry_count: entries.length,
+                  investigation_id: investigationId,
+                  kind: entry.kind,
+                  position,
+                });
+              }}
             />
           </li>
         ))}

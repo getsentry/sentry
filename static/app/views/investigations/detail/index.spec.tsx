@@ -13,10 +13,12 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {ConfigStore} from 'sentry/stores/configStore';
+import * as analytics from 'sentry/utils/analytics';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -417,6 +419,51 @@ describe('Investigation detail', () => {
       expect(
         within(outline).getByRole('link', {name: 'When it happened'})
       ).toHaveAttribute('aria-current', 'location')
+    );
+  });
+
+  it('reports the outline once it shows, and each entry picked', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    analyticsSpy.mockClear();
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithReportHeadings(),
+    });
+
+    renderView();
+
+    const outline = await screen.findByRole('navigation', {name: 'On this page'});
+    const shownCalls = () =>
+      analyticsSpy.mock.calls.filter(
+        ([key]) => key === 'seer.investigation.outline_shown'
+      );
+
+    // A narrow page hides the rail, so it takes up no space.
+    act(() => triggerResizeObservers());
+    expect(shownCalls()).toHaveLength(0);
+
+    jest.spyOn(outline, 'getBoundingClientRect').mockReturnValue({width: 200} as DOMRect);
+    act(() => triggerResizeObservers());
+    act(() => triggerResizeObservers());
+    expect(shownCalls()).toEqual([
+      [
+        'seer.investigation.outline_shown',
+        expect.objectContaining({entry_count: 4, investigation_id: 'investigation-1'}),
+      ],
+    ]);
+
+    screen.getByRole('heading', {level: 2, name: 'When it happened'}).scrollIntoView =
+      jest.fn();
+    await userEvent.click(within(outline).getByRole('link', {name: 'When it happened'}));
+
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'seer.investigation.outline_clicked',
+      expect.objectContaining({
+        entry_count: 4,
+        investigation_id: 'investigation-1',
+        kind: 'heading',
+        position: 2,
+      })
     );
   });
 
