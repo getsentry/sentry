@@ -27,6 +27,7 @@ from sentry.ai_monitoring.transcript.models import TranscriptMessageResponse
 from sentry.ai_monitoring.transcript.pagination import (
     StreamPosition,
     TranscriptPosition,
+    TranscriptWorkLimitError,
     paginate_transcript,
 )
 from sentry.ai_monitoring.transcript.source import ConversationTranscriptSource
@@ -452,10 +453,13 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
             def on_results(
                 query_result: AIConversationQueryResult,
+                *,
+                prepare: bool = True,
             ) -> AIConversationDetailsResponse:
                 spans = query_result["data"]
-                self._repair_parent_links(spans, resolved_params, conversation_id)
-                self._annotate_issues(spans, resolved_params, organization)
+                if prepare:
+                    self._repair_parent_links(spans, resolved_params, conversation_id)
+                    self._annotate_issues(spans, resolved_params, organization)
                 # Treat conversations as single-project for now. Multi-project conversations are
                 # an edge case, so this response exposes only one of their projects.
                 project_id = next(
@@ -480,8 +484,19 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     initial = StreamPosition(resolved_params.start.timestamp())
                     position = TranscriptPosition(initial, initial)
 
+                parent_cache: dict[SpanKey, SpanRow] = {}
+                fetched_parent_keys: set[SpanKey] = set()
+
                 def prepare(spans: list[SpanRow]) -> None:
-                    self._repair_parent_links(spans, resolved_params, conversation_id)
+                    self._repair_parent_links(
+                        spans,
+                        resolved_params,
+                        conversation_id,
+                        parent_cache=parent_cache,
+                        fetched_parent_keys=fetched_parent_keys,
+                    )
+
+                def annotate(spans: list[SpanRow]) -> None:
                     self._annotate_issues(spans, resolved_params, organization)
 
                 source = ConversationTranscriptSource(
@@ -493,8 +508,10 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 )
                 try:
                     page = paginate_transcript(
-                        source, position, self.get_per_page(request, 100, 1000)
+                        source, position, self.get_per_page(request, 100, 1000), annotate=annotate
                     )
+                except TranscriptWorkLimitError as error:
+                    return Response(DetailResponse(detail=str(error)), status=503)
                 except TranscriptContextError as error:
                     return Response(DetailResponse(detail=str(error)), status=400)
                 metadata = (
@@ -506,7 +523,8 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 raw = on_results(
                     AIConversationQueryResult(
                         data=emitted or metadata["data"], stats=metadata["stats"]
-                    )
+                    ),
+                    prepare=False,
                 )
                 transcript_response = AIConversationTranscriptResponse(
                     conversationId=raw["conversationId"],
@@ -721,7 +739,13 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
     @traces.trace
     def _repair_parent_links(
-        self, spans: list[SpanRow], snuba_params: SnubaParams, conversation_id: str
+        self,
+        spans: list[SpanRow],
+        snuba_params: SnubaParams,
+        conversation_id: str,
+        *,
+        parent_cache: dict[SpanKey, SpanRow] | None = None,
+        fetched_parent_keys: set[SpanKey] | None = None,
     ) -> None:
         anchors: set[SpanKey] = set()
         for span in spans:
@@ -746,8 +770,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             ):
                 pending[child_key] = (span, parent_key, {child_key})
 
-        cache = {key: span for span in spans if (key := self._span_key(span)) is not None}
-        fetched_keys: set[SpanKey] = set()
+        cache = parent_cache if parent_cache is not None else {}
+        cache.update({key: span for span in spans if (key := self._span_key(span)) is not None})
+        fetched_keys = fetched_parent_keys if fetched_parent_keys is not None else set()
         for depth in range(1, MAX_PARENT_REPAIR_DEPTH + 1):
             if not pending:
                 break

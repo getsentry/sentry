@@ -12,6 +12,7 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import 
     OrganizationAIConversationDetailsEndpoint,
 )
 from sentry.ai_monitoring.transcript.builder import TranscriptContextError
+from sentry.ai_monitoring.transcript.pagination import TranscriptWorkLimitError
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -45,6 +46,35 @@ def test_parent_fetch_groups_span_ids_by_trace() -> None:
     )
     assert run_query.call_args.kwargs["limit"] == 3
     assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_parent_repair_reuses_context_cache_between_batches() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    parent = {
+        "trace": "trace-a",
+        "span_id": "agent",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "agent",
+    }
+    first = {
+        "trace": "trace-a",
+        "span_id": "first",
+        "parent_span": "agent",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "ai_client",
+    }
+    second = {**first, "span_id": "second"}
+    cache: dict[tuple[str, str], dict[str, Any]] = {}
+    fetched: set[tuple[str, str]] = set()
+    with patch.object(Spans, "run_table_query", return_value={"data": [parent]}) as query:
+        endpoint._repair_parent_links(
+            [first], MagicMock(), "conversation", parent_cache=cache, fetched_parent_keys=fetched
+        )
+        endpoint._repair_parent_links(
+            [second], MagicMock(), "conversation", parent_cache=cache, fetched_parent_keys=fetched
+        )
+    query.assert_called_once()
+    assert first["parent_span"] == second["parent_span"] == "agent"
 
 
 def test_conversation_probe_fetches_only_span_id() -> None:
@@ -1239,6 +1269,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
     def _store_error_on_span(self, trace_id, span_id, timestamp, project=None):
         project = project or self.project
         error_data = load_data("javascript", timestamp=timestamp)
+        assert error_data is not None
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": trace_id,
@@ -1401,6 +1432,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         span_id = span["span_id"]
 
         event_data = load_data("transaction", timestamp=now)
+        assert event_data is not None
         event_data["contexts"]["trace"]["trace_id"] = trace_id
         event_data["contexts"]["trace"]["span_id"] = span_id
         event = self.store_event(event_data, project_id=self.project.id)
@@ -1822,14 +1854,24 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             )
 
     def test_transcript_context_failure_is_not_partial_success(self) -> None:
+        self._assert_transcript_context_failure(
+            TranscriptContextError("Invalid transcript source timestamp"), 400
+        )
+
+    def test_transcript_work_limit_returns_service_unavailable(self) -> None:
+        self._assert_transcript_context_failure(
+            TranscriptWorkLimitError("Transcript context exceeds the per-request server limit"), 503
+        )
+
+    def _assert_transcript_context_failure(
+        self, error: TranscriptContextError, status: int
+    ) -> None:
         now = before_now(days=1)
         with (
             self.feature("organizations:gen-ai-conversations-backend-transcript"),
             patch(
                 "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.paginate_transcript",
-                side_effect=TranscriptContextError(
-                    "Transcript context exceeds the per-request work limit"
-                ),
+                side_effect=error,
             ),
         ):
             response = self.do_request(
@@ -1841,9 +1883,54 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                     "end": now.isoformat(),
                 },
             )
-        assert response.status_code == 400
-        assert "work limit" in response.data["detail"]
+        assert response.status_code == status
+        assert response.data["detail"] == str(error)
         assert "transcript" not in response.data
+
+    def test_transcript_annotates_only_emitted_rows_once(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            trace_id=uuid4().hex,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="lookup",
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now + timedelta(seconds=10),
+            trace_id=uuid4().hex,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="another-lookup",
+        )
+
+        def annotate(spans, params, organization):
+            spans[0]["errors"] = [{"issue_id": 1}]
+
+        with (
+            self.feature("organizations:gen-ai-conversations-backend-transcript"),
+            patch.object(
+                OrganizationAIConversationDetailsEndpoint, "_annotate_issues", side_effect=annotate
+            ) as annotate_issues,
+        ):
+            response = self.do_request(
+                conversation_id,
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "per_page": 1,
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                },
+            )
+        assert response.status_code == 200, response.data
+        annotate_issues.assert_called_once()
+        assert len(annotate_issues.call_args.args[0]) == 1
+        assert response.data["transcript"][0]["toolCalls"][0]["hasError"] is True
+        assert response.data["complete"] is False
 
     def test_transcript_empty_conversation(self) -> None:
         now = before_now(days=1)

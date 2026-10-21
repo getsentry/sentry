@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -13,10 +14,14 @@ from sentry.ai_monitoring.transcript.builder import (
 )
 from sentry.ai_monitoring.transcript.models import TranscriptMessageResponse
 from sentry.ai_monitoring.transcript.pagination import (
+    Context,
     StreamPosition,
     TranscriptPosition,
+    TranscriptWorkLimitError,
     paginate_transcript,
 )
+from sentry.ai_monitoring.transcript.source import ConversationTranscriptSource
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils import json
 
 
@@ -38,6 +43,13 @@ class MemorySource:
     def __init__(self, rows: Sequence[Row]) -> None:
         self.rows = rows
         self.reads = 0
+        self.previous_calls = 0
+        self.previous_rows = 0
+        self.prepared_rows = 0
+
+    def prepare(self, rows: Sequence[Row]) -> Sequence[Row]:
+        self.prepared_rows += len(rows)
+        return rows
 
     def scan(self, stream: Stream, position: StreamPosition, limit: int) -> Sequence[Row]:
         rows = sorted(
@@ -61,12 +73,29 @@ class MemorySource:
             key=lambda row: (source_time(row, "start"), source_key(row)),
         )[offset : offset + limit]
 
-    def previous(self, generation: Row, offset: int, limit: int) -> Sequence[Row]:
-        return sorted(
-            (row for row in self.rows if source_time(row, "end") <= source_time(generation, "end")),
+    def previous(
+        self, generation: Row, offset: int, limit: int, *, agent: Row | None
+    ) -> Sequence[Row]:
+        self.previous_calls += 1
+        rows = sorted(
+            (
+                row
+                for row in self.rows
+                if source_key(row)[0] == source_key(generation)[0]
+                and source_time(row, "end") <= source_time(generation, "end")
+                and (
+                    agent is None
+                    or (
+                        source_key(row)[1] == source_key(generation)[1]
+                        and source_time(row, "end") >= source_time(agent, "start")
+                    )
+                )
+            ),
             key=lambda row: (source_time(row, "end"), source_key(row)),
             reverse=True,
         )[offset : offset + limit]
+        self.previous_rows += len(rows)
+        return rows
 
 
 def collect(rows: Sequence[Row], per_page: int) -> list[TranscriptMessageResponse]:
@@ -234,9 +263,9 @@ def test_large_conversation_does_not_reconstruct_prefix() -> None:
 
 
 def test_context_budget_is_explicit_not_partial_success() -> None:
-    with pytest.raises(TranscriptContextError, match="work limit"):
+    with pytest.raises(TranscriptWorkLimitError, match="server limit"):
         paginate_transcript(
-            MemorySource([span("one", 1, 2)]),
+            MemorySource([span("one", 1, 2), span("two", 3, 4)]),
             TranscriptPosition(StreamPosition(0), StreamPosition(0)),
             1,
             budget=1,
@@ -522,3 +551,155 @@ def test_reasoning_placeholder_preserves_captured_content(
     )
     assert messages[1]["content"] == "answer"
     assert messages[1].get("reasoning") == expected
+
+
+def test_context_budget_and_preparation_count_unique_rows() -> None:
+    row = span("one", 1, 2)
+    source = MemorySource([row])
+    context = Context(source, budget=1)
+    context.add([row, dict(row)])
+    context.add([dict(row)])
+    assert context.work == 1
+    assert len(context.rows) == 1
+    assert source.prepared_rows == 1
+
+
+@pytest.mark.parametrize("per_page", [1, 100])
+@pytest.mark.parametrize("separate_traces", [False, True])
+def test_many_agents_do_not_scan_conversation_history(per_page: int, separate_traces: bool) -> None:
+    rows = []
+    for index in range(300):
+        trace = f"trace-{index}" if separate_traces else "trace-a"
+        rows.extend(
+            [
+                span(
+                    f"agent-{index}",
+                    index * 4,
+                    index * 4 + 3,
+                    **{
+                        "trace": trace,
+                        "gen_ai.operation.type": "agent",
+                        "gen_ai.input.messages": "",
+                        "gen_ai.output.messages": "",
+                    },
+                ),
+                span(
+                    f"generation-{index}",
+                    index * 4 + 1,
+                    index * 4 + 2,
+                    **{
+                        "trace": trace,
+                        "parent_span": f"agent-{index}",
+                        "gen_ai.input.messages": json.dumps(
+                            [
+                                {"role": "system", "content": "Be helpful"},
+                                {"role": "user", "content": "question"},
+                            ]
+                        ),
+                    },
+                ),
+            ]
+        )
+    position = TranscriptPosition(StreamPosition(0), StreamPosition(0))
+    messages: list[TranscriptMessageResponse] = []
+    has_more = True
+    for _ in range(600 // per_page):
+        source = MemorySource(rows)
+        page = paginate_transcript(source, position, per_page, budget=500)
+        assert source.previous_calls <= per_page // 2 + 51
+        assert source.previous_rows <= per_page + 102
+        assert source.prepared_rows == page.context_rows
+        messages.extend(page.items)
+        position = page.position
+        has_more = page.has_more
+    assert has_more is False
+    assert messages == build_transcript(rows)
+    assert len(messages) == 600
+
+
+def test_agent_predecessor_keeps_exact_scope_for_nested_agents() -> None:
+    rows = [
+        span("outer", 0, 20, **{"gen_ai.operation.type": "agent"}),
+        span("previous", 1, 2, **{"parent_span": "outer"}),
+        span("inner", 5, 10, **{"parent_span": "outer", "gen_ai.operation.type": "agent"}),
+        span("nested", 6, 7, **{"parent_span": "inner"}),
+        span(
+            "current",
+            11,
+            12,
+            **{
+                "parent_span": "outer",
+                "gen_ai.input.messages": json.dumps(
+                    [
+                        {"role": "user", "content": "question"},
+                        {"role": "assistant", "content": "answer"},
+                    ]
+                ),
+            },
+        ),
+    ]
+    source = MemorySource(rows)
+    page = paginate_transcript(
+        source, TranscriptPosition(StreamPosition(11), StreamPosition(11)), 10
+    )
+    assert source.previous_calls == 1
+    assert [(message["role"], message["nodeId"]) for message in page.items] == [
+        ("assistant", "current")
+    ]
+
+
+def test_annotations_run_once_and_update_emitted_error_flags() -> None:
+    tool = span("tool", 1, 2, **{"gen_ai.operation.type": "tool", "gen_ai.tool.name": "lookup"})
+
+    def annotate(rows: list[dict[str, object]]) -> None:
+        rows[0]["errors"] = [{"issue_id": 1}]
+
+    callback = Mock(side_effect=annotate)
+    page = paginate_transcript(
+        MemorySource([tool]),
+        TranscriptPosition(StreamPosition(0), StreamPosition(0)),
+        1,
+        annotate=callback,
+    )
+    callback.assert_called_once()
+    assert len(callback.call_args.args[0]) == 1
+    assert page.items[0].get("toolCalls") == [
+        {"name": "lookup", "nodeId": "tool", "hasError": True, "duration": 1}
+    ]
+
+
+def test_storage_predecessor_query_is_bounded_to_agent_trace_and_start() -> None:
+    source = ConversationTranscriptSource(MagicMock(), "conversation", [], Mock(), 5)
+    agent = span("agent", 20, 40, **{"gen_ai.operation.type": "agent"})
+    generation = span("generation", 30, 35)
+    with patch.object(Spans, "run_table_query", return_value={"data": []}) as query:
+        source.previous(generation, 0, 10, agent=agent)
+    assert query.call_args.kwargs["query_string"] == (
+        '(gen_ai.conversation.id:"conversation") '
+        '(project.id:1 precise.finish_ts:<=35.000000000 trace:"trace-a" '
+        "precise.finish_ts:>=20.000000000)"
+    )
+    assert query.call_args.kwargs["limit"] == 10
+
+
+def test_root_predecessor_query_preserves_cross_trace_scope() -> None:
+    source = ConversationTranscriptSource(MagicMock(), "conversation", [], Mock(), 5)
+    with patch.object(Spans, "run_table_query", return_value={"data": []}) as query:
+        source.previous(span("generation", 30, 35), 0, 10, agent=None)
+    assert query.call_args.kwargs["query_string"] == (
+        '(gen_ai.conversation.id:"conversation") (project.id:1 precise.finish_ts:<=35.000000000)'
+    )
+
+
+def test_storage_reads_do_not_prepare_duplicate_stream_rows() -> None:
+    prepare = Mock()
+    source = ConversationTranscriptSource(MagicMock(), "conversation", [], prepare, 5)
+    row = span("generation", 1, 2)
+    with patch.object(Spans, "run_table_query", return_value={"data": [row]}) as query:
+        page = paginate_transcript(
+            source, TranscriptPosition(StreamPosition(0), StreamPosition(0)), 10
+        )
+    assert query.call_count == 2
+    prepare.assert_called_once()
+    assert len(prepare.call_args.args[0]) == 1
+    assert len(page.items) == 2

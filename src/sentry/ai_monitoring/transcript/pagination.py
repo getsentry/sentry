@@ -4,9 +4,9 @@ Cursors carry source positions, not deduplication history. Pagination determines
 which events belong to a page; transcript.builder owns their semantics.
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 from sentry.ai_monitoring.transcript.builder import (
     EventKey,
@@ -31,6 +31,10 @@ BATCH_SIZE = 100
 MAX_CONTEXT_ROWS = 10_000
 
 
+class TranscriptWorkLimitError(TranscriptContextError):
+    pass
+
+
 @dataclass(frozen=True, slots=True)
 class StreamPosition:
     timestamp: float
@@ -48,7 +52,10 @@ class TranscriptSource(Protocol):
     def scan(self, stream: Stream, position: StreamPosition, limit: int) -> Sequence[Row]: ...
     def parents(self, keys: Sequence[SourceKey]) -> Sequence[Row]: ...
     def children(self, agent: Row, offset: int, limit: int) -> Sequence[Row]: ...
-    def previous(self, generation: Row, offset: int, limit: int) -> Sequence[Row]: ...
+    def previous(
+        self, generation: Row, offset: int, limit: int, *, agent: Row | None
+    ) -> Sequence[Row]: ...
+    def prepare(self, rows: Sequence[Row]) -> Sequence[Row]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,12 +77,13 @@ class Context(TranscriptContext):
     previous_checked: set[SourceKey] = field(default_factory=set)
 
     def add(self, rows: Sequence[Row]) -> None:
-        self.work += len(rows)
+        new_rows = {source_key(row): row for row in rows if source_key(row) not in self.rows}
+        self.work += len(new_rows)
         if self.work > self.budget:
-            raise TranscriptContextError(
-                "Transcript context exceeds the per-request work limit; request a smaller page"
+            raise TranscriptWorkLimitError(
+                "Transcript context exceeds the per-request server limit"
             )
-        for row in rows:
+        for row in self.source.prepare(list(new_rows.values())):
             if source_time(row, "end") < source_time(row, "start"):
                 raise TranscriptContextError("Cannot paginate a span ending before its start")
             self.rows[source_key(row)] = row
@@ -141,6 +149,7 @@ class Context(TranscriptContext):
                 continue
             target = source_time(generation, "end"), *key
             scope = self.scope(generation)
+            agent = self.rows.get(scope)
             # The end stream is contiguous. An in-stream predecessor is exact;
             # only its left boundary requires an additional storage lookup.
             if (
@@ -156,9 +165,10 @@ class Context(TranscriptContext):
                 continue
             offset = 0
             while True:
-                candidates = self.source.previous(generation, offset, 10)
+                candidates = self.source.previous(generation, offset, 10, agent=agent)
                 self.add(candidates)
                 self.close_parents()
+                candidates = [self.rows[source_key(row)] for row in candidates]
                 match = next(
                     (
                         row
@@ -196,7 +206,7 @@ class _Buffer:
             )
         batch = list(context.source.scan(self.stream, position, BATCH_SIZE))
         context.add(batch)
-        self.rows.extend(batch)
+        self.rows.extend(context.rows[source_key(row)] for row in batch)
         self.exhausted = len(batch) < BATCH_SIZE
 
     def frontier(self) -> EventKey | None:
@@ -228,6 +238,7 @@ def paginate_transcript(
     limit: int,
     *,
     budget: int = MAX_CONTEXT_ROWS,
+    annotate: Callable[[list[dict[str, Any]]], None] | None = None,
 ) -> TranscriptPage:
     if not 1 <= limit <= 1000:
         raise ValueError("Transcript page size must be between 1 and 1000")
@@ -259,10 +270,17 @@ def paginate_transcript(
     )
     has_more = len(selected) > limit or any(not buffer.exhausted for buffer in buffers)
     emitted = {event.source for event in page_events}
+    source_rows = [dict(context.rows[key]) for key in sorted(emitted)]
+    if annotate is not None and source_rows:
+        annotate(source_rows)
+        context.rows.update((source_key(row), row) for row in source_rows)
+        # Issue annotations affect tool/embedding error flags, not event ownership or ordering.
+        page_keys = {event.key for event in page_events}
+        page_events = [event for event in normalize_events(context) if event.key in page_keys]
     return TranscriptPage(
         tuple(event.message for event in page_events),
         next_position,
         has_more,
-        tuple(owned[key] for key in sorted(emitted)),
+        tuple(source_rows),
         len(context.rows),
     )
