@@ -226,11 +226,11 @@ function DropdownMenuList({
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
 
-  // If this is a submenu, pressing arrow left should close it (but not the
-  // root menu).
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
       const menuItems = menuRef.current?.querySelectorAll('[role^="menuitem"]');
+      // When keyboard navigation wraps past the last item, show the top of the
+      // list again so the search field and first item are visible.
       if (
         e.key === 'ArrowDown' &&
         searchRef.current &&
@@ -239,6 +239,7 @@ function DropdownMenuList({
       ) {
         menuRef.current.scrollTop = 0;
       }
+      // Move from the first item back to search before leaving the submenu.
       if (
         e.key === 'ArrowUp' &&
         searchRef.current &&
@@ -250,6 +251,7 @@ function DropdownMenuList({
         searchRef.current.focus();
         return;
       }
+      // ArrowLeft closes a submenu, but leaves the root menu open.
       if (e.key === 'ArrowLeft' && parentMenuState) {
         parentMenuState.selectionManager.clearSelection();
         return;
