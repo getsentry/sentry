@@ -86,6 +86,14 @@ class ResolvedColumn:
     secondary_alias: bool = False
     is_aggregate: bool
 
+    def __post_init__(self) -> None:
+        # Without ignore_case, snuba parses ID values as UUIDs or integers and errors on anything
+        # else, so only validated and normalized values are safe to send in canonical case.
+        if self.canonical_case and (self.validator is None or self.normalizer is None):
+            raise ValueError(
+                f"{self.public_alias} needs a validator and normalizer to use canonical_case"
+            )
+
     def process_column(self, value: Any) -> Any:
         """Given the value from results, return a processed value if a processor is defined otherwise return it"""
         if self.processor:
