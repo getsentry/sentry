@@ -62,3 +62,32 @@ def pytest_fixture_setup(fixturedef, request):
     took = time.time() - start
     if took > 0.2 and (_tests_seen <= 1 or fixturedef.scope != "function"):
         _log(f"fixture {fixturedef.scope}:{fixturedef.argname} {took:.2f}s")
+
+
+def _wrap(owner, name, label):
+    original = getattr(owner, name)
+
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        try:
+            return original(*args, **kwargs)
+        finally:
+            _log(f"{label} {time.time() - start:.2f}s")
+
+    setattr(owner, name, wrapper)
+
+
+def pytest_configure(config):
+    from django.db.backends.base.creation import BaseDatabaseCreation
+    from selenium.webdriver.common.selenium_manager import SeleniumManager
+
+    original_run = SeleniumManager.run
+
+    def run(args):
+        start = time.time()
+        output = original_run(args)
+        _log(f"selenium-manager {time.time() - start:.2f}s -> {output.get('driver_path')}")
+        return output
+
+    SeleniumManager.run = staticmethod(run)
+    _wrap(BaseDatabaseCreation, "create_test_db", "create_test_db")
