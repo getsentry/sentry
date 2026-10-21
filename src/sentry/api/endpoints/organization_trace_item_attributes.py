@@ -336,7 +336,7 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 # Maps sentry-convention attribute types to EAP search types. Array and "any"
 # convention types aren't representable as a single search type, so they're
 # omitted and treated as "no type constraint" when matching.
-_CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, ColumnType] = {
+_CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
     "string": "string",
     "boolean": "boolean",
     "integer": "number",
