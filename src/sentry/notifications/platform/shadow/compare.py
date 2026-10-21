@@ -277,6 +277,9 @@ def _compare_with_platform(
 
     if not entries:
         return ShadowResult(outcome=ShadowOutcome.MATCH)
+    # The group can change after the check above, while the platform renders.
+    if source == NotificationSource.ISSUE and _group_changed(invocation):
+        return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)
     # Stats drift is the same race `_group_changed` catches, in values it doesn't compare.
     if stats_only:
         return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)

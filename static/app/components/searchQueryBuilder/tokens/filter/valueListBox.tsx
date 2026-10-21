@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
