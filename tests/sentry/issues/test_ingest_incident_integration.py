@@ -77,6 +77,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         self,
         group_type: int = MetricIssue.type_id,
         priority: int = DetectorPriorityLevel.HIGH,
+        fingerprint: str = "test-fingerprint",
     ) -> tuple[IssueOccurrence, GroupInfo]:
         event = self.store_event(
             data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
@@ -86,7 +87,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             "id": "1",
             "project_id": self.project.id,
             "event_id": event.event_id,
-            "fingerprint": ["test-fingerprint"],
+            "fingerprint": [fingerprint],
             "issue_title": "Test Issue",
             "subtitle": "Test Subtitle",
             "resource_id": None,
@@ -196,4 +197,28 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         open_period.refresh_from_db()
         assert open_period.date_ended is None
         assert not Incident.objects.exists()
+        assert not IncidentGroupOpenPeriod.objects.exists()
+
+    def test_resolve_previous_activation_after_next_activation_opened(self) -> None:
+        self.assert_overlapping_activations_resolve_independently(resolve_first=True)
+
+    def test_resolve_next_activation_while_previous_activation_still_open(self) -> None:
+        self.assert_overlapping_activations_resolve_independently(resolve_first=False)
+
+    def assert_overlapping_activations_resolve_independently(self, resolve_first: bool) -> None:
+        _, first = self.save_issue_occurrence(fingerprint="activation-1")
+        _, second = self.save_issue_occurrence(fingerprint="activation-2")
+        resolved, active = (
+            (first.group, second.group) if resolve_first else (second.group, first.group)
+        )
+
+        with self.tasks():
+            update_status(resolved, self.mock_status_change_message)
+
+        resolved.refresh_from_db()
+        active.refresh_from_db()
+        assert resolved.status == GroupStatus.RESOLVED
+        assert GroupOpenPeriod.objects.get(group=resolved).date_ended is not None
+        assert active.status == GroupStatus.UNRESOLVED
+        assert GroupOpenPeriod.objects.get(group=active).date_ended is None
         assert not IncidentGroupOpenPeriod.objects.exists()
