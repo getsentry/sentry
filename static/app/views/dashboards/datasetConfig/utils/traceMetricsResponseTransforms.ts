@@ -46,11 +46,7 @@ function formatMetricsTimeseriesLabel({
 
 export const traceMetricsResponseTransforms: Pick<
   DatasetConfig<EventsTimeSeriesResponse, EventsTableData>,
-  | 'transformTable'
-  | 'transformSeries'
-  | 'transformTimeSeries'
-  | 'getSeriesResultType'
-  | 'getSeriesResultUnit'
+  'transformTable' | 'transformTimeSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
 > = {
   transformTable: (data, widgetQuery) => {
     const transformedData = transformEventsResponseToTable(data, widgetQuery);
@@ -68,25 +64,6 @@ export const traceMetricsResponseTransforms: Pick<
       });
     }
     return transformedData;
-  },
-  transformSeries: (data, widgetQuery) => {
-    return data.timeSeries.map(timeSeries => {
-      // The function should always be defined when dealing with a successful
-      // time series response
-      return {
-        data: timeSeries.values.map(value => ({
-          name: value.timestamp,
-          value: value.value ?? 0,
-        })),
-
-        seriesName: formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        }),
-        timeSeries,
-        ingestion: data.meta?.ingestion,
-      };
-    });
   },
   transformTimeSeries: (data, widget, queryIndex) =>
     transformTimeSeriesResponse(data, widget, queryIndex, {

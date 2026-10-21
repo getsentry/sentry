@@ -10,7 +10,6 @@ import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/
 import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
-import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 
@@ -60,7 +59,7 @@ interface TransformedSeries {
  * query configuration, and computes a display label that matches the chart legend.
  */
 export function transformWidgetSeriesToTimeSeries(
-  series: WidgetSeries,
+  series: Series,
   widget: Widget,
   timeseriesResultsTypes?: Record<string, AggregationOutputType>,
   timeseriesResultsUnits?: Record<string, DataUnit>
@@ -120,7 +119,7 @@ export function transformWidgetSeriesToTimeSeries(
     aggregates[0] ??
     '';
 
-  const timeSeriesFromLegacySeries = transformLegacySeriesToTimeSeries(
+  const timeSeries = transformLegacySeriesToTimeSeries(
     effectiveSeries,
     timeseriesResultsTypes,
     timeseriesResultsUnits,
@@ -129,36 +128,9 @@ export function transformWidgetSeriesToTimeSeries(
     effectiveQueryName
   );
 
-  if (!timeSeriesFromLegacySeries) {
+  if (!timeSeries) {
     return null;
   }
-
-  // If there exists a timeSeries payload, we merge it with the
-  // legacy series, since timeSeries carries metadata that the
-  // legacy series does not. ie incomplete buckets, etc.
-  const originalGroupBy = series.timeSeries?.groupBy;
-  const timeSeries: TimeSeries = series.timeSeries
-    ? {
-        ...timeSeriesFromLegacySeries,
-        // The group by parsed from the series name loses nulls and arrays, so use the
-        // response's when its keys are the widget's columns (table matching relies on them)
-        groupBy:
-          originalGroupBy && originalGroupBy.every(({key}) => columns.includes(key))
-            ? originalGroupBy
-            : timeSeriesFromLegacySeries.groupBy,
-        values: series.timeSeries.values.map(item => ({
-          ...item,
-          value: item.value ?? 0,
-        })),
-        meta: {
-          ...series.timeSeries.meta,
-          // Use the widget's value type and unit, not the response, since some datasets
-          // override them (e.g., mobile app size is always bytes)
-          valueType: timeSeriesFromLegacySeries.meta.valueType,
-          valueUnit: timeSeriesFromLegacySeries.meta.valueUnit,
-        },
-      }
-    : timeSeriesFromLegacySeries;
 
   const label = formatTimeSeriesLabelForWidgetQuery(timeSeries, widget, widgetQuery);
 
