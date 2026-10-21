@@ -16,6 +16,7 @@ import {
   encodeMetricQueryParams,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {
+  LocalMultiMetricsQueryParamsProvider,
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
@@ -84,6 +85,18 @@ function SelectMetricsWhenEmptyWrapper({children}: {children: ReactNode}) {
       <SelectMetricWhenEmpty index={1} />
       {children}
     </MultiMetricsQueryParamsProvider>
+  );
+}
+
+function LocalWrapper({children}: {children: ReactNode}) {
+  return (
+    <LocalMultiMetricsQueryParamsProvider
+      initialQueries={['foo', 'bar', 'baz'].map(name =>
+        decodeMetricsQueryParams(canonicalMetricQueryParam(name))!
+      )}
+    >
+      {children}
+    </LocalMultiMetricsQueryParamsProvider>
   );
 }
 
@@ -717,6 +730,28 @@ describe('MultiMetricsQueryParamsProvider', () => {
     expect(result.current.map(metricQuery => metricQuery.metric.name)).toEqual([
       'external',
       'edited',
+    ]);
+  });
+
+  it('applies same-tick updates in order when local state defers them', () => {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: LocalWrapper,
+    });
+    const [first, , third] = result.current;
+
+    act(() => {
+      first!.setQueryParams(first!.queryParams.replace({query: 'span.op:http'}));
+      third!.setQueryParams(third!.queryParams.replace({query: 'span.op:db'}));
+      first!.removeMetric();
+    });
+
+    expect(result.current.map(metricQuery => metricQuery.metric.name)).toEqual([
+      'bar',
+      'baz',
+    ]);
+    expect(result.current.map(metricQuery => metricQuery.queryParams.query)).toEqual([
+      '',
+      'span.op:db',
     ]);
   });
 

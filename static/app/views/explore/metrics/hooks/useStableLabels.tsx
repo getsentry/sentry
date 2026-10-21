@@ -75,12 +75,6 @@ function parseEquationIndex(label: string): number {
  * When the ref length doesn't match the query count (fresh load or external
  * navigation), labels are reassigned sequentially.
  */
-let nextRowId = 0;
-
-function createRowIds(count: number): string[] {
-  return Array.from({length: count}, () => String(nextRowId++));
-}
-
 export function useStableLabels(queries: BaseMetricQuery[]) {
   const labelsRef = useRef<string[]>([]);
   const rowIdsRef = useRef<string[]>([]);
@@ -136,4 +130,10 @@ function moveItem<T>(items: readonly T[], from: number, to: number): T[] {
   const next = [...items];
   next.splice(to, 0, ...next.splice(from, 1));
   return next;
+}
+
+let nextRowId = 0;
+
+function createRowIds(count: number): string[] {
+  return Array.from({length: count}, () => String(nextRowId++));
 }
