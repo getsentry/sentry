@@ -19,7 +19,10 @@ from sentry.seer.autofix.pr_iteration.emit import (
     complete_pr_iteration_details,
     outcome_for_failed_run,
 )
-from sentry.seer.autofix.pr_iteration.feedback import latest_iteration_feedback_kind
+from sentry.seer.autofix.pr_iteration.feedback import (
+    latest_iteration_feedback_kind,
+    latest_iteration_is_explicit_request,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.iterations import (
     get_iterations,
@@ -409,6 +412,7 @@ def pr_iteration_push_outcome(
         run_id,
         state,
         author=_iteration_commit_author(state),
+        allow_force_push=latest_iteration_is_explicit_request(state),
     )
     return None if pushed else PrIterationOutcome.PUSH_FAILED
 
@@ -420,6 +424,7 @@ def _push_iteration_changes(
     run_id: int,
     state: SeerRunState,
     author: SeerCommitAuthor | None = None,
+    allow_force_push: bool = True,
 ) -> bool:
     try:
         trigger_push_changes(
@@ -431,6 +436,7 @@ def _push_iteration_changes(
                 "organizations:autofix-verify-pr-content", organization=group.organization
             ),
             author=author,
+            allow_force_push=allow_force_push,
         )
     except Exception as e:
         log_ctx.error(

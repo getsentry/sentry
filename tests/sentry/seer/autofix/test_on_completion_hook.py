@@ -414,6 +414,19 @@ class TestPrIterationStepMetrics(TestCase):
             sample_rate=1.0,
         )
 
+    def test_only_an_explicit_iteration_may_force_push(self, _mock_metrics, _mock_complete) -> None:
+        for feedback, allowed in (
+            (_manual_feedback(), True),
+            ([_check_suite_feedback()], False),
+        ):
+            with (
+                patch(f"{COMPLETION_PATH}.iteration_prs_any_closed", return_value=False),
+                patch(f"{COMPLETION_PATH}.trigger_push_changes") as mock_push,
+            ):
+                self._run(_unsynced_state(feedback=feedback))
+
+            assert mock_push.call_args.kwargs["allow_force_push"] is allowed
+
     def test_a_failed_push_counts_the_start_only(self, mock_metrics, _mock_complete) -> None:
         with (
             patch(f"{COMPLETION_PATH}.iteration_prs_any_closed", return_value=False),
