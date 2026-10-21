@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
@@ -52,7 +52,6 @@ interface OrganizationDropdownProps {
 }
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
-  const [projectSearch, setProjectSearch] = useState('');
   const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
   const theme = useTheme();
@@ -96,11 +95,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     return (
       <DropdownMenu
         usePortal
-        onOpenChange={isOpen => {
-          if (!isOpen) {
-            setProjectSearch('');
-          }
-        }}
         portalContainerRef={portalContainerRef}
         zIndex={theme.zIndex.modal}
         trigger={trigger}
@@ -169,11 +163,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 submenu: {
                   title: t('All Projects'),
                   emptyMessage: t('No projects found'),
-                  search: {
-                    value: projectSearch,
-                    onChange: setProjectSearch,
-                    placeholder: t('Search'),
-                  },
+                  search: {placeholder: t('Search')},
                   maxMenuHeight: 240,
                   menuWidth: 258,
                 },
