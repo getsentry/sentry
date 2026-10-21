@@ -11,11 +11,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.context import GroupingContext
-from sentry.grouping.fingerprinting import (
-    FingerprintingConfig,
-    normalize_unicode_arrows,
-    validate_config_string,
-)
+from sentry.grouping.fingerprinting import FingerprintingConfig, validate_config_string
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.fingerprinting.utils import resolve_fingerprint_values
 from sentry.grouping.strategies.base import StrategyConfiguration
@@ -233,23 +229,21 @@ def test_parsing_error_messages(config: str, message: str) -> None:
         ("error.type:A → a", "error.type:A -> a"),
         ("error.type:A → a\r\nerror.type:B → b", "error.type:A -> a\r\nerror.type:B -> b"),
         ('message:"a → b" → b', 'message:"a → b" -> b'),
-        ('message:"a → b" -> b', 'message:"a → b" -> b'),
-        ("error.type:A -> a→b", "error.type:A -> a→b"),
-        ("# a → b", "# a → b"),
+        ("# a → b\nerror.type:A → a", "# a → b\nerror.type:A -> a"),
+        # Quoted values can span lines, so a `→` on its own line can be part of an existing rule
+        ('message:"a\n→ b\nc" -> x', 'message:"a\n→ b\nc" -> x'),
+        (
+            'message:"a\n→ b\nc" -> x\nerror.type:A → a',
+            'message:"a\n→ b\nc" -> x\nerror.type:A -> a',
+        ),
+        (
+            'message:old -> "a\n→ b\nc"\nerror.type:A → a',
+            'message:old -> "a\n→ b\nc"\nerror.type:A -> a',
+        ),
     ],
 )
-def test_normalize_unicode_arrows(config: str, expected: str) -> None:
-    assert normalize_unicode_arrows(config) == expected
-
-
-def test_validate_config_string_normalizes_unicode_arrows() -> None:
-    assert validate_config_string("error.type:A → a") == "error.type:A -> a"
-
-
-def test_validate_config_string_keeps_valid_configs() -> None:
-    # A quoted value can span lines, so a `→` on its own line can be part of a valid pattern
-    config = 'message:"a\n→ b\nc" -> x'
-    assert validate_config_string(config) == config
+def test_validate_config_string_unicode_arrows(config: str, expected: str) -> None:
+    assert validate_config_string(config) == expected
 
 
 def test_validate_config_string_reports_remaining_errors() -> None:

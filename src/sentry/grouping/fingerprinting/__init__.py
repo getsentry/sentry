@@ -34,33 +34,52 @@ def _blank_quoted_strings(line: str) -> str:
     return QUOTED_STRING_REGEX.sub(lambda m: " " * len(m.group()), line)
 
 
-def normalize_unicode_arrows(config: str) -> str:
-    """Replace a `→` used as a rule's arrow with `->`, leaving any inside quoted values alone."""
-    lines = config.split("\n")
-    for i, line in enumerate(lines):
-        unquoted_line = _blank_quoted_strings(line)
-        if unquoted_line.lstrip().startswith("#") or "->" in unquoted_line:
-            continue
-        arrow = unquoted_line.find("→")
-        if arrow != -1:
-            lines[i] = line[:arrow] + "->" + line[arrow + 1 :]
-    return "\n".join(lines)
+def _find_unicode_arrow(config: str, rule_start: int) -> int | None:
+    """
+    Find a `→` written in place of `->` in the rule starting at `rule_start`, skipping quoted
+    strings (which can span lines). Returns None if the rule already has a `->`.
+    """
+    if config[config.rfind("\n", 0, rule_start) + 1 : rule_start].strip():
+        # The parser stopped partway through a line rather than at the start of a rule
+        return None
+
+    arrow = None
+    in_quote = False
+    i = rule_start
+    while i < len(config) and (in_quote or config[i] != "\n"):
+        if in_quote:
+            if config[i] == "\\":
+                i += 1
+            elif config[i] == '"':
+                in_quote = False
+        elif config[i] == '"':
+            in_quote = True
+        elif config.startswith("->", i):
+            return None
+        elif config[i] == "→" and arrow is None:
+            arrow = i
+        i += 1
+    return arrow
 
 
 def validate_config_string(config: str) -> str:
     """
     Check that a config parses, returning the string to save. A config that already parses is
-    returned unchanged; otherwise any `→` used as an arrow is replaced and the result is checked.
+    returned unchanged. Otherwise each rule the parser rejects for using `→` in place of `->` is
+    fixed, and the result is checked again.
     """
-    try:
-        FingerprintingConfig.from_config_string(config)
-        return config
-    except InvalidFingerprintingConfig:
-        normalized = normalize_unicode_arrows(config)
-        if normalized == config:
-            raise
-    FingerprintingConfig.from_config_string(normalized)
-    return normalized
+    while True:
+        try:
+            fingerprinting_grammar.parse(config)
+        except ParseError as e:
+            arrow = _find_unicode_arrow(config, e.pos)
+            if arrow is None:
+                raise InvalidFingerprintingConfig(_describe_syntax_error(e))
+            config = config[:arrow] + "->" + config[arrow + 1 :]
+        else:
+            # Parse fully as well, which checks matcher names and attributes
+            FingerprintingConfig.from_config_string(config)
+            return config
 
 
 def _describe_syntax_error(e: ParseError) -> str:
