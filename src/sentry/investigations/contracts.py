@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import Any, Literal, TypedDict, cast
 
 import orjson
 from django.utils import timezone
@@ -722,6 +722,27 @@ MAX_REPORT_BLOCKS = 200
 MAX_ACTION_REQUESTS = 50
 ACTION_REQUEST_KEY_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
 ANCHOR_TYPES = ("block", "hypothesis")
+
+
+class ActionRequestAnchor(TypedDict):
+    type: Literal["block", "hypothesis"]
+    id: str
+
+
+class ActionRequestItem(TypedDict):
+    """One request from Seer, after the contract validated it."""
+
+    key: str
+    reportRevision: int
+    title: str
+    rationale: str
+    impact: str | None
+    primary: bool
+    anchor: ActionRequestAnchor | None
+    # Owned by the action kind; only the kind reads inside it.
+    action: dict[str, Any] | None
+
+
 MAX_TEXT_DELTA_CHARS = 64 * 1024
 MAX_SUMMARY_DESCRIPTION_CHARS = 10_000
 
@@ -860,7 +881,7 @@ def _trimmed(item: Any, *, log: bool) -> Any:
     return {**item, "action": trimmed}
 
 
-def valid_action_request(item: Any, *, log: bool = False) -> dict[str, Any] | None:
+def valid_action_request(item: Any, *, log: bool = False) -> ActionRequestItem | None:
     """The request Sentry can store, or None.
 
     Seer can ship kinds, providers, or fields Sentry does not know yet, so a bad request is
@@ -869,7 +890,7 @@ def valid_action_request(item: Any, *, log: bool = False) -> dict[str, Any] | No
     trimmed = _trimmed(item, log=log)
     validator = ActionRequestSerializer(data=trimmed)
     if validator.is_valid():
-        return dict(validator.validated_data)
+        return cast(ActionRequestItem, dict(validator.validated_data))
     if log:
         logger.warning(
             "investigations.action_requests.dropped",
@@ -878,8 +899,8 @@ def valid_action_request(item: Any, *, log: bool = False) -> dict[str, Any] | No
     return None
 
 
-def valid_action_requests(items: list[Any], *, log: bool = False) -> list[dict[str, Any]]:
-    kept: list[dict[str, Any]] = []
+def valid_action_requests(items: list[Any], *, log: bool = False) -> list[ActionRequestItem]:
+    kept: list[ActionRequestItem] = []
     for item in items[:MAX_ACTION_REQUESTS]:
         request = valid_action_request(item, log=log)
         if request is not None and all(other["key"] != request["key"] for other in kept):
@@ -890,7 +911,7 @@ def valid_action_requests(items: list[Any], *, log: bool = False) -> list[dict[s
 class ActionRequestedPayloadSerializer(RelaxedContractSerializer):
     request = serializers.JSONField()
 
-    def validate_request(self, value: Any) -> dict[str, Any] | None:
+    def validate_request(self, value: Any) -> ActionRequestItem | None:
         return valid_action_request(value, log=self.context.get("log_drops", False))
 
 

@@ -783,3 +783,22 @@ def test_trimmed_actions_are_logged_only_when_asked() -> None:
         assert valid_action_request(advice, log=True) is not None
         logger.warning.assert_called_once()
         assert logger.warning.call_args.args == ("investigations.action_requests.action_trimmed",)
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        {
+            "kind": "update_detector",
+            "detectorId": "4821",
+            "before": {"timeWindowSeconds": 300},
+            "changes": {"timeWindowSeconds": 900},
+        },
+        {"kind": "connect_telemetry", "provider": "datadog"},
+    ],
+)
+def test_registered_kinds_validate_their_actions(action: dict[str, Any]) -> None:
+    result = requested(action_request(action=action))
+
+    assert result is not None
+    assert result["action"] == action

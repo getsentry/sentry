@@ -12,6 +12,7 @@ from sentry.investigations.contracts import (
     StrictFloatField,
     StrictIntegerField,
 )
+from sentry.investigations.services.action_kinds.base import ActionKind
 
 UPDATE_DETECTOR_ACTION = "update_detector"
 
@@ -92,3 +93,8 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
             "before": {key: before[key] for key in kept},
             "changes": {key: changes[key] for key in kept},
         }
+
+
+class UpdateDetectorKind(ActionKind):
+    kind = UPDATE_DETECTOR_ACTION
+    payload_serializer = UpdateDetectorActionSerializer
