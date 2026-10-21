@@ -36,10 +36,10 @@ from sentry.workflow_engine.processors.evaluations import (
 from sentry.workflow_engine.processors.evaluations.detector import DetectorEvaluation
 from sentry.workflow_engine.processors.evaluations.eap import (
     EAP_ITEMS_CODEC,
-    emit_evaluation_to_eap,
+    EAPEmitter,
 )
 from sentry.workflow_engine.processors.evaluations.logging import (
-    redact_pii_from_artifact,
+    LoggingEmitter,
     should_log,
 )
 from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
@@ -217,20 +217,18 @@ class TestWorkflowEvaluationArtifact(TestCase):
         assert evaluation.outcome == WorkflowEvaluationOutcome.ERROR
 
     def test_logging_redacts_raw_input_data(self) -> None:
-        artifact: dict[str, object] = {
-            "trigger_evaluation": {
-                "condition_evaluations": [
-                    {
-                        "input": {"email": "user@example.com"},
-                        "input_type": "dict",
-                    }
-                ]
-            }
-        }
+        artifact = DataConditionEvaluation(
+            condition=self.create_data_condition(),
+            result=True,
+            triggered=True,
+            data={"email": "user@example.com"},
+        ).to_artifact()
 
-        assert redact_pii_from_artifact(artifact) == {
-            "trigger_evaluation": {"condition_evaluations": [{"input": None, "input_type": "dict"}]}
-        }
+        logged_condition = LoggingEmitter().filter(artifact)
+
+        assert logged_condition["input"] is None
+        assert logged_condition["input_type"] == "dict"
+        assert "user@example.com" not in str(logged_condition)
 
     def test_logging_filters_dataclass_input_before_copying(self) -> None:
         class SensitiveEmail(str):
@@ -250,15 +248,10 @@ class TestWorkflowEvaluationArtifact(TestCase):
             data=SensitiveInput(email=SensitiveEmail("private@example.com")),
         ).to_artifact()
 
-        payload = redact_pii_from_artifact(
-            {"trigger_evaluation": {"condition_evaluations": [artifact]}}
-        )
-        trigger_evaluation = payload["trigger_evaluation"]
-        assert isinstance(trigger_evaluation, dict)
-        logged_condition = trigger_evaluation["condition_evaluations"][0]
+        logged_condition = LoggingEmitter().filter(artifact)
         assert logged_condition["input"] is None
         assert logged_condition["comparison"] == '{"interval":"1h","value":10}'
-        assert "private@example.com" not in str(payload)
+        assert "private@example.com" not in str(logged_condition)
         assert "private@example.com" not in repr(artifact)
 
     def test_emitter_redacts_raw_workflow_event_input(self) -> None:
@@ -456,16 +449,13 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
         with (
             Feature({"organizations:workflow-engine-evaluation-artifacts-eap": True}),
-            mock.patch(f"{TRACKING_MODULE}.emit_evaluation_logs") as mock_emit_logs,
-            mock.patch(
-                f"{TRACKING_MODULE}.emit_evaluation_to_eap",
-                side_effect=TypeError("unsupported artifact"),
-            ),
+            mock.patch.object(LoggingEmitter, "send") as mock_send_logs,
+            mock.patch.object(EAPEmitter, "send", side_effect=TypeError("unsupported artifact")),
             mock.patch(f"{TRACKING_MODULE}.logger") as mock_logger,
         ):
             emit_evaluations(organization=self.organization, result=result)
 
-        mock_emit_logs.assert_called_once_with(self.organization, result)
+        mock_send_logs.assert_called_once_with(self.organization, result)
         mock_logger.exception.assert_called_once_with(
             "workflow_engine.evaluations.eap.emit_failed",
             extra={"organization_id": self.organization.id},
@@ -493,7 +483,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             "sentry.workflow_engine.processors.evaluations.eap._eap_producer",
             producer,
         ):
-            emit_evaluation_to_eap(self.organization, result)
+            EAPEmitter().send(self.organization, result)
 
         message = broker.consume(Partition(topic, 0), 0)
         assert message is not None
@@ -739,7 +729,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             mock.patch("sentry.workflow_engine.processors.evaluations.eap._eap_producer", producer),
             mock.patch("sentry.workflow_engine.processors.evaluations.eap.logger") as mock_logger,
         ):
-            emit_evaluation_to_eap(
+            EAPEmitter().send(
                 self.organization,
                 self._build_batch_result(evaluations),
             )
@@ -760,7 +750,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             mock.patch("sentry.workflow_engine.processors.evaluations.eap._eap_producer", producer),
             mock.patch("sentry.workflow_engine.processors.evaluations.eap.logger") as mock_logger,
         ):
-            emit_evaluation_to_eap(
+            EAPEmitter().send(
                 self.organization,
                 self._build_batch_result({10: self._build_evaluation(workflow_id=10)}),
             )
