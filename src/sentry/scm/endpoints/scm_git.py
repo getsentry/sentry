@@ -1,6 +1,7 @@
 import io
 from collections.abc import Generator
 
+import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.request import Request
@@ -18,6 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.negotiation import PassthroughContentNegotiation
 from sentry.exceptions import RestrictedIPAddress
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.net.http import BlacklistAdapter
@@ -26,7 +28,7 @@ from sentry.scm.private.helpers import (
     fetch_service_provider,
     record_count_metric,
 )
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.utils.http import request_body_stream
 
 FAILED_METRIC = "sentry.scm.git.request.failed"
@@ -40,10 +42,16 @@ def get_git_token(repository: Repository, operation: GitOperation) -> str | None
     """
     provider_name = repository["provider_name"]
     if provider_name in ("github", "github_enterprise"):
-        integration = integration_service.refresh_github_access_token(
-            integration_id=repository["integration_id"],
-            organization_id=repository["organization_id"],
-        )
+        try:
+            integration = integration_service.refresh_github_access_token(
+                integration_id=repository["integration_id"],
+                organization_id=repository["organization_id"],
+            )
+        except (ApiError, RpcRemoteException):
+            # GitHub refused to mint a token, e.g. for a suspended app. Answered as a 500, git
+            # would show only "HTTP 500"; GitServer turns None into a 502 that says why.
+            sentry_sdk.capture_exception()
+            return None
         if integration is None:
             return None
         return integration.metadata.get("access_token")
@@ -134,6 +142,9 @@ class ScmGitEndpoint(Endpoint):
 
 
 def _request_body(request: HttpRequest) -> Readable | None:
+    # Endpoint.dispatch has already read a body sent with a Content-Length into memory, and nginx
+    # sends every body that way in production, so a push is held whole up to nginx's size cap.
+    # Only a chunked body, as on the devserver, is still read as it streams.
     body = request_body_stream(request)
     if isinstance(body, bytes):
         return io.BytesIO(body)
