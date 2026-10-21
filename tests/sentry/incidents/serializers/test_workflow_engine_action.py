@@ -229,7 +229,7 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
             ),
         ]
         for action_type, data, expected_description in cases:
-            with self.subTest(action_type=action_type, data=data):
+            with self.subTest(action_type=action_type.value, data=data):
                 action = self.create_action(
                     type=action_type,
                     data=data,
