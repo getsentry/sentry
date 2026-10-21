@@ -9,6 +9,7 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {motion, type MotionProps} from 'framer-motion';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack, Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
@@ -243,6 +244,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
             to={getInvestigationsPath(organization.slug)}
             analyticsKey="seer"
             label={t('Seer')}
+            badge={<FeatureBadge type="alpha" />}
             {...makeNavigationItemProps(
               'seer',
               getInvestigationsPath(organization.slug),

@@ -126,6 +126,10 @@ interface PrimaryNavigationLinkProps
   extends PrimaryNavigationItemBaseProps, Omit<LinkProps, 'to'> {
   label: string;
   to: string;
+  /**
+   * Rendered over the top-right corner of the icon, e.g. a FeatureBadge
+   */
+  badge?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -162,19 +166,26 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
 
   const desktopChildren = (
     <Fragment>
-      <Flex
-        as="span"
-        align="center"
-        justify="center"
-        radius="md"
-        padding="xs"
-        width={theme.form.sm.height}
-        height={theme.form.sm.height}
-        data-icon-container
-        aria-hidden="true"
-      >
-        {props.children}
-      </Flex>
+      <Container as="span" position="relative">
+        <Flex
+          as="span"
+          align="center"
+          justify="center"
+          radius="md"
+          padding="xs"
+          width={theme.form.sm.height}
+          height={theme.form.sm.height}
+          data-icon-container
+          aria-hidden="true"
+        >
+          {props.children}
+        </Flex>
+        {props.badge ? (
+          <Container as="span" position="absolute" top="-6px" right="-12px">
+            {props.badge}
+          </Container>
+        ) : null}
+      </Container>
       <Text size="xs" bold variant="muted" style={{letterSpacing: '-0.05em'}}>
         {props.label}
       </Text>
