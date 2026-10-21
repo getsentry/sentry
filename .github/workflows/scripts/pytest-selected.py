@@ -29,10 +29,9 @@ from pathlib import Path
 
 import pytest
 
-# acceptance.yml points these at its own durations file and piece count.
+# `make run-acceptance` points these at its own durations file and piece count.
 DURATIONS_FILE = Path(
-    os.environ.get("PYTEST_DURATIONS_FILE")
-    or Path(__file__).parent / "backend-test-durations.json"
+    os.environ.get("PYTEST_DURATIONS_FILE") or Path(__file__).parent / "backend-test-durations.json"
 )
 # Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test.
 # Files run in collection order, so a big file that starts late on an xdist
