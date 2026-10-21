@@ -7,18 +7,21 @@ from unittest import mock
 
 import pytest
 import responses
+from django.conf import settings
 from django.http import HttpResponseBase
 from django.test import override_settings
-from django.urls import reverse
+from django.urls import resolve, reverse
 from responses import matchers
 from scm.errors import GitProviderNotSupported
 from scm.git.grant import sign_grant
 from scm.git.types import GRANT_HEADER, GitOperation, Grant
 from scm.types import Repository as ScmRepository
 from scm.types import RepositoryId
+from sentry_sdk.data_collection import _apply_key_value_collection_filtering
 
 from sentry.constants import ObjectStatus
 from sentry.scm.endpoints.scm_git import get_git_token
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
@@ -247,10 +250,17 @@ class ScmGitEndpointTest(TestCase):
     @responses.activate
     def test_refuses_another_organizations_repository(self) -> None:
         other_org = self.create_organization()
+        other_integration = self.create_integration(
+            organization=other_org,
+            provider="github",
+            external_id="2",
+            metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
+        )
         other_repo = self.create_repo(
             self.create_project(organization=other_org),
             name="other-org/private",
             provider="integrations:github",
+            integration_id=other_integration.id,
             external_id="24680",
         )
         grant = sign(self.organization.id, "fetch", [other_repo.id])
@@ -260,37 +270,20 @@ class ScmGitEndpointTest(TestCase):
         self.assert_refused(response, 404, b"A repository could not be found.")
 
     @responses.activate
-    def test_does_not_route_a_repository_id_that_is_not_a_number(self) -> None:
-        response = self.send(
-            "GET",
-            "/api/0/internal/scm-git/repositories/getsentry/sentry.git/info/refs"
-            "?service=git-upload-pack",
-            self.fetch_grant(),
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk.capture_exception")
+    @mock.patch(
+        "sentry.scm.endpoints.scm_git.integration_service.refresh_github_access_token",
+        side_effect=ApiError("Forbidden", code=403),
+    )
+    def test_answers_a_token_github_refuses_to_mint_with_a_bad_gateway(
+        self, mock_refresh: mock.MagicMock, mock_capture_exception: mock.MagicMock
+    ) -> None:
+        response = self.git("GET", "info/refs", "service=git-upload-pack", self.fetch_grant())
+
+        self.assert_refused(
+            response, 502, b"Sentry could not get a github token for this repository."
         )
-
-        assert response.status_code == 404
-        assert len(responses.calls) == 0
-
-    @responses.activate
-    def test_does_not_route_a_path_without_the_git_suffix(self) -> None:
-        response = self.send(
-            "GET",
-            f"/api/0/internal/scm-git/repositories/{self.repo.id}/info/refs"
-            "?service=git-upload-pack",
-            self.fetch_grant(),
-        )
-
-        assert response.status_code == 404
-        assert len(responses.calls) == 0
-
-    @responses.activate
-    def test_does_not_route_a_path_that_ends_at_the_repository(self) -> None:
-        response = self.send(
-            "GET", f"/api/0/internal/scm-git/repositories/{self.repo.id}.git/", self.fetch_grant()
-        )
-
-        assert response.status_code == 404
-        assert len(responses.calls) == 0
+        mock_capture_exception.assert_called_once_with()
 
     @responses.activate
     def test_refuses_a_route_with_a_trailing_slash(self) -> None:
@@ -334,6 +327,39 @@ class ScmGitEndpointTest(TestCase):
         assert response.status_code == 503
         assert response["Content-Type"] == "text/plain; charset=utf-8"
         assert b"".join(response) == b"Unable to reach host\n"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/0/internal/scm-git/repositories/getsentry/sentry.git/info/refs",
+        "/api/0/internal/scm-git/repositories/42/info/refs",
+        "/api/0/internal/scm-git/repositories/42.git/",
+        "/api/0/internal/scm-git/repositories/42.git",
+        # More digits than any Repository.id, which int() would refuse with a 500 at 4,301.
+        f"/api/0/internal/scm-git/repositories/{'4' * 20}.git/info/refs",
+        # Arabic-Indic digits, which int() would read as 42.
+        "/api/0/internal/scm-git/repositories/\u0664\u0662.git/info/refs",
+    ],
+    ids=[
+        "name",
+        "no-git-suffix",
+        "nothing-after-git",
+        "no-slash-after-git",
+        "20-digits",
+        "arabic-indic",
+    ],
+)
+def test_does_not_route(path: str) -> None:
+    assert resolve(path).url_name == "sentry-api-catchall"
+
+
+def test_the_sdk_filters_the_grant_header_out_of_telemetry() -> None:
+    behaviour = settings.SENTRY_SDK_CONFIG["data_collection"]["http_headers"]["request"]
+
+    filtered = _apply_key_value_collection_filtering({GRANT_HEADER: "a.signed.grant"}, behaviour)
+
+    assert filtered == {GRANT_HEADER: "[Filtered]"}
 
 
 @cell_silo_test
