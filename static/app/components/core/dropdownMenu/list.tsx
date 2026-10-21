@@ -14,7 +14,7 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container, Stack} from '@sentry/scraps/layout';
-import * as Menu from '@sentry/scraps/menu';
+import {Header, Search, SectionSeparator, Title} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
@@ -180,7 +180,7 @@ function DropdownMenuCollection({
                 {...separatorProps}
                 role="presentation"
               >
-                <Menu.SectionSeparator />
+                <SectionSeparator />
               </Stack>
             )}
           </Fragment>
@@ -279,12 +279,12 @@ function DropdownMenuList({
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && (
-              <Menu.Header padding="sm lg">
-                <Menu.Title>{menuTitle}</Menu.Title>
-              </Menu.Header>
+              <Header padding="sm lg">
+                <Title>{menuTitle}</Title>
+              </Header>
             )}
             {search && (
-              <Menu.Search
+              <Search
                 aria-label={search.placeholder ?? 'Search'}
                 placeholder={search.placeholder ?? 'Search…'}
                 value={search.value}

@@ -9,8 +9,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import * as Menu from '@sentry/scraps/menu';
-import type {ListItemProps} from '@sentry/scraps/menu';
+import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -258,7 +257,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const itemLabel = node.rendered ?? label;
 
   return (
-    <Menu.ListItem
+    <ListItem
       ref={ref}
       as={renderAs}
       label={itemLabel}

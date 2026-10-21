@@ -7,7 +7,12 @@ import type {Node} from '@react-types/shared';
 import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
-import * as Menu from '@sentry/scraps/menu';
+import {
+  SectionGroup,
+  SectionHeader,
+  SectionLabel,
+  SectionList,
+} from '@sentry/scraps/menu';
 
 import {ListBoxOption, type ListBoxOptionProps} from './option';
 
@@ -55,9 +60,9 @@ export function ListBoxSection<T extends ListItemBase>({
   return (
     <Fragment>
       {showSectionHeaders && <SectionSeparator {...separatorProps} />}
-      <Menu.SectionGroup {...itemProps} data-index={dataIndex} ref={ref}>
+      <SectionGroup {...itemProps} data-index={dataIndex} ref={ref}>
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
-          <Menu.SectionHeader
+          <SectionHeader
             trailingAction={
               showToggleAllButton ? (
                 <SectionToggle item={item} listState={listState} />
@@ -65,11 +70,11 @@ export function ListBoxSection<T extends ListItemBase>({
             }
           >
             {item.rendered && (
-              <Menu.SectionLabel {...headingProps}>{item.rendered}</Menu.SectionLabel>
+              <SectionLabel {...headingProps}>{item.rendered}</SectionLabel>
             )}
-          </Menu.SectionHeader>
+          </SectionHeader>
         )}
-        <Menu.SectionList {...groupProps}>
+        <SectionList {...groupProps}>
           {childItems.map(child => (
             <ListBoxOption
               key={child.key}
@@ -79,8 +84,8 @@ export function ListBoxSection<T extends ListItemBase>({
               showDetails={showDetails}
             />
           ))}
-        </Menu.SectionList>
-      </Menu.SectionGroup>
+        </SectionList>
+      </SectionGroup>
     </Fragment>
   );
 }

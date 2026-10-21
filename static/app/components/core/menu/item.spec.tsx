@@ -4,7 +4,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import * as Menu from '@sentry/scraps/menu';
+import {ListItem} from '@sentry/scraps/menu';
 
 jest.mock('@floating-ui/react-dom', () => ({
   ...jest.requireActual('@floating-ui/react-dom'),
@@ -13,7 +13,7 @@ jest.mock('@floating-ui/react-dom', () => ({
 
 const setReference = jest.fn();
 
-describe('Menu.ListItem', () => {
+describe('ListItem', () => {
   beforeEach(() => {
     setReference.mockReset();
     jest
@@ -40,7 +40,7 @@ describe('Menu.ListItem', () => {
   it('attaches the ref to the default li wrapper', () => {
     const ref = createRef<HTMLLIElement>();
 
-    render(<Menu.ListItem label="Action" ref={ref} />);
+    render(<ListItem label="Action" ref={ref} />);
 
     expect(ref.current?.tagName).toBe('LI');
     expect(ref.current).toContainElement(screen.getByText('Action'));
@@ -49,7 +49,7 @@ describe('Menu.ListItem', () => {
   it('attaches the ref to the specified wrapper', () => {
     const ref = createRef<HTMLDivElement>();
 
-    render(<Menu.ListItem as="div" label="Action" ref={ref} />);
+    render(<ListItem as="div" label="Action" ref={ref} />);
 
     expect(ref.current?.tagName).toBe('DIV');
     expect(ref.current).toContainElement(screen.getByText('Action'));
@@ -58,13 +58,13 @@ describe('Menu.ListItem', () => {
   it('infers the ref type from the wrapper element', () => {
     render(
       <Fragment>
-        <Menu.ListItem
+        <ListItem
           label="Default"
           ref={element => {
             expectTypeOf(element).toEqualTypeOf<HTMLLIElement | null>();
           }}
         />
-        <Menu.ListItem
+        <ListItem
           as="div"
           label="Action"
           ref={element => {
@@ -74,10 +74,10 @@ describe('Menu.ListItem', () => {
       </Fragment>
     );
 
-    expectTypeOf<Parameters<typeof Menu.ListItem<'li'>>[0]['ref']>().toEqualTypeOf<
+    expectTypeOf<Parameters<typeof ListItem<'li'>>[0]['ref']>().toEqualTypeOf<
       React.Ref<HTMLLIElement> | undefined
     >();
-    expectTypeOf<Parameters<typeof Menu.ListItem<'div'>>[0]['ref']>().toEqualTypeOf<
+    expectTypeOf<Parameters<typeof ListItem<'div'>>[0]['ref']>().toEqualTypeOf<
       React.Ref<HTMLDivElement> | undefined
     >();
   });
@@ -86,13 +86,7 @@ describe('Menu.ListItem', () => {
     const ref = createRef<HTMLLIElement>();
 
     render(
-      <Menu.ListItem
-        label="Action"
-        details="More"
-        showDetailsInOverlay
-        isFocused
-        ref={ref}
-      />
+      <ListItem label="Action" details="More" showDetailsInOverlay isFocused ref={ref} />
     );
 
     expect(screen.getByRole('tooltip')).toHaveTextContent('More');
@@ -103,16 +97,10 @@ describe('Menu.ListItem', () => {
     const ref = createRef<HTMLLIElement>();
 
     const {rerender} = render(
-      <Menu.ListItem label="Action" details="More" showDetailsInOverlay ref={ref} />
+      <ListItem label="Action" details="More" showDetailsInOverlay ref={ref} />
     );
     rerender(
-      <Menu.ListItem
-        label="Action"
-        details="More"
-        showDetailsInOverlay
-        isFocused
-        ref={ref}
-      />
+      <ListItem label="Action" details="More" showDetailsInOverlay isFocused ref={ref} />
     );
 
     expect(screen.getByRole('tooltip')).toHaveTextContent('More');

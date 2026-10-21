@@ -12,7 +12,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import * as Menu from '@sentry/scraps/menu';
+import {Footer, Header, Search, Title} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -532,7 +532,7 @@ export function Control<Value extends SelectKey>({
             >
               <FocusScope contain>
                 {(menuTitle || menuHeaderTrailingItems || clearable) && (
-                  <Menu.Header borderBottom={searchEnabled ? 'none' : 'muted'}>
+                  <Header borderBottom={searchEnabled ? 'none' : 'muted'}>
                     <Flex
                       align="center"
                       justify="between"
@@ -540,7 +540,7 @@ export function Control<Value extends SelectKey>({
                       minHeight="24px"
                       padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
                     >
-                      {menuTitle && <Menu.Title>{menuTitle}</Menu.Title>}
+                      {menuTitle && <Title>{menuTitle}</Title>}
                       <Flex align="center" gap="xs" marginLeft="auto">
                         {loading && <StyledLoadingIndicator size={12} />}
                         {typeof menuHeaderTrailingItems === 'function'
@@ -559,10 +559,10 @@ export function Control<Value extends SelectKey>({
                         )}
                       </Flex>
                     </Flex>
-                  </Menu.Header>
+                  </Header>
                 )}
                 {searchEnabled && (
-                  <Menu.Search
+                  <Search
                     ref={searchRef}
                     data-1p-ignore
                     placeholder={normalizedSearch?.placeholder ?? 'Search…'}
@@ -578,14 +578,14 @@ export function Control<Value extends SelectKey>({
                   : menuBody}
                 {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
-                  <Menu.Footer>
+                  <Footer>
                     {typeof menuFooter === 'function'
                       ? menuFooter({
                           closeOverlay: overlayState.close,
                           resetSearch: () => updateSearch(''),
                         })
                       : menuFooter}
-                  </Menu.Footer>
+                  </Footer>
                 )}
               </FocusScope>
             </StyledOverlay>
