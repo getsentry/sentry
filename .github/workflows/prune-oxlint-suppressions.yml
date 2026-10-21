@@ -28,7 +28,7 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Prune suppression budgets
-        run: pnpm run lint:js --prune
+        run: pnpm run lint:suppressions --prune
 
       - name: Bundle suppression budgets
         env:
@@ -103,5 +103,5 @@ jobs:
           if [ -z "$PR" ]; then
             gh pr create --base master --head "$BRANCH" \
               --title "chore(lint): prune oxlint suppressions" \
-              --body 'Reduce stale suppression budgets with `pnpm run lint:js --prune`.'
+              --body 'Reduce stale suppression budgets with `pnpm run lint:suppressions --prune`.'
           fi
