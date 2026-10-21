@@ -25,6 +25,8 @@ import {IconCopy} from '@sentry/icons/copy';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconDownload} from '@sentry/icons/download';
 import {IconEdit} from '@sentry/icons/edit';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconList} from '@sentry/icons/list';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/dropdownMenu');
@@ -49,8 +51,6 @@ Use `CompactSelect` when the user chooses a value that stays selected. Use `Drop
 
 Set `label` and `onAction` on each item. Keys must be unique across the complete menu, including nested submenus. Use `disabled` to prevent an item from being selected.
 
-Set `isSelected` on choice-like actions to show a checkmark before `leadingItems`. Set it to `false` on the other items to reserve the checkmark's space.
-
 <Storybook.Demo>
   <DropdownMenu
     triggerLabel="Actions"
@@ -58,28 +58,24 @@ Set `isSelected` on choice-like actions to show a checkmark before `leadingItems
       {
         key: 'edit',
         label: 'Edit',
-        isSelected: true,
         leadingItems: <IconEdit size="sm" />,
         onAction: () => {},
       },
       {
         key: 'copy',
         label: 'Copy',
-        isSelected: false,
         leadingItems: <IconCopy size="sm" />,
         onAction: () => {},
       },
       {
         key: 'download',
         label: 'Download',
-        isSelected: false,
         leadingItems: <IconDownload size="sm" />,
         onAction: () => {},
       },
       {
         key: 'delete',
         label: 'Delete',
-        isSelected: false,
         leadingItems: <IconDelete size="sm" />,
         disabled: true,
         onAction: () => {},
@@ -92,8 +88,8 @@ Set `isSelected` on choice-like actions to show a checkmark before `leadingItems
 <DropdownMenu
   triggerLabel="Actions"
   items={[
-    {key: 'edit', label: 'Edit', isSelected: true, onAction: () => {}},
-    {key: 'copy', label: 'Copy', isSelected: false, onAction: () => {}},
+    {key: 'edit', label: 'Edit', onAction: () => {}},
+    {key: 'copy', label: 'Copy', onAction: () => {}},
     {key: 'download', label: 'Download', onAction: () => {}},
     {key: 'delete', label: 'Delete', disabled: true, onAction: () => {}},
   ]}
@@ -103,6 +99,8 @@ Set `isSelected` on choice-like actions to show a checkmark before `leadingItems
 ## Sections, Links, and Submenus
 
 Group related items by adding `children` without setting `submenu`. Use `to` for internal links and `externalHref` for external links. Set `submenu` and `children` together to create a nested menu.
+
+The Filter submenu below shows a selected choice. Its checkmark appears beside the leading icon; the other choice reserves the same checkmark space.
 
 <Storybook.Demo>
   <Flex direction="column" gap="md">
@@ -115,6 +113,27 @@ Group related items by adding `children` without setting `submenu`. Use `to` for
           children: [
             {key: 'rename', label: 'Rename', onAction: () => {}},
             {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+          ],
+        },
+        {
+          key: 'filter',
+          label: 'Filter',
+          submenu: {title: 'Filter options'},
+          children: [
+            {
+              key: 'all',
+              label: 'All issues',
+              isSelected: true,
+              leadingItems: <IconList size="sm" />,
+              onAction: () => {},
+            },
+            {
+              key: 'unresolved',
+              label: 'Unresolved issues',
+              isSelected: false,
+              leadingItems: <IconFilter size="sm" />,
+              onAction: () => {},
+            },
           ],
         },
         {
