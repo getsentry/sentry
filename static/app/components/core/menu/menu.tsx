@@ -167,7 +167,7 @@ const StyledInnerWrap = styled(Flex, {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     (isPropValid(prop) ||
-      ['padding', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
+      ['padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
     !['disabled', 'isFocused', 'hasTrailingAction', 'priority'].includes(prop),
 })<{
   disabled: boolean;
@@ -396,6 +396,10 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
         <StyledInnerWrap
           data-menu-item-content
           padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
+          // The leading slot is 2xl wide and centers its content, so a 16px icon
+          // gets 4px of space on each side. A `md` inset keeps leading items where
+          // they sat before the slot existed, at every size.
+          paddingLeft={leadingItems ? 'md' : undefined}
           paddingRight={trailingAction ? '3xl' : undefined}
           isFocused={isFocused}
           hasTrailingAction={Boolean(trailingAction)}
@@ -442,6 +446,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
                 bold={false}
                 tabular
                 ellipsis
+                trim={typeof label === 'string' || typeof label === 'number'}
                 id={labelId}
                 data-test-id="menu-list-item-label"
                 {...labelProps}
