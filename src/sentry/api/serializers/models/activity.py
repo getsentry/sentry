@@ -1,8 +1,13 @@
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, TypeAlias, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -14,8 +19,11 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 
 ActivityId: TypeAlias = int
 
@@ -50,6 +58,38 @@ class ActivitySerializerResponse(TypedDict):
     # variant is out of scope.
     data: dict[str, Any]
     dateCreated: datetime
+
+
+class GroupNoteSerializerResponse(ActivitySerializerResponse):
+    source: str | None
+
+
+def serialize_group_notes(
+    group: Group,
+    notes: Sequence[Activity],
+    user: User | RpcUser | AnonymousUser | None,
+) -> list[GroupNoteSerializerResponse]:
+    if not notes:
+        return []
+
+    # Activity owns current comment state. GAL only supplies source metadata.
+    # Merged entries can retain their original project_id, so scope by group.
+    sources = dict(
+        GroupActionLogEntry.objects.filter(
+            group_id=group.id,
+            type=GroupActionType.COMMENT.value,
+            idempotency_key__in=[activity_action_idempotency_key(note) for note in notes],
+        ).values_list("idempotency_key", "source")
+    )
+    serialized_notes: list[ActivitySerializerResponse] = serialize(list(notes), user)
+    return [
+        {
+            **item,
+            "data": {**item["data"], "comment_id": note.id},
+            "source": sources.get(activity_action_idempotency_key(note)),
+        }
+        for note, item in zip(notes, serialized_notes)
+    ]
 
 
 COMMIT_ACTIVITY_TYPES = {

@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.test import override_settings
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -21,11 +22,12 @@ from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.seer.workflows.runs import create_workflow_run
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import with_feature
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerWorkflowsTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflows"
+    endpoint = "sentry-api-0-organization-seer-workflow-runs"
 
     def setUp(self) -> None:
         super().setUp()
@@ -393,6 +395,23 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
             assert [run["id"] for run in response.data] == [str(newer.id), str(older.id)]
 
+    def test_history_ignores_runs_of_configurable_strategies(self) -> None:
+        v2_config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        Factories.create_seer_workflow_run(self.organization, workflow_config=v2_config)
+        legacy = Factories.create_seer_workflow_run(
+            self.organization,
+            workflow_config=SeerWorkflowConfig.get_or_create_for_strategy(
+                self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
+            ),
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert [run["id"] for run in response.data] == [str(legacy.id)]
+
     def test_history_hides_runs_outside_user_access(self) -> None:
         project = self.project
         workflow = self.create_agent_workflow(
@@ -428,6 +447,112 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
         assert [item["id"] for item in response.data] == [str(workflow.id)]
 
+    def test_history_hides_triage_runs_outside_user_access(self) -> None:
+        # Materialize the default project before creating the member. The team
+        # fixture joins every organization member that already exists.
+        project = self.project
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        other_team = self.create_team(organization=self.organization, members=[member])
+        member_project = self.create_project(organization=self.organization, teams=[other_team])
+
+        group = self.create_group(project=project)
+        member_group = self.create_group(project=member_project)
+        repo = self.create_repo()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=self.organization.id,
+            title="private fix",
+            message="private patch notes",
+        )
+        issue_seer_run = self.create_seer_run(organization=self.organization)
+        SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
+
+        hidden = SeerWorkflowRun.objects.create(
+            organization=self.organization,
+            extras={"target_project_ids": [project.id]},
+        )
+        SeerAgenticTriageRunResult.objects.create(
+            run=hidden,
+            kind="agentic_triage",
+            group=group,
+            result_seer_run=issue_seer_run,
+            extras={"action": "autofix", "reason": "private checkout bug"},
+        )
+        org_wide = SeerWorkflowRun.objects.create(organization=self.organization)
+        SeerAgenticTriageRunResult.objects.create(
+            run=org_wide,
+            kind="agentic_triage",
+            group=group,
+            result_seer_run=issue_seer_run,
+            extras={"action": "skip", "reason": "private org-wide rationale"},
+        )
+        SeerAgenticTriageRunResult.objects.create(
+            run=org_wide,
+            kind="agentic_triage",
+            group=member_group,
+            extras={"action": "skip", "reason": "visible rationale"},
+        )
+        mixed = SeerWorkflowRun.objects.create(
+            organization=self.organization,
+            extras={"target_project_ids": [project.id, member_project.id]},
+        )
+        visible = SeerWorkflowRun.objects.create(
+            organization=self.organization,
+            extras={"target_project_ids": [member_project.id]},
+        )
+        unscoped = SeerWorkflowRun.objects.create(organization=self.organization)
+        expected_ids = {
+            str(hidden.id),
+            str(org_wide.id),
+            str(mixed.id),
+            str(visible.id),
+            str(unscoped.id),
+        }
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+        assert {item["id"] for item in response.data} == expected_ids
+
+        self.login_as(member)
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+        assert {item["id"] for item in response.data} == {
+            str(visible.id),
+            str(unscoped.id),
+            str(org_wide.id),
+        }
+        org_wide_body = next(item for item in response.data if item["id"] == str(org_wide.id))
+        assert [issue["reason"] for issue in org_wide_body["issues"]] == ["visible rationale"]
+        assert org_wide_body["issues"][0]["pullRequests"] == []
+        assert "private org-wide rationale" not in str(response.data)
+        assert "private patch notes" not in str(response.data)
+
+        self.create_team_membership(team=self.team, user=member)
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+        assert {item["id"] for item in response.data} == expected_ids
+
+    def test_open_membership_shows_triage_runs_for_other_projects(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        other_team = self.create_team(organization=self.organization, members=[member])
+        self.create_project(organization=self.organization, teams=[other_team])
+        run = SeerWorkflowRun.objects.create(
+            organization=self.organization,
+            extras={"target_project_ids": [self.project.id]},
+        )
+
+        self.login_as(member)
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert [item["id"] for item in response.data] == [str(run.id)]
+
     def create_agent_workflow(
         self, strategy: SeerWorkflowStrategy, feature_id: str
     ) -> SeerWorkflowRun:
@@ -443,7 +568,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerMonitorCleanupTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflows"
+    endpoint = "sentry-api-0-organization-seer-workflow-runs"
     method = "post"
 
     def setUp(self) -> None:
@@ -569,7 +694,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
 
     @property
     def url(self):
-        return f"/api/0/organizations/{self.organization.slug}/seer/workflows/"
+        return f"/api/0/organizations/{self.organization.slug}/seer/workflows/runs/"
 
     def result(self):
         return {
@@ -594,3 +719,89 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 ],
             },
         }
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:seer-automations")
+class OrganizationSeerWorkflowConfigsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-configs"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_feature_disabled_does_not_seed_defaults(self) -> None:
+        with self.feature({"organizations:seer-automations": False}):
+            self.get_error_response(self.organization.slug, status_code=404)
+
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_empty_organization_does_not_seed_defaults(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+
+        assert 'rel="next"' in response.headers["Link"]
+        assert response.data == {"configs": []}
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_lists_saved_configs_for_organization(self) -> None:
+        project = self.create_project()
+        config = self.create_config(
+            enabled=False,
+            version=4,
+            filters={"environments": ["production"], "min_event_count": 10},
+            output_policy={"review_mode": "manual"},
+            extras={"seeded_default": "agentic_triage_v2"},
+        )
+        Factories.create_seer_workflow_config_project(config, project)
+        empty = self.create_config()
+        Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        Factories.create_seer_workflow_config(
+            self.create_organization(owner=self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [item["id"] for item in response.data["configs"]] == [str(config.id), str(empty.id)]
+        assert response.data["configs"][0] == {
+            "id": str(config.id),
+            "strategy": "agentic_triage_v2",
+            "enabled": False,
+            "schedule": "daily",
+            "version": 4,
+            "projects": [project.id],
+            "environments": ["production"],
+            "filters": {"minEventCount": 10},
+            "outputPolicy": {"review_mode": "manual"},
+            "seededDefault": "agentic_triage_v2",
+            "dateAdded": config.date_added,
+            "dateUpdated": config.date_updated,
+        }
+        assert response.data["configs"][1]["projects"] == []
+
+    def test_scope_only_includes_accessible_active_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        inactive = self.create_project(teams=[team], status=ObjectStatus.PENDING_DELETION)
+        foreign = self.create_project(organization=self.create_organization())
+        selected = self.create_config()
+        for project in (accessible, hidden, inactive, foreign):
+            Factories.create_seer_workflow_config_project(selected, project)
+        self.login_as(member)
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data["configs"]) == 1
+        assert response.data["configs"][0]["projects"] == [accessible.id]
+
+    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+        return Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
+        )

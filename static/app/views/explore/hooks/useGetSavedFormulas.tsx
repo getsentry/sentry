@@ -27,16 +27,17 @@ export type FormulaReference = {
 
 export type SavedFormula = {
   dataset: FormulaDataset;
+  description: string | null;
   formula: string;
   id: string;
   /** Prefixed with `formula.` so it cannot collide with a built in function. */
   name: string;
   params: FormulaParam[];
+  /** True for the formulas Sentry ships, which cannot be edited. */
+  prebuilt: boolean;
   references: FormulaReference[];
   type: FormulaType;
   unit: string | null;
-  /** Set on the formulas Sentry ships, which cannot be edited. */
-  prebuiltId?: number | null;
 };
 
 function savedFormulasApiOptions(
@@ -71,13 +72,37 @@ export function useGetSavedFormulas({cursor}: {cursor?: string}) {
   };
 }
 
+function savedFormulaApiOptions(organization: Organization, id: string) {
+  return apiOptions.as<SavedFormula>()(
+    '/organizations/$organizationIdOrSlug/explore/formulas/$id/',
+    {
+      path: {organizationIdOrSlug: organization.slug, id},
+      staleTime: 0,
+    }
+  );
+}
+
+export function useGetSavedFormula(id: string) {
+  const organization = useOrganization();
+
+  return useQuery(savedFormulaApiOptions(organization, id));
+}
+
 export function useInvalidateSavedFormulas() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  return useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: savedFormulasApiOptions(organization).queryKey,
-    });
-  }, [queryClient, organization]);
+  return useCallback(
+    (id?: string) => {
+      queryClient.invalidateQueries({
+        queryKey: savedFormulasApiOptions(organization).queryKey,
+      });
+      if (id) {
+        queryClient.invalidateQueries({
+          queryKey: savedFormulaApiOptions(organization, id).queryKey,
+        });
+      }
+    },
+    [queryClient, organization]
+  );
 }

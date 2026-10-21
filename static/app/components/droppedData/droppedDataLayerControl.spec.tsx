@@ -8,7 +8,7 @@ describe('DroppedDataLayerControl', () => {
     render(<DroppedDataLayerControl showDroppedData onChange={onChange} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Chart layers'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Dropped Data'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Dropped Events'}));
 
     expect(onChange).toHaveBeenCalledWith(false);
   });
@@ -18,7 +18,7 @@ describe('DroppedDataLayerControl', () => {
     render(<DroppedDataLayerControl showDroppedData={false} onChange={onChange} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Chart layers'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Dropped Data'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Dropped Events'}));
 
     expect(onChange).toHaveBeenCalledWith(true);
   });

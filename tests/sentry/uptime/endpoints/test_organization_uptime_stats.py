@@ -237,7 +237,9 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             recovery_threshold=2,
         )
 
-        base_time = datetime(2025, 10, 29, 13, 30, 0, tzinfo=timezone.utc)
+        # Keep the checks inside their 90 day retention. ClickHouse drops expired rows in
+        # a TTL merge, which can run as soon as they are inserted.
+        base_time = (MOCK_DATETIME - timedelta(hours=1)).replace(second=0, microsecond=0)
 
         test_scenarios = [
             # 2 OK checks before incident

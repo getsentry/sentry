@@ -38,6 +38,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -132,8 +133,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         return super().is_broken_integration_error(exc)
 
     def source_url_matches(self, url: str) -> bool:
-        domain = self.model.metadata["domain_name"]
-        return url == domain or url.startswith(f"{domain}/")
+        return url_is_under(url, self.model.metadata["domain_name"])
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         branch = branch or repo.config["default_branch"]

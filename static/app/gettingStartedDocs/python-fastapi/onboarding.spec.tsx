@@ -84,14 +84,18 @@ describe('flask onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
+      screen.getByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).toBeInTheDocument();
     expect(
       screen.getByText('You can send logs to Sentry using the Sentry logging APIs:')
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+        textWithMarkupMatcher(
+          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+        )
       )
     ).toBeInTheDocument();
   });
@@ -102,7 +106,9 @@ describe('flask onboarding docs', () => {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+      screen.queryByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText('You can send logs to Sentry using the Sentry logging APIs:')

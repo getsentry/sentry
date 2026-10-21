@@ -5,8 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,

@@ -325,6 +325,76 @@ describe('Sudo Modal', () => {
       });
     });
 
+    it('submits the typed reason when pressing Enter', async () => {
+      ConfigStore.set('disableU2FForSUForm', true);
+      const authRequest = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'PUT',
+      });
+
+      renderSuperuserModal();
+
+      await userEvent.click(await screen.findByRole('radio', {name: 'Development'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Reason for Access'}),
+        'Investigating an issue{Enter}'
+      );
+
+      await waitFor(() => {
+        expect(authRequest).toHaveBeenCalledWith(
+          '/auth/',
+          expect.objectContaining({
+            data: {
+              isSuperuserModal: true,
+              superuserAccessCategory: 'development',
+              superuserReason: 'Investigating an issue',
+            },
+          })
+        );
+      });
+    });
+
+    it('authorizes the current org when starting a superuser session', async () => {
+      ConfigStore.set('disableU2FForSUForm', true);
+      const authRequest = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'PUT',
+      });
+
+      render(
+        <SudoModal
+          Header={makeClosableHeader(jest.fn())}
+          Body={ModalBody}
+          Footer={ModalFooter}
+          closeModal={jest.fn()}
+          accessMode="superuser"
+        />,
+        {
+          initialRouterConfig: {
+            route: '/organizations/:orgId/',
+            location: {pathname: '/organizations/org-slug/'},
+          },
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'COPS/CSM'}));
+
+      await waitFor(() => {
+        expect(authRequest).toHaveBeenCalledWith(
+          '/auth/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {
+              isSuperuserModal: true,
+              superuserAccessCategory: 'cops_csm',
+              superuserReason: 'COPS and CSM use',
+              superuserOrgSlug: 'org-slug',
+            },
+          })
+        );
+      });
+    });
+
     it('reports a missing authenticator instead of a silently inert submit', async () => {
       ConfigStore.set('isSelfHosted', true);
       MockApiClient.addMockResponse({url: '/authenticators/', body: []});

@@ -11,9 +11,9 @@ import {useParams} from 'sentry/utils/useParams';
 import {OrganizationCard} from 'sentry/views/authV2/authLogin/components/organizationCard';
 import {OrganizationSsoButton} from 'sentry/views/authV2/authLogin/components/organizationSsoButton';
 import {getOrganizationSsoLoginUrl} from 'sentry/views/authV2/authLogin/utils';
+import {AccountBadge} from 'sentry/views/authV2/components/accountBadge';
 import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
 
-import {InvitationAccountBadge} from './invitationAccountBadge';
 import {InvitationAuthentication} from './invitationAuthentication';
 import {InvitationLayout} from './invitationLayout';
 import {InvitationStatus} from './invitationStatus';
@@ -107,7 +107,7 @@ function AcceptOrganizationInvite() {
                   <Text as="p" size="sm" variant="muted" align="left">
                     {t("You're joining with the account…")}
                   </Text>
-                  <InvitationAccountBadge
+                  <AccountBadge
                     user={signedInUser}
                     isSwitchingAccount={state.isSwitchingAccount}
                     onSwitchAccount={actions.switchAccount}

@@ -177,6 +177,32 @@ describe('SpansTabContent', () => {
     });
   });
 
+  it('shows the spans table timeout message', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 400,
+      body: {
+        detail:
+          'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.',
+      },
+    });
+
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
+  });
+
   it('should fire analytics once per change', async () => {
     const {router} = render(
       <SpansTabContent datePageFilterProps={datePageFilterProps} />,

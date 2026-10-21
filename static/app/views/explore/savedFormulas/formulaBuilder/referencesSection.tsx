@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
@@ -11,7 +12,10 @@ import {FieldKind} from 'sentry/utils/fields';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import type {FormulaDataset} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {BuilderSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {
+  BuilderSection,
+  FIELD_MAX_WIDTH,
+} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
   newReference,
   type DraftParam,
@@ -88,13 +92,14 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
         'Named equations the formula combines. Parameters can be used anywhere an attribute can.'
       )}
     >
-      <Stack gap="md">
+      <Stack gap="lg">
         {references.map(reference => (
           <Grid
             key={reference.key}
-            columns="140px minmax(0, 1fr) max-content"
+            columns="200px minmax(0, 1fr) max-content"
             align="center"
             gap="md"
+            maxWidth={FIELD_MAX_WIDTH}
           >
             <Input
               value={reference.name}
@@ -111,6 +116,7 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
               numberTags={numberTags}
               stringTags={stringTags}
               booleanTags={booleanTags}
+              truncateArguments={false}
             />
             <Button
               variant="transparent"
@@ -125,10 +131,11 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
         ))}
         <Flex>
           <Button
-            variant="link"
+            size="sm"
+            icon={<IconAdd />}
             onClick={() => onChange([...references, newReference()])}
           >
-            {t('+ Add reference')}
+            {t('Add Reference')}
           </Button>
         </Flex>
       </Stack>

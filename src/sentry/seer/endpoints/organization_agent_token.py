@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
+from datetime import timezone as datetime_timezone
 from typing import Any, cast
 
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -25,6 +28,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
 from sentry.seer.endpoints.agent_request import AgentTokenRequestData, AgentTokenRequestSerializer
+from sentry.viewer_context import get_viewer_context
 
 
 class AgentTokenResponseSerializer(serializers.Serializer):
@@ -68,6 +72,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         Body: ``{"sessionId": str, "requestedScopes"?: [str]}``. The token's scopes are the
         caller's own scopes intersected with read-only plus any approved grants for this
         org and session; ``requestedScopes`` can only narrow further. No token is stored.
+        Propagated superuser elevation always remains read-only, including with write grants.
         """
         if not features.has(agent_token.FEATURE_FLAG, organization, actor=request.user):
             raise ResourceDoesNotExist
@@ -100,11 +105,31 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             requested_scopes=requested_scopes,
         )
 
+        viewer = get_viewer_context()
+        superuser = (
+            viewer.superuser
+            if viewer is not None
+            and viewer.user_id == user_id
+            and viewer.organization_id == organization.id
+            else None
+        )
+        ttl = agent_token.DEFAULT_TOKEN_TTL
+        if superuser is not None:
+            scopes = sorted(set(scopes) & agent_token.readonly_scopes())
+            ttl = min(
+                ttl,
+                datetime.fromtimestamp(superuser.expires_at, datetime_timezone.utc)
+                - timezone.now(),
+            )
+            if ttl.total_seconds() <= 0:
+                raise PermissionDenied("Elevated session expired.")
         token, expires_at = agent_token.encode_agent_token(
             user_id=user_id,
             organization_id=organization.id,
             scopes=scopes,
             session_id=session_id,
+            superuser=superuser,
+            ttl=ttl,
         )
         return Response(
             {

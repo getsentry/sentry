@@ -74,7 +74,7 @@ function SeerWorkflows() {
   const {mutate: startWorkflowRun, isPending: isStartingWorkflowRun} = useMutation({
     mutationFn: (data: WorkflowRunCreateRequest) =>
       fetchMutation<{runId: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
+        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/runs/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
@@ -97,7 +97,7 @@ function SeerWorkflows() {
   const reportedStrategies = useRef(new Set<string>());
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerWorkflowRun[]>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/',
+      '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
       {
         path: {organizationIdOrSlug: organization.slug},
         staleTime: 0,
