@@ -11,7 +11,11 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.context import GroupingContext
-from sentry.grouping.fingerprinting import FingerprintingConfig, normalize_unicode_arrows
+from sentry.grouping.fingerprinting import (
+    FingerprintingConfig,
+    normalize_unicode_arrows,
+    validate_config_string,
+)
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.fingerprinting.utils import resolve_fingerprint_values
 from sentry.grouping.strategies.base import StrategyConfiguration
@@ -236,6 +240,24 @@ def test_parsing_error_messages(config: str, message: str) -> None:
 )
 def test_normalize_unicode_arrows(config: str, expected: str) -> None:
     assert normalize_unicode_arrows(config) == expected
+
+
+def test_validate_config_string_normalizes_unicode_arrows() -> None:
+    assert validate_config_string("error.type:A → a") == "error.type:A -> a"
+
+
+def test_validate_config_string_keeps_valid_configs() -> None:
+    # A quoted value can span lines, so a `→` on its own line can be part of a valid pattern
+    config = 'message:"a\n→ b\nc" -> x'
+    assert validate_config_string(config) == config
+
+
+def test_validate_config_string_reports_remaining_errors() -> None:
+    with pytest.raises(InvalidFingerprintingConfig) as e:
+        validate_config_string("error.type:A → a\nerror.type:B b")
+    assert str(e.value) == (
+        'Invalid syntax near "error.type:B b" (line 2, column 1): expected "->" between the matchers and the fingerprint'
+    )
 
 
 def test_automatic_argument_splitting() -> None:

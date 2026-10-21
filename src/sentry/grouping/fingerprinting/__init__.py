@@ -47,6 +47,22 @@ def normalize_unicode_arrows(config: str) -> str:
     return "\n".join(lines)
 
 
+def validate_config_string(config: str) -> str:
+    """
+    Check that a config parses, returning the string to save. A config that already parses is
+    returned unchanged; otherwise any `→` used as an arrow is replaced and the result is checked.
+    """
+    try:
+        FingerprintingConfig.from_config_string(config)
+        return config
+    except InvalidFingerprintingConfig:
+        normalized = normalize_unicode_arrows(config)
+        if normalized == config:
+            raise
+    FingerprintingConfig.from_config_string(normalized)
+    return normalized
+
+
 def _describe_syntax_error(e: ParseError) -> str:
     """
     The parser reports a bad matcher or arrow at the start of its line, so look for common mistakes
