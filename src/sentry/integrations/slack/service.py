@@ -257,10 +257,7 @@ class SlackService:
         # everyone else. This checks the tier, not the per-send random rollout rate, so replies
         # reach every existing thread.
         platform_threads = NotificationThread.objects.none()
-        if (
-            NotificationRolloutService(organization=group.organization).has_feature_flag_access()
-            is not None
-        ):
+        if NotificationRolloutService(organization=group.organization).has_feature_flag_access():
             platform_threads = NotificationThread.objects.filter(
                 key_type=NotificationSource.ISSUE.value,
                 key_data__group_id=group.id,
