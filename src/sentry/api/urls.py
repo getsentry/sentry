@@ -19,9 +19,6 @@ from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokensEndpoint
-from sentry.api.endpoints.organization_events_root_cause_analysis import (
-    OrganizationEventsRootCauseAnalysisEndpoint,
-)
 from sentry.api.endpoints.organization_explore_formulas import (
     OrganizationExploreFormulas,
     OrganizationExploreFormulasDetail,
@@ -821,12 +818,6 @@ from .endpoints.organization_events_histogram import OrganizationEventsHistogram
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
-)
-from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
-from .endpoints.organization_events_spans_performance import (
-    OrganizationEventsSpansExamplesEndpoint,
-    OrganizationEventsSpansPerformanceEndpoint,
-    OrganizationEventsSpansStatsEndpoint,
 )
 from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
@@ -1953,31 +1944,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance-histogram/$",
         OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets-performance-histogram",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-span-ops/$",
-        OrganizationEventsSpanOpsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-span-ops",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-spans/$",
-        OrganizationEventsSpansExamplesEndpoint.as_view(),
-        name="sentry-api-0-organization-events-spans",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-spans-performance/$",
-        OrganizationEventsSpansPerformanceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-spans-performance",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-spans-stats/$",
-        OrganizationEventsSpansStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-spans-stats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-root-cause-analysis/$",
-        OrganizationEventsRootCauseAnalysisEndpoint.as_view(),
-        name="sentry-api-0-organization-events-root-cause-analysis",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-meta/$",
