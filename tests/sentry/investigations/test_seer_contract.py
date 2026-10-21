@@ -1,4 +1,4 @@
-"""Seer's action request payloads, copied from Seer's contract fixtures, against Sentry."""
+"""Check Seer's action request payloads, copied from Seer's contract fixtures, against Sentry."""
 
 from __future__ import annotations
 

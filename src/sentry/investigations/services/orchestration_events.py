@@ -784,7 +784,7 @@ def _apply_snapshot(
     _set_projection(run, projection, event_generation=generation)
     revision = payload.get("reportRevision", projection.get("report", {}).get("revision", 0))
     if "blocks" not in payload:
-        # A re-check of the action requests must not touch the notebook.
+        # Re-checking the action requests shouldn't change the notebook.
         if "actionRequests" in payload and revision == _report_revision(run):
             _sync_snapshot_action_requests(run, payload["actionRequests"])
         return

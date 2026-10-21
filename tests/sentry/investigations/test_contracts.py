@@ -650,7 +650,7 @@ def fake_action(target: str = "a") -> dict[str, Any]:
 
 
 def fake_action_kind() -> Any:
-    """Registers the test-only kind, for tests of the shared action request code."""
+    """Register the test-only kind, for tests of the shared action request code."""
     return patch.dict(ACTION_KINDS, {"test_kind": _Kind()})
 
 

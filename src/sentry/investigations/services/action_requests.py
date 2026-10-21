@@ -31,11 +31,11 @@ def _supersede(queryset: QuerySet[InvestigationActionRequest]) -> int:
 
 
 def supersede_action_requests_before(investigation: Investigation, report_revision: int) -> int:
-    """Supersede live requests that belong to an older report.
+    """Supersede requests that belonged to an older report.
 
-    The primary request and block-anchored requests go with their report. Requests anchored
-    to a hypothesis, or to nothing, stay until Seer re-sends, withdraws, or drops them from a
-    snapshot, since a re-run can ask for them before its report starts.
+    Only the primary and block-anchored requests go away with the old report. A re-run can
+    ask for hypothesis and unanchored requests before its new report starts, so we keep
+    those until Seer re-sends, withdraws, or leaves them out of a snapshot.
     """
 
     return _supersede(
@@ -46,9 +46,10 @@ def supersede_action_requests_before(investigation: Investigation, report_revisi
 
 
 def _replace_primary(investigation: Investigation, row: InvestigationActionRequest) -> None:
-    """At most one live primary: the newest suggested next step.
+    """Make `row` the only live primary.
 
-    Seer keeps an anchored old primary as an ordinary request, so only unanchored ones go.
+    An older primary with an anchor stays as a normal request under that anchor. One without
+    an anchor is superseded.
     """
 
     others = InvestigationActionRequest.objects.filter(
@@ -61,10 +62,11 @@ def _replace_primary(investigation: Investigation, row: InvestigationActionReque
 def upsert_action_request(
     run: InvestigationOrchestrationRun, item: ActionRequestItem, *, replace_primary: bool = True
 ) -> InvestigationActionRequest:
-    """Store one request by its key. The caller holds the investigation and run locks.
+    """Create or update the request with this key. Callers must hold the investigation and
+    run locks.
 
-    Applied rows never change. A failed, withdrawn, or errored row is suggested again only when
-    Seer changes its action, so replaying the same request cannot revive it.
+    Applied requests are never touched. Failed, withdrawn, or errored requests only come back
+    if Seer changes the action, so replaying an event can't bring them back.
     """
 
     investigation = run.investigation
@@ -108,7 +110,7 @@ def upsert_action_request(
 
     if item["primary"]:
         if row.state not in LIVE_STATES:
-            # Seer should send a new key; a finished request cannot become the next step.
+            # Seer should have used a new key. A finished request can't be the next step again.
             logger.warning(
                 "investigations.action_requests.terminal_key_reused",
                 extra={"action_request_id": row.id, "state": row.state},
@@ -119,7 +121,9 @@ def upsert_action_request(
 
 
 def withdraw_action_request(run: InvestigationOrchestrationRun, key: str, reason: str) -> bool:
-    """Withdraw a suggested request Seer now judges wrong. Applied and failed rows keep."""
+    """Withdraw a suggested request that Seer no longer stands behind. Applied and failed
+    requests are left alone.
+    """
 
     return bool(
         InvestigationActionRequest.objects.filter(
@@ -137,14 +141,14 @@ def withdraw_action_request(run: InvestigationOrchestrationRun, key: str, reason
 def sync_snapshot_action_requests(
     run: InvestigationOrchestrationRun, items: Sequence[ActionRequestItem]
 ) -> None:
-    """Make a snapshot's full list authoritative: live requests it omits are superseded."""
+    """Treat the snapshot as the full list: any live request it leaves out is superseded."""
 
     primary: InvestigationActionRequest | None = None
     for item in items:
         row = upsert_action_request(run, item, replace_primary=False)
         if item["primary"] and (primary is None or row.report_revision >= primary.report_revision):
             primary = row
-    # Pick the primary once, so the result does not depend on the list order.
+    # Choose the primary after storing everything, so the list order doesn't matter.
     if primary is not None:
         _replace_primary(run.investigation, primary)
     _supersede(
