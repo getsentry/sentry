@@ -152,15 +152,15 @@ export function ThreadSelector({
         </OverlayTrigger.Button>
       )}
       menuBody={
-        <Container padding="0 3xl xs">
-          <SimpleTable
+        <Container padding="0 0 xs">
+          <HeaderTable
             aria-label={t('Sort threads')}
             columns={getThreadSelectorColumns(hasThreadStates)}
             customSections
             density="compressed"
           >
             <SimpleTable.Head>
-              <SimpleTable.HeaderRow>
+              <HeaderRow>
                 <HeaderCell />
                 {sortableColumns.map(({attribute, label}) => (
                   <HeaderCell
@@ -176,9 +176,9 @@ export function ThreadSelector({
                     {label}
                   </HeaderCell>
                 ))}
-              </SimpleTable.HeaderRow>
+              </HeaderRow>
             </SimpleTable.Head>
-          </SimpleTable>
+          </HeaderTable>
         </Container>
       }
       onChange={selected => {
@@ -219,6 +219,18 @@ const ActiveThreadName = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const HeaderTable = styled(SimpleTable)`
+  padding: 0 ${p => p.theme.space['3xl']};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-width: 1px 0;
+  border-radius: 0;
+`;
+
+const HeaderRow = styled(SimpleTable.HeaderRow)`
+  border-bottom: none;
+  border-radius: 0;
 `;
 
 // Compressed SimpleTable header padding leaves too little room for a sorted
