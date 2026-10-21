@@ -182,7 +182,10 @@ class TestViewerContextScope:
 class TestObserve:
     @pytest.fixture(autouse=True)
     def patch_metrics(self):
-        with mock.patch("sentry.viewer_context.sentry_sdk.metrics.count") as m:
+        with (
+            mock.patch("sentry.viewer_context.random", return_value=0.0),
+            mock.patch("sentry.viewer_context.sentry_sdk.metrics.count") as m,
+        ):
             yield m
 
     def _tags(self, m):

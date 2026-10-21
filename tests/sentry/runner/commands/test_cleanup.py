@@ -40,6 +40,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
+from sentry.viewer_context import ActorType, get_viewer_context
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 
@@ -48,9 +49,9 @@ class SynchronousTaskQueue:
 
     def __init__(self) -> None:
         # You can use this to inspect the calls to the queue.
-        self.put_calls: list[tuple[str, tuple[int, ...], int | None, dict[str, Any]]] = []
+        self.put_calls: list[tuple[Any, ...]] = []
 
-    def put(self, item: tuple[str, tuple[int, ...], int | None, dict[str, Any]]) -> None:
+    def put(self, item: tuple[Any, ...]) -> None:
         self.put_calls.append(item)
         task_execution(*item)
 
@@ -195,9 +196,10 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Verify we deleted all expected groups (order may vary due to non-unique last_seen)
         all_deleted_ids: set[int] = set()
         for call in task_queue.put_calls:
-            model_name, chunk_ids, call_project_id, deferred_filter = call
+            model_name, chunk_ids, call_project_id, deferred_filter, call_organization_id = call
             assert model_name == "sentry.models.group.Group"
             assert call_project_id == project.id
+            assert call_organization_id == project.organization_id
             assert deferred_filter == {}
             all_deleted_ids.update(chunk_ids)
         assert all_deleted_ids == set(ids)
@@ -243,14 +245,49 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Verify each call has the correct project_id
         project_ids_seen: set[int] = set()
         for call in group_calls:
-            model_name, chunk_ids, call_project_id, deferred_filter = call
+            model_name, chunk_ids, call_project_id, deferred_filter, call_organization_id = call
             assert call_project_id is not None
+            assert call_organization_id is not None
             assert deferred_filter == {}
             project_ids_seen.add(call_project_id)
 
         # Should have seen both projects
         assert project1.id in project_ids_seen
         assert project2.id in project_ids_seen
+
+    def test_group_cleanup_sets_system_viewer_context(self) -> None:
+        days = 30
+        self.project.update_option("sentry:similarity_backfill_completed", 1)
+        event = self.store_event(data={"message": "old error"}, project_id=self.project.id)
+        assert event.group is not None
+        event.group.update(last_seen=before_now(days=days + 1))
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == self.organization.id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.user_id is None
+            assert viewer_context.actor_type == ActorType.SYSTEM
+
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            patch(
+                "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async",
+                side_effect=assert_viewer_context,
+            ) as mock_delete_seer_grouping_records,
+        ):
+            run_bulk_deletes_by_project(
+                task_queue=SynchronousTaskQueue(),  # type: ignore[arg-type]
+                project_id=self.project.id,
+                start_from_project_id=None,
+                is_filtered=lambda model: model is not Group,
+                days=days,
+                models_attempted=set(),
+            )
+
+        mock_delete_seer_grouping_records.assert_called()
+        assert get_viewer_context() is None
 
 
 class RemoveCrossProjectModelsTest(TestCase):

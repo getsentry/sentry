@@ -1,4 +1,6 @@
 import logging
+from contextlib import AbstractContextManager, nullcontext
+from dataclasses import replace
 from datetime import timedelta
 from typing import Any
 
@@ -16,16 +18,58 @@ from sentry.deletions.models.scheduleddeletion import (
     ScheduledDeletion,
 )
 from sentry.exceptions import DeleteAborted
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.signals import pending_delete
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger("sentry.deletions.api")
 
 
 MAX_RETRIES = 5
+
+
+def scheduled_deletion_viewer_context(
+    deletion: BaseScheduledDeletion,
+    instance: Any,
+    *,
+    origin_context: ViewerContext | None = None,
+) -> AbstractContextManager[None]:
+    """Apply the recorded actor and target scope while executing a scheduled deletion."""
+    if not isinstance(instance, (Organization, Project)):
+        return nullcontext()
+
+    viewer_context = (
+        ViewerContext(user_id=deletion.actor_id, actor_type=ActorType.USER)
+        if deletion.actor_id is not None
+        else origin_context or get_viewer_context()
+    )
+    if viewer_context is None:
+        return nullcontext()
+
+    if isinstance(instance, Project):
+        viewer_context = replace(
+            viewer_context,
+            organization_id=instance.organization_id,
+            project_id=instance.id,
+        )
+    else:
+        viewer_context = replace(
+            viewer_context,
+            organization_id=instance.id,
+            project_id=None,
+        )
+
+    return viewer_context_scope(viewer_context)
 
 
 @instrumented_task(
@@ -201,24 +245,25 @@ def _run_deletion(
         actor = deletion.get_actor()
         pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
-    try:
-        has_more = task.chunk()
-        if has_more:
-            process_task.delay(deletion_id=deletion_id, first_pass=False)
-        else:
-            deletion.delete()
-    except Exception as err:
-        sentry_sdk.set_context(
-            "deletion",
-            {
-                "id": deletion.id,
-                "model": deletion.model_name,
-                "object_id": deletion.object_id,
-            },
-        )
-        sentry_sdk.set_attribute("deletion.id", deletion.id)
-        sentry_sdk.set_attribute("deletion.model", deletion.model_name)
-        sentry_sdk.set_attribute("deletion.object_id", deletion.object_id)
-        sentry_sdk.capture_exception(err)
-        if in_test_environment():
-            raise
+    with scheduled_deletion_viewer_context(deletion, instance):
+        try:
+            has_more = task.chunk()
+            if has_more:
+                process_task.delay(deletion_id=deletion_id, first_pass=False)
+            else:
+                deletion.delete()
+        except Exception as err:
+            sentry_sdk.set_context(
+                "deletion",
+                {
+                    "id": deletion.id,
+                    "model": deletion.model_name,
+                    "object_id": deletion.object_id,
+                },
+            )
+            sentry_sdk.set_attribute("deletion.id", deletion.id)
+            sentry_sdk.set_attribute("deletion.model", deletion.model_name)
+            sentry_sdk.set_attribute("deletion.object_id", deletion.object_id)
+            sentry_sdk.capture_exception(err)
+            if in_test_environment():
+                raise

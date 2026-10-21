@@ -40,6 +40,21 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert result["commentId"] is None
         assert result["data"] == {"referrer": "slack"}
 
+    def test_legacy_mcp_client_family_source_is_renamed(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+        legacy = self.create_group_action_log_entry(
+            group=group, type=GroupActionType.RESOLVE, source="mcp:claude-desktop"
+        )
+        current = self.create_group_action_log_entry(
+            group=group, type=GroupActionType.RESOLVE, source="mcp:claude-code"
+        )
+
+        legacy_result, current_result = serialize([legacy, current], user)
+
+        assert legacy_result["source"] == "mcp:claude"
+        assert current_result["source"] == "mcp:claude-code"
+
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()
