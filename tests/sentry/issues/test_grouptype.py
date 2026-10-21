@@ -3,6 +3,8 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.db.models import Q
+
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
@@ -19,7 +21,9 @@ from sentry.issues.grouptype import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorSettings
 
 
 class BaseGroupTypeTest(TestCase):
@@ -248,4 +252,42 @@ class GroupRegistryTest(BaseGroupTypeTest):
         assert registry.get_by_category(GroupCategory.DB_QUERY.value) == {
             PerformanceSlowDBQueryGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
+        }
+
+    def test_get_detector_type_filters(self) -> None:
+        class NoSettingsGroupType(GroupType):
+            type_id = 9001
+            slug = "no_settings"
+            description = "No detector settings"
+            category = GroupCategory.METRIC.value
+
+        class SettingsGroupType(GroupType):
+            type_id = 9002
+            slug = "with_settings"
+            description = "Detector settings without a filter"
+            category = GroupCategory.METRIC.value
+
+        class FilteredSettingsGroupType(GroupType):
+            type_id = 9003
+            slug = "filtered_settings"
+            description = "Detector settings with a filter"
+            category = GroupCategory.METRIC.value
+
+        @detector_settings_registry.register(SettingsGroupType.slug)
+        class SettingsDetectorSettings(DetectorSettings):
+            pass
+
+        @detector_settings_registry.register(FilteredSettingsGroupType.slug)
+        class FilteredDetectorSettings(DetectorSettings):
+            filter = Q(enabled=True)
+
+        no_settings = self.create_detector(type=NoSettingsGroupType.slug)
+        with_settings = self.create_detector(type=SettingsGroupType.slug)
+        filtered_in = self.create_detector(type=FilteredSettingsGroupType.slug, enabled=True)
+        filtered_out = self.create_detector(type=FilteredSettingsGroupType.slug, enabled=False)
+
+        detector_ids = [no_settings.id, with_settings.id, filtered_in.id, filtered_out.id]
+        assert set(Detector.objects.with_type_filters().filter(id__in=detector_ids)) == {
+            with_settings,
+            filtered_in,
         }

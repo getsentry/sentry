@@ -188,18 +188,20 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     @property
     def detector_handler(self) -> BaseDetectorHandler[Any, Any] | None:
         group_type = self.group_type
+        settings = group_type.detector_settings
 
-        if self.settings.handler is None:
+        if settings is None or settings.handler is None:
             logger.error(
                 "Registered grouptype for detector has no detector_handler",
                 extra={
                     "group_type": str(group_type),
                     "detector_id": self.id,
                     "detector_type": self.type,
+                    "has_detector_settings": settings is not None,
                 },
             )
             return None
-        return self.settings.handler(self)
+        return settings.handler(self)
 
     @property
     def settings(self) -> builtins.type[DetectorSettings]:

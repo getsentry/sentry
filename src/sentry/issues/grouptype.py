@@ -184,23 +184,26 @@ class GroupTypeRegistry:
         """
         Build a Q object that combines all detector type-specific filters.
 
-        For detector types without filters, they're included by default via a NOT IN clause.
-        For detector types with filters, we apply the specific filter condition.
+        Only detector types with registered DetectorSettings are included; detectors
+        of any other type (e.g. rows created by a migration before their settings
+        are registered) are excluded.
 
-        This optimizes the query since most detector types won't have filters.
+        Types without a settings filter are matched via a single IN clause, and types
+        with a filter apply their specific condition.
         """
-        types_with_filters = []
+        types_without_filters = []
         filtered_type_conditions = Q()
 
         for group_type in self.all():
-            if group_type.detector_settings and group_type.detector_settings.filter is not None:
-                filter = group_type.detector_settings.filter
-                types_with_filters.append(group_type.slug)
-                filtered_type_conditions |= Q(type=group_type.slug) & filter
+            settings = group_type.detector_settings
+            if settings is None:
+                continue
+            if settings.filter is None:
+                types_without_filters.append(group_type.slug)
+            else:
+                filtered_type_conditions |= Q(type=group_type.slug) & settings.filter
 
-        # Include all types that don't have filters (type NOT IN types_with_filters)
-        # OR match the specific filter conditions for types that do have filters
-        return ~Q(type__in=types_with_filters) | filtered_type_conditions
+        return Q(type__in=types_without_filters) | filtered_type_conditions
 
 
 registry = GroupTypeRegistry()
