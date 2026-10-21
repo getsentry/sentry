@@ -9,6 +9,7 @@ from sentry.relay.types.rule_condition import (
     AnyCondition,
     CidrCondition,
     EqCondition,
+    FilterCondition,
     GlobCondition,
     GtCondition,
     GteCondition,
@@ -17,7 +18,6 @@ from sentry.relay.types.rule_condition import (
     NotCondition,
     OrCondition,
     ReleaseCondition,
-    RuleCondition,
 )
 from sentry.utils import json
 
@@ -181,7 +181,7 @@ from sentry.utils import json
         ),
     ],
 )
-def test_serialize(condition: RuleCondition, expected: dict[str, Any]) -> None:
+def test_serialize(condition: FilterCondition, expected: dict[str, Any]) -> None:
     serialized = condition.serialize()
 
     assert serialized == expected

@@ -5,8 +5,8 @@ The conditions Relay evaluates against an item, mirrored from Relay's ``RuleCond
 enum. For the original definitions, see:
 https://getsentry.github.io/relay/relay_protocol/condition/enum.RuleCondition.html
 
-Build a condition from the dataclasses and ``serialize`` it where it enters a config.
-``SerializedRuleCondition`` is the form Relay reads.
+Build a condition from the ``FilterCondition`` dataclasses and ``serialize`` it where it
+enters a config. ``RuleCondition`` is the form Relay reads.
 """
 
 from abc import ABC, abstractmethod
@@ -76,20 +76,20 @@ class SerializedReleaseCondition(TypedDict):
 class SerializedIterableCondition(TypedDict):
     op: Literal["any", "all"]
     name: str
-    inner: "SerializedRuleCondition"
+    inner: "RuleCondition"
 
 
 class SerializedBooleanCondition(TypedDict):
     op: Literal["and", "or"]
-    inner: list["SerializedRuleCondition"]
+    inner: list["RuleCondition"]
 
 
 class SerializedNotCondition(TypedDict):
     op: Literal["not"]
-    inner: "SerializedRuleCondition"
+    inner: "RuleCondition"
 
 
-SerializedRuleCondition = Union[
+RuleCondition = Union[
     SerializedBooleanCondition,
     SerializedNotCondition,
     SerializedIterableCondition,
@@ -104,7 +104,7 @@ SerializedRuleCondition = Union[
 ]
 
 
-class RuleCondition(ABC):
+class FilterCondition(ABC):
     """
     A condition on an item, such as an event or a log.
 
@@ -114,12 +114,12 @@ class RuleCondition(ABC):
     """
 
     @abstractmethod
-    def serialize(self) -> SerializedRuleCondition:
+    def serialize(self) -> RuleCondition:
         """The condition in the form Relay reads."""
 
 
 @dataclass(frozen=True)
-class EqCondition(RuleCondition):
+class EqCondition(FilterCondition):
     """
     The field equals ``value``, or one of the values if it is a list.
 
@@ -138,7 +138,7 @@ class EqCondition(RuleCondition):
 
 
 @dataclass(frozen=True)
-class GteCondition(RuleCondition):
+class GteCondition(FilterCondition):
     """The field is greater than or equal to ``value``."""
 
     name: str
@@ -149,7 +149,7 @@ class GteCondition(RuleCondition):
 
 
 @dataclass(frozen=True)
-class GtCondition(RuleCondition):
+class GtCondition(FilterCondition):
     """The field is greater than ``value``."""
 
     name: str
@@ -160,7 +160,7 @@ class GtCondition(RuleCondition):
 
 
 @dataclass(frozen=True)
-class LteCondition(RuleCondition):
+class LteCondition(FilterCondition):
     """The field is less than or equal to ``value``."""
 
     name: str
@@ -171,7 +171,7 @@ class LteCondition(RuleCondition):
 
 
 @dataclass(frozen=True)
-class LtCondition(RuleCondition):
+class LtCondition(FilterCondition):
     """The field is less than ``value``."""
 
     name: str
@@ -182,7 +182,7 @@ class LtCondition(RuleCondition):
 
 
 @dataclass(frozen=True)
-class GlobCondition(RuleCondition):
+class GlobCondition(FilterCondition):
     """
     The field matches one of the glob ``patterns``.
 
@@ -197,7 +197,7 @@ class GlobCondition(RuleCondition):
 
 
 @dataclass(frozen=True)
-class CidrCondition(RuleCondition):
+class CidrCondition(FilterCondition):
     """
     The field holds an IP address inside one of the ``networks``, each a single
     address or a CIDR range. Relay ignores a network that is neither.
@@ -211,7 +211,7 @@ class CidrCondition(RuleCondition):
 
 
 @dataclass(frozen=True)
-class ReleaseCondition(RuleCondition):
+class ReleaseCondition(FilterCondition):
     """
     The version of the release in the field compares to ``release`` as ``comparator``
     says.
@@ -236,52 +236,52 @@ class ReleaseCondition(RuleCondition):
 
 
 @dataclass(frozen=True)
-class AnyCondition(RuleCondition):
+class AnyCondition(FilterCondition):
     """``inner`` matches at least one element of the list in the field."""
 
     name: str
-    inner: RuleCondition
+    inner: FilterCondition
 
     def serialize(self) -> SerializedIterableCondition:
         return {"op": "any", "name": self.name, "inner": self.inner.serialize()}
 
 
 @dataclass(frozen=True)
-class AllCondition(RuleCondition):
+class AllCondition(FilterCondition):
     """``inner`` matches every element of the list in the field."""
 
     name: str
-    inner: RuleCondition
+    inner: FilterCondition
 
     def serialize(self) -> SerializedIterableCondition:
         return {"op": "all", "name": self.name, "inner": self.inner.serialize()}
 
 
 @dataclass(frozen=True)
-class AndCondition(RuleCondition):
+class AndCondition(FilterCondition):
     """Every one of ``inner`` matches."""
 
-    inner: list[RuleCondition]
+    inner: list[FilterCondition]
 
     def serialize(self) -> SerializedBooleanCondition:
         return {"op": "and", "inner": [condition.serialize() for condition in self.inner]}
 
 
 @dataclass(frozen=True)
-class OrCondition(RuleCondition):
+class OrCondition(FilterCondition):
     """At least one of ``inner`` matches."""
 
-    inner: list[RuleCondition]
+    inner: list[FilterCondition]
 
     def serialize(self) -> SerializedBooleanCondition:
         return {"op": "or", "inner": [condition.serialize() for condition in self.inner]}
 
 
 @dataclass(frozen=True)
-class NotCondition(RuleCondition):
+class NotCondition(FilterCondition):
     """``inner`` does not match."""
 
-    inner: RuleCondition
+    inner: FilterCondition
 
     def serialize(self) -> SerializedNotCondition:
         return {"op": "not", "inner": self.inner.serialize()}

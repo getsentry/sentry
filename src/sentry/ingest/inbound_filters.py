@@ -18,9 +18,9 @@ from sentry.relay.types.rule_condition import (
     AndCondition,
     AnyCondition,
     CidrCondition,
+    FilterCondition,
     GlobCondition,
     OrCondition,
-    RuleCondition,
 )
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
@@ -318,7 +318,7 @@ _healthcheck_filter = _FilterSpec(
 def _error_message_condition(
     values: Sequence[tuple[str | None, str | None]],
     match_logentry: bool = False,
-) -> RuleCondition:
+) -> FilterCondition:
     """
     Condition that expresses error message matching for an inbound filter.
 
@@ -326,11 +326,11 @@ def _error_message_condition(
     the event's ``logentry.formatted`` message, so events captured via ``capture_message``
     (which carry no exception interface) are covered in addition to exceptions.
     """
-    conditions: list[RuleCondition] = []
-    message_conditions: list[RuleCondition] = []
+    conditions: list[FilterCondition] = []
+    message_conditions: list[FilterCondition] = []
 
     for ty, value in values:
-        ty_and_value: list[RuleCondition] = []
+        ty_and_value: list[FilterCondition] = []
 
         if ty is not None:
             ty_and_value.append(GlobCondition("ty", [ty]))
@@ -354,7 +354,7 @@ def _error_message_condition(
     return OrCondition([exception_condition, *message_conditions])
 
 
-def _chunk_load_error_filter() -> RuleCondition:
+def _chunk_load_error_filter() -> FilterCondition:
     """
     Filters out chunk load errors.
 
@@ -376,7 +376,7 @@ def _chunk_load_error_filter() -> RuleCondition:
     return _error_message_condition(values)
 
 
-def _custom_error_filter() -> RuleCondition | None:
+def _custom_error_filter() -> FilterCondition | None:
     values = settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES
     # The filter is enabled by default for all projects, but is a no-op unless custom
     # values are configured. Omit the global condition until there are values to match.
@@ -385,7 +385,7 @@ def _custom_error_filter() -> RuleCondition | None:
     return _error_message_condition(values, match_logentry=True)
 
 
-def _hydration_error_filter() -> RuleCondition:
+def _hydration_error_filter() -> FilterCondition:
     """
     Filters out hydration errors.
 
@@ -409,7 +409,7 @@ def _hydration_error_filter() -> RuleCondition:
 
 
 # List of all active generic filters that Sentry currently sends to Relay.
-ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]] = [
+ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], FilterCondition | None]]] = [
     ("chunk-load-error", _chunk_load_error_filter),
     ("react-hydration-errors", _hydration_error_filter),
     ("custom-error", _custom_error_filter),
@@ -433,7 +433,7 @@ def get_global_generic_filters() -> GenericFiltersConfig:
     return {"version": GENERIC_FILTERS_VERSION, "filters": filters}
 
 
-def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
+def _generic_filter(filter_id: str, condition: FilterCondition) -> GenericFilter:
     return {"id": filter_id, "isEnabled": True, "condition": condition.serialize()}
 
 
@@ -532,7 +532,7 @@ def get_generic_filters(
 CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
 
 
-def _custom_error_message_condition(values: list[str]) -> RuleCondition:
+def _custom_error_message_condition(values: list[str]) -> FilterCondition:
     """
     Matches events whose exception type, exception value, or log entry message
     matches one of the globs.
@@ -546,7 +546,7 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     return _error_message_condition(patterns, match_logentry=True)
 
 
-def _custom_error_type_condition(values: list[str]) -> RuleCondition:
+def _custom_error_type_condition(values: list[str]) -> FilterCondition:
     """
     Matches events that carry an exception whose type matches one of the globs.
 
@@ -558,21 +558,21 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
 
 
 # Builds the Relay condition that matches one filter condition's glob values.
-_ConditionMatcher = Callable[[list[str]], RuleCondition]
+_ConditionMatcher = Callable[[list[str]], FilterCondition]
 
 # The matcher for each condition type a data type supports.
 _ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
 def _field_matcher(name: str) -> _ConditionMatcher:
-    def match(values: list[str]) -> RuleCondition:
+    def match(values: list[str]) -> FilterCondition:
         return GlobCondition(name, values)
 
     return match
 
 
 def _cidr_matcher(name: str) -> _ConditionMatcher:
-    def match(values: list[str]) -> RuleCondition:
+    def match(values: list[str]) -> FilterCondition:
         return CidrCondition(name, values)
 
     return match
@@ -616,7 +616,7 @@ _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
     # Relay reads a field the item does not carry as no match, so the OR reduces to the
     # item's own field.
-    def match(values: list[str]) -> RuleCondition:
+    def match(values: list[str]) -> FilterCondition:
         return OrCondition([matcher(values) for matcher in matchers])
 
     return match
@@ -651,7 +651,7 @@ def get_supported_condition_types(
 
 def _custom_filter_condition(
     conditions: list[dict[str, Any]], data_type: str | None
-) -> RuleCondition | None:
+) -> FilterCondition | None:
     """
     Translates a custom inbound filter's conditions into a Relay rule condition.
 
@@ -669,7 +669,7 @@ def _custom_filter_condition(
     except ValueError:
         return None
 
-    rule_conditions: list[RuleCondition] = []
+    rule_conditions: list[FilterCondition] = []
     for condition in conditions:
         try:
             condition_type = ConditionType(condition.get("type", ""))
