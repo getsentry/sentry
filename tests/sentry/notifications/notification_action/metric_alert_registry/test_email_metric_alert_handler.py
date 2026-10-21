@@ -1,7 +1,18 @@
 import uuid
 from dataclasses import asdict
+from datetime import timedelta
+from typing import Any
 from unittest import mock
+from urllib.parse import parse_qs, urlsplit
 
+import pytest
+from bs4 import BeautifulSoup
+from django.core import mail
+from django.core.mail import EmailMultiAlternatives
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+
+from sentry.incidents.action_handlers import build_message, generate_incident_trigger_email_context
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -11,6 +22,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.models.activity import Activity
+from sentry.models.groupopenperiod import create_open_period, get_latest_open_period
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import EmailMetricAlertHandler
@@ -21,8 +33,9 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
     get_detector_serializer,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, IncidentGroupOpenPeriod
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
@@ -180,6 +193,37 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
         assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
+    def test_send_rendered_email(self) -> None:
+        notification_uuid = str(uuid.uuid4())
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
+        )
+
+        with self.tasks():
+            self.handler.invoke_legacy_registry(invocation)
+
+        assert len(mail.outbox) == 1
+        message = mail.outbox[0]
+        assert message.to == [self.user.email]
+        assert isinstance(message, EmailMultiAlternatives)
+        assert isinstance(message.alternatives[0][0], str)
+        html = BeautifulSoup(message.alternatives[0][0], "html.parser")
+        title_link = html.select_one("a.alert-title-link")
+        assert title_link is not None
+        link = str(title_link["href"])
+        assert link in message.body
+        url = urlsplit(link)
+        assert url.path == f"/organizations/{self.organization.slug}/issues/{self.group.id}/"
+        assert parse_qs(url.query) == {
+            "openPeriod": [str(self.open_period.id)],
+            "referrer": ["metric_alert_email"],
+            "notification_uuid": [notification_uuid],
+        }
+
     @mock.patch(
         "sentry.notifications.notification_action.metric_alert_registry.EmailMetricAlertHandler.send_alert"
     )
@@ -268,3 +312,131 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
 
         assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
+
+
+class TestMetricAlertEmailLinks(MetricAlertHandlerBase):
+    def setUp(self) -> None:
+        self.create_models()
+        self.metric_issue_context = MetricIssueContext.from_group_event(
+            self.group, self.evidence_data, DetectorPriorityLevel.HIGH
+        )
+        self.open_period_context = OpenPeriodContext.from_group(self.group)
+        self.alert_context = AlertContext.from_workflow_engine_models(
+            self.detector, self.evidence_data, self.group.status, DetectorPriorityLevel.HIGH
+        )
+
+    def generate_context(
+        self,
+        notification_uuid: str | None = "test-notification-uuid",
+        trigger_status: TriggerStatus = TriggerStatus.ACTIVE,
+    ) -> dict[str, Any]:
+        return generate_incident_trigger_email_context(
+            project=self.project,
+            organization=self.organization,
+            metric_issue_context=self.metric_issue_context,
+            alert_context=self.alert_context,
+            open_period_context=self.open_period_context,
+            trigger_status=trigger_status,
+            trigger_threshold=self.alert_context.alert_threshold,
+            notification_uuid=notification_uuid,
+        )
+
+    def assert_link_without_legacy_incident(
+        self, status: IncidentStatus, trigger_status: TriggerStatus
+    ) -> None:
+        assert not IncidentGroupOpenPeriod.objects.filter(
+            group_open_period=self.open_period
+        ).exists()
+        self.metric_issue_context.new_status = status
+
+        context = self.generate_context(trigger_status=trigger_status)
+
+        url = urlsplit(context["link"])
+        assert url.scheme == "http"
+        assert url.netloc == "testserver"
+        assert url.path == f"/organizations/{self.organization.slug}/issues/{self.group.id}/"
+        assert parse_qs(url.query) == {
+            "openPeriod": [str(self.open_period.id)],
+            "referrer": ["metric_alert_email"],
+            "notification_uuid": ["test-notification-uuid"],
+        }
+        message = build_message(context, trigger_status, self.user.id).build(to=self.user.email)
+        assert context["link"] in message.body
+        assert isinstance(message.alternatives[0][0], str)
+        html = BeautifulSoup(message.alternatives[0][0], "html.parser")
+        title_link = html.select_one("a.alert-title-link")
+        assert title_link is not None
+        assert title_link["href"] == context["link"]
+
+    def test_warning_link_without_legacy_incident(self) -> None:
+        self.assert_link_without_legacy_incident(IncidentStatus.WARNING, TriggerStatus.ACTIVE)
+
+    def test_critical_link_without_legacy_incident(self) -> None:
+        self.assert_link_without_legacy_incident(IncidentStatus.CRITICAL, TriggerStatus.ACTIVE)
+
+    def test_resolved_link_without_legacy_incident(self) -> None:
+        self.assert_link_without_legacy_incident(IncidentStatus.CLOSED, TriggerStatus.RESOLVED)
+
+    def test_link_ignores_legacy_incident_mapping(self) -> None:
+        incident = self.create_incident(alert_rule=self.alert_rule)
+        self.create_incident_group_open_period(
+            incident=incident, group_open_period=self.open_period
+        )
+
+        with CaptureQueriesContext(
+            connections[router.db_for_read(IncidentGroupOpenPeriod)]
+        ) as queries:
+            context = self.generate_context()
+
+        assert not any(IncidentGroupOpenPeriod._meta.db_table in query["sql"] for query in queries)
+        url = urlsplit(context["link"])
+        assert url.path == f"/organizations/{self.organization.slug}/issues/{self.group.id}/"
+        assert parse_qs(url.query)["openPeriod"] == [str(self.open_period.id)]
+
+    def test_link_keeps_notification_open_period_after_reopening(self) -> None:
+        self.open_period.close_open_period(self.open_period.date_started + timedelta(seconds=1))
+        create_open_period(self.group, self.open_period.date_started + timedelta(seconds=2))
+        latest_open_period = get_latest_open_period(self.group)
+        assert latest_open_period is not None
+        assert latest_open_period.id != self.open_period_context.id
+
+        context = self.generate_context()
+
+        assert parse_qs(urlsplit(context["link"]).query)["openPeriod"] == [
+            str(self.open_period_context.id)
+        ]
+
+    def test_dynamic_alert_tracking(self) -> None:
+        self.alert_context.detection_type = AlertRuleDetectionType.DYNAMIC
+
+        context = self.generate_context()
+
+        assert parse_qs(urlsplit(context["link"]).query) == {
+            "openPeriod": [str(self.open_period.id)],
+            "referrer": ["metric_alert_email"],
+            "type": ["anomaly_detection"],
+            "notification_uuid": ["test-notification-uuid"],
+        }
+
+    def test_no_notification_uuid(self) -> None:
+        context = self.generate_context(notification_uuid=None)
+
+        assert parse_qs(urlsplit(context["link"]).query) == {
+            "openPeriod": [str(self.open_period.id)],
+            "referrer": ["metric_alert_email"],
+        }
+
+    @with_feature("system:multi-region")
+    def test_customer_domain(self) -> None:
+        context = self.generate_context()
+
+        url = urlsplit(context["link"])
+        assert url.netloc == f"{self.organization.slug}.testserver"
+        assert url.path == f"/issues/{self.group.id}/"
+        assert parse_qs(url.query)["openPeriod"] == [str(self.open_period.id)]
+
+    def test_requires_group(self) -> None:
+        self.metric_issue_context.group = None
+
+        with pytest.raises(ValueError, match="Metric alert emails require a group"):
+            self.generate_context()
