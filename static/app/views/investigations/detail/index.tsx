@@ -2,6 +2,7 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChat} from '@sentry/icons/chat';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconIssues} from '@sentry/icons/issues';
 import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -12,7 +13,8 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -60,7 +62,10 @@ import {
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import type {
+  InvestigationBlock,
+  InvestigationDetail,
+} from 'sentry/views/investigations/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -302,17 +307,19 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     );
   }
 
-  const blocks = investigation.blocks ?? [];
-  const summaryBlock = investigation.template ? blocks[0] : undefined;
-  const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
-  const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock)
-      ? summaryBlock
-      : undefined;
-  const visibleNotebookCells = notebookCells.filter(block =>
+  const visibleBlocks = (investigation.blocks ?? []).filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
+  const awaitingReportCell = isAwaitingReportCell(investigation);
   const source = getInvestigationSource(investigation);
+  const hasDetails =
+    Boolean(investigation.orchestration) ||
+    visibleBlocks.length > 0 ||
+    awaitingReportCell;
+  // The "Investigation details" heading only appears below a summary.
+  const showDetailsHeading =
+    hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
+  const showActivity = isInvestigationRunDone(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -368,7 +375,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             },
           ]}
         />
-        <Container as="header" width="100%" padding="xl xl 3xl">
+        <Container as="header" width="100%" padding="xl xl 2xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
               columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
@@ -394,15 +401,18 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 </Flex>
               ) : null}
             </Grid>
-            <Flex align="center" justify="between" gap="md" wrap="wrap">
-              <Flex align="center" gap="sm" wrap="wrap">
+            <Flex align="center" justify="between" gap="md">
+              <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
                 {source.groupId ? (
                   <Link
                     to={normalizeUrl(
                       `/organizations/${organization.slug}/issues/${source.groupId}/`
                     )}
                   >
-                    {source.monitorName ?? t('View issue')}
+                    <Flex as="span" align="center" gap="xs">
+                      <IconIssues size="xs" />
+                      {source.monitorName ?? t('View issue')}
+                    </Flex>
                   </Link>
                 ) : (
                   <Text variant="muted">
@@ -415,11 +425,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     date: <DateTime date={investigation.dateUpdated} year />,
                   })}
                 </Text>
-                {investigation.status === 'archived' && commentCount === 0 ? null : (
+                {!showActivity ||
+                (investigation.status === 'archived' && commentCount === 0) ? null : (
                   <Fragment>
                     <MetaDivider />
                     <Button
-                      size="zero"
+                      size="sm"
                       variant="link"
                       icon={<IconChat size="xs" />}
                       onClick={() => {
@@ -447,84 +458,96 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   separator={<MetaDivider />}
                 />
               </Flex>
-              <FeedbackButton
-                feedbackOptions={{
-                  formTitle: t('Give feedback on this investigation'),
-                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                  tags: {
-                    'feedback.source': 'investigation',
-                    'feedback.owner': 'ml-ai',
-                    'investigation.id': investigation.id,
-                    'investigation.source_type': investigation.sourceType,
-                    ...(investigation.template
-                      ? {'investigation.template': investigation.template.key}
-                      : {}),
-                  },
-                }}
-              >
-                {t('Give feedback')}
-              </FeedbackButton>
+              <Container flexShrink={0}>
+                <FeedbackButton
+                  feedbackOptions={{
+                    formTitle: t('Give feedback on this investigation'),
+                    messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                    tags: {
+                      'feedback.source': 'investigation',
+                      'feedback.owner': 'ml-ai',
+                      'investigation.id': investigation.id,
+                      'investigation.source_type': investigation.sourceType,
+                      ...(investigation.template
+                        ? {'investigation.template': investigation.template.key}
+                        : {}),
+                    },
+                  }}
+                >
+                  {t('Give feedback')}
+                </FeedbackButton>
+              </Container>
             </Flex>
           </Stack>
         </Container>
         <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
-              {/*
-               * Only an agentic investigation has hypotheses, and `orchestration`
-               * being present is the only thing that says one is: it is null for
-               * manual and template investigations, whose orchestration endpoint
-               * 404s.
-               */}
-              {investigation.orchestration ? (
-                <InvestigationHypotheses
-                  investigationId={investigation.id}
-                  phase={investigation.orchestration.phase}
-                  status={investigation.orchestration.status}
-                />
-              ) : null}
-
               <InvestigationSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
 
-              {visibleSummaryBlock ? (
-                <InvestigationCell
-                  block={visibleSummaryBlock}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                  commentCount={commentCounts?.[visibleSummaryBlock.id]}
-                  onComment={
-                    isArchived && commentCounts && !commentCounts[visibleSummaryBlock.id]
-                      ? undefined
-                      : openBlockComments
-                  }
-                />
-              ) : null}
+              {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 
-              {visibleNotebookCells.map(block => (
-                <InvestigationCell
-                  key={block.id}
-                  block={block}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                  commentCount={commentCounts?.[block.id]}
-                  onComment={
-                    isArchived && commentCounts && !commentCounts[block.id]
-                      ? undefined
-                      : openBlockComments
-                  }
-                />
-              ))}
-              {isAwaitingReportCell(investigation) ? (
-                <InvestigationCellPlaceholder />
+              {hasDetails ? (
+                <Stack gap="lg">
+                  {showDetailsHeading ? (
+                    <Heading as="h2" size="lg">
+                      {t('Investigation details')}
+                    </Heading>
+                  ) : null}
+                  <DetailsBody gap="3xl">
+                    {/*
+                     * Only an agentic investigation has hypotheses, and `orchestration`
+                     * being present is the only thing that says one is: it is null for
+                     * manual and template investigations, whose orchestration endpoint
+                     * 404s.
+                     */}
+                    {investigation.orchestration ? (
+                      <InvestigationHypotheses
+                        investigationId={investigation.id}
+                        phase={investigation.orchestration.phase}
+                        status={investigation.orchestration.status}
+                      />
+                    ) : null}
+                    {visibleBlocks.length > 0 || awaitingReportCell ? (
+                      <Stack>
+                        {visibleBlocks.map((block, index) => (
+                          <Container
+                            key={block.id}
+                            paddingTop={getCellSpacing(block, index)}
+                          >
+                            <InvestigationCell
+                              block={block}
+                              canRun={investigation.status === 'active'}
+                              investigation={investigation}
+                              commentCount={commentCounts?.[block.id]}
+                              onComment={
+                                isArchived && commentCounts && !commentCounts[block.id]
+                                  ? undefined
+                                  : openBlockComments
+                              }
+                            />
+                          </Container>
+                        ))}
+                        {awaitingReportCell ? (
+                          <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
+                            <InvestigationCellPlaceholder />
+                          </Container>
+                        ) : null}
+                      </Stack>
+                    ) : null}
+                  </DetailsBody>
+                </Stack>
               ) : null}
-              <InvestigationActivity
-                investigation={investigation}
-                composerRef={composerRef}
-                ref={activityRef}
-              />
+              {showActivity ? (
+                <InvestigationActivity
+                  investigation={investigation}
+                  composerRef={composerRef}
+                  ref={activityRef}
+                />
+              ) : null}
               <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
@@ -532,6 +555,17 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       </Stack>
     </SentryDocumentTitle>
   );
+}
+
+/**
+ * Text cells start a new section with a large gap. Query cells sit close to the
+ * text cell above them.
+ */
+function getCellSpacing(block: InvestigationBlock, index: number) {
+  if (index === 0) {
+    return '0';
+  }
+  return block.kind === 'query' ? 'lg' : '3xl';
 }
 
 // Seer reaches the reporting phase once it is done with the hypotheses, but the
@@ -547,6 +581,16 @@ function isAwaitingReportCell(investigation: InvestigationDetail) {
   // cancelled is done, and more are still coming.
   return !(investigation.blocks ?? []).some(isBlockWorking);
 }
+
+// The activity feed waits for an agentic run to stop, so it doesn't compete with
+// the run for attention while Seer is still working. Manual and template
+// investigations have no run, so their feed always shows.
+function isInvestigationRunDone(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  return !orchestration || RUN_DONE_STATUSES.has(orchestration.status);
+}
+
+const RUN_DONE_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
 
 function isTitleGenerationActive(status: string | null | undefined) {
   return status === 'pending' || status === 'running';
@@ -604,7 +648,9 @@ const NotebookTitleInput = styled(Input)`
   border-color: transparent;
   border-radius: ${p => p.theme.radius.sm};
   box-shadow: none;
-  font-size: ${p => p.theme.font.size['2xl']};
+  /* The base input's form min-height would pad the title out below its text. */
+  min-height: 0;
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.25;
 
@@ -612,6 +658,16 @@ const NotebookTitleInput = styled(Input)`
   &:focus {
     background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.tokens.border.primary};
+  }
+`;
+
+/**
+ * Hidden when empty (e.g. no hypotheses and no cells), so it doesn't add a gap
+ * below the heading.
+ */
+const DetailsBody = styled(Stack)`
+  &:empty {
+    display: none;
   }
 `;
 

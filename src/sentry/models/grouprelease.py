@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 
 from django.db import models
 from django.utils import timezone
@@ -37,6 +38,11 @@ class GroupRelease(Model):
         indexes = (models.Index(fields=("group_id", "first_seen")),)
 
     __repr__ = sane_repr("group_id", "release_id")
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        # Dual-write: new_release_id is the int8 shadow of release_id until the column swap.
+        self.new_release_id = self.release_id
+        super().save(*args, **kwargs)
 
     @classmethod
     def get_cache_key(cls, group_id, release_id, environment):

@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import nullcontext
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
@@ -22,6 +23,7 @@ from sentry_sdk.scope import Scope
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +78,7 @@ _WorkItem: TypeAlias = (
     "tuple[str, tuple[int, ...]]"
     " | tuple[str, tuple[int, ...], int | None]"
     " | tuple[str, tuple[int, ...], int | None, dict[str, Any]]"
+    " | tuple[str, tuple[int, ...], int | None, dict[str, Any], int]"
 )
 _WorkQueue: TypeAlias = "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | _WorkItem]"
 
@@ -118,16 +121,23 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
             return
 
-        # Handle all formats: (model_name, chunk), (model_name, chunk, project_id) and (model_name, chunk, project_id, deferred_filter)
+        # Handle all formats: (model_name, chunk), (model_name, chunk, project_id),
+        # (model_name, chunk, project_id, deferred_filter), and the project-scoped
+        # form with organization_id appended.
         if len(j) == 2:
             model_name, chunk = j
             project_id = None
             deferred_filter: dict[str, Any] = {}
+            organization_id = None
         elif len(j) == 3:
             model_name, chunk, project_id = j
             deferred_filter = {}
-        else:
+            organization_id = None
+        elif len(j) == 4:
             model_name, chunk, project_id, deferred_filter = j
+            organization_id = None
+        else:
+            model_name, chunk, project_id, deferred_filter, organization_id = j
 
         if options.get("cleanup.abort_execution"):
             logger.warning("Cleanup worker aborting due to cleanup.abort_execution flag")
@@ -154,7 +164,9 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 propagation_context.custom_sampling_context = prev_sampling_context
 
             with span:
-                task_execution(model_name, chunk, project_id, deferred_filter)
+                task_execution(
+                    model_name, chunk, project_id, deferred_filter, organization_id=organization_id
+                )
         except Exception:
             metrics.incr(
                 "cleanup.error",
@@ -188,6 +200,7 @@ def task_execution(
     chunk: tuple[int, ...],
     project_id: int | None,
     deferred_filter: Mapping[str, Any] | None = None,
+    organization_id: int | None = None,
 ) -> None:
     """
     Execute deletion for a chunk of objects.
@@ -224,25 +237,38 @@ def task_execution(
     if deferred_filter:
         query.update(deferred_filter)
 
-    task = deletions.get(
-        model=model,
-        query=query,
-        skip_models=skip_child_relations_models,
-        transaction_id=uuid4().hex,
+    context = (
+        viewer_context_scope(
+            ViewerContext(
+                organization_id=organization_id,
+                project_id=project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        )
+        if organization_id is not None and project_id is not None
+        else nullcontext()
     )
 
-    # Track deletion iterations (task.chunk() may need multiple calls to fully delete)
-    iteration = 0
-    while True:
-        iteration += 1
-        has_more = task.chunk(apply_filter=True)
-
-        debug_output(
-            f"[ITERATION {iteration}] {model_name} chunk (project_id={project_id} has_more={has_more})"
+    with context:
+        task = deletions.get(
+            model=model,
+            query=query,
+            skip_models=skip_child_relations_models,
+            transaction_id=uuid4().hex,
         )
 
-        if not has_more:
-            break
+        # Track deletion iterations (task.chunk() may need multiple calls to fully delete)
+        iteration = 0
+        while True:
+            iteration += 1
+            has_more = task.chunk(apply_filter=True)
+
+            debug_output(
+                f"[ITERATION {iteration}] {model_name} chunk (project_id={project_id} has_more={has_more})"
+            )
+
+            if not has_more:
+                break
 
     # Increment metric once per chunk, after all iterations complete
     metrics.incr("cleanup.chunk_processed", tags={"model": model_name}, amount=chunk_size)
@@ -903,6 +929,7 @@ def _schedule_bulk_delete_chunks(
     q: BulkDeleteQuery,  # Imported locally in functions that use it
     model_tp: type[BaseModel],
     project_id: int | None,
+    organization_id: int | None = None,
     context_str: str = "",
 ) -> tuple[int, int]:
     """
@@ -939,7 +966,10 @@ def _schedule_bulk_delete_chunks(
                 },
             )
             _last_progress_log[imp] = time.monotonic()
-        task_queue.put((imp, chunk, project_id, q.deferred_filter))
+        if organization_id is None:
+            task_queue.put((imp, chunk, project_id, q.deferred_filter))
+        else:
+            task_queue.put((imp, chunk, project_id, q.deferred_filter, organization_id))
         chunk_count += 1
         total_objects += len(chunk)
 
@@ -1027,9 +1057,9 @@ def run_bulk_deletes_by_project(
     if project_deletion_query is not None and len(to_delete_by_project):
         debug_output("Running bulk deletes in DELETES_BY_PROJECT")
 
-        for project_id_for_deletion in RangeQuerySetWrapper(
-            project_deletion_query.values_list("id", flat=True),
-            result_value_getter=lambda item: item,
+        for project_id_for_deletion, organization_id_for_deletion in RangeQuerySetWrapper(
+            project_deletion_query.values_list("id", "organization_id"),
+            result_value_getter=lambda item: item[0],
         ):
             for model_tp, dtfield, order_by in to_delete_by_project:
                 models_attempted.add(model_tp.__name__.lower())
@@ -1046,7 +1076,13 @@ def run_bulk_deletes_by_project(
                         order_by=order_by,
                     )
 
-                    _schedule_bulk_delete_chunks(task_queue, q, model_tp, project_id_for_deletion)
+                    _schedule_bulk_delete_chunks(
+                        task_queue,
+                        q,
+                        model_tp,
+                        project_id_for_deletion,
+                        organization_id_for_deletion,
+                    )
                 except Exception:
                     capture_exception(
                         tags={"model": model_tp.__name__, "project_id": project_id_for_deletion}

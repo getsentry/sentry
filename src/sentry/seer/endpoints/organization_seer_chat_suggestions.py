@@ -116,6 +116,9 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 request, organization, project_ids=set(sorted(project_ids)[:MAX_PROJECTS])
             )
 
+        actions_enabled = features.has(
+            "organizations:seer-chat-suggestions-actions", organization, actor=request.user
+        )
         payload = {
             **data,
             "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
@@ -125,13 +128,17 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "code_mode": features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             ),
-            # Whether the user has permission to create alerts and monitors.
-            "can_create_alerts": any(
-                request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
-            ),
-            # The page's context node type, if the user can edit its item.
-            "can_edit_node_type": self._can_edit_node_type(request, organization, route_params),
+            "actions_enabled": actions_enabled,
         }
+        if actions_enabled:
+            # Whether the user has permission to create alerts and monitors.
+            payload["can_create_alerts"] = any(
+                request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
+            )
+            # The page's context node type, if the user can edit its item.
+            payload["can_edit_node_type"] = self._can_edit_node_type(
+                request, organization, route_params
+            )
 
         try:
             result = run_oneshot(

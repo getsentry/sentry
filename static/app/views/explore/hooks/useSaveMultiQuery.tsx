@@ -40,7 +40,7 @@ export function useSaveMultiQuery() {
       dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
       start,
       end,
-      range: period,
+      statsPeriod: period,
       interval,
       projects,
       environment: environments,

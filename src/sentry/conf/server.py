@@ -396,6 +396,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
+    "sentry.middleware.notification_tracking.NotificationTrackingMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -491,6 +492,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.workflow_engine",
     "sentry.explore",
     "sentry.investigations.apps.InvestigationsConfig",
+    "sentry.service_accounts.apps.ServiceAccountsConfig",
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
@@ -2657,6 +2659,74 @@ SENTRY_PROFILES_FILE_STORAGE_CONFIG: dict[str, Any] = {
 }
 SENTRY_CONTROL_FILE_STORAGE_BACKEND = ""
 SENTRY_CONTROL_FILE_STORAGE_CONFIG: dict[str, Any] = {}
+SENTRY_CONFIGURED_OPTION_SETTINGS: frozenset[str] = frozenset()
+SENTRY_AUTH_FLY_CLIENT_SECRET = ""
+SENTRY_AUTH_GOOGLE_CLIENT_SECRET = ""
+SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY = ""
+SENTRY_CODECOV_SIGNING_SECRET = ""
+SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY = ""
+SENTRY_DISCORD_BOT_TOKEN = ""
+SENTRY_DISCORD_CLIENT_SECRET = ""
+SENTRY_GCP_CLIENT_SECRET = ""
+SENTRY_GITHUB_APP_CLIENT_SECRET = ""
+SENTRY_GITHUB_APP_PRIVATE_KEY = ""
+SENTRY_GITHUB_APP_WEBHOOK_SECRET = ""
+SENTRY_MAILGUN_API_KEY = ""
+SENTRY_MSTEAMS_CLIENT_SECRET = ""
+SENTRY_SLACK_CLIENT_SECRET = ""
+SENTRY_SLACK_SIGNING_SECRET = ""
+SENTRY_SLACK_STAGING_CLIENT_SECRET = ""
+SENTRY_SLACK_STAGING_SIGNING_SECRET = ""
+SENTRY_SLACK_VERIFICATION_TOKEN = ""
+SENTRY_SMS_TWILIO_TOKEN = ""
+SENTRY_VERCEL_CLIENT_SECRET = ""
+SENTRY_VSTS_CLIENT_SECRET = ""
+SENTRY_VSTS_LIMITED_CLIENT_SECRET = ""
+SENTRY_VSTS_NEW_CLIENT_SECRET = ""
+SENTRY_AUTH_FLY_CLIENT_ID: str = ""
+SENTRY_AUTH_GOOGLE_CLIENT_ID: str = ""
+SENTRY_MSTEAMS_APP_ID: str = ""
+SENTRY_SMS_BACKEND: str = "twilio"
+SENTRY_GITHUB_APP_ID: int = 0
+SENTRY_GITHUB_APP_NAME: str = ""
+SENTRY_GITHUB_APP_CLIENT_ID: str = ""
+SENTRY_GITHUB_CONSOLE_SDK_APP_ID: int = 0
+SENTRY_SLACK_CLIENT_ID: str = ""
+SENTRY_SLACK_STAGING_CLIENT_ID: str = ""
+SENTRY_MSTEAMS_CLIENT_ID: str = ""
+SENTRY_MSTEAMS_TENANT_ID: str = ""
+SENTRY_VERCEL_CLIENT_ID: str = ""
+SENTRY_DISCORD_APPLICATION_ID: str = ""
+SENTRY_DISCORD_PUBLIC_KEY: str = ""
+SENTRY_GCP_CLIENT_ID: str = ""
+SENTRY_VSTS_CLIENT_ID: str = ""
+SENTRY_VSTS_LIMITED_CLIENT_ID: str = ""
+SENTRY_VSTS_NEW_CLIENT_ID: str = ""
+SENTRY_AWS_LAMBDA_ACCESS_KEY_ID: str = ""
+SENTRY_AWS_LAMBDA_ACCOUNT_NUMBER: str = "943013980633"
+SENTRY_AWS_LAMBDA_CLOUDFORMATION_URL: str = ""
+SENTRY_PAGERDUTY_APP_ID: str = ""
+SENTRY_CURSOR_ORIGIN_APP_ID: str = ""
+SENTRY_SYSTEM_INTERNAL_URL_PREFIX: str = ""
+SENTRY_SYMBOLICATOR_ENABLED: bool = False
+SENTRY_SYMBOLICATOR_OPTIONS: dict[str, Any] = {"url": "http://127.0.0.1:3021"}
+SENTRY_SYMBOLSERVER_ENABLED: bool = False
+SENTRY_SYMBOLSERVER_OPTIONS: dict[str, Any] = {"url": "http://127.0.0.1:3000"}
+SENTRY_REPLAY_STORAGE_BACKEND: str = ""
+SENTRY_REPLAY_STORAGE_OPTIONS: dict[str, Any] = {}
+SENTRY_CHART_RENDERING_ENABLED: bool = False
+SENTRY_CHART_RENDERING_CHARTCUTERIE: dict[str, Any] = {"url": "http://127.0.0.1:7901"}
+SENTRY_CHART_RENDERING_STORAGE_BACKEND: str = ""
+SENTRY_CHART_RENDERING_STORAGE_OPTIONS: dict[str, Any] = {}
+SENTRY_DSYM_CACHE_PATH: str = "/tmp/sentry-dsym-cache"
+SENTRY_RELEASEFILE_CACHE_PATH: str = "/tmp/sentry-releasefile-cache"
+SENTRY_MAIL_ENABLE_REPLIES: bool = False
+SENTRY_MAIL_REPLY_HOSTNAME: str = ""
+SENTRY_SYSTEM_SUPPORT_EMAIL: str = ""
+SENTRY_SYSTEM_SECURITY_EMAIL: str = ""
+SENTRY_U2F_FACETS: list[str] = []
+SENTRY_SMS_TWILIO_ACCOUNT: str = ""
+SENTRY_SMS_TWILIO_NUMBER: str = ""
 EMAIL_BACKEND = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
@@ -3289,7 +3359,7 @@ SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
 SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
-    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "path": "sentry.utils.locking.backends.redis.RedisClusterLockBackend",
     "options": {"cluster": "default"},
 }
 
@@ -3383,7 +3453,6 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # the service is assumed to be healthy.
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
-    "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-store-transactions": {},
     "processing-locks": {"redis": "default"},

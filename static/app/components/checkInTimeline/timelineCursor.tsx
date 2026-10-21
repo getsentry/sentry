@@ -3,7 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Overlay} from 'sentry/components/overlay';
+import {Overlay} from '@sentry/scraps/overlay';
+
 import {Sticky} from 'sentry/components/sticky';
 
 const TOOLTIP_OFFSET = 10;

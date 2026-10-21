@@ -42,7 +42,6 @@ import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widge
 import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreWidget';
 import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 import {StackedAreaChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/stackedAreaChartListWidget';
-import {TrendsWidget} from 'sentry/views/performance/landing/widgets/widgets/trendsWidget';
 
 import type {ChartRowProps} from './widgetChartRow';
 
@@ -146,8 +145,6 @@ export function WidgetContainer(props: Props) {
   };
 
   switch (widgetProps.dataType) {
-    case GenericPerformanceWidgetDataType.TRENDS:
-      return <TrendsWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.AREA:
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.LINE_LIST:

@@ -302,6 +302,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.cost.cache_read.input_tokens",
+            internal_name="gen_ai.cost.cache_read.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.cache_creation.input_tokens",
+            internal_name="gen_ai.cost.cache_creation.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.reasoning.output_tokens",
+            internal_name="gen_ai.cost.reasoning.output_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.memory.record.count",
             internal_name="gen_ai.memory.record.count",
             search_type="integer",

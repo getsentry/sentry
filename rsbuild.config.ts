@@ -6,7 +6,7 @@ import path from 'node:path';
 import {defineConfig} from '@rsbuild/core';
 import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
 import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
-import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/core';
 import type {
   Configuration,
   OptimizationSplitChunksCacheGroup,
@@ -506,14 +506,6 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      // Keep Prose available until the text barrel is fully isolated.
-      '@sentry/scraps/text$': path.join(
-        staticPrefix,
-        'app',
-        'components',
-        'core',
-        'text'
-      ),
       '@sentry/scraps': [
         path.join(staticPrefix, 'packages', 'scraps', 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),
