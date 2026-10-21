@@ -14,7 +14,6 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {minHeight} from '@sentry/scraps/compactSelect/utils';
-import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Header, Search, SectionSeparator, Title} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
@@ -290,18 +289,18 @@ function DropdownMenuList({
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
-          <Stack
-            width={
-              typeof menuWidth === 'number'
-                ? `${menuWidth}px`
-                : (menuWidth as CSS['width'])
-            }
-            minHeight={minMenuHeight as CSS['minHeight']}
-            maxHeight={overlayPositionProps.style?.maxHeight as CSS['maxHeight']}
-            maxWidth="100%"
-          >
+          <Stack>
             {stackProps => (
-              <Overlay {...stackProps}>
+              <Overlay
+                {...stackProps}
+                style={{
+                  width: menuWidth,
+                  minHeight: minMenuHeight,
+                  // The overlay positioner limits the menu to the available viewport height.
+                  maxHeight: overlayPositionProps.style?.maxHeight,
+                  maxWidth: '100%',
+                }}
+              >
                 {menuTitle && (
                   <Header padding="sm lg">
                     <Title>{menuTitle}</Title>
