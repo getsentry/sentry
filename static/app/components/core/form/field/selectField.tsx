@@ -82,14 +82,29 @@ function useFocusRestoreWhenReEnabled(
     }
     shouldRestoreFocusRef.current = false;
     if (document.activeElement === input) {
-      // Stale DOM focus: blur first so the following focus() emits an event
+      // Stale DOM focus: blur first so the following focus() emits an event.
+      // This is not a user blur, so don't let it reach the form's `onBlur`
+      // (that would re-run validation or re-submit an auto-save form).
+      resyncingFocusInputs.add(input);
       input.blur();
+      resyncingFocusInputs.delete(input);
+      // The input was focused a moment ago; always put focus back
+      input.focus();
+      return;
     }
+    // The browser dropped focus on disable: only restore it if the user hasn't
+    // moved somewhere else in the meantime
     if (!document.activeElement || document.activeElement === document.body) {
       input.focus();
     }
   }, [inputRef, isDisabled]);
 }
+
+/**
+ * Inputs currently being blurred and re-focused only to re-sync react-select's
+ * focus state. Their blur must not be treated as the user leaving the field.
+ */
+const resyncingFocusInputs = new WeakSet<EventTarget>();
 
 function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
   const indicator = useAutoSaveIndicator();
@@ -208,6 +223,11 @@ export function SelectField<TValue>({
             {...fieldProps}
             {...props}
             {...selectVariantProps}
+            onBlur={(event: React.FocusEvent<HTMLElement>) => {
+              if (!resyncingFocusInputs.has(event.target)) {
+                fieldProps.onBlur();
+              }
+            }}
             inputId={id}
             inputRef={applyInputToRef(fieldRef)}
             // Keep focus on the input after selecting so keyboard users don't lose

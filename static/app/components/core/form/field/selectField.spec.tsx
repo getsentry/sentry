@@ -567,6 +567,42 @@ describe('SelectField keyboard navigation', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Cherry'})).toBeInTheDocument();
   });
 
+  it('does not treat restoring focus after being re-enabled as a blur', async () => {
+    const validationSchema = z.object({
+      fruit: z.string().min(1, 'Selection required'),
+    });
+    const {rerender} = render(
+      <TestForm label="Favorite Fruit" validator={validationSchema} />
+    );
+
+    const input = screen.getByRole('textbox');
+    await userEvent.click(input);
+
+    rerender(<TestForm label="Favorite Fruit" validator={validationSchema} disabled />);
+    rerender(<TestForm label="Favorite Fruit" validator={validationSchema} />);
+
+    expect(input).toHaveFocus();
+    // onBlur validation would flag the empty value if the re-sync counted as a blur
+    expect(input).toHaveAttribute('aria-invalid', 'false');
+  });
+
+  it('keeps focus on the input even if something reacts to the re-sync blur', async () => {
+    const {rerender} = render(<TestForm label="Favorite Fruit" />);
+    const other = document.createElement('button');
+    document.body.appendChild(other);
+
+    const input = screen.getByRole('textbox');
+    await userEvent.click(input);
+    // e.g. a focus trap that moves focus when its active element blurs
+    input.addEventListener('blur', () => other.focus(), {once: true});
+
+    rerender(<TestForm label="Favorite Fruit" disabled />);
+    rerender(<TestForm label="Favorite Fruit" />);
+
+    expect(input).toHaveFocus();
+    other.remove();
+  });
+
   it('closes menu with Escape key', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
