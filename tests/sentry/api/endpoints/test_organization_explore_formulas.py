@@ -478,7 +478,7 @@ class TestFormulas(BaseFormulaTest):
             self.formula_object["name"] = f"formula.apdex{i}"
             self.create_formula(self.formula_object)
         with self.feature(self.feature_flags):
-            response = self.client.get(self.url, data={"prebuilt": True})
+            response = self.client.get(self.url, data={"prebuilt": "true"})
             assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert response.data[0]["name"] == "formula.apdex"
@@ -489,7 +489,7 @@ class TestFormulas(BaseFormulaTest):
             self.formula_object["name"] = f"formula.apdex{i}"
             self.create_formula(self.formula_object)
         with self.feature(self.feature_flags):
-            response = self.client.get(self.url, data={"sortBy": "-name", "prebuilt": False})
+            response = self.client.get(self.url, data={"sortBy": "-name", "prebuilt": "false"})
             assert response.status_code == 200, response.content
         assert len(response.data) == 5
         for i in range(5):
@@ -509,7 +509,7 @@ class TestFormulas(BaseFormulaTest):
                 self.formula_object["name"] = f"formula.flub{i}"
             self.create_formula(self.formula_object)
         with self.feature(self.feature_flags):
-            response = self.client.get(self.url, data={"name": "apdex", "prebuilt": False})
+            response = self.client.get(self.url, data={"name": "apdex", "prebuilt": "false"})
             assert response.status_code == 200, response.content
         assert len(response.data) == 3
         formula_names = [row["name"] for row in response.data]
