@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0044_add_workflow_config_service_account
 
-sentry: 1236_disable_metric_action_trigger_constraint
+sentry: 1237_detach_incident_foreign_keys
 
 service_accounts: 0002_add_cell_replicas
 
