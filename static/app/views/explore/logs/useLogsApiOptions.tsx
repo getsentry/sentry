@@ -32,6 +32,24 @@ import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 
 const LOGS_DATA_CATEGORIES = [DataCategory.LOG_BYTE] as const;
 
+function getSamplingMode({
+  highAccuracy,
+  highFidelity,
+}: {
+  highAccuracy?: boolean;
+  highFidelity?: boolean;
+}) {
+  if (highAccuracy) {
+    return SAMPLING_MODE.HIGH_ACCURACY;
+  }
+
+  if (highFidelity) {
+    return SAMPLING_MODE.FLEX_TIME;
+  }
+
+  return SAMPLING_MODE.NORMAL;
+}
+
 function useLogsApiOptions({
   limit,
   referrer,
@@ -105,11 +123,7 @@ function useLogsApiOptions({
     orderby,
     per_page: limit ? limit : undefined,
     referrer,
-    sampling: highAccuracy
-      ? SAMPLING_MODE.HIGH_ACCURACY
-      : highFidelity
-        ? SAMPLING_MODE.FLEX_TIME
-        : SAMPLING_MODE.NORMAL,
+    sampling: getSamplingMode({highAccuracy, highFidelity}),
     caseInsensitive: caseInsensitive ? '1' : undefined,
     truncate,
   };
