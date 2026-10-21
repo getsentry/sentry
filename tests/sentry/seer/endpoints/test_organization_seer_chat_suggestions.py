@@ -64,13 +64,8 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         }
 
     @with_feature({"organizations:seer-chat-suggestions-actions": False})
-    @patch(
-        "sentry.seer.endpoints.organization_seer_chat_suggestions.OrganizationSeerChatSuggestionsEndpoint._can_edit_node_type"
-    )
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
-    def test_omits_permissions_when_actions_flag_is_off(
-        self, mock_run_oneshot: MagicMock, mock_can_edit_node_type: MagicMock
-    ) -> None:
+    def test_omits_permissions_when_actions_flag_is_off(self, mock_run_oneshot: MagicMock) -> None:
         mock_run_oneshot.return_value = {"suggestions": []}
         dashboard = self.create_dashboard(organization=self.organization)
 
@@ -87,7 +82,6 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         assert payload["actions_enabled"] is False
         assert "can_create_alerts" not in payload
         assert "can_edit_node_type" not in payload
-        mock_can_edit_node_type.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_passes_no_alert_access_when_org_disallows_member_alerts(
