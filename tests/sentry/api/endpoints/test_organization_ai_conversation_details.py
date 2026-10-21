@@ -1745,7 +1745,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=uuid4().hex,
             input_messages=[{"role": "user", "content": "hello"}],
             output_messages=[{"role": "assistant", "content": "hi"}],
-            system_instructions="Be helpful",
         )
         query = {
             "project": [self.project.id],
@@ -1755,7 +1754,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         }
         with self.feature("organizations:gen-ai-conversations-backend-transcript"):
             response = self.do_request(conversation_id, query)
-            expanded = self.do_request(conversation_id, {**query, "expand": "normalized_spans"})
         assert response.status_code == 200, response.data
         assert response.data["complete"] is True
         assert response.data["sourceSpanCount"] == 1
@@ -1764,14 +1762,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             ("assistant", "hi"),
         ]
         assert "spans" not in response.data
-        assert "normalizedSpans" not in response.data
-        assert expanded.status_code == 200
-        assert expanded.data["transcript"] == response.data["transcript"]
-        assert expanded.data["normalizedSpans"][0]["systemInstructions"] == [
-            {"role": "system", "content": "Be helpful"}
-        ]
-        assert expanded.data["normalizedSpans"][0]["responseText"] == "hi"
-        assert expanded.data["normalizedSpans"][0]["projectId"] == str(self.project.id)
 
     def test_transcript_deduplicates_across_source_pages(self) -> None:
         now = before_now(days=1).replace(microsecond=0)

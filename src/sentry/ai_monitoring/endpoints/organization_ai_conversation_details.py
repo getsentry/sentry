@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from django.core import signing
 from django.utils import timezone
@@ -24,7 +24,6 @@ from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
 from sentry.ai_monitoring.transcript.builder import TranscriptContextError
 from sentry.ai_monitoring.transcript.cursor import decode_cursor, encode_cursor
 from sentry.ai_monitoring.transcript.models import TranscriptMessageResponse
-from sentry.ai_monitoring.transcript.normalized_span import NormalizedAISpan, normalize_ai_span
 from sentry.ai_monitoring.transcript.pagination import (
     StreamPosition,
     TranscriptPosition,
@@ -224,7 +223,6 @@ class AIConversationTranscriptResponse(TypedDict):
     transcript: list[TranscriptMessageResponse]
     complete: bool
     sourceSpanCount: int
-    normalizedSpans: NotRequired[list[NormalizedAISpan]]
 
 
 def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
@@ -339,14 +337,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 location="query",
                 type=str,
                 enum=["timeline", "transcript"],
-                description="Defaults to timeline (paginated spans). Transcript returns the complete normalized conversation; requires feature access. Transcript timestamps and durations are seconds.",
-            ),
-            OpenApiParameter(
-                name="expand",
-                location="query",
-                type=str,
-                enum=["normalized_spans"],
-                description="With view=transcript, include structured content for each source AI span. Raw attributes remain available through view=timeline.",
+                description="Defaults to timeline (paginated raw spans). Transcript returns paginated normalized messages; requires feature access. Transcript timestamps and durations are seconds.",
             ),
         ],
         responses={
@@ -393,13 +384,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 return Response(
                     DetailResponse(detail="Conversation transcript is not available"), status=404
                 )
-        expand = request.GET.get("expand")
-        if expand is not None and (view != "transcript" or expand != "normalized_spans"):
-            return Response(
-                DetailResponse(detail="expand must be normalized_spans with view=transcript"),
-                status=400,
-            )
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -534,10 +518,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     complete=not page.has_more,
                     sourceSpanCount=len(page.source_rows),
                 )
-                if expand == "normalized_spans":
-                    transcript_response["normalizedSpans"] = [
-                        normalize_ai_span(span) for span in emitted
-                    ]
                 response = Response[
                     AIConversationDetailsResponse | AIConversationTranscriptResponse
                 ](transcript_response)
