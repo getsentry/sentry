@@ -869,22 +869,17 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (
-            parsedText?.some(textToken => {
-              if (textToken.type !== Token.FILTER) {
-                return false;
-              }
-              if (textToken.negated) {
-                return `!${textToken.key.text}` === filterValue;
-              }
-              return textToken.key.text === filterValue;
-            })
-          ) {
-            // Look up `!key:` by its key alone, or it gets no field definition and
-            // becomes a plain string filter
-            const negated = filterValue.startsWith('!');
+          const typedFilter = parsedText?.find(
+            (textToken): textToken is TokenResult<Token.FILTER> =>
+              textToken.type === Token.FILTER &&
+              `${textToken.negated ? '!' : ''}${textToken.key.text}` === filterValue
+          );
+
+          if (typedFilter) {
+            // The key text leaves out the `!`, so `!key:` gets the same field
+            // definition as `key:`
             const filterKey = resolveFilterKey({
-              key: negated ? filterValue.slice(1) : filterValue,
+              key: typedFilter.key.text,
               filterKeys,
               getSuggestedFilterKey,
               loadedItems: sortedFilteredItems,
@@ -900,7 +895,7 @@ function SearchQueryBuilderInputInternal({
                 selectionIndex,
                 filterKey,
                 getFieldDefinition,
-                negated
+                typedFilter.negated
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
