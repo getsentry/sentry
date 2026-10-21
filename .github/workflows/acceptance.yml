@@ -144,6 +144,27 @@ jobs:
           [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
           exit "${rc:-0}"
 
+      # pytest-selected.py balances shards with acceptance-test-durations.json.
+      # To refresh it, download the `acceptance-test-durations-*` artifacts of a
+      # few green master runs and merge them with
+      # .github/workflows/scripts/backend-test-durations.py.
+      - name: Extract test durations
+        id: durations
+        if: ${{ !cancelled() && hashFiles('.artifacts/pytest.acceptance.json') != '' }}
+        continue-on-error: true
+        run: |
+          python3 .github/workflows/scripts/backend-test-durations.py extract \
+            .artifacts/pytest.acceptance.json .artifacts/test-durations.json
+
+      - name: Upload test durations
+        if: ${{ !cancelled() && steps.durations.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acceptance-test-durations-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.instance }}
+          path: .artifacts/test-durations.json
+          retention-days: 30
+
       - name: Inspect failure
         if: failure()
         run: |

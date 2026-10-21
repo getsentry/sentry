@@ -95,7 +95,8 @@ build-chartcuterie-config:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
+	PYTEST_DURATIONS_FILE=.github/workflows/scripts/acceptance-test-durations.json PYTEST_PIECES_PER_SHARD=4 \
+		python3 -b .github/workflows/scripts/pytest-selected.py tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db
