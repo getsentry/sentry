@@ -9,7 +9,7 @@ import pytest
 import responses
 from django.http import HttpResponseBase
 from django.test import override_settings
-from django.urls import include, path, re_path
+from django.urls import reverse
 from responses import matchers
 from scm.errors import GitProviderNotSupported
 from scm.git.grant import sign_grant
@@ -18,7 +18,7 @@ from scm.types import Repository as ScmRepository
 from scm.types import RepositoryId
 
 from sentry.constants import ObjectStatus
-from sentry.scm.endpoints.scm_git import ScmGitEndpoint, get_git_token
+from sentry.scm.endpoints.scm_git import get_git_token
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
@@ -48,20 +48,8 @@ def sign(
     return sign_grant(secret, grant)
 
 
-# Stands in for the endpoint's route in sentry.api.urls until the URL layout is settled. Sentry's
-# own routes stay, since the test fixtures call cross-silo RPCs through them.
-urlpatterns = [
-    re_path(
-        r"^git/(?P<repository_path>.+?)\.git/(?P<route>.+)$",
-        ScmGitEndpoint.as_view(),
-        name="sentry-api-0-scm-git",
-    ),
-    path("", include("sentry.conf.urls")),
-]
-
-
 @cell_silo_test
-@override_settings(ROOT_URLCONF=__name__, SCM_GIT_GRANT_SECRETS=[SECRET])
+@override_settings(SCM_GIT_GRANT_SECRETS=[SECRET])
 @with_feature(FEATURE)
 class ScmGitEndpointTest(TestCase):
     def setUp(self) -> None:
@@ -89,12 +77,19 @@ class ScmGitEndpointTest(TestCase):
         route: str,
         query: str,
         grant: str,
-        repository_path: str = "getsentry/sentry",
+        repository_id: int | None = None,
         body: bytes = b"",
     ) -> HttpResponseBase:
+        url = reverse(
+            "sentry-api-0-scm-git",
+            kwargs={"repository_id": repository_id or self.repo.id, "route": route},
+        )
+        return self.send(method, f"{url}?{query}", grant, body)
+
+    def send(self, method: str, url: str, grant: str, body: bytes = b"") -> HttpResponseBase:
         return self.client.generic(
             method,
-            f"/git/{repository_path}.git/{route}?{query}",
+            url,
             data=body,
             content_type="application/x-git-request",
             headers={GRANT_HEADER: grant},
@@ -141,16 +136,6 @@ class ScmGitEndpointTest(TestCase):
         assert response.status_code == 200
         assert b"".join(response) == b"000eunpack ok\n0000"
         assert b"".join(responses.calls[0].request.body) == b"0000PACK-bytes"
-
-    @responses.activate
-    def test_matches_the_path_case_insensitively(self) -> None:
-        responses.add(responses.GET, REFS_URL, body=b"0000")
-
-        response = self.git(
-            "GET", "info/refs", "service=git-upload-pack", self.fetch_grant(), "GetSentry/Sentry"
-        )
-
-        assert response.status_code == 200
 
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
@@ -227,8 +212,8 @@ class ScmGitEndpointTest(TestCase):
         self.assert_refused(response, 404, b"GET HEAD is not a git fetch or push route.")
 
     @responses.activate
-    def test_refuses_a_connected_repository_outside_the_grant(self) -> None:
-        self.create_repo(
+    def test_refuses_a_repository_outside_the_grant(self) -> None:
+        other_repo = self.create_repo(
             self.project,
             name="getsentry/other",
             provider="integrations:github",
@@ -237,28 +222,27 @@ class ScmGitEndpointTest(TestCase):
         )
 
         response = self.git(
-            "GET", "info/refs", "service=git-upload-pack", self.fetch_grant(), "getsentry/other"
+            "GET", "info/refs", "service=git-upload-pack", self.fetch_grant(), other_repo.id
         )
 
         self.assert_refused(response, 403, b"The git grant does not cover this repository.")
 
     @responses.activate
-    def test_refuses_a_path_that_does_not_match_the_granted_repository(self) -> None:
-        response = self.git(
-            "GET", "info/refs", "service=git-upload-pack", self.fetch_grant(), "getsentry/sentry2"
-        )
+    def test_refuses_a_grant_that_names_the_repository_by_external_id(self) -> None:
+        grant = sign(self.organization.id, "fetch", [("github", "12345")])
+
+        response = self.git("GET", "info/refs", "service=git-upload-pack", grant)
 
         self.assert_refused(response, 403, b"The git grant does not cover this repository.")
 
     @responses.activate
     def test_refuses_a_repository_the_organization_has_not_connected(self) -> None:
-        grant = sign(self.organization.id, "fetch", [("github", "99999")])
+        unconnected_id = self.repo.id + 1000
+        grant = sign(self.organization.id, "fetch", [unconnected_id])
 
-        response = self.git(
-            "GET", "info/refs", "service=git-upload-pack", grant, "getsentry/unconnected"
-        )
+        response = self.git("GET", "info/refs", "service=git-upload-pack", grant, unconnected_id)
 
-        self.assert_refused(response, 403, b"The git grant does not cover this repository.")
+        self.assert_refused(response, 404, b"A repository could not be found.")
 
     @responses.activate
     def test_refuses_another_organizations_repository(self) -> None:
@@ -271,11 +255,39 @@ class ScmGitEndpointTest(TestCase):
         )
         grant = sign(self.organization.id, "fetch", [other_repo.id])
 
-        response = self.git(
-            "GET", "info/refs", "service=git-upload-pack", grant, "other-org/private"
+        response = self.git("GET", "info/refs", "service=git-upload-pack", grant, other_repo.id)
+
+        self.assert_refused(response, 404, b"A repository could not be found.")
+
+    @responses.activate
+    def test_does_not_route_a_repository_id_that_is_not_a_number(self) -> None:
+        response = self.send(
+            "GET",
+            "/api/0/internal/scm-git/repositories/getsentry/sentry.git/info/refs"
+            "?service=git-upload-pack",
+            self.fetch_grant(),
         )
 
-        self.assert_refused(response, 403, b"The git grant does not cover this repository.")
+        assert response.status_code == 404
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_does_not_route_a_path_without_the_git_suffix(self) -> None:
+        response = self.send(
+            "GET",
+            f"/api/0/internal/scm-git/repositories/{self.repo.id}/info/refs"
+            "?service=git-upload-pack",
+            self.fetch_grant(),
+        )
+
+        assert response.status_code == 404
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_refuses_a_route_with_a_trailing_slash(self) -> None:
+        response = self.git("GET", "info/refs/", "service=git-upload-pack", self.fetch_grant())
+
+        self.assert_refused(response, 404, b"is not a git fetch or push route.")
 
     @responses.activate
     def test_refuses_an_inactive_repository(self) -> None:
@@ -308,9 +320,7 @@ class ScmGitEndpointTest(TestCase):
         )
         grant = sign(self.organization.id, "fetch", [repo.id])
 
-        response = self.git(
-            "GET", "info/refs", "service=git-upload-pack", grant, "getsentry/internal"
-        )
+        response = self.git("GET", "info/refs", "service=git-upload-pack", grant, repo.id)
 
         assert response.status_code == 503
         assert response["Content-Type"] == "text/plain; charset=utf-8"
