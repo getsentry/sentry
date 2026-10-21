@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import sentry_sdk
 
@@ -159,8 +159,17 @@ def _build_target(
     )
 
 
+ThreadOptionKey = Literal[
+    "sentry:issue_alerts_thread_flag",
+    "sentry:metric_alerts_thread_flag",
+]
+
+
 def _should_thread(
-    provider: NotificationProviderKey, organization: Organization, key: str, default: bool
+    provider: NotificationProviderKey,
+    organization: Organization,
+    key: ThreadOptionKey,
+    default: bool,
 ) -> bool:
     # for notifications that have threads (just slack)
     return provider in SLACK_PROVIDERS and OrganizationOption.objects.get_value(
