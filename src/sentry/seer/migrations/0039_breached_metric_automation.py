@@ -76,7 +76,7 @@ class Migration(CheckedMigration):
             constraint=models.UniqueConstraint(
                 condition=models.Q(
                     ("trigger_key__isnull", False),
-                    models.Q(("extras__status", "rejected"), _negated=True),
+                    models.Q(("extras__contains", {"status": "rejected"}), _negated=True),
                 ),
                 fields=("workflow_config", "trigger_key"),
                 name="seer_workflowrun_config_trigger_uniq",

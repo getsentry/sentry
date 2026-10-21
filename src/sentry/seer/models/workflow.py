@@ -188,7 +188,7 @@ class SeerWorkflowRun(DefaultFieldsModel):
             models.UniqueConstraint(
                 fields=["workflow_config", "trigger_key"],
                 condition=models.Q(trigger_key__isnull=False)
-                & ~models.Q(extras__status="rejected"),
+                & ~models.Q(extras__contains={"status": "rejected"}),
                 name="seer_workflowrun_config_trigger_uniq",
             ),
         ]
