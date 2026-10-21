@@ -13,30 +13,3 @@ export {
 } from './menu';
 
 export type {ListItemProps} from './menu';
-
-import {
-  MenuFooterLayout,
-  MenuHeaderLayout,
-  MenuHeading,
-  MenuSectionLabel,
-  MenuSectionHeader,
-  MenuSectionGroup,
-  MenuSectionList,
-  MenuListItem,
-  MenuSectionSeparator,
-  SearchInput,
-} from './menu';
-
-/** Shared presentation for menu controls. */
-export const Menu = {
-  Header: MenuHeaderLayout,
-  Title: MenuHeading,
-  Search: SearchInput,
-  SectionGroup: MenuSectionGroup,
-  SectionLabel: MenuSectionLabel,
-  SectionHeader: MenuSectionHeader,
-  SectionList: MenuSectionList,
-  SectionSeparator: MenuSectionSeparator,
-  Footer: MenuFooterLayout,
-  ListItem: MenuListItem,
-};
