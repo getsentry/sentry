@@ -165,6 +165,7 @@ export function ThreadSelector({
                 {sortableColumns.map(({attribute, label}) => (
                   <HeaderCell
                     key={attribute}
+                    divider={attribute !== SortAttribute.ID}
                     sort={sortAttribute === attribute ? sortDirection : undefined}
                     handleSortClick={() => {
                       setSortAttribute(attribute);
