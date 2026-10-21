@@ -181,7 +181,10 @@
   },
   "scripts": {
     "test": "NODE_ENV=test jest --config jest.config.mjs",
-    "typecheck": "tsc --build tsconfig.json"
+    "typecheck": "tsc --build tsconfig.json",
+    "lint": "pnpm run lint:js && pnpm run lint:css",
+    "lint:js": "oxlint --type-aware --report-unused-disable-directives",
+    "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
     "@emotion/styled": "^11.14.0",
@@ -202,7 +205,10 @@
     "expect-type": "1.4.0",
     "jest": "30.5.1",
     "jsdom": "30.1.1",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
     "react-dom": "19.3.0",
+    "stylelint": "16.26.1",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "peerDependencies": {

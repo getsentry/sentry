@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -13,14 +14,32 @@ import {
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {test} from 'node:test';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 
 import {resolve} from 'eslint-import-resolver-typescript';
 import {globSync} from 'tinyglobby';
 import {parse} from 'yaml';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const runner = path.join(root, 'scripts/custom-oxlint.ts');
+const runner = path.join(root, 'scripts/oxlint-suppressions.ts');
+
+test('root lint excludes workspaces that own their lint tasks', () => {
+  const app = 'static/app/components/inspector.tsx';
+  const icons = 'static/packages/icons/src/iconAdd.tsx';
+  const scraps = 'static/packages/scraps/src/layout/index.tsx';
+  const result = spawnSync(
+    process.execPath,
+    [runner, '--debug', 'files', app, icons, scraps],
+    {
+      cwd: root,
+      encoding: 'utf8',
+    }
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert(result.stdout.includes(app), result.stdout);
+  assert(!result.stdout.includes(icons), result.stdout);
+  assert(!result.stdout.includes(scraps), result.stdout);
+});
 
 test('boundary resolver resolves app aliases with workspace project references', async () => {
   const {default: lintConfig} = await import(
@@ -85,6 +104,117 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
   };
   return {directory, write, git, lint, commit, env};
 }
+
+test('CI runs full lint when a package config changes', t => {
+  const {directory, write} = fixture(t);
+  write('.github/workflows/scripts/git-merge-base.sh', "#!/bin/sh\nprintf 'base\\n'\n");
+  write('bin/git', '#!/bin/sh\nprintf \'%s\\n\' "$SENTRY_TEST_CHANGED_FILES"\n');
+  chmodSync(path.join(directory, '.github/workflows/scripts/git-merge-base.sh'), 0o755);
+  chmodSync(path.join(directory, 'bin/git'), 0o755);
+  for (const [file, scope] of [
+    ['static/packages/icons/src/iconAdd.tsx', 'scoped'],
+    ['oxlint-suppressions.json', 'scoped'],
+    ['oxlint.base.ts', 'full'],
+    ['static/packages/icons/oxlint.config.ts', 'full'],
+    ['static/packages/scraps/oxlint.config.ts', 'full'],
+    ['static/packages/scraps/.oxlintrc.json', 'full'],
+  ] as const) {
+    const result = spawnSync(
+      'bash',
+      [path.join(root, '.github/workflows/scripts/frontend-changed-scope.sh')],
+      {
+        cwd: directory,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: path.join(directory, 'bin') + ':' + process.env.PATH,
+          SENTRY_TEST_CHANGED_FILES: file,
+        },
+      }
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, new RegExp('scope=' + scope), file);
+  }
+});
+
+test('package lint enforces shared rules and local test boundaries', t => {
+  const {directory, write} = fixture(t);
+  rmSync(path.join(directory, 'node_modules'), {recursive: true});
+  symlinkSync(path.join(root, 'node_modules'), path.join(directory, 'node_modules'));
+  rmSync(path.join(directory, 'oxlint-suppressions.json'));
+  write(
+    'package.json',
+    JSON.stringify({
+      private: true,
+      type: 'module',
+      devDependencies: {
+        '@sentry-internal/monorepo': 'workspace:*',
+        '@testing-library/react': '16.3.2',
+      },
+    })
+  );
+  write(
+    'tsconfig.json',
+    JSON.stringify({
+      compilerOptions: {target: 'ES2022', module: 'ESNext', moduleResolution: 'bundler'},
+      include: ['src', 'test'],
+    })
+  );
+  const shared = pathToFileURL(path.join(root, 'oxlint.base.ts')).href;
+  write(
+    'oxlint.config.ts',
+    `
+    import {createPackageConfig} from ${JSON.stringify(shared)};
+    export default createPackageConfig(import.meta.dirname);
+  `
+  );
+  write(
+    'src/invalid.ts',
+    'export const equal = (left: number, right: number) => left == right;'
+  );
+  write('src/typeAware.ts', 'export async function getValue() { return await 42; }');
+  write(
+    'src/consumer.ts',
+    "import {answer} from '../test/helper'; export const value = answer;"
+  );
+  write('test/helper.ts', 'export const answer = 42;');
+  write(
+    'src/appImport.ts',
+    "import {value} from 'sentry/syntheticModule'; export const answer = value;"
+  );
+  write(
+    'src/valid.spec.tsx',
+    "import {render} from '@testing-library/react'; test('renders', () => {render(<div />);});"
+  );
+  const result = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(new URL('cli.js', import.meta.resolve('oxlint'))),
+      '--type-aware',
+      '--format',
+      'json',
+      '.',
+    ],
+    {cwd: directory, encoding: 'utf8'}
+  );
+  assert.equal(result.status, 1, result.stderr);
+  const {diagnostics} = JSON.parse(result.stdout) as {
+    diagnostics: Array<{code: string; filename: string}>;
+  };
+  const codes = diagnostics.map(({code}) => code);
+  for (const expected of [
+    'eslint(eqeqeq)',
+    'typescript(await-thenable)',
+    'boundaries(dependencies)',
+    'eslint(no-restricted-imports)',
+  ]) {
+    assert(codes.includes(expected), JSON.stringify(diagnostics));
+  }
+  assert(
+    !diagnostics.some(({filename}) => filename.endsWith('/src/valid.spec.tsx')),
+    JSON.stringify(diagnostics)
+  );
+});
 
 function ciFixture(t: {after: (cleanup: () => void) => void}) {
   const setup = fixture(t);
@@ -178,7 +308,7 @@ test('verified lint bases require the exact budgets step after the ratchet', () 
   const exact = steps.findIndex(({name}) => name === step);
   assert(ratchet >= 0 && exact > ratchet);
   assert.equal(steps[ratchet]!.id, 'ratchet');
-  assert.match(steps[ratchet]!.run ?? '', /pnpm run lint:js --ci/);
+  assert.match(steps[ratchet]!.run ?? '', /pnpm run lint:suppressions --ci/);
   assert.equal(steps[exact]!.if, "steps.ratchet.outputs.budgets == 'exact'");
   assert(
     readFileSync(
@@ -202,6 +332,7 @@ test('override-only rules are enrolled with editor warnings and scoped CLI error
     `export const incubator = defineConfig(${registry});`
   );
   write('oxlint.config.ts', config);
+  write('oxlint.base.ts', readFileSync(path.join(root, 'oxlint.base.ts'), 'utf8'));
   const inspect = spawnSync(
     process.execPath,
     [
@@ -363,7 +494,7 @@ test('CI scans head once and rejects increased or stale budgets', t => {
   const stale = ci(1);
   assert.equal(stale.status, 1, stale.stderr);
   assert.match(stale.stderr, /Suppression budgets are stale/);
-  assert.match(stale.stderr, /pnpm run lint:js --prune/);
+  assert.match(stale.stderr, /pnpm run lint:suppressions --prune/);
   assert.match(stale.stderr, /commit the updated oxlint-suppressions.json/);
   assert.match(stale.stderr, /source.js no-debugger: budget 2, 0 violations/);
   assert.doesNotMatch(stale.stderr, /fix:oxlint|--enroll|New incubator violations/);
@@ -464,7 +595,7 @@ test('CI and prune report violations exceeding committed budgets', t => {
       result.stderr,
       /source.js:1:1 no-debugger `debugger` statement is not allowed/
     );
-    assert.doesNotMatch(result.stderr, /stale|pnpm run lint:js --prune/);
+    assert.doesNotMatch(result.stderr, /stale|pnpm run lint:suppressions --prune/);
   }
   assert.equal(
     readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8'),
@@ -610,7 +741,8 @@ test('CI detects changed policy inputs and deleted rules', t => {
     ['nested/package.json', '{"private":true}'],
     ['tsconfig.extra.json', '{}'],
     ['static/oxlint/example.ts', 'export {};'],
-    ['scripts/custom-oxlint.ts', 'export {};'],
+    ['scripts/oxlint-suppressions.ts', 'export {};'],
+    ['oxlint.base.ts', 'export {};'],
   ] as const) {
     write(file, contents);
     const result = ci(2);
