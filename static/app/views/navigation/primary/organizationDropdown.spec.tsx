@@ -95,7 +95,7 @@ describe('OrganizationDropdown', () => {
 
     const search = screen.getByRole('textbox', {name: 'Search'});
     expect(search).toHaveFocus();
-    expect(within(search.parentElement!).queryByRole('img')).not.toBeInTheDocument();
+    expect(within(search.parentElement!).getByRole('img')).toBeInTheDocument();
     await userEvent.type(search, 'python');
     expect(screen.getByRole('menuitemradio', {name: 'python'})).toBeInTheDocument();
     await userEvent.keyboard('{ArrowLeft}');

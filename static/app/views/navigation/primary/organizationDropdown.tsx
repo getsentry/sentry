@@ -163,7 +163,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 submenu: {
                   title: t('All Projects'),
                   emptyMessage: t('No projects found'),
-                  search: {placeholder: t('Search'), showIcon: false, size: 'sm'},
+                  search: {placeholder: t('Search'), size: 'sm'},
                   menuHeight: 240,
                   // The submenu is a separate overlay and does not inherit the parent menu width.
                   menuWidth: 258,
