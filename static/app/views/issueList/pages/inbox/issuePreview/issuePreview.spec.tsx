@@ -718,7 +718,7 @@ describe('IssuePreview', () => {
       });
 
       it('copies the issue and the selected thread stacktrace', async () => {
-        MockApiClient.addMockResponse({
+        const eventRequest = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
           body: EventFixture({
             entries: [
@@ -765,6 +765,12 @@ describe('IssuePreview', () => {
 
         render(<IssuePreview groupId={group.id} />, {
           organization: organizationWithoutAi,
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/inbox/`,
+              query: {statsPeriod: '24h', environment: 'production'},
+            },
+          },
         });
 
         const copyButton = await screen.findByRole('button', {
@@ -797,6 +803,13 @@ describe('IssuePreview', () => {
         );
         expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
           expect.stringContaining('processTask in src/worker.ts [Line 12]')
+        );
+        expect(eventRequest).toHaveBeenCalledTimes(1);
+        expect(eventRequest).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            query: {collapse: ['fullRelease'], llmFormat: 'markdown'},
+          })
         );
       });
 

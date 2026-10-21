@@ -1,6 +1,26 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {getOutcomeColors, reasonDocsUrl, reasonTitle} from './outcomes';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {
+  buildAskSeerPrompt,
+  getOutcomeColors,
+  reasonDocsUrl,
+  reasonTitle,
+} from './outcomes';
+
+describe('buildAskSeerPrompt', () => {
+  it('uses customer-facing dataset names, never the internal enum value', () => {
+    const prompt = buildAskSeerPrompt({
+      dataset: DiscoverDatasets.OURLOGS,
+      outcome: 'client_discard',
+      reason: 'buffer_overflow',
+    });
+
+    expect(prompt).toContain('My log data');
+    expect(prompt).not.toContain('ourlogs');
+  });
+});
 
 describe('getOutcomeColors', () => {
   it('assigns the same colors regardless of input order', () => {
