@@ -68,7 +68,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '2'
+      XDIST_WORKERS: '4'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -137,12 +137,20 @@ jobs:
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
+      # Sizes XDIST_WORKERS against the runner's CPU and memory headroom.
+      - name: Start resource sampler
+        run: python3 .github/workflows/scripts/resource-usage.py start "$RUNNER_TEMP/resource-usage.jsonl"
+
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
           timeout -k 30 1200 make run-acceptance || rc=$?
           [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
           exit "${rc:-0}"
+
+      - name: Report resource usage
+        if: ${{ !cancelled() }}
+        run: python3 .github/workflows/scripts/resource-usage.py stop "$RUNNER_TEMP/resource-usage.jsonl"
 
       - name: Inspect failure
         if: failure()
