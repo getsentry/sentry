@@ -15,11 +15,36 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import ActorType as ViewerActorType
+from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
 
 pytestmark = requires_snuba
 
 
 class GroupAssigneeTestCase(TestCase):
+    def test_assign_preserves_viewer_context_until_on_commit(self) -> None:
+        expected_context = ViewerContext(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            user_id=self.user.id,
+            actor_type=ViewerActorType.USER,
+        )
+        captured_contexts: list[ViewerContext | None] = []
+
+        with mock.patch("sentry.models.groupassignee.issue_assigned.send_robust") as send_robust:
+            send_robust.side_effect = lambda **kwargs: captured_contexts.append(
+                get_viewer_context()
+            )
+            with self.capture_on_commit_callbacks() as callbacks:
+                with viewer_context_scope(expected_context):
+                    GroupAssignee.objects.assign(self.group, self.user)
+
+            assert get_viewer_context() is None
+            for callback in callbacks:
+                callback()
+
+        assert captured_contexts == [expected_context]
+
     def test_constraints(self) -> None:
         # Can't both be assigned
         with pytest.raises(AssertionError):

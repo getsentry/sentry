@@ -79,6 +79,10 @@ describe('NewWidgetBuilder', () => {
         end: 1646120000,
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',

@@ -46,12 +46,14 @@ import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
 import {
   formatExceptionsAsText,
   getExceptionEntryMeta,
+  getFirstVisibleStacktraceIndex,
   getOrderedExceptions,
   resolveExceptionFields,
 } from './utils';
 
 interface IssueStackTraceBaseProps {
   event: Event;
+  collapseAll?: boolean;
   group?: Group;
   projectSlug?: Project['slug'];
 }
@@ -75,7 +77,7 @@ type PersistedDisplayOption = 'raw-stack-trace' | 'minified';
 const NO_PERSIST_KEY = '__no_persist_stacktrace_display__';
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {event, group, projectSlug} = props;
+  const {event, group, projectSlug, collapseAll} = props;
   const organization = useOrganization();
   const storageKey = projectSlug
     ? `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`
@@ -125,6 +127,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
     >
       {projectSlug && <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />}
       <IssueStackTraceContent
+        collapseAll={collapseAll}
         // Reset internal state when switching events
         key={event.id}
         event={event}
@@ -162,6 +165,7 @@ function PersistDisplayOptions({
 }
 
 function IssueStackTraceContent({
+  collapseAll,
   event,
   values,
   group,
@@ -188,6 +192,11 @@ function IssueStackTraceContent({
   const firstVisibleExceptionIndex = exceptions.findIndex(
     exc =>
       exc.mechanism?.parent_id === undefined || !hiddenExceptions[exc.mechanism.parent_id]
+  );
+  const firstStacktraceIndex = getFirstVisibleStacktraceIndex(
+    exceptions,
+    isMinified,
+    hiddenExceptions
   );
 
   if (exceptions.length === 0) {
@@ -269,6 +278,7 @@ function IssueStackTraceContent({
             </ErrorBoundary>
           )}
           <StackTraceProvider
+            collapseAll={collapseAll}
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
             event={event}
             hasScmSourceContext={hasScmSourceContext}
@@ -320,7 +330,9 @@ function IssueStackTraceContent({
           return (
             <Disclosure
               key={exceptionId ?? idx}
-              defaultExpanded={idx === firstVisibleExceptionIndex}
+              defaultExpanded={
+                idx === firstVisibleExceptionIndex || idx === firstStacktraceIndex
+              }
               id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
             >
               <Disclosure.Title
@@ -355,6 +367,7 @@ function IssueStackTraceContent({
                     </ErrorBoundary>
                   ) : null}
                   <StackTraceProvider
+                    collapseAll={collapseAll}
                     exceptionIndex={exc.exceptionIndex}
                     event={event}
                     hasScmSourceContext={hasScmSourceContext}

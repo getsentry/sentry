@@ -6,6 +6,8 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from django.urls import reverse
 
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
+from sentry.api.helpers.oauth_authorize.transactions import OAUTH_AUTHORIZE_SESSION_TTL
+from sentry.api.helpers.oauth_consent import persist_authorization
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -14,7 +16,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 from sentry.testutils.silo import control_silo_test
-from sentry.web.frontend.oauth_authorize import OAUTH_AUTHORIZE_SESSION_TTL
 
 
 @control_silo_test
@@ -28,6 +29,110 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
         )
+
+    @override_options({"auth.oauth-react-enabled": True})
+    def test_react_stays_on_primary_domain_with_active_organization(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        self.login_as(self.user)
+        session = self.client.session
+        session["activeorg"] = organization.slug
+        session.save()
+        path = f"{self.path}?client_id=example-client&state=example-state"
+
+        with self.feature({"system:multi-region": True}):
+            response = self.client.get(path, HTTP_HOST="testserver", follow=True)
+
+        assert response.status_code == 200
+        assert response.redirect_chain == []
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    @override_options({"auth.oauth-react-enabled": True})
+    def test_react_customer_domain_redirects_to_primary_domain(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        self.login_as(self.user)
+        session = self.client.session
+        session["activeorg"] = organization.slug
+        session.save()
+        path = f"{self.path}?client_id=example-client&state=example-state"
+
+        with self.feature({"system:multi-region": True}):
+            response = self.client.get(
+                path, HTTP_HOST=f"{organization.slug}.testserver", follow=True
+            )
+
+        assert response.status_code == 200
+        assert response.redirect_chain == [(f"http://testserver{path}", 302)]
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    @override_options({"auth.oauth-react-enabled": True})
+    def test_react_authorization_is_public(self) -> None:
+        response = self.client.get(self.path, {"client_id": self.application.client_id})
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    @override_options({"auth.oauth-react-enabled": True})
+    def test_react_authorization_does_not_issue_existing_consent_grant(self) -> None:
+        self.login_as(self.user)
+        persist_authorization(self.application, self.user.id, [], None)
+        response = self.client.get(
+            self.path,
+            {"client_id": self.application.client_id, "response_type": "code"},
+        )
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+        assert not ApiGrant.objects.filter(application=self.application).exists()
+
+    def test_blank_pkce_challenge_returns_oauth_error(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "code_challenge": "",
+                "code_challenge_method": "S256",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["error"] == ["invalid_request"]
+
+    def test_invalid_pkce_method_returns_oauth_error(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "code_challenge": "a" * 43,
+                "code_challenge_method": "plain",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["error"] == ["invalid_request"]
+
+    def test_unregistered_callback_with_invalid_pkce(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "redirect_uri": "https://other.example/callback",
+                "code_challenge": "invalid",
+            },
+        )
+        assert response.status_code == 400
+        assert response.context["error"] == "Missing or invalid <em>redirect_uri</em> parameter."
+
+    def test_state_whitespace_is_preserved(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "scope": "invalid",
+                "state": "  opaque state  ",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["state"] == ["  opaque state  "]
 
     def test_unauthenticated_missing_client_id(self) -> None:
         resp = self.client.get(self.path, {"response_type": "code"})

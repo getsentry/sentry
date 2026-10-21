@@ -1,3 +1,10 @@
+export interface PathPrefixOption {
+  path: string;
+  fileCount?: number;
+}
+
+export type CodeMappingPrefixesResponse = {prefixes: PathPrefixOption[]};
+
 export interface PathMappingValue {
   branch: string;
   sourceRoot: string;

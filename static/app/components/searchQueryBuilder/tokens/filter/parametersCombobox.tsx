@@ -15,7 +15,7 @@ import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/t
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
-import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
 import {resolveFilterKey} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import type {

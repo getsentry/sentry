@@ -613,6 +613,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         for formula in ExploreSavedFormula.objects.filter(
                             organization=organization,
                             dataset=DATASET_TO_FORMULA_DATASET[scoped_dataset],
+                            prebuilt_deleted=False,
                         ).prefetch_related("variables")
                     }
                 else:

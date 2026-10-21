@@ -229,6 +229,10 @@ def get_renderer(
 
 **File placement:** `{provider}/renderers/{name}.py` (e.g., `slack/renderers/seer.py`)
 
+**Links:** Every Sentry URL in a notification must be decorated so clicks are tracked. The platform does this for default renderers. A custom renderer receives a `link_decorator` and must pass each Sentry URL it emits through `link_decorator.decorate_url(url)`. Links taken straight from `data` are otherwise sent undecorated and untracked.
+
+If a link points to a kind of Sentry page that `classify_link` in `tracking.py` doesn't recognize, add a `NotificationLink` value and match the page's path in `classify_link`. Otherwise the link is tagged `other`, and `test_example_links_are_classified` fails for the template's `example_data`.
+
 > For architecture details and the full Seer Slack renderer example, load `references/custom-renderers.md`.
 
 ## Step 7: Add a New Provider
@@ -312,5 +316,7 @@ Pre-flight checklist before submitting:
 - [ ] `example_data` on template produces valid output via `render_example()`
 - [ ] Rollout option value configured (or ticket filed for `sentry-options-automator`)
 - [ ] Sending code guarded with `NotificationService.has_access()`
+- [ ] Custom renderers pass every Sentry URL through `link_decorator.decorate_url()`
+- [ ] Every linked page type has a `NotificationLink` matched in `classify_link`
 - [ ] Tests pass: `pytest -svv --reuse-db tests/sentry/notifications/platform/`
 - [ ] Pre-commit passes on all modified files

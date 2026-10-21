@@ -9,7 +9,7 @@ import kebabCase from 'lodash/kebabCase';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -811,13 +811,11 @@ function getSpanEvidenceValue(span: Span | null) {
 
   if (span.op && span.op.startsWith('db') && span.description) {
     return (
-      <Container padding="2xs 0">
-        <NoPaddingClippedBox clipHeight={200}>
-          <StyledCodeSnippet language="sql">
-            {formatter.toString(span.description)}
-          </StyledCodeSnippet>
-        </NoPaddingClippedBox>
-      </Container>
+      <NoPaddingClippedBox clipHeight={200}>
+        <StyledCodeSnippet language="sql">
+          {formatter.toString(span.description)}
+        </StyledCodeSnippet>
+      </NoPaddingClippedBox>
     );
   }
 
@@ -825,11 +823,12 @@ function getSpanEvidenceValue(span: Span | null) {
 }
 
 const StyledCodeSnippet = styled(CodeBlock)`
+  --prism-block-background: transparent;
+
   pre[class*='language-'] {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
-    /* Keeps the code flush with the plain values in the card's value column */
-    padding-inline: 0;
+    padding: 0;
   }
 
   z-index: 0;
@@ -945,6 +944,7 @@ const QueryCard = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   pre {
     margin: 0 !important;
-    padding-top: ${p => p.theme.space.md} !important;
+    padding-block: ${p => p.theme.space.md} !important;
+    padding-inline: ${p => p.theme.space.lg} !important;
   }
 `;

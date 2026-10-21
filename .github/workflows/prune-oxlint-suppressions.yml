@@ -1,0 +1,107 @@
+name: Prune oxlint suppressions
+
+on:
+  workflow_call:
+    secrets:
+      SENTRY_INTERNAL_APP_PRIVATE_KEY:
+        required: true
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prune-oxlint-suppressions
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Prune suppression budgets
+        run: pnpm run lint:suppressions --prune
+
+      - name: Bundle suppression budgets
+        env:
+          SUPPRESSION_BUNDLE: ${{ runner.temp }}/suppressions.json
+        run: |
+          node --input-type=module <<'NODE'
+          import {execFileSync} from 'node:child_process';
+          import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+          const files = execFileSync('git', [
+            'ls-files', '-z', '--', 'oxlint-suppressions.json', '**/oxlint-suppressions.json',
+          ], {encoding: 'utf8'}).split('\0').filter(Boolean);
+          const budgets = Object.fromEntries(files.map(file => [
+            file, existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {},
+          ]));
+          writeFileSync(process.env.SUPPRESSION_BUNDLE, JSON.stringify(budgets));
+          NODE
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pruned-oxlint-suppressions
+          path: ${{ runner.temp }}/suppressions.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: prune
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pruned-oxlint-suppressions
+          path: ${{ runner.temp }}/pruned-oxlint-suppressions
+
+      - name: Validate suppression reductions
+        env:
+          PRUNED_DIRECTORY: ${{ runner.temp }}/pruned-oxlint-suppressions
+        run: node .github/workflows/scripts/validate-pruned-suppressions.js "$PRUNED_DIRECTORY"
+
+      - name: Get internal bot token
+        id: bot
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private-key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Publish cleanup pull request
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          BOT_LOGIN: ${{ steps.bot.outputs.app-slug }}[bot]
+        run: |
+          if git diff --quiet -- oxlint-suppressions.json '**/oxlint-suppressions.json'; then
+            exit 0
+          fi
+          gh auth setup-git
+          BOT_ID=$(gh api "users/$BOT_LOGIN" --jq .id)
+          git config user.name "$BOT_LOGIN"
+          git config user.email "$BOT_ID+$BOT_LOGIN@users.noreply.github.com"
+          BRANCH="bot/prune-oxlint-suppressions"
+          git switch -C "$BRANCH"
+          git add -u -- ':(glob)**/oxlint-suppressions.json'
+          git commit -m "chore(lint): prune oxlint suppressions"
+          git push -f origin "$BRANCH"
+          PR=$(gh pr list --base master --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            gh pr create --base master --head "$BRANCH" \
+              --title "chore(lint): prune oxlint suppressions" \
+              --body 'Reduce stale suppression budgets with `pnpm run lint:suppressions --prune`.'
+          fi

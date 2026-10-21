@@ -412,6 +412,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             ("https://github.example.org/Test-Organization/foo", True),
             ("https://github.example.org/Test-Organization/bar", True),
             ("https://github.example.org/Other-Organization/bar", False),
+            ("https://github.example.org/Test-Organization-Mobile/bar", False),
             ("https://github.com/Test-Organization/foo", False),
         ]
 
