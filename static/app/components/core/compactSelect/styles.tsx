@@ -59,7 +59,9 @@ export const ListWrap = styled('ul')`
   }
 `;
 
-export const ListLabel = styled('p')`
+// Not a `p`: `PanelBody` adds a bottom margin to every `p` inside it, which would push
+// the list away from its label when the menu renders inside a panel.
+export const ListLabel = styled('div')`
   display: inline-block;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
