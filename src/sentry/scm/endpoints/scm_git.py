@@ -4,12 +4,12 @@ from collections.abc import Generator
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.request import Request
-from scm.errors import GitProviderNotSupported, GitRepositoryNotGranted, SCMCodedError
+from scm.errors import GitProviderNotSupported, SCMCodedError
 from scm.git.grant import verify_grant
 from scm.git.relay import GitRelay
 from scm.git.server import GitServer
-from scm.git.types import GRANT_HEADER, GitOperation, Grant, Readable
-from scm.types import Repository, RepositoryId
+from scm.git.types import GRANT_HEADER, GitOperation, Readable
+from scm.types import Repository
 from sentry_sdk import traces
 
 from sentry import features
@@ -65,32 +65,6 @@ def make_git_server() -> GitServer:
     )
 
 
-def find_granted_repository(grant: Grant, repository_path: str) -> RepositoryId:
-    """Return the grant's entry for the repository the request's path names.
-
-    The path only picks among the grant's repositories, and the entry passed on is the grant's own,
-    so no path reaches a repository the grant doesn't list. Each entry is looked up among the
-    organization's connected repositories, so one the organization hasn't connected matches nothing.
-    """
-    for repository_id in grant.repositories:
-        repository = fetch_repository(grant.organization_id, repository_id)
-        if repository is None:
-            continue
-        host_path = _host_path(repository)
-        # GitHub and GitLab both treat a repository's path case-insensitively.
-        if host_path is not None and host_path.casefold() == repository_path.casefold():
-            return repository_id
-    raise GitRepositoryNotGranted(detail="The git grant does not cover this repository.")
-
-
-def _host_path(repository: Repository) -> str | None:
-    # A GitLab repository's name is its display name ("Group / Project"); its path on the host is
-    # kept apart.
-    if repository["provider_name"] == "gitlab":
-        return repository.get("path")
-    return repository["name"]
-
-
 @internal_cell_silo_endpoint
 class ScmGitEndpoint(Endpoint):
     """
@@ -110,16 +84,17 @@ class ScmGitEndpoint(Endpoint):
     enforce_rate_limit = False
 
     @traces.trace
-    def get(self, request: Request, repository_path: str, route: str) -> HttpResponseBase:
-        return self._relay(request, repository_path, route)
+    def get(self, request: Request, repository_id: str, route: str) -> HttpResponseBase:
+        return self._relay(request, int(repository_id), route)
 
     @traces.trace
-    def post(self, request: Request, repository_path: str, route: str) -> HttpResponseBase:
-        return self._relay(request, repository_path, route)
+    def post(self, request: Request, repository_id: str, route: str) -> HttpResponseBase:
+        return self._relay(request, int(repository_id), route)
 
-    def _relay(self, request: Request, repository_path: str, route: str) -> HttpResponseBase:
-        # The grant is verified before anything is looked up, so a request without a valid grant
-        # never reaches the database. GitServer verifies it again, which costs one HMAC.
+    def _relay(self, request: Request, repository_id: int, route: str) -> HttpResponseBase:
+        # The grant names the organization whose flag gates the endpoint, and it's verified before
+        # the organization is looked up, so a request without a valid grant never reaches the
+        # database. GitServer verifies it again, which costs one HMAC.
         try:
             grant = verify_grant(
                 settings.SCM_GIT_GRANT_SECRETS or [], request.headers.get(GRANT_HEADER, "")
@@ -139,11 +114,6 @@ class ScmGitEndpoint(Endpoint):
                 404,
                 "The git endpoint is not enabled for this organization.",
             )
-
-        try:
-            repository_id = find_granted_repository(grant, repository_path)
-        except GitRepositoryNotGranted as e:
-            return _refuse(e.code, 403, e.detail)
 
         try:
             response = make_git_server().handle(
