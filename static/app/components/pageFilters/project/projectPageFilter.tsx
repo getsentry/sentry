@@ -505,7 +505,7 @@ export function ProjectPageFilter({
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
 
   const menuFooterContent = (
-    <Stack gap="md" direction="column">
+    <Stack gap="md" direction="column" width="100%">
       {selectionLimitExceeded && (
         <MenuComponents.Alert variant="warning">
           {tct(
