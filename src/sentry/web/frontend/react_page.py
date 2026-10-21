@@ -38,6 +38,8 @@ NON_CUSTOMER_DOMAIN_URL_NAMES = [
 MULTI_REGION_NON_CUSTOMER_DOMAIN_URL_NAMES = [
     "sentry-login",
     "sentry-auth-organization",
+    "sentry-oauth-authorize",
+    "sentry-oauth-device",
 ]
 
 

@@ -129,7 +129,7 @@ const [day, setDay] = useState('1');
 
 Use `<CompositeSelect.ClearButton>` in `menuHeaderTrailingItems` to add a "Clear" button to the menu header. When clicked, it calls your `onClick` handler where you reset each region's value. The menu stays open, matching the behavior of the built-in clear button in `<CompactSelect>`. The component is the same styled button used internally by `<CompactSelect>`, ensuring visual consistency.
 
-Keep the button in the layout when there is no selection so the menu does not resize. Hide and disable it until there is a selection to clear.
+When the menu has a `menuTitle`, keep the button in the layout when there is no selection so the header does not resize. Hide and disable it until there is a selection to clear. Without a `menuTitle`, omit `menuHeaderTrailingItems` until there is a selection, otherwise the hidden button leaves an empty header.
 
 export function ClearButtonDemo() {
   const monthOptions = [

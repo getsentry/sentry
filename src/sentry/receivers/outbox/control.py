@@ -17,6 +17,7 @@ from django.dispatch import receiver
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
+from sentry.hybridcloud.rpc.caching import cell_caching_service
 from sentry.integrations.models.integration import Integration
 from sentry.issues.services.issue import issue_service
 from sentry.models.apiapplication import ApiApplication
@@ -26,6 +27,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import clear_cell_cache
+from sentry.service_accounts.services.service_account.service import get_service_account
 from sentry.users.models.identity import Identity
 from sentry.workflow_engine.service.action.service import action_service
 
@@ -106,6 +108,16 @@ def process_api_application_updates(object_identifier: int, cell_name: str, **kw
     ) is None:
         return
     api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_UPDATE)
+def process_service_account_updates(object_identifier: int, cell_name: str, **kwds: Any):
+    # Cells don't keep a copy of service accounts, only the cached RPC result. The same
+    # outbox covers account changes, deletes and project link changes, so clearing the
+    # key is all that's needed.
+    cell_caching_service.clear_key(
+        key=get_service_account.key_from(object_identifier), cell_name=cell_name
+    )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SERVICE_HOOK_UPDATE)

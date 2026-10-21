@@ -473,6 +473,58 @@ class TestFormulas(BaseFormulaTest):
         for i in range(5):
             assert f"formula.apdex{i}" in formula_names
 
+    def test_list_with_prebuilt(self) -> None:
+        for i in range(5):
+            self.formula_object["name"] = f"formula.apdex{i}"
+            self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"prebuilt": "true"})
+            assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["name"] == "formula.apdex"
+        assert response.data[1]["name"] == "formula.user_misery"
+
+    def test_list_with_orderby(self) -> None:
+        for i in range(5):
+            self.formula_object["name"] = f"formula.apdex{i}"
+            self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"sortBy": "-name", "prebuilt": "false"})
+            assert response.status_code == 200, response.content
+        assert len(response.data) == 5
+        for i in range(5):
+            assert response.data[i]["name"] == f"formula.apdex{4 - i}"
+
+    def test_invalid_sort_by(self) -> None:
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"sortBy": "not-a-field"})
+        assert response.status_code == 400, response.content
+        assert response.data["sortBy"] == ["Invalid sort field"]
+
+    def test_list_with_name_filter(self) -> None:
+        for i in range(5):
+            if i < 3:
+                self.formula_object["name"] = f"formula.apdex{i}"
+            else:
+                self.formula_object["name"] = f"formula.flub{i}"
+            self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"name": "apdex", "prebuilt": "false"})
+            assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        formula_names = [row["name"] for row in response.data]
+        for i in range(3):
+            assert f"formula.apdex{i}" in formula_names
+
+    def test_name_filter_matching_prefix(self) -> None:
+        self.formula_object["name"] = "formula.mula"
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"name": "mula"})
+            assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "formula.mula"
+
     def test_get_prebuilts(self) -> None:
         with self.feature(self.feature_flags):
             response = self.client.get(
