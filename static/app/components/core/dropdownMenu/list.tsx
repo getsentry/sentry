@@ -316,6 +316,8 @@ function DropdownMenuList({
       value={search.value}
       onChange={event => search.onChange(event.target.value)}
       onKeyDown={event => {
+        // Let ArrowLeft move the caret within the query. At the start of an
+        // unselected query, it closes this submenu and returns to its parent.
         if (
           event.key === 'ArrowLeft' &&
           parentMenuState &&
@@ -326,6 +328,7 @@ function DropdownMenuList({
           parentMenuState.selectionManager.clearSelection();
           return;
         }
+        // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
           event.preventDefault();
           menuRef.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
