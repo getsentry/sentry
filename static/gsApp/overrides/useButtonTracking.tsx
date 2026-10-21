@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useRef} from 'react';
+import {useCallback} from 'react';
 import {useMatches} from 'react-router';
 
 import type {TrackingProps} from '@sentry/scraps/trackingContext';
@@ -9,12 +9,8 @@ import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {convertToReloadPath, getEventPath} from 'getsentry/utils/routeAnalytics';
 
 export function useButtonTracking() {
-  const currentOrganization = useOrganization({allowNull: true});
-  const currentMatches = useMatches();
-  const latest = useRef({matches: currentMatches, organization: currentOrganization});
-  useLayoutEffect(() => {
-    latest.current = {matches: currentMatches, organization: currentOrganization};
-  });
+  const organization = useOrganization({allowNull: true});
+  const reloadPath = convertToReloadPath(getEventPath(useMatches()));
 
   return useCallback(
     ({
@@ -24,16 +20,10 @@ export function useButtonTracking() {
       analyticsParams,
       'aria-label': ariaLabel,
     }: TrackingProps) => {
-      const {matches, organization} = latest.current;
       const hasCustomAnalytics =
         analyticsEventKey !== undefined || analyticsEventName !== undefined;
-      const considerSendingAnalytics =
-        Boolean(matches) && (Boolean(organization) || hasCustomAnalytics);
 
-      if (considerSendingAnalytics) {
-        const routeString = getEventPath(matches);
-        const reloadPath = convertToReloadPath(routeString);
-
+      if (organization || hasCustomAnalytics) {
         // optional way to override the event name for Reload and Amplitude
         // note null means something different than undefined for eventName so
         // checking for that explicitly
@@ -54,6 +44,6 @@ export function useButtonTracking() {
         });
       }
     },
-    []
+    [organization, reloadPath]
   );
 }
