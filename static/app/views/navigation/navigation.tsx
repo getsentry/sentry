@@ -12,8 +12,8 @@ import {IconSiren} from '@sentry/icons/siren';
 import {IconUser} from '@sentry/icons/user';
 import {motion, type MotionProps} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack, Flex} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import Feature from 'sentry/components/acl/feature';
@@ -21,6 +21,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
@@ -55,8 +56,10 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
   const location = useLocation();
+  const navigate = useNavigate();
   const settingsV3 = useSettingsV3();
-  const isSettingsNavigation = settingsV3 && location.pathname.startsWith('/settings/');
+  const isSettingsNavigation =
+    settingsV3 && !!organization && location.pathname.startsWith('/settings/');
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
@@ -100,13 +103,13 @@ function NavigationImpl() {
     <Fragment>
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          {isSettingsNavigation ? (
-            <Link
-              to={`/organizations/${organization?.slug}/issues/`}
+          {isSettingsNavigation && organization ? (
+            <Button
+              size="sm"
+              icon={<IconArrow direction="left" />}
               aria-label={t('Back to main navigation')}
-            >
-              <IconArrow direction="left" />
-            </Link>
+              onClick={() => navigate(`/organizations/${organization.slug}/issues/`)}
+            />
           ) : organization ? (
             <OrganizationDropdown />
           ) : (

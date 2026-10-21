@@ -222,8 +222,8 @@ describe('desktop navigation', () => {
     );
   });
 
-  it('shows settings scope navigation with settings v3', () => {
-    render(
+  it('shows settings scope navigation with settings v3', async () => {
+    const {router} = render(
       <PrimaryNavigationContextProvider>
         <Navigation />
       </PrimaryNavigationContextProvider>,
@@ -247,8 +247,29 @@ describe('desktop navigation', () => {
       '/settings/account/'
     );
     expect(
-      within(primaryNav).getByRole('link', {name: 'Back to main navigation'})
-    ).toHaveAttribute('href', '/organizations/org-slug/issues/');
+      within(primaryNav).getByRole('button', {name: 'Back to main navigation'})
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByText(
+        'Organization Settings'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(primaryNav).getByRole('link', {name: 'Project'}));
+    expect(router.location.pathname).toBe('/settings/org-slug/projects/');
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByText(
+        'Project Settings'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(primaryNav).getByRole('link', {name: 'Account'}));
+    expect(router.location.pathname).toBe('/settings/account/');
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByText(
+        'Account Settings'
+      )
+    ).toBeInTheDocument();
   });
 
   it('reopens collapsed account navigation without an organization', async () => {
