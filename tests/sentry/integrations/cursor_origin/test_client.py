@@ -18,6 +18,7 @@ from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_U
 from sentry.shared_integrations.exceptions import ApiError, ApiPaginationTruncated
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 
 INSTALLATION_ID = "i_01example"
 JWT = "my_cool_jwt"
@@ -185,6 +186,38 @@ class AccessTokenTest(TestCase):
         CursorOriginApiClient(integration=self.integration).get_access_token()
 
         assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
+
+    @responses.activate
+    def test_keeps_changes_made_to_the_integration_while_minting(
+        self, mock_jwt: mock.MagicMock
+    ) -> None:
+        """Saving the copy read before the mint would undo a rename that landed meanwhile."""
+
+        def rename_then_mint(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            self.integration.update(
+                name="renamed", metadata={**self.integration.metadata, "account_slug": "renamed"}
+            )
+            return (
+                200,
+                {},
+                json.dumps({"token": "oit_abc", "expiresAt": _iso(timedelta(minutes=15))}),
+            )
+
+        responses.add_callback(responses.POST, TOKEN_URL, callback=rename_then_mint)
+
+        CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        self.integration.refresh_from_db()
+        assert self.integration.name == "renamed"
+        assert self.integration.metadata["account_slug"] == "renamed"
+        assert self.integration.metadata["access_token"] == "oit_abc"
+
+    @responses.activate
+    def test_rejects_a_response_without_a_token(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json={"expiresAt": _iso(timedelta(minutes=15))})
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
 
     @responses.activate
     def test_rejects_an_unparseable_expiry(self, mock_jwt: mock.MagicMock) -> None:

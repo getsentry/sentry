@@ -713,13 +713,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
         try:
             token = installation.get_client().get_access_token()
         except ApiError as e:
-            # Only the class: the error can carry Origin's response.
+            # Not the message: it can carry Origin's response.
             logger.warning(
                 "integration_service.cursor_origin_access_token.unavailable",
                 extra={
                     "integration_id": integration_id,
                     "organization_id": organization_id,
                     "error": type(e).__name__,
+                    "status_code": e.code,
                 },
             )
             return None

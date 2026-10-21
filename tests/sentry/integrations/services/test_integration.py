@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -461,7 +461,7 @@ class GetCursorOriginAccessTokenTest(TestCase):
             )
 
     def iso_in(self, offset: timedelta) -> str:
-        return (datetime.now(UTC) + offset).isoformat()
+        return (datetime.now(timezone.utc) + offset).isoformat()
 
     def store_metadata(self, **metadata: Any) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -513,7 +513,22 @@ class GetCursorOriginAccessTokenTest(TestCase):
                 "integration_id": self.integration.id,
                 "organization_id": self.org.id,
                 "error": "ApiError",
+                "status_code": 503,
             },
+        )
+
+    @responses.activate
+    def test_none_when_origin_answers_without_a_token(self, mock_jwt: MagicMock) -> None:
+        self.store_metadata(expires_at=self.iso_in(timedelta(seconds=60)))
+        responses.add(
+            responses.POST, self.token_url, json={"expiresAt": self.iso_in(timedelta(minutes=15))}
+        )
+
+        assert (
+            integration_service.get_cursor_origin_access_token(
+                integration_id=self.integration.id, organization_id=self.org.id
+            )
+            is None
         )
 
     def test_none_for_an_unknown_integration(self, mock_jwt: MagicMock) -> None:
@@ -566,7 +581,13 @@ class GetCursorOriginAccessTokenTest(TestCase):
         )
 
     def test_none_for_an_install_being_removed(self, mock_jwt: MagicMock) -> None:
+        # Another organization's active install of the same integration doesn't count.
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_org = self.create_organization(owner=self.create_user())
         with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_organization_integration(
+                integration=self.integration, organization_id=other_org.id
+            )
             OrganizationIntegration.objects.get(
                 organization_id=self.org.id, integration_id=self.integration.id
             ).update(status=ObjectStatus.PENDING_DELETION)
