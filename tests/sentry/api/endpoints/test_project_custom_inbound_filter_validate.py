@@ -118,7 +118,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 dataType="error",
                 conditions=[
                     {"type": "error_message", "operator": "contains", "value": ["Error"]},
-                    {"type": "ip_address", "operator": "equals", "value": ["not-an-address"]},
+                    {"type": "ip_address", "operator": "cidr", "value": ["not-an-address"]},
                 ],
             )
 
