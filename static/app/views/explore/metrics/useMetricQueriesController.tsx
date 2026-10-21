@@ -20,12 +20,12 @@ import {
 } from 'sentry/views/explore/metrics/metricQuery';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function syncUpdatedMetricQueries(
@@ -90,6 +90,11 @@ export interface MetricQueriesControllerValue {
   ) => void;
 }
 
+type RowMutators = Pick<
+  MetricQuery,
+  'setQueryParams' | 'setTraceMetric' | 'removeMetric'
+>;
+
 interface UseMetricQueriesControllerArgs {
   queries: BaseMetricQuery[];
   setQueries: Dispatch<SetStateAction<BaseMetricQuery[]>>;
@@ -108,47 +113,62 @@ export function useMetricQueriesController({
   setQueries,
 }: UseMetricQueriesControllerArgs): MetricQueriesControllerValue {
   const labels = useStableLabels(queries);
-  const queryCount = queries.length;
 
-  const rowMutators = useMemo(() => {
-    function updateQueryAtIndex(
-      i: number,
+  const getRowMutators = useMemo(() => {
+    function updateQuery(
+      label: string,
       update: (metricQuery: BaseMetricQuery) => BaseMetricQuery
     ) {
+      // Snapshot labels at call time: a deferred useState updater sees only the
+      // calls made before this one, and so does this snapshot.
+      const currentLabels = labels.getLabels();
       setQueries(previousQueries => {
         const labeledQueries = previousQueries.map((metricQuery, j) => ({
           ...metricQuery,
-          label: labels.getLabel(j),
+          label: currentLabels[j] ?? getFunctionLabel(j),
         }));
-        const newMetricQueries = labeledQueries.map((metricQuery, j) =>
-          i === j ? update(metricQuery) : metricQuery
+        if (!labeledQueries.some(metricQuery => metricQuery.label === label)) {
+          return previousQueries;
+        }
+        const newMetricQueries = labeledQueries.map(metricQuery =>
+          metricQuery.label === label ? update(metricQuery) : metricQuery
         );
         return syncUpdatedMetricQueries(labeledQueries, newMetricQueries);
       });
     }
 
-    return Array.from({length: queryCount}, (_, i) => ({
-      setQueryParams: (newQueryParams: ReadableQueryParams) =>
-        updateQueryAtIndex(i, metricQuery => ({
-          metric: metricQuery.metric,
-          queryParams: newQueryParams,
-          label: metricQuery.label,
-        })),
-      setTraceMetric: (newTraceMetric: TraceMetric) =>
-        updateQueryAtIndex(i, metricQuery =>
-          withTraceMetric(metricQuery, newTraceMetric)
-        ),
-      removeMetric: () => {
-        if (queryCount <= 1) {
-          return;
-        }
-        // Update the label ref synchronously before the storage write so
-        // labels stay stable on the next render.
-        labels.remove(i);
-        setQueries(previousQueries => previousQueries.toSpliced(i, 1));
-      },
-    }));
-  }, [queryCount, setQueries, labels]);
+    function createRowMutators(label: string): RowMutators {
+      return {
+        setQueryParams: newQueryParams =>
+          updateQuery(label, metricQuery => ({
+            metric: metricQuery.metric,
+            queryParams: newQueryParams,
+            label: metricQuery.label,
+          })),
+        setTraceMetric: newTraceMetric =>
+          updateQuery(label, metricQuery => withTraceMetric(metricQuery, newTraceMetric)),
+        removeMetric: () => {
+          const currentLabels = labels.getLabels();
+          const index = currentLabels.indexOf(label);
+          if (index === -1 || currentLabels.length <= 1) {
+            return;
+          }
+          // Update the label ref synchronously before the storage write so
+          // labels stay stable on the next render.
+          labels.remove(index);
+          setQueries(previousQueries => previousQueries.toSpliced(index, 1));
+        },
+      };
+    }
+
+    return createRowMutators;
+  }, [setQueries, labels]);
+
+  const queryLabelsKey = queries.map((_, i) => labels.getLabel(i)).join(',');
+  const rowMutators = useMemo(
+    () => queryLabelsKey.split(',').map(getRowMutators),
+    [queryLabelsKey, getRowMutators]
+  );
 
   return useMemo(() => {
     const labeledQueries: BaseMetricQuery[] = queries.map((query, i) => ({

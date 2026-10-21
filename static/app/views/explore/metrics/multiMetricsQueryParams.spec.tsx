@@ -553,6 +553,109 @@ describe('MultiMetricsQueryParamsProvider', () => {
     expect(result.current[1]!.queryParams).not.toBe(result.current[0]!.queryParams);
   });
 
+  it('keeps every query referentially stable when an unrelated URL param changes', async () => {
+    const metric = ['foo', 'bar'].map(canonicalMetricQueryParam);
+    const {result, router} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/explore/metrics/', query: {metric}},
+      },
+    });
+    const [first, second] = result.current;
+    const search = new URLSearchParams(metric.map(value => ['metric', value]));
+    search.set('unrelated', '1');
+
+    router.navigate(`/organizations/org-slug/explore/metrics/?${search.toString()}`);
+    await waitFor(() => expect(router.location.query.unrelated).toBe('1'));
+
+    expect(result.current[0]).toBe(first);
+    expect(result.current[1]).toBe(second);
+  });
+
+  it('applies a captured mutator to its own query after an earlier query is removed', () => {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {metric: ['foo', 'bar', 'baz'].map(canonicalMetricQueryParam)},
+        },
+      },
+    });
+    const third = result.current[2]!;
+
+    act(() => result.current[0]!.removeMetric());
+    act(() => third.setQueryParams(third.queryParams.replace({query: 'span.op:db'})));
+
+    expect(result.current.map(metricQuery => metricQuery.metric.name)).toEqual([
+      'bar',
+      'baz',
+    ]);
+    expect(result.current.map(metricQuery => metricQuery.queryParams.query)).toEqual([
+      '',
+      'span.op:db',
+    ]);
+  });
+
+  describe('URL writes', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('does not write the URL when an update leaves the queries unchanged', () => {
+      const onNuqsUrlUpdate = jest.fn();
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        onNuqsUrlUpdate,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {metric: ['foo'].map(canonicalMetricQueryParam)},
+          },
+        },
+      });
+
+      act(() => result.current[0]!.setQueryParams(result.current[0]!.queryParams));
+      act(() => jest.runAllTimers());
+
+      expect(onNuqsUrlUpdate).not.toHaveBeenCalled();
+    });
+
+    it('pushes a history entry when an update changes the queries', () => {
+      const onNuqsUrlUpdate = jest.fn();
+      const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+        additionalWrapper: Wrapper,
+        onNuqsUrlUpdate,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/metrics/',
+            query: {metric: ['foo'].map(canonicalMetricQueryParam)},
+          },
+        },
+      });
+
+      act(() =>
+        result.current[0]!.setQueryParams(
+          result.current[0]!.queryParams.replace({query: 'span.op:db'})
+        )
+      );
+      act(() => jest.runAllTimers());
+
+      expect(onNuqsUrlUpdate).toHaveBeenCalledTimes(1);
+      expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+      );
+    });
+  });
+
   describe('stable labels', () => {
     it('preserves label B when A is deleted from [A, B]', () => {
       const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {

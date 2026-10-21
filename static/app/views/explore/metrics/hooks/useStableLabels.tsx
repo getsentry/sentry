@@ -89,6 +89,9 @@ export function useStableLabels(queries: BaseMetricQuery[]) {
       getLabel(i: number): string {
         return labelsRef.current[i] ?? getFunctionLabel(i);
       },
+      getLabels(): readonly string[] {
+        return labelsRef.current;
+      },
       insert(position: number, label: string) {
         labelsRef.current = labelsRef.current.toSpliced(position, 0, label);
       },
