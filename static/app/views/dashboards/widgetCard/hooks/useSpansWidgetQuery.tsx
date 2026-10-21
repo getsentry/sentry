@@ -44,7 +44,10 @@ import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
-import {combineIngestionMeta} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {
+  combineIngestionMeta,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -354,7 +357,7 @@ export function useSpansSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
+    const timeseriesResults: Array<Series | WidgetTimeSeries> = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
@@ -369,24 +372,35 @@ export function useSpansSeriesQuery(
 
       const responseData = q.data;
 
-      const queryForTransform = withValidConditionalAggregates(
+      const widgetForTransform = withValidConditionalAggregates(
         filteredWidget,
         requestIndex
-      ).queries[requestIndex]!;
-
-      const transformedResult = spansResponseTransforms.transformSeries!(
-        responseData,
-        queryForTransform,
-        organization
       );
-      const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
+      const queryForTransform = widgetForTransform.queries[requestIndex]!;
 
-      transformedResult.forEach((result: Series) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
-        timeseriesResults.push(result);
-      });
+      if (isEventsTimeSeriesResponse(responseData)) {
+        timeseriesResults.push(
+          ...spansResponseTransforms.transformTimeSeries!(
+            responseData,
+            widgetForTransform,
+            requestIndex
+          )
+        );
+      } else {
+        const transformedResult = spansResponseTransforms.transformSeries!(
+          responseData,
+          queryForTransform,
+          organization
+        );
+        const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
+
+        transformedResult.forEach((result: Series) => {
+          if (seriesQueryPrefix) {
+            result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
+          }
+          timeseriesResults.push(result);
+        });
+      }
 
       // Get result types and units from config
       const resultTypes = spansResponseTransforms.getSeriesResultType?.(
