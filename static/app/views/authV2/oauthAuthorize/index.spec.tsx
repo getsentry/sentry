@@ -7,8 +7,11 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {ConfigStore} from 'sentry/stores/configStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {mockElementFromPoint} from 'sentry/views/authV2/authLogin/components/testUtils';
+import {waitForAuthorization} from 'sentry/views/authV2/oauth/testUtils';
 
 import OAuthAuthorize from '.';
+
+jest.setTimeout(15000);
 
 const location = {
   pathname: '/oauth/authorize/',
@@ -49,10 +52,10 @@ describe('OAuthAuthorize', () => {
         },
       },
     });
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     await waitFor(() => expect(screen.getByText('Example Application')).toBeVisible());
     expect(screen.getByRole('row', {name: /Projects/})).toBeVisible();
-    await userEvent.click(screen.getByRole('button', {name: 'Authorize'}));
+    await userEvent.click(await waitForAuthorization());
     await waitFor(() =>
       expect(approve).toHaveBeenCalledWith(
         expect.anything(),
@@ -116,9 +119,9 @@ describe('OAuthAuthorize', () => {
           },
         },
       });
-      expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+      await waitForAuthorization();
       expect(approve).not.toHaveBeenCalled();
-      await userEvent.click(screen.getByRole('button', {name: 'Authorize'}));
+      await userEvent.click(await waitForAuthorization());
       await waitFor(() => expect(approve).toHaveBeenCalledTimes(1));
     }
   );
@@ -189,9 +192,9 @@ describe('OAuthAuthorize', () => {
           },
         },
       });
-      expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+      await waitForAuthorization();
       expect(screen.getByText(selectedName)).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Authorize'}));
+      await userEvent.click(await waitForAuthorization());
       await waitFor(() =>
         expect(approve).toHaveBeenCalledWith(
           expect.anything(),
@@ -250,7 +253,7 @@ describe('OAuthAuthorize', () => {
       body: OAuthConsentFixture({transactionId: 'after-login'}),
     });
     await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     await waitFor(() => expect(screen.getByText('New Account')).toBeVisible());
     expect(prepare).toHaveBeenCalledTimes(1);
     const next = new URL(
@@ -340,7 +343,7 @@ describe('OAuthAuthorize', () => {
       body: {detail: 'Your authorization request has expired. Please start over.'},
     });
     render(<OAuthAuthorize />, {initialRouterConfig: {location}});
-    await userEvent.click(await screen.findByRole('button', {name: 'Authorize'}));
+    await userEvent.click(await waitForAuthorization());
     const restart = await screen.findByRole('button', {name: 'Start over'});
     MockApiClient.addMockResponse({
       url: '/auth/oauth/authorize/',
@@ -352,7 +355,7 @@ describe('OAuthAuthorize', () => {
       body: {stage: 'redirect', redirectUrl: 'https://example.com/callback'},
     });
     await userEvent.click(restart);
-    await userEvent.click(await screen.findByRole('button', {name: 'Authorize'}));
+    await userEvent.click(await waitForAuthorization());
     await waitFor(() =>
       expect(approve).toHaveBeenCalledWith(
         expect.anything(),

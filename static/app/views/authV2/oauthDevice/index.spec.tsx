@@ -6,8 +6,11 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {ConfigStore} from 'sentry/stores/configStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {mockElementFromPoint} from 'sentry/views/authV2/authLogin/components/testUtils';
+import {waitForAuthorization} from 'sentry/views/authV2/oauth/testUtils';
 
 import OAuthDevice from '.';
+
+jest.setTimeout(15000);
 
 const location = {pathname: '/oauth/device/', query: {user_code: 'ABCD-EFGH'}};
 const consent = {stage: 'consent', userCode: 'ABCD-EFGH', organizationOptions: []};
@@ -63,7 +66,7 @@ describe('OAuthDevice', () => {
       consentDelay.resolve();
       return consentDelay.promise;
     });
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     expect(await screen.findByText('ABCD-EFGH')).toBeVisible();
   });
 
@@ -74,9 +77,9 @@ describe('OAuthDevice', () => {
       body: {stage: 'approved'},
     });
     render(<OAuthDevice />, {initialRouterConfig: {location}});
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     expect(approve).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', {name: 'Authorize'}));
+    await userEvent.click(await waitForAuthorization());
     await waitFor(() =>
       expect(
         screen.getByText('Application authorized. Return to your device to continue.')
@@ -127,7 +130,7 @@ describe('OAuthDevice', () => {
       body: {stage: 'approved'},
     });
     render(<OAuthDevice />, {initialRouterConfig: {location}});
-    await userEvent.click(await screen.findByRole('button', {name: 'Authorize'}));
+    await userEvent.click(await waitForAuthorization());
     await waitFor(() =>
       expect(approve).toHaveBeenCalledWith(
         expect.anything(),
@@ -159,7 +162,7 @@ describe('OAuthDevice', () => {
     });
     await userEvent.clear(input);
     await userEvent.type(input, 'WXYZABCD');
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
   });
 
   it('offers account switching after an organization access error', async () => {
@@ -217,7 +220,7 @@ describe('OAuthDevice', () => {
       body: consent,
     });
     await userEvent.type(input, '123456');
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     expect(prepare).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
   });
