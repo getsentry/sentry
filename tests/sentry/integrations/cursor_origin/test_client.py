@@ -191,12 +191,8 @@ class AccessTokenTest(TestCase):
     def test_keeps_changes_made_to_the_integration_while_minting(
         self, mock_jwt: mock.MagicMock
     ) -> None:
-        """Saving the copy read before the mint would undo a rename that landed meanwhile."""
-
         def rename_then_mint(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
-            self.integration.update(
-                name="renamed", metadata={**self.integration.metadata, "account_slug": "renamed"}
-            )
+            self.integration.update(name="renamed", metadata={"account_slug": "renamed"})
             return (
                 200,
                 {},

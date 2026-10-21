@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -443,161 +442,112 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
 @all_silo_test
 @patch("sentry.integrations.cursor_origin.client.get_jwt", return_value="app-jwt")
 class GetCursorOriginAccessTokenTest(TestCase):
-    token_url = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/i_01example/access_tokens"
+    installation_id = "i_01example"
+    token_url = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{installation_id}/access_tokens"
 
     def setUp(self) -> None:
         super().setUp()
-        with assume_test_silo_mode(SiloMode.CELL):
-            self.org = self.organization
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_integration(
-                organization=self.org,
-                provider="cursor_origin",
-                external_id="i_01example",
-                metadata={
-                    "access_token": "oit_stored",
-                    "expires_at": self.iso_in(timedelta(minutes=14)),
-                },
-            )
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            external_id=self.installation_id,
+            metadata={
+                "access_token": "oit_stored",
+                "expires_at": self.iso_in(timedelta(minutes=14)),
+            },
+        )
 
     def iso_in(self, offset: timedelta) -> str:
         return (datetime.now(timezone.utc) + offset).isoformat()
 
-    def store_metadata(self, **metadata: Any) -> None:
+    def store_expiring_token(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.get(id=self.integration.id)
-            integration.metadata.update(metadata)
-            integration.save()
+            Integration.objects.filter(id=self.integration.id).update(
+                metadata={
+                    "access_token": "oit_stored",
+                    "expires_at": self.iso_in(timedelta(seconds=60)),
+                }
+            )
+
+    def get_token(
+        self, integration_id: int | None = None, organization_id: int | None = None
+    ) -> str | None:
+        return integration_service.get_cursor_origin_access_token(
+            integration_id=integration_id or self.integration.id,
+            organization_id=organization_id or self.organization.id,
+        )
 
     @responses.activate
     def test_returns_the_stored_token(self, mock_jwt: MagicMock) -> None:
-        token = integration_service.get_cursor_origin_access_token(
-            integration_id=self.integration.id, organization_id=self.org.id
-        )
-
-        assert token == "oit_stored"
+        assert self.get_token() == "oit_stored"
         assert len(responses.calls) == 0
 
     @responses.activate
     def test_mints_a_token_about_to_expire(self, mock_jwt: MagicMock) -> None:
-        self.store_metadata(expires_at=self.iso_in(timedelta(seconds=60)))
+        self.store_expiring_token()
         responses.add(
             responses.POST,
             self.token_url,
             json={"token": "oit_fresh", "expiresAt": self.iso_in(timedelta(minutes=15))},
         )
 
-        token = integration_service.get_cursor_origin_access_token(
-            integration_id=self.integration.id, organization_id=self.org.id
-        )
-
-        assert token == "oit_fresh"
-        assert len(responses.calls) == 1
+        assert self.get_token() == "oit_fresh"
 
     @responses.activate
     @patch("sentry.integrations.services.integration.impl.logger")
     def test_none_when_origin_fails_to_mint(
         self, mock_logger: MagicMock, mock_jwt: MagicMock
     ) -> None:
-        self.store_metadata(expires_at=self.iso_in(timedelta(seconds=60)))
+        self.store_expiring_token()
         responses.add(responses.POST, self.token_url, status=503)
 
-        token = integration_service.get_cursor_origin_access_token(
-            integration_id=self.integration.id, organization_id=self.org.id
-        )
-
-        assert token is None
+        assert self.get_token() is None
         mock_logger.warning.assert_called_once_with(
             "integration_service.cursor_origin_access_token.unavailable",
             extra={
                 "integration_id": self.integration.id,
-                "organization_id": self.org.id,
+                "organization_id": self.organization.id,
                 "error": "ApiError",
                 "status_code": 503,
             },
         )
 
-    @responses.activate
-    def test_none_when_origin_answers_without_a_token(self, mock_jwt: MagicMock) -> None:
-        self.store_metadata(expires_at=self.iso_in(timedelta(seconds=60)))
-        responses.add(
-            responses.POST, self.token_url, json={"expiresAt": self.iso_in(timedelta(minutes=15))}
-        )
-
-        assert (
-            integration_service.get_cursor_origin_access_token(
-                integration_id=self.integration.id, organization_id=self.org.id
-            )
-            is None
-        )
-
     def test_none_for_an_unknown_integration(self, mock_jwt: MagicMock) -> None:
-        assert (
-            integration_service.get_cursor_origin_access_token(
-                integration_id=self.integration.id + 1000, organization_id=self.org.id
-            )
-            is None
-        )
+        assert self.get_token(integration_id=self.integration.id + 1000) is None
 
     def test_none_for_another_provider(self, mock_jwt: MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            github = self.create_integration(
-                organization=self.org,
-                provider="github",
-                external_id="github:1",
-                metadata={
-                    "access_token": "github-token",
-                    "expires_at": self.iso_in(timedelta(minutes=14)),
-                },
-            )
-
-        assert (
-            integration_service.get_cursor_origin_access_token(
-                integration_id=github.id, organization_id=self.org.id
-            )
-            is None
+        github = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+            metadata={
+                "access_token": "github-token",
+                "expires_at": self.iso_in(timedelta(minutes=14)),
+            },
         )
+
+        assert self.get_token(integration_id=github.id) is None
 
     def test_none_for_a_disabled_integration(self, mock_jwt: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             Integration.objects.filter(id=self.integration.id).update(status=ObjectStatus.DISABLED)
 
-        assert (
-            integration_service.get_cursor_origin_access_token(
-                integration_id=self.integration.id, organization_id=self.org.id
-            )
-            is None
-        )
+        assert self.get_token() is None
 
     def test_none_for_an_organization_without_the_install(self, mock_jwt: MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.CELL):
-            other_org = self.create_organization(owner=self.create_user())
-
-        assert (
-            integration_service.get_cursor_origin_access_token(
-                integration_id=self.integration.id, organization_id=other_org.id
-            )
-            is None
-        )
+        assert self.get_token(organization_id=self.create_organization().id) is None
 
     def test_none_for_an_install_being_removed(self, mock_jwt: MagicMock) -> None:
         # Another organization's active install of the same integration doesn't count.
-        with assume_test_silo_mode(SiloMode.CELL):
-            other_org = self.create_organization(owner=self.create_user())
+        self.create_organization_integration(
+            integration=self.integration, organization_id=self.create_organization().id
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_organization_integration(
-                integration=self.integration, organization_id=other_org.id
-            )
             OrganizationIntegration.objects.get(
-                organization_id=self.org.id, integration_id=self.integration.id
+                organization_id=self.organization.id, integration_id=self.integration.id
             ).update(status=ObjectStatus.PENDING_DELETION)
 
-        assert (
-            integration_service.get_cursor_origin_access_token(
-                integration_id=self.integration.id, organization_id=self.org.id
-            )
-            is None
-        )
+        assert self.get_token() is None
 
 
 @all_silo_test

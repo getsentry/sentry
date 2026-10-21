@@ -360,9 +360,9 @@ class IntegrationService(RpcService):
         For callers outside control that hand the token on: Origin's tokens last at most 15
         minutes, and only control can mint one.
 
-        Org-scoped like ``refresh_github_access_token``. None when the integration is missing,
-        not Cursor Origin or not active, when the organization's install is missing or not
-        active, or when Origin couldn't mint a token.
+        Org-scoped like ``refresh_github_access_token``. None when the organization has no active
+        install of an active Cursor Origin integration with that id, or when Origin couldn't
+        mint a token.
         """
 
 

@@ -295,7 +295,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         token = data.get("token")
         expires_at = data.get("expiresAt")
         if not isinstance(token, str) or not isinstance(expires_at, str):
-            raise ApiError("Cursor Origin's access token response has no token or expiresAt")
+            raise ApiError("no token or expiresAt from Cursor Origin")
         if _parse_expires_at(expires_at) is None:
             raise ApiError(f"unparseable expiresAt from Cursor Origin: {expires_at!r}")
 
