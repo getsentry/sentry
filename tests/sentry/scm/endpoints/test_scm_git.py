@@ -31,7 +31,6 @@ TOKEN = "ghs_installation_token"
 FEATURE = "organizations:scm-git-endpoint"
 # Far enough ahead that the GitHub client never refreshes the token over the network.
 TOKEN_EXPIRES_AT = "3000-01-01T00:00:00"
-REFS_URL = "https://github.com/getsentry/sentry.git/info/refs"
 
 
 def sign(
@@ -87,16 +86,16 @@ class ScmGitEndpointTest(TestCase):
             "sentry-api-0-scm-git",
             kwargs={"repository_id": repository_id or self.repo.id, "route": route},
         )
-        return self.send(method, f"{url}?{query}", grant, body)
-
-    def send(self, method: str, url: str, grant: str, body: bytes = b"") -> HttpResponseBase:
         return self.client.generic(
             method,
-            url,
+            f"{url}?{query}",
             data=body,
             content_type="application/x-git-request",
             headers={GRANT_HEADER: grant},
         )
+
+    def fetch_refs(self, grant: str, repository_id: int | None = None) -> HttpResponseBase:
+        return self.git("GET", "info/refs", "service=git-upload-pack", grant, repository_id)
 
     def assert_refused(self, response: HttpResponseBase, status: int, message: bytes) -> None:
         assert response.status_code == status
@@ -108,13 +107,13 @@ class ScmGitEndpointTest(TestCase):
     def test_relays_a_fetch_with_the_installation_token(self) -> None:
         responses.add(
             responses.GET,
-            REFS_URL,
+            "https://github.com/getsentry/sentry.git/info/refs",
             match=[matchers.query_string_matcher("service=git-upload-pack")],
             body=b"001e# service=git-upload-pack\n0000",
             content_type="application/x-git-upload-pack-advertisement",
         )
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", self.fetch_grant())
+        response = self.fetch_refs(self.fetch_grant())
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/x-git-upload-pack-advertisement"
@@ -143,7 +142,7 @@ class ScmGitEndpointTest(TestCase):
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
     def test_refuses_a_request_without_a_grant(self, mock_record_count: mock.MagicMock) -> None:
-        response = self.git("GET", "info/refs", "service=git-upload-pack", "")
+        response = self.fetch_refs("")
 
         self.assert_refused(response, 403, b"The git grant is missing.")
         mock_record_count.assert_called_once_with(
@@ -154,14 +153,14 @@ class ScmGitEndpointTest(TestCase):
     def test_refuses_a_grant_signed_with_an_unknown_secret(self) -> None:
         grant = sign(self.organization.id, "fetch", [self.repo.id], secret="some-other-secret")
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", grant)
+        response = self.fetch_refs(grant)
 
         self.assert_refused(response, 403, b"not signed with a known secret")
 
     @responses.activate
     @override_settings(SCM_GIT_GRANT_SECRETS=None)
     def test_refuses_every_grant_when_no_secret_is_configured(self) -> None:
-        response = self.git("GET", "info/refs", "service=git-upload-pack", self.fetch_grant())
+        response = self.fetch_refs(self.fetch_grant())
 
         self.assert_refused(response, 403, b"not signed with a known secret")
 
@@ -169,7 +168,7 @@ class ScmGitEndpointTest(TestCase):
     def test_refuses_an_expired_grant(self) -> None:
         grant = sign(self.organization.id, "fetch", [self.repo.id], expires_in=-1)
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", grant)
+        response = self.fetch_refs(grant)
 
         self.assert_refused(response, 403, b"The git grant has expired.")
 
@@ -179,7 +178,7 @@ class ScmGitEndpointTest(TestCase):
         self, mock_record_count: mock.MagicMock
     ) -> None:
         with self.feature({FEATURE: False}):
-            response = self.git("GET", "info/refs", "service=git-upload-pack", self.fetch_grant())
+            response = self.fetch_refs(self.fetch_grant())
 
         self.assert_refused(response, 404, b"not enabled for this organization")
         mock_record_count.assert_called_once_with(
@@ -190,7 +189,7 @@ class ScmGitEndpointTest(TestCase):
     def test_refuses_a_grant_for_an_organization_that_does_not_exist(self) -> None:
         grant = sign(self.organization.id + 1000, "fetch", [self.repo.id])
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", grant)
+        response = self.fetch_refs(grant)
 
         self.assert_refused(response, 404, b"organization was not found")
 
@@ -224,9 +223,7 @@ class ScmGitEndpointTest(TestCase):
             external_id="67890",
         )
 
-        response = self.git(
-            "GET", "info/refs", "service=git-upload-pack", self.fetch_grant(), other_repo.id
-        )
+        response = self.fetch_refs(self.fetch_grant(), other_repo.id)
 
         self.assert_refused(response, 403, b"The git grant does not cover this repository.")
 
@@ -234,7 +231,7 @@ class ScmGitEndpointTest(TestCase):
     def test_refuses_a_grant_that_names_the_repository_by_external_id(self) -> None:
         grant = sign(self.organization.id, "fetch", [("github", "12345")])
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", grant)
+        response = self.fetch_refs(grant)
 
         self.assert_refused(response, 403, b"The git grant does not cover this repository.")
 
@@ -243,7 +240,7 @@ class ScmGitEndpointTest(TestCase):
         unconnected_id = self.repo.id + 1000
         grant = sign(self.organization.id, "fetch", [unconnected_id])
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", grant, unconnected_id)
+        response = self.fetch_refs(grant, unconnected_id)
 
         self.assert_refused(response, 404, b"A repository could not be found.")
 
@@ -265,7 +262,7 @@ class ScmGitEndpointTest(TestCase):
         )
         grant = sign(self.organization.id, "fetch", [other_repo.id])
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", grant, other_repo.id)
+        response = self.fetch_refs(grant, other_repo.id)
 
         self.assert_refused(response, 404, b"A repository could not be found.")
 
@@ -278,7 +275,7 @@ class ScmGitEndpointTest(TestCase):
     def test_answers_a_token_github_refuses_to_mint_with_a_bad_gateway(
         self, mock_refresh: mock.MagicMock, mock_capture_exception: mock.MagicMock
     ) -> None:
-        response = self.git("GET", "info/refs", "service=git-upload-pack", self.fetch_grant())
+        response = self.fetch_refs(self.fetch_grant())
 
         self.assert_refused(
             response, 502, b"Sentry could not get a github token for this repository."
@@ -295,10 +292,9 @@ class ScmGitEndpointTest(TestCase):
     def test_refuses_an_inactive_repository(self) -> None:
         self.repo.update(status=ObjectStatus.DISABLED)
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", self.fetch_grant())
+        response = self.fetch_refs(self.fetch_grant())
 
-        assert response.status_code == 404
-        assert len(responses.calls) == 0
+        self.assert_refused(response, 404, b"A repository was found but it is inactive.")
 
     def test_answers_a_provider_host_on_an_internal_address_with_a_host_error(self) -> None:
         integration = self.create_integration(
@@ -322,7 +318,7 @@ class ScmGitEndpointTest(TestCase):
         )
         grant = sign(self.organization.id, "fetch", [repo.id])
 
-        response = self.git("GET", "info/refs", "service=git-upload-pack", grant, repo.id)
+        response = self.fetch_refs(grant, repo.id)
 
         assert response.status_code == 503
         assert response["Content-Type"] == "text/plain; charset=utf-8"

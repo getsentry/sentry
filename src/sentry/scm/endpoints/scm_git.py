@@ -154,11 +154,11 @@ def _request_body(request: HttpRequest) -> Readable | None:
     return body
 
 
-def _refuse(code: str, status: int, detail: str | None) -> HttpResponse:
+def _refuse(code: str, status: int, detail: str) -> HttpResponse:
     # Counted like the refusals GitServer answers itself.
     record_count_metric(FAILED_METRIC, 1, {"code": code})
     # Never a 401: on a 401 git asks for credentials, which a coding job doesn't have.
-    return _plain_text(detail or code, status)
+    return _plain_text(detail, status)
 
 
 def _plain_text(message: str, status: int) -> HttpResponse:
