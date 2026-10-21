@@ -9,11 +9,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.bitbucket_server.client import BitbucketServerClient
-from sentry.integrations.bitbucket_server.webhook_config import (
-    build_webhook_data,
-    build_webhook_update_data,
-)
+from sentry.integrations.bitbucket_server.webhook_config import build_webhook_update_data
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -30,11 +26,11 @@ REPAIR_METRIC = "bitbucket_server.webhook.secret_repair"
 
 class WebhookRepairOutcome(StrEnum):
     UPDATED = "updated"
-    CREATED = "created"
     ALREADY_REPAIRED = "already_repaired"
     DISABLED = "disabled"
     INACTIVE = "inactive"
     IDENTITY_MISMATCH = "identity_mismatch"
+    MISSING_WEBHOOK = "missing_webhook"
     UNAUTHORIZED = "unauthorized"
     CONFIGURATION_ERROR = "configuration_error"
     TRANSIENT_ERROR = "transient_error"
@@ -99,32 +95,6 @@ def _record_api_error(
     )
 
 
-def _discard_created_hook(
-    client: BitbucketServerClient,
-    project: str,
-    repository: str,
-    webhook_id: int,
-    *,
-    integration_id: int,
-    organization_id: int,
-    repository_id: int,
-) -> None:
-    try:
-        client.delete_hook(project, repository, webhook_id)
-    except ApiError as error:
-        if error.code != 404:
-            logger.warning(
-                "bitbucket_server.webhook.secret_repair.cleanup_failed",
-                extra={
-                    "integration_id": integration_id,
-                    "organization_id": organization_id,
-                    "repository_id": repository_id,
-                    "webhook_id": webhook_id,
-                    "status_code": error.code,
-                },
-            )
-
-
 @instrumented_task(
     name="sentry.tasks.integrations.bitbucket_server.repair_repository_webhook",
     namespace=integrations_tasks,
@@ -174,6 +144,9 @@ def repair_repository_webhook(
             webhook_id=webhook_id,
             **context,
         )
+        return
+    if webhook_id is None:
+        _record_outcome(WebhookRepairOutcome.MISSING_WEBHOOK, **context)
         return
 
     project = repository.config.get("project")
@@ -263,55 +236,49 @@ def repair_repository_webhook(
                 return
             webhook_id = repository.config.get("webhook_id")
 
-    created_webhook_id: int | None = None
-    needs_create = webhook_id is None
-    try:
-        if webhook_id is not None:
-            try:
-                webhook = client.get_hook(project, repository_slug, webhook_id)
-            except ApiError as error:
-                if error.code == 404:
-                    needs_create = True
-                else:
-                    raise
-            else:
-                try:
-                    client.update_hook(
-                        project,
-                        repository_slug,
-                        webhook_id,
-                        build_webhook_update_data(webhook, secret=webhook_secret),
-                    )
-                except ApiError as error:
-                    if error.code == 404:
-                        needs_create = True
-                    else:
-                        raise
-                else:
-                    outcome = WebhookRepairOutcome.UPDATED
+    if webhook_id is None:
+        _record_outcome(WebhookRepairOutcome.MISSING_WEBHOOK, **context)
+        return
 
-        if needs_create:
-            created_webhook = client.create_hook(
+    try:
+        try:
+            webhook = client.get_hook(project, repository_slug, webhook_id)
+        except ApiError as error:
+            if error.code == 404:
+                _record_outcome(
+                    WebhookRepairOutcome.MISSING_WEBHOOK,
+                    webhook_id=webhook_id,
+                    status_code=error.code,
+                    **context,
+                )
+                return
+            raise
+
+        try:
+            client.update_hook(
                 project,
                 repository_slug,
-                build_webhook_data(
-                    organization_id=organization_id,
-                    integration_id=integration_id,
-                    secret=webhook_secret,
-                    active=True,
-                ),
+                webhook_id,
+                build_webhook_update_data(webhook, secret=webhook_secret),
             )
-            created_webhook_id = created_webhook["id"]
-            outcome = WebhookRepairOutcome.CREATED
+        except ApiError as error:
+            if error.code == 404:
+                _record_outcome(
+                    WebhookRepairOutcome.MISSING_WEBHOOK,
+                    webhook_id=webhook_id,
+                    status_code=error.code,
+                    **context,
+                )
+                return
+            raise
     except ApiError as error:
         _record_api_error(error, webhook_id=webhook_id, **context)
         return
 
-    config_updates = {"webhook_id": created_webhook_id} if created_webhook_id is not None else {}
     if not repository_service.update_repository_config(
         organization_id=organization_id,
         id=repository_id,
-        config_updates=config_updates,
+        config_updates={},
         config_deletions=["webhook_repair_pending"],
         expected_integration_id=integration_id,
         expected_config={
@@ -322,23 +289,15 @@ def repair_repository_webhook(
             "webhook_repair_pending": True,
         },
     ):
-        if created_webhook_id is not None:
-            _discard_created_hook(
-                client,
-                project,
-                repository_slug,
-                created_webhook_id,
-                **context,
-            )
         _record_outcome(
             WebhookRepairOutcome.CONFLICT,
-            webhook_id=created_webhook_id or webhook_id,
+            webhook_id=webhook_id,
             **context,
         )
         return
 
     _record_outcome(
-        outcome,
-        webhook_id=created_webhook_id or webhook_id,
+        WebhookRepairOutcome.UPDATED,
+        webhook_id=webhook_id,
         **context,
     )

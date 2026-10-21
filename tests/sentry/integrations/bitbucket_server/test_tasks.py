@@ -1,6 +1,6 @@
 import errno
 from types import SimpleNamespace
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -134,11 +134,16 @@ class RepairRepositoryWebhookTest(TestCase):
         )
         self.assert_outcome("updated")
 
-    def test_generates_secret_once_and_creates_hook_without_stored_id(self) -> None:
-        self.repository.config.pop("webhook_id")
+    def test_generates_secret_before_updating_existing_hook(self) -> None:
         self.repository.config.pop("webhook_secret")
         self.repository.config.pop("webhook_repair_pending")
-        self.bitbucket_client.create_hook.return_value = {"id": 456}
+        self.bitbucket_client.get_hook.return_value = {
+            "id": 123,
+            "name": "hook",
+            "url": "https://example.com/hook",
+            "active": True,
+            "events": [],
+        }
 
         with patch(
             "sentry.integrations.bitbucket_server.tasks.secrets.token_hex",
@@ -146,45 +151,32 @@ class RepairRepositoryWebhookTest(TestCase):
         ):
             self.run_task()
 
-        self.bitbucket_client.create_hook.assert_called_once()
-        assert self.bitbucket_client.create_hook.call_args.args[2]["configuration"] == {
+        assert self.update_config.call_args_list[0].kwargs["config_updates"] == {
+            "webhook_secret": "generated-secret",
+            "webhook_repair_pending": True,
+        }
+        assert self.update_config.call_args_list[1].kwargs["config_updates"] == {}
+        assert self.bitbucket_client.update_hook.call_args.args[3]["configuration"] == {
             "secret": "generated-secret"
         }
-        assert self.update_config.call_args_list == [
-            call(
-                organization_id=self.organization_id,
-                id=self.repository_id,
-                config_updates={
-                    "webhook_secret": "generated-secret",
-                    "webhook_repair_pending": True,
-                },
-                expected_integration_id=self.integration_id,
-                expected_config={
-                    "project": "PROJ",
-                    "repo": "repository",
-                    "webhook_id": None,
-                    "webhook_secret": None,
-                    "webhook_repair_pending": None,
-                },
-            ),
-            call(
-                organization_id=self.organization_id,
-                id=self.repository_id,
-                config_updates={"webhook_id": 456},
-                config_deletions=["webhook_repair_pending"],
-                expected_integration_id=self.integration_id,
-                expected_config={
-                    "project": "PROJ",
-                    "repo": "repository",
-                    "webhook_id": None,
-                    "webhook_secret": "generated-secret",
-                    "webhook_repair_pending": True,
-                },
-            ),
-        ]
-        self.assert_outcome("created")
+        self.assert_outcome("updated")
 
-    def test_missing_stored_hook_creates_replacement(self) -> None:
+    def test_missing_webhook_id_stops_without_repair(self) -> None:
+        self.repository.config.pop("webhook_id")
+        self.repository.config.pop("webhook_secret")
+        self.repository.config.pop("webhook_repair_pending")
+
+        with patch(
+            "sentry.integrations.bitbucket_server.tasks.secrets.token_hex",
+        ) as token_hex:
+            self.run_task()
+
+        token_hex.assert_not_called()
+        self.integration.get_installation.assert_not_called()
+        self.update_config.assert_not_called()
+        self.assert_outcome("missing_webhook")
+
+    def test_missing_remote_hook_stops_without_repair(self) -> None:
         for operation in ("get", "update"):
             with self.subTest(operation=operation):
                 self.bitbucket_client.reset_mock()
@@ -201,15 +193,13 @@ class RepairRepositoryWebhookTest(TestCase):
                         "events": [],
                     }
                     self.bitbucket_client.update_hook.side_effect = ApiError("missing", code=404)
-                self.bitbucket_client.create_hook.return_value = {"id": 456}
 
                 self.run_task()
 
-                self.bitbucket_client.create_hook.assert_called_once()
+                self.bitbucket_client.create_hook.assert_not_called()
                 self.bitbucket_client.delete_hook.assert_not_called()
-                self.update_config.assert_called_once()
-                assert self.update_config.call_args.kwargs["config_updates"] == {"webhook_id": 456}
-                self.assert_outcome("created")
+                self.update_config.assert_not_called()
+                self.assert_outcome("missing_webhook")
 
     def test_authorization_failure_does_not_create_or_retry(self) -> None:
         for status_code in (401, 403):
@@ -267,16 +257,6 @@ class RepairRepositoryWebhookTest(TestCase):
         self.bitbucket_client.create_hook.assert_not_called()
         self.update_config.assert_not_called()
         self.assert_outcome("identity_mismatch")
-
-    def test_final_conflict_deletes_only_hook_created_by_task(self) -> None:
-        self.repository.config.pop("webhook_id")
-        self.bitbucket_client.create_hook.return_value = {"id": 456}
-        self.update_config.return_value = False
-
-        self.run_task()
-
-        self.bitbucket_client.delete_hook.assert_called_once_with("PROJ", "repository", 456)
-        self.assert_outcome("conflict")
 
     def test_final_conflict_does_not_delete_updated_hook(self) -> None:
         self.bitbucket_client.get_hook.return_value = {
