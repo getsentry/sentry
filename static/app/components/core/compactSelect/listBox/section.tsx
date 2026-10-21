@@ -7,7 +7,7 @@ import type {Node} from '@react-types/shared';
 import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 
 import {ListBoxOption, type ListBoxOptionProps} from './option';
 

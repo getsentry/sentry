@@ -7,7 +7,7 @@ import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterCont
 import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 
 import {GridListOption, type GridListOptionProps} from './option';
 

@@ -4,7 +4,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 
 jest.mock('@floating-ui/react-dom', () => ({
   ...jest.requireActual('@floating-ui/react-dom'),

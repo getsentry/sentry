@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 
 import {defined} from 'sentry/utils/defined';
 

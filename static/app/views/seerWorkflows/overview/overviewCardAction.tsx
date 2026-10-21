@@ -9,7 +9,7 @@ import {Button, ButtonBar, LinkButton, type ButtonBarProps} from '@sentry/scraps
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 

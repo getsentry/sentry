@@ -1,7 +1,7 @@
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 
 import type {MenuItemProps} from './item';
 

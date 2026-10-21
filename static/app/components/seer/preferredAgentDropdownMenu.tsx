@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 
 import {t} from 'sentry/locale';
 import {seerAgentIntegrationsSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';

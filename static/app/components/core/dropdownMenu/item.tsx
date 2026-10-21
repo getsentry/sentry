@@ -9,7 +9,8 @@ import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Menu, type ListItemProps} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
+import type {ListItemProps} from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {usePrevious} from 'sentry/utils/usePrevious';

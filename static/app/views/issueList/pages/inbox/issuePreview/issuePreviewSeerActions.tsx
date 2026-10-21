@@ -14,7 +14,7 @@ import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/bu
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 

@@ -3,7 +3,7 @@ import {IconOpen} from '@sentry/icons/open';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Menu} from '@sentry/scraps/menu';
+import * as Menu from '@sentry/scraps/menu';
 
 import {t} from 'sentry/locale';
 import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
