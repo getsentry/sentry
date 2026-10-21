@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import heapq
+import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -277,15 +278,17 @@ class RegressionDetector(ABC):
         if ratelimit is None:
             ratelimit = options.get("statistical_detectors.ratelimit.ema")
 
-        regressions_by_project: defaultdict[int, list[tuple[float, TrendBundle]]] = defaultdict(
-            list
+        regressions_by_project: defaultdict[int, list[tuple[float, int, TrendBundle]]] = (
+            defaultdict(list)
         )
+        counter = itertools.count()
 
         for bundle in bundles:
             if bundle.type != TrendType.Regressed:
                 continue
             heapq.heappush(
-                regressions_by_project[bundle.payload.project_id], (bundle.score, bundle)
+                regressions_by_project[bundle.payload.project_id],
+                (bundle.score, next(counter), bundle),
             )
 
             while (
@@ -295,7 +298,7 @@ class RegressionDetector(ABC):
                 heapq.heappop(regressions_by_project[bundle.payload.project_id])
 
         for regressions in regressions_by_project.values():
-            for _, bundle in regressions:
+            for _, _counter, bundle in regressions:
                 yield bundle
 
     @classmethod
