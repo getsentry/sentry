@@ -903,7 +903,54 @@ class ExploreSavedQueriesTest(APITestCase):
             )
         assert response.status_code == 201, response.content
         assert response.data["range"] == "24h"
+        assert response.data["statsPeriod"] == "24h"
         assert response.data["interval"] == "1h"
+
+    def test_post_with_stats_period(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with stats period",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "statsPeriod": "7d",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert response.data["range"] == "7d"
+        assert response.data["statsPeriod"] == "7d"
+        assert response.data["interval"] == "1h"
+        saved_query = ExploreSavedQuery.objects.get(name="query with stats period")
+        assert saved_query.query["range"] == "7d"
+        assert "statsPeriod" not in saved_query.query
+
+    def test_post_stats_period_overrides_range(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with both periods",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "statsPeriod": "7d",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert response.data["range"] == "7d"
+        assert response.data["statsPeriod"] == "7d"
 
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):

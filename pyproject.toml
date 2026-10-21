@@ -61,7 +61,7 @@ dependencies = [
   "mmh3>=4.0.0",
   "msgspec>=0.19.0",
   "msgpack>=1.2.1",
-  "objectstore-client>=0.2.5",
+  "objectstore-client>=0.2.10",
   "orjson>=3.10.10",
   "packaging>=24.1",
   "parsimonious>=0.10.0",
@@ -89,14 +89,14 @@ dependencies = [
   "rfc3339-validator>=0.1.2",
   "rfc3986-validator>=0.1.1",
   # [end] jsonschema format validators
-  "sentry-arroyo>=2.46.0",
+  "sentry-arroyo>=2.47.0",
   "sentry-conventions>=0.27.0",
   "sentry-forked-email-reply-parser>=0.5.12.post1",
   "sentry-kafka-schemas>=3.0.2",
   "sentry-ophio>=1.2.0",
   # sentry-options is only used in getsentry for now
   "sentry-options>=1.2.15",
-  "sentry-protos>=0.86.0",
+  "sentry-protos>=0.87.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.10.1",
   "sentry-scm>=1.9.0",
@@ -421,7 +421,6 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = [
     "bitfield.*",
-    "django_picklefield.*",
     "fixtures.apidocs_test_case",
     "fixtures.gitlab",
     "fixtures.integrations.jira.mock",
@@ -702,7 +701,6 @@ module = [
     "sentry.db.models.fields.jsonfield",
     "sentry.db.models.fields.node",
     "sentry.db.models.fields.onetoone",
-    "sentry.db.models.fields.picklefield",
     "sentry.db.models.fields.slug",
     "sentry.db.models.fields.text",
     "sentry.db.models.fields.uuid",

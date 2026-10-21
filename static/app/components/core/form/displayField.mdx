@@ -1,0 +1,87 @@
+---
+title: DisplayField
+description: Display information alongside form inputs with matching responsive layouts.
+category: forms
+source: '@sentry/scraps/form'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/displayField.tsx
+---
+
+import {DisplayField} from '@sentry/scraps/form';
+import {Container} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/form/displayField';
+
+export {documentation};
+
+Use `DisplayField.Row` or `DisplayField.Stack` for information such as creation dates and account metadata shown alongside form inputs. Both render a description list with a term and its details. They work without a form provider and do not register a value, run validation, or manage focus.
+
+```jsx
+import {DisplayField} from '@sentry/scraps/form';
+
+<DisplayField.Row label="Created">January 1, 2025</DisplayField.Row>;
+```
+
+For a read-only input that users can focus, select, and copy, use `field.Input` with `readOnly` and the normal field layout.
+
+## Responsive Rows
+
+`DisplayField.Row` places the term and value beside each other. Inside a query container, it switches to a stacked layout below the same `md` container breakpoint as `field.Layout.Row`. Without a query container, it keeps the row layout.
+
+Hint text appears below the term in a row and below the value when stacked. Use the `padding` prop when the parent does not provide row padding.
+
+<Storybook.Demo resizable>
+  <DisplayField.Row label="Created" hintText="When the key was created.">
+    January 1, 2025
+  </DisplayField.Row>
+</Storybook.Demo>
+
+```jsx
+<DisplayField.Row label="Created" hintText="When the key was created.">
+  January 1, 2025
+</DisplayField.Row>
+```
+
+## Stacked Layout
+
+`DisplayField.Stack` always places the term above the value. Use it for long labels or content that needs the full available width.
+
+<Storybook.Demo>
+  <DisplayField.Stack label="Created" hintText="When the key was created.">
+    January 1, 2025
+  </DisplayField.Stack>
+</Storybook.Demo>
+
+```jsx
+<DisplayField.Stack label="Created" hintText="When the key was created.">
+  January 1, 2025
+</DisplayField.Stack>
+```
+
+## Compact Hints
+
+Set `variant="compact"` to show hint text in a tooltip on the term. This works with both layouts.
+
+<Storybook.Demo resizable>
+  <DisplayField.Row
+    label="Created"
+    hintText="When the key was created."
+    variant="compact"
+  >
+    January 1, 2025
+  </DisplayField.Row>
+</Storybook.Demo>
+
+```jsx
+<DisplayField.Row label="Created" hintText="When the key was created." variant="compact">
+  January 1, 2025
+</DisplayField.Row>
+```
+
+## Accessibility
+
+The label is a `dt` and the content is a `dd` inside a `dl`. This preserves the term–value relationship without an HTML `label` or an input ID. The displayed value receives no validation attributes and is not added to the tab order. In compact mode, the term can receive keyboard focus to reveal its hint.
+
+Pass formatted content through `children`, such as a `DateTime` component. Use `form.Subscribe` around a display field when its content depends on form values; the display field itself needs no `form.AppField` wrapper.

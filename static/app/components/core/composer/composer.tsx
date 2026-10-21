@@ -6,11 +6,10 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {useOverlay} from 'sentry/utils/useOverlay';
-import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
+import {useOverlay} from '@sentry/scraps/useOverlay';
+import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 import {
   type EditorSelection,
@@ -72,7 +71,7 @@ function useEditorValueSync({mentions, text}: ComposerValue) {
 }
 
 /**
- * Positions the Popper anchor over the active trigger as the editor moves or resizes.
+ * Positions the overlay anchor over the active trigger as the editor moves or resizes.
  */
 function useCaretAnchorPosition({
   activeTrigger,
@@ -84,7 +83,7 @@ function useCaretAnchorPosition({
   activeTrigger: ActiveTrigger | null;
   inputRef: React.RefObject<HTMLDivElement | null>;
   trigger: string | undefined;
-  updateOverlayPosition: (() => void) | null | undefined;
+  updateOverlayPosition: () => void;
   value: string;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -111,7 +110,7 @@ function useCaretAnchorPosition({
     anchor.style.top = `${rangeRect.top - containerRect.top}px`;
     anchor.style.width = `${Math.max(1, rangeRect.width)}px`;
     anchor.style.height = `${Math.max(1, rangeRect.height)}px`;
-    updateOverlayPosition?.();
+    updateOverlayPosition();
   }, [activeTrigger, inputRef, trigger, updateOverlayPosition]);
 
   useLayoutEffect(() => {

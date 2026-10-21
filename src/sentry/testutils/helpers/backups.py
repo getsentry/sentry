@@ -113,13 +113,17 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
+)
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
+    SeerWorkflowStrategy,
 )
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -533,11 +537,7 @@ class ExhaustiveFixtures(Fixtures):
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
         # Rule*
-        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
-        RuleActivity.objects.create(
-            rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
-        )
-        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
+        self.create_project_rule(project=project, owner_user_id=owner_id)
 
         # Environment*
         self.create_environment(project=project)
@@ -655,6 +655,12 @@ class ExhaustiveFixtures(Fixtures):
             tag_value="production",
             branch_name="release",
         )
+        seer_workflow_config = SeerWorkflowConfig.objects.create(
+            organization=org,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            filters={"environments": ["production"]},
+        )
+        SeerWorkflowConfigProject.objects.create(config=seer_workflow_config, project=project)
 
         CodeReviewEvent.objects.create(
             organization=org,

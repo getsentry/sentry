@@ -15,7 +15,10 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityFeed} from 'sentry/views/issueDetails/activitySection/activityFeed';
-import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {
+  buildActivityFeedItems,
+  type DisplayedActivityFeedItem,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
@@ -34,14 +37,18 @@ interface ActivitySectionProps {
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
+  /** Position of the comment composer in standalone feeds. */
+  inputPosition?: 'start' | 'end';
+  /** Prepared feed rows. Defaults to building rows from the issue activity. */
+  items?: DisplayedActivityFeedItem[];
   minHeight?: number;
   onActivityChange?: (activity: GroupActivity[]) => void;
+  placeholder?: string;
   /**
    * Controls layout and input style.
    * - `sidebar` (default): fold section, compact input, collapses at 5 items
    * - `standalone`: full input, no collapse
    */
-  placeholder?: string;
   variant?: 'sidebar' | 'standalone';
 }
 
@@ -49,7 +56,9 @@ export function ActivitySection({
   group,
   activities: providedActivities,
   filterComments,
+  inputPosition = 'start',
   onActivityChange,
+  items,
   variant = 'sidebar',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
@@ -128,10 +137,12 @@ export function ActivitySection({
     },
   };
 
-  const displayedActivities = buildActivityFeedItems({
-    activities,
-    filterComments,
-  });
+  const displayedActivities =
+    items ??
+    buildActivityFeedItems({
+      activities,
+      filterComments,
+    });
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
 
@@ -210,8 +221,9 @@ export function ActivitySection({
   if (isStandalone) {
     return (
       <Grid gap="xl">
-        {noteInput}
+        {inputPosition === 'start' && noteInput}
         {timeline}
+        {inputPosition === 'end' && noteInput}
       </Grid>
     );
   }
