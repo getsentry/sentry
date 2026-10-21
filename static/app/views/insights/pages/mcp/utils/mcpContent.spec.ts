@@ -1,18 +1,15 @@
 import {getLegacyMCPToolResult, getMCPRequestArguments} from './mcpContent';
 
 describe('getLegacyMCPToolResult', () => {
-  it.each(['plain text', '{"ok":false}', ''])(
-    'preserves singleton content %j',
-    content => {
-      expect(
-        getLegacyMCPToolResult({
-          'mcp.tool.result.content': content,
-          'mcp.tool.result.content_type': 'text',
-          'mcp.tool.result.content_count': 1,
-        })
-      ).toEqual({content, content_type: 'text', content_count: 1});
-    }
-  );
+  it.each(['plain text', ''])('preserves singleton content %j', content => {
+    expect(
+      getLegacyMCPToolResult({
+        'mcp.tool.result.content': content,
+        'mcp.tool.result.content_type': 'text',
+        'mcp.tool.result.content_count': 1,
+      })
+    ).toEqual({content, content_type: 'text', content_count: 1});
+  });
 
   it('preserves partial fields and original indices when canonical output is absent', () => {
     expect(

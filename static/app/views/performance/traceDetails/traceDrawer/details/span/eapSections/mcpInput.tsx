@@ -2,6 +2,7 @@ import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails'
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
   isCodeModeNode,
@@ -31,7 +32,13 @@ export function MCPInputSection({
   if (input === undefined) {
     return null;
   }
-  const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(input) : null;
+  // Legacy MCP fields contain separately JSON-encoded values, not complete tool input.
+  const codeInput = isCodeModeNode(node, attributes)
+    ? getCodeModeInput(
+        getTraceNodeAttribute('gen_ai.tool.call.arguments', node, event, attributes) ??
+          getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes)
+      )
+    : null;
 
   return (
     <FoldSection

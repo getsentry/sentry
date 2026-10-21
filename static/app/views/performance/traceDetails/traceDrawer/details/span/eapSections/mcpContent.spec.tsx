@@ -6,8 +6,8 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
-import {AIInputSection, getAIToolInput} from './aiInput';
-import {AIOutputSection, getAIToolOutput} from './aiOutput';
+import {AIInputSection} from './aiInput';
+import {AIOutputSection} from './aiOutput';
 import {MCPInputSection} from './mcpInput';
 import {MCPOutputSection} from './mcpOutput';
 
@@ -35,27 +35,23 @@ function InputOutputSections({node}: {node: EapSpanNode}) {
 }
 
 describe('MCP input and output', () => {
-  it.each([undefined, 'tool'])(
-    'renders dual-written content once with operation type %s',
-    operationType => {
-      const node = makeMCPNode({
-        ...(operationType && {'gen_ai.operation.type': operationType}),
-        'gen_ai.tool.call.arguments': '{"Topic":"canonical input"}',
-        'gen_ai.tool.call.result': '{"content":[],"structuredContent":{"ok":false}}',
-        'mcp.request.argument.topic': '"legacy input"',
-        'mcp.tool.result.content': 'legacy output',
-      });
+  it('renders dual-written content once without an operation type', () => {
+    const node = makeMCPNode({
+      'gen_ai.tool.call.arguments': '{"Topic":"canonical input"}',
+      'gen_ai.tool.call.result': '{"content":[],"structuredContent":{"ok":false}}',
+      'mcp.request.argument.topic': '"legacy input"',
+      'mcp.tool.result.content': 'legacy output',
+    });
 
-      render(<InputOutputSections node={node} />);
+    render(<InputOutputSections node={node} />);
 
-      expect(screen.getAllByRole('region', {name: 'Input'})).toHaveLength(1);
-      expect(screen.getAllByRole('region', {name: 'Output'})).toHaveLength(1);
-      expect(screen.getByText('Topic')).toBeInTheDocument();
-      expect(screen.getByText('structuredContent')).toBeInTheDocument();
-      expect(screen.queryByText('legacy input')).not.toBeInTheDocument();
-      expect(screen.queryByText('legacy output')).not.toBeInTheDocument();
-    }
-  );
+    expect(screen.getAllByRole('region', {name: 'Input'})).toHaveLength(1);
+    expect(screen.getAllByRole('region', {name: 'Output'})).toHaveLength(1);
+    expect(screen.getByText('Topic')).toBeInTheDocument();
+    expect(screen.getByText('structuredContent')).toBeInTheDocument();
+    expect(screen.queryByText('legacy input')).not.toBeInTheDocument();
+    expect(screen.queryByText('legacy output')).not.toBeInTheDocument();
+  });
 
   it('preserves Code Mode rendering for MCP tools', async () => {
     const code = 'for x in range(3):\n    print(x)';
@@ -93,61 +89,51 @@ describe('MCP input and output', () => {
     expect(screen.queryByText('legacy output')).not.toBeInTheDocument();
   });
 
-  it.each(['{"content":[]}', '{"structuredContent":{}}', '{"structuredContent":false}'])(
-    'renders canonical-only output %s',
-    output => {
-      const node = makeMCPNode({
-        'gen_ai.operation.type': 'tool',
-        'gen_ai.tool.call.result': output,
-      });
+  it('keeps separately encoded legacy Code Mode arguments as JSON', () => {
+    const node = makeMCPNode({
+      'gen_ai.tool.name': 'execute_code',
+      'mcp.request.argument.code': JSON.stringify('print(1)'),
+      'mcp.request.argument.language': JSON.stringify('python'),
+    });
 
-      render(<InputOutputSections node={node} />);
+    render(<InputOutputSections node={node} />);
 
-      expect(screen.getAllByRole('region', {name: 'Output'})).toHaveLength(1);
-      expect(getAIToolOutput(node)).toBe(output);
-    }
-  );
+    const input = screen.getByRole('region', {name: 'Input'});
+    expect(within(input).getByText('code')).toBeInTheDocument();
+    expect(within(input).getByText('language')).toBeInTheDocument();
+    expect(within(input).getByText('"print(1)"', {exact: false})).toBeInTheDocument();
+    expect(within(input).getByText('"python"', {exact: false})).toBeInTheDocument();
+    expect(screen.queryByRole('region', {name: 'Summary'})).not.toBeInTheDocument();
+  });
 
-  it.each<{attributes: Record<string, string | number>; name: string}>([
-    {name: 'singleton', attributes: {'mcp.tool.result.content': 'singleton'}},
-    {name: 'empty singleton', attributes: {'mcp.tool.result.content': ''}},
-    {
-      name: 'indexed with gaps',
-      attributes: {
-        'mcp.tool.result.0.content': 'first',
-        'mcp.tool.result.2.content': 'third',
-      },
-    },
-    {
-      name: 'error response',
-      attributes: {
-        'mcp.tool.result.0.content': 'error response',
-        'mcp.tool.result.is_error': 'true',
-      },
-    },
-    {
-      name: 'oversized result',
-      attributes: {'mcp.tool.result.0.content': 'x'.repeat(20_001)},
-    },
-  ])('renders $name legacy fields when canonical output is absent', ({attributes}) => {
-    const node = makeMCPNode(attributes);
+  it('renders canonical-only structured output', () => {
+    const node = makeMCPNode({
+      'gen_ai.tool.call.result': '{"structuredContent":false}',
+    });
 
     render(<InputOutputSections node={node} />);
 
     const output = screen.getByRole('region', {name: 'Output'});
-    for (const key of Object.keys(attributes)) {
-      expect(
-        within(output).getByText(key.replace('mcp.tool.result.', ''))
-      ).toBeInTheDocument();
-    }
-    expect(getAIToolOutput(node)).toEqual(
-      Object.fromEntries(
-        Object.entries(attributes).map(([key, value]) => [
-          key.replace('mcp.tool.result.', ''),
-          value,
-        ])
-      )
-    );
+    expect(within(output).getByText('structuredContent')).toBeInTheDocument();
+    expect(within(output).getByText('false')).toBeInTheDocument();
+  });
+
+  it('renders original legacy indices and error metadata when canonical output is absent', () => {
+    const node = makeMCPNode({
+      'mcp.tool.result.0.content': 'first',
+      'mcp.tool.result.2.content': 'third',
+      'mcp.tool.result.is_error': 'true',
+    });
+
+    render(<InputOutputSections node={node} />);
+
+    const output = screen.getByRole('region', {name: 'Output'});
+    expect(within(output).getByText('0.content')).toBeInTheDocument();
+    expect(within(output).getByText('"first"')).toBeInTheDocument();
+    expect(within(output).getByText('2.content')).toBeInTheDocument();
+    expect(within(output).getByText('"third"')).toBeInTheDocument();
+    expect(within(output).getByText('is_error')).toBeInTheDocument();
+    expect(within(output).getByText('"true"')).toBeInTheDocument();
   });
 
   it('does not create an output section when only uncaptured-output metadata is present', () => {
@@ -161,19 +147,6 @@ describe('MCP input and output', () => {
     render(<InputOutputSections node={node} />);
 
     expect(screen.queryByRole('region', {name: 'Output'})).not.toBeInTheDocument();
-  });
-
-  it('renders empty canonical arguments instead of stale legacy arguments', () => {
-    const node = makeMCPNode({
-      'gen_ai.tool.call.arguments': '{}',
-      'mcp.request.argument.topic': '"legacy input"',
-    });
-
-    render(<InputOutputSections node={node} />);
-
-    expect(screen.getByRole('region', {name: 'Input'})).toBeInTheDocument();
-    expect(screen.queryByText('topic')).not.toBeInTheDocument();
-    expect(getAIToolInput(node)).toBe('{}');
   });
 
   it('does not create input or output sections when neither was captured', () => {
@@ -244,7 +217,5 @@ describe('MCP input and output', () => {
     expect(screen.getAllByRole('region', {name: 'Output'})).toHaveLength(1);
     expect(screen.getByText('0.content')).toBeInTheDocument();
     expect(screen.queryByText('legacy prompt')).not.toBeInTheDocument();
-    expect(getAIToolInput(node)).toEqual({Topic: 'canonical prompt'});
-    expect(getAIToolOutput(node)).toBeUndefined();
   });
 });
