@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
@@ -29,7 +31,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class MetricSerializerTestCase(BaseWorkflowTest):
-    def create_metric_detector(self, **config) -> tuple[Detector, Workflow, SnubaQuery]:
+    def create_metric_detector(self, **config: Any) -> tuple[Detector, Workflow, SnubaQuery]:
         detector = self.create_detector(
             project=self.project,
             type=MetricIssue.slug,
@@ -81,7 +83,7 @@ class MetricSerializerTestCase(BaseWorkflowTest):
         )
         return condition, action_group
 
-    def create_email_action(self, condition_group: DataConditionGroup, **config) -> Action:
+    def create_email_action(self, condition_group: DataConditionGroup, **config: Any) -> Action:
         action = self.create_action(
             type=Action.Type.EMAIL,
             config={
