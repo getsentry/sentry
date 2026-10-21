@@ -119,6 +119,67 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @with_feature("organizations:investigations")
+    def test_start_run_enables_investigation_tools(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        client = SeerAgentClient(self.organization, self.user, enable_investigation_tools=True)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_investigation_tools"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_start_run_withholds_investigation_tools_without_feature(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        client = SeerAgentClient(self.organization, self.user, enable_investigation_tools=True)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_investigation_tools"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @with_feature("organizations:investigations")
+    def test_start_run_withholds_investigation_tools_without_open_membership(
+        self, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        client = SeerAgentClient(self.organization, self.user, enable_investigation_tools=True)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_investigation_tools"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @with_feature("organizations:investigations")
+    def test_start_run_investigation_tools_are_opt_in(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_investigation_tools"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @override_options({"seer.explorer.context-engine-rollout": 1.0})
     def test_start_run_context_engine_follows_rollout(self, mock_post, mock_access):
         mock_access.return_value = (True, None)
@@ -624,6 +685,22 @@ class TestSeerAgentClient(TestCase):
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_write_pull_request"] is True
         assert body["agent_run_options"]["enable_bash_mode"] is True
+
+    @with_feature("organizations:investigations")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    def test_continue_run_passes_investigation_tools(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response(run_id=789)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        client = SeerAgentClient(self.organization, self.user, enable_investigation_tools=True)
+        client.continue_run(789, "Follow up")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_investigation_tools"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")

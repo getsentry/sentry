@@ -47,6 +47,7 @@ class TestFormulaDetails(BaseFormulaTest):
         assert data["id"] == str(formula.id)
         assert data["name"] == "formula.custom_apdex"
         assert data["dataset"] == "spans"
+        assert data["description"] == "A custom version of apdex for testing"
         assert data["formula"] == "({count_satisfied} + {count_tolerating} / 2) / count()"
         assert data["unit"] is None
         assert data["type"] == "number"
@@ -73,6 +74,16 @@ class TestFormulaDetails(BaseFormulaTest):
             },
             {"name": "frustrated", "type": "calculation", "order": 2, "value": "{threshold} * 4"},
         ]
+
+    def test_get_out_of_range_id(self) -> None:
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                reverse(
+                    "sentry-api-0-explore-formulas-detail",
+                    args=[self.org.slug, "99999999999999999999"],
+                )
+            )
+        assert response.status_code == 404
 
     def test_delete_explore_formula(self) -> None:
         formula = self.create_formula()
@@ -105,6 +116,7 @@ class TestFormulaDetails(BaseFormulaTest):
         formula = self.create_formula()
         self.formula_object["name"] = "formula.hello"
         self.formula_object["formula"] = "count() + count()"
+        self.formula_object["description"] = "test description"
         self.formula_object["dataset"] = "logs"
         with self.feature(self.feature_flags):
             response = self.client.put(
@@ -113,7 +125,9 @@ class TestFormulaDetails(BaseFormulaTest):
             )
             assert response.status_code == 200, response.content
         assert response.data["name"] == "formula.hello"
+        assert response.data["updatedBy"]["email"] == self.user.email
         assert response.data["formula"] == "count() + count()"
+        assert response.data["description"] == "test description"
         assert response.data["dataset"] == "logs"
 
     def test_update_explore_formula_with_name_already_in_db(self) -> None:
@@ -468,6 +482,11 @@ class TestFormulas(BaseFormulaTest):
         formula_names = [row["name"] for row in response.data]
         assert "formula.apdex" in formula_names
         assert "formula.user_misery" in formula_names
+        assert (
+            response.data[0]["description"]
+            == "(Application Performance Index) Calculates apdex a weighted average of user experiences"
+        )
+        assert response.data[0]["createdBy"] is None
         assert response.data[0]["prebuilt"]
         assert response.data[0]["references"][0] == {
             "name": "count_satisfied",

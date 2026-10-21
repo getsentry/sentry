@@ -3,11 +3,13 @@ import {InputGroup} from '@sentry/scraps/input/inputGroup';
 
 import {BaseField, type BaseFieldProps} from './baseField';
 
-export interface InputFieldProps
+interface SharedInputFieldProps
   extends
     BaseFieldProps<HTMLInputElement>,
-    Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'type'> {
-  onChange: (value: string) => void;
+    Omit<
+      InputProps,
+      'value' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'type' | 'readOnly'
+    > {
   value: string;
   disabled?: boolean | string;
   leadingItems?: React.ReactNode;
@@ -37,6 +39,12 @@ export interface InputFieldProps
     | 'week';
 }
 
+export type InputFieldProps = SharedInputFieldProps &
+  (
+    | {readOnly: true; onChange?: (value: string) => void}
+    | {onChange: (value: string) => void; readOnly?: boolean}
+  );
+
 export function InputField({
   onChange,
   disabled,
@@ -55,7 +63,7 @@ export function InputField({
           <InputGroup.Input
             {...fieldProps}
             {...props}
-            onChange={e => onChange(e.target.value)}
+            onChange={onChange ? e => onChange(e.target.value) : undefined}
           />
           <InputGroup.TrailingItems>
             {trailingItems}

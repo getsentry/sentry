@@ -13,10 +13,11 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {fullWidthCellStyle, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   type ColumnAlign,
   HeaderCellContent,
@@ -24,7 +25,6 @@ import {
 } from 'sentry/components/tables/sortableHeaderCell';
 import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/statusRows';
 import {defined} from 'sentry/utils/defined';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 
 type TableDensity = 'compressed' | 'default' | 'comfortable';
 

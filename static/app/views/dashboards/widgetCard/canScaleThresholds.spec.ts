@@ -18,6 +18,7 @@ describe('canScaleThresholds', () => {
     'count(custom_field)',
     `count_if(\`${SpanFields.SPAN_STATUS}:error\`)`,
     'failure_count()',
+    'count_web_vitals(measurements.lcp,poor)',
     'sum(session)',
     `sum(${SpanFields.SPAN_DURATION})`,
     'sum(value,metricA,gauge,none)',
@@ -28,6 +29,19 @@ describe('canScaleThresholds', () => {
       canScaleThresholds({
         displayType: DisplayType.LINE,
         queries: [{...query, aggregates: [aggregate]}],
+      })
+    ).toBe(true);
+  });
+
+  it.each([
+    ['issue counts', ['count(new_issues)', 'count(resolved_issues)']],
+    ['count and count_if', ['count()', 'count_if(level,equals,error)']],
+    ['count and sum', ['count()', `sum(${SpanFields.SPAN_DURATION})`]],
+  ])('allows multiple scalable aggregates: %s', (_name, aggregates) => {
+    expect(
+      canScaleThresholds({
+        displayType: DisplayType.LINE,
+        queries: [{...query, aggregates}],
       })
     ).toBe(true);
   });

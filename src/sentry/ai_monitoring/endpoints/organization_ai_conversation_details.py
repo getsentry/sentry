@@ -63,6 +63,9 @@ MODEL_USAGE_COLUMNS = [
     "gen_ai.response.model",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.input_tokens) as input_cost",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.output_tokens) as output_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.cache_read.input_tokens) as cache_read_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.cache_creation.input_tokens) as cache_write_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.reasoning.output_tokens) as reasoning_cost",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_read.input_tokens) as cache_read_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_creation.input_tokens) as cache_write_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.reasoning.output_tokens) as reasoning_tokens",
@@ -163,6 +166,9 @@ class AIConversationModelUsage(TypedDict):
     reasoningTokens: int
     inputCost: float
     outputCost: float
+    cacheReadCost: float
+    cacheWriteCost: float
+    reasoningCost: float
     totalCost: float
 
 
@@ -171,6 +177,9 @@ class AIConversationStats(AIConversationAggregates):
     cacheWriteTokens: int
     errorToolNames: list[str]
     reasoningTokens: int
+    cacheReadCost: float
+    cacheWriteCost: float
+    reasoningCost: float
     usageByModel: list[AIConversationModelUsage]
 
 
@@ -239,6 +248,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
                 "reasoningTokens": 0,
                 "inputCost": 0,
                 "outputCost": 0,
+                "cacheReadCost": 0.0,
+                "cacheWriteCost": 0.0,
+                "reasoningCost": 0.0,
                 "totalCost": 0,
             },
         )
@@ -251,6 +263,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         usage["reasoningTokens"] += int(row.get("reasoning_tokens") or 0)
         usage["inputCost"] += float(row.get("input_cost") or 0)
         usage["outputCost"] += float(row.get("output_cost") or 0)
+        usage["cacheReadCost"] += float(row.get("cache_read_cost") or 0)
+        usage["cacheWriteCost"] += float(row.get("cache_write_cost") or 0)
+        usage["reasoningCost"] += float(row.get("reasoning_cost") or 0)
         usage["totalCost"] += model_pair_stats["totalCost"]
 
     conversation_stats["toolNames"] = sorted(
@@ -266,6 +281,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         "cacheWriteTokens": sum(usage["cacheWriteTokens"] for usage in sorted_usage),
         "errorToolNames": sorted(error_tool_names),
         "reasoningTokens": sum(usage["reasoningTokens"] for usage in sorted_usage),
+        "cacheReadCost": sum(usage["cacheReadCost"] for usage in sorted_usage),
+        "cacheWriteCost": sum(usage["cacheWriteCost"] for usage in sorted_usage),
+        "reasoningCost": sum(usage["reasoningCost"] for usage in sorted_usage),
         "usageByModel": sorted_usage,
     }
 
@@ -309,9 +327,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         Message, tool, and response attributes contain their recorded string values.
         `stats.errors` counts spans whose status is not `ok`, `cancelled`, or `unknown`.
         `stats.errorToolNames` lists tools used by those spans.
-        `stats.inputTokens` includes cache-read and cache-write tokens. Stats are returned
-        on the first page only. Without an explicit range, Sentry widens the search across
-        available retention. A missing conversation returns an empty `spans` list.
+        `stats.inputTokens` includes cache-read and cache-write tokens. In `stats.usageByModel`,
+        `inputCost` includes cache-read and cache-write costs, and `outputCost` includes
+        reasoning cost. These cost breakdowns are not added to `totalCost`.
+        Stats are returned on the first page only. Without an explicit range, Sentry widens
+        the search across available retention. A missing conversation returns an empty `spans` list.
         """
         try:
             snuba_params = self.get_snuba_params(request, organization)

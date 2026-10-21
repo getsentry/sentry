@@ -1513,6 +1513,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         return path
 
     def _query_params(self, endpoint: PublicGetEndpoint | PublicMutationEndpoint) -> dict[str, Any]:
+        if endpoint.endpoint_name == "ProjectStacktraceLinkEndpoint":
+            return {"file": "src/matrix.py", "platform": "python"}
         if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
             return {"channel": "permission-matrix"}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
