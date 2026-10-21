@@ -3,6 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
 import {VisualizeTransformations} from './visualizeTransformations';
 
 function Example({initial = []}: {initial?: string[]}) {
@@ -10,6 +12,7 @@ function Example({initial = []}: {initial?: string[]}) {
   return (
     <div>
       <VisualizeTransformations
+        traceItemDataset={TraceItemDataset.SPANS}
         transformations={transformations}
         onChange={setTransformations}
       />

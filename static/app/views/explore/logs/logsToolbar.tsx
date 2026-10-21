@@ -341,6 +341,7 @@ function VisualizeDropdown({
       transformationControls={
         organization.features.includes('explore-interpolation-and-smoothing') ? (
           <VisualizeTransformations
+            traceItemDataset={TraceItemDataset.LOGS}
             transformations={visualize.transformations}
             onChange={transformations => onReplace(visualize.replace({transformations}))}
           />

@@ -301,6 +301,7 @@ function ToolbarVisualizeItem({
         organization.features.includes('explore-interpolation-and-smoothing') &&
         isVisualizeFunction(visualize) ? (
           <VisualizeTransformations
+            traceItemDataset={TraceItemDataset.SPANS}
             transformations={visualize.transformations}
             onChange={transformations => onReplace(visualize.replace({transformations}))}
           />
