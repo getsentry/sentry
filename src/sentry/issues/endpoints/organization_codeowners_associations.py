@@ -1,3 +1,6 @@
+from typing import TypedDict
+
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,21 +12,64 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
 )
-from sentry.api.validators.project_codeowners import build_codeowners_associations
+from sentry.api.validators.project_codeowners import CodeOwnersErrors, build_codeowners_associations
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
 
 
+class CodeOwnersProjectAssociationsResponse(TypedDict):
+    associations: dict[str, str]
+    errors: CodeOwnersErrors
+
+
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationCodeownersAssociations",
+        summary="List Code Owner Associations",
+        description=(
+            "Return CODEOWNERS associations for projects the authenticated user is a member of. "
+            "Specify `project` to filter the results."
+        ),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "project",
+                type=str,
+                many=True,
+                description=(
+                    "Filter by project ID or slug. Specify multiple values to include multiple projects. "
+                    "Use `-1` to include all accessible projects."
+                ),
+            ),
+            OpenApiParameter(
+                "provider", type=str, description="Filter associations by integration provider."
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationCodeOwnersAssociationsResponse",
+                dict[str, CodeOwnersProjectAssociationsResponse],
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[dict[str, CodeOwnersProjectAssociationsResponse]]:
         """
         Returns all ProjectCodeOwners associations for an organization as a dict with projects as keys
         e.g. {"projectSlug": {associations: {...}, errors: {...}}, ...]

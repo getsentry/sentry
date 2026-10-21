@@ -28,7 +28,7 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps, useObjectRef} from '@react-aria/utils';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 import {IconGrabbable} from '@sentry/icons/grabbable';
@@ -79,9 +79,41 @@ interface SecondarySidebarProps {
 function SecondarySidebar({children}: SecondarySidebarProps) {
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
-  const resizableContainerRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <SecondarySidebarWrapper
+      id={stepId}
+      description={NAVIGATION_TOUR_CONTENT[stepId].description}
+      title={NAVIGATION_TOUR_CONTENT[stepId].title}
+    >
+      {({ref, ...props}) => (
+        <SecondarySidebarPanel {...props} tourRef={ref}>
+          {children}
+        </SecondarySidebarPanel>
+      )}
+    </SecondarySidebarWrapper>
+  );
+}
+
+interface SecondarySidebarPanelProps {
+  children: ReactNode;
+  tourRef: React.Ref<HTMLDivElement>;
+  'aria-expanded'?: boolean;
+  className?: string;
+}
+
+function SecondarySidebarPanel({
+  children,
+  tourRef,
+  'aria-expanded': _ariaExpanded,
+  ...props
+}: SecondarySidebarPanelProps) {
+  // One stable ref for both the resizer and the tour. The tour keeps this element
+  // in state, so a new ref on every render would detach and reattach it, which
+  // re-renders the tour and can hit React's update depth limit.
+  const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const {layout} = usePrimaryNavigation();
+  const {layout, activeGroup} = usePrimaryNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -89,7 +121,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   );
 
   const {onMouseDown: handleStartResize, size} = useResizable({
-    ref: resizableContainerRef,
+    ref: containerRef,
     initialSize: secondarySidebarWidth,
     minWidth: SECONDARY_SIDEBAR_MIN_WIDTH,
     maxWidth: SECONDARY_SIDEBAR_MAX_WIDTH,
@@ -98,76 +130,67 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
     },
   });
 
-  const {activeGroup} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
 
   return (
-    <SecondarySidebarWrapper
-      id={stepId}
-      description={NAVIGATION_TOUR_CONTENT[stepId].description}
-      title={NAVIGATION_TOUR_CONTENT[stepId].title}
+    // aria-expanded is omitted here because TourGuide passes it via useOverlay's
+    // triggerProps (designed for button/disclosure triggers), but this element is
+    // a plain container div with no role that supports aria-expanded. Spreading it
+    // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
+    // without a matching ARIA role.
+    <Container
+      height="100%"
+      right="0"
+      {...props}
+      width={isMobile ? '100%' : `${size}px`}
+      ref={isMobile ? undefined : containerRef}
+      {...{
+        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+      }}
     >
-      {({ref, 'aria-expanded': _ariaExpanded, ...props}) => (
-        // aria-expanded is omitted here because TourGuide passes it via useOverlay's
-        // triggerProps (designed for button/disclosure triggers), but this element is
-        // a plain container div with no role that supports aria-expanded. Spreading it
-        // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
-        // without a matching ARIA role.
-        <Container
+      <AnimatePresence mode="popLayout" initial={false}>
+        <MotionContainer
+          width="100%"
           height="100%"
-          right="0"
-          {...props}
-          width={isMobile ? '100%' : `${size}px`}
-          ref={isMobile ? undefined : mergeRefs(resizableContainerRef, ref)}
-          {...{
-            [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-          }}
+          key={activeGroup}
+          initial={{x: -6, opacity: 0}}
+          animate={{x: 0, opacity: 1}}
+          exit={{x: 6, opacity: 0}}
+          transition={{duration: 0.06}}
         >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <MotionContainer
-              width="100%"
-              height="100%"
-              key={activeGroup}
-              initial={{x: -6, opacity: 0}}
-              animate={{x: 0, opacity: 1}}
-              exit={{x: 6, opacity: 0}}
-              transition={{duration: 0.06}}
-            >
-              <Grid
-                rows="auto 1fr auto"
-                role="navigation"
-                aria-label="Secondary Navigation"
-                height="100%"
-              >
-                {children}
-              </Grid>
-              <Container
-                top="0"
-                right="0"
-                bottom="0"
-                width="8px"
-                radius="lg"
-                position="absolute"
-                display={isMobile ? 'none' : undefined}
-              >
-                {p => (
-                  <ResizeHandle
-                    {...p}
-                    ref={resizeHandleRef}
-                    onMouseDown={handleStartResize}
-                    onDoubleClick={() => {
-                      setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-                    }}
-                    atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-                    atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-                  />
-                )}
-              </Container>
-            </MotionContainer>
-          </AnimatePresence>
-        </Container>
-      )}
-    </SecondarySidebarWrapper>
+          <Grid
+            rows="auto 1fr auto"
+            role="navigation"
+            aria-label="Secondary Navigation"
+            height="100%"
+          >
+            {children}
+          </Grid>
+          <Container
+            top="0"
+            right="0"
+            bottom="0"
+            width="8px"
+            radius="lg"
+            position="absolute"
+            display={isMobile ? 'none' : undefined}
+          >
+            {p => (
+              <ResizeHandle
+                {...p}
+                ref={resizeHandleRef}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => {
+                  setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                }}
+                atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+              />
+            )}
+          </Container>
+        </MotionContainer>
+      </AnimatePresence>
+    </Container>
   );
 }
 
