@@ -12,6 +12,7 @@ import type {Primitive} from 'type-fest';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -32,7 +33,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {useProjects} from 'sentry/utils/useProjects';
 
 export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {

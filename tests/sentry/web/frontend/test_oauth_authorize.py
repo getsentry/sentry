@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
 from sentry.api.helpers.oauth_authorize.transactions import OAUTH_AUTHORIZE_SESSION_TTL
+from sentry.api.helpers.oauth_consent import persist_authorization
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -28,6 +29,58 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
         )
+
+    @override_options({"auth.oauth-react-enabled": True})
+    def test_react_stays_on_primary_domain_with_active_organization(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        self.login_as(self.user)
+        session = self.client.session
+        session["activeorg"] = organization.slug
+        session.save()
+        path = f"{self.path}?client_id=example-client&state=example-state"
+
+        with self.feature({"system:multi-region": True}):
+            response = self.client.get(path, HTTP_HOST="testserver", follow=True)
+
+        assert response.status_code == 200
+        assert response.redirect_chain == []
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    @override_options({"auth.oauth-react-enabled": True})
+    def test_react_customer_domain_redirects_to_primary_domain(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        self.login_as(self.user)
+        session = self.client.session
+        session["activeorg"] = organization.slug
+        session.save()
+        path = f"{self.path}?client_id=example-client&state=example-state"
+
+        with self.feature({"system:multi-region": True}):
+            response = self.client.get(
+                path, HTTP_HOST=f"{organization.slug}.testserver", follow=True
+            )
+
+        assert response.status_code == 200
+        assert response.redirect_chain == [(f"http://testserver{path}", 302)]
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    @override_options({"auth.oauth-react-enabled": True})
+    def test_react_authorization_is_public(self) -> None:
+        response = self.client.get(self.path, {"client_id": self.application.client_id})
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    @override_options({"auth.oauth-react-enabled": True})
+    def test_react_authorization_does_not_issue_existing_consent_grant(self) -> None:
+        self.login_as(self.user)
+        persist_authorization(self.application, self.user.id, [], None)
+        response = self.client.get(
+            self.path,
+            {"client_id": self.application.client_id, "response_type": "code"},
+        )
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+        assert not ApiGrant.objects.filter(application=self.application).exists()
 
     def test_blank_pkce_challenge_returns_oauth_error(self) -> None:
         response = self.client.get(

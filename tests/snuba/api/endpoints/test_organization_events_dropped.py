@@ -92,6 +92,18 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         assert accepted[0]["count"] == 1000
         assert accepted[0]["tags"] == []
 
+    def test_filtered_drop_is_tagged_intentional(self) -> None:
+        # Inbound filters are project settings, so a filtered drop is intentional.
+        self._store_outcome(Outcome.FILTERED, DataCategory.LOG_ITEM, 400, reason="web-crawlers")
+
+        response = self._do_request()
+        assert response.status_code == 200, response.content
+
+        dropped = response.data["droppedEvents"]
+        assert len(dropped) == 1
+        assert dropped[0]["outcome"] == Outcome.FILTERED.api_name()
+        assert dropped[0]["tags"] == ["intentional"]
+
     def test_records_usage_metric(self) -> None:
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
         self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")

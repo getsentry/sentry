@@ -2,7 +2,6 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import type {TagProps} from '@sentry/scraps/badge';
-import {ProjectsBadge} from '@sentry/scraps/badge';
 import {ROW_HEIGHT, TITLE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkDestination} from '@sentry/scraps/link';
@@ -10,6 +9,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import type {AvatarProject} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';

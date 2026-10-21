@@ -864,9 +864,7 @@ class Group(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(
-        max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME), db_index=True
-    )
+    logger = models.CharField(max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME))
     level = BoundedPositiveIntegerField(
         choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,

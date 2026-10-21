@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -26,17 +27,18 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
   interval?: string;
-  onTroubleshoot?: (row: ReasonRow) => void;
+  onAskSeer?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataDrawer({
   dataset,
   interval,
-  onTroubleshoot,
+  onAskSeer,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
   const [chartInterval] = useChartInterval();
@@ -70,9 +72,7 @@ export function DroppedDataDrawer({
     <Fragment>
       <DrawerHeader>
         <Flex flex="1" align="center" justify="between" gap="md" paddingRight="lg">
-          <Text size="md" variant="muted">
-            {t('Dropped Events')}
-          </Text>
+          <Text size="md">{t('Dropped and Filtered Events')}</Text>
           <SegmentedControl
             aria-label={t('Filter dropped events')}
             size="xs"
@@ -86,49 +86,69 @@ export function DroppedDataDrawer({
           </SegmentedControl>
         </Flex>
       </DrawerHeader>
-      <DrawerBody>
+      <BandedDrawerBody>
         {isError ? (
-          <LoadingError
-            message={t('There was an error loading dropped events.')}
-            onRetry={() => void refetch()}
-          />
-        ) : isPending ? (
-          <LoadingIndicator />
-        ) : (
-          <Stack gap="xl">
-            <DroppedDataChart
-              droppedEvents={scopedDroppedEvents}
-              colors={outcomeColors}
-              selection={outcomeSelection}
-              onSelectionChange={setOutcomeSelection}
+          <Container padding="xl 2xl">
+            <LoadingError
+              message={t('There was an error loading dropped events.')}
+              onRetry={() => void refetch()}
             />
-            {selectedUnintentional.length > 0 && (
-              <DroppedDataOutcomeList
-                sections={selectedUnintentional}
+          </Container>
+        ) : isPending ? (
+          <Container padding="xl 2xl">
+            <LoadingIndicator />
+          </Container>
+        ) : (
+          <Fragment>
+            <Container background="primary" padding="xl 3xl lg">
+              <DroppedDataChart
+                droppedEvents={scopedDroppedEvents}
                 colors={outcomeColors}
-                onTroubleshoot={onTroubleshoot}
+                selection={outcomeSelection}
+                onSelectionChange={setOutcomeSelection}
               />
-            )}
-            {selectedIntentional.length > 0 && (
-              <Stack gap="md">
+            </Container>
+            <Stack flex="1" gap="2xl" background="secondary" padding="2xl xl">
+              {selectedUnintentional.length > 0 && (
                 <Stack gap="xl">
-                  <Separator orientation="horizontal" border="primary" />
                   <Container padding="0 xl">
                     <Heading as="h3" size="xl">
-                      {t('Configured Drops')}
+                      {t('Unexpected Drops')}
                     </Heading>
                   </Container>
+                  <DroppedDataOutcomeList
+                    sections={selectedUnintentional}
+                    onAskSeer={onAskSeer}
+                  />
                 </Stack>
-                <DroppedDataOutcomeList
-                  sections={selectedIntentional}
-                  colors={outcomeColors}
-                  onTroubleshoot={onTroubleshoot}
-                />
-              </Stack>
-            )}
-          </Stack>
+              )}
+              {selectedIntentional.length > 0 && (
+                <Stack gap="xl">
+                  <Stack gap="2xl">
+                    <Separator orientation="horizontal" border="primary" />
+                    <Container padding="0 xl">
+                      <Heading as="h3" size="xl">
+                        {t('Expected Drops')}
+                      </Heading>
+                    </Container>
+                  </Stack>
+                  <DroppedDataOutcomeList
+                    sections={selectedIntentional}
+                    onAskSeer={onAskSeer}
+                  />
+                </Stack>
+              )}
+            </Stack>
+          </Fragment>
         )}
-      </DrawerBody>
+      </BandedDrawerBody>
     </Fragment>
   );
 }
+
+const BandedDrawerBody = styled(DrawerBody)`
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100% - ${PRIMARY_HEADER_HEIGHT}px);
+  padding: 0;
+`;
