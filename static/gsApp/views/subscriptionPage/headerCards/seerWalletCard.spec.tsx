@@ -170,6 +170,38 @@ describe('SeerWalletCard', () => {
     expect(await screen.findByText('Auto top-up on')).toBeInTheDocument();
   });
 
+  it('disables the presets when auto top-up is switched off', async () => {
+    mockWallet();
+    render(<SeerWalletCard organization={organization} />);
+    renderGlobalModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on auto top-up'})
+    );
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto top-up'}));
+
+    for (const preset of ['1,000', '2,000', '5,000']) {
+      expect(screen.getByRole('radio', {name: preset})).toBeDisabled();
+    }
+  });
+
+  it('shows an error when the wallet fails to load', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/seer-wallet/`,
+      statusCode: 500,
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/seer-wallet/auto-top-up/`,
+      body: AutoTopUpFixture(),
+    });
+    render(<SeerWalletCard organization={organization} />);
+
+    expect(
+      await screen.findByText('Unable to load your Seer credits.')
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('heading')).toHaveLength(1);
+  });
+
   it('shows validation errors from the API', async () => {
     mockWallet();
     MockApiClient.addMockResponse({

@@ -31,8 +31,8 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
   if (balanceQuery.isError || autoTopUpQuery.isError) {
     return (
       <SubscriptionHeaderCard
-        title={<SeerTitle />}
         sections={[
+          <SeerTitle key="title" />,
           <Text key="error" variant="muted">
             {t('Unable to load your Seer credits.')}
           </Text>,
@@ -192,7 +192,7 @@ function CreditBreakdown({
             <Text>{purchased.total.toLocaleString()}</Text>
           </Flex>
           {autoTopUp.enabled && (
-            <AutoTopUpRules columns="1fr auto" gap="xs md">
+            <Grid columns="1fr auto" gap="xs md" paddingLeft="md" borderLeft="primary">
               <Text align="left">{t('If credits fall below')}</Text>
               <Text align="right">{autoTopUp.thresholdCredits.toLocaleString()}</Text>
               <Text align="left">{t('Top up by')}</Text>
@@ -205,7 +205,7 @@ function CreditBreakdown({
                   ).toLocaleString(),
                 })}
               </Text>
-            </AutoTopUpRules>
+            </Grid>
           )}
         </Stack>
       )}
@@ -249,9 +249,4 @@ const MeterFill = styled('div')<{percent: number; variant: 'included' | 'purchas
     p.variant === 'included'
       ? p.theme.tokens.graphics.success.vibrant
       : p.theme.tokens.graphics.accent.vibrant};
-`;
-
-const AutoTopUpRules = styled(Grid)`
-  padding-left: ${p => p.theme.space.md};
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
 `;
