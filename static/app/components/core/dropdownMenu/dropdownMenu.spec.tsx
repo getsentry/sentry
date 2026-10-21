@@ -1,15 +1,47 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
+function SearchableDropdownMenu({
+  items,
+  submenu = false,
+}: {
+  items: MenuItemProps[];
+  submenu?: boolean;
+}) {
+  const [value, onChange] = useState('');
+  const search = {value, onChange, placeholder: 'Search projects'};
+
+  return (
+    <DropdownMenu
+      triggerLabel="Projects"
+      search={submenu ? undefined : search}
+      onOpenChange={isOpen => {
+        if (!isOpen) {
+          onChange('');
+        }
+      }}
+      items={
+        submenu
+          ? items.map(item => ({
+              ...item,
+              submenu: {
+                ...(typeof item.submenu === 'object' ? item.submenu : {}),
+                search,
+              },
+            }))
+          : items
+      }
+    />
+  );
+}
 
 describe('DropdownMenu', () => {
   it('filters a searchable root menu', async () => {
     render(
-      <DropdownMenu
-        triggerLabel="Projects"
-        search={{placeholder: 'Search projects'}}
+      <SearchableDropdownMenu
         items={[
           {key: 'javascript', label: 'javascript'},
           {key: 'python', label: 'python'},
@@ -439,8 +471,8 @@ describe('DropdownMenu', () => {
   it('filters a searchable submenu and focuses its search field', async () => {
     const onAction = jest.fn();
     render(
-      <DropdownMenu
-        triggerLabel="Projects"
+      <SearchableDropdownMenu
+        submenu
         items={[
           {
             key: 'all-projects',
@@ -448,7 +480,6 @@ describe('DropdownMenu', () => {
             submenu: {
               title: 'All Projects',
               emptyMessage: 'No projects found',
-              search: {placeholder: 'Search projects'},
               maxMenuHeight: 240,
             },
             children: [
@@ -508,13 +539,13 @@ describe('DropdownMenu', () => {
 
   it('clears a searchable submenu when it closes', async () => {
     render(
-      <DropdownMenu
-        triggerLabel="Projects"
+      <SearchableDropdownMenu
+        submenu
         items={[
           {
             key: 'all-projects',
             label: 'All Projects',
-            submenu: {search: {placeholder: 'Search projects'}},
+            submenu: true,
             children: [
               {key: 'javascript', label: 'javascript'},
               {key: 'sentry', label: 'sentry'},

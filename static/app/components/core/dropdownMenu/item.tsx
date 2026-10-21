@@ -17,7 +17,11 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './context';
 
-export type DropdownMenuSearchOptions = {placeholder?: string};
+export type DropdownMenuSearchProps = {
+  onChange: (value: string) => void;
+  value: string;
+  placeholder?: string;
+};
 
 export interface MenuItemProps extends ListItemProps {
   /**
@@ -73,7 +77,7 @@ export interface MenuItemProps extends ListItemProps {
         maxMenuHeight?: number;
         menuWidth?: string | number;
         position?: UseOverlayProps['position'];
-        search?: DropdownMenuSearchOptions;
+        search?: DropdownMenuSearchProps;
         title?: string;
       };
   /**
