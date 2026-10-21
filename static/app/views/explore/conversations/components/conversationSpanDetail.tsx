@@ -10,6 +10,8 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
+import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
+import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -26,12 +28,22 @@ import {
   MemoryInputTab,
   MemoryOutputTab,
 } from 'sentry/views/explore/conversations/components/memorySpanTabs';
+import {
+  EmptySpanTab,
+  SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
+  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
+  SpanTabContent,
+} from 'sentry/views/explore/conversations/components/spanTabContent';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getCodeModeInput,
+  isCodeModeNode,
+} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {
   getNodeEvaluation,
   type Evaluation,
@@ -59,9 +71,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
 
-const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
-const AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT = 100_000;
 
 export type DetailTab = 'input' | 'output' | 'attributes';
 
@@ -220,7 +230,7 @@ export function ConversationSpanDetail({
       {isAttributesLoading ? (
         <SpanTabsSkeleton />
       ) : isError ? (
-        <EmptyTab message={t('Failed to load span details')} />
+        <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
         <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
           <TabList>
@@ -343,6 +353,13 @@ function InputTab({
 }) {
   const {messages} = getAIInputMessages(node, attributes);
   const toolArgs = getAIToolInput(node, attributes);
+  const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
+
+  if (codeInput) {
+    return (
+      <CodeModeDetails key={node.id} projectId={node.value.project_id} {...codeInput} />
+    );
+  }
   const embeddingsInput = getTraceNodeAttribute(
     'gen_ai.embeddings.input',
     node,
@@ -352,7 +369,7 @@ function InputTab({
 
   const hasContent = (messages && messages.length > 0) || toolArgs || embeddingsInput;
   if (!hasContent) {
-    return <EmptyTab message={t('No input for this span')} />;
+    return <EmptySpanTab message={t('No input for this span')} />;
   }
 
   return (
@@ -363,7 +380,7 @@ function InputTab({
             {capitalize(message.role)}
           </TraceDrawerComponents.MultilineTextLabel>
           {/* System prompts are usually long, repetitive, and sit on top, so keep them clipped */}
-          <InputMessageContent
+          <SpanTabContent
             key={`${node.id}:message:${index}`}
             content={message.content}
             clip={message.role === 'system'}
@@ -374,8 +391,8 @@ function InputTab({
         <TraceDrawerComponents.MultilineJSON
           key={`${node.id}:tool-input`}
           value={toolArgs}
-          maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+          maxDefaultDepth={SPAN_TAB_JSON_MAX_DEFAULT_DEPTH}
+          autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
         />
       ) : null}
       {embeddingsInput ? (
@@ -399,15 +416,22 @@ function OutputTab({
     attributes
   );
   const toolOutput = getAIToolOutput(node, attributes);
+  const hasToolOutput = toolOutput !== undefined;
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
   const clipReasoning = Boolean(
-    responseText || responseObject || toolCalls || toolOutput
+    responseText || responseObject || toolCalls || hasToolOutput
   );
 
-  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
-    return <EmptyTab message={t('No output for this span')} />;
+  if (
+    !reasoningText &&
+    !responseText &&
+    !responseObject &&
+    !toolCalls &&
+    !hasToolOutput
+  ) {
+    return <EmptySpanTab message={t('No output for this span')} />;
   }
 
   return (
@@ -421,7 +445,7 @@ function OutputTab({
             key={`${node.id}:reasoning-text`}
             text={reasoningText}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={clipReasoning}
           />
         </Fragment>
@@ -435,7 +459,7 @@ function OutputTab({
             key={`${node.id}:response-text`}
             text={responseText}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={false}
           />
         </Fragment>
@@ -449,7 +473,7 @@ function OutputTab({
             key={`${node.id}:response-object`}
             text={responseObject}
             maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
             clip={false}
           />
         </Fragment>
@@ -463,43 +487,14 @@ function OutputTab({
             key={`${node.id}:tool-calls`}
             value={toolCalls}
             maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
           />
         </Fragment>
       ) : null}
-      {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON
-          key={`${node.id}:tool-output`}
-          value={toolOutput}
-          maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-        />
+      {hasToolOutput ? (
+        <ToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
       ) : null}
     </Fragment>
-  );
-}
-
-function InputMessageContent({
-  content,
-  clip = false,
-}: {
-  content: unknown;
-  clip?: boolean;
-}) {
-  return typeof content === 'string' ? (
-    <AIContentRenderer
-      text={content}
-      maxJsonDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-      clip={clip}
-    />
-  ) : (
-    <TraceDrawerComponents.MultilineJSON
-      value={content}
-      maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
-      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-      clip={clip}
-    />
   );
 }
 
@@ -518,7 +513,7 @@ function AttributesTab({
   const project = projectSlug ? projects.find(p => p.slug === projectSlug) : undefined;
 
   if (!isEAPSpanNode(node) || !attributes) {
-    return <EmptyTab message={t('No attributes for this span')} />;
+    return <EmptySpanTab message={t('No attributes for this span')} />;
   }
 
   return (
@@ -540,14 +535,6 @@ const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
   flex-shrink: 0;
 `;
-
-function EmptyTab({message}: {message: string}) {
-  return (
-    <Flex flex="1" background="secondary" radius="md" padding="xl">
-      <Text variant="muted">{message}</Text>
-    </Flex>
-  );
-}
 
 function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
   return (

@@ -236,6 +236,7 @@ function droppedDataTooltipOption(
 ): CustomSeriesOption['tooltip'] {
   return {
     trigger: 'item',
+    position: 'bottom',
     formatter: params => {
       if (!isChartHovered(chartRef.current)) {
         return '';

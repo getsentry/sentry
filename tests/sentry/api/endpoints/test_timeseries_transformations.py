@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 
 from sentry.api.helpers.timeseries_transformations import (
+    AsapSmoothTransformation,
     EmaSmoothTransformation,
     FillTransformation,
     SmaSmoothTransformation,
@@ -22,6 +23,16 @@ from sentry.api.helpers.timeseries_transformations import (
         ("", {}),
         ("transformationsExtra=ignored&query=anything", {}),
         ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
+        ("transformations[0]=smooth(asap)", {0: [AsapSmoothTransformation(mode="asap")]}),
+        (
+            "transformations[0]=smooth(asap,7)&transformations[0]=smooth(ema,3)",
+            {
+                0: [
+                    AsapSmoothTransformation(mode="asap", max_window_size=7),
+                    EmaSmoothTransformation(mode="ema", window_size=3),
+                ]
+            },
+        ),
         (
             "transformations[0]=smooth(sma,,5)",
             {0: [SmaSmoothTransformation(mode="sma", window_size=5)]},
@@ -132,6 +143,11 @@ def test_decode_transformations_index_out_of_range(query: str) -> None:
         ("fill(locf,zero)", "fill(locf,zero): argument count must be 1"),
         ("smooth(sma,5,6)", "smooth(sma,5,6): argument count must be 2"),
         ("smooth(ema)", "smooth(ema): argument count must be 2 or 3"),
+        ("smooth(asap,7,0.5)", "smooth(asap,7,0.5): argument count must be 1 or 2"),
+        (
+            "smooth(asap,0)",
+            "smooth(asap,0): max_window_size argument invalid: Maximum window size must be positive.",
+        ),
         ("smooth(ema,7,0.5,1)", "smooth(ema,7,0.5,1): argument count must be 2 or 3"),
         (
             "smooth(ema,7,0)",

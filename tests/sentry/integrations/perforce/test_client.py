@@ -791,6 +791,17 @@ class PerforceClientTest(TestCase):
         assert os.environ.get("P4CONFIG") == ".p4config"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_sets_timeout(self, mock_p4_class):
+        p4_stub = _P4AttributeRecorder()
+        mock_p4_class.return_value = p4_stub
+
+        with self.p4_client._connect():
+            pass
+
+        assert p4_stub.timeout == 10
+        assert "timeout" in p4_stub.attrs_set_before_connect
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
     def test_connect_sets_charset_for_unicode_server(self, mock_p4_class):
         """_connect() must set p4.charset before connect() when configured for a Unicode server."""
         p4_stub = _P4AttributeRecorder()
@@ -1079,6 +1090,7 @@ class _P4AttributeRecorder:
     # Unicode server. Declared so tests can read `p4_stub.charset` without
     # tripping mypy's attr-defined check.
     charset: str
+    timeout: int
 
     def __init__(self) -> None:
         object.__setattr__(self, "attrs_set", set())

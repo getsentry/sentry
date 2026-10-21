@@ -7,7 +7,7 @@ import pytest
 from django.test import override_settings
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -15,6 +15,7 @@ from sentry.issues.action_log.types import (
     SeerIterationStartedAction,
     TriggerAutofixAction,
 )
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -40,6 +41,7 @@ from sentry.seer.entrypoints.operator import (
     get_autofix_explorer_status,
     process_autofix_updates,
     process_investigation_updates,
+    refresh_agent_run,
 )
 from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import (
@@ -56,6 +58,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class MockCachePayload(TypedDict):
@@ -973,6 +976,19 @@ class TestSeerAgentOperatorAccess(TestCase):
 
 
 class TestSeerOperatorCompletionHook(TestCase):
+    @patch("sentry.seer.entrypoints.operator.refresh_agent_run.apply_async")
+    def test_execute_only_queues_a_refresh(self, mock_apply_async):
+        SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+
+        mock_apply_async.assert_called_once_with(
+            kwargs={"organization_id": self.organization.id, "run_id": MOCK_RUN_ID}
+        )
+
+
+class TestRefreshAgentRun(TestCase):
+    def _refresh(self) -> None:
+        refresh_agent_run(organization_id=self.organization.id, run_id=MOCK_RUN_ID)
+
     def _make_state(
         self,
         blocks: list[MemoryBlock],
@@ -1026,7 +1042,7 @@ class TestSeerOperatorCompletionHook(TestCase):
                 return_value=True,
             ),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
 
         return mock_entrypoint_cls
 
@@ -1138,7 +1154,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             {MockAgentEntrypoint.key: mock_entrypoint_cls},
             clear=True,
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
 
         mock_entrypoint_cls.on_agent_update.assert_not_called()
 
@@ -1175,7 +1191,7 @@ class TestSeerOperatorCompletionHook(TestCase):
                 return_value=cache_payload,
             ),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
 
         mock_no_access.on_agent_update.assert_not_called()
         mock_has_access.on_agent_update.assert_called_once_with(
@@ -1277,7 +1293,20 @@ class TestSeerOperatorCompletionHook(TestCase):
             ),
             pytest.raises(IntegrationError),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_raises_when_another_refresh_holds_the_lock(self, mock_fetch):
+        lock = locks.get(
+            f"seer:operator:agent-refresh:{MOCK_RUN_ID}",
+            duration=10,
+            name="seer_operator_agent_refresh",
+        )
+
+        with lock.acquire(), pytest.raises(UnableToAcquireLock):
+            self._refresh()
+
+        mock_fetch.assert_not_called()
 
 
 class TestSeerAgentOperatorCodeMode(TestCase):
@@ -1471,6 +1500,19 @@ class TestProcessInvestigationUpdates(TestCase):
 
         entrypoint_cls.on_investigation_update.assert_not_called()
         assert_failure_metric(mock_record, "organization_not_found")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_busy_lock_raises_for_task_retry(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        entrypoint_cls.on_investigation_update.side_effect = UnableToAcquireLock("locked")
+        self._set_cache("slack", self.cache_payload)
+
+        with pytest.raises(UnableToAcquireLock):
+            self._process({"slack": entrypoint_cls})
+
+        outcomes = [call.args[0] for call in mock_record.mock_calls]
+        assert outcomes.count(EventLifecycleOutcome.HALTED) == 2
+        assert EventLifecycleOutcome.FAILURE not in outcomes
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_entrypoint_failure_does_not_stop_others(self, mock_record: Mock) -> None:

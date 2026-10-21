@@ -83,10 +83,12 @@ export function IssuePreviewSeerContent({
   group,
   previewSeer,
   project,
+  excludeSteps,
 }: {
   group: Group;
   previewSeer: PreviewSeer;
   project: Project;
+  excludeSteps?: ReadonlySet<string>;
 }) {
   const {aiConfig, autofix, state} = previewSeer;
 
@@ -111,6 +113,7 @@ export function IssuePreviewSeerContent({
     <IssuePreviewAutofixSummary
       autofix={autofix}
       groupId={group.id}
+      excludeSteps={excludeSteps}
       readOnly={state === 'configure'}
     />
   );

@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Any, Mapping, TypedDict
@@ -27,6 +27,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.discover.arithmetic import (
     ArithmeticParseError,
@@ -51,8 +52,10 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.locking import UnableToAcquireLock
 
 DATASETS = {
@@ -164,15 +167,18 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
 
 
 class ExploreSavedFormulaResponse(TypedDict):
+    createdBy: UserSerializerResponse | None
+    dataset: str
+    description: str | None
     formula: str
     id: str
     name: str
     params: list[ExploreSavedParam]
+    prebuilt: bool
     references: list[ExploreSavedReference]
-    dataset: str
     type: str
     unit: str | None
-    prebuilt: bool
+    updatedBy: UserSerializerResponse | None
 
 
 class ExploreSavedReferencesSerializer(Serializer[ExploreSavedReference]):
@@ -206,6 +212,35 @@ class ExploreSavedParamsSerializer(Serializer[ExploreSavedParam]):
 
 
 class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[ExploreSavedFormula],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> MutableMapping[ExploreSavedFormula, dict[str, Any]]:
+        user_ids = set()
+        for formula in item_list:
+            for uid in (formula.created_by_id, formula.updated_by_id):
+                if uid:
+                    user_ids.add(uid)
+
+        if user_ids:
+            service_serialized = user_service.serialize_many(
+                filter={"user_ids": list(user_ids)},
+                as_user=user if user.id else None,
+            )
+            serialized_users = {user["id"]: user for user in service_serialized}
+        else:
+            serialized_users = {}
+
+        return {
+            formula: {
+                "createdBy": serialized_users.get(str(formula.created_by_id)),
+                "updatedBy": serialized_users.get(str(formula.updated_by_id)),
+            }
+            for formula in item_list
+        }
+
     def serialize(
         self,
         obj: ExploreSavedFormula,
@@ -223,11 +258,13 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             (var for var in variables if var.kind == KindItemTypes.REFERENCE),
             key=lambda var: var.name,
         )
+
         data: ExploreSavedFormulaResponse = {
             "formula": obj.formula,
             "id": str(obj.id),
             "name": obj.name,
             "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
+            "description": obj.description,
             "params": serialize(params, user, serializer=ExploreSavedParamsSerializer()),
             "references": serialize(
                 references, user, serializer=ExploreSavedReferencesSerializer()
@@ -235,6 +272,8 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             "type": obj.formula_type,
             "unit": obj.unit,
             "prebuilt": obj.prebuilt_id is not None,
+            "updatedBy": attrs.get("updatedBy"),
+            "createdBy": attrs.get("createdBy"),
         }
         return data
 
@@ -253,6 +292,7 @@ class FormulaReferenceData(TypedDict):
 
 class FormulaData(TypedDict):
     formula: str
+    description: str | None
     name: str
     unit: SizeUnit | DurationUnit | None
     params: list[FormulaParamData]
@@ -296,6 +336,7 @@ class ParamSerializer(ReferenceSerializer):
 class FormulaSerializer(RequestSerializer):
     formula = CharField(max_length=2500)
     name = CharField(max_length=200)
+    description = CharField(max_length=280, allow_null=True)
     unit = ChoiceField(
         choices=list(SIZE_UNITS.keys()) + list(DURATION_UNITS.keys()),
         allow_null=True,
@@ -437,6 +478,7 @@ def sync_prebuilt_formulas(organization: Organization) -> None:
                         organization=organization,
                         name=data["name"],
                         formula=data["formula"],
+                        description=data["description"],
                         dataset=data["dataset"],
                         created_by_id=None,
                         prebuilt_id=prebuilt_formula["prebuilt_id"],
@@ -558,6 +600,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
                 organization=organization,
                 created_by_id=request.user.id,
                 formula=data["formula"],
+                description=data["description"],
                 name=data["name"],
                 unit=data["unit"],
                 dataset=data["dataset"],
@@ -610,7 +653,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
 
         try:
             kwargs["formula"] = ExploreSavedFormula.objects.prefetch_related("variables").get(
-                id=id,
+                id=to_valid_int_id("id", id, raise_404=True),
                 organization=kwargs["organization"],
                 prebuilt_deleted=False,
             )
@@ -667,6 +710,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
             formula.update(
                 formula=data["formula"],
                 name=data["name"],
+                description=data["description"],
                 unit=data["unit"],
                 dataset=data["dataset"],
                 updated_by_id=request.user.id,

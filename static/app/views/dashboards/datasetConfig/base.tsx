@@ -17,6 +17,7 @@ import type {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {
   DashboardFilters,
   DisplayType,
@@ -25,6 +26,7 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
@@ -309,6 +311,15 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     organization: Organization
   ) => Series[];
+  /**
+   * Wraps each series from an `/events-timeseries/` response with the widget
+   * query it came from and its legend key, applying any dataset-specific tweaks.
+   */
+  transformTimeSeries?: (
+    data: EventsTimeSeriesResponse,
+    widget: Widget,
+    queryIndex: number
+  ) => WidgetTimeSeries[];
   /**
    * Hook-based approach for fetching heat map data. Heat maps fetch from a
    * dedicated endpoint and need the rendered chart dimensions to size their
