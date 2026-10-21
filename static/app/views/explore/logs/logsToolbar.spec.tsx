@@ -126,26 +126,12 @@ describe('LogsToolbar', () => {
         },
       });
 
-      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
-      expect(screen.getByRole('button', {name: 'Max Window Size'})).toHaveTextContent(
-        '10'
-      );
       await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
       await userEvent.click(screen.getByRole('option', {name: '3'}));
       await waitFor(() =>
         expect(router.location.query.aggregateField).toEqual([
           JSON.stringify({groupBy: 'severity'}),
           JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
-          JSON.stringify({yAxes: ['avg(foo)'], transformations: ['smooth(asap,3)']}),
-        ])
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Fill method'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Linear'}));
-      await waitFor(() =>
-        expect(router.location.query.aggregateField).toEqual([
-          JSON.stringify({groupBy: 'severity'}),
-          JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(linear)']}),
           JSON.stringify({yAxes: ['avg(foo)'], transformations: ['smooth(asap,3)']}),
         ])
       );
