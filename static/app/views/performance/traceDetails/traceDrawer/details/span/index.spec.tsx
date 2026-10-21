@@ -65,7 +65,7 @@ describe('SpanNodeDetails', () => {
     const spanValue = makeEAPSpan({
       event_id: 'mcp-span-id',
       op: 'mcp.server',
-      name: 'mcp.server',
+      name: 'tools/call example',
       description: 'tools/call example',
       additional_attributes: attributes,
     });
@@ -126,7 +126,7 @@ describe('SpanNodeDetails', () => {
       const spanValue = makeEAPSpan({
         event_id: 'mcp-legacy-span',
         op: 'mcp.server',
-        name: 'mcp.server',
+        name: 'tools/call example',
         description: 'tools/call example',
         additional_attributes: attributes,
       });
