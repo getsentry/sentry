@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 import click
 
 from sentry.runner.decorators import configuration
+from sentry.viewer_context import ActorType, ViewerContext
 
 if TYPE_CHECKING:
     from sentry.deletions.models.scheduleddeletion import BaseScheduledDeletion
@@ -146,6 +147,7 @@ def _run_one(*, deletion: BaseScheduledDeletion, verbose: bool = False) -> None:
     from django.core.exceptions import ObjectDoesNotExist
 
     from sentry import deletions as deletions_module
+    from sentry.deletions.tasks.scheduled import scheduled_deletion_viewer_context
     from sentry.signals import pending_delete
 
     click.echo(f"Running deletion {deletion.id} ({deletion.model_name} #{deletion.object_id})...")
@@ -156,32 +158,37 @@ def _run_one(*, deletion: BaseScheduledDeletion, verbose: bool = False) -> None:
         deletion.delete()
         return
 
-    task = deletions_module.get(
-        model=deletion.get_model(),
-        query={"id": deletion.object_id},
-        transaction_id=deletion.guid,
-        actor_id=deletion.actor_id,
-    )
+    with scheduled_deletion_viewer_context(
+        deletion,
+        instance,
+        origin_context=ViewerContext(actor_type=ActorType.SYSTEM),
+    ):
+        task = deletions_module.get(
+            model=deletion.get_model(),
+            query={"id": deletion.object_id},
+            transaction_id=deletion.guid,
+            actor_id=deletion.actor_id,
+        )
 
-    if not task.should_proceed(instance):
-        click.echo("  Deletion aborted (should_proceed returned False).")
-        deletion.delete()
-        return
+        if not task.should_proceed(instance):
+            click.echo("  Deletion aborted (should_proceed returned False).")
+            deletion.delete()
+            return
 
-    actor = deletion.get_actor()
-    pending_delete.send(sender=type(instance), instance=instance, actor=actor)
+        actor = deletion.get_actor()
+        pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
-    try:
-        has_more = True
-        while has_more:
-            has_more = task.chunk()
-        deletion.delete()
-        click.echo("  Done.")
-    except Exception as e:
-        if verbose:
-            import traceback
+        try:
+            has_more = True
+            while has_more:
+                has_more = task.chunk()
+            deletion.delete()
+            click.echo("  Done.")
+        except Exception as e:
+            if verbose:
+                import traceback
 
-            click.echo(f"  Failed:\n{traceback.format_exc()}", err=True)
-        else:
-            click.echo(f"  Failed: {e}", err=True)
-        click.echo("  Deletion record preserved for retry. Re-run to continue.")
+                click.echo(f"  Failed:\n{traceback.format_exc()}", err=True)
+            else:
+                click.echo(f"  Failed: {e}", err=True)
+            click.echo("  Deletion record preserved for retry. Re-run to continue.")

@@ -11,6 +11,7 @@ import {
   resolveAgentName,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
+  evaluatedStateToText,
   getAnswerLabels,
   getNodeEvaluation,
   isEvaluationNode,
@@ -816,8 +817,8 @@ function toBlockquote(text: string): string {
 function evaluationToMarkdown(evaluation: Evaluation | undefined): string[] {
   const lines: string[] = [];
   const state = evaluation?.input?.state;
-  if (state !== undefined) {
-    lines.push(toBlockquote(typeof state === 'string' ? state : JSON.stringify(state)));
+  if (state) {
+    lines.push(toBlockquote(evaluatedStateToText(state)));
   }
   const answers = getAnswerLabels(
     evaluation?.answers ?? [],

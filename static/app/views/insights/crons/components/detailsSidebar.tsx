@@ -94,14 +94,14 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
           <CrontabText>({schedule})</CrontabText>
         )}
       </Flex>
-      <Legend>
+      <Container marginBottom="xl">
         <SectionHeading>{t('Legend')}</SectionHeading>
         <DetailsTimelineLegend
           checkInMargin={checkin_margin}
           maxRuntime={max_runtime}
           showUnknownLegend={showUnknownLegend}
         />
-      </Legend>
+      </Container>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <Container marginBottom="xl">
         <DescriptionList striped>
@@ -175,10 +175,6 @@ const CheckIns = styled('div')`
   h4 {
     margin-top: 0;
   }
-`;
-
-const Legend = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const CrontabText = styled(Text)`

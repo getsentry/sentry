@@ -26,13 +26,16 @@ export type CollapsedSeerActivity = {
   };
 }[CollapsedSeerActivityType];
 
-export type ActivityFeedItem =
+export type ActivityFeedItem = (
   | {
       activity: GroupActivity;
       type: 'activity';
       actorActivity?: GroupActivity;
     }
-  | CollapsedSeerActivity;
+  | CollapsedSeerActivity
+) & {
+  body?: React.ReactNode;
+};
 
 interface CollapsedStatusActivity {
   activities: ActivityFeedItem[];

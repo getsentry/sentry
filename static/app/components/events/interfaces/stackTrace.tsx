@@ -18,6 +18,7 @@ type Props = {
   data: NonNullable<ExceptionValue['stacktrace']>;
   event: Event;
   projectSlug: Project['slug'];
+  collapseAll?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
 };
 
@@ -49,7 +50,13 @@ function StackTraceContentWrapper({
   );
 }
 
-export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Props) {
+export function StackTrace({
+  projectSlug,
+  event,
+  data,
+  groupingCurrentLevel,
+  collapseAll,
+}: Props) {
   function getPlatform(): PlatformKey {
     const framePlatform = data.frames?.find(frame => !!frame.platform);
     return framePlatform?.platform ?? event.platform ?? 'other';
@@ -62,6 +69,7 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
 
   return (
     <StacktraceContext
+      collapseAll={collapseAll}
       projectSlug={projectSlug}
       forceFullStackTrace={hasNonAppFrames ? !data.hasSystemFrames : true}
       defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
