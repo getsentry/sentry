@@ -771,6 +771,7 @@ if (
 
     serverConfig = {
       ...serverConfig,
+      cors: false,
       publicDir: {
         name: 'src/sentry/static/sentry',
         watch: true,
