@@ -1,287 +1,136 @@
 """
-Rule Conditions
+Condition Types for Rule Evaluation
 
-The conditions Relay evaluates against an item, mirrored from Relay's ``RuleCondition``
-enum. For the original definitions, see:
+These type definitions are mirrored from the Relay project's RuleCondition enum.
+For the original definitions, see:
 https://getsentry.github.io/relay/relay_protocol/condition/enum.RuleCondition.html
 
-Build a condition from the dataclasses and ``serialize`` it where it enters a config.
-``SerializedRuleCondition`` is the form Relay reads.
+This file provides Python type hints that correspond to the Rust types used in Relay.
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Literal, NotRequired, TypedDict, Union
 
 # A value that can be matched against
 Value = str | float | int | list[str] | list[float] | list[int]
 
-ReleaseComparator = Literal["eq", "gt", "gte", "lt", "lte"]
 
+class EqConditionOptions(TypedDict):
+    """Options specific to the equality condition"""
 
-class SerializedEqConditionOptions(TypedDict):
     ignoreCase: bool
 
 
-class SerializedEqCondition(TypedDict):
+class EqCondition(TypedDict):
+    """Equality condition"""
+
     op: Literal["eq"]
     name: str
     value: Value | None
-    options: NotRequired[SerializedEqConditionOptions]
+    options: NotRequired[EqConditionOptions]
 
 
-class SerializedGteCondition(TypedDict):
+class GteCondition(TypedDict):
+    """Greater than or equal condition"""
+
     op: Literal["gte"]
     name: str
     value: Value | None
 
 
-class SerializedGtCondition(TypedDict):
+class GtCondition(TypedDict):
+    """Greater than condition"""
+
     op: Literal["gt"]
     name: str
     value: Value | None
 
 
-class SerializedLteCondition(TypedDict):
+class LteCondition(TypedDict):
+    """Less than or equal condition"""
+
     op: Literal["lte"]
     name: str
     value: Value | None
 
 
-class SerializedLtCondition(TypedDict):
+class LtCondition(TypedDict):
+    """Less than condition"""
+
     op: Literal["lt"]
     name: str
     value: Value | None
 
 
-class SerializedGlobCondition(TypedDict):
+class GlobCondition(TypedDict):
+    """Glob pattern matching condition
+
+    Glob matching is done in Relay with the following crate: https://docs.rs/globset/latest/globset
+    """
+
     op: Literal["glob"]
     name: str
     value: list[str]
 
 
-class SerializedCidrCondition(TypedDict):
+class CidrCondition(TypedDict):
+    """IP address matching condition
+
+    Matches a field holding an IP address against a list of single addresses and
+    CIDR ranges. Relay ignores entries that are neither.
+    """
+
     op: Literal["cidr"]
     name: str
     value: list[str]
 
 
-class SerializedReleaseCondition(TypedDict):
+class ReleaseCondition(TypedDict):
+    """Release version comparison condition
+
+    Compares the version of the release in a field against `value`, a release such
+    as `1.2.0` or `myapp@1.2.0`. A value with a package only matches releases of that
+    package. A field or value without a version, such as a commit hash, never matches.
+    A Relay without the operation reads the condition as unsupported and never matches it.
+    """
+
     op: Literal["release"]
     name: str
-    comparator: ReleaseComparator
+    comparator: Literal["eq", "gt", "gte", "lt", "lte"]
     value: str
 
 
-class SerializedIterableCondition(TypedDict):
+class IterableCondition(TypedDict):
+    """Condition for iterating over a list and applying a nested condition"""
+
     op: Literal["any", "all"]
-    name: str
-    inner: "SerializedRuleCondition"
+    inner: "RuleCondition"
 
 
-class SerializedBooleanCondition(TypedDict):
+class BooleanCondition(TypedDict):
+    """Compound condition for combining multiple conditions with boolean operators"""
+
     op: Literal["and", "or"]
-    inner: list["SerializedRuleCondition"]
+    inner: list["RuleCondition"]
 
 
-class SerializedNotCondition(TypedDict):
+class NotCondition(TypedDict):
+    """Compound condition that negates the inner rule"""
+
     op: Literal["not"]
-    inner: "SerializedRuleCondition"
+    inner: "RuleCondition"
 
 
-SerializedRuleCondition = Union[
-    SerializedBooleanCondition,
-    SerializedNotCondition,
-    SerializedIterableCondition,
-    SerializedEqCondition,
-    SerializedGteCondition,
-    SerializedGtCondition,
-    SerializedLteCondition,
-    SerializedLtCondition,
-    SerializedGlobCondition,
-    SerializedCidrCondition,
-    SerializedReleaseCondition,
+# Union type representing any possible condition
+RuleCondition = Union[
+    BooleanCondition,
+    NotCondition,
+    IterableCondition,
+    EqCondition,
+    GteCondition,
+    GtCondition,
+    LteCondition,
+    LtCondition,
+    GlobCondition,
+    CidrCondition,
+    ReleaseCondition,
 ]
-
-
-class RuleCondition(ABC):
-    """
-    A condition on an item, such as an event or a log.
-
-    Every condition reads a field of the item by ``name``, a dotted path such as
-    ``event.release``, or combines other conditions. A field the item does not carry
-    never matches.
-    """
-
-    @abstractmethod
-    def serialize(self) -> SerializedRuleCondition:
-        """The condition in the form Relay reads."""
-
-
-@dataclass(frozen=True)
-class EqCondition(RuleCondition):
-    """
-    The field equals ``value``, or one of the values if it is a list.
-
-    Relay compares booleans, strings, and UUIDs.
-    """
-
-    name: str
-    value: Value | None
-    ignore_case: bool = False
-
-    def serialize(self) -> SerializedEqCondition:
-        serialized: SerializedEqCondition = {"op": "eq", "name": self.name, "value": self.value}
-        if self.ignore_case:
-            serialized["options"] = {"ignoreCase": True}
-        return serialized
-
-
-@dataclass(frozen=True)
-class GteCondition(RuleCondition):
-    """The field is greater than or equal to ``value``."""
-
-    name: str
-    value: Value | None
-
-    def serialize(self) -> SerializedGteCondition:
-        return {"op": "gte", "name": self.name, "value": self.value}
-
-
-@dataclass(frozen=True)
-class GtCondition(RuleCondition):
-    """The field is greater than ``value``."""
-
-    name: str
-    value: Value | None
-
-    def serialize(self) -> SerializedGtCondition:
-        return {"op": "gt", "name": self.name, "value": self.value}
-
-
-@dataclass(frozen=True)
-class LteCondition(RuleCondition):
-    """The field is less than or equal to ``value``."""
-
-    name: str
-    value: Value | None
-
-    def serialize(self) -> SerializedLteCondition:
-        return {"op": "lte", "name": self.name, "value": self.value}
-
-
-@dataclass(frozen=True)
-class LtCondition(RuleCondition):
-    """The field is less than ``value``."""
-
-    name: str
-    value: Value | None
-
-    def serialize(self) -> SerializedLtCondition:
-        return {"op": "lt", "name": self.name, "value": self.value}
-
-
-@dataclass(frozen=True)
-class GlobCondition(RuleCondition):
-    """
-    The field matches one of the glob ``patterns``.
-
-    Relay matches with the ``globset`` crate: https://docs.rs/globset/latest/globset
-    """
-
-    name: str
-    patterns: list[str]
-
-    def serialize(self) -> SerializedGlobCondition:
-        return {"op": "glob", "name": self.name, "value": list(self.patterns)}
-
-
-@dataclass(frozen=True)
-class CidrCondition(RuleCondition):
-    """
-    The field holds an IP address inside one of the ``networks``, each a single
-    address or a CIDR range. Relay ignores a network that is neither.
-    """
-
-    name: str
-    networks: list[str]
-
-    def serialize(self) -> SerializedCidrCondition:
-        return {"op": "cidr", "name": self.name, "value": list(self.networks)}
-
-
-@dataclass(frozen=True)
-class ReleaseCondition(RuleCondition):
-    """
-    The version of the release in the field compares to ``release`` as ``comparator``
-    says.
-
-    ``release`` is a release such as ``1.2.0`` or ``myapp@1.2.0``. With a package it
-    only matches releases of that package. A field or release without a version, such
-    as a commit hash, never matches. A Relay without the operation reads the condition
-    as unsupported and never matches it.
-    """
-
-    name: str
-    comparator: ReleaseComparator
-    release: str
-
-    def serialize(self) -> SerializedReleaseCondition:
-        return {
-            "op": "release",
-            "name": self.name,
-            "comparator": self.comparator,
-            "value": self.release,
-        }
-
-
-@dataclass(frozen=True)
-class AnyCondition(RuleCondition):
-    """``inner`` matches at least one element of the list in the field."""
-
-    name: str
-    inner: RuleCondition
-
-    def serialize(self) -> SerializedIterableCondition:
-        return {"op": "any", "name": self.name, "inner": self.inner.serialize()}
-
-
-@dataclass(frozen=True)
-class AllCondition(RuleCondition):
-    """``inner`` matches every element of the list in the field."""
-
-    name: str
-    inner: RuleCondition
-
-    def serialize(self) -> SerializedIterableCondition:
-        return {"op": "all", "name": self.name, "inner": self.inner.serialize()}
-
-
-@dataclass(frozen=True)
-class AndCondition(RuleCondition):
-    """Every one of ``inner`` matches."""
-
-    inner: list[RuleCondition]
-
-    def serialize(self) -> SerializedBooleanCondition:
-        return {"op": "and", "inner": [condition.serialize() for condition in self.inner]}
-
-
-@dataclass(frozen=True)
-class OrCondition(RuleCondition):
-    """At least one of ``inner`` matches."""
-
-    inner: list[RuleCondition]
-
-    def serialize(self) -> SerializedBooleanCondition:
-        return {"op": "or", "inner": [condition.serialize() for condition in self.inner]}
-
-
-@dataclass(frozen=True)
-class NotCondition(RuleCondition):
-    """``inner`` does not match."""
-
-    inner: RuleCondition
-
-    def serialize(self) -> SerializedNotCondition:
-        return {"op": "not", "inner": self.inner.serialize()}
