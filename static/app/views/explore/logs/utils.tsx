@@ -523,7 +523,7 @@ export function getLogsUrlFromSavedQueryUrl({
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },

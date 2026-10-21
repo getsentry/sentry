@@ -549,6 +549,7 @@ export function useRemoveSeerExplorerRunIdParam() {
     if (location.query?.[RUN_ID_QUERY_PARAM] === undefined) {
       return;
     }
+    // oxlint-disable-next-line react/todo
     const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query;
     navigate({...location, query: restQuery});
   }, [location, navigate]);
@@ -579,6 +580,7 @@ export function useSyncSeerExplorerRunIdToUrl(runId: SeerExplorerRunId | null) {
 
     // Push rather than replace, so the browser back button returns to the previous
     // conversation (the deep link listener switches to it when the param changes).
+    // oxlint-disable-next-line react/todo
     const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
     navigate({
       ...location,
@@ -612,6 +614,7 @@ export function useSeerExplorerResumeDeepLink({
     }
     hasResumedRef.current = true;
     onResume();
+    // oxlint-disable-next-line react/todo
     const {[RESUME_RUN_QUERY_PARAM]: _resume, ...restQuery} = location.query ?? {};
     navigate({...location, query: restQuery}, {replace: true});
   }, [location, navigate, ready, onResume]);

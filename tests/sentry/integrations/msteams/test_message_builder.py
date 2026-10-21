@@ -54,7 +54,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
-    create_notification_origin,
+    create_workflow_notification_origin_for_rule,
 )
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -123,7 +123,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
         ]
-        self.origins = [create_notification_origin(rule) for rule in self.rules]
+        self.origins = [create_workflow_notification_origin_for_rule(rule) for rule in self.rules]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(

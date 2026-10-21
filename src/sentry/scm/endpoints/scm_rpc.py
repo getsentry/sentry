@@ -7,19 +7,15 @@ from sentry_sdk import traces
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
-from sentry.scm.private.helpers import (
-    fetch_repository,
-    fetch_service_provider,
-    record_count_metric,
-    report_error_to_sentry,
-)
+from sentry.scm.private.helpers import make_fetchers, record_count_metric, report_error_to_sentry
 
 
 def make_server():
+    fetchers = make_fetchers()
     return RpcServer(
         secrets=settings.SCM_RPC_SHARED_SECRET or [],
-        fetch_repository=fetch_repository,
-        fetch_provider=fetch_service_provider,
+        fetch_repository=fetchers.fetch_repository,
+        fetch_provider=fetchers.fetch_provider,
         record_count=record_count_metric,
         emit_error=report_error_to_sentry,
     )

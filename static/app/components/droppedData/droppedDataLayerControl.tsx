@@ -43,7 +43,7 @@ export function DroppedDataLayerControl({
     <CompactSelect
       multiple
       value={showDroppedData ? [DROPPED_DATA_LAYER] : []}
-      options={[{value: DROPPED_DATA_LAYER, label: t('Dropped Data')}]}
+      options={[{value: DROPPED_DATA_LAYER, label: t('Dropped Events')}]}
       menuTitle={t('Layers')}
       trigger={layersTrigger}
       onChange={handleChange}

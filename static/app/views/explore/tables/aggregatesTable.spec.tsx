@@ -8,6 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {TagCollection} from 'sentry/types/group';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -143,6 +144,33 @@ describe('AggregatesTable', () => {
 
   afterEach(() => {
     ProjectsStore.reset();
+  });
+
+  it('shows the query timeout message instead of a generic loading error', () => {
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          result: {
+            error: new QueryError(
+              'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+            ),
+            isError: true,
+            isFetched: false,
+            isPending: false,
+          },
+        })}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    expect(
+      screen.getByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
   });
 
   it.each(['slug', 'id'] as const)(

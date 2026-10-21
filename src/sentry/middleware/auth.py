@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
+from django.utils.module_loading import import_string
 from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
@@ -19,6 +21,15 @@ from sentry.api.authentication import (
 )
 from sentry.users.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
+
+# Same order as the API, so rate limits key on the identity the endpoint gets.
+TOKEN_AUTHENTICATION = (
+    *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
+    UserAuthTokenAuthentication,
+    OrgAuthTokenAuthentication,
+    AgentTokenAuthentication,
+    ApiKeyAuthentication,
+)
 
 
 def get_user(request):
@@ -63,12 +74,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
         auth = get_authorization_header(request).split()
 
         if auth:
-            for authenticator_class in (
-                UserAuthTokenAuthentication,
-                OrgAuthTokenAuthentication,
-                AgentTokenAuthentication,
-                ApiKeyAuthentication,
-            ):
+            for authenticator_class in TOKEN_AUTHENTICATION:
                 authenticator = authenticator_class()
                 if not authenticator.accepts_auth(auth):
                     continue
