@@ -48,8 +48,6 @@ FINDINGS_PER_PROJECT_LIMIT = 5
 MAX_WARMTH_PROBES_PER_PROJECT = 20
 PROJECT_QUERY_DEADLINE_SECS = 300
 PROJECT_PROCESSING_DEADLINE_SECS = 600
-# Each run analyzes a 7-day window, so running more than daily mostly recomputes the same
-# findings while repeating the heaviest EAP queries.
 DETECTION_CYCLE_DURATION = timedelta(days=1)
 SCHEDULE_KEY = "llm-cache-issue-detection"
 
