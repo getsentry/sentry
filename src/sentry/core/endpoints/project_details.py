@@ -359,7 +359,21 @@ E.g. `['release', 'environment']`""",
         required=False,
         allow_blank=True,
         allow_null=True,
-        help_text="Fingerprinting rules, as a newline-delimited config string, controlling how events are grouped into issues.",
+        help_text=(
+            "Fingerprinting rules, as a newline-delimited config string, controlling how events are grouped into issues. "
+            "Each line is one rule, `matcher:value [matcher:value ...] -> fingerprint[, fingerprint ...]`, "
+            "written with the ASCII `->`, not `→`. Lines starting with `#` are comments. "
+            "Matchers are `error.type`, `error.value`, `message`, `logger`, `level`, `stack.function`, "
+            "`stack.module`, `stack.abs_path`, `stack.package`, `family`, `app`, `sdk`, `release` and `tags.<name>`. "
+            "Prefix a matcher with `!` to negate it, and quote values containing spaces. "
+            "Fingerprint values can use the variables `{{ default }}`, `{{ transaction }}`, `{{ message }}`, "
+            "`{{ error.type }}`, `{{ error.value }}`, `{{ stack.function }}`, `{{ stack.abs_path }}`, "
+            "`{{ stack.filename }}`, `{{ stack.module }}`, `{{ stack.package }}`, `{{ level }}`, `{{ logger }}` "
+            "and `{{ tags.<name> }}`. Unsupported variables, such as a date, resolve to a placeholder instead of a value. "
+            'Add `title="..."` after the values to set the issue title. '
+            'Example: `error.type:TimeoutError stack.module:"myapp.db.*" -> database-timeout, {{ transaction }}`. '
+            "An empty string removes all rules."
+        ),
     )
     secondaryGroupingConfig = serializers.CharField(
         required=False,
