@@ -33,6 +33,14 @@ const chartSeriesSchema = z.union([
 // so gen:embed-widgets can still export JSON Schema.
 const idString = z.union([z.string(), z.number()]);
 
+// LLMs sometimes emit an empty string for optional fields they don't have a
+// value for, instead of omitting the field entirely. Preprocess those to
+// `undefined` so .min(1) doesn't reject them.
+const optionalNonEmptyString = z.preprocess(
+  v => (v === '' ? undefined : v),
+  z.string().min(1).optional()
+);
+
 /**
  * Page filters shared by every query embed. Seer supplies these separately from
  * the search string so the frontend can hand them to the canonical URL builders
@@ -71,7 +79,7 @@ const exploreQueryFields = {
     .describe('Aggregate functions to chart, e.g. "count()" or "p95(span.duration)".'),
   sort: z.string().optional(),
   fields: z.array(z.string()).optional(),
-  title: z.string().min(1).optional(),
+  title: optionalNonEmptyString,
 };
 
 type SeerEmbedLevel = 'inline' | 'block';
@@ -150,7 +158,7 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline', 'block'],
     schema: z.object({
       id: idString,
-      title: z.string().min(1).optional(),
+      title: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -208,15 +216,11 @@ export const SEER_EMBED_SCHEMAS = {
           'the numeric group ID (e.g. "7716642857"). A short ID is accepted here ' +
           'when that is the only id you have.'
       ),
-      shortId: z
-        .string()
-        .min(1)
-        .optional()
-        .describe(
-          'The issue short ID exactly as the issues API returns it in `shortId` ' +
-            '(e.g. "JAVASCRIPT-22SP"): a project slug, a hyphen, and a short ' +
-            'alphanumeric suffix. Omit it rather than guessing one.'
-        ),
+      shortId: optionalNonEmptyString.describe(
+        'The issue short ID exactly as the issues API returns it in `shortId` ' +
+          '(e.g. "JAVASCRIPT-22SP"): a project slug, a hyphen, and a short ' +
+          'alphanumeric suffix. Omit it rather than guessing one.'
+      ),
     }),
     examples: [
       {
@@ -455,7 +459,7 @@ export const SEER_EMBED_SCHEMAS = {
     schema: z.object({
       id: z.string().min(1),
       kind: z.enum(['metric', 'issue', 'uptime', 'cron']),
-      name: z.string().min(1).optional(),
+      name: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -486,7 +490,7 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      name: z.string().min(1).optional(),
+      name: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -507,7 +511,7 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      name: z.string().min(1).optional(),
+      name: optionalNonEmptyString,
     }),
     examples: [
       {label: 'Saved issue view', data: {id: '77', name: 'Unresolved in checkout'}},
@@ -538,7 +542,7 @@ export const SEER_EMBED_SCHEMAS = {
         'replays',
         'ai_conversations',
       ]),
-      name: z.string().min(1).optional(),
+      name: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -559,7 +563,7 @@ export const SEER_EMBED_SCHEMAS = {
     schema: z.object({
       traceId: z.string().min(1),
       timestamp: isoTimestampSchema.optional(),
-      spanId: z.string().min(1).optional(),
+      spanId: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -586,7 +590,7 @@ export const SEER_EMBED_SCHEMAS = {
     schema: z.object({
       traceId: z.string().min(1),
       timestamp: isoTimestampSchema.optional(),
-      spanId: z.string().min(1).optional(),
+      spanId: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -646,7 +650,7 @@ export const SEER_EMBED_SCHEMAS = {
     schema: z.object({
       id: z.string().min(1),
       issueId: z.string().min(1),
-      shortId: z.string().min(1).optional(),
+      shortId: optionalNonEmptyString,
       view: z.enum(['summary', 'tags', 'tag']).default('summary'),
       // Deliberately uncapped: a `.max()` would make an over-long list fail to
       // parse, and an embed whose props fail to parse renders nothing at all.
@@ -720,17 +724,13 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      traceId: z.string().min(1).optional(),
+      traceId: optionalNonEmptyString,
       projectId: idString.optional(),
       timestamp: isoTimestampSchema.optional(),
       view: z.enum(['summary', 'attributes', 'attribute']).default('summary'),
-      attribute: z
-        .string()
-        .min(1)
-        .optional()
-        .describe(
-          'Required when view is "attribute". The attribute key to break down, e.g. "severity".'
-        ),
+      attribute: optionalNonEmptyString.describe(
+        'Required when view is "attribute". The attribute key to break down, e.g. "severity".'
+      ),
     }),
     examples: [
       {
@@ -794,7 +794,7 @@ export const SEER_EMBED_SCHEMAS = {
       ...pageFilterFields,
       query: z.string().default(''),
       sort: z.string().optional(),
-      title: z.string().min(1).optional(),
+      title: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -839,7 +839,7 @@ export const SEER_EMBED_SCHEMAS = {
       fields: z.array(z.string()).optional(),
       yAxes: z.array(z.string()).optional(),
       sort: z.string().optional(),
-      title: z.string().min(1).optional(),
+      title: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -979,7 +979,7 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      title: z.string().min(1).optional(),
+      title: optionalNonEmptyString,
       projects: z.array(idString).optional(),
       start: isoTimestampSchema.optional(),
       end: isoTimestampSchema.optional(),
@@ -1016,7 +1016,7 @@ export const SEER_EMBED_SCHEMAS = {
         .array(z.string())
         .optional()
         .describe('Filter to these agent names, as reported by gen_ai.agent.name.'),
-      title: z.string().min(1).optional(),
+      title: optionalNonEmptyString,
     }),
     examples: [
       {
@@ -1043,7 +1043,7 @@ export const SEER_EMBED_SCHEMAS = {
       ...pageFilterFields,
       query: z.string().default(''),
       sort: z.string().optional(),
-      title: z.string().min(1).optional(),
+      title: optionalNonEmptyString,
     }),
     examples: [
       {
