@@ -65,6 +65,7 @@ export interface DropdownMenuListProps
    */
   menuTitle?: React.ReactNode;
   menuWidth?: string | number;
+  /** Controlled search input state supplied by DropdownMenuContent. */
   searchState?: DropdownMenuSearchOptions & {
     onChange: (value: string) => void;
     value: string;
@@ -459,7 +460,7 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   }, []);
 }
 
-type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
+export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
   items: MenuItemProps[];
   search?: DropdownMenuSearchOptions;
 };

@@ -12,21 +12,16 @@ import {useOverlay} from '@sentry/scraps/useOverlay';
 import {DropdownMenuContent} from './content';
 import {DropdownMenuContext} from './context';
 import {DropdownButton} from './dropdownButton';
-import type {DropdownMenuSearchOptions, MenuItemProps} from './item';
-import type {DropdownMenuListProps} from './list';
+import type {MenuItemProps} from './item';
+import type {DropdownMenuContentProps, DropdownMenuListProps} from './list';
 
 export type {MenuItemProps};
 
 interface BaseDropdownMenuProps
   extends
     Omit<
-      DropdownMenuListProps,
-      | 'overlayState'
-      | 'overlayPositionProps'
-      | 'items'
-      | 'children'
-      | 'menuTitle'
-      | 'searchState'
+      DropdownMenuContentProps,
+      'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
     >,
     Pick<
       UseOverlayProps,
@@ -77,7 +72,6 @@ interface BaseDropdownMenuProps
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
-  search?: DropdownMenuSearchOptions;
   /**
    * Affects the size of the trigger button and menu items.
    * When omitted, custom triggers inherit their surrounding size, while the
