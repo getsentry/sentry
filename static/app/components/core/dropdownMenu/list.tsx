@@ -59,12 +59,12 @@ export interface DropdownMenuListProps
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
+  menuHeight?: string | number;
   /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
   menuWidth?: string | number;
-  minMenuHeight?: string | number;
   search?: {
     onChange: (value: string) => void;
     value: string;
@@ -204,8 +204,8 @@ function DropdownMenuList({
   size,
   menuTitle,
   emptyMessage,
+  menuHeight,
   menuWidth,
-  minMenuHeight,
   menuFooter,
   search,
   disableTextSelection,
@@ -295,7 +295,7 @@ function DropdownMenuList({
                 {...stackProps}
                 style={{
                   width: menuWidth,
-                  minHeight: minMenuHeight,
+                  height: menuHeight,
                   // The overlay positioner limits the menu to the available viewport height.
                   maxHeight: overlayPositionProps.style?.maxHeight,
                   maxWidth: '100%',
@@ -552,10 +552,6 @@ function DropdownSubmenu({
   );
   const isFocused = state.selectionManager.focusedKey === node.key;
   const maxHeight = minHeight(options.maxMenuHeight, overlayProps.style?.maxHeight);
-  const minimumHeight =
-    options.minMenuHeight === undefined
-      ? undefined
-      : minHeight(options.minMenuHeight, maxHeight);
 
   return (
     <Container as="li" display="contents" role="presentation">
@@ -586,8 +582,8 @@ function DropdownSubmenu({
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
           emptyMessage={options.emptyMessage}
+          menuHeight={options.menuHeight}
           menuWidth={options.menuWidth}
-          minMenuHeight={minimumHeight}
           searchOptions={options.search}
           size={size}
           {...menuProps}
