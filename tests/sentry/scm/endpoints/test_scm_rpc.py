@@ -11,6 +11,7 @@ from scm.manager import SourceCodeManager
 from scm.rpc.helpers import sign_get, sign_post
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.utils import json
@@ -114,6 +115,40 @@ class TestScmRpc(APITestCase):
     def test_get(self):
         response = self.client.get(self.url, headers=self.default_headers)
         assert response.status_code == 200, response.content
+
+    def test_get_fetches_the_integration_once_per_request(self):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-rpc-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9001",
+            integration_id=integration.id,
+        )
+        headers = {
+            "Authorization": f"rpcsignature {sign_get('a-long-value-that-is-hard-to-guess', self.organization.id, repo.id)}",
+            "X-Organization-Id": str(self.organization.id),
+            "X-Repository-Id": str(repo.id),
+        }
+
+        with unittest.mock.patch(
+            "sentry.scm.private.helpers.integration_service", wraps=integration_service
+        ) as service:
+            assert self.client.get(self.url, headers=headers).status_code == 200
+            assert self.client.get(self.url, headers=headers).status_code == 200
+
+        # Once per request: the repository and provider lookups share it, but requests do not.
+        assert service.get_integration.call_count == 2
 
     @override_settings(SCM_RPC_SHARED_SECRET=[])
     def test_get_no_secrets_set(self):
