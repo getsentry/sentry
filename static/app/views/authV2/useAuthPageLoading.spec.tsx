@@ -2,13 +2,15 @@ import {Fragment, useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
+
 import {
-  BrandedAuthLoadingProvider,
-  useBrandedAuthLoading,
-} from 'sentry/views/authV2/useBrandedAuthLoading';
+  AuthPageLoadingProvider,
+  useAuthPageLoading,
+} from 'sentry/views/authV2/useAuthPageLoading';
 
 function LoadingReporter({isLoading}: {isLoading: boolean}) {
-  useBrandedAuthLoading(isLoading);
+  useAuthPageLoading(isLoading);
 
   return null;
 }
@@ -18,20 +20,20 @@ function TestPage() {
   const [isMounted, setIsMounted] = useState(true);
 
   return (
-    <BrandedAuthLoadingProvider>
+    <AuthPageLoadingProvider>
       {isPageLoading => (
         <Fragment>
           <div>{isPageLoading ? 'Loading authentication' : 'Authentication ready'}</div>
           {isMounted && <LoadingReporter isLoading={isLoading} />}
-          <button onClick={() => setIsLoading(false)}>Finish loading</button>
-          <button onClick={() => setIsMounted(false)}>Unmount page</button>
+          <Button onClick={() => setIsLoading(false)}>Finish loading</Button>
+          <Button onClick={() => setIsMounted(false)}>Unmount page</Button>
         </Fragment>
       )}
-    </BrandedAuthLoadingProvider>
+    </AuthPageLoadingProvider>
   );
 }
 
-describe('useBrandedAuthLoading', () => {
+describe('useAuthPageLoading', () => {
   it('reports loading state and restores it when the page unmounts', async () => {
     render(<TestPage />);
 

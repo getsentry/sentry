@@ -1782,11 +1782,6 @@
       "count": 1
     }
   },
-  "views/authV2/useBrandedAuthLoading.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "views/automations/components/actionFilters/subfiltersList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
