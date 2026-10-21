@@ -122,7 +122,12 @@ function replaceFocusedWordWithFilter(
   getFieldDefinition: FieldDefinitionGetter,
   negated = false
 ) {
-  const filterText = getInitialFilterText(key, getFieldDefinition(key));
+  // A negated filter always reads as "is not", so skip the default comparison
+  const filterText = getInitialFilterText(
+    key,
+    getFieldDefinition(key),
+    negated ? TermOperator.DEFAULT : undefined
+  );
   return replaceFocusedWord(
     value,
     cursorPosition,
