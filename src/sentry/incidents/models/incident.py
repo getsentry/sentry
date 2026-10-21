@@ -1,5 +1,3 @@
-"""Legacy-compatible notification values; no native Incident model is registered."""
-
 from enum import Enum
 
 
