@@ -38,7 +38,7 @@ workspaces:
       name: github
       config:
         contexts:
-          - scraps-package-verify
+          - scraps-package-pack
     artifactProvider:
       name: github
       config:
