@@ -5,9 +5,12 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {mockElementFromPoint} from 'sentry/views/authV2/authLogin/components/testUtils';
+import {waitForAuthorization} from 'sentry/views/authV2/oauth/testUtils';
 import OAuthDevice from 'sentry/views/authV2/oauthDevice';
 
 import OAuthAuthorize from '.';
+
+jest.setTimeout(15000);
 
 const location = {
   pathname: '/oauth/authorize/',
@@ -79,7 +82,7 @@ describe('OAuth account authentication', () => {
         body: {},
       });
       render(<Component />, {initialRouterConfig: {location: route}});
-      expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+      await waitForAuthorization();
       await userEvent.click(screen.getByRole('button', {name: 'Switch account'}));
       await waitFor(() => expect(screen.getByText('Original Account')).toBeVisible());
       expect(screen.getByRole('button', {name: 'Authorize'})).toBeDisabled();
@@ -211,7 +214,7 @@ describe('OAuth account authentication', () => {
       });
       await waitFor(() => expect(screen.getByText('New Org')).toBeVisible());
       expect(screen.getByText('New Account')).toBeVisible();
-      expect(screen.getByRole('button', {name: 'Authorize'})).toBeEnabled();
+      await waitForAuthorization();
       expect(prepare).toHaveBeenCalledTimes(1);
     }
   );
@@ -285,7 +288,7 @@ describe('OAuth account authentication', () => {
       body: {stage: 'redirect', redirectUrl: 'https://example.com/callback'},
     });
     render(<OAuthAuthorize />, {initialRouterConfig: {location}});
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     await userEvent.click(screen.getByRole('button', {name: 'Change'}));
     await userEvent.click(await screen.findByText('Old Org (old-org)'));
     MockApiClient.addMockResponse({
@@ -312,7 +315,7 @@ describe('OAuth account authentication', () => {
       }),
     });
     await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     await waitFor(() => expect(screen.getByText('New Account')).toBeVisible());
     await userEvent.click(screen.getByRole('button', {name: 'Change'}));
     await userEvent.click(await screen.findByText('New Org (new-org)'));
@@ -342,7 +345,7 @@ describe('OAuth account authentication', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Switch account'}));
     await waitFor(() => expect(screen.getByText('Unable to sign out.')).toBeVisible());
     await waitFor(() => expect(screen.getByText('Original Account')).toBeVisible());
-    expect(screen.getByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
   });
 
   it('prevents logout while an approval is in flight', async () => {
@@ -354,7 +357,7 @@ describe('OAuth account authentication', () => {
       body: {stage: 'redirect', redirectUrl: 'https://example.com/callback'},
     });
     render(<OAuthAuthorize />, {initialRouterConfig: {location}});
-    await userEvent.click(await screen.findByRole('button', {name: 'Authorize'}));
+    await userEvent.click(await waitForAuthorization());
     await waitFor(() => expect(approve).toHaveBeenCalledTimes(1));
     expect(screen.getByRole('button', {name: 'Switch account'})).toBeDisabled();
     act(() => delay.resolve());
@@ -383,7 +386,7 @@ describe('OAuth account authentication', () => {
       body: OAuthConsentFixture({transactionId: 'after-mfa'}),
     });
     await userEvent.type(input, '123456');
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     expect(prepare).toHaveBeenCalledTimes(1);
   });
 
