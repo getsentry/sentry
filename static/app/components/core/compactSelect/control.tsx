@@ -537,6 +537,7 @@ export function Control<Value extends SelectKey>({
                       align="center"
                       justify="between"
                       gap="xl"
+                      minHeight="24px"
                       padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
                     >
                       {menuTitle && <Menu.Title>{menuTitle}</Menu.Title>}
