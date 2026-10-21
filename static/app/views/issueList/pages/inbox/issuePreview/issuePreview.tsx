@@ -12,7 +12,10 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {EventStackTrace} from 'sentry/components/events/eventStackTrace';
+import {
+  EventStackTrace,
+  hasEventStackTrace,
+} from 'sentry/components/events/eventStackTrace';
 import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -313,7 +316,7 @@ function IssuePreviewContent() {
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
           {summary && <IssuePreviewSummary summary={summary} />}
-          {event && (
+          {event && hasEventStackTrace(event, group) && (
             <Container key={event.id}>
               <ErrorBoundary mini>
                 <EventStackTrace event={event} group={group} projectSlug={project.slug} />
