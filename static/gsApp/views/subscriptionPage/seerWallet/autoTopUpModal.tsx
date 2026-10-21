@@ -38,7 +38,7 @@ function parseWholeNumber(value: string) {
   return Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0);
 }
 
-export function AutoTopUpModal({
+function AutoTopUpModal({
   Header,
   Body,
   Footer,
@@ -146,12 +146,11 @@ export function AutoTopUpModal({
               <SegmentedControl
                 size="xs"
                 aria-label={t('Top-up presets')}
-                disabled={!enabled}
                 value={String(topUpCredits)}
                 onChange={value => setTopUpCredits(Number(value))}
               >
                 {TOP_UP_PRESETS.map(preset => (
-                  <SegmentedControl.Item key={String(preset)}>
+                  <SegmentedControl.Item key={String(preset)} disabled={!enabled}>
                     {preset.toLocaleString()}
                   </SegmentedControl.Item>
                 ))}
