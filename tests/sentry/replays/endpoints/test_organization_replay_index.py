@@ -1090,6 +1090,36 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400, query
 
+    def test_get_replays_filter_dangling_boolean_operator(self) -> None:
+        self.create_project(teams=[self.team])
+
+        queries = [
+            "AND user.email:a",
+            "OR user.email:a",
+            "user.email:a AND",
+            "user.email:a AND OR user.email:b",
+            "(OR user.email:a)",
+        ]
+
+        with self.feature(self.features):
+            for query in queries:
+                response = self.client.get(self.url, {"field": "id", "query": query})
+                assert response.status_code == 400, query
+
+    def test_get_replays_out_of_range_date(self) -> None:
+        project = self.create_project(teams=[self.team])
+        replay_id = uuid.uuid4().hex
+        timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        self.store_replays(mock_replay(timestamp, project.id, replay_id))
+
+        start = (timestamp - datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, {"field": "id", "start": start, "end": "9999-12-31T23:59:59Z"}
+            )
+            assert response.status_code == 400
+            assert response.json() == {"detail": "Invalid date range: start or end is out of range"}
+
     def test_get_replays_filter_bad_value(self) -> None:
         """Test replays conform to the interchange format."""
         self.create_project(teams=[self.team])
