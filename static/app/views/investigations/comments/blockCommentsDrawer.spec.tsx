@@ -45,10 +45,10 @@ function renderPage(query: Record<string, string> = {}, extra?: React.ReactNode)
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+          pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
           query,
         },
-        route: '/organizations/:orgId/explore/investigations/:investigationId/',
+        route: '/organizations/:orgId/seer/investigations/:investigationId/',
       },
     }
   );
