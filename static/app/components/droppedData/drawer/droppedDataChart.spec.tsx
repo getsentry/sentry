@@ -70,7 +70,7 @@ describe('droppedEventsToSeries', () => {
 
     expect(Object.values(series).map(s => s.yAxis)).toEqual([
       'Client Discard',
-      'Inbound Filter',
+      'Inbound Filters',
       'Invalid or Malformed',
     ]);
   });
