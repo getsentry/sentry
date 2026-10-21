@@ -85,6 +85,14 @@ jobs:
       # including the background step's inner steps (getsentry/sentry#127566).
       - uses: ./.github/actions/setup-node-toolchain
 
+      # Starts per-worker ClickHouse bootstrap as soon as its dependencies are
+      # healthy, instead of after snuba-snuba-1's own bootstrap.
+      - name: Start per-worker Snuba bootstrap in the background
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        env:
+          DEVSERVICES_STATUS_FILE: ${{ runner.temp }}/devservices-ci/up.exit
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
+
       # The python env and devservices don't depend on the frontend build, so
       # bring them up in the background while webpack runs.
       - name: Setup sentry env
@@ -93,6 +101,7 @@ jobs:
         background: true
         with:
           mode: acceptance-ci
+          early-devservices: 'true'
 
       - name: Step configurations
         id: config
@@ -126,7 +135,7 @@ jobs:
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
