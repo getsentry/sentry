@@ -826,11 +826,6 @@ from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
     OrganizationEventsTraceMetaEndpoint,
 )
-from .endpoints.organization_events_trends import (
-    OrganizationEventsTrendsEndpoint,
-    OrganizationEventsTrendsStatsEndpoint,
-)
-from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_validate import OrganizationEventsValidateEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
@@ -1971,11 +1966,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-histogram",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trends/$",
-        OrganizationEventsTrendsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trends",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-vitals/$",
         OrganizationEventsVitalsEndpoint.as_view(),
         name="sentry-api-0-organization-events-vitals",
@@ -1984,18 +1974,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-has-measurements/$",
         OrganizationEventsHasMeasurementsEndpoint.as_view(),
         name="sentry-api-0-organization-events-has-measurements",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trends-stats/$",
-        OrganizationEventsTrendsStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trends-stats",
-    ),
-    # This endpoint is for experimentation only
-    # Once this feature is developed, the endpoint will replace /events-trends-stats
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trends-statsv2/$",
-        OrganizationEventsNewTrendsStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trends-statsv2",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
