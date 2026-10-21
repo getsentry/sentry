@@ -159,7 +159,8 @@ function getTextColor({
 const StyledInnerWrap = styled(Flex, {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
-    (isPropValid(prop) || ['padding', 'align', 'alignSelf'].includes(prop)) &&
+    (isPropValid(prop) ||
+      ['padding', 'paddingLeft', 'align', 'alignSelf'].includes(prop)) &&
     !['disabled', 'isFocused', 'priority'].includes(prop),
 })<{
   disabled: boolean;
@@ -376,6 +377,10 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
         <StyledInnerWrap
           data-menu-item-content
           padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
+          // The leading slot is 2xl wide and centers its content, so a 16px icon
+          // gets 4px of space on each side. A `md` inset keeps leading items where
+          // they sat before the slot existed, at every size.
+          paddingLeft={leadingItems ? 'md' : undefined}
           isFocused={isFocused}
           disabled={disabled}
           priority={priority}
