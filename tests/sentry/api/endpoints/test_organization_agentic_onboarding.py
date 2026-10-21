@@ -7,7 +7,13 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry.onboarding.agentic_progress.model import ProgressUpdate, RunStatus, Stage, StageStatus
+from sentry.onboarding.agentic_progress.model import (
+    ProgressUpdate,
+    RunOrigin,
+    RunStatus,
+    Stage,
+    StageStatus,
+)
 from sentry.onboarding.agentic_progress.service import OnboardingProgressService
 from sentry.testutils.cases import APITestCase
 
@@ -60,6 +66,46 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         assert response.data["stages"][1]["status"] == "bypassed"
         assert response.data["stages"][2]["status"] == "completed"
         assert response.data["stages"][2]["extra"] == {"projectSlugs": ["frontend", "backend"]}
+
+    def test_registration_records_origin(self) -> None:
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-run-index",
+            args=[self.organization.slug],
+        )
+        with patch(
+            "sentry.api.endpoints.organization_agentic_onboarding.get_onboarding_progress_service",
+            return_value=self.service,
+        ):
+            response = self.client.post(
+                path,
+                {
+                    "clientRunId": str(uuid4()),
+                    "onboardingCode": "a1B2c3D4e5",
+                    "origin": "project_creation",
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        run = self.service.get(
+            run_id=response.data["runId"],
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        assert run is not None
+        assert run.origin is RunOrigin.PROJECT_CREATION
+
+    def test_registration_rejects_unknown_origin(self) -> None:
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-run-index",
+            args=[self.organization.slug],
+        )
+        response = self.client.post(
+            path,
+            {"clientRunId": str(uuid4()), "onboardingCode": "a1B2c3D4e5", "origin": "sidebar"},
+        )
+
+        assert response.status_code == 400
+        assert "origin" in response.data
 
     def test_status_rejects_unknown_run(self) -> None:
         path = reverse(
@@ -278,6 +324,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             organization_id=self.organization.id,
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
+            origin=RunOrigin.ONBOARDING,
         )
         skipped_run, skipped_token = self.service.create_or_resume(
             user_id=self.user.id,
@@ -348,6 +395,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 "run_id": run.run_id,
                 "stage": "create_project",
                 "status": status_value,
+                "origin": "onboarding",
             }
             for status_value in ["active", "waiting", "failed", "completed", "completed"]
         ] + [
@@ -357,6 +405,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 "run_id": skipped_run.run_id,
                 "stage": "check_stack_trace_quality",
                 "status": "skipped",
+                "origin": None,
             }
         ]
 
@@ -366,6 +415,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             organization_id=self.organization.id,
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
+            origin=RunOrigin.PROJECT_CREATION,
         )
         self.service.update(
             token=token,
@@ -409,4 +459,5 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             "organization_id": self.organization.id,
             "run_id": run.run_id,
             "status": "completed",
+            "origin": "project_creation",
         }

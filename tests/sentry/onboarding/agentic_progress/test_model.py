@@ -15,6 +15,7 @@ from sentry.onboarding.agentic_progress.model import (
     OnboardingRunTerminal,
     ProgressUpdate,
     ProgressUpdateField,
+    RunOrigin,
     RunStatus,
     Stage,
     StageDefinition,
@@ -169,6 +170,28 @@ def test_from_dict_wraps_invalid_persisted_stage_status() -> None:
     persisted["stages"][0]["status"] = "unknown_status"
 
     with pytest.raises(InvalidOnboardingRun, match="state is invalid"):
+        OnboardingRun.from_dict(persisted)
+
+
+def test_origin_round_trips() -> None:
+    run = replace(make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)), origin=RunOrigin.ONBOARDING)
+
+    assert run.to_dict()["origin"] == "onboarding"
+    assert OnboardingRun.from_dict(run.to_dict()) == run
+
+
+def test_unset_origin_is_not_persisted() -> None:
+    run = make_run(datetime(2020, 1, 1, tzinfo=timezone.utc))
+
+    assert "origin" not in run.to_dict()
+    assert OnboardingRun.from_dict(run.to_dict()).origin is None
+
+
+def test_from_dict_wraps_invalid_persisted_origin() -> None:
+    persisted = make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)).to_dict()
+    persisted["origin"] = "sidebar"
+
+    with pytest.raises(InvalidOnboardingRun):
         OnboardingRun.from_dict(persisted)
 
 
