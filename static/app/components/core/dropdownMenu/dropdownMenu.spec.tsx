@@ -5,6 +5,30 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 describe('DropdownMenu', () => {
+  it('filters a searchable root menu', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        search={{placeholder: 'Search projects'}}
+        items={[
+          {key: 'javascript', label: 'javascript'},
+          {key: 'python', label: 'python'},
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search projects'}),
+      'python'
+    );
+
+    expect(screen.getByRole('menuitemradio', {name: 'python'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'javascript'})
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps presses on a trailing action from selecting its menu item', async () => {
     const originalPointerEvent = window.PointerEvent;
     Object.defineProperty(window, 'PointerEvent', {
