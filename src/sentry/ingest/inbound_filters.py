@@ -7,6 +7,7 @@ from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
     COMPARISON_OPERATORS,
+    IP_OPERATORS,
     MAX_FILTERS_PER_PROJECT,
     TEXT_OPERATORS,
     ConditionOperator,
@@ -613,7 +614,9 @@ def _field_matcher(name: str) -> _ConditionMatcher:
 
 
 def _cidr_matcher(name: str) -> _ConditionMatcher:
-    return _pattern_matcher(lambda values: {"op": "cidr", "name": name, "value": values})
+    return _ConditionMatcher(
+        IP_OPERATORS, lambda operator, values: {"op": "cidr", "name": name, "value": values}
+    )
 
 
 def _release_matcher(name: str) -> _ConditionMatcher:
@@ -735,7 +738,7 @@ def _custom_filter_condition(
     carry, or an operator the field does not take): since every condition narrows the
     match, dropping only the broken condition would filter more data than configured.
 
-    A condition without an operator holds glob patterns, see ``ConditionOperator``.
+    A condition without an operator holds raw values, see ``ConditionOperator``.
     """
     if not conditions or data_type is None:
         return None
