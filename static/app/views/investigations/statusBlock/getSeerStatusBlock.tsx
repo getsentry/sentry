@@ -1,6 +1,11 @@
 import {t, tn} from 'sentry/locale';
 import {getInvestigationActiveTime} from 'sentry/views/investigations/detail/runTimer';
 import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
+import {
+  isThought,
+  withThoughts,
+  type SeerStatusActivity,
+} from 'sentry/views/investigations/statusBlock/statusActivity';
 import type {
   InvestigationOrchestration,
   InvestigationToolActivity,
@@ -13,7 +18,7 @@ type SeerStatusBlockContent = {
   description?: string;
   meta?: string;
   startTime?: Date;
-  toolActivity?: InvestigationToolActivity[];
+  toolActivity?: SeerStatusActivity[];
 };
 
 /**
@@ -26,27 +31,35 @@ type SeerStatusBlockContent = {
  */
 function getToolActivity(
   projection: InvestigationOrchestration
-): InvestigationToolActivity[] | undefined {
-  let activity: InvestigationToolActivity[] = [];
+): SeerStatusActivity[] | undefined {
+  let lists: SeerStatusActivity[][] = [];
   switch (projection.phase) {
     case 'intake':
     case 'broad_scan':
-      activity = projection.broadScan.toolActivity ?? [];
+      lists = [
+        withThoughts(projection.broadScan.toolActivity, projection.broadScan.thoughts),
+      ];
       break;
     case 'investigating':
     case 'judging':
-      activity = projection.hypotheses
+      lists = projection.hypotheses
         .filter(hypothesis => hypothesis.effectiveStatus === 'investigating')
-        .flatMap(hypothesis => hypothesis.toolActivity ?? []);
+        .map(hypothesis => withThoughts(hypothesis.toolActivity, hypothesis.thoughts));
       break;
     case 'reporting':
     case 'metadata':
-      activity = projection.report.currentBlockToolActivity ?? [];
+      lists = [
+        withThoughts(
+          projection.report.currentBlockToolActivity,
+          projection.report.currentBlockThoughts
+        ),
+      ];
       break;
     default:
       break;
   }
-  return activity.length ? inFlightLast(activity) : undefined;
+  const activity = inFlightLast(lists);
+  return activity.length ? activity : undefined;
 }
 
 /**
@@ -59,7 +72,25 @@ const IN_FLIGHT_RANK: Partial<Record<InvestigationToolActivity['status'], number
 };
 
 /**
- * Moves calls still in flight to the end, keeping the order within each group.
+ * Each entry of one list paired with where it sorts. Reasoning sorts with the
+ * call it led to, so sorting never parts the two; reasoning no call has followed
+ * yet is what the agent is doing now, so it sorts with the running calls.
+ */
+function rankEntries(activity: SeerStatusActivity[]) {
+  let nextCallRank = IN_FLIGHT_RANK.running ?? 0;
+  return [...activity]
+    .reverse()
+    .map(entry => {
+      const rank = isThought(entry) ? nextCallRank : (IN_FLIGHT_RANK[entry.status] ?? 0);
+      nextCallRank = rank;
+      return {entry, rank};
+    })
+    .reverse();
+}
+
+/**
+ * Joins the lists, moving calls still in flight to the end and keeping the
+ * order within each group.
  *
  * Each list on the projection is latest-last on its own, but hypotheses are
  * investigated in parallel and their calls carry no timestamp, so joining
@@ -68,13 +99,12 @@ const IN_FLIGHT_RANK: Partial<Record<InvestigationToolActivity['status'], number
  * what the agent is doing now, and a running call is the best evidence of that,
  * so it wins.
  */
-function inFlightLast(
-  activity: InvestigationToolActivity[]
-): InvestigationToolActivity[] {
-  return activity
-    .map((call, index) => ({call, index, rank: IN_FLIGHT_RANK[call.status] ?? 0}))
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
-    .map(({call}) => call);
+function inFlightLast(lists: SeerStatusActivity[][]): SeerStatusActivity[] {
+  return lists
+    .flatMap(list => rankEntries(list))
+    .map((ranked, order) => ({...ranked, order}))
+    .sort((a, b) => a.rank - b.rank || a.order - b.order)
+    .map(({entry}) => entry);
 }
 
 /**

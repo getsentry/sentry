@@ -331,18 +331,19 @@ type InvestigationOrchestrationError = {
 
 export type InvestigationToolActivity = {
   id: string;
-  /**
-   * `thought` is the agent's reasoning before the calls that follow it, not a
-   * call: its words are in `text`, and `title` is only their first line.
-   */
-  kind: InvestigationOrchestrationOpenString<
-    'api' | 'library' | 'step' | 'thought' | 'tool'
-  >;
+  kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'step' | 'tool'>;
   status: InvestigationOrchestrationOpenString<
     'queued' | 'running' | 'completed' | 'failed'
   >;
   title: string;
-  text?: string | null;
+};
+
+/** The agent's reasoning before the calls that follow it in the same phase. */
+export type InvestigationThought = {
+  id: string;
+  text: string;
+  /** The tool activity entry this came before; null until a call follows it. */
+  beforeActivityId?: string | null;
 };
 
 type InvestigationOrchestrationEvidence = {
@@ -405,6 +406,7 @@ export type InvestigationHypothesis = {
   automaticRetryCount?: number;
   heartbeatAt?: string | null;
   investigatorRunId?: number | null;
+  thoughts?: InvestigationThought[];
   toolActivity?: InvestigationToolActivity[];
   /**
    * Absent, not empty, until the agent has planned any checks: the contract
@@ -441,6 +443,7 @@ type InvestigationOrchestrationReport = {
   >;
   automaticRetryCount?: number;
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
+  currentBlockThoughts?: InvestigationThought[];
   currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
   nextStep?: {
@@ -465,6 +468,7 @@ export type InvestigationOrchestration = {
     automaticRetryCount?: number;
     heartbeatAt?: string | null;
     runId?: number | string | null;
+    thoughts?: InvestigationThought[];
     toolActivity?: InvestigationToolActivity[];
   };
   errors: InvestigationOrchestrationError[];

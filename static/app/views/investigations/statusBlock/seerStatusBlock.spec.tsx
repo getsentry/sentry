@@ -73,19 +73,11 @@ describe('SeerStatusBlock', () => {
         variant="running"
         title="Seer is gathering context"
         toolActivity={[
-          {
-            id: 'r1',
-            kind: 'thought',
-            status: 'completed',
-            title: 'Start with the error spans.',
-            text: 'Start with the error spans.',
-          },
+          {id: 'r1', kind: 'thought', text: 'Start with the error spans.'},
           {id: 'a', kind: 'api', status: 'completed', title: 'Query spans'},
           {
             id: 'r2',
             kind: 'thought',
-            status: 'completed',
-            title: 'The baseline looks backwards.',
             text: 'The baseline looks backwards.\n\nCheck the environment filter.',
           },
         ]}
@@ -416,6 +408,67 @@ describe('getSeerStatusBlock', () => {
       projection.report.currentBlockToolActivity = [activity('last')];
 
       expect(getSeerStatusBlock(projection)?.toolActivity).toBeUndefined();
+    });
+
+    // Seer keeps reasoning beside the calls, each thought naming the call it
+    // came before, so older code that only knows the calls keeps working.
+    it("puts each phase's reasoning back before the call it came before", () => {
+      const projection = InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'broad_scan',
+      });
+      projection.broadScan.toolActivity = [activity('a'), activity('b', 'running')];
+      projection.broadScan.thoughts = [
+        {id: 'before-a', text: 'Start here.', beforeActivityId: 'a'},
+        {id: 'before-b', text: 'Then this.', beforeActivityId: 'b'},
+        {id: 'latest', text: 'Waiting on the call.', beforeActivityId: null},
+        {id: 'stale', text: 'Its call is gone.', beforeActivityId: 'dropped'},
+      ];
+
+      expect(getSeerStatusBlock(projection)?.toolActivity?.map(a => a.id)).toEqual([
+        'before-a',
+        'a',
+        'before-b',
+        'b',
+        'latest',
+      ]);
+    });
+
+    // Moving a running call last must not part it from the reasoning that led
+    // to it.
+    it('keeps reasoning with its call across parallel hypotheses', () => {
+      const block = getSeerStatusBlock(
+        InvestigationOrchestrationFixture({
+          status: 'processing',
+          phase: 'investigating',
+          hypotheses: [
+            InvestigationHypothesisFixture({
+              id: 'first',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('a-done'), activity('a-running', 'running')],
+              thoughts: [
+                {id: 'a-why', text: 'Why a.', beforeActivityId: 'a-done'},
+                {id: 'a-next', text: 'Then this.', beforeActivityId: 'a-running'},
+              ],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'second',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('b-done')],
+              thoughts: [{id: 'b-why', text: 'Why b.', beforeActivityId: 'b-done'}],
+            }),
+          ],
+        })
+      );
+
+      expect(block?.toolActivity?.map(a => a.id)).toEqual([
+        'a-why',
+        'a-done',
+        'b-why',
+        'b-done',
+        'a-next',
+        'a-running',
+      ]);
     });
 
     it('omits the list when there are no calls', () => {
