@@ -143,7 +143,9 @@ export function SelectField<TValue>({
             {...selectVariantProps}
             inputId={id}
             inputRef={applyInputToRef(fieldRef)}
-            {...(autoSaveContext && {blurInputOnSelect: false})}
+            // Keep focus on the input after selecting so keyboard users don't lose
+            // their place. We call `onBlur` manually on select instead.
+            blurInputOnSelect={false}
             components={
               {
                 ...props.components,
@@ -178,18 +180,15 @@ export function SelectField<TValue>({
                 if (!option) {
                   // Clearable single select - type system allows null via discriminated union
                   (onChange as (value: TValue | null) => void)(null);
-                  if (autoSaveContext) {
-                    fieldProps.onBlur();
-                  }
+                  fieldProps.onBlur();
                   return;
                 }
                 // For single-select, option is a single value
                 (onChange as (value: TValue) => void)(
                   (option as SelectValue<TValue>).value
                 );
-                if (autoSaveContext) {
-                  fieldProps.onBlur();
-                }
+                // Selecting is a commit: run blur validation (and auto-save)
+                fieldProps.onBlur();
               }
             }}
           />
