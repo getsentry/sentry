@@ -1182,9 +1182,8 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert not Detector.objects.filter(id__in=detector_ids, enabled=True).exists()
 
     def test_put_exclusion_skips_type_in_query_selection(self) -> None:
-        allowed_detector = self.create_detector(
-            project=self.project, type=MonitorIncidentType.slug, enabled=True
-        )
+        allowed_detector = ensure_cron_detector(self.create_monitor(project=self.project))
+        assert allowed_detector is not None
         with override_detector_api_availability(
             MetricIssue.slug, {DetectorAPIOperation.PUT: False}
         ):

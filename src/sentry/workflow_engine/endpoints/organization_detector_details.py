@@ -73,8 +73,6 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
         raise ResourceDoesNotExist
 
 
-
-
 @cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
