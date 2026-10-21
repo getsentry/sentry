@@ -6,6 +6,7 @@ import sys
 import traceback
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Literal, overload
 
@@ -590,3 +591,23 @@ def to_valid_int_id_list(name: str, val: Sequence[str | int]) -> list[int]:
     Raises a ValidationError if any of the values are not a valid integer id.
     """
     return [to_valid_int_id(name, v) for v in val]
+
+
+@dataclass(frozen=True)
+class SortBy:
+    """A single sortBy value with direction and field parsed out"""
+
+    field: str
+    descending: bool
+
+    @property
+    def order_by(self):
+        return f"{'-' if self.descending else ''}{self.field}"
+
+
+def parse_sort_by(value: str, allowed_fields: list[str] | None = None) -> SortBy:
+    descending = value.startswith("-")
+    field = value[1:] if descending else value
+    if not field or (allowed_fields is not None and field not in allowed_fields):
+        raise ValidationError("Invalid sort field")
+    return SortBy(field=field, descending=descending)

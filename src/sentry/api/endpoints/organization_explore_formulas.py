@@ -6,11 +6,13 @@ from typing import Any, Mapping, TypedDict
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
+from django.db.models.functions import Substr
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import (
+    BooleanField,
     CharField,
     ChoiceField,
     IntegerField,
@@ -27,7 +29,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.utils import to_valid_int_id
+from sentry.api.utils import SortBy, parse_sort_by, to_valid_int_id
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.discover.arithmetic import (
     ArithmeticParseError,
@@ -63,6 +65,7 @@ DATASETS = {
     ExploreSavedQueryDataset.OURLOGS: OurLogs,
     ExploreSavedQueryDataset.METRICS: TraceMetrics,
 }
+FORMULA_PREFIX = "formula."
 
 
 class ExploreSavedReference(TypedDict):
@@ -89,7 +92,7 @@ class PrebuiltFormula(TypedDict):
 PREBUILT_FORMULAS: list[PrebuiltFormula] = [
     {
         "prebuilt_id": 1,
-        "name": "formula.apdex",
+        "name": f"{FORMULA_PREFIX}apdex",
         "description": "(Application Performance Index) Calculates apdex a weighted average of user experiences",
         "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
         "unit": None,
@@ -127,7 +130,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
     },
     {
         "prebuilt_id": 2,
-        "name": "formula.user_misery",
+        "name": f"{FORMULA_PREFIX}user_misery",
         "description": "Calculates a user misery score that tries to not let low throughput transactions have a high score using weights, 5.8875 in the numerator and 111.8625 in the denominator",
         "formula": "({miserable_users} + 5.8875) / ({total_unique_users} + 111.8625 + 5.8875)",
         "unit": None,
@@ -359,7 +362,7 @@ class FormulaSerializer(RequestSerializer):
 
     def validate_name(self, name: str) -> str:
         name = name.lower()
-        if not name.startswith("formula."):
+        if not name.startswith(FORMULA_PREFIX):
             raise ValidationError("Formula names must begin with `formula`")
         return name
 
@@ -415,6 +418,18 @@ class FormulaSerializer(RequestSerializer):
             raise ValidationError(str(e))
 
         return data
+
+
+class FormulaListSerializer(RequestSerializer):
+    name = CharField(max_length=200, required=False)
+    sortBy = CharField(max_length=200, required=False, default="name")
+    prebuilt = BooleanField(required=False)
+
+    def validate_sortBy(self, sortby: str) -> SortBy:
+        return parse_sort_by(sortby, allowed_fields=["name", "description"])
+
+    def validate_name(self, name: str) -> str:
+        return name.lower()
 
 
 class OrganizationExploreFormulaBase(OrganizationEndpoint):
@@ -528,7 +543,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
 
     def get(
         self, request: Request, organization: Organization
-    ) -> Response[list[ExploreSavedFormulaResponse]]:
+    ) -> Response[list[ExploreSavedFormulaResponse]] | Response[ValidationErrorResponse]:
         """Return a list of formulas
 
         Formulas have a name and a formula definition, the definition will have variables in it that are either
@@ -541,6 +556,12 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
+
+        serializer = FormulaListSerializer(
+            data=request.GET.dict(), context={"organization": organization, "user": request.user}
+        )
+        if not serializer.is_valid():
+            return Response(as_validation_errors(serializer), status=400)
 
         # Explore has prebuilt formulas that are created lazily on read.
         try:
@@ -559,14 +580,21 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         except Exception as err:
             sentry_sdk.capture_exception(err)
 
+        sort_by = serializer.validated_data["sortBy"]
         queryset = (
             ExploreSavedFormula.objects.filter(organization=organization, prebuilt_deleted=False)
-            .prefetch_related(
-                "variables"
-                # TODO: add an orderby parameter, sorting by name for now
-            )
-            .order_by("name")
+            .prefetch_related("variables")
+            # use id as a tiebreaker
+            .order_by(sort_by.order_by, "-id" if sort_by.descending else "id")
         )
+        if "name" in serializer.validated_data:
+            queryset = queryset.annotate(
+                name_suffix=Substr("name", len(FORMULA_PREFIX) + 1)
+            ).filter(name_suffix__icontains=serializer.validated_data["name"])
+        if "prebuilt" in serializer.validated_data:
+            queryset = queryset.filter(
+                prebuilt_id__isnull=not serializer.validated_data["prebuilt"]
+            )
 
         def data_fn(offset: int, limit: int) -> list[ExploreSavedFormula]:
             return list(queryset[offset : offset + limit])
