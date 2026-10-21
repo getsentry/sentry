@@ -7,12 +7,18 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
     InvestigationSerializer,
 )
-from sentry.investigations.models import Investigation, InvestigationBlockExecutionStatus
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationActionRequest,
+    InvestigationActionRequestState,
+    InvestigationBlockExecutionStatus,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -272,4 +278,180 @@ class InvestigationDetailsSerializerTest(TestCase):
             results = serialize(many_investigations, self.user, serializer)
 
         assert len(results) == 5
+        assert len(many.captured_queries) == len(one.captured_queries)
+
+
+class InvestigationActionRequestSerializationTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Investigation"
+        )
+        self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            source={"type": "breached_metric", "detectorId": str(self.detector.id)},
+        )
+
+    def action(self, **values: Any) -> dict[str, Any]:
+        return {
+            "kind": "update_detector",
+            "detectorId": str(self.detector.id),
+            "before": {"timeWindowSeconds": 300},
+            "changes": {"timeWindowSeconds": 900},
+            **values,
+        }
+
+    def add_request(self, key: str = "widen-window", **values: Any) -> InvestigationActionRequest:
+        action = values.pop("action", self.action())
+        return self.create_investigation_action_request(
+            investigation=self.investigation,
+            key=key,
+            action_kind=action["kind"] if action else None,
+            action_payload=action,
+            **values,
+        )
+
+    def serialize_requests(self) -> list[dict[str, Any]]:
+        return serialize(self.investigation, self.user, InvestigationDetailsSerializer())[
+            "actionRequests"
+        ]
+
+    def test_serializes_an_action_request(self) -> None:
+        action_request = self.add_request(
+            impact="Fewer alerts.", primary=True, anchor_type="block", anchor_id="b-1"
+        )
+
+        assert self.serialize_requests() == [
+            {
+                "id": str(action_request.id),
+                "key": "widen-window",
+                "reportRevision": 0,
+                "primary": True,
+                "anchor": {"type": "block", "id": "b-1", "blockId": None},
+                "title": "An action request",
+                "rationale": "Because it helps.",
+                "impact": "Fewer alerts.",
+                "state": "suggested",
+                "reason": None,
+                "action": self.action(),
+                "appliedBy": None,
+                "appliedDetails": None,
+                "dateApplied": None,
+                "error": None,
+                "dateCreated": action_request.date_added,
+            }
+        ]
+
+    def test_block_anchors_point_at_the_live_block(self) -> None:
+        live = self.create_investigation_block(
+            investigation=self.investigation, position=0, stable_agent_key="cause"
+        )
+        self.create_investigation_block(
+            investigation=self.investigation,
+            position=1,
+            stable_agent_key="removed",
+            deleted_at=timezone.now(),
+        )
+        for key, anchor_id in [("live", "cause"), ("gone", "removed")]:
+            self.add_request(key, anchor_type="block", anchor_id=anchor_id)
+        self.add_request("hypothesis", anchor_type="hypothesis", anchor_id="h-1")
+        self.add_request("same-id", anchor_type="hypothesis", anchor_id="cause")
+
+        assert [row["anchor"] for row in self.serialize_requests()] == [
+            {"type": "block", "id": "cause", "blockId": str(live.id)},
+            {"type": "block", "id": "removed", "blockId": None},
+            {"type": "hypothesis", "id": "h-1", "blockId": None},
+            {"type": "hypothesis", "id": "cause", "blockId": None},
+        ]
+
+    def test_serializes_requests_without_a_known_action(self) -> None:
+        self.add_request(action=None, primary=True)
+        self.add_request("task", action={"kind": "seer_task", "prompt": "Add spans"})
+
+        assert [row["action"] for row in self.serialize_requests()] == [
+            None,
+            {"kind": "seer_task", "prompt": "Add spans"},
+        ]
+
+    def test_orders_the_primary_first_and_omits_superseded_requests(self) -> None:
+        older = self.add_request("older", report_revision=0)
+        self.add_request("superseded", state=InvestigationActionRequestState.SUPERSEDED)
+        second = self.add_request("second", report_revision=1)
+        first = self.add_request("first", report_revision=0, primary=True)
+
+        assert [row["id"] for row in self.serialize_requests()] == [
+            str(first.id),
+            str(second.id),
+            str(older.id),
+        ]
+
+    def test_serializes_who_applied_it_failures_and_withdrawals(self) -> None:
+        now = timezone.now()
+        actor = {"id": str(self.user.id), "name": "Ada Lovelace"}
+        self.add_request(
+            state=InvestigationActionRequestState.APPLIED,
+            applied_by_id=self.user.id,
+            date_applied=now,
+            applied_details={"provider": "datadog", "rerun": None, "actor": actor},
+        )
+        self.add_request(
+            "failed",
+            state=InvestigationActionRequestState.FAILED,
+            error={"code": "validation_failed", "detail": {"dataSources": ["Bad window."]}},
+        )
+        self.add_request(
+            "withdrawn",
+            state=InvestigationActionRequestState.WITHDRAWN,
+            reason="The spikes are real.",
+        )
+
+        applied, failed, withdrawn = self.serialize_requests()
+
+        assert applied["appliedBy"] == actor
+        assert applied["appliedDetails"] == {"provider": "datadog", "rerun": None}
+        assert applied["dateApplied"] == now
+        assert failed["state"] == "failed"
+        assert failed["error"] == {
+            "code": "validation_failed",
+            "detail": {"dataSources": ["Bad window."]},
+        }
+        assert (withdrawn["state"], withdrawn["reason"]) == ("withdrawn", "The spikes are real.")
+
+    def test_hides_the_stored_applier_once_the_user_is_gone(self) -> None:
+        self.add_request(
+            state=InvestigationActionRequestState.APPLIED,
+            applied_by_id=None,
+            applied_details={"provider": "datadog", "rerun": None, "actor": {"id": "1"}},
+        )
+
+        (applied,) = self.serialize_requests()
+
+        assert applied["appliedBy"] is None
+
+    def test_query_count_does_not_grow_with_action_requests(self) -> None:
+        self.add_request("first-suggestion")
+        self.add_request(
+            state=InvestigationActionRequestState.APPLIED,
+            applied_by_id=self.user.id,
+            date_applied=timezone.now(),
+        )
+        self.add_request("connect", action={"kind": "connect_telemetry", "provider": "datadog"})
+        with CaptureQueriesContext(connection) as one:
+            self.serialize_requests()
+
+        other = self.create_user()
+        self.add_request("second")
+        self.add_request(
+            "third",
+            state=InvestigationActionRequestState.APPLIED,
+            applied_by_id=other.id,
+            date_applied=timezone.now(),
+        )
+        self.add_request("connect-gcp", action={"kind": "connect_telemetry", "provider": "gcp"})
+        for index in range(3):
+            self.add_request(f"older-{index}", report_revision=1)
+        with CaptureQueriesContext(connection) as many:
+            assert len(self.serialize_requests()) == 9
+
         assert len(many.captured_queries) == len(one.captured_queries)
