@@ -1181,6 +1181,22 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 raw="",
                 schema={},
             )
+        elif name == "scm_repository":
+            integration, _organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            resource = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id="123",
+                url="https://github.com/permission-matrix/repo",
+            )
         elif name == "data_forwarder":
             resource = self.create_data_forwarder(
                 organization=self.org,
@@ -1910,6 +1926,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "title": "Permission matrix dashboard mutation"
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
+            ("OrganizationCodeMappingsEndpoint", "POST"): {
+                "integrationId": self._resource("scm_repository").integration_id,
+                "repositoryId": self._resource("scm_repository").id,
+                "projectId": self.project.id,
+                "stackRoot": "/app/",
+                "sourceRoot": "src/",
+                "defaultBranch": "main",
+            },
             ("OrganizationDetectorIndexEndpoint", "PUT"): {"enabled": False},
             ("OrganizationGroupSearchViewsEndpoint", "POST"): {
                 "name": "Permission Matrix Issue View",
