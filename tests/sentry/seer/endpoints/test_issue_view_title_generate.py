@@ -26,27 +26,31 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
     def test_successful_title_generation(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": "My Assigned Errors"}
-        mock_request.return_value = mock_response
+        mock_request.return_value = {"title": "My Assigned Errors"}
+
+        query = "is:unresolved assigned:me level:error"
 
         response = self.client.post(
             self.url,
-            data={"query": "is:unresolved assigned:me level:error"},
+            data={"query": query},
             format="json",
         )
 
         assert response.status_code == 200
         assert response.data == {"title": "My Assigned Errors"}
-        mock_request.assert_called_once()
+        mock_request.assert_called_once_with(
+            "issue_view_title",
+            {"query": query},
+            self.organization,
+            user_id=self.user.id,
+            timeout=10,
+        )
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
     def test_title_is_stripped(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": "  Title With Whitespace  "}
-        mock_request.return_value = mock_response
+        mock_request.return_value = {"title": "  Title With Whitespace  "}
 
         response = self.client.post(
             self.url,
@@ -81,7 +85,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 403
         assert response.data == {"detail": "AI features are disabled for this organization."}
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
     def test_seer_api_error(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 
@@ -94,11 +98,9 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 500
         assert response.data == {"detail": "Failed to generate title"}
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
     def test_empty_response_from_seer(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": None}
-        mock_request.return_value = mock_response
+        mock_request.return_value = {"title": None}
 
         response = self.client.post(
             self.url,
@@ -109,11 +111,9 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 500
         assert response.data == {"detail": "No title returned from Seer"}
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
     def test_blank_response_from_seer(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": "   "}
-        mock_request.return_value = mock_response
+        mock_request.return_value = {"title": "   "}
 
         response = self.client.post(
             self.url,
@@ -124,11 +124,9 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 500
         assert response.data == {"detail": "No title returned from Seer"}
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
-    def test_long_query_is_truncated(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": "Generated Title"}
-        mock_request.return_value = mock_response
+    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
+    def test_long_query_is_forwarded_to_seer(self, mock_request: MagicMock) -> None:
+        mock_request.return_value = {"title": "Generated Title"}
 
         long_query = "x" * 600
 
@@ -139,17 +137,17 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         )
 
         assert response.status_code == 200
-        call_args = mock_request.call_args
-        request_body = call_args.args[0]
-        assert len(long_query[:500]) == 500
-        assert "x" * 500 in request_body["prompt"]
-        assert "x" * 600 not in request_body["prompt"]
+        mock_request.assert_called_once_with(
+            "issue_view_title",
+            {"query": long_query},
+            self.organization,
+            user_id=self.user.id,
+            timeout=10,
+        )
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
     def test_org_read_permission(self, mock_request: MagicMock) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": "My Assigned Errors"}
-        mock_request.return_value = mock_response
+        mock_request.return_value = {"title": "My Assigned Errors"}
 
         for scope in ["org:read", "org:write", "org:admin"]:
             token = self._create_token(scope)
@@ -161,7 +159,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
             assert response.status_code == 200
             assert response.data == {"title": "My Assigned Errors"}
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
     def test_requires_org_scope(self, mock_request: MagicMock) -> None:
         token = self._create_token("project:read")
         response = self._post_with_token(
