@@ -223,7 +223,7 @@ const StyledLeadingItems = styled('div')<{
   justify-content: center;
   flex-shrink: 0;
   /* Match the label's first line when details appear below it. */
-  min-height: 24px;
+  min-height: ${p => (p.hasDetails ? p.theme.font.lineHeight.fixed : '24px')};
   align-self: ${p => (p.hasDetails ? 'flex-start' : 'center')};
   align-items: center;
   margin-top: ${p => (p.hasDetails ? p.theme.space.xs : '0')};

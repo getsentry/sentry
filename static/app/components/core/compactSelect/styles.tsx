@@ -136,7 +136,7 @@ export function LeadWrap(props: FlexProps) {
       justify="center"
       align="center"
       minWidth="1em"
-      height="1.4em"
+      height="1rem"
       pointerEvents="none"
       {...props}
     />
