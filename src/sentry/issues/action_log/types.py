@@ -403,10 +403,10 @@ class SentryActorRef(BaseModel):
 
 
 class CommentAction(GroupAction):
-    """Historical creation payload: comment_id is an Activity NOTE ID."""
+    """Historical comment creation payload."""
 
     user_visible = True
-    comment_id: int
+    comment_id: int  # Activity NOTE ID
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -416,10 +416,10 @@ class CommentAction(GroupAction):
 
 
 class CommentEditAction(GroupAction):
-    """Historical edit payload: comment_id is the original COMMENT GAL ID."""
+    """Historical comment edit payload."""
 
     user_visible = True
-    comment_id: int
+    comment_id: int  # Original COMMENT GAL ID
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -429,10 +429,10 @@ class CommentEditAction(GroupAction):
 
 
 class CommentDeleteAction(GroupAction):
-    """Historical deletion payload: comment_id is the original COMMENT GAL ID."""
+    """Historical comment deletion payload."""
 
     user_visible = True
-    comment_id: int
+    comment_id: int  # Original COMMENT GAL ID
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -442,7 +442,7 @@ class CommentDeleteAction(GroupAction):
 class CommentCreatedAction(GroupAction):
     """Records comment creation. Current content lives in the Activity NOTE row."""
 
-    comment_id: int  # Activity NOTE ID, also used by the notes API.
+    comment_id: int  # Activity NOTE ID
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -452,7 +452,7 @@ class CommentCreatedAction(GroupAction):
 class CommentEditedAction(GroupAction):
     """Records a comment edit without storing previous or current comment content."""
 
-    comment_id: int  # Activity NOTE ID, not a GAL ID.
+    comment_id: int  # Activity NOTE ID
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -460,9 +460,9 @@ class CommentEditedAction(GroupAction):
 
 
 class CommentDeletedAction(GroupAction):
-    """Records comment deletion, referencing the deleted Activity NOTE ID."""
+    """Records comment deletion."""
 
-    comment_id: int
+    comment_id: int  # Activity NOTE ID
 
     @classmethod
     def get_type(cls) -> GroupActionType:
