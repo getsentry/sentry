@@ -62,6 +62,12 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import Detector
 
 pytestmark = [requires_snuba]
@@ -1962,6 +1968,17 @@ class DeleteGroupsTest(TestCase):
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+        request_context = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == self.organization.id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.user_id == self.user.id
+            assert viewer_context.actor_type == ActorType.USER
+
+        mock_delete_seer_grouping_records_by_hash.side_effect = assert_viewer_context
 
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
@@ -1973,7 +1990,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        with self.tasks():
+        with self.tasks(), viewer_context_scope(request_context):
             schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (

@@ -8,6 +8,7 @@ import hashlib
 import logging
 import time
 from collections.abc import Generator, Mapping
+from random import random
 from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
@@ -171,11 +172,14 @@ def observe_viewer_context_propagation(
     )
 
     # testing internal sampling on high volume metrics, not yet public api
-    attributes_with_sampling: dict[str, str | float] = {
-        **attributes,
-        "sentry.client_sample_rate": 0.001,
-    }
-    sentry_sdk.metrics.count("viewer_context.observation", 1, attributes=attributes_with_sampling)
+    if random() < 0.001:
+        attributes_with_sampling: dict[str, str | float] = {
+            **attributes,
+            "sentry.client_sample_rate": 0.001,
+        }
+        sentry_sdk.metrics.count(
+            "viewer_context.observation", 1, attributes=attributes_with_sampling
+        )
 
     if expected and ctx is None:
         log_extra: dict[str, Any] = dict(extra_attributes) if extra_attributes else {}

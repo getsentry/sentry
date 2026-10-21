@@ -181,6 +181,97 @@ class GitlabApiClientTest(GitLabTestCase):
 
 
 @control_silo_test
+class GitlabSourceUrlMatchesTest(GitLabTestCase):
+    def get_installation_for(self, base_url: str, domain_name: str) -> GitlabIntegration:
+        self.integration.update(
+            metadata={
+                **self.integration.metadata,
+                "base_url": base_url,
+                "domain_name": domain_name,
+            }
+        )
+        return get_installation_of_type(GitlabIntegration, self.integration, self.organization.id)
+
+    def test_gitlab_com(self) -> None:
+        installation = self.get_installation_for("https://gitlab.com", "gitlab.com/group-x")
+
+        assert installation.source_url_matches(
+            "https://gitlab.com/group-x/repo/blob/main/src/app.py"
+        )
+        assert installation.source_url_matches(
+            "https://gitlab.com/group-x/subgroup/repo/-/blob/main/src/app.py"
+        )
+        assert not installation.source_url_matches(
+            "https://gitlab.com/group-y/repo/blob/main/src/app.py"
+        )
+        assert not installation.source_url_matches(
+            "https://notgitlab.com/group-x/repo/blob/main/src/app.py"
+        )
+
+    def test_group_with_shared_name_prefix(self) -> None:
+        installation = self.get_installation_for("https://gitlab.com", "gitlab.com/group-x")
+
+        assert not installation.source_url_matches(
+            "https://gitlab.com/group-xy/repo/blob/main/src/app.py"
+        )
+
+    def test_http_instance(self) -> None:
+        installation = self.get_installation_for(
+            "http://gitlab.example.com", "gitlab.example.com/group-x"
+        )
+
+        assert installation.source_url_matches(
+            "http://gitlab.example.com/group-x/repo/blob/main/src/app.py"
+        )
+        assert installation.source_url_matches(
+            "https://gitlab.example.com/group-x/repo/blob/main/src/app.py"
+        )
+        assert not installation.source_url_matches(
+            "http://gitlab.example.com/group-y/repo/blob/main/src/app.py"
+        )
+
+    def test_instance_with_path_prefix(self) -> None:
+        installation = self.get_installation_for(
+            "https://example.com/gitlab", "example.com/group-x"
+        )
+
+        assert installation.source_url_matches(
+            "https://example.com/gitlab/group-x/repo/blob/main/src/app.py"
+        )
+        assert not installation.source_url_matches(
+            "https://example.com/gitlab/group-y/repo/blob/main/src/app.py"
+        )
+        assert not installation.source_url_matches(
+            "https://example.com/group-x/repo/blob/main/src/app.py"
+        )
+
+    def test_base_url_with_trailing_slash(self) -> None:
+        installation = self.get_installation_for("https://example.com/", "example.com/group-x")
+
+        assert installation.source_url_matches(
+            "https://example.com/group-x/repo/blob/main/src/app.py"
+        )
+
+    def test_integration_without_group(self) -> None:
+        installation = self.get_installation_for("https://example.com/gitlab", "example.com")
+
+        assert installation.source_url_matches(
+            "https://example.com/gitlab/any-group/repo/blob/main/src/app.py"
+        )
+        assert not installation.source_url_matches(
+            "https://example.com/gitlab-other/any-group/repo/blob/main/src/app.py"
+        )
+
+    def test_matches_own_source_links(self) -> None:
+        installation = self.get_installation_for("http://example.com/gitlab", "example.com/group-x")
+        repo = Repository(config={"path": "group-x/repo"})
+
+        assert installation.source_url_matches(
+            installation.format_source_url(repo, "src/app.py", "main")
+        )
+
+
+@control_silo_test
 class GitlabIssueSyncTest(GitLabTestCase):
     def _setup_assignee_sync_test(
         self,

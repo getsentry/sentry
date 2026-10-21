@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {ListItem} from '@sentry/scraps/menu';
 
 import {defined} from 'sentry/utils/defined';
 
@@ -36,7 +36,7 @@ export function SelectOption(props: Props) {
   return (
     <ClassNames>
       {({cx}) => (
-        <MenuListItem
+        <ListItem
           {...itemProps}
           {...innerProps}
           role={isMultiple ? 'menuitemcheckbox' : 'menuitemradio'}

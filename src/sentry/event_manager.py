@@ -164,7 +164,6 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -2948,8 +2947,9 @@ def save_transaction_events(
                 )
             except KeyError:
                 continue
-    set_span_attribute("jobs", len(jobs))
-    set_span_attribute("projects", len(projects))
+    span = traces.get_current_span()
+    if span:
+        span.set_attributes({"jobs": len(jobs), "projects": len(projects)})
 
     # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 

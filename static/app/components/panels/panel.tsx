@@ -1,7 +1,7 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {PanelProvider} from 'sentry/utils/panelProvider';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   dashedBorder?: boolean;

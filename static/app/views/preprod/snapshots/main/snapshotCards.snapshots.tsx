@@ -7,8 +7,7 @@ import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 import {CardHeader, ImageCard, PairCard} from './snapshotCards';
 
 jest.mock('@sentry/scraps/badge', () => ({
-  ...jest.requireActual('sentry/components/core/badge/badge'),
-  ...jest.requireActual('sentry/components/core/badge/tag'),
+  ...jest.requireActual('@sentry/scraps/badge'),
 }));
 
 jest.mock('@sentry/scraps/layout', () => {
