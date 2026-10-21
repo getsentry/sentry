@@ -298,7 +298,7 @@ function DropdownMenuList({
             }
             minHeight={minMenuHeight as CSS['minHeight']}
             maxHeight={overlayPositionProps.style?.maxHeight as CSS['maxHeight']}
-            maxWidth="calc(100vw - 16px)"
+            maxWidth="100%"
           >
             {stackProps => (
               <Overlay {...stackProps}>
