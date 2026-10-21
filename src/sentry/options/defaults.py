@@ -453,6 +453,26 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
+# default so deletion volume can be measured before anything is removed.
+register(
+    "cleanup.notification-thread.dry-run",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.retention-days",
+    default=90,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.batch-size",
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Symbol server
 register(
