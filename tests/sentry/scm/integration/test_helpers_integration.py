@@ -1,10 +1,13 @@
+from unittest.mock import patch
+
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.types import Repository
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.private.helpers import fetch_repository, fetch_service_provider
+from sentry.scm.private.helpers import fetch_repository, fetch_service_provider, make_fetchers
 from sentry.testutils.cases import TestCase
 
 
@@ -361,3 +364,36 @@ class TestFetchServiceProvider(TestCase):
             ),
         ):
             assert fetch_service_provider(self.organization.id, repository) is None
+
+
+class TestMakeFetchers(TestCase):
+    def test_fetchers_fetch_the_integration_once(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-fetchers-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9001",
+            integration_id=integration.id,
+        )
+        fetchers = make_fetchers()
+
+        with patch(
+            "sentry.scm.private.helpers.integration_service", wraps=integration_service
+        ) as service:
+            repository = fetchers.fetch_repository(self.organization.id, repo.id)
+            assert repository is not None
+            provider = fetchers.fetch_provider(self.organization.id, repository)
+
+        assert isinstance(provider, GitHubProvider)
+        assert service.get_integration.call_count == 1
