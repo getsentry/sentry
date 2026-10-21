@@ -59,7 +59,7 @@ def _replace_primary(investigation: Investigation, row: InvestigationActionReque
 
 
 def upsert_action_request(
-    run: InvestigationOrchestrationRun, item: ActionRequestItem
+    run: InvestigationOrchestrationRun, item: ActionRequestItem, *, replace_primary: bool = True
 ) -> InvestigationActionRequest:
     """Store one request by its key. The caller holds the investigation and run locks.
 
@@ -113,7 +113,8 @@ def upsert_action_request(
                 "investigations.action_requests.terminal_key_reused",
                 extra={"action_request_id": row.id, "state": row.state},
             )
-        _replace_primary(investigation, row)
+        if replace_primary:
+            _replace_primary(investigation, row)
     return row
 
 
@@ -138,8 +139,14 @@ def sync_snapshot_action_requests(
 ) -> None:
     """Make a snapshot's full list authoritative: live requests it omits are superseded."""
 
+    primary: InvestigationActionRequest | None = None
     for item in items:
-        upsert_action_request(run, item)
+        row = upsert_action_request(run, item, replace_primary=False)
+        if item["primary"] and (primary is None or row.report_revision >= primary.report_revision):
+            primary = row
+    # Pick the primary once, so the result does not depend on the list order.
+    if primary is not None:
+        _replace_primary(run.investigation, primary)
     _supersede(
         InvestigationActionRequest.objects.filter(investigation=run.investigation).exclude(
             key__in=[item["key"] for item in items]

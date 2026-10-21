@@ -2823,6 +2823,34 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "widen-window": InvestigationActionRequestState.SUGGESTED,
         }
 
+    def test_a_snapshot_keeps_one_primary_whatever_the_order(self) -> None:
+        failed = self.create_investigation_action_request(
+            investigation=self.investigation,
+            key="failed",
+            report_revision=1,
+            primary=True,
+            state=InvestigationActionRequestState.FAILED,
+            error={"code": "validation_failed"},
+        )
+
+        self.deliver(
+            self.completed_snapshot(
+                5,
+                blocks=[],
+                actionRequests=[
+                    self.action_request("newer", primary=True),
+                    self.action_request("failed", primary=True, action=failed.action_payload),
+                ],
+            )
+        )
+
+        assert self.request_states() == {
+            "newer": InvestigationActionRequestState.SUPERSEDED,
+            "failed": InvestigationActionRequestState.FAILED,
+        }
+        failed.refresh_from_db()
+        assert failed.error == {"code": "validation_failed"}
+
     def test_snapshot_without_action_requests_leaves_them_alone(self) -> None:
         self.create_investigation_action_request(investigation=self.investigation, key="current")
 
