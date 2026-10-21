@@ -10,6 +10,7 @@ from django.http.response import HttpResponseBase
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.agent_token import is_agent_auth
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     viewer_context_from_header,
@@ -46,7 +47,12 @@ def ViewerContextMiddleware(
         request_ctx = _viewer_context_from_request(request)
         jwt_ctx = _viewer_context_from_jwt_header(request)
 
-        if jwt_ctx is not None and request_ctx.user_id is not None:
+        if jwt_ctx is not None and getattr(request, "user_from_viewer_context", False):
+            ctx = jwt_ctx
+        elif jwt_ctx is not None and (
+            request_ctx.actor.type == ActorType.USER
+            or request_ctx.actor.delegated_user_id is not None
+        ):
             # Direct user or agent authentication is authoritative when both are present.
             if (
                 jwt_ctx.organization_id is not None
@@ -93,16 +99,14 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
 
     # An agent token is a non-user actor: the request user is anonymous, so read the
     # delegating user it acts on behalf of from the credential.
+    superuser = auth.superuser if isinstance(auth, AuthenticatedToken) else None
     if auth is not None and is_agent_auth(auth):
-        actor_type = ActorType.AGENT
-        user_id = auth.user_id
+        actor = Actor(type=ActorType.AGENT, delegated_user_id=auth.user_id, superuser=superuser)
     else:
-        actor_type = ActorType.USER
+        actor = (
+            Actor(type=ActorType.USER, actor_id=user_id, superuser=superuser)
+            if user_id is not None
+            else Actor(type=ActorType.UNKNOWN)
+        )
 
-    return ViewerContext(
-        user_id=user_id,
-        organization_id=organization_id,
-        actor_type=actor_type,
-        token=auth,
-        superuser=auth.superuser if isinstance(auth, AuthenticatedToken) else None,
-    )
+    return ViewerContext(actor=actor, organization_id=organization_id)
