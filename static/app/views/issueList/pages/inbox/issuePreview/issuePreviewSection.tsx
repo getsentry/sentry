@@ -51,14 +51,7 @@ export function IssuePreviewSection({children, section, summary}: Props) {
   const {title, prompt, placeholder} = labels;
 
   return (
-    <Stack
-      as="section"
-      aria-label={title}
-      border="primary"
-      radius="md"
-      padding="lg"
-      gap="lg"
-    >
+    <Stack as="section" aria-label={title} gap="lg">
       <RetryableAutofixSection.Prompt prompt={prompt} placeholder={placeholder} />
       <Flex align="start" gap="lg">
         <Container flex="1" minWidth={0}>
