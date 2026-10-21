@@ -400,8 +400,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 </Flex>
               ) : null}
             </Grid>
-            <Flex align="center" justify="between" gap="md" wrap="wrap">
-              <Flex align="center" gap="sm" wrap="wrap">
+            <Flex align="center" justify="between" gap="md">
+              <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
                 {source.groupId ? (
                   <Link
                     to={normalizeUrl(
@@ -456,23 +456,25 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   separator={<MetaDivider />}
                 />
               </Flex>
-              <FeedbackButton
-                feedbackOptions={{
-                  formTitle: t('Give feedback on this investigation'),
-                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                  tags: {
-                    'feedback.source': 'investigation',
-                    'feedback.owner': 'ml-ai',
-                    'investigation.id': investigation.id,
-                    'investigation.source_type': investigation.sourceType,
-                    ...(investigation.template
-                      ? {'investigation.template': investigation.template.key}
-                      : {}),
-                  },
-                }}
-              >
-                {t('Give feedback')}
-              </FeedbackButton>
+              <Container flexShrink={0}>
+                <FeedbackButton
+                  feedbackOptions={{
+                    formTitle: t('Give feedback on this investigation'),
+                    messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                    tags: {
+                      'feedback.source': 'investigation',
+                      'feedback.owner': 'ml-ai',
+                      'investigation.id': investigation.id,
+                      'investigation.source_type': investigation.sourceType,
+                      ...(investigation.template
+                        ? {'investigation.template': investigation.template.key}
+                        : {}),
+                    },
+                  }}
+                >
+                  {t('Give feedback')}
+                </FeedbackButton>
+              </Container>
             </Flex>
           </Stack>
         </Container>
