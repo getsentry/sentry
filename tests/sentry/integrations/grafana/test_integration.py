@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+import responses
 
 from sentry.integrations.grafana.integration import (
     GrafanaIntegration,
@@ -13,6 +14,22 @@ from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 
 GRAFANA_URL = "https://example-stack.grafana.net"
+DATASOURCES = [
+    {"uid": "prom-uid", "name": "Prometheus", "type": "prometheus", "url": "https://prom"},
+    {"uid": "loki-uid", "name": "Loki", "type": "loki", "url": "https://loki"},
+]
+
+
+def mock_grafana(
+    *,
+    url: str = GRAFANA_URL,
+    datasources_status: int = 200,
+    datasources: Any = DATASOURCES,
+) -> None:
+    responses.add(responses.GET, f"{url}/api/health", json={"database": "ok", "version": "13.3.0"})
+    responses.add(
+        responses.GET, f"{url}/api/datasources", status=datasources_status, json=datasources
+    )
 
 
 @control_silo_test
@@ -47,9 +64,12 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         ).config
 
+    @responses.activate
     def test_build_integration_stores_token_in_metadata_and_url_in_post_install_config(
         self,
     ) -> None:
+        mock_grafana()
+
         result = self._provider().build_integration(
             self._pipeline_state(url="https://Example-Stack.grafana.net/")
         )
@@ -57,15 +77,27 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
         assert result["external_id"] == str(self.organization.id)
         assert result["name"] == "Grafana (example-stack.grafana.net)"
         assert result["metadata"] == {"token": "glsa_old_abcd"}
+
         assert result["post_install_data"] == {"config": {"url": GRAFANA_URL}}
+        assert responses.calls[1].request.headers["Authorization"] == "Bearer glsa_old_abcd"
 
     def test_build_integration_raises_when_config_is_missing(self) -> None:
         with pytest.raises(IntegrationConfigurationError):
             self._provider().build_integration({})
 
+    @responses.activate
     def test_build_integration_raises_for_non_cloud_grafana_url(self) -> None:
         with pytest.raises(IntegrationConfigurationError, match="Grafana Cloud URL"):
             self._provider().build_integration(self._pipeline_state(url="https://grafana.internal"))
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_build_integration_raises_when_validate_connection_fails(self) -> None:
+        mock_grafana(datasources_status=401, datasources={"messageId": "api-key.invalid"})
+
+        with pytest.raises(IntegrationConfigurationError, match="rejected the token"):
+            self._provider().build_integration(self._pipeline_state())
 
     def test_post_install_writes_config_to_org_integration(self) -> None:
         integration = self.create_integration(
@@ -89,8 +121,10 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
 
         assert [f["name"] for f in fields] == ["url", "token"]
 
+    @responses.activate
     def test_update_organization_config_saves_new_token(self) -> None:
         integration = self._create_integration()
+        mock_grafana()
 
         self._installation(integration).update_organization_config(
             {"url": GRAFANA_URL, "token": "glsa_new_wxyz"}
@@ -99,11 +133,14 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
         integration.refresh_from_db()
         assert integration.metadata == {"token": "glsa_new_wxyz"}
         assert "token" not in self._org_integration_config(integration)
+        assert responses.calls[1].request.headers["Authorization"] == "Bearer glsa_new_wxyz"
 
+    @responses.activate
     def test_update_organization_config_renames_integration_when_url_changes(self) -> None:
         other_grafana_url = "https://other-stack.grafana.net"
 
         integration = self._create_integration()
+        mock_grafana(url=other_grafana_url)
 
         self._installation(integration).update_organization_config({"url": other_grafana_url})
 
@@ -111,6 +148,32 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
         assert integration.name == "Grafana (other-stack.grafana.net)"
         assert integration.metadata == {"token": "glsa_old_abcd"}
         assert self._org_integration_config(integration)["url"] == other_grafana_url
+
+    @responses.activate
+    def test_update_organization_config_raises_when_validate_connection_fails_for_new_token(
+        self,
+    ) -> None:
+        integration = self._create_integration()
+        mock_grafana(datasources_status=401, datasources={"messageId": "api-key.invalid"})
+
+        with pytest.raises(IntegrationConfigurationError, match="rejected the token"):
+            self._installation(integration).update_organization_config({"token": "glsa_bad_0000"})
+
+        integration.refresh_from_db()
+        assert integration.metadata == {"token": "glsa_old_abcd"}
+
+    @responses.activate
+    def test_update_organization_config_raises_when_validate_connection_fails_without_changes(
+        self,
+    ) -> None:
+        integration = self._create_integration()
+        mock_grafana(datasources_status=401, datasources={"messageId": "api-key.invalid"})
+
+        # The settings form sends the stored URL and a blank token.
+        with pytest.raises(IntegrationConfigurationError, match="rejected the token"):
+            self._installation(integration).update_organization_config(
+                {"url": GRAFANA_URL, "token": ""}
+            )
 
     def test_update_organization_config_raises_for_non_cloud_grafana_url(self) -> None:
         integration = self._create_integration()

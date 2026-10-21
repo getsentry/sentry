@@ -18,7 +18,10 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.grafana.client import normalize_grafana_url
+from sentry.integrations.grafana.client import (
+    normalize_grafana_url,
+    validate_grafana_connection,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -114,7 +117,10 @@ class GrafanaIntegration(IntegrationInstallation):
         ]
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        """Save URL/token edits."""
+        """Save URL/token edits, or re-test the connection when nothing changed.
+
+        Raises if the connection check fails, even when nothing changed.
+        """
         config = self.org_integration.config
         stored_token = (self.model.metadata or {}).get("token")
         if not config.get("url") or not stored_token:
@@ -122,8 +128,7 @@ class GrafanaIntegration(IntegrationInstallation):
 
         url = normalize_grafana_url(data["url"]) if data.get("url") else config["url"]
         token = data.get("token") or stored_token
-        if url == config["url"] and token == stored_token:
-            return
+        validate_grafana_connection(url, token)
 
         name = f"Grafana ({url.removeprefix('https://')})"
         integration_service.update_integration(
@@ -155,6 +160,7 @@ class GrafanaIntegrationProvider(IntegrationProvider):
 
         url = normalize_grafana_url(config["url"])
         token: str = config["token"]
+        validate_grafana_connection(url, token)
 
         assert self.pipeline.organization is not None
         return {
