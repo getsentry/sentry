@@ -10,13 +10,13 @@ import type {
   TooltipComponentFormatterCallbackParams,
   YAXisComponentOption,
 } from 'echarts';
+import {graphic} from 'echarts/core';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {EChartChartReadyHandler, ECharts} from 'sentry/types/echarts';
 
 const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
-const INCIDENT_MARKER_AREA_SERIES_ID = '__incident_marker_area__';
 const INCIDENT_MARKER_PERSISTENT_AREA_SERIES_ID = '__incident_marker_area_persistent__';
 const INCIDENT_MARKER_HEIGHT = 6;
 const INCIDENT_MARKER_PADDING_Y = 4;
@@ -103,6 +103,24 @@ const getPriorityColor = ({
 }) => {
   return priority === 'medium' ? theme.colors.yellow400 : theme.colors.red400;
 };
+
+type ChartGridRect = {height: number; width: number; x: number; y: number};
+
+function getChartGridRect(chart: ECharts): ChartGridRect | undefined {
+  // `getModel` and the grid's coordinate system aren't in ECharts' public types
+  const model = (
+    chart as unknown as {
+      getModel: () => {
+        getComponent: (
+          mainType: string,
+          index: number
+        ) => {coordinateSystem?: {getRect: () => ChartGridRect}} | undefined;
+      };
+    }
+  ).getModel();
+
+  return model.getComponent('grid', 0)?.coordinateSystem?.getRect();
+}
 
 function findIncidentPeriodAtPoint(
   chart: ECharts,
@@ -420,7 +438,15 @@ export function useIncidentMarkers({
 
       const zr = echartsInstance.getZr();
 
-      let highlightedIncidentPeriod: IncidentPeriod | undefined;
+      // Drawn directly on the canvas because updating the chart options would
+      // re-render the series and drop the hovered data point's symbol
+      const incidentPeriodHighlight = new graphic.Rect({
+        silent: true,
+        z: 1,
+        ignore: true,
+      });
+
+      zr.add(incidentPeriodHighlight);
 
       const findIncidentPeriodAtEvent = (event: ElementEvent) =>
         findIncidentPeriodAtPoint(
@@ -430,61 +456,51 @@ export function useIncidentMarkers({
           seriesId
         );
 
-      const highlightIncidentPeriod = (data: IncidentPeriod) => {
-        // Create an empty series that has a `markArea` which highlights the
-        // incident time period on the main chart so users can visualize the
-        // time block that has the incident.
-        const customSeries: CustomSeriesOption = {
-          id: INCIDENT_MARKER_AREA_SERIES_ID,
-          type: 'custom',
-          renderItem: () => null,
-          silent: true,
-          markArea: {
-            itemStyle: {
-              color: getPriorityColor({
-                priority: data.priority,
-                theme,
-              }),
-              opacity: 0.2,
-            },
-            data: [
-              [
-                {
-                  xAxis: data.start,
-                },
-                {
-                  xAxis: data.end,
-                },
-              ],
-            ],
-          },
-        };
-        echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
-      };
+      // Highlights the incident time period on the main chart so users can
+      // visualize the time block that has the incident
+      const highlightIncidentPeriod = (incidentPeriod: IncidentPeriod) => {
+        const gridRect = getChartGridRect(echartsInstance);
 
-      const clearHighlightedIncidentPeriod = () => {
-        // Clear the `markArea` that was drawn during mouse over
-        echartsInstance.setOption(
-          {
-            series: [{id: INCIDENT_MARKER_AREA_SERIES_ID, markArea: {data: []}}],
-          },
-          {
-            lazyUpdate: true,
-          }
-        );
+        const [startX] = echartsInstance.convertToPixel({seriesId}, [
+          incidentPeriod.start,
+          0,
+        ]);
+
+        const [endX] = echartsInstance.convertToPixel({seriesId}, [
+          incidentPeriod.end,
+          0,
+        ]);
+
+        if (!gridRect || startX === undefined || endX === undefined) {
+          return;
+        }
+
+        const clippedStartX = Math.max(startX, gridRect.x);
+
+        const clippedEndX = Math.min(endX, gridRect.x + gridRect.width);
+
+        incidentPeriodHighlight.setShape({
+          x: clippedStartX,
+          y: gridRect.y,
+          width: clippedEndX - clippedStartX,
+          height: gridRect.height,
+        });
+
+        incidentPeriodHighlight.setStyle({
+          fill: getPriorityColor({priority: incidentPeriod.priority, theme}),
+          opacity: 0.2,
+        });
+
+        incidentPeriodHighlight.show();
       };
 
       const handleMouseMove = (event: ElementEvent) => {
         const hoveredIncidentPeriod = findIncidentPeriodAtEvent(event);
 
-        if (hoveredIncidentPeriod !== highlightedIncidentPeriod) {
-          highlightedIncidentPeriod = hoveredIncidentPeriod;
-
-          if (hoveredIncidentPeriod) {
-            highlightIncidentPeriod(hoveredIncidentPeriod);
-          } else {
-            clearHighlightedIncidentPeriod();
-          }
+        if (hoveredIncidentPeriod) {
+          highlightIncidentPeriod(hoveredIncidentPeriod);
+        } else {
+          incidentPeriodHighlight.hide();
         }
 
         if (hoveredIncidentPeriod && latestOnClickRef.current) {
@@ -495,9 +511,7 @@ export function useIncidentMarkers({
       };
 
       const handleGlobalOut = () => {
-        highlightedIncidentPeriod = undefined;
-
-        clearHighlightedIncidentPeriod();
+        incidentPeriodHighlight.hide();
       };
 
       // zrender skips clicks that end a drag, so drag-to-zoom still works
@@ -517,6 +531,7 @@ export function useIncidentMarkers({
         zr.off('mousemove', handleMouseMove);
         zr.off('globalout', handleGlobalOut);
         zr.off('click', handleClick);
+        zr.remove(incidentPeriodHighlight);
       };
     },
     [seriesId, theme]
