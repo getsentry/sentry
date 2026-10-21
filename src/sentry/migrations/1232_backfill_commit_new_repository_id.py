@@ -38,7 +38,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1230_add_commit_new_repository_id_no_check"),
+        ("sentry", "1231_drop_group_logger_indexes"),
     ]
 
     operations = [

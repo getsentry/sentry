@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 class BackfillCommitNewRepositoryIdTest(TestMigrations):
     app = "sentry"
-    migrate_from = "1230_add_commit_new_repository_id_no_check"
-    migrate_to = "1231_backfill_commit_new_repository_id"
+    migrate_from = "1231_drop_group_logger_indexes"
+    migrate_to = "1232_backfill_commit_new_repository_id"
 
     def setup_initial_state(self):
         self.organization = self.create_organization()
