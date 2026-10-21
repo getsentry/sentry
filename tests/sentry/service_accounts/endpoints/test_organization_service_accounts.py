@@ -1,9 +1,14 @@
+from typing import Any
 from unittest import mock
 
 from django.urls import reverse
+from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.service_accounts.endpoints.organization_service_accounts import (
+    OrganizationServiceAccountDetailsEndpoint,
+)
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.service_accounts.services.service_account.service import get_service_account
 from sentry.silo.base import SiloMode
@@ -410,6 +415,42 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
         assert "event:read" in str(response.data["detail"])
         self.service_account.refresh_from_db()
         assert self.service_account.scope_list == ["org:read", "project:read"]
+
+    def test_update_after_concurrent_delete_returns_404(self) -> None:
+        convert_args = OrganizationServiceAccountDetailsEndpoint.convert_args
+        service_account_id = self.service_account.id
+
+        def convert_args_then_delete(
+            endpoint: OrganizationServiceAccountDetailsEndpoint,
+            request: Request,
+            *args: Any,
+            **kwargs: Any,
+        ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+            args, kwargs = convert_args(endpoint, request, *args, **kwargs)
+            ServiceAccount.objects.get(id=service_account_id).delete()
+            return args, kwargs
+
+        with (
+            mock.patch.object(
+                OrganizationServiceAccountDetailsEndpoint,
+                "convert_args",
+                autospec=True,
+                side_effect=convert_args_then_delete,
+            ),
+            self.feature(FEATURE_FLAG),
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                service_account_id,
+                method="put",
+                name="renamed",
+                status_code=404,
+            )
+
+        assert not ServiceAccount.objects.filter(id=service_account_id).exists()
+        assert not AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT")
+        ).exists()
 
     def test_update_requires_org_admin(self) -> None:
         member = self.create_user()

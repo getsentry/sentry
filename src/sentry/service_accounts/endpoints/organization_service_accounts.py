@@ -403,6 +403,9 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
                 if "projectIds" in data:
                     _replace_projects(service_account, data["projectIds"] or [])
                 service_account.save()
+        except ServiceAccount.DoesNotExist:
+            # Deleted by another request after convert_args loaded it.
+            raise ResourceDoesNotExist
         except IntegrityError:
             return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
 
