@@ -333,10 +333,10 @@ def update_groups_with_search_fn(
             return Response(
                 {"detail": "Invalid query. Error getting group ids and group list"}, status=400
             )
-        except InvalidSearchQuery as exc:
+        except InvalidSearchQuery:
             # Raised while building the Snuba query (e.g. `issue:` with an
             # invalid short ID). This is a client error; don't report it.
-            return Response({"detail": str(exc)}, status=400)
+            return Response({"detail": "Invalid search query."}, status=400)
 
         group_list = list(cursor_result)
 
