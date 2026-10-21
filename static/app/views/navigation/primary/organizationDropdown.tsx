@@ -87,10 +87,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     />
   );
   const createOrganizationItem = makeCreateOrganizationMenuItem();
-  const memberProjects = sortProjects(projects.filter(project => project.isMember));
-  const otherProjects = sortProjects(projects.filter(project => !project.isMember));
 
   if (settingsV3) {
+    const memberProjects = sortProjects(projects.filter(project => project.isMember));
+    const otherProjects = sortProjects(projects.filter(project => !project.isMember));
+
     return (
       <DropdownMenu
         usePortal
