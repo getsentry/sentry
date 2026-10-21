@@ -83,7 +83,7 @@ describe('BlockCommentsDrawer', () => {
     renderPage();
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Cell actions for Summary'})
+      await screen.findByRole('button', {name: 'Block actions for Summary'})
     );
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Comment'}));
 
@@ -245,7 +245,7 @@ describe('BlockCommentsDrawer', () => {
     });
     renderPage();
 
-    await screen.findByRole('button', {name: 'Cell actions for Summary'});
+    await screen.findByRole('button', {name: 'Block actions for Summary'});
     await waitFor(() => expect(counts).toHaveBeenCalled());
     expect(
       screen.queryByRole('button', {name: 'Comment on Summary'})

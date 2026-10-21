@@ -473,7 +473,7 @@ export function useLaunchInvestigationMutation(
         method: 'POST',
         // No `templateKey`: the metric snapshot is enough for the server to
         // build an agentic run, which is what gives this investigation
-        // hypotheses instead of a fixed sequence of notebook cells. The
+        // hypotheses instead of a fixed sequence of notebook blocks. The
         // candidates endpoint matches agentic and template lineage keys alike,
         // so an already-investigated breach still resolves to "View".
         data: {source},
