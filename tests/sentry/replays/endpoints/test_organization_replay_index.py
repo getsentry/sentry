@@ -1106,7 +1106,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url, {"field": "id", "query": query})
                 assert response.status_code == 400, query
 
-    def test_get_replays_out_of_range_date(self) -> None:
+    def test_get_replays_far_future_end_is_clamped(self) -> None:
         project = self.create_project(teams=[self.team])
         replay_id = uuid.uuid4().hex
         timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -1117,8 +1117,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(
                 self.url, {"field": "id", "start": start, "end": "9999-12-31T23:59:59Z"}
             )
-            assert response.status_code == 400
-            assert response.json() == {"detail": "Invalid date range: start or end is out of range"}
+            assert response.status_code == 200
+            assert [r["id"] for r in response.json()["data"]] == [replay_id]
 
     def test_get_replays_filter_bad_value(self) -> None:
         """Test replays conform to the interchange format."""
