@@ -5,12 +5,10 @@ from sentry.incidents.models.alert_rule import (
 from sentry.testutils.cases import TestCase
 
 
-class IncidentAlertRuleRelationTest(TestCase):
+class AlertRuleSnapshotTest(TestCase):
     def test(self) -> None:
         self.alert_rule = self.create_alert_rule()
-        self.incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
 
-        assert self.incident.alert_rule.id == self.alert_rule.id
         all_alert_rules = list(AlertRule.objects.all())
         assert self.alert_rule in all_alert_rules
 
@@ -19,7 +17,6 @@ class IncidentAlertRuleRelationTest(TestCase):
 
         all_alert_rules = list(AlertRule.objects.all())
         assert self.alert_rule not in all_alert_rules
-        assert self.incident.alert_rule.id == self.alert_rule.id
 
 
 class AlertRuleFetchForProjectTest(TestCase):

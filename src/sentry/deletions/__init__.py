@@ -104,7 +104,6 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(discover.DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     manager.register(discover.DiscoverSavedQueryProject, BulkModelDeletionTask)
     manager.register(incidents.AlertRule, defaults.AlertRuleDeletionTask)
-    manager.register(incidents.Incident, defaults.IncidentDeletionTask)
     manager.register(integrations.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
     manager.register(investigations.Investigation, defaults.InvestigationDeletionTask)
