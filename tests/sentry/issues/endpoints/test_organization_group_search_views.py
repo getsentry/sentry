@@ -462,7 +462,8 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "query" in response.data
         assert str(response.data["query"][0]) == (
             "Invalid issue search query: Boolean statements containing "
-            '"OR" or "AND" are not supported in this search'
+            '"OR" or "AND" are not supported in this search. '
+            "To match any of several values, use a list: key:[value1, value2]"
         )
 
         assert not GroupSearchView.objects.filter(
