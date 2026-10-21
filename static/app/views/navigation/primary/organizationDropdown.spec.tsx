@@ -61,6 +61,22 @@ describe('OrganizationDropdown', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toBeInTheDocument();
   });
 
+  it('keeps the settings v3 menu width with a long project slug', async () => {
+    const slug = 'a-very-long-project-slug-that-should-not-widen-the-menu';
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug, isBookmarked: true})]);
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    expect(
+      screen.getByRole('menuitemradio', {name: slug}).closest('[data-overlay]')
+    ).toHaveStyle({
+      width: '258px',
+    });
+  });
+
   it('filters projects in the settings v3 All Projects submenu', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', slug: 'javascript', isMember: true, isBookmarked: true}),
