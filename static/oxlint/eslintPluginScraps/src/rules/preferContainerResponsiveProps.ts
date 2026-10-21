@@ -119,7 +119,7 @@ export const preferContainerResponsiveProps = defineRule({
           return;
         }
         const atRules: ParsedCssAtRule[] = [];
-        parseCssTemplate(node.quasi, context.sourceCode.getText(node.quasi), atRules);
+        parseCssTemplate(node.quasi, context.sourceCode.getText(node.quasi), {atRules});
         for (const atRule of atRules) {
           if (
             atRule.name === 'container' ||
