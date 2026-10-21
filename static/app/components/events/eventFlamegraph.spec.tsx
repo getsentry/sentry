@@ -22,10 +22,11 @@ const diagnostic = {
   version: '1',
   platform: 'cocoa',
   frames: [{function: 'main', instruction_addr: '0x1000', in_app: true}],
-  trees: [
-    {roots: [{frame_id: 0, sample_count: 10}]},
-    {thread_id: '7', roots: [{frame_id: 0, sample_count: 3}]},
+  nodes: [
+    {frame_id: 0, sample_count: 10},
+    {frame_id: 0, sample_count: 3},
   ],
+  trees: [{roots: [0]}, {thread_id: '7', roots: [1]}],
 };
 
 describe('Event flamegraph', () => {
@@ -126,7 +127,11 @@ describe('Event flamegraph', () => {
     MockApiClient.addMockResponse({url: listUrl, body: [attachment, second]});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${second.event_id}/attachments/${second.id}/`,
-      body: {...diagnostic, trees: [{roots: [{frame_id: 0, sample_count: 2}]}]},
+      body: {
+        ...diagnostic,
+        nodes: [{frame_id: 0, sample_count: 2}],
+        trees: [{roots: [0]}],
+      },
     });
     render(<EventFlamegraph event={event} project={project} />, {organization});
     expect(await screen.findByText('10 samples')).toBeInTheDocument();
