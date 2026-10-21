@@ -20,6 +20,7 @@ MAX_POINTS_PER_SERIES = 200
 MAX_ARTIFACT_BYTES = 1024 * 1024
 MAX_MARKDOWN_CHARS = 100_000
 MAX_PROJECTION_BYTES = 512 * 1024
+MAX_THOUGHT_TEXT_CHARS = 1_500
 
 
 def json_byte_size(value: Any) -> int:
@@ -420,8 +421,10 @@ class ProjectionErrorSerializer(RelaxedContractSerializer):
 class ToolActivitySerializer(RelaxedContractSerializer):
     id = StrictCharField(max_length=128)
     title = StrictCharField(max_length=200)
-    kind = serializers.ChoiceField(choices=["api", "library", "tool", "step"])
+    # A "thought" is the agent's reasoning before the calls that follow it, carried in `text`.
+    kind = serializers.ChoiceField(choices=["api", "library", "tool", "step", "thought"])
     status = serializers.ChoiceField(choices=["queued", "running", "completed", "failed"])
+    text = OptionalStrictCharField(MAX_THOUGHT_TEXT_CHARS)
 
 
 class ProjectScopedSerializer(RelaxedContractSerializer):
