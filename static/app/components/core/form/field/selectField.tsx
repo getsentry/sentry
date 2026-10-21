@@ -70,7 +70,7 @@ export function SelectField<TValue>({
             {...selectVariantProps}
             id={id}
             inputRef={fieldRef}
-            {...(autoSaveContext && {blurInputOnSelect: false})}
+            blurInputOnSelect={false}
             renderIndicators={indicators => (
               <SelectIndicatorsContainer>{indicators}</SelectIndicatorsContainer>
             )}
@@ -105,9 +105,8 @@ export function SelectField<TValue>({
                 (onChange as (value: TValue) => void)(
                   (option as SelectValue<TValue>).value
                 );
-                if (autoSaveContext) {
-                  fieldProps.onBlur();
-                }
+                // Preserve blur validation and auto-save after selection.
+                fieldProps.onBlur();
               }
             }}
           />

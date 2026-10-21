@@ -23,6 +23,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -50,7 +51,8 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
+  // TODO: Narrow to WidgetTimeSeries[] once every widget query hook returns it
+  timeseriesResults?: Array<Series | WidgetTimeSeries>;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
@@ -69,7 +71,8 @@ export type GenericWidgetQueriesResult = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
-  timeseriesResults?: Series[];
+  // TODO: Narrow to WidgetTimeSeries[] once every widget query hook returns it
+  timeseriesResults?: Array<Series | WidgetTimeSeries>;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;

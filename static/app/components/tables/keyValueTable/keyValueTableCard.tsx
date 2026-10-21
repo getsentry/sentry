@@ -70,7 +70,7 @@ export function KeyValueTableCard({
     : truncatedItems;
 
   return (
-    <CardPanel>
+    <KeyValueTableCardPanel>
       {title && <CardTitle>{title}</CardTitle>}
       {orderedItems.map((contentItem, index) => (
         <KeyValueTableDataRow
@@ -86,7 +86,7 @@ export function KeyValueTableCard({
         </TruncateWrapper>
       )}
       {children && <CardBody>{children}</CardBody>}
-    </CardPanel>
+    </KeyValueTableCardPanel>
   );
 }
 
@@ -112,7 +112,7 @@ export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   );
 }
 
-const CardPanel = styled(Panel)`
+export const KeyValueTableCardPanel = styled(Panel)`
   ${keyValueGridStyles};
   padding: ${p => p.theme.space.sm};
 `;

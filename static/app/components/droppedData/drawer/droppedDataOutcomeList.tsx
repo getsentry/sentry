@@ -1,118 +1,103 @@
-import {useId, useState} from 'react';
-import {IconChevron} from '@sentry/icons/chevron';
-import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSeer} from '@sentry/icons/seer';
 
-import {Button} from '@sentry/scraps/button';
-import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {useDrawerContentContext} from '@sentry/scraps/drawer';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {Count} from 'sentry/components/count';
 import type {
   OutcomeSection,
   ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
   formatDroppedShare,
-  reasonDescription,
+  reasonDocsUrl,
   reasonTitle,
-  type OutcomeColors,
 } from 'sentry/components/droppedData/outcomes';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
-const COLUMN_WIDTHS = {reason: '1fr', dropped: '160px', share: '96px', actions: '48px'};
+const COLUMN_WIDTHS = {reason: '1fr', dropped: '96px', share: '88px', actions: '48px'};
 const TABLE_COLUMNS: TableColumnConfig[] = Object.entries(COLUMN_WIDTHS).map(
   ([key, width]) => ({key, width})
 );
 const HEADER_COLUMNS = Object.values(COLUMN_WIDTHS).join(' ');
 
-function ReasonActionsMenu({
+function ReasonAskSeerButton({
   row,
-  onTroubleshoot,
+  onAskSeer,
 }: {
+  onAskSeer: (row: ReasonRow) => void;
   row: ReasonRow;
-  onTroubleshoot?: (row: ReasonRow) => void;
 }) {
   const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
-  const {panelRef} = useDrawer();
-
-  // TODO: this will be a dynamic URL once the per-reason docs page
-  // fully up-to-date.
-  const docsHref = 'https://docs.sentry.io/';
-
-  const items: MenuItemProps[] = [
-    ...(onTroubleshoot
-      ? [
-          {
-            key: 'troubleshoot',
-            label: t('Troubleshoot'),
-            onAction: () => {
-              closeDroppedDataDrawer?.();
-              onTroubleshoot(row);
-            },
-          },
-        ]
-      : []),
-    {
-      key: 'docs',
-      label: t('Go to Docs'),
-      externalHref: docsHref,
-    },
-  ];
 
   return (
-    <DropdownMenu
-      items={items}
-      position="bottom-end"
-      usePortal
-      portalContainerRef={panelRef}
-      trigger={(triggerProps, isOpen) => (
-        <OverlayTrigger.IconButton
-          {...triggerProps}
-          size="xs"
-          variant="transparent"
-          icon={<IconEllipsis />}
-          aria-label={t('Reason actions')}
-          aria-expanded={isOpen}
-        />
-      )}
+    <RevealOnHover.Action>
+      <Button
+        size="zero"
+        variant="primary"
+        icon={<IconSeer />}
+        aria-label={t('Ask Seer')}
+        tooltipProps={{title: t('Ask Seer')}}
+        onClick={() => {
+          closeDroppedDataDrawer?.();
+          onAskSeer(row);
+        }}
+      />
+    </RevealOnHover.Action>
+  );
+}
+
+function ReasonDocsLinkButton({href}: {href: string}) {
+  return (
+    <LinkButton
+      size="zero"
+      variant="transparent"
+      icon={<IconOpen size="xs" />}
+      aria-label={t('Go to docs')}
+      tooltipProps={{title: t('Go to docs')}}
+      href={href}
+      external
     />
   );
 }
 
 function ReasonTableRow({
   row,
-  onTroubleshoot,
+  onAskSeer,
 }: {
   row: ReasonRow;
-  onTroubleshoot?: (row: ReasonRow) => void;
+  onAskSeer?: (row: ReasonRow) => void;
 }) {
   return (
-    <SimpleTable.Row>
-      <SimpleTable.RowCell padding="md xl">
-        <InfoText size="md" title={reasonDescription(row.reason, row.category)}>
-          {reasonTitle(row.reason)}
-        </InfoText>
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" padding="md xl">
-        <Text size="md" variant="muted" tabular>
-          {row.events.toLocaleString()}
-        </Text>
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" padding="md xl">
-        <Text size="md" variant="muted" tabular>
-          {formatDroppedShare(row.shareRatio)}
-        </Text>
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="center" padding="0">
-        <ReasonActionsMenu row={row} onTroubleshoot={onTroubleshoot} />
-      </SimpleTable.RowCell>
-    </SimpleTable.Row>
+    <RevealOnHover>
+      {props => (
+        <SimpleTable.Row {...props}>
+          <SimpleTable.RowCell padding="md xl" gap="sm">
+            <Text size="md">{reasonTitle(row.reason)}</Text>
+            <ReasonDocsLinkButton href={reasonDocsUrl(row.reason)} />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" padding="md xl">
+            <Text size="md" variant="muted" tabular>
+              <Count value={row.events} />
+            </Text>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" padding="md xl">
+            <Text size="md" variant="muted" tabular>
+              {formatDroppedShare(row.shareRatio)}
+            </Text>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="center" padding="0" overflow="visible">
+            {onAskSeer && <ReasonAskSeerButton row={row} onAskSeer={onAskSeer} />}
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -125,17 +110,14 @@ function ColumnHeading({children}: {children: React.ReactNode}) {
 }
 
 function ReasonTable({
-  id,
   reasons,
-  onTroubleshoot,
+  onAskSeer,
 }: {
-  id: string;
   reasons: ReasonRow[];
-  onTroubleshoot?: (row: ReasonRow) => void;
+  onAskSeer?: (row: ReasonRow) => void;
 }) {
   return (
     <SimpleTable
-      id={id}
       columns={TABLE_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
@@ -156,7 +138,7 @@ function ReasonTable({
         <ReasonTableRow
           key={`${row.outcome}:${row.reason}`}
           row={row}
-          onTroubleshoot={onTroubleshoot}
+          onAskSeer={onAskSeer}
         />
       ))}
     </SimpleTable>
@@ -165,81 +147,51 @@ function ReasonTable({
 
 function OutcomeSectionRow({
   section,
-  color,
-  onTroubleshoot,
+  onAskSeer,
 }: {
-  color: string | undefined;
   section: OutcomeSection;
-  onTroubleshoot?: (row: ReasonRow) => void;
+  onAskSeer?: (row: ReasonRow) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const reasonTableId = useId();
-  const toggle = () => setExpanded(value => !value);
-
   return (
     <Stack gap="md">
-      <Grid columns={HEADER_COLUMNS} align="center" onClick={toggle} cursor="pointer">
-        <Flex align="center" gap="md" padding="md xl">
-          <CircleIndicator color={color} size={12} />
-          <Text size="lg" bold>
+      <Grid columns={HEADER_COLUMNS} align="center">
+        <Flex align="center" padding="0 xl">
+          <Text size="md" bold>
             {section.label}
           </Text>
         </Flex>
-        <Flex justify="end" padding="md xl">
+        <Flex justify="end" padding="0 xl">
           <Text size="md" variant="muted" tabular>
-            {section.events.toLocaleString()}
+            <Count value={section.events} />
           </Text>
         </Flex>
-        <Flex justify="end" padding="md xl">
+        <Flex justify="end" padding="0 xl">
           <Text size="md" variant="muted" tabular>
             {formatDroppedShare(section.shareRatio)}
           </Text>
         </Flex>
-        <Flex align="center" justify="center">
-          <Button
-            size="xs"
-            variant="transparent"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="md" />}
-            aria-label={t('%s reasons', section.label)}
-            aria-expanded={expanded}
-            aria-controls={expanded ? reasonTableId : undefined}
-            onClick={event => {
-              event.stopPropagation();
-              toggle();
-            }}
-          />
-        </Flex>
       </Grid>
-      {expanded && (
-        <ReasonTable
-          id={reasonTableId}
-          reasons={section.reasons}
-          onTroubleshoot={onTroubleshoot}
-        />
-      )}
+      <ReasonTable reasons={section.reasons} onAskSeer={onAskSeer} />
     </Stack>
   );
 }
 
 interface DroppedDataOutcomeListProps {
-  colors: OutcomeColors;
   sections: OutcomeSection[];
-  onTroubleshoot?: (row: ReasonRow) => void;
+  onAskSeer?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataOutcomeList({
   sections,
-  colors,
-  onTroubleshoot,
+  onAskSeer,
 }: DroppedDataOutcomeListProps) {
   return (
-    <Stack gap="md">
+    <Stack gap="2xl">
       {sections.map(section => (
         <OutcomeSectionRow
           key={section.outcome}
           section={section}
-          color={colors[section.outcome]}
-          onTroubleshoot={onTroubleshoot}
+          onAskSeer={onAskSeer}
         />
       ))}
     </Stack>

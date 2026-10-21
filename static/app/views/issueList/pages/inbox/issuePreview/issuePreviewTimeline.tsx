@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -91,7 +89,7 @@ export function IssuePreviewTimeline({
   });
 
   return (
-    <Fragment>
+    <Stack gap="2xl">
       <IssuePreviewSeerContent
         group={group}
         project={project}
@@ -121,6 +119,6 @@ export function IssuePreviewTimeline({
           />
         </ErrorBoundary>
       </Stack>
-    </Fragment>
+    </Stack>
   );
 }

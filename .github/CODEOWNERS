@@ -18,7 +18,6 @@
 /src/sentry/tasks/                                      @getsentry/app-backend
 /.agents/skills/sentry-backend-bugs/                    @getsentry/app-backend
 /src/bitfield/                                          @getsentry/app-backend
-/src/django_picklefield/                                @getsentry/app-backend
 /src/sentry/analytics/events/                           @getsentry/app-backend @getsentry/data
 /src/sentry/core/                                       @getsentry/app-backend
 /bin/mock*                                              @getsentry/app-backend
@@ -259,9 +258,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-monitors
 /static/app/views/alerts/                                 @getsentry/alerts-monitors
 /static/app/views/alerts/rules/uptime                     @getsentry/crons
-/static/app/views/explore/releases/                               @getsentry/replay-frontend
-/static/app/views/explore/releases/drawer/                        @getsentry/replay-frontend
-/static/app/views/explore/releases/releaseBubbles/                @getsentry/replay-frontend
+/static/app/views/explore/releases/                               @getsentry/replay
+/static/app/views/explore/releases/drawer/                        @getsentry/replay
+/static/app/views/explore/releases/releaseBubbles/                @getsentry/replay
 
 /static/app/views/settings/account/notifications/         @getsentry/notifications
 
@@ -427,29 +426,29 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## Flags
-/src/sentry/flags/                                              @getsentry/replay-backend
-/tests/sentry/flags/                                            @getsentry/replay-backend
-/static/app/components/featureFlags/                            @getsentry/replay-frontend
-/static/app/components/events/featureFlags/                     @getsentry/replay-frontend
-/static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay-frontend
-/static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay-frontend
-/static/app/views/issueDetails/groupTags/                       @getsentry/replay-frontend
-/static/app/views/settings/featureFlags/                        @getsentry/replay-frontend
+/src/sentry/flags/                                              @getsentry/replay
+/tests/sentry/flags/                                            @getsentry/replay
+/static/app/components/featureFlags/                            @getsentry/replay
+/static/app/components/events/featureFlags/                     @getsentry/replay
+/static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay
+/static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay
+/static/app/views/issueDetails/groupTags/                       @getsentry/replay
+/static/app/views/settings/featureFlags/                        @getsentry/replay
 ## End of Flags
 
 
 ## Replays
-/static/app/components/replays/                                          @getsentry/replay-frontend
-/static/app/utils/replays/                                               @getsentry/replay-frontend
-/static/app/views/explore/replays/                                               @getsentry/replay-frontend
-/tests/acceptance/test_replay_details.py                                 @getsentry/replay-frontend
-/tests/acceptance/test_replay_list.py                                    @getsentry/replay-frontend
-/src/sentry/replays/                                                     @getsentry/replay-backend
-/tests/sentry/replays/                                                   @getsentry/replay-backend
-/src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay-backend
-/tests/sentry/issues/endpoints/test_organization_issue_metrics.py        @getsentry/replay-backend
-/src/sentry/issues/endpoints/organization_group_suspect_flags.py         @getsentry/replay-backend
-/tests/sentry/issues/endpoints/test_organization_group_suspect_flags.py  @getsentry/replay-backend
+/static/app/components/replays/                                          @getsentry/replay
+/static/app/utils/replays/                                               @getsentry/replay
+/static/app/views/explore/replays/                                               @getsentry/replay
+/tests/acceptance/test_replay_details.py                                 @getsentry/replay
+/tests/acceptance/test_replay_list.py                                    @getsentry/replay
+/src/sentry/replays/                                                     @getsentry/replay
+/tests/sentry/replays/                                                   @getsentry/replay
+/src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay
+/tests/sentry/issues/endpoints/test_organization_issue_metrics.py        @getsentry/replay
+/src/sentry/issues/endpoints/organization_group_suspect_flags.py         @getsentry/replay
+/tests/sentry/issues/endpoints/test_organization_group_suspect_flags.py  @getsentry/replay
 ## End of Replays
 
 
@@ -463,9 +462,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## DevToolbar
-/src/sentry/templates/sentry/toolbar/        @getsentry/replay-frontend @getsentry/replay-backend
-/src/sentry/toolbar/                         @getsentry/replay-frontend @getsentry/replay-backend
-/tests/sentry/toolbar/                       @getsentry/replay-frontend @getsentry/replay-backend
+/src/sentry/templates/sentry/toolbar/        @getsentry/replay
+/src/sentry/toolbar/                         @getsentry/replay
+/tests/sentry/toolbar/                       @getsentry/replay
 ## End of DevToolbar
 
 ## Frontend
@@ -566,13 +565,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/foundations
 /src/sentry/core/endpoints/organization_projects.py                     @getsentry/foundations
 /src/sentry/api/endpoints/organization_stats*.py                        @getsentry/foundations
-/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/replay-backend
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/replay
 /src/sentry/api/endpoints/user_social_identity*                         @getsentry/foundations
 /src/sentry/auth/staff.py                                               @getsentry/foundations @getsentry/owners-auth
 /src/sentry/auth/superuser.py                                           @getsentry/foundations @getsentry/owners-auth
 /src/sentry/middleware/staff.py                                         @getsentry/foundations
 /src/sentry/middleware/superuser.py                                     @getsentry/foundations
-/src/sentry/models/release_threshold/                                   @getsentry/replay-backend
+/src/sentry/models/release_threshold/                                   @getsentry/replay
 /src/sentry/scim/                                                       @getsentry/foundations
 /src/sentry/integrations/github/                                        @getsentry/foundations @getsentry/scm
 /src/sentry/web/frontend/auth_login.py                                  @getsentry/foundations @getsentry/owners-auth
@@ -589,7 +588,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/auth/test_superuser.py                                    @getsentry/foundations
 /tests/sentry/middleware/test_staff.py                                  @getsentry/foundations
 /tests/sentry/integrations/github/                                      @getsentry/foundations @getsentry/scm
-/tests/sentry/models/releases/                                          @getsentry/replay-backend
+/tests/sentry/models/releases/                                          @getsentry/replay
 ## End of foundations
 
 
@@ -824,7 +823,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/gsApp/hooks/superuser*                @getsentry/foundations
 /static/gsApp/hooks/integration*              @getsentry/integration-platform
 /static/gsApp/components/crons/               @getsentry/crons
-/static/gsApp/components/replay*              @getsentry/replay-frontend
+/static/gsApp/components/replay*              @getsentry/replay
 
 ## gsAdmin
 # /static/gsAdmin/*                          unowned

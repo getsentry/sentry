@@ -1,11 +1,11 @@
 import type {CSSObject} from '@emotion/react';
 
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import type {ListItemProps} from '@sentry/scraps/menu';
 
 /**
  * An option shared by select controls
  */
-export interface SelectValue<T> extends MenuListItemProps {
+export interface SelectValue<T> extends ListItemProps {
   value: T;
   /**
    * Plain text used for filtering when the label contains React elements.
