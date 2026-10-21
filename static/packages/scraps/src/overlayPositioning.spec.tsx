@@ -7,7 +7,11 @@ import {overlayPlatform} from '@sentry/scraps/overlayPositioning';
  * positioned overlay, with an `overflow: hidden` element either inside or
  * outside the overlay's real containing block.
  */
-function renderOverlay({clipperOutsideContainingBlock}: {clipperOutsideContainingBlock: boolean}) {
+function renderOverlay({
+  clipperOutsideContainingBlock,
+}: {
+  clipperOutsideContainingBlock: boolean;
+}) {
   const containingBlock = document.createElement('div');
   containingBlock.style.position = 'relative';
   const clipper = document.createElement('div');
