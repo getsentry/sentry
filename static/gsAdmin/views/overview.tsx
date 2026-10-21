@@ -10,7 +10,7 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Container} from '@sentry/scraps/layout';
+import {Flex, Container, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -223,7 +223,7 @@ function CustomersByVolume() {
  */
 export function Overview() {
   return (
-    <OverviewContainer>
+    <Grid marginTop="2xl" gap="0 xl" columns="1fr 1fr" flow="row">
       <CustomersByVolume />
       <div>
         <SectionHeading>
@@ -253,17 +253,9 @@ export function Overview() {
           .
         </p>
       </Container>
-    </OverviewContainer>
+    </Grid>
   );
 }
-
-const OverviewContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-flow: row;
-  gap: 0 ${p => p.theme.space.xl};
-  margin-top: ${p => p.theme.space['2xl']};
-`;
 
 const SectionHeading = styled('h3')`
   display: flex;

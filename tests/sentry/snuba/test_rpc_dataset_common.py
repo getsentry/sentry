@@ -475,6 +475,122 @@ def test_table_limit_by_rejects_invalid_input(limit_by, sampling_mode, match) ->
 
 
 @django_db_all
+def test_flextime_orderby_must_be_descending_timestamp() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "",
+        ["span.op", "timestamp"],
+        ["-span.op"],
+        0,
+        50,
+        "TestReferrer",
+        "HIGHEST_ACCURACY_FLEX_TIME",
+        resolver,
+    )
+
+    with pytest.raises(InvalidSearchQuery, match=r"first orderby must be -timestamp"):
+        RPCBase.get_table_rpc_request(table_query)
+
+
+@django_db_all
+def test_flextime_orderby_appends_descending_id() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+    selected_columns = ["span.op", "timestamp"]
+    orderby = ["-timestamp"]
+
+    table_query = TableQuery(
+        "",
+        selected_columns,
+        orderby,
+        0,
+        50,
+        "TestReferrer",
+        "HIGHEST_ACCURACY_FLEX_TIME",
+        resolver,
+    )
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query).rpc_request
+
+    assert [(column.column.label, column.descending) for column in rpc_request.order_by] == [
+        ("timestamp", True),
+        ("id", True),
+    ]
+    assert selected_columns == ["span.op", "timestamp"]
+    assert orderby == ["-timestamp"]
+
+
+@django_db_all
+def test_flextime_orderby_moves_id_to_the_end() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+    selected_columns = ["id", "span.op", "timestamp"]
+    orderby = ["-timestamp", "id", "-span.op"]
+
+    table_query = TableQuery(
+        "",
+        selected_columns,
+        orderby,
+        0,
+        50,
+        "TestReferrer",
+        "HIGHEST_ACCURACY_FLEX_TIME",
+        resolver,
+    )
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query).rpc_request
+
+    assert [(column.column.label, column.descending) for column in rpc_request.order_by] == [
+        ("timestamp", True),
+        ("span.op", True),
+        ("id", True),
+    ]
+    assert orderby == ["-timestamp", "id", "-span.op"]
+
+
+@django_db_all
+def test_flextime_orderby_rejects_ascending_tiebreaker() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "",
+        ["span.op", "timestamp"],
+        ["-timestamp", "span.op"],
+        0,
+        50,
+        "TestReferrer",
+        "HIGHEST_ACCURACY_FLEX_TIME",
+        resolver,
+    )
+
+    with pytest.raises(InvalidSearchQuery, match=r"orderby must be descending"):
+        RPCBase.get_table_rpc_request(table_query)
+
+
+@django_db_all
 def test_timeseries_groupby_rejects_hidden_api_attribute() -> None:
     owner = Factories.create_user()
     organization = Factories.create_organization(owner=owner)

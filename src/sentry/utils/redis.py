@@ -300,6 +300,75 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
     }
 )
 
+# INFRENG-727: Existing lock calls inside DB transactions. The redis-blaster lock backend was not
+# wrapped by this check, so these stayed hidden until default locks moved to RedisClusterLockBackend.
+_REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
+    {
+        # INFRENG-805: slug locks in Project, Team, Organization and Monitor save
+        ("sentry.models.organization.Organization.save",),
+        ("sentry.models.project.Project.save",),
+        ("sentry.models.team.Team.save",),
+        (
+            "sentry.monitors.models.Monitor.save",
+            "sentry.utils.mockdata.core.create_monitor",
+        ),
+        # INFRENG-806: detector lock for the default detectors of a new project
+        ("sentry.workflow_engine.defaults.detectors._ensure_detector",),
+        # INFRENG-807: grant lock in GrantExchanger.run
+        ("sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger.run",),
+        # INFRENG-808: invite request team assignments
+        ("sentry.core.endpoints.organization_member_utils.save_team_assignments",),
+        # INFRENG-809: test-only, ApiToken.from_grant inside a transaction in ControlOutboxDrainTest
+        (
+            "sentry.models.apitoken.ApiToken.from_grant",
+            "tests.sentry.hybridcloud.models.test_outbox.ControlOutboxDrainTest.test_reconnects_after_successful_token_replication",
+        ),
+        # --------------------------------
+        # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
+        # --------------------------------
+        #
+        # INFRENG-810: history_cls_lock, from Subscription.create_for_organization and apply_subscription_change
+        ("getsentry.models.billinghistory.history_cls_lock.<locals>.wrapper",),
+        # INFRENG-810: customer model_lock in Subscription.create_sentry_customer
+        (
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.models.subscription.Subscription.create_sentry_customer",
+        ),
+        # INFRENG-811: reserved_budget_subscription_lock in tally_usage
+        (
+            "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
+            "getsentry.billing.reserved_budgets.recompute_all_reserved_budget_spends",
+        ),
+        # INFRENG-812: subscription_lock during org provisioning (start_trial, and the legacy
+        # on-demand max spend upgrade from switch_performance_plan)
+        (
+            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
+            "getsentry.billing.trial.start_trial",
+            "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
+        ),
+        (
+            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
+            "getsentry.billing.ondemand_budgets.legacy_upgrade_ondemand_max_spend",
+            "getsentry.billing.switch_plan.switch_performance_plan",
+        ),
+        # INFRENG-813: platform trial locks in TrialService._create_product_trial and
+        # _create_subscription_trial
+        (
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
+        ),
+        (
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
+        ),
+        # INFRENG-814: customer model_lock in MissingCustomerRelation.repair
+        (
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
+        ),
+        # INFRENG-804: platform charge lock in ChargeService.capture_charge (needs its own ticket)
+        ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
+    }
+)
+
 
 def _add_transaction_checks(
     client: RedisCluster[T] | StrictRedis[T],
@@ -347,12 +416,42 @@ def _assert_redis_transaction_allowed(message: str) -> None:
             return
         if _matches_redis_transaction_ratchet(callers):
             return
+        if _matches_redis_transaction_lock_ratchet(callers):
+            return
+
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
 
 
 def _matches_redis_transaction_ratchet(callers: tuple[str, ...]) -> bool:
     for signature in _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET:
         remaining_callers = iter(callers)
+        if all(caller in remaining_callers for caller in signature):
+            return True
+    return False
+
+
+_REDIS_LOCK_BACKEND_CALLERS = (
+    "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+    "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+)
+_REDIS_LOCK_INTERNAL_PREFIXES = ("sentry.utils.locking.", "sentry.utils.retries.", "contextlib.")
+
+
+def _matches_redis_transaction_lock_ratchet(callers: tuple[str, ...]) -> bool:
+    if not callers or callers[0] not in _REDIS_LOCK_BACKEND_CALLERS:
+        return False
+    owner_index = 0
+    while owner_index < len(callers) and callers[owner_index].startswith(
+        _REDIS_LOCK_INTERNAL_PREFIXES
+    ):
+        owner_index += 1
+    if owner_index == len(callers):
+        return False
+    owner = callers[owner_index]
+    for owner_signature, *signature in _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET:
+        if owner_signature != owner:
+            continue
+        remaining_callers = iter(callers[owner_index + 1 :])
         if all(caller in remaining_callers for caller in signature):
             return True
     return False

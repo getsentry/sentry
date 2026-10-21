@@ -32,6 +32,13 @@ const scopedJest = {
   entry: ['jest.config.mjs', '**/*.{spec,test}.{js,ts,tsx}'],
 };
 
+// Shared Oxlint plugins belong to the root workspace. Analyze package wrappers
+// as development entries without assigning the shared plugin list to each package.
+const scopedOxlint = {
+  config: [],
+  entry: ['oxlint.config.ts'],
+};
+
 const frontendWorkspace = {
   jest: scopedJest,
   // SWC injects these imports while compiling each app package.
@@ -137,11 +144,13 @@ const config: KnipConfig = {
       ],
     },
     'static/packages/icons': {
+      oxlint: scopedOxlint,
       // test helpers are only used outside production.
       project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!', '!test/**!'],
       includeEntryExports: true,
     },
     'static/packages/scraps': {
+      oxlint: scopedOxlint,
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.
