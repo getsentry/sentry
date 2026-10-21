@@ -300,8 +300,8 @@ function DropdownMenuList({
             maxHeight={overlayPositionProps.style?.maxHeight as CSS['maxHeight']}
             maxWidth="calc(100vw - 16px)"
           >
-            {layoutProps => (
-              <Overlay {...layoutProps}>
+            {stackProps => (
+              <Overlay {...stackProps}>
                 {menuTitle && (
                   <Header padding="sm lg">
                     <Title>{menuTitle}</Title>
