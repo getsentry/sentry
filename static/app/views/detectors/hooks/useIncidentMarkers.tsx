@@ -55,6 +55,10 @@ export interface IncidentPeriod {
    * - `open-period-transition`: Used for priority transitions within an open period.
    */
   type: 'trigger-interval' | 'open-period-start' | 'open-period-transition';
+  /**
+   * Short ID of the issue the incident belongs to, e.g. `PROJECT-1A`
+   */
+  issueShortId?: string | null;
 }
 
 interface IncidentMarkerSeriesProps {
@@ -129,9 +133,17 @@ function findIncidentPeriodAtPoint(
     return undefined;
   }
 
-  // Use find last because later markers are drawn on top of earlier ones where they overlap
+  return findIncidentPeriodAtTimestamp(incidentPeriods, timestamp);
+}
+
+export function findIncidentPeriodAtTimestamp(
+  incidentPeriods: IncidentPeriod[],
+  timestamp: number
+): IncidentPeriod | undefined {
+  // Use find last because later markers are drawn on top of earlier ones where they overlap.
+  // The start is exclusive because chart data points sit at the end of their bucket.
   return incidentPeriods.findLast(
-    period => period.start <= timestamp && timestamp <= period.end
+    period => period.start < timestamp && timestamp <= period.end
   );
 }
 
