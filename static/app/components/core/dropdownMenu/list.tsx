@@ -14,6 +14,7 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {minHeight} from '@sentry/scraps/compactSelect/utils';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Header, Search, SectionSeparator, Title} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
@@ -289,62 +290,68 @@ function DropdownMenuList({
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
-          <StyledOverlay menuWidth={menuWidth} minMenuHeight={minMenuHeight}>
-            {menuTitle && (
-              <Header padding="sm lg">
-                <Title>{menuTitle}</Title>
-              </Header>
-            )}
-            {search && (
-              <Search
-                showIcon={search.showIcon}
-                size={search.size}
-                aria-label={search.placeholder ?? 'Search'}
-                placeholder={search.placeholder ?? 'Search…'}
-                value={search.value}
-                onChange={event => search.onChange(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'ArrowDown') {
-                    event.preventDefault();
-                    menuRef.current
-                      ?.querySelector<HTMLElement>('[role^="menuitem"]')
-                      ?.focus();
-                  }
-                }}
-              />
-            )}
-            <DropdownMenuListWrap
-              ref={menuRef}
-              hasTitle={!!menuTitle}
-              disableTextSelection={disableTextSelection}
-              {...mergeProps(modifiedMenuProps, keyboardProps)}
-              style={{
-                maxHeight: overlayPositionProps.style?.maxHeight,
-              }}
-            >
-              <DropdownMenuCollection
-                collection={stateCollection}
-                closeOnSelect={closeOnSelect}
-                disableTextSelection={disableTextSelection}
-                onClose={onClose}
-                separatorProps={separatorProps}
-                size={size}
-                state={state}
-              />
-              {search?.value.trim() && stateCollection.length === 0 && (
-                <Stack
-                  as="li"
-                  role="presentation"
-                  align="center"
-                  justify="center"
-                  padding="md lg"
+          <Stack
+            width={menuWidth === undefined ? undefined : `${menuWidth}px`}
+            minHeight={minMenuHeight as CSS['minHeight']}
+            maxHeight={overlayPositionProps.style?.maxHeight as CSS['maxHeight']}
+            maxWidth="calc(100vw - 16px)"
+          >
+            {layoutProps => (
+              <Overlay {...layoutProps}>
+                {menuTitle && (
+                  <Header padding="sm lg">
+                    <Title>{menuTitle}</Title>
+                  </Header>
+                )}
+                {search && (
+                  <Search
+                    showIcon={search.showIcon}
+                    size={search.size}
+                    aria-label={search.placeholder ?? 'Search'}
+                    placeholder={search.placeholder ?? 'Search…'}
+                    value={search.value}
+                    onChange={event => search.onChange(event.target.value)}
+                    onKeyDown={event => {
+                      if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        menuRef.current
+                          ?.querySelector<HTMLElement>('[role^="menuitem"]')
+                          ?.focus();
+                      }
+                    }}
+                  />
+                )}
+                <DropdownMenuListWrap
+                  ref={menuRef}
+                  hasTitle={!!menuTitle}
+                  disableTextSelection={disableTextSelection}
+                  {...mergeProps(modifiedMenuProps, keyboardProps)}
                 >
-                  <Text variant="muted">{emptyMessage ?? t('No results found')}</Text>
-                </Stack>
-              )}
-            </DropdownMenuListWrap>
-            {menuFooter}
-          </StyledOverlay>
+                  <DropdownMenuCollection
+                    collection={stateCollection}
+                    closeOnSelect={closeOnSelect}
+                    disableTextSelection={disableTextSelection}
+                    onClose={onClose}
+                    separatorProps={separatorProps}
+                    size={size}
+                    state={state}
+                  />
+                  {search?.value.trim() && stateCollection.length === 0 && (
+                    <Stack
+                      as="li"
+                      role="presentation"
+                      align="center"
+                      justify="center"
+                      padding="md lg"
+                    >
+                      <Text variant="muted">{emptyMessage ?? t('No results found')}</Text>
+                    </Stack>
+                  )}
+                </DropdownMenuListWrap>
+                {menuFooter}
+              </Overlay>
+            )}
+          </Stack>
         </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
@@ -594,16 +601,6 @@ function DropdownSubmenu({
   );
 }
 
-const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => !['menuWidth', 'minMenuHeight'].includes(prop),
-})<{menuWidth?: number; minMenuHeight?: number | string}>`
-  display: flex;
-  flex-direction: column;
-  min-height: ${p => p.minMenuHeight && (typeof p.minMenuHeight === 'number' ? `${p.minMenuHeight}px` : p.minMenuHeight)};
-  width: ${p => p.menuWidth && `${p.menuWidth}px`};
-  max-width: calc(100vw - 16px);
-`;
-
 const DropdownMenuListWrap = styled('ul')<{
   hasTitle: boolean;
   disableTextSelection?: boolean;
@@ -613,6 +610,7 @@ const DropdownMenuListWrap = styled('ul')<{
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
+  min-height: 0;
 
   ${p =>
     p.disableTextSelection &&
