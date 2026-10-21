@@ -104,11 +104,6 @@
       "count": 4
     }
   },
-  "components/checkInTimeline/checkInTooltip.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 3
-    }
-  },
   "components/clippedBox.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
