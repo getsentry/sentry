@@ -579,12 +579,16 @@ export function Control<Value extends SelectKey>({
                 {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
                   <Footer>
-                    {typeof menuFooter === 'function'
-                      ? menuFooter({
-                          closeOverlay: overlayState.close,
-                          resetSearch: () => updateSearch(''),
-                        })
-                      : menuFooter}
+                    {/* Block wrapper so footer content spans the full width, as
+                        Footer is a row flex container that shrinks its children */}
+                    <Container width="100%">
+                      {typeof menuFooter === 'function'
+                        ? menuFooter({
+                            closeOverlay: overlayState.close,
+                            resetSearch: () => updateSearch(''),
+                          })
+                        : menuFooter}
+                    </Container>
                   </Footer>
                 )}
               </FocusScope>
