@@ -67,7 +67,6 @@ export function CheckInTooltip<Status extends string>({
           </Fragment>
         )}
       </Flex>
-      {/* An aria-label would replace these counts in the trigger's accessible description. */}
       <StatusCountTable columns={COLUMNS}>
         <VisuallyHiddenHead>
           <Table.Row>
@@ -104,7 +103,6 @@ export function CheckInTooltip<Status extends string>({
   );
 
   return (
-    // The default max width is narrower than a row with a long status and count.
     <Tooltip title={tooltipTitle} skipWrapper maxWidth="none" {...props}>
       {children}
     </Tooltip>
