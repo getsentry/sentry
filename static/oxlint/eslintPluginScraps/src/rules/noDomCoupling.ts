@@ -2,23 +2,69 @@ import {defineRule, type ESTree} from '@oxlint/plugins';
 
 import {
   cookCssTemplateText,
+  isDisabledByDirectives,
   parseCssTemplate,
   type ParsedCssSelector,
 } from '../ast/extractor/css.ts';
 import {createImportTracker} from '../ast/tracker/imports.ts';
 import {hasDomCoupling} from '../ast/utils/selectors.ts';
 import {getStyledCallInfo} from '../ast/utils/styled.ts';
+import {unwrapTypeWrappers} from '../ast/utils/typeWrappers.ts';
 
-function unwrap(node: ESTree.Node): ESTree.Node {
-  while (
-    node.type === 'TSAsExpression' ||
-    node.type === 'TSSatisfiesExpression' ||
-    node.type === 'TSNonNullExpression' ||
-    node.type === 'TSTypeAssertion'
-  ) {
-    node = node.expression;
+const CONSTANT_CASE = /^[A-Z][A-Z\d_]+$/;
+const STYLE_TYPE_SOURCES = new Set([
+  '@emotion/react',
+  '@emotion/serialize',
+  '@sentry/scraps/select',
+  '@sentry/scraps/theme',
+]);
+const STYLE_TYPES = new Map([
+  ['CSSObject', 'css'],
+  ['StrictCSSObject', 'css'],
+  ['StylesConfig', 'config'],
+]);
+
+function getStatementReturns(node: ESTree.Node): ESTree.Node[] {
+  if (node.type === 'ReturnStatement') {
+    return node.argument ? [node.argument] : [];
   }
-  return node;
+  if (node.type === 'BlockStatement') {
+    return node.body.flatMap(getStatementReturns);
+  }
+  if (node.type === 'SwitchStatement') {
+    return node.cases.flatMap(switchCase =>
+      switchCase.consequent.flatMap(getStatementReturns)
+    );
+  }
+  if (node.type === 'IfStatement') {
+    return [
+      ...getStatementReturns(node.consequent),
+      ...(node.alternate ? getStatementReturns(node.alternate) : []),
+    ];
+  }
+  return [];
+}
+
+function getFunctionReturns(node: ESTree.Node) {
+  if (
+    node.type !== 'ArrowFunctionExpression' &&
+    node.type !== 'FunctionExpression' &&
+    node.type !== 'FunctionDeclaration'
+  ) {
+    return;
+  }
+  if (!node.body) {
+    return [];
+  }
+  return node.body.type === 'BlockStatement'
+    ? getStatementReturns(node.body)
+    : [node.body];
+}
+
+function combine(prefixes: string[], suffixes: string[]) {
+  return [
+    ...new Set(prefixes.flatMap(prefix => suffixes.map(suffix => prefix + suffix))),
+  ];
 }
 
 export const noDomCoupling = defineRule({
@@ -36,9 +82,6 @@ export const noDomCoupling = defineRule({
   create(context) {
     const imports = createImportTracker(context);
     const visited = new Set<ESTree.Node>();
-    const reported = new Set<ESTree.Node>();
-    const cssTypes = new Set<string>();
-    const configTypes = new Set<string>();
 
     function binding(node: ESTree.Node): ESTree.Node | undefined {
       if (node.type === 'MemberExpression') {
@@ -50,11 +93,7 @@ export const noDomCoupling = defineRule({
             : null;
         if (object?.type === 'ObjectExpression' && name !== null) {
           const found = object.properties.find(
-            property =>
-              property.type === 'Property' &&
-              (property.key.type === 'Identifier' && !property.computed
-                ? property.key.name
-                : stringValue(property.key)) === name
+            property => property.type === 'Property' && getPropertyName(property) === name
           );
           return found?.type === 'Property' ? found.value : undefined;
         }
@@ -71,11 +110,15 @@ export const noDomCoupling = defineRule({
         : undefined;
     }
 
+    function getPropertyName({computed, key}: ESTree.ObjectProperty) {
+      return !computed && key.type === 'Identifier' ? key.name : stringValue(key);
+    }
+
     function stringValue(
       node: ESTree.Node,
       seen = new Set<ESTree.Node>()
     ): string | null {
-      node = unwrap(node);
+      node = unwrapTypeWrappers(node);
       if (seen.has(node)) {
         return null;
       }
@@ -93,39 +136,12 @@ export const noDomCoupling = defineRule({
       return null;
     }
 
-    function returnedValues(node: ESTree.Node): ESTree.Node[] {
-      if (node.type === 'ReturnStatement') {
-        return node.argument ? [node.argument] : [];
-      }
-      if (node.type === 'BlockStatement') {
-        return node.body.flatMap(returnedValues);
-      }
-      if (node.type === 'SwitchStatement') {
-        return node.cases.flatMap(switchCase =>
-          switchCase.consequent.flatMap(returnedValues)
-        );
-      }
-      if (node.type === 'IfStatement') {
-        return [
-          ...returnedValues(node.consequent),
-          ...(node.alternate ? returnedValues(node.alternate) : []),
-        ];
-      }
-      return [];
-    }
-
-    function combine(prefixes: string[], suffixes: string[]): string[] {
-      return [
-        ...new Set(prefixes.flatMap(prefix => suffixes.map(suffix => prefix + suffix))),
-      ];
-    }
-
     function interpolation(
       expression: ESTree.Node,
       suffix: string,
       seen = new Set<ESTree.Node>()
     ): string[] {
-      expression = unwrap(expression);
+      expression = unwrapTypeWrappers(expression);
       if (seen.has(expression)) {
         return [''];
       }
@@ -165,17 +181,9 @@ export const noDomCoupling = defineRule({
         }
         return values;
       }
-      if (
-        expression.type === 'ArrowFunctionExpression' ||
-        expression.type === 'FunctionExpression' ||
-        expression.type === 'FunctionDeclaration'
-      ) {
-        if (!expression.body) {
-          return [''];
-        }
-        return expression.body.type === 'BlockStatement'
-          ? returnedValues(expression.body).flatMap(resolve)
-          : resolve(expression.body);
+      const returns = getFunctionReturns(expression);
+      if (returns) {
+        return returns.flatMap(resolve);
       }
       if (
         expression.type === 'TaggedTemplateExpression' ||
@@ -201,50 +209,39 @@ export const noDomCoupling = defineRule({
       ) {
         return [''];
       }
-      const name = context.sourceCode.getText(expression);
+      if (expression.type !== 'Identifier') {
+        return ['sentry-interpolation'];
+      }
+      const {name} = expression;
       const imported = imports.resolve(expression)?.imported;
       if (
-        (imported && /^[A-Z]/.test(imported) && !/^[A-Z][A-Z\d_]+$/.test(imported)) ||
+        (imported && /^[A-Z]/.test(imported) && !CONSTANT_CASE.test(imported)) ||
         (imported === 'default' && /^[A-Z]/.test(name))
       ) {
         return ['sentry-interpolation'];
       }
       // Imported selector constants cannot be evaluated across module boundaries.
-      if (/^[A-Z][A-Z\d_]+$/.test(name)) {
+      if (CONSTANT_CASE.test(name)) {
         return ['.sentry-dynamic-selector'];
       }
-      if (
-        expression.type === 'Identifier' &&
-        /^[a-z]/.test(name) &&
-        /^\s*\n/.test(suffix)
-      ) {
-        return [''];
-      }
-      return ['sentry-interpolation'];
+      return /^[a-z]/.test(name) && /^\s*\n/.test(suffix)
+        ? ['']
+        : ['sentry-interpolation'];
     }
 
-    function checkTemplate(node: ESTree.TaggedTemplateExpression) {
-      if (!getStyledCallInfo(node, imports)) {
-        return;
-      }
-      checkCss(node.quasi, node);
-    }
-
-    function checkCss(
-      template: ESTree.TemplateLiteral | null,
-      node: ESTree.Node,
-      text?: string
-    ) {
+    function checkCss(node: ESTree.TemplateLiteral | ESTree.StringLiteral) {
+      const template = node.type === 'TemplateLiteral' ? node : null;
       const selectors: ParsedCssSelector[] = [];
-      const source = template
-        ? context.sourceCode.getText(template)
-        : '`' +
-          (text ?? '')
-            .replace(/\\/g, '\\\\')
-            .replace(/`/g, '\\`')
-            .replace(/\$\{/g, '\\${') +
-          '`';
-      parseCssTemplate(template, source, undefined, selectors);
+      const source =
+        node.type === 'TemplateLiteral'
+          ? context.sourceCode.getText(node)
+          : '`' +
+            node.value
+              .replace(/\\/g, '\\\\')
+              .replace(/`/g, '\\`')
+              .replace(/\$\{/g, '\\${') +
+            '`';
+      parseCssTemplate(template, source, {selectors});
       for (const selector of selectors) {
         let values = [''];
         let cursor = 0;
@@ -257,24 +254,10 @@ export const noDomCoupling = defineRule({
           cursor = range[1];
         }
         const last = cookCssTemplateText(selector.value.slice(cursor));
-        if (!values.some(value => hasDomCoupling(value + last))) {
-          continue;
-        }
-        let disabled = false;
-        let disabledLine = false;
-        for (const directive of selector.directives) {
-          if (directive.rules.length && !directive.rules.includes(context.id)) {
-            continue;
-          }
-          if (directive.action === 'disable-next-line') {
-            disabledLine ||= selector.line === (directive.endLine ?? -2) + 1;
-          } else if (directive.action === 'disable-line') {
-            disabledLine ||= selector.line === directive.line;
-          } else if (directive.offset < selector.sourceRange[0]) {
-            disabled = directive.action === 'disable';
-          }
-        }
-        if (!disabled && !disabledLine) {
+        if (
+          values.some(value => hasDomCoupling(value + last)) &&
+          !isDisabledByDirectives(selector, selector.sourceRange[0], context.id)
+        ) {
           context.report({
             node,
             ...(template
@@ -299,7 +282,7 @@ export const noDomCoupling = defineRule({
     }
 
     function isNestedStyle(node: ESTree.Node, seen = new Set<ESTree.Node>()): boolean {
-      node = unwrap(node);
+      node = unwrapTypeWrappers(node);
       if (seen.has(node)) {
         return false;
       }
@@ -329,17 +312,9 @@ export const noDomCoupling = defineRule({
           return fn ? isNestedStyle(fn, seen) : false;
         }
       }
-      if (
-        node.type === 'ArrowFunctionExpression' ||
-        node.type === 'FunctionExpression' ||
-        node.type === 'FunctionDeclaration'
-      ) {
-        if (!node.body) {
-          return false;
-        }
-        return node.body.type === 'BlockStatement'
-          ? returnedValues(node.body).some(value => isNestedStyle(value, new Set(seen)))
-          : isNestedStyle(node.body, seen);
+      const returns = getFunctionReturns(node);
+      if (returns) {
+        return returns.some(value => isNestedStyle(value, new Set(seen)));
       }
       return (
         node.type === 'ObjectExpression' ||
@@ -355,65 +330,73 @@ export const noDomCoupling = defineRule({
       );
     }
 
+    function getKeySelectors(property: ESTree.ObjectProperty) {
+      const name = getPropertyName(property);
+      if (name !== null) {
+        return [name];
+      }
+      const {computed, key} = property;
+      if (!computed) {
+        return null;
+      }
+      if (
+        key.type === 'CallExpression' &&
+        key.callee.type === 'Identifier' &&
+        key.callee.name === 'String' &&
+        !imports.resolveVariable(key.callee)
+      ) {
+        const [argument] = key.arguments;
+        if (argument && argument.type !== 'SpreadElement') {
+          return interpolation(argument, '');
+        }
+      }
+      return interpolation(key, '');
+    }
+
     function checkObject(node: ESTree.ObjectExpression) {
       for (const property of node.properties) {
         if (property.type === 'SpreadElement') {
           styles(property.argument);
           continue;
         }
-        if (property.type !== 'Property') {
-          continue;
-        }
-        const key = property.key;
-        const value = stringValue(key);
-        let selectors = value === null ? null : [value];
-        if (property.computed && selectors === null) {
-          if (
-            key.type === 'CallExpression' &&
-            key.callee.type === 'Identifier' &&
-            key.callee.name === 'String' &&
-            key.arguments[0] &&
-            key.arguments[0].type !== 'SpreadElement'
-          ) {
-            selectors = interpolation(key.arguments[0], '');
-          } else {
-            selectors = interpolation(key, '');
-          }
-        } else if (!property.computed && key.type === 'Identifier') {
-          selectors = [key.name];
-        }
-        if (selectors === null) {
-          continue;
-        }
-        for (const selector of selectors) {
+        let coupled = false;
+        let nested = false;
+        for (const selector of getKeySelectors(property) ?? []) {
           if (/^@(?:-\w+-)?keyframes\b/i.test(selector)) {
             continue;
           }
           if (selector.startsWith('@')) {
-            styles(property.value);
-            continue;
+            nested = true;
+          } else if (!/^[\w-]+$/.test(selector) || isNestedStyle(property.value)) {
+            nested = true;
+            coupled ||= hasDomCoupling(selector);
           }
-          if (!/^[\w-]+$/.test(selector) || isNestedStyle(property.value)) {
-            if (hasDomCoupling(selector) && !reported.has(key)) {
-              reported.add(key);
-              context.report({node: key, messageId: 'forbidden'});
-            }
-            styles(property.value);
-          }
+        }
+        if (coupled) {
+          context.report({node: property.key, messageId: 'forbidden'});
+        }
+        if (nested) {
+          styles(property.value);
         }
       }
     }
 
     function styles(node: ESTree.Node, config = false) {
-      node = unwrap(node);
+      node = unwrapTypeWrappers(node);
       if (visited.has(node)) {
         return;
       }
       visited.add(node);
-      if (node.type === 'Literal' && typeof node.value === 'string') {
-        checkCss(null, node, node.value);
-      } else if (node.type === 'TemplateLiteral') {
-        checkCss(node, node);
+      const returns = getFunctionReturns(node);
+      if (returns) {
+        for (const value of returns) {
+          styles(value, config);
+        }
+      } else if (
+        (node.type === 'Literal' && typeof node.value === 'string') ||
+        node.type === 'TemplateLiteral'
+      ) {
+        checkCss(node);
       } else if (node.type === 'Identifier' || node.type === 'MemberExpression') {
         const value = binding(node);
         if (value) {
@@ -436,21 +419,6 @@ export const noDomCoupling = defineRule({
           if (element) {
             styles(element.type === 'SpreadElement' ? element.argument : element, config);
           }
-        }
-      } else if (
-        node.type === 'ArrowFunctionExpression' ||
-        node.type === 'FunctionExpression' ||
-        node.type === 'FunctionDeclaration'
-      ) {
-        if (!node.body) {
-          return;
-        }
-        if (node.body.type === 'BlockStatement') {
-          for (const value of returnedValues(node.body)) {
-            styles(value, config);
-          }
-        } else {
-          styles(node.body, config);
         }
       } else if (node.type === 'ConditionalExpression') {
         styles(node.consequent, config);
@@ -478,33 +446,29 @@ export const noDomCoupling = defineRule({
       }
     }
 
+    function getStyleType(type: ESTree.TSType) {
+      if (type.type !== 'TSTypeReference') {
+        return;
+      }
+      const definition = imports.resolveVariable(type.typeName)?.defs[0];
+      if (
+        definition?.type !== 'ImportBinding' ||
+        definition.parent?.type !== 'ImportDeclaration' ||
+        !STYLE_TYPE_SOURCES.has(definition.parent.source.value) ||
+        definition.node.type !== 'ImportSpecifier' ||
+        definition.node.imported.type !== 'Identifier'
+      ) {
+        return;
+      }
+      return STYLE_TYPES.get(definition.node.imported.name);
+    }
+
     return {
-      ...imports.visitors,
-      ImportDeclaration(node) {
-        imports.visitors.ImportDeclaration?.(node);
-        if (
-          node.source.value !== '@emotion/react' &&
-          node.source.value !== '@emotion/serialize' &&
-          node.source.value !== '@sentry/scraps/theme' &&
-          node.source.value !== '@sentry/scraps/select'
-        ) {
-          return;
-        }
-        for (const specifier of node.specifiers) {
-          if (
-            specifier.type !== 'ImportSpecifier' ||
-            specifier.imported.type !== 'Identifier'
-          ) {
-            continue;
-          }
-          if (['CSSObject', 'StrictCSSObject'].includes(specifier.imported.name)) {
-            cssTypes.add(specifier.local.name);
-          } else if (specifier.imported.name === 'StylesConfig') {
-            configTypes.add(specifier.local.name);
-          }
+      TaggedTemplateExpression(node) {
+        if (getStyledCallInfo(node, imports)) {
+          checkCss(node.quasi);
         }
       },
-      TaggedTemplateExpression: checkTemplate,
       CallExpression(node) {
         if (getStyledCallInfo(node, imports)) {
           styles(node);
@@ -524,14 +488,11 @@ export const noDomCoupling = defineRule({
         }
       },
       TSTypeAnnotation(node) {
-        const type = node.typeAnnotation;
-        if (type.type !== 'TSTypeReference' || type.typeName.type !== 'Identifier') {
+        const styleType = getStyleType(node.typeAnnotation);
+        if (!styleType) {
           return;
         }
-        const config = configTypes.has(type.typeName.name);
-        if (!config && !cssTypes.has(type.typeName.name)) {
-          return;
-        }
+        const config = styleType === 'config';
         const parent = node.parent;
         if (
           parent.type === 'Identifier' &&
@@ -548,11 +509,9 @@ export const noDomCoupling = defineRule({
         }
       },
       TSSatisfiesExpression(node) {
-        const type = node.typeAnnotation;
-        if (type.type === 'TSTypeReference' && type.typeName.type === 'Identifier') {
-          if (cssTypes.has(type.typeName.name) || configTypes.has(type.typeName.name)) {
-            styles(node.expression, configTypes.has(type.typeName.name));
-          }
+        const styleType = getStyleType(node.typeAnnotation);
+        if (styleType) {
+          styles(node.expression, styleType === 'config');
         }
       },
     };

@@ -4,6 +4,7 @@ import {parseCssTemplate} from '../ast/extractor/css.ts';
 import {createImportTracker} from '../ast/tracker/imports.ts';
 import {normalizePropertyName} from '../ast/utils/normalizePropertyName.ts';
 import {getStyledCallInfo} from '../ast/utils/styled.ts';
+import {isTypeWrapper} from '../ast/utils/typeWrappers.ts';
 
 const CONTAINER_PROPERTIES = new Set([
   'padding',
@@ -68,21 +69,6 @@ type Declarations = Map<string, string | null>;
 
 function isIntrinsic(name: string): boolean {
   return /^[a-z]/.test(name);
-}
-
-function isTypeWrapper(
-  node: ESTree.Node
-): node is
-  | ESTree.TSAsExpression
-  | ESTree.TSSatisfiesExpression
-  | ESTree.TSNonNullExpression
-  | ESTree.TSTypeAssertion {
-  return (
-    node.type === 'TSAsExpression' ||
-    node.type === 'TSSatisfiesExpression' ||
-    node.type === 'TSNonNullExpression' ||
-    node.type === 'TSTypeAssertion'
-  );
 }
 
 function outermostTypeWrapper(node: ESTree.Node): ESTree.Node {

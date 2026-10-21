@@ -84,6 +84,19 @@ function parseCss(source: string): CssDocument | null {
   }
 }
 
+const TEMPLATE_ESCAPES: Record<string, string> = {
+  n: '\n',
+  r: '\r',
+  t: '\t',
+  b: '\b',
+  f: '\f',
+  v: '\v',
+  '0': '\0',
+  '\n': '',
+  '\r': '',
+  '\r\n': '',
+};
+
 /** Decode JavaScript template escapes after slicing by the original source offsets. */
 export function cookCssTemplateText(raw: string): string {
   return raw.replace(
@@ -97,31 +110,52 @@ export function cookCssTemplateText(raw: string): string {
       if (/^[ux][\da-fA-F]+$/.test(value)) {
         return String.fromCharCode(Number.parseInt(value.slice(1), 16));
       }
-      const escapes: Record<string, string> = {
-        n: '\n',
-        r: '\r',
-        t: '\t',
-        b: '\b',
-        f: '\f',
-        v: '\v',
-        '0': '\0',
-        '\n': '',
-        '\r': '',
-        '\r\n': '',
-      };
-      return escapes[value] ?? value;
+      return TEMPLATE_ESCAPES[value] ?? value;
     }
   );
+}
+
+export function isDisabledByDirectives(
+  {directives, line}: {directives: CssDirective[]; line: number | undefined},
+  offset: number | undefined,
+  ruleId: string
+) {
+  let disabled = false;
+  for (const directive of directives) {
+    if (directive.rules.length > 0 && !directive.rules.includes(ruleId)) {
+      continue;
+    }
+    if (directive.action === 'disable-next-line') {
+      if (line === (directive.endLine ?? -2) + 1) {
+        return true;
+      }
+    } else if (directive.action === 'disable-line') {
+      if (line === directive.line) {
+        return true;
+      }
+    } else if (offset !== undefined && directive.offset < offset) {
+      disabled = directive.action === 'disable';
+    }
+  }
+  return disabled;
 }
 
 /** Parse a complete styled template and map each interpolation to its CSS value declaration. */
 export function parseCssTemplate(
   template: ESTree.TemplateLiteral | null,
   source: string,
-  atRules?: ParsedCssAtRule[],
-  selectors?: ParsedCssSelector[]
+  {
+    atRules,
+    selectors,
+  }: {atRules?: ParsedCssAtRule[]; selectors?: ParsedCssSelector[]} = {}
 ): ParsedCssDeclaration[] | null {
+  const expressions = template?.expressions ?? [];
   const templateStart = template?.range[0] ?? 0;
+  const interpolationRanges = expressions.map(expression => ({
+    expression,
+    from: expression.range[0] - templateStart - 2,
+    to: expression.range[1] - templateStart + 1,
+  }));
   const parsedSource = `${PREFIX}${source}`;
   const root = parseCss(parsedSource)?.nodes[0];
   if (!root) {
@@ -145,9 +179,7 @@ export function parseCssTemplate(
         // The syntax parser puts standalone interpolations in raws.before.
         // They can still be component selectors continued on the next line.
         const beforeStart = selectorStart - (node.raws?.before?.length ?? 0);
-        for (const expression of template?.expressions ?? []) {
-          const from = expression.range[0] - templateStart - 2;
-          const to = expression.range[1] - templateStart + 1;
+        for (const {from, to} of interpolationRanges) {
           if (from >= beforeStart && to <= selectorStart) {
             start = Math.min(start, from);
           }
@@ -157,13 +189,11 @@ export function parseCssTemplate(
           line: node.source.start.line,
           sourceRange: [start, end],
           value: source.slice(start, end),
-          interpolations: (template?.expressions ?? []).flatMap(expression => {
-            const from = expression.range[0] - templateStart - 2;
-            const to = expression.range[1] - templateStart + 1;
-            return from >= start && to <= end
+          interpolations: interpolationRanges.flatMap(({expression, from, to}) =>
+            from >= start && to <= end
               ? [{expression, range: [from - start, to - start]}]
-              : [];
-          }),
+              : []
+          ),
         });
       }
       if (node.type === 'atrule' && node.name && node.params !== undefined) {
@@ -198,22 +228,20 @@ export function parseCssTemplate(
           start === undefined || sourceEnd === undefined
             ? null
             : [start - PREFIX.length, sourceEnd - PREFIX.length];
-        const interpolations = (template?.expressions ?? []).flatMap(
-          (expression, index) => {
-            if (
-              sourceStart === undefined ||
-              sourceEnd === undefined ||
-              start === undefined
-            ) {
-              return [];
-            }
-            const expressionStart = expression.range[0] - templateStart + PREFIX.length;
-            const end = expression.range[1] - templateStart + PREFIX.length;
-            return start <= expressionStart && sourceEnd >= end
-              ? [{expression, index}]
-              : [];
+        const interpolations = expressions.flatMap((expression, index) => {
+          if (
+            sourceStart === undefined ||
+            sourceEnd === undefined ||
+            start === undefined
+          ) {
+            return [];
           }
-        );
+          const expressionStart = expression.range[0] - templateStart + PREFIX.length;
+          const end = expression.range[1] - templateStart + PREFIX.length;
+          return start <= expressionStart && sourceEnd >= end
+            ? [{expression, index}]
+            : [];
+        });
 
         declarations.push({
           directives,

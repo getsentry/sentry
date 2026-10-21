@@ -14,7 +14,7 @@ import type {ESTree, Visitor} from '@oxlint/plugins';
 import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
 import {getStyledCallInfo} from '../utils/styled.ts';
 
-import {parseCssTemplate} from './css.ts';
+import {isDisabledByDirectives, parseCssTemplate} from './css.ts';
 import type {ExtractorContext, StyleDeclaration} from './types.ts';
 import {decomposeValue} from './valueDecomposer.ts';
 
@@ -62,24 +62,9 @@ export function createStyledExtractor({
     }
 
     for (const declaration of parsed) {
-      let disabled = false;
-      let disabledLine = false;
-      for (const directive of declaration.directives) {
-        if (directive.rules.length > 0 && !directive.rules.includes(ruleContext.id)) {
-          continue;
-        }
-        if (directive.action === 'disable-next-line') {
-          disabledLine ||= declaration.line === (directive.endLine ?? -2) + 1;
-        } else if (directive.action === 'disable-line') {
-          disabledLine ||= declaration.line === directive.line;
-        } else if (
-          declaration.sourceRange &&
-          directive.offset < declaration.sourceRange[0]
-        ) {
-          disabled = directive.action === 'disable';
-        }
-      }
-      if (disabled || disabledLine) {
+      if (
+        isDisabledByDirectives(declaration, declaration.sourceRange?.[0], ruleContext.id)
+      ) {
         continue;
       }
       for (const {expression, index} of declaration.interpolations) {

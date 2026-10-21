@@ -11,6 +11,11 @@ const SELECTOR_PSEUDOS = new Set([
   '::slotted',
 ]);
 
+function getOfSelectorStart(pseudo: selectorParser.Container) {
+  const of = /\s+of\s+/i.exec(pseudo.toString());
+  return of ? pseudo.sourceIndex + of.index + of[0].length : undefined;
+}
+
 /** A selector is scoped when its subject has an explicit class, ID, or attribute. */
 function isScoped(nodes: readonly selectorParser.Node[]): boolean {
   // Only the final compound selects the subject; earlier compounds select ancestors.
@@ -29,11 +34,10 @@ function isScoped(nodes: readonly selectorParser.Node[]): boolean {
     }
     const alternatives = node.nodes;
     if (/^:nth-(?:last-)?child$/.test(node.value)) {
-      const of = /\s+of\s+/i.exec(node.toString());
-      if (!of) {
+      const start = getOfSelectorStart(node);
+      if (start === undefined) {
         return false;
       }
-      const start = node.sourceIndex + of.index + of[0].length;
       // Reuse the parsed arguments. Re-parsing a slice can throw for incomplete CSS.
       return (
         alternatives.length > 0 &&
@@ -59,8 +63,8 @@ function isPseudoArgument(node: selectorParser.Node): boolean {
     if (/^:nth-(?:last-)?(?:child|of-type)$/.test(parent.value)) {
       // Formula tokens such as `2n + 1` are not element selectors. Selectors
       // after `of` still need checking: :nth-child(2n of button).
-      const of = /\s+of\s+/i.exec(parent.toString());
-      return !of || node.sourceIndex < parent.sourceIndex + of.index + of[0].length;
+      const start = getOfSelectorStart(parent);
+      return start === undefined || node.sourceIndex < start;
     }
     // :lang(en), :dir(rtl), and ::part(icon) take names, not selectors.
     if (!SELECTOR_PSEUDOS.has(parent.value)) {
@@ -68,6 +72,20 @@ function isPseudoArgument(node: selectorParser.Node): boolean {
     }
   }
   return false;
+}
+
+function isForbidden(node: selectorParser.Node) {
+  if (node.type === 'tag' || node.type === 'universal') {
+    return true;
+  }
+  if (node.type !== 'combinator' || node.value.trim() !== '>') {
+    return false;
+  }
+  const subject: selectorParser.Node[] = [];
+  for (let next = node.next(); next && next.type !== 'combinator'; next = next.next()) {
+    subject.push(next);
+  }
+  return !isScoped(subject);
 }
 
 /** Check selector syntax, including selectors nested inside :has/:is/:not. */
@@ -81,25 +99,8 @@ export function hasDomCoupling(selector: string): boolean {
   }
   let forbidden = false;
   root.walk(node => {
-    if (isPseudoArgument(node)) {
-      return;
-    }
-    if (node.type === 'tag' || node.type === 'universal') {
-      forbidden = true;
-    }
-    if (node.type === 'combinator' && node.value.trim() === '>') {
-      const subject: selectorParser.Node[] = [];
-      for (
-        let next = node.next();
-        next && next.type !== 'combinator';
-        next = next.next()
-      ) {
-        subject.push(next);
-      }
-      if (!isScoped(subject)) {
-        forbidden = true;
-      }
-    }
+    forbidden = !isPseudoArgument(node) && isForbidden(node);
+    return !forbidden;
   });
   return forbidden;
 }
