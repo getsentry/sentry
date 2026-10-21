@@ -40,6 +40,7 @@ class MakeGenerateExternalIssueDetailsRequestTest(TestCase):
             == "A NullPointerException occurs when accessing user profile data."
         )
         mock_request.assert_called_once()
+        assert mock_request.call_args.args[0]["feature"] == "summarization"
 
     @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
     def test_values_are_stripped(self, mock_request: MagicMock) -> None:

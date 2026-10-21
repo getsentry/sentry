@@ -61,6 +61,7 @@ def generate_title_from_query(
         provider="gemini",
         model="flash",
         referrer="sentry.issue-views.title-generate",
+        feature="summarization",
         prompt=(
             f"Generate a title for this Sentry issue search query:\n\nQuery:\n{truncated_query}"
         ),

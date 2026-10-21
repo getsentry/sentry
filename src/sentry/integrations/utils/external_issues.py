@@ -73,6 +73,7 @@ def _make_generate_external_issue_details_request(
         provider="gemini",
         model="flash",
         referrer="sentry.external-issue.details-generate",
+        feature="summarization",
         prompt=f"Generate a title and description for this Sentry error:\n\n{context}",
         system_prompt=SYSTEM_PROMPT,
         temperature=0.3,

@@ -334,6 +334,7 @@ class GenerateAssertionSuggestionsTest(TestCase):
         assert len(suggestions.suggestions) == 1
         assert suggestions.suggestions[0].assertion_type == "status_code"
         assert debug is None
+        assert mock_request.call_args.args[0]["feature"] == "monitors"
 
     @patch("sentry.uptime.seer_assertions.make_llm_generate_request")
     def test_empty_seer_content(self, mock_request):

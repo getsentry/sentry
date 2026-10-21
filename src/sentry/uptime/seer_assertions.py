@@ -342,6 +342,7 @@ def generate_assertion_suggestions(
         provider="gemini",
         model="flash",
         referrer="sentry.uptime.assertion-suggestions",
+        feature="monitors",
         prompt=prompt,
         system_prompt=SYSTEM_PROMPT,
         temperature=0.3,
