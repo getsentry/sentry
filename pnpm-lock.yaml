@@ -284,6 +284,9 @@ importers:
       react:
         specifier: 19.3.0
         version: 19.3.0
+      react-router-v8:
+        specifier: npm:react-router@8.4.0
+        version: react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -393,9 +396,6 @@ importers:
       react-refresh:
         specifier: 0.19.0
         version: 0.19.0
-      react-router-v8:
-        specifier: npm:react-router@8.4.0
-        version: react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       run-on-changed:
         specifier: 0.4.0
         version: 0.4.0(supports-color@8.1.1)
