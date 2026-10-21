@@ -107,6 +107,30 @@ describe('DropdownMenu', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it('moves keyboard focus to a trailing link', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: <a href="#project-details">Project details</a>,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    const row = screen.getByRole('menuitemradio', {name: 'Project'});
+    expect(row).toHaveFocus();
+
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('link', {name: 'Project details'})).toHaveFocus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(row).toHaveFocus();
+  });
+
   it.each(['click', '{Enter}', ' '])(
     'opens the menu with %s without activating the row',
     async activation => {

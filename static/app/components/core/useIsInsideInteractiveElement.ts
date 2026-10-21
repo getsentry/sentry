@@ -8,7 +8,7 @@ import {
 
 import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
-const INTERACTIVE_SELECTOR = [
+export const INTERACTIVE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
   'input:not([disabled])',
