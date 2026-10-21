@@ -466,6 +466,11 @@ export function Control<Value extends SelectKey>({
     return true;
   }, [value]);
 
+  // A hidden Clear button keeps the header from resizing, but without a title or
+  // other header items it would leave an empty header, so render it only on selection.
+  const showClearButton =
+    clearable && (hasSelection || !!menuTitle || !!menuHeaderTrailingItems);
+
   const contextValue = useMemo(() => {
     return {
       overlayState,
@@ -531,7 +536,7 @@ export function Control<Value extends SelectKey>({
               data-menu-has-footer={!!menuFooter}
             >
               <FocusScope contain>
-                {(menuTitle || menuHeaderTrailingItems || clearable) && (
+                {(menuTitle || menuHeaderTrailingItems || showClearButton) && (
                   <Header borderBottom={searchEnabled ? 'none' : 'muted'}>
                     <Flex
                       align="center"
@@ -546,7 +551,7 @@ export function Control<Value extends SelectKey>({
                         {typeof menuHeaderTrailingItems === 'function'
                           ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                           : menuHeaderTrailingItems}
-                        {clearable && (
+                        {showClearButton && (
                           <ClearButton
                             onClick={() => onClear?.({overlayState})}
                             size="zero"

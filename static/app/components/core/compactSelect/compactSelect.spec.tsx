@@ -421,6 +421,44 @@ describe('CompactSelect', () => {
     });
   });
 
+  it('leaves out the empty clear-only header when nothing is selected', async () => {
+    const options = [
+      {value: 'opt_one', label: 'Option One'},
+      {value: 'opt_two', label: 'Option Two'},
+    ];
+    const {rerender} = render(
+      <CompactSelect
+        clearable
+        value={undefined}
+        onChange={jest.fn()}
+        options={options}
+        trigger={props => (
+          <OverlayTrigger.Button {...props}>Pick one</OverlayTrigger.Button>
+        )}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Pick one'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
+
+    // With a title, the hidden button stays in the header so it does not resize.
+    rerender(
+      <CompactSelect
+        clearable
+        menuTitle="Options"
+        value={undefined}
+        onChange={jest.fn()}
+        options={options}
+        trigger={props => (
+          <OverlayTrigger.Button {...props}>Pick one</OverlayTrigger.Button>
+        )}
+      />
+    );
+    expect(screen.getByText('Clear')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Clear'})).not.toBeInTheDocument();
+  });
+
   describe('ListBox', () => {
     it('updates trigger label on selection', async () => {
       const mock = jest.fn();

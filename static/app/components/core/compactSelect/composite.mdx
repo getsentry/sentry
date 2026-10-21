@@ -131,6 +131,8 @@ Use `<CompositeSelect.ClearButton>` in `menuHeaderTrailingItems` to add a "Clear
 
 Keep the button in the layout when there is no selection so the menu does not resize. Hide and disable it until there is a selection to clear.
 
+This only works when the header has a `menuTitle`. Without a title, a hidden button leaves an empty header, so render the button only when there is a selection.
+
 export function ClearButtonDemo() {
   const monthOptions = [
     {value: 'jan', label: 'January'},
