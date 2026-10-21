@@ -8,55 +8,92 @@ import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 
 type SupportedPlatform = 'ios' | 'android' | 'flutter' | 'react-native';
 
-const PRODUCT_DOC_URL = 'https://docs.sentry.io/product/size-analysis/';
 const PREPROD_ONBOARDING_ARCADE_URL =
   'https://demo.arcade.software/llDAtVroCp4jCvnPj5qu?embed';
+
+type DocsDisplay = PreprodBuildsDisplay.SIZE | PreprodBuildsDisplay.DISTRIBUTION;
+
+const PRODUCT_DOC_URLS: Record<DocsDisplay, string> = {
+  [PreprodBuildsDisplay.SIZE]: 'https://docs.sentry.io/product/size-analysis/',
+  [PreprodBuildsDisplay.DISTRIBUTION]:
+    'https://docs.sentry.io/product/build-distribution/',
+};
 
 const PLATFORM_DOCS: Array<{
   buttonLabel: string;
   id: SupportedPlatform;
   matches: (platform: PlatformKey | null) => boolean;
-  url: string;
+  urls: Record<DocsDisplay, string>;
 }> = [
   {
     id: 'ios',
     buttonLabel: t('iOS Docs'),
-    url: 'https://docs.sentry.io/platforms/apple/guides/ios/size-analysis/',
+    urls: {
+      [PreprodBuildsDisplay.SIZE]:
+        'https://docs.sentry.io/platforms/apple/guides/ios/size-analysis/',
+      [PreprodBuildsDisplay.DISTRIBUTION]:
+        'https://docs.sentry.io/platforms/apple/guides/ios/build-distribution/',
+    },
     matches: platform =>
       platform?.includes('apple') || platform?.includes('ios') || platform === 'cocoa',
   },
   {
     id: 'android',
     buttonLabel: t('Android Docs'),
-    url: 'https://docs.sentry.io/platforms/android/size-analysis/',
+    urls: {
+      [PreprodBuildsDisplay.SIZE]:
+        'https://docs.sentry.io/platforms/android/size-analysis/',
+      [PreprodBuildsDisplay.DISTRIBUTION]:
+        'https://docs.sentry.io/platforms/android/build-distribution/',
+    },
     matches: platform => platform?.includes('android') ?? false,
   },
   {
     id: 'flutter',
     buttonLabel: t('Flutter Docs'),
-    url: 'https://docs.sentry.io/platforms/dart/guides/flutter/size-analysis/',
+    urls: {
+      [PreprodBuildsDisplay.SIZE]:
+        'https://docs.sentry.io/platforms/dart/guides/flutter/size-analysis/',
+      [PreprodBuildsDisplay.DISTRIBUTION]:
+        'https://docs.sentry.io/platforms/dart/guides/flutter/build-distribution/',
+    },
     matches: platform => platform?.includes('flutter') ?? false,
   },
   {
     id: 'react-native',
     buttonLabel: t('React Native Docs'),
-    url: 'https://docs.sentry.io/platforms/react-native/size-analysis/',
+    urls: {
+      [PreprodBuildsDisplay.SIZE]:
+        'https://docs.sentry.io/platforms/react-native/size-analysis/',
+      [PreprodBuildsDisplay.DISTRIBUTION]:
+        'https://docs.sentry.io/platforms/react-native/build-distribution/',
+    },
     matches: platform => platform?.includes('react-native') ?? false,
   },
 ];
 
 type Props = {
   platform: PlatformKey | null;
+  display?: PreprodBuildsDisplay;
   onDocsClick?: (linkType: 'product' | SupportedPlatform) => void;
 };
 
-export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
+export function PreprodOnboardingPanel({
+  platform,
+  display = PreprodBuildsDisplay.SIZE,
+  onDocsClick,
+}: Props) {
   const theme = useTheme();
+  const docsDisplay: DocsDisplay =
+    display === PreprodBuildsDisplay.DISTRIBUTION
+      ? PreprodBuildsDisplay.DISTRIBUTION
+      : PreprodBuildsDisplay.SIZE;
   const platformDoc = PLATFORM_DOCS.find(doc => doc.matches(platform));
 
   return (
@@ -81,7 +118,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
             </List>
             <Flex gap="md" wrap="wrap" marginTop="lg">
               <LinkButton
-                href={PRODUCT_DOC_URL}
+                href={PRODUCT_DOC_URLS[docsDisplay]}
                 external
                 variant="primary"
                 size="md"
@@ -91,7 +128,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
               </LinkButton>
               {platformDoc ? (
                 <LinkButton
-                  href={platformDoc.url}
+                  href={platformDoc.urls[docsDisplay]}
                   external
                   size="md"
                   onClick={() => onDocsClick?.(platformDoc.id)}

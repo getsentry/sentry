@@ -7,10 +7,13 @@ import {useCallback, useLayoutEffect, useRef} from 'react';
  *
  * @param options - Options for the autosize input functionality.
  * @param options.value - The value of the input, use when the input is controlled.
+ * @param options.placeholder - The placeholder of the input. An empty input is
+ * sized to its placeholder, so pass this when the placeholder can change.
  * @returns A ref callback for the input element.
  */
 
 interface UseAutosizeInputOptions {
+  placeholder?: string | undefined;
   value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
 
@@ -59,7 +62,7 @@ export function useAutosizeInput(
       resize(sourceRef.current, sizingDivRef);
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [options?.value]);
+  }, [options?.value, options?.placeholder]);
 
   const onInputChange = useCallback((_event: any) => {
     if (sourceRef.current) {
