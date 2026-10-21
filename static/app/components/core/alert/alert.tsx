@@ -11,12 +11,12 @@ import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Text} from '@sentry/scraps/text';
 import type {AlertVariant} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {defined} from 'sentry/utils/defined';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 import {unreachable} from 'sentry/utils/unreachable';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {

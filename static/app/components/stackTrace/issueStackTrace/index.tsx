@@ -53,6 +53,7 @@ import {
 
 interface IssueStackTraceBaseProps {
   event: Event;
+  collapseAll?: boolean;
   group?: Group;
   projectSlug?: Project['slug'];
 }
@@ -76,7 +77,7 @@ type PersistedDisplayOption = 'raw-stack-trace' | 'minified';
 const NO_PERSIST_KEY = '__no_persist_stacktrace_display__';
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {event, group, projectSlug} = props;
+  const {event, group, projectSlug, collapseAll} = props;
   const organization = useOrganization();
   const storageKey = projectSlug
     ? `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`
@@ -126,6 +127,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
     >
       {projectSlug && <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />}
       <IssueStackTraceContent
+        collapseAll={collapseAll}
         // Reset internal state when switching events
         key={event.id}
         event={event}
@@ -163,6 +165,7 @@ function PersistDisplayOptions({
 }
 
 function IssueStackTraceContent({
+  collapseAll,
   event,
   values,
   group,
@@ -275,6 +278,7 @@ function IssueStackTraceContent({
             </ErrorBoundary>
           )}
           <StackTraceProvider
+            collapseAll={collapseAll}
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
             event={event}
             hasScmSourceContext={hasScmSourceContext}
@@ -363,6 +367,7 @@ function IssueStackTraceContent({
                     </ErrorBoundary>
                   ) : null}
                   <StackTraceProvider
+                    collapseAll={collapseAll}
                     exceptionIndex={exc.exceptionIndex}
                     event={event}
                     hasScmSourceContext={hasScmSourceContext}

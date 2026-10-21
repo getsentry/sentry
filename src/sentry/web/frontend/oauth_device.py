@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.contrib.auth.views import redirect_to_login
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
@@ -7,6 +9,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
+from sentry import options
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
     get_organization_options,
@@ -28,6 +31,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth
 from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
+from sentry.web.frontend.react_page import ReactMixin
 
 # Standardized error messages
 ERR_NO_ORG_ACCESS = (
@@ -40,7 +44,7 @@ ERR_INVALID_OP = "Invalid operation."
 
 @control_silo_view
 @method_decorator(never_cache, name="dispatch")
-class OAuthDeviceView(BaseView):
+class OAuthDeviceView(BaseView, ReactMixin):
     """
     Device verification page for OAuth 2.0 Device Flow (RFC 8628 §3.3).
 
@@ -72,6 +76,12 @@ class OAuthDeviceView(BaseView):
         limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=20, window=1)}}
     )
 
+    def is_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
+        if request.method == "GET" and options.get("auth.oauth-react-enabled"):
+            return False
+
+        return super().is_auth_required(request, *args, **kwargs)
+
     def handle_auth_required(self, request: HttpRequest, **kwargs) -> HttpResponse:
         auth.initiate_login(request, next_url=request.get_full_path())
         return redirect_to_login(request.get_full_path(), reverse("sentry-login"))
@@ -91,6 +101,9 @@ class OAuthDeviceView(BaseView):
         return self.respond("sentry/oauth-device.html", context)
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+        if options.get("auth.oauth-react-enabled"):
+            return self.handle_react(request)
+
         # RFC 8628 §3.3.1 allows `verification_uri_complete` to carry the user code.
         # We validate it here and advance to the approval step, but the user must
         # still explicitly approve or deny the request per §3.3 and the

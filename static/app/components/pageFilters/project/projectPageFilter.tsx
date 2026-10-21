@@ -157,7 +157,7 @@ export function ProjectPageFilter({
         ),
         trailingItems: (props: {isFocused: boolean}) => {
           return (
-            // This is nasty, but because CompactSelect's menuListItem has a padding around the entire item and a height
+            // This is nasty, but because CompactSelect's Menu.ListItem has padding around the entire item and a height
             // that is smaller than the height of an xs button, they end up being misaligned and we need to manually adjust them.
             <Flex align="center" style={{marginTop: '-4px'}}>
               {props.isFocused ? (

@@ -43,7 +43,15 @@ type Results = {
   totalIssuesCount?: string;
 };
 
-type HookResults = Omit<Results, 'timeseriesResults'> & {timeseriesResults?: Series[]};
+type HookResults = Omit<Results, 'timeseriesResults'> & {
+  timeseriesResults?: Array<Series | WidgetTimeSeries>;
+};
+
+function isWidgetTimeSeries(
+  series: Series | WidgetTimeSeries
+): series is WidgetTimeSeries {
+  return 'queryIndex' in series;
+}
 
 // TODO: Remove once the widget query hooks return WidgetTimeSeries themselves
 function toWidgetTimeSeries(
@@ -59,6 +67,9 @@ function toWidgetTimeSeries(
 ): WidgetTimeSeries[] | undefined {
   return timeseriesResults
     ?.map(series => {
+      if (isWidgetTimeSeries(series)) {
+        return series;
+      }
       const transformed = transformWidgetSeriesToTimeSeries(
         series,
         widget,

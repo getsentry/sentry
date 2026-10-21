@@ -15,6 +15,7 @@ from urllib3.response import HTTPResponse
 import sentry.apidocs.extensions  # noqa: F401
 from sentry.apidocs.hooks import CustomGenerator
 from sentry.investigations.apidocs import PRIVATE_SCHEMA_SETTINGS
+from sentry.investigations.contracts import OrchestrationProjectionSerializer
 from sentry.investigations.models import (
     Investigation,
     InvestigationOrchestrationRun,
@@ -536,3 +537,189 @@ class OrganizationInvestigationIndexTest(APITestCase):
         validate_response(agentic, "post", base)
         orchestration = self.client.get(f"{self.collection_url}{agentic.data['id']}/orchestration/")
         validate_response(orchestration, "get", detail_path + "orchestration/")
+
+    def test_private_schema_matches_a_populated_orchestration_projection(self) -> None:
+        with patched_settings(PRIVATE_SCHEMA_SETTINGS):
+            schema = CustomGenerator().get_schema(public=True)
+        path = (
+            "/api/0/organizations/{organization_id_or_slug}/investigations/"
+            "{investigation_id}/orchestration/"
+        )
+        agentic = self.client.post(
+            self.collection_url, data={"source": {"type": "manual"}}, format="json"
+        )
+        investigation_id = agentic.data["id"]
+        error = {
+            "code": "tool_failed",
+            "message": "The query timed out.",
+            "retryable": True,
+            "source": "investigator",
+            "occurredAt": "2026-01-01T00:02:00+00:00",
+        }
+        tool = {"id": "tool-1", "title": "Query spans", "kind": "api", "status": "completed"}
+        evidence = {
+            "id": "evidence-1",
+            "title": "Slow checkout spans",
+            "kind": "query",
+            "reference": "spans:checkout",
+            "url": "https://example.com/explore/",
+            "summary": "p95 doubled after the deploy.",
+            "data": {"p95": 1.8},
+            "projectIds": [self.project.id],
+        }
+        # Every optional nested object filled in, validated the way a Seer event is
+        # before it is stored.
+        validator = OrchestrationProjectionSerializer(
+            data={
+                "runId": 4815,
+                "investigationId": str(investigation_id),
+                "sourceType": "manual",
+                "workflowVersion": 3,
+                "generation": 1,
+                "phase": "reporting",
+                "status": "processing",
+                "broadScan": {
+                    "status": "completed",
+                    "summary": "Checkout latency rose after a deploy.",
+                    "heartbeatAt": "2026-01-01T00:01:00+00:00",
+                    "error": None,
+                    "toolActivity": [tool],
+                    "generation": 1,
+                    "attempt": 0,
+                    "automaticRetryCount": 0,
+                    "runId": 99,
+                },
+                "hypotheses": [
+                    {
+                        "id": "hypothesis-1",
+                        "order": 0,
+                        "statement": "The deploy slowed checkout",
+                        "rationale": "Latency rose with the release.",
+                        "status": "completed",
+                        "effectiveStatus": "accepted",
+                        "decisionSource": "user",
+                        "confidence": 0.8,
+                        "generation": 1,
+                        "attempt": 0,
+                        "automaticRetryCount": 0,
+                        "investigatorRunId": 100,
+                        "planningStatus": "completed",
+                        "heartbeatAt": "2026-01-01T00:03:00+00:00",
+                        "toolActivity": [tool],
+                        "evidence": [evidence],
+                        "verificationSteps": [
+                            {
+                                "id": "step-1",
+                                "order": 0,
+                                "title": "Compare releases",
+                                "objective": "Find the affected release",
+                                "method": "Break latency down by release",
+                                "status": "completed",
+                                "result": "Only the latest release is slow.",
+                                "evidence": [evidence],
+                                "error": None,
+                            }
+                        ],
+                        "agentVerdict": {
+                            "verdict": "supported",
+                            "confidence": 0.8,
+                            "rationale": "Every check points at the release.",
+                            "supportingEvidenceIds": ["evidence-1"],
+                            "refutingEvidenceIds": [],
+                            "remainingGaps": ["Regional breakdown"],
+                            "decidedAt": "2026-01-01T00:04:00+00:00",
+                        },
+                        "userDisposition": {
+                            "disposition": "accepted",
+                            "userId": self.user.id,
+                            "decidedAt": "2026-01-01T00:05:00+00:00",
+                        },
+                        "error": error,
+                    }
+                ],
+                "report": {
+                    "status": "composing",
+                    "revision": 1,
+                    "notebookRevision": 2,
+                    "includedHypothesisIds": ["hypothesis-1"],
+                    "primaryHypothesisId": "hypothesis-1",
+                    "currentBlockKey": "summary",
+                    "currentBlockStatus": "running",
+                    "currentBlockToolActivity": [tool],
+                    "heartbeatAt": "2026-01-01T00:06:00+00:00",
+                    "automaticRetryCount": 0,
+                    "clearIntent": {
+                        "id": "clear-1",
+                        "revision": 1,
+                        "reason": "Hypotheses changed",
+                        "requestedAt": "2026-01-01T00:06:00+00:00",
+                        "completed": False,
+                    },
+                    "metadata": {
+                        "status": "completed",
+                        "title": "Why checkout slowed",
+                        "summary": "A deploy slowed checkout",
+                        "summaryDescription": "Latency rose with the release.",
+                        "titleStatus": "completed",
+                        "automaticRetryCount": 0,
+                        "error": None,
+                    },
+                    "suggestedHypotheses": [
+                        {"statement": "A cache regressed", "rationale": "Misses rose too."}
+                    ],
+                    "error": None,
+                },
+                "pendingInput": {"prompt": "Which region?", "missingFields": ["prompt"]},
+                "investigatorScheduling": {
+                    "maxConcurrency": 2,
+                    "availableSlots": 1,
+                    "activeHypothesisIds": ["hypothesis-1"],
+                    "queuedHypothesisIds": [],
+                    "nextHypothesisIds": [],
+                },
+                "cancellationIntents": [
+                    {
+                        "id": "cancel-1",
+                        "scope": "hypothesis",
+                        "targetId": "hypothesis-2",
+                        "childRunId": 101,
+                        "generation": 1,
+                        "reason": "Rejected by the user",
+                        "requestedAt": "2026-01-01T00:07:00+00:00",
+                        "completed": True,
+                    }
+                ],
+                "steeringIntents": [
+                    {
+                        "id": "steer-1",
+                        "requestId": "request-1",
+                        "instruction": "Check the cache first",
+                        "target": "workflow",
+                        "targetId": None,
+                        "createdAt": "2026-01-01T00:08:00+00:00",
+                        "completed": False,
+                    }
+                ],
+                "errors": [error],
+                "heartbeatAt": "2026-01-01T00:09:00+00:00",
+                "updatedAt": "2026-01-01T00:09:00+00:00",
+                "startedAt": "2026-01-01T00:00:00+00:00",
+                "finishedAt": None,
+                "activeSince": "2026-01-01T00:00:00+00:00",
+                "activeTimeElapsedSeconds": 540.0,
+            }
+        )
+        validator.is_valid(raise_exception=True)
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=investigation_id)
+        run.projection = validator.validated_data
+        run.save()
+
+        response = self.client.get(f"{self.collection_url}{investigation_id}/orchestration/")
+
+        assert response.status_code == 200, response.data
+        response_schema = schema["paths"][path]["get"]["responses"]["200"]["content"][
+            "application/json"
+        ]["schema"]
+        OAS30Validator({**response_schema, "components": schema["components"]}).validate(
+            orjson.loads(response.content)
+        )

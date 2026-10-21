@@ -105,7 +105,7 @@ def get_indexed_files(project, release_name="", dist_name="", distinct=False):
 class ArtifactLookupTest(TestCase):
     def clear_cache(self):
         redis_client = get_redis_cluster_for_artifact_bundles()
-        redis_client.flushall()
+        redis_client.flushdb()
 
     def test_indexing_artifacts(self) -> None:
         self.clear_cache()
@@ -215,7 +215,7 @@ class ArtifactLookupTest(TestCase):
 
 class GetCachedBundlesIndexingStateTest(TestCase):
     def setUp(self) -> None:
-        get_redis_cluster_for_artifact_bundles().flushall()
+        get_redis_cluster_for_artifact_bundles().flushdb()
 
     def create_bundles(self, count: int) -> None:
         for _ in range(count):

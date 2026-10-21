@@ -91,11 +91,13 @@ export function AggregateDropdown({
   return (
     <CompositeSelect
       disabled={isDisabled || groups.length === 0}
-      menuHeaderTrailingItems={
-        isDefaultSelection
-          ? undefined
-          : () => <CompositeSelect.ClearButton onClick={() => handleChange([])} />
-      }
+      menuHeaderTrailingItems={() => (
+        <CompositeSelect.ClearButton
+          aria-hidden={isDefaultSelection}
+          disabled={isDefaultSelection}
+          onClick={() => handleChange([])}
+        />
+      )}
       style={{width: '100%'}}
       trigger={triggerProps => (
         <OverlayTrigger.Button
