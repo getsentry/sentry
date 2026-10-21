@@ -187,17 +187,6 @@ S030_allowlist: dict[str, dict[tuple[str, str], int]] = {
         ("_make_generate_external_issue_details_request", "call LlmGenerateRequest"): 1,
         ("_make_generate_external_issue_details_request", "call make_llm_generate_request"): 1,
     },
-    "src/sentry/tasks/seer/autofix_issue_data.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("_judge_issue", "call LlmGenerateRequest"): 1,
-        ("_judge_issue", "call make_llm_generate_request"): 1,
-    "src/sentry/seer/endpoints/issue_view_title_generate.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("generate_title_from_query", "call LlmGenerateRequest"): 1,
-        ("generate_title_from_query", "call make_llm_generate_request"): 1,
-    },
     "src/sentry/uptime/seer_assertions.py": {
         (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
         (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
