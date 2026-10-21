@@ -55,6 +55,7 @@ export interface DropdownMenuListProps
    */
   disableTextSelection?: boolean;
   emptyMessage?: React.ReactNode;
+  maxMenuWidth?: number;
   /**
    * To be displayed below the menu items
    */
@@ -69,7 +70,6 @@ export interface DropdownMenuListProps
     onChange: (value: string) => void;
     value: string;
     placeholder?: string;
-    size?: 'xs' | 'sm';
   };
   size?: MenuItemProps['size'];
   /**
@@ -204,6 +204,7 @@ function DropdownMenuList({
   menuTitle,
   emptyMessage,
   menuHeight,
+  maxMenuWidth,
   menuWidth,
   menuFooter,
   search,
@@ -308,7 +309,6 @@ function DropdownMenuList({
     <Search
       ref={searchRef}
       padding={menuTitle ? '0' : undefined}
-      size={search.size}
       aria-label={search.placeholder ?? 'Search'}
       placeholder={search.placeholder ?? 'Search…'}
       value={search.value}
@@ -351,7 +351,7 @@ function DropdownMenuList({
                   height: menuHeight,
                   // The overlay positioner limits the menu to the available viewport height.
                   maxHeight: overlayPositionProps.style?.maxHeight,
-                  maxWidth: '100%',
+                  maxWidth: maxMenuWidth ? `min(${maxMenuWidth}px, 100%)` : '100%',
                 }}
               >
                 {menuTitle && (
@@ -540,7 +540,7 @@ function SearchableDropdownSubmenuContent({
   searchOptions,
   ...props
 }: Omit<DropdownMenuContentProps, 'search'> & {
-  searchOptions?: {placeholder?: string; size?: 'xs' | 'sm'};
+  searchOptions?: {placeholder?: string};
 }) {
   const [search, setSearch] = useState('');
   return (
@@ -621,8 +621,7 @@ function DropdownSubmenu({
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
           emptyMessage={options.emptyMessage}
-          menuHeight={options.menuHeight}
-          menuWidth={options.menuWidth}
+          maxMenuWidth={options.maxMenuWidth}
           searchOptions={options.search}
           size={size}
           {...menuProps}

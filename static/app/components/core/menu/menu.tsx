@@ -105,7 +105,7 @@ type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input> & {
 };
 
 /** Shared search field with a leading icon for menu controls. */
-export function SearchInput({padding = 'xs', size = 'xs', ...props}: SearchInputProps) {
+export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
   return (
     <Container padding={padding}>
       <InputGroup>
@@ -114,7 +114,7 @@ export function SearchInput({padding = 'xs', size = 'xs', ...props}: SearchInput
             <IconSearch size="xs" variant="muted" />
           </Flex>
         </InputGroup.LeadingItems>
-        <InputGroup.Input size={size} {...props} />
+        <InputGroup.Input size="xs" {...props} />
       </InputGroup>
     </Container>
   );
