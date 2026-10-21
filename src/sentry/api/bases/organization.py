@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
@@ -46,7 +47,9 @@ from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import bind_organization_context, set_span_attribute
+from sentry.utils.sdk import bind_organization_context
+
+logger = logging.getLogger(__name__)
 
 
 class NoProjects(Exception):
@@ -660,7 +663,11 @@ class OrganizationEndpoint(Endpoint):
             )
             # For some reason we use range in saved queries
             if "range" in data and "statsPeriod" not in data:
-                data["statsPeriod"] = data["range"]
+                if not isinstance(data, QueryDict):
+                    logger.warning("deprecated range parameter used")
+                    data["statsPeriod"] = data["range"]
+                else:
+                    raise ParseError(detail="range is not a supported parameter")
             start, end = get_date_range_from_params(data, optional=date_filter_optional)
             if start and end:
                 total_seconds = (end - start).total_seconds()
@@ -700,7 +707,9 @@ class OrganizationEndpoint(Endpoint):
         sentry_sdk.set_attribute("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
         sentry_sdk.set_attribute("query.num_projects.grouped", format_grouped_length(len_projects))
-        set_span_attribute("query.num_projects", len_projects)
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("query.num_projects", len_projects)
 
         params: FilterParams = {
             "start": start,

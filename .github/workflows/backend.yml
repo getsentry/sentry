@@ -308,6 +308,25 @@ jobs:
             make test-python-ci
           fi
 
+      # pytest-selected.py balances full-run shards with these. See
+      # .github/workflows/scripts/backend-test-durations.py to refresh them.
+      - name: Extract test durations
+        id: durations
+        if: ${{ !cancelled() && needs.select-tests.outputs.has-selected-tests != 'true' && hashFiles('.artifacts/pytest.json') != '' }}
+        continue-on-error: true
+        run: |
+          python3 .github/workflows/scripts/backend-test-durations.py extract \
+            .artifacts/pytest.json .artifacts/test-durations.json
+
+      - name: Upload test durations
+        if: ${{ !cancelled() && steps.durations.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-test-durations-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/test-durations.json
+          retention-days: 30
+
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         continue-on-error: true
@@ -333,18 +352,6 @@ jobs:
               docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
             done
           fi
-
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        with:
-          artifact_path: .artifacts/pytest.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
   backend-migration-tests:
     if: >-
@@ -443,7 +450,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.12.10'
+          version: '0.13.4'
 
       - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
@@ -569,17 +576,6 @@ jobs:
             devservices logs
           fi
 
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        with:
-          artifact_path: .artifacts/pytest.monolith-dbs.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -591,7 +587,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.12.10'
+          version: '0.13.4'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 

@@ -23,7 +23,6 @@ import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerC
 import {getExplorerFeedbackOptions} from 'sentry/views/seerExplorer/utils';
 
 import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
@@ -88,22 +87,18 @@ function TopBarContent() {
   return (
     <Flex
       as="header"
-      minHeight={{
-        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
-        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
-      }}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
       justify="between"
       background="secondary"
       align="center"
       gap="sm"
-      padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
+      padding={{'screen:sm': '0 lg', 'screen:md': '0 xl'}}
       position="sticky"
       borderBottom="primary"
       top={topBarTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
-      wrap="wrap"
     >
       <SizeProvider size="sm">
         {/*

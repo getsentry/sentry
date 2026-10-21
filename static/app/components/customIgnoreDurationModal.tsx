@@ -51,10 +51,13 @@ export function CustomIgnoreDurationModal(props: Props) {
 
   // Give the user a sane starting point to select a date
   // (prettier than the empty date/time inputs):
-  const defaultDate = new Date();
-  defaultDate.setDate(defaultDate.getDate() + 14);
-  defaultDate.setSeconds(0);
-  defaultDate.setMilliseconds(0);
+  const [defaultDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
+  });
 
   const defaultDateVal = sprintf(
     '%d-%02d-%02d',

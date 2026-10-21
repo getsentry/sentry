@@ -46,10 +46,15 @@ export function variableNames(draft: FormulaDraft) {
   return [...draft.params, ...draft.references].map(({name}) => name);
 }
 
+export function stripNamePrefix(name: string) {
+  return name.startsWith(NAME_PREFIX) ? name.slice(NAME_PREFIX.length) : name;
+}
+
 export function toDraft(formula: SavedFormula | undefined): FormulaDraft {
   if (!formula) {
     return {
       name: '',
+      description: null,
       dataset: 'spans',
       unit: null,
       formula: '',
@@ -60,9 +65,8 @@ export function toDraft(formula: SavedFormula | undefined): FormulaDraft {
 
   return {
     id: formula.id,
-    name: formula.name.startsWith(NAME_PREFIX)
-      ? formula.name.slice(NAME_PREFIX.length)
-      : formula.name,
+    name: stripNamePrefix(formula.name),
+    description: formula.description,
     dataset: formula.dataset,
     unit: formula.unit,
     formula: stripVariableBraces(formula.formula),

@@ -6,31 +6,7 @@ import type {
 } from 'sentry/components/droppedData/types';
 import {defined} from 'sentry/utils/defined';
 
-// TODO: The configured vs. unintentional classification will become a backend
-// setting. Read it from the API once it's exposed instead of hardcoding it here.
-const CONFIGURED_OUTCOMES = new Set(['client_sampled', 'filtered']);
-
 const MIN_HIGHLIGHT_RATIO = 0.001;
-
-const CONFIGURED_REASONS_BY_OUTCOME: Record<string, Set<string>> = {
-  client_discard: new Set([
-    'before_send',
-    'event_processor',
-    'ignored',
-    'no_parent_span',
-    'sample_rate',
-  ]),
-  invalid: new Set(['cors', 'missing_signature', 'transaction_sampled']),
-  rate_limited: new Set(['key_quota']),
-};
-
-function isConfiguredDrop({outcome, reason}: DroppedEventsBucket): boolean {
-  if (CONFIGURED_OUTCOMES.has(outcome)) {
-    return true;
-  }
-
-  return CONFIGURED_REASONS_BY_OUTCOME[outcome]?.has(reason) ?? false;
-}
 
 interface BucketDraft {
   byOutcome: Map<string, OutcomeVolume>;
@@ -48,26 +24,28 @@ function addCount(volume: EventVolume, event: DroppedEventsBucket): void {
   volume.count += event.count;
 }
 
-function addDroppedEvent(
-  drafts: Map<string, BucketDraft>,
-  event: DroppedEventsBucket
-): void {
-  if (isConfiguredDrop(event)) {
-    return;
-  }
-
-  const key = `${event.start}-${event.end}`;
-  let draft = drafts.get(key);
+function getOrCreateDraft(
+  drafts: Map<number, BucketDraft>,
+  {start, end}: DroppedEventsBucket
+): BucketDraft {
+  let draft = drafts.get(start);
 
   if (!draft) {
-    draft = {
-      start: event.start,
-      end: event.end,
-      events: [],
-      byOutcome: new Map(),
-      dropped: emptyVolume(),
-    };
-    drafts.set(key, draft);
+    draft = {start, end, events: [], byOutcome: new Map(), dropped: emptyVolume()};
+    drafts.set(start, draft);
+  }
+
+  return draft;
+}
+
+function addDroppedEvent(
+  drafts: Map<number, BucketDraft>,
+  event: DroppedEventsBucket
+): void {
+  const draft = getOrCreateDraft(drafts, event);
+
+  if (!event.tags.includes('unintentional')) {
+    return;
   }
 
   draft.events.push(event);
@@ -116,15 +94,18 @@ function toBucket(
 }
 
 /**
- * Group dropped events by their `(start, end)` time bucket, joining the
- * accepted volume for the same bucket so every total has a denominator.
+ * Group events into one bucket per time range, joining dropped and accepted
+ * events so every total has a denominator.
  */
 export function groupIntoBuckets(
   droppedEvents: DroppedEventsBucket[],
   acceptedEvents: DroppedEventsBucket[] = []
 ): DroppedDataBucket[] {
-  const drafts = new Map<string, BucketDraft>();
+  const drafts = new Map<number, BucketDraft>();
 
+  for (const event of acceptedEvents) {
+    getOrCreateDraft(drafts, event);
+  }
   for (const event of droppedEvents) {
     addDroppedEvent(drafts, event);
   }
@@ -134,13 +115,8 @@ export function groupIntoBuckets(
   return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
 }
 
-export function highlightedBuckets(
-  droppedEvents: DroppedEventsBucket[],
-  acceptedEvents?: DroppedEventsBucket[]
-): DroppedDataBucket[] {
-  return groupIntoBuckets(droppedEvents, acceptedEvents).filter(
-    bucket => bucket.ratio >= MIN_HIGHLIGHT_RATIO
-  );
+export function isHighlighted(bucket: DroppedDataBucket): boolean {
+  return bucket.ratio >= MIN_HIGHLIGHT_RATIO;
 }
 
 export function hasDroppedData(
@@ -148,6 +124,7 @@ export function hasDroppedData(
   acceptedEvents?: DroppedEventsBucket[]
 ): droppedEvents is DroppedEventsBucket[] {
   return (
-    defined(droppedEvents) && highlightedBuckets(droppedEvents, acceptedEvents).length > 0
+    defined(droppedEvents) &&
+    groupIntoBuckets(droppedEvents, acceptedEvents).some(isHighlighted)
   );
 }

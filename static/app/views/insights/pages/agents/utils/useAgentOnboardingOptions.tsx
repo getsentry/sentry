@@ -15,6 +15,7 @@ import {
   DeploymentTarget,
   getDefaultAgentIntegration,
   getIntegrationDeploymentTarget,
+  hidesDeploymentTargetSelector,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
@@ -104,6 +105,11 @@ export function useAgentOnboardingOptions({
     ? DeploymentTarget.CLOUDFLARE
     : (integrationDeploymentTarget ?? selectedDeploymentTarget);
 
+  // Drop the runtime selector from the options the dropdown renders. The full
+  // options above still resolve the selection from the URL.
+  const {deploymentTarget: _deploymentTargetOption, ...optionsWithoutDeploymentTarget} =
+    platformOptions;
+
   return {
     deploymentTarget,
     integrationDeploymentTarget,
@@ -111,7 +117,9 @@ export function useAgentOnboardingOptions({
       isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE,
     isPhpPlatform,
     isPythonPlatform,
-    platformOptions,
+    platformOptions: hidesDeploymentTargetSelector(selectedPlatformOptions.integration)
+      ? optionsWithoutDeploymentTarget
+      : platformOptions,
     projectAgentIntegration,
     selectedPlatformOptions,
   };
