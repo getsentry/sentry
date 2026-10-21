@@ -59,7 +59,9 @@ export const ListWrap = styled('ul')`
   }
 `;
 
-export const ListLabel = styled('p')`
+// Not a `p`: menus render inline, so ancestor `p` rules such as PanelBody's legacy
+// textStyles would otherwise add a 20px bottom margin.
+export const ListLabel = styled('span')`
   display: inline-block;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
