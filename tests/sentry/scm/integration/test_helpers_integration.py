@@ -164,6 +164,54 @@ class TestFetchRepository(TestCase):
         assert result is not None
         assert result["installation_id"] == "inst_01example"
 
+    def test_fetch_gitlab_repo_populates_path_from_config(self) -> None:
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="GitLab.org / GitLab FOSS",
+            provider="integrations:gitlab",
+            external_id="gitlab.example.com:13083",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
+            config={"path": "gitlab-org/gitlab-foss", "project_id": 13083},
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        # Sentry's pinned sentry-scm may predate the `path` key, so read it untyped.
+        assert dict(result)["path"] == "gitlab-org/gitlab-foss"
+
+    def test_fetch_gitlab_repo_without_config_path_has_none_path(self) -> None:
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="GitLab.org / GitLab FOSS",
+            provider="integrations:gitlab",
+            external_id="gitlab.example.com:13083",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert dict(result)["path"] is None
+
+    def test_fetch_non_gitlab_repo_has_no_path(self) -> None:
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="integrations:github",
+            external_id="22222",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
+            config={"path": "test-org/test-repo"},
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert "path" not in result
+
 
 class TestFetchServiceProvider(TestCase):
     def test_returns_provider_from_map_to_provider(self) -> None:
