@@ -5,14 +5,13 @@ import {
   useMemo,
   useState,
   type ReactNode,
+  type SetStateAction,
 } from 'react';
-import type {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import {useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
-import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
-import {decodeList} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
@@ -51,24 +50,31 @@ interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
 }
 
+const metricQueryParsers = {
+  metric: parseAsStringArray.withOptions({history: 'push'}),
+};
+
 export function MultiMetricsQueryParamsProvider({
   children,
 }: MultiMetricsQueryParamsProviderProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{metric: rawQueries}, setRawQueries] = useQueryStates(metricQueryParsers);
 
-  const queries = useMemo(
-    () => getMultiMetricsQueryParamsFromLocation(location),
-    [location]
-  );
+  const queries = useMemo(() => decodeMetricQueries(rawQueries), [rawQueries]);
 
   const setQueries = useCallback(
-    (nextQueries: BaseMetricQuery[]) => {
-      const target = {...location, query: {...location.query}};
-      target.query.metric = encodeMetricQueries(nextQueries);
-      navigateIfQueryChanged(navigate, location, target);
+    (update: SetStateAction<BaseMetricQuery[]>) => {
+      void setRawQueries(({metric: previousRawQueries}) => {
+        const nextQueries =
+          typeof update === 'function'
+            ? update(decodeMetricQueries(previousRawQueries))
+            : update;
+        const nextRawQueries = encodeMetricQueries(nextQueries);
+        return isEqual(nextRawQueries, previousRawQueries)
+          ? {}
+          : {metric: nextRawQueries};
+      });
     },
-    [location, navigate]
+    [setRawQueries]
   );
 
   const value = useMetricQueriesController({queries, setQueries});
@@ -80,16 +86,27 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
-  const rawQueryParams = decodeList(location.query.metric);
+const decodedMetricQueries = new Map<string, BaseMetricQuery | null>();
+const MAX_DECODED_METRIC_QUERIES = 100;
 
-  const metricQueries = rawQueryParams
-    .map(value => decodeMetricsQueryParams(value))
-    .filter(defined);
+function decodeMetricQueryParamsCached(
+  value: string,
+  index: number
+): BaseMetricQuery | null {
+  const key = `${index}:${value}`;
+  if (!decodedMetricQueries.has(key)) {
+    if (decodedMetricQueries.size >= MAX_DECODED_METRIC_QUERIES) {
+      decodedMetricQueries.clear();
+    }
+    decodedMetricQueries.set(key, decodeMetricsQueryParams(value));
+  }
+  return decodedMetricQueries.get(key) ?? null;
+}
 
-  const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
+function decodeMetricQueries(rawQueries: string[]): BaseMetricQuery[] {
+  const metricQueries = rawQueries.map(decodeMetricQueryParamsCached).filter(defined);
 
-  return queries;
+  return metricQueries.length ? metricQueries : [defaultMetricQuery()];
 }
 
 interface LocalMultiMetricsQueryParamsProviderProps {
