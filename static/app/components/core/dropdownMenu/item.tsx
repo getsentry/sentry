@@ -8,9 +8,9 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
+import {INTERACTIVE_SELECTOR} from '@sentry/scraps/interactiveElement';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
-import {INTERACTIVE_SELECTOR} from '@sentry/scraps/useIsInsideInteractiveElement';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -132,7 +132,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
-  const trailingActionRef = useRef<HTMLDivElement>(null);
+  const trailingActionWrapperRef = useRef<HTMLDivElement>(null);
   const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
@@ -211,7 +211,9 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       // interactive control only when focus is still on the item itself.
       if (e.key === 'ArrowRight' && document.activeElement === innerWrapRef.current) {
         const interactiveAction =
-          trailingActionRef.current?.querySelector<HTMLElement>(INTERACTIVE_SELECTOR);
+          trailingActionWrapperRef.current?.querySelector<HTMLElement>(
+            INTERACTIVE_SELECTOR
+          );
         if (interactiveAction) {
           e.preventDefault();
           interactiveAction.focus();
@@ -330,8 +332,8 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingAction={trailingAction}
-      trailingActionProps={{
-        ref: trailingActionRef,
+      trailingActionWrapperProps={{
+        ref: trailingActionWrapperRef,
         onKeyDown: event => {
           if (event.key === 'ArrowLeft') {
             event.preventDefault();

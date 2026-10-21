@@ -1,0 +1,22 @@
+/** Elements that can receive interaction within shared controls. */
+export const INTERACTIVE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'summary',
+  '[role="button"]',
+  '[role="link"]',
+  '[role="menuitem"]',
+  '[role="menuitemcheckbox"]',
+  '[role="menuitemradio"]',
+  '[role="checkbox"]',
+  '[role="radio"]',
+  '[role="switch"]',
+  "[tabindex]:not([tabindex='-1'])",
+  "[role='option'][tabindex='-1']",
+  "[role='row'][tabindex='-1']",
+  "[role='tab'][tabindex='-1']",
+  "[role='treeitem'][tabindex='-1']",
+].join(',');

@@ -326,7 +326,8 @@ interface OtherProps<T extends React.ElementType> {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: {as?: 'div' | 'p'; id?: string};
-  trailingActionProps?: React.ComponentPropsWithRef<'div'>;
+  /** Props for the wrapper around the trailing action. */
+  trailingActionWrapperProps?: React.ComponentPropsWithRef<'div'>;
 }
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
@@ -355,7 +356,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   tooltip,
   tooltipOptions,
   ref,
-  trailingActionProps,
+  trailingActionWrapperProps,
   ...props
 }: MenuListItemProps<T>) {
   const itemRef = useRef<HTMLElement>(null);
@@ -459,7 +460,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           top="0"
           height="100%"
           align="center"
-          {...trailingActionProps}
+          {...trailingActionWrapperProps}
         >
           {typeof trailingAction === 'function'
             ? trailingAction({disabled, isFocused, isSelected})
