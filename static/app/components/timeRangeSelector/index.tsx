@@ -8,7 +8,7 @@ import {IconArrow} from '@sentry/icons/arrow';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SingleSelectProps} from '@sentry/scraps/compactSelect';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex, Container} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -444,7 +444,7 @@ export function TimeRangeSelector({
           menuFooter={
             menuFooter || menuFooterMessage || showAbsoluteSelector
               ? () => (
-                  <Fragment>
+                  <Stack width="100%">
                     {menuFooterMessage && (
                       <FooterMessage>{menuFooterMessage}</FooterMessage>
                     )}
@@ -469,7 +469,7 @@ export function TimeRangeSelector({
                         </Flex>
                       )}
                     </FooterWrap>
-                  </Fragment>
+                  </Stack>
                 )
               : null
           }

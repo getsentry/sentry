@@ -428,7 +428,7 @@ export function FilterSelector({
     xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
 
   const loadingFooter = isFetching ? (
-    <Flex justify="center" padding="xs">
+    <Flex justify="center" padding="xs" width="100%">
       <FooterLoadingIndicator size={14} />
     </Flex>
   ) : null;
@@ -522,7 +522,7 @@ export function FilterSelector({
       }
       menuFooter={
         hasStagedChanges || isFetching ? (
-          <Stack gap="md">
+          <Stack gap="md" width="100%">
             {loadingFooter}
             {hasStagedChanges && (
               <Flex gap="md" align="center" justify="end">
