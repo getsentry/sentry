@@ -6,6 +6,8 @@ __all__ = [
     "DetectorOccurrence",
     "DetectorStateData",
     "GroupedDetectorEvaluationResult",
+    "LLMDetectorHandler",
+    "LLMDetectorSettings",
     "StatefulDetectorHandler",
 ]
 
@@ -17,4 +19,5 @@ from .base import (
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
+from .llm import LLMDetectorHandler, LLMDetectorSettings
 from .stateful import DetectorStateData, StatefulDetectorHandler

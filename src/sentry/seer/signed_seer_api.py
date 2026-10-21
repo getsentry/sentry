@@ -300,6 +300,13 @@ class OneShotRunRequest(TypedDict):
     payload: dict[str, Any]
 
 
+class LLMDetectorRequest(TypedDict):
+    prompt_key: str
+    model: str
+    prompt_input: dict[str, Any]
+    temperature: NotRequired[float]
+
+
 class RepoDetails(TypedDict):
     project_ids: list[int]
     provider: str
@@ -452,6 +459,24 @@ def make_llm_generate_request(
         body=orjson.dumps(body),
         timeout=timeout,
         metric_tags={"referrer": body["referrer"]},
+        viewer_context=viewer_context,
+    )
+
+
+def make_llm_detector_request(
+    body: LLMDetectorRequest,
+    timeout: int | float,
+    viewer_context: SeerViewerContext,
+) -> BaseHTTPResponse:
+    # Proposed endpoint: Seer must implement this contract before a detector is enabled.
+    # It runs the selected prompt and returns HTTP 200 with {"result": {...}} inline,
+    # without queuing analysis or calling back to create an issue.
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/llm-detector/evaluate",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        retries=0,
         viewer_context=viewer_context,
     )
 

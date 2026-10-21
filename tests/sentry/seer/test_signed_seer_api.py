@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, Mock, patch
 
+import orjson
 import pytest
 from django.test import override_settings
 from urllib3 import HTTPConnectionPool, HTTPResponse
@@ -10,7 +11,9 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     _resolve_viewer_context,
     make_delete_grouping_records_by_project_request,
+    make_llm_detector_request,
     make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
 )
 from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
@@ -18,6 +21,29 @@ from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
 DYNAMIC_PATH = "/v0/issues/similar-issues/grouping-record/delete/123456"
+
+
+def test_llm_detector_request_uses_proposed_synchronous_contract() -> None:
+    with patch("sentry.seer.signed_seer_api.make_signed_seer_api_request") as request:
+        response = make_llm_detector_request(
+            {"prompt_key": "test-prompt-v1", "model": "test-model", "prompt_input": {"value": 1}},
+            timeout=50,
+            viewer_context={"organization_id": 1},
+        )
+
+    assert response is request.return_value
+    assert request.call_args.args == (
+        seer_autofix_default_connection_pool,
+        "/v1/automation/llm-detector/evaluate",
+    )
+    assert orjson.loads(request.call_args.kwargs["body"]) == {
+        "prompt_key": "test-prompt-v1",
+        "model": "test-model",
+        "prompt_input": {"value": 1},
+    }
+    assert request.call_args.kwargs["timeout"] == 50
+    assert request.call_args.kwargs["retries"] == 0
+    assert request.call_args.kwargs["viewer_context"] == {"organization_id": 1}
 
 
 def run_test_case(
