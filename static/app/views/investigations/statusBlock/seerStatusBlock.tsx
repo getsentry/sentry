@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useState, type ReactNode} from 'react';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
 import {IconCircleDashed} from '@sentry/icons/circleDashed';
 import {IconFatal} from '@sentry/icons/fatal';
@@ -6,12 +6,11 @@ import {IconSeer} from '@sentry/icons/seer';
 import {IconWarning} from '@sentry/icons/warning';
 
 import {
-  getToolCallStatusLabel,
+  MessageRow,
+  ThinkingBlock,
   ToolCall,
-  ToolCallIndicator,
   type ToolCallStatus,
 } from '@sentry/scraps/chat';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -98,65 +97,44 @@ function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCal
 }
 
 /**
- * The calls behind the current phase, drawn the way the Seer agent draws them.
+ * What the agent is doing, drawn as the Seer agent's own thinking block: the
+ * latest call is the live title, every call behind the current phase is listed
+ * inside in the order it ran, and the run's clock sits on the right. It opens
+ * while the run works, as the agent's does, and the viewer can fold it away.
  *
- * Only the latest is shown: it says what the agent is doing right now, and the
- * block's title is still the sentence to read. When there is history behind it,
- * the latest call becomes the toggle, and opening it lists the earlier calls
- * newest first, so the list reads back in time from what is happening now.
+ * Before any call has landed the title is "Thinking", as the agent's is before
+ * its first tool runs, so the block holds its place through phases that make no
+ * calls instead of appearing and disappearing between them.
  */
-function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivity[]}) {
-  const latest = toolActivity[toolActivity.length - 1];
-  if (!latest) {
-    return null;
-  }
-  const latestStatus = getToolCallStatus(latest.status);
-  const earlier = toolActivity.slice(0, -1).reverse();
-
-  if (!earlier.length) {
-    return (
-      <Container data-test-id="seer-status-block-tool-activity">
-        <ToolCall title={latest.title} status={latestStatus} />
-      </Container>
-    );
-  }
+function SeerThinking({
+  startTime,
+  toolActivity,
+}: {
+  startTime?: Date;
+  toolActivity?: InvestigationToolActivity[];
+}) {
+  // Without the run's own start, the clock counts from when the block appeared,
+  // as the agent's does for a response that has only just begun.
+  const [appearedAt] = useState(() => new Date());
+  const latest = toolActivity?.[toolActivity.length - 1];
 
   return (
-    <Container data-test-id="seer-status-block-tool-activity">
-      <Disclosure size="xs">
-        <Disclosure.Title
-          leadingItems={
-            // A bare glyph, so it borrows `ToolCall`'s label: the indicator's
-            // default would announce a waiting call as awaiting approval.
-            <ToolCallIndicator
-              status={latestStatus}
-              aria-label={getToolCallStatusLabel(latestStatus, t)}
-            />
-          }
-        >
-          <Text size="sm" variant="secondary" monospace ellipsis>
-            {latest.title}
-          </Text>
-        </Disclosure.Title>
-        <Disclosure.Content>
-          <Stack
-            as="ul"
-            gap="xs"
-            margin="0"
-            padding="0"
-            aria-label={t('Earlier tool calls')}
-          >
-            {earlier.map(activity => (
-              <Flex as="li" key={activity.id} minWidth="0">
+    <Container data-test-id="seer-status-block-thinking">
+      <ThinkingBlock
+        title={latest?.title ?? t('Thinking')}
+        startTime={startTime ?? appearedAt}
+      >
+        {toolActivity?.length
+          ? toolActivity.map(activity => (
+              <MessageRow key={activity.id} from="assistant" density="compact">
                 <ToolCall
                   title={activity.title}
                   status={getToolCallStatus(activity.status)}
                 />
-              </Flex>
-            ))}
-          </Stack>
-        </Disclosure.Content>
-      </Disclosure>
+              </MessageRow>
+            ))
+          : null}
+      </ThinkingBlock>
     </Container>
   );
 }
@@ -180,9 +158,10 @@ type SeerStatusBlockProps = {
   /** The paragraph under the title. */
   description?: string;
   /**
-   * How long the run has been going, already formatted (e.g. "101.5s"). Left
-   * out when there is nothing to measure from: the projection carries no
-   * run-level start time, so the wired block omits this rather than invent one.
+   * How long the run has been going, already formatted (e.g. "101.5s"), shown
+   * beside the title. The wired block leaves it out: a running block's live
+   * clock is in its thinking block (see `startTime`), and the page header
+   * carries the run's active time.
    */
   elapsed?: string;
   /**
@@ -192,9 +171,17 @@ type SeerStatusBlockProps = {
    */
   meta?: string;
   /**
-   * The tool calls behind the current phase, latest last. Only the latest is
-   * shown; it expands to list the earlier ones. Only a running block should supply
-   * these — once a run stops they are history, not status.
+   * When the run started working, on this browser's clock. A running block's
+   * thinking block counts up from it, so its clock is the run's rather than how
+   * long the page has been open. Left out when the projection can't say, and
+   * the clock then starts when the block appears.
+   */
+  startTime?: Date;
+  /**
+   * The tool calls behind the current phase, latest last. A running block shows
+   * them in a thinking block like the Seer agent's, with the latest as its
+   * title. Only a running block draws them — once a run stops they are history,
+   * not status.
    */
   toolActivity?: InvestigationToolActivity[];
   /**
@@ -223,6 +210,7 @@ export function SeerStatusBlock({
   description,
   elapsed,
   meta,
+  startTime,
   title,
   toolActivity,
   trailing,
@@ -278,8 +266,8 @@ export function SeerStatusBlock({
               </Text>
             ) : null}
 
-            {toolActivity?.length ? (
-              <ToolActivityList toolActivity={toolActivity} />
+            {variant === 'running' ? (
+              <SeerThinking startTime={startTime} toolActivity={toolActivity} />
             ) : null}
 
             {children}
