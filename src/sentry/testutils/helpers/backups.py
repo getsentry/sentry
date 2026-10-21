@@ -562,9 +562,6 @@ class ExhaustiveFixtures(Fixtures):
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
-        # Incident*
-        self.create_incident(org, [project])
-
         # Dashboard
         dashboard = Dashboard.objects.create(
             title=f"Dashboard 1 for {slug}",

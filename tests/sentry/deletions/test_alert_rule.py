@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
-from django.utils import timezone
 from urllib3 import HTTPResponse
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -12,7 +11,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleTrigger,
 )
-from sentry.incidents.models.incident import Incident
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.testutils.helpers.datetime import before_now
@@ -31,14 +29,6 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         organization = self.create_organization()
         alert_rule = self.create_alert_rule(organization=organization)
         alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
-        incident = self.create_incident(
-            organization,
-            title="Incident #1",
-            date_started=timezone.now(),
-            date_detected=timezone.now(),
-            projects=[self.project],
-            alert_rule=alert_rule,
-        )
         one_minute = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": one_minute, "fingerprint": ["group1"]}, project_id=self.project.id
@@ -47,8 +37,8 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert group
         group_open_period = GroupOpenPeriod.objects.get(project=self.project, group=group)
         self.create_incident_group_open_period(
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
+            incident_id=123,
+            incident_identifier=42,
             group_open_period=group_open_period,
         )
 
@@ -65,10 +55,9 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert Organization.objects.filter(id=organization.id).exists()
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
-        assert not Incident.objects.filter(id=incident.id).exists()
         assert IncidentGroupOpenPeriod.objects.filter(
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
+            incident_id=123,
+            incident_identifier=42,
             group_open_period=group_open_period,
         ).exists()
         assert GroupOpenPeriod.objects.filter(project=self.project, group=group).exists()
@@ -95,14 +84,6 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=alert_rule, alert_threshold=0
         )
-        incident = self.create_incident(
-            organization,
-            title="Incident #1",
-            date_started=timezone.now(),
-            date_detected=timezone.now(),
-            projects=[self.project],
-            alert_rule=alert_rule,
-        )
 
         self.ScheduledDeletion.schedule(instance=alert_rule, days=0)
 
@@ -112,4 +93,3 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert Organization.objects.filter(id=organization.id).exists()
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
-        assert not Incident.objects.filter(id=incident.id).exists()

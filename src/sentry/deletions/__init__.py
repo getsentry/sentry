@@ -106,7 +106,6 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(incidents.AlertRule, defaults.AlertRuleDeletionTask)
     manager.register(incidents.AlertRuleTrigger, defaults.AlertRuleTriggerDeletionTask)
     manager.register(incidents.AlertRuleTriggerAction, defaults.AlertRuleTriggerActionDeletionTask)
-    manager.register(incidents.Incident, defaults.IncidentDeletionTask)
     manager.register(integrations.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
     manager.register(investigations.Investigation, defaults.InvestigationDeletionTask)
