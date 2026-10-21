@@ -3,9 +3,9 @@ import {Link as RouterLink} from 'react-router';
 
 import {LinkBehaviorContextProvider, type LinkProps} from '@sentry/scraps/link';
 
+import {locationDescriptorToTo} from 'sentry/router/legacyLocation';
 import {preload} from 'sentry/router/preload';
 import {useRouteConfig} from 'sentry/router/routeConfigContext';
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 export function SentryLinkBehaviorProvider({children}: {children: React.ReactNode}) {

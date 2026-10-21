@@ -1,10 +1,12 @@
-import type {Location as Location6, To} from 'react-router';
+import type {Location as RouterLocation, To} from 'react-router';
 import * as Sentry from '@sentry/react';
-import type {Location as Location3, LocationDescriptor, Query} from 'history';
+import type {Location as LegacyLocation, LocationDescriptor, Query} from 'history';
 import * as qs from 'query-string';
 
 /**
- * Translates a react-router 3 LocationDescriptor to a react-router 6 To.
+ * Sentry still accepts React Router 3-style destinations with `.query` and
+ * exposes parsed `location.query` to callers. These adapters preserve those
+ * contracts across router upgrades until callers use native search parameters.
  */
 export function locationDescriptorToTo(path: LocationDescriptor): To {
   if (typeof path === 'string') {
@@ -19,7 +21,7 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
 
   // XXX(epurkhiser): In react router 3 it was possible to include the search
   // query parameters in te pathname field of a LocationDescriptor. You can no
-  // longer do this with 6 and it will result in an error
+  // longer do this with React Router and it will result in an error
   //
   // > Cannot include a '?' character in a manually specified `to.pathname` field
   //
@@ -37,7 +39,7 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
 
     if (parts.length > 2) {
       Sentry.logger.info(
-        'Unexpected number of `?` when shimming search params in pathname for react-router 6',
+        'Unexpected number of `?` when shimming search params in pathname for React Router',
         {LocationDescriptor: path}
       );
     }
@@ -78,11 +80,11 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
 type DefaultQuery<T = string> = Record<string, T | T[] | null | undefined>;
 
 /**
- * Translate react-router 6 Location object to a react-router3 Location
+ * Translate a native router location to Sentry's legacy history shape.
  */
-export function location6ToLocation3<Q extends Query = DefaultQuery>(
-  location: Location6
-): Location3<Q> {
+export function toLegacyLocation<Q extends Query = DefaultQuery>(
+  location: RouterLocation
+): LegacyLocation<Q> {
   const {pathname, search, hash, state, key} = location;
 
   return {
@@ -94,8 +96,8 @@ export function location6ToLocation3<Q extends Query = DefaultQuery>(
     key,
 
     // XXX(epurkhiser): It would be possible to extract this from the
-    // react-router 6 history object. But because of how we're shimming it
+    // React Router history object. But because of how we're shimming it
     // it's a little hard, so for now just mock
     action: 'POP',
-  } satisfies Location3<Q>;
+  } satisfies LegacyLocation<Q>;
 }

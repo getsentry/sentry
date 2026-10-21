@@ -1,6 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import {locationDescriptorToTo} from 'sentry/router/legacyLocation';
 
 export function getLocationHref(to: LocationDescriptor): string {
   const resolved = locationDescriptorToTo(to);

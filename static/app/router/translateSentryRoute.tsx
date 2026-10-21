@@ -54,7 +54,9 @@ function getElement(Component: React.ComponentType<any> | undefined) {
 }
 
 /**
- * Converts a SentryRouteObject tree into a react-router RouteObject tree.
+ * Sentry route objects carry app policies such as domain routing, breadcrumbs,
+ * and preloading. Translating this schema remains necessary across router
+ * runtime upgrades.
  */
 export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   const {name, path, withOrgPath, redirectTo, customerDomainOnlyRoute, component} = tree;

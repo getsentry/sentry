@@ -11,8 +11,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
+import {OnRouteLeave} from 'sentry/router/onRouteLeave';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
-import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';

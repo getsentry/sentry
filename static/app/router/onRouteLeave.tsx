@@ -1,13 +1,13 @@
 import {unstable_usePrompt, type Location} from 'react-router';
 
-type ReactRouterV6RouteLeaveCallback = (state: {
+type RouteLeaveCallback = (state: {
   currentLocation: Location;
   nextLocation: Location;
 }) => boolean;
 
 interface OnRouteLeaveProps {
   message: string;
-  when: ReactRouterV6RouteLeaveCallback;
+  when: RouteLeaveCallback;
 }
 
 export function OnRouteLeave(props: OnRouteLeaveProps) {
