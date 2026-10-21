@@ -78,6 +78,8 @@ class BuildSnapshotImagesZipTest(TestCase):
         kwargs = session.put.call_args.kwargs
         assert kwargs["key"] == f"snapshot_archives/{self.artifact.id}.zip"
         assert kwargs["content_type"] == "application/zip"
+        assert kwargs["compress"] == "none"
+        assert kwargs["resumable_threshold_bytes"] == 0
 
         with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
             assert sorted(archive.namelist()) == ["a.png", "manifest.json"]

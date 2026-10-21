@@ -156,7 +156,13 @@ def build_snapshot_images_zip(
                         "archive_size_bytes": archive_size_bytes,
                     },
                 )
-                session.put(tmp, key=key, content_type="application/zip")
+                session.put(
+                    tmp,
+                    key=key,
+                    content_type="application/zip",
+                    compress="none",
+                    resumable_threshold_bytes=0,
+                )
                 logger.info(
                     "preprod_snapshot_zip.upload_completed",
                     extra={
