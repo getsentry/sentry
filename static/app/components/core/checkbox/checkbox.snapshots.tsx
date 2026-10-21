@@ -1,4 +1,5 @@
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
+import {Container} from '@sentry/scraps/layout';
 
 describe('Checkbox', () => {
   describe.each([
@@ -10,7 +11,7 @@ describe('Checkbox', () => {
       it.snapshot.each(['hover', 'active'] as const)(
         '%s',
         () => (
-         <Container padding="md">
+          <Container padding="md">
             <Checkbox
               aria-label="Example checkbox"
               checked={checked}
@@ -18,7 +19,7 @@ describe('Checkbox', () => {
               readOnly={readOnly}
               onChange={() => {}}
             />
-          </div>
+          </Container>
         ),
         state => ({
           tags: {mode, checked: String(checked), state, area: 'core'},
