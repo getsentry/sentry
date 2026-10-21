@@ -238,6 +238,14 @@ const StyledLeadingItems = styled('div')<{
   ${p => p.disabled && 'opacity: 0.5;'}
 `;
 
+/**
+ * `Text` trims its box to the glyphs, and `ellipsis` hides overflow. Together they
+ * clip labels taller than a text line, such as tags and pills.
+ */
+const RichLabelText = styled(Text)`
+  text-box-trim: none;
+`;
+
 const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
@@ -353,6 +361,8 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   const labelId = useId();
   const detailId = useId();
   const hasInlineDetails = Boolean(details && !showDetailsInOverlay);
+  const LabelText =
+    typeof label === 'string' || typeof label === 'number' ? Text : RichLabelText;
 
   return (
     <MenuItemWrap
@@ -410,7 +420,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
               flex="1 0 0"
               minWidth="0"
             >
-              <Text
+              <LabelText
                 as="div"
                 size={LABEL_TEXT_SIZE_BY_SIZE[size ?? 'md']}
                 density="fixed"
@@ -425,7 +435,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
                 {...labelProps}
               >
                 {label}
-              </Text>
+              </LabelText>
               {!showDetailsInOverlay && details && (
                 <StyledDetails
                   id={detailId}
