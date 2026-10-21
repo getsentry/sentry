@@ -1,4 +1,6 @@
+import time
 from datetime import timedelta
+from threading import Event
 from unittest.mock import patch
 
 import pytest
@@ -8,9 +10,10 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.project import Project
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
@@ -112,6 +115,48 @@ class TestEnsureDefaultDetectors(TestCase):
         assert not Detector.objects.filter(
             type=IssueStreamGroupType.slug, project__isnull=True
         ).exists()
+
+
+class TestEnsureDefaultDetectorsConcurrency(TransactionTestCase):
+    def test_concurrent_caller_waits_for_detectors(self) -> None:
+        project = self.create_project(create_default_detectors=False)
+        db = router.db_for_write(Project)
+        worker_pid: list[int] = []
+        started = Event()
+
+        def ensure_in_other_connection() -> dict[str, Detector]:
+            try:
+                with connections[db].cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    worker_pid.append(cursor.fetchone()[0])
+                started.set()
+                return ensure_default_detectors(project)
+            finally:
+                connections.close_all()
+
+        with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+            with transaction.atomic(db):
+                first = ensure_default_detectors(project)
+                future = executor.submit(ensure_in_other_connection)
+                assert started.wait(timeout=10)
+                # The other caller cannot see our detectors before we commit, so it
+                # must wait on the project row lock.
+                self._wait_for_lock_wait(db, worker_pid[0])
+
+            second = future.result(timeout=10)
+
+        assert {d.id for d in first.values()} == {d.id for d in second.values()}
+        assert Detector.objects.filter(project=project).count() == 2
+
+    def _wait_for_lock_wait(self, db: str, pid: int) -> None:
+        deadline = time.monotonic() + 10
+        with connections[db].cursor() as cursor:
+            while time.monotonic() < deadline:
+                cursor.execute("SELECT 1 FROM pg_locks WHERE pid = %s AND NOT granted", [pid])
+                if cursor.fetchone():
+                    return
+                time.sleep(0.05)
+        raise AssertionError(f"Connection {pid} did not wait on a lock")
 
 
 class TestEnsureDefaultAllProjectsDetector(TestCase):
