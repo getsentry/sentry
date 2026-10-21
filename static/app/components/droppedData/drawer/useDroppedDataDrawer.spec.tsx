@@ -215,6 +215,27 @@ describe('useDroppedDataDrawer', () => {
     await waitForDrawerToHide('Dropped and Filtered Events');
   });
 
+  it('reopens when navigating forward', async () => {
+    mockDroppedData(10, '14d');
+
+    const {router} = render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
+
+    router.navigate(-1);
+    await waitForDrawerToHide('Dropped and Filtered Events');
+
+    router.navigate(1);
+    expect(
+      await screen.findByRole('complementary', {name: 'Dropped and Filtered Events'})
+    ).toBeInTheDocument();
+    expect(router.location.query.droppedData).toBe('true');
+  });
+
   it('stays open and refreshes when zooming changes the time range', async () => {
     mockDroppedData(10, '14d');
     mockDroppedData(3, '1h');
