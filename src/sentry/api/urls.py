@@ -3708,7 +3708,9 @@ INTERNAL_URLS = [
     # No trailing slash, because git never sends one. scm-git/hosts/ is kept free for a later route
     # that names repositories by their provider host.
     re_path(
-        r"^scm-git/repositories/(?P<repository_id>\d+)\.git/(?P<route>.+)$",
+        # [0-9] rather than \d, which also matches other scripts' digits. 19 digits hold any
+        # Repository.id, and keep int() from refusing a longer id with a 500.
+        r"^scm-git/repositories/(?P<repository_id>[0-9]{1,19})\.git/(?P<route>.+)$",
         ScmGitEndpoint.as_view(),
         name="sentry-api-0-scm-git",
     ),

@@ -2578,7 +2578,9 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
         "http_headers": {
             "request": {
                 "mode": "denylist",
-                "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+                # "grant" keeps the SCM git endpoint's X-Scm-Git-Grant out of spans and events.
+                # It's a credential, but none of the SDK's own terms match it.
+                "terms": ["forwarded", "-ip", "remote-", "via", "-user", "grant"],
             }
         },
         "cookies": {"mode": "off"},
