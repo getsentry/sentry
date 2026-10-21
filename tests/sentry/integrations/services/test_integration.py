@@ -4,7 +4,9 @@ from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs
 
+import requests
 import responses
 
 from sentry.constants import ObjectStatus
@@ -30,6 +32,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.models.identity import Identity
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.lock import Lock
 
 
 class BaseIntegrationServiceTest(TestCase):
@@ -748,6 +752,9 @@ class GetGitlabAccessTokenTest(TestCase):
 
         assert token == "token-2"
         assert len(responses.calls) == 1
+        sent = parse_qs(responses.calls[0].request.body)
+        assert sent["grant_type"] == ["refresh_token"]
+        assert sent["refresh_token"] == ["refresh-1"]
         stored = self.stored_identity_data()
         assert stored["access_token"] == "token-2"
         assert stored["refresh_token"] == "refresh-2"
@@ -771,8 +778,54 @@ class GetGitlabAccessTokenTest(TestCase):
                 "integration_id": self.integration.id,
                 "organization_id": self.org.id,
                 "error": "IdentityNotValid",
+                "status_code": None,
             },
         )
+
+    @responses.activate
+    @patch("sentry.integrations.services.integration.impl.logger")
+    def test_none_when_gitlab_fails_the_refresh(self, mock_logger: MagicMock) -> None:
+        self.store_identity_data(expires=int(time()) + 60)
+        responses.add(responses.POST, self.refresh_url, status=503)
+
+        token = integration_service.get_gitlab_access_token(
+            integration_id=self.integration.id, organization_id=self.org.id
+        )
+
+        assert token is None
+        mock_logger.warning.assert_called_once_with(
+            "integration_service.gitlab_access_token.unavailable",
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.org.id,
+                "error": "ApiError",
+                "status_code": 503,
+            },
+        )
+
+    @responses.activate
+    def test_none_when_gitlab_is_unreachable(self) -> None:
+        self.store_identity_data(expires=int(time()) + 60)
+        responses.add(responses.POST, self.refresh_url, body=requests.ConnectionError("refused"))
+
+        assert (
+            integration_service.get_gitlab_access_token(
+                integration_id=self.integration.id, organization_id=self.org.id
+            )
+            is None
+        )
+
+    @patch.object(Lock, "blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_none_when_another_refresh_holds_the_lock(self, mock_acquire: MagicMock) -> None:
+        self.store_identity_data(expires=int(time()) + 60)
+
+        assert (
+            integration_service.get_gitlab_access_token(
+                integration_id=self.integration.id, organization_id=self.org.id
+            )
+            is None
+        )
+        assert self.stored_identity_data()["access_token"] == "token-1"
 
     @patch("sentry.integrations.services.integration.impl.logger")
     def test_none_without_an_identity(self, mock_logger: MagicMock) -> None:
@@ -789,6 +842,7 @@ class GetGitlabAccessTokenTest(TestCase):
                 "integration_id": self.integration.id,
                 "organization_id": self.org.id,
                 "error": "IntegrationConfigurationError",
+                "status_code": None,
             },
         )
 
@@ -840,6 +894,13 @@ class GetGitlabAccessTokenTest(TestCase):
         )
 
     def test_none_for_an_install_being_removed(self) -> None:
+        # Another organization's active install of the same integration doesn't count.
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_org = self.create_organization(owner=self.create_user())
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_organization_integration(
+                integration=self.integration, organization_id=other_org.id
+            )
         self.update_org_integration(status=ObjectStatus.PENDING_DELETION)
 
         assert (

@@ -13,6 +13,7 @@ from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
@@ -32,10 +33,9 @@ def get_oauth_data(payload):
     #   "expires_in": 7200,
     #   "scope": "api"
     # }
-    if "expires_in" in payload:
-        # Measured on our clock rather than from GitLab's created_at, since it's compared
-        # against our clock.
-        data["expires"] = int(time()) + int(payload["expires_in"])
+    # Measured on our clock rather than from GitLab's created_at, since it's compared against
+    # our clock. GitLab before 15.0 can issue tokens that don't expire, recorded as None.
+    data["expires"] = int(time()) + int(payload["expires_in"]) if "expires_in" in payload else None
     if "refresh_token" in payload:
         data["refresh_token"] = payload["refresh_token"]
     if "token_type" in payload:
@@ -134,6 +134,11 @@ class GitlabIdentityProvider(OAuth2Provider):
                 },
             )
             payload = {}
+
+        if "access_token" not in payload:
+            raise ApiError(
+                "GitLab answered the token refresh without an access token", code=req.status_code
+            )
 
         identity.data.update(get_oauth_data(payload))
         identity_service.update_data(identity_id=identity.id, data=identity.data)

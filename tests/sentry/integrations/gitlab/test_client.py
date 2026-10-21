@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from time import time
 from typing import Any
 from unittest import mock
@@ -10,6 +10,7 @@ from urllib.parse import quote
 import orjson
 import pytest
 import responses
+from responses import matchers
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
@@ -118,16 +119,33 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
         assert stored["expires"] == int(time()) + 7200
 
     @responses.activate
-    def test_honours_a_longer_minimum_validity(self) -> None:
-        self.gitlab_client.identity.data["expires"] = int(time()) + 600
-        self.add_refresh_response()
+    def test_records_a_token_that_does_not_expire(self) -> None:
+        responses.add(responses.POST, self.refresh_url, json=self.refresh_response)
 
-        result = self.gitlab_client.get_access_token(
-            token_minimum_validity_time=timedelta(minutes=15)
-        )
+        self.gitlab_client.get_access_token()
 
-        assert result == {"access_token": "123432sfh29uhs29347", "permissions": None}
-        assert len(responses.calls) == 1
+        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        assert stored["access_token"] == "123432sfh29uhs29347"
+        assert stored["expires"] is None
+
+    @responses.activate
+    def test_keeps_a_token_that_does_not_expire(self) -> None:
+        self.gitlab_client.identity.data["expires"] = None
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {"access_token": "123456789", "permissions": None}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_returns_the_stored_token_without_a_refresh_token(self) -> None:
+        self.gitlab_client.identity.data["expires"] = int(time()) + 60
+        del self.gitlab_client.identity.data["refresh_token"]
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {"access_token": "123456789", "permissions": None}
+        assert len(responses.calls) == 0
 
     @responses.activate
     def test_uses_a_token_another_request_refreshed(self) -> None:
@@ -147,6 +165,18 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
         responses.add(responses.POST, self.refresh_url, status=400, json={"error": "invalid_grant"})
 
         with pytest.raises(IdentityNotValid):
+            self.gitlab_client.get_access_token()
+
+        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        assert stored["access_token"] == "123456789"
+
+    @responses.activate
+    def test_raises_api_error_when_gitlab_answers_without_a_token(self) -> None:
+        """A redirect or a proxy's HTML page, rather than a token."""
+        self.gitlab_client.identity.data["expires"] = int(time()) + 60
+        responses.add(responses.POST, self.refresh_url, status=302, body="<html></html>")
+
+        with pytest.raises(ApiError):
             self.gitlab_client.get_access_token()
 
         stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
@@ -234,6 +264,31 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_request_with_refresh()
         assert resp == self.request_data
         self.assert_identity_was_refreshed()
+
+    @responses.activate
+    def test_retries_with_a_token_another_request_stored(self) -> None:
+        """Refreshing with this client's refresh token would fail: the other refresh revoked it."""
+        identity = Identity.objects.get(id=self.gitlab_client.identity.id)
+        identity.data.update({"access_token": "fresh-token", "refresh_token": "fresh-refresh"})
+        identity.save()
+        responses.add(
+            responses.GET,
+            self.request_url,
+            status=401,
+            json={},
+            match=[matchers.header_matcher({"Authorization": "Bearer 123456789"})],
+        )
+        responses.add(
+            responses.GET,
+            self.request_url,
+            json=self.request_data,
+            match=[matchers.header_matcher({"Authorization": "Bearer fresh-token"})],
+        )
+
+        resp = self.make_users_request()
+
+        assert resp == self.request_data
+        assert [call.request.url for call in responses.calls] == [self.request_url] * 2
 
     @responses.activate
     def test_refresh_auth_fails_gracefully(self) -> None:

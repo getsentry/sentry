@@ -17,6 +17,7 @@ from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus, SentryAppInstallationStatus
+from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
@@ -690,16 +691,18 @@ class DatabaseBackedIntegrationService(IntegrationService):
             IdentityNotValid,
             ApiError,
             RequestException,
+            RestrictedIPAddress,
             # Another request's refresh took too long.
             UnableToAcquireLock,
         ) as e:
-            # Only the class: an error from a refresh can carry GitLab's response.
+            # Not the message: it can carry GitLab's response.
             logger.warning(
                 "integration_service.gitlab_access_token.unavailable",
                 extra={
                     "integration_id": integration_id,
                     "organization_id": organization_id,
                     "error": type(e).__name__,
+                    "status_code": getattr(e, "code", None),
                 },
             )
             return None
