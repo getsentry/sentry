@@ -425,6 +425,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
                 bold={false}
                 tabular
                 ellipsis
+                trim={typeof label === 'string' || typeof label === 'number'}
                 id={labelId}
                 data-test-id="menu-list-item-label"
                 {...labelProps}
