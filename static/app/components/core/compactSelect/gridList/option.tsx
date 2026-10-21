@@ -10,7 +10,7 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
-import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
+import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -132,7 +132,13 @@ export function GridListOption<T extends ListItemBase>({
       isPressed={isPressed}
       isFocused={isFocusWithin}
       priority={priority ? 'primary' : 'default'}
-      innerWrapProps={gridCellProps}
+      innerWrapProps={{
+        ...gridCellProps,
+        paddingLeft: getOptionPaddingLeft({
+          hasCheck: !hideCheck,
+          hasLeadingItems: Boolean(leadingItems),
+        }),
+      }}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}

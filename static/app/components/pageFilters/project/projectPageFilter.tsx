@@ -636,7 +636,7 @@ function QuickSelectLabel({
           aria-hidden
           position="absolute"
           bottom="-4px"
-          left="-24px"
+          left="-20px"
           right="0"
           pointerEvents="none"
         >
