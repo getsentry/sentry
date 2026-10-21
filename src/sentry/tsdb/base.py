@@ -99,8 +99,6 @@ class TSDBModel(Enum):
     # the number of events filtered because they refer to a healthcheck endpoint
     project_total_healthcheck = 611
 
-    servicehook_fired = 700
-
     # the number of views that a Sentry App receives
     sentry_app_viewed = 800
     # the number of interactions a Sentry App UI Component receives

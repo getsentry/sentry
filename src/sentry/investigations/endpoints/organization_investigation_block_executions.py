@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.apidocs import constants
+from sentry.apidocs.parameters import GlobalParams, InvestigationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.agent import (
     cancel_investigation_executions_after_failure,
     start_execution_run,
@@ -17,6 +21,7 @@ from sentry.investigations.endpoints.base import (
     require_authenticated_user,
     service_error,
 )
+from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
 from sentry.investigations.endpoints.validators import BlockExecutionStartValidator
 from sentry.investigations.models import (
     Investigation,
@@ -36,8 +41,39 @@ from sentry.utils import metrics
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigationBlockEndpoint):
+    owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
+    @extend_schema(
+        operation_id="Execute an Investigation Block",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            InvestigationParams.INVESTIGATION_ID,
+            InvestigationParams.BLOCK_ID,
+        ],
+        request=BlockExecutionStartValidator,
+        responses={
+            202: inline_sentry_response_serializer(
+                "InvestigationExecutionResponse", InvestigationExecutionResponse
+            ),
+            400: constants.RESPONSE_BAD_REQUEST,
+            401: constants.RESPONSE_UNAUTHORIZED,
+            403: constants.RESPONSE_FORBIDDEN,
+            404: constants.RESPONSE_NOT_FOUND,
+            409: constants.RESPONSE_CONFLICT,
+        },
+        examples=[
+            OpenApiExample(
+                "Example request",
+                value={
+                    "investigationVersion": 2,
+                    "version": 1,
+                    "requestId": "00000000-0000-4000-8000-000000000001",
+                },
+                request_only=True,
+            )
+        ],
+    )
     def post(
         self,
         request: Request,
@@ -45,6 +81,13 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
         investigation: Investigation,
         block: InvestigationBlock,
     ) -> Response:
+        """
+        Start asynchronous text generation or query execution. Send notebook and block versions
+        and optionally an idempotency requestId. Returns execution ID and status, not the
+        completed output. Poll execution details for progress and notebook details for output.
+        Requires an authenticated user and access to the selected projects. Requires the
+        organizations:investigations feature and open organization membership.
+        """
         actor_id = require_authenticated_user(request)
         validator = BlockExecutionStartValidator(data=request.data)
         if not validator.is_valid():
@@ -102,7 +145,11 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
                 raise
 
         execution = InvestigationBlockExecution.objects.get(id=execution.id)
+        response_data: InvestigationExecutionResponse = {
+            "id": str(execution.id),
+            "status": execution.status,
+        }
         return Response(
-            {"id": str(execution.id), "status": execution.status},
+            response_data,
             status=status.HTTP_202_ACCEPTED,
         )

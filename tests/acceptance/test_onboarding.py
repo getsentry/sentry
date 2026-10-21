@@ -484,8 +484,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "python-django"
-            assert project.name == "python-django"
-            assert project.slug == "python-django"
+            assert project.name == "sentry"
+            assert project.slug == "sentry"
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
@@ -545,8 +545,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "javascript-react"
-            assert project.name == "javascript-react"
-            assert project.slug == "javascript-react"
+            assert project.name == "sentry"
+            assert project.slug == "sentry"
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
@@ -695,8 +695,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "python-django"
-            assert project.name == "python-django"
-            assert project.slug == "python-django"
+            assert project.name == "sentry"
+            assert project.slug == "sentry"
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )

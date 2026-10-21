@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sqlite3
 import sys
@@ -267,6 +268,9 @@ class TestMain:
 
         assert "test-item-count=2\n" in github_output.read_text()
         assert f"test-count={1 + len(ALWAYS_RUN_TESTS)}\n" in github_output.read_text()
+        counts = json.loads((tmp_path / "output.counts.json").read_text())
+        assert counts["tests/sentry/test_org.py"] == 2
+        assert sorted(counts) == sorted({"tests/sentry/test_org.py"} | ALWAYS_RUN_TESTS)
 
     @pytest.mark.parametrize("coverage_available", [True, False])
     def test_item_count_uses_per_file_maximum_and_new_files(

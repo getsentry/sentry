@@ -29,6 +29,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
@@ -325,7 +326,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
         return True
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(self.model.metadata["base_url"])
+        return url_is_under(url, self.model.metadata["base_url"])
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         project = quote(repo.config["project"])

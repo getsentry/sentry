@@ -8,7 +8,7 @@ import {IconPlay} from '@sentry/icons/play';
 import {IconTimer} from '@sentry/icons/timer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -54,6 +54,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
+  collapseAll?: boolean;
 };
 
 function getIntendedStackView(
@@ -167,7 +168,14 @@ function ThreadStackTraceContent({
   );
 }
 
-export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
+export function Threads({
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+  collapseAll,
+}: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
@@ -243,7 +251,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
-          <Grid>
+          <Grid gap="xl" columns="auto 1fr">
             <div>
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
@@ -307,6 +315,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         </Fragment>
       )}
       <StacktraceContext
+        collapseAll={collapseAll}
         projectSlug={projectSlug}
         forceFullStackTrace={hasNonAppFrames ? stackView === StackView.FULL : true}
         defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
@@ -400,12 +409,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     threadComponent
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
 
 const TheadStateContainer = styled('div')`
   display: block;

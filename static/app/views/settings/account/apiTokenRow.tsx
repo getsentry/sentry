@@ -8,7 +8,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
+import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;

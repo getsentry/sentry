@@ -93,7 +93,7 @@ describe('ChoiceMapperAdapter', () => {
       {organization: org}
     );
 
-    // Wait for component to settle (CompactSelect popper setup)
+    // Wait for component to settle (CompactSelect overlay setup)
     expect(await screen.findByRole('button', {name: /Add Repo/i})).toBeInTheDocument();
     // Column headers
     expect(screen.getByText('Repository')).toBeInTheDocument();

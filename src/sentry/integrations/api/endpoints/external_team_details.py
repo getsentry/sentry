@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
@@ -63,7 +64,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
 
         try:
             external_team = external_teams.select_related("team__organization").get(
-                id=external_team_id
+                id=to_valid_int_id("external_team_id", external_team_id, raise_404=True)
             )
         except ExternalActor.DoesNotExist:
             raise Http404

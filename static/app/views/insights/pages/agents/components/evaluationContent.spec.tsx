@@ -1,19 +1,37 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
-  EvaluatedText,
+  EvaluatedContent,
   EvaluationAnswers,
   EvaluationQuestions,
   EvaluationResultSummary,
 } from 'sentry/views/insights/pages/agents/components/evaluationContent';
 
-describe('EvaluatedText', () => {
+describe('EvaluatedContent', () => {
   it('renders the text without a Pretty/Raw toggle', async () => {
-    render(<EvaluatedText state="I cannot log in." />);
+    render(
+      <EvaluatedContent state={[{parts: [{kind: 'text', text: 'I cannot log in.'}]}]} />
+    );
 
     await userEvent.hover(screen.getByText('I cannot log in.'));
 
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+  });
+
+  it('renders message text with a placeholder for each image', () => {
+    render(
+      <EvaluatedContent
+        state={[
+          {
+            role: 'user',
+            parts: [{kind: 'text', text: 'Is this image mostly red?'}, {kind: 'image'}],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Is this image mostly red?')).toBeInTheDocument();
+    expect(screen.getByText('Image')).toBeInTheDocument();
   });
 });
 
@@ -55,6 +73,28 @@ describe('EvaluationQuestions', () => {
     expect(screen.getByText('tone')).toBeInTheDocument();
     expect(screen.getByText('Unrecognized')).toBeInTheDocument();
     expect(screen.getByText(/friendly/)).toBeInTheDocument();
+  });
+
+  it('renders score level descriptions next to their levels', () => {
+    render(
+      <EvaluationQuestions
+        questions={[
+          {
+            key: 'urgency',
+            kind: 'question',
+            type: 'score',
+            criteria: ['low', 'medium', 'high'],
+            descriptions: {1: 'Needs a reply today', 2: 'Blocks the customer'},
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('0 · low')).toBeInTheDocument();
+    expect(screen.getByText('1 · medium')).toBeInTheDocument();
+    expect(screen.getByText('Needs a reply today')).toBeInTheDocument();
+    expect(screen.getByText('2 · high')).toBeInTheDocument();
+    expect(screen.getByText('Blocks the customer')).toBeInTheDocument();
   });
 });
 
@@ -155,6 +195,26 @@ describe('EvaluationAnswers', () => {
     expect(screen.getByText('1.6')).toBeInTheDocument();
   });
 
+  it('renders a refusal with a tooltip explaining it', async () => {
+    render(
+      <EvaluationAnswers
+        answers={[{kind: 'refusal', key: 'urgency'}]}
+        questions={[
+          {
+            key: 'urgency',
+            kind: 'question',
+            type: 'score',
+            instructions: 'How urgent is this ticket?',
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('How urgent is this ticket?')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('Refused'));
+    expect(await screen.findByText('The model declined to answer.')).toBeInTheDocument();
+  });
+
   it('shows the answer in the header without a distribution', () => {
     render(
       <EvaluationAnswers
@@ -179,6 +239,7 @@ describe('EvaluationResultSummary', () => {
           {kind: 'boolean', key: 'authIssue', probability: 0.97},
           {kind: 'score', key: 'urgency', score: 1.6},
           {kind: 'choice', key: 'department', choice: 'billing'},
+          {kind: 'refusal', key: 'escalate'},
           {kind: 'invalid', key: 'custom', value: {}},
         ]}
         questions={[
@@ -195,6 +256,7 @@ describe('EvaluationResultSummary', () => {
     expect(screen.getByText('authIssue: Yes')).toBeInTheDocument();
     expect(screen.getByText('urgency: high (1.6)')).toBeInTheDocument();
     expect(screen.getByText('department: billing')).toBeInTheDocument();
+    expect(screen.getByText('escalate: Refused')).toBeInTheDocument();
     expect(screen.queryByText(/custom/)).not.toBeInTheDocument();
   });
 });
