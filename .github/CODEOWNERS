@@ -649,6 +649,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                        @getsentry/agent-tracing
 /src/sentry/ai_monitoring/                                                             @getsentry/agent-tracing
 /tests/sentry/ai_monitoring/                                                           @getsentry/agent-tracing
+/src/sentry/telemetry_classifiers/                                                     @getsentry/agent-tracing
+/tests/sentry/telemetry_classifiers/                                                   @getsentry/agent-tracing
 /tests/sentry/api/endpoints/test_organization_ai_conversation*.py                      @getsentry/agent-tracing
 /src/sentry/apidocs/examples/ai_conversation_examples.py                               @getsentry/agent-tracing
 /src/sentry/analytics/events/agent_monitoring_events.py                                @getsentry/agent-tracing
