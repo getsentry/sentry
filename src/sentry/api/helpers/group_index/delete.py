@@ -189,9 +189,6 @@ def schedule_tasks_to_delete_groups(
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
         except InvalidSearchQuery:
-            # InvalidSearchQuery can be raised while building the Snuba query
-            # (e.g. `issue:` with a value that isn't a valid short ID), after
-            # parsing has already succeeded. It's a client error, not a 500.
             return Response({"detail": "Invalid search query."}, status=400)
 
         group_list = list(cursor_result)
