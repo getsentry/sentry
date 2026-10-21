@@ -64,7 +64,7 @@ export interface DropdownMenuListProps
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
-  menuWidth?: number;
+  menuWidth?: string | number;
   minMenuHeight?: string | number;
   search?: {
     onChange: (value: string) => void;
@@ -291,7 +291,11 @@ function DropdownMenuList({
       >
         <DropdownMenuContext value={contextValue}>
           <Stack
-            width={menuWidth === undefined ? undefined : `${menuWidth}px`}
+            width={
+              typeof menuWidth === 'number'
+                ? `${menuWidth}px`
+                : (menuWidth as CSS['width'])
+            }
             minHeight={minMenuHeight as CSS['minHeight']}
             maxHeight={overlayPositionProps.style?.maxHeight as CSS['maxHeight']}
             maxWidth="calc(100vw - 16px)"
