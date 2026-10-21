@@ -25,6 +25,7 @@ from sentry.investigations.contracts import (
     ReportTextDeltaPayloadSerializer,
     StrictCharField,
     json_byte_size,
+    valid_action_request,
     valid_action_requests,
     validate_query_result,
     validate_text_result,
@@ -758,3 +759,27 @@ def test_projection_passes_the_next_step_through() -> None:
     result = validated(OrchestrationProjectionSerializer, projection(report=report))
 
     assert result["report"]["nextStep"] == {"status": "unknown"}
+
+
+def test_dropped_requests_are_logged_only_when_asked() -> None:
+    bad = action_request(key="Bad")
+
+    with patch("sentry.investigations.contracts.logger") as logger:
+        assert valid_action_request(bad) is None
+        logger.warning.assert_not_called()
+
+        assert valid_action_request(bad, log=True) is None
+        logger.warning.assert_called_once()
+        assert logger.warning.call_args.args == ("investigations.action_requests.dropped",)
+
+
+def test_trimmed_actions_are_logged_only_when_asked() -> None:
+    advice = action_request(action={"kind": "test_kind", "target": "advice"})
+
+    with patch("sentry.investigations.contracts.logger") as logger:
+        assert valid_action_request(advice) is not None
+        logger.warning.assert_not_called()
+
+        assert valid_action_request(advice, log=True) is not None
+        logger.warning.assert_called_once()
+        assert logger.warning.call_args.args == ("investigations.action_requests.action_trimmed",)

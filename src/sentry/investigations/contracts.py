@@ -839,42 +839,49 @@ class ActionRequestSerializer(RelaxedContractSerializer):
         return dict(validator.validated_data)
 
 
-def _trimmed(item: Any) -> Any:
+def _log_extra(item: Any) -> dict[str, Any]:
+    key = item.get("key") if isinstance(item, dict) else None
+    action = item.get("action") if isinstance(item, dict) else None
+    kind = action.get("kind") if isinstance(action, dict) else None
+    return {
+        "key": key[:64] if isinstance(key, str) else None,
+        "kind": kind[:64] if isinstance(kind, str) else None,
+    }
+
+
+def _trimmed(item: Any, *, log: bool) -> Any:
     action = item.get("action") if isinstance(item, dict) else None
     serializer_cls = _payload_serializer(action)
     if serializer_cls is None or not isinstance(action, dict):
         return item
-    return {**item, "action": serializer_cls.trim(action)}
+    trimmed = serializer_cls.trim(action)
+    if log and trimmed != action:
+        logger.warning("investigations.action_requests.action_trimmed", extra=_log_extra(item))
+    return {**item, "action": trimmed}
 
 
-def valid_action_request(item: Any) -> dict[str, Any] | None:
+def valid_action_request(item: Any, *, log: bool = False) -> dict[str, Any] | None:
     """The request Sentry can store, or None.
 
     Seer can ship kinds, providers, or fields Sentry does not know yet, so a bad request is
-    dropped and logged, never rejected with its event.
+    dropped, never rejected with its event. Only the apply path logs, so each drop logs once.
     """
-    item = _trimmed(item)
-    validator = ActionRequestSerializer(data=item)
+    trimmed = _trimmed(item, log=log)
+    validator = ActionRequestSerializer(data=trimmed)
     if validator.is_valid():
         return dict(validator.validated_data)
-    key = item.get("key") if isinstance(item, dict) else None
-    action = item.get("action") if isinstance(item, dict) else None
-    kind = action.get("kind") if isinstance(action, dict) else None
-    logger.warning(
-        "investigations.action_requests.dropped",
-        extra={
-            "key": key[:64] if isinstance(key, str) else None,
-            "kind": kind[:64] if isinstance(kind, str) else None,
-            "fields": sorted(validator.errors)[:10],
-        },
-    )
+    if log:
+        logger.warning(
+            "investigations.action_requests.dropped",
+            extra={**_log_extra(item), "fields": sorted(validator.errors)[:10]},
+        )
     return None
 
 
-def valid_action_requests(items: list[Any]) -> list[dict[str, Any]]:
+def valid_action_requests(items: list[Any], *, log: bool = False) -> list[dict[str, Any]]:
     kept: list[dict[str, Any]] = []
     for item in items[:MAX_ACTION_REQUESTS]:
-        request = valid_action_request(item)
+        request = valid_action_request(item, log=log)
         if request is not None and all(other["key"] != request["key"] for other in kept):
             kept.append(request)
     return kept
@@ -884,7 +891,7 @@ class ActionRequestedPayloadSerializer(RelaxedContractSerializer):
     request = serializers.JSONField()
 
     def validate_request(self, value: Any) -> dict[str, Any] | None:
-        return valid_action_request(value)
+        return valid_action_request(value, log=self.context.get("log_drops", False))
 
 
 class ActionWithdrawnPayloadSerializer(RelaxedContractSerializer):

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from rest_framework import serializers
 
+from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     ActionPayloadSerializer,
     StrictCharField,
@@ -12,8 +12,6 @@ from sentry.investigations.contracts import (
     StrictFloatField,
     StrictIntegerField,
 )
-
-logger = logging.getLogger(__name__)
 
 UPDATE_DETECTOR_ACTION = "update_detector"
 
@@ -24,7 +22,7 @@ _DETECTOR_TEXT_LIMITS = {"query": 2_000, "aggregate": 500, "environment": 64}
 class DetectorChangesSerializer(StrictContractSerializer):
     """The detector settings an `update_detector` action reads or writes."""
 
-    timeWindowSeconds = StrictIntegerField(required=False, min_value=1)
+    timeWindowSeconds = StrictIntegerField(required=False, min_value=1, max_value=I32_MAX)
     highThreshold = StrictFloatField(required=False)
     mediumThreshold = StrictFloatField(required=False)
     resolutionThreshold = StrictFloatField(required=False)
@@ -43,7 +41,7 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
     changes = DetectorChangesSerializer()
 
     def validate_detectorId(self, value: str) -> str:
-        if not (value.isascii() and value.isdigit()):
+        if not (value.isascii() and value.isdigit()) or int(value) > I64_MAX:
             raise serializers.ValidationError("Must be a numeric ID.")
         return value
 
@@ -60,13 +58,18 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
 
     @classmethod
     def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
-        """Drop changes Sentry cannot store (too long, or a null aggregate). No change left
-        means advice.
+        """Drop changes over the text limits, or with a null current aggregate. These limits are
+        policy, so a monitor with a longer query gets no query change. No change left means
+        advice.
         """
 
         before = action.get("before")
         changes = action.get("changes")
-        if not isinstance(before, dict) or not isinstance(changes, dict):
+        if (
+            not isinstance(before, dict)
+            or not isinstance(changes, dict)
+            or set(before) != set(changes)
+        ):
             return action
         dropped = {
             key
@@ -81,15 +84,11 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
         }
         if not dropped:
             return action
-        logger.warning(
-            "investigations.action_requests.changes_dropped",
-            extra={"fields": sorted(dropped)},
-        )
         kept = [key for key in changes if key not in dropped]
         if not kept:
             return None
         return {
             **action,
-            "before": {key: value for key, value in before.items() if key not in dropped},
+            "before": {key: before[key] for key in kept},
             "changes": {key: changes[key] for key in kept},
         }

@@ -51,6 +51,8 @@ def test_accepts_text_changes() -> None:
         {"detectorId": 4821},
         {"detectorId": "48a1"},
         {"detectorId": "1" * 33},
+        {"detectorId": "9" * 20},
+        {"before": {"timeWindowSeconds": 300}, "changes": {"timeWindowSeconds": 2**40}},
         {"before": {}, "changes": {}},
         {"before": {"timeWindowSeconds": 300}, "changes": {"highThreshold": 1.0}},
         {"before": {"timeWindowSeconds": 300}, "changes": {"timeWindowSeconds": 300}},
@@ -96,3 +98,14 @@ def test_trim_drops_changes_sentry_cannot_store() -> None:
             is None
         )
     assert UpdateDetectorActionSerializer.trim(ACTION) == ACTION
+
+
+def test_trim_leaves_mismatched_keys_for_validation_to_reject() -> None:
+    action = {
+        **ACTION,
+        "before": {"query": "x" * 2_001, "timeWindowSeconds": 300},
+        "changes": {"timeWindowSeconds": 900},
+    }
+
+    assert UpdateDetectorActionSerializer.trim(action) == action
+    assert validated(action) is None

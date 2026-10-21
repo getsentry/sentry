@@ -138,7 +138,9 @@ def _validate_projection_project_scope(
         )
 
 
-def _validate_event_payload(event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _validate_event_payload(
+    event_type: str, payload: dict[str, Any], *, log_drops: bool = False
+) -> dict[str, Any]:
     """Check the payload against the schema for its event type and normalize it.
 
     Unknown fields survive validation; Seer owns the shape of these payloads and
@@ -149,7 +151,7 @@ def _validate_event_payload(event_type: str, payload: dict[str, Any]) -> dict[st
     schema = EVENT_PAYLOAD_SERIALIZERS.get(event_type)
     if schema is None:
         return payload
-    validator = schema(data=payload)
+    validator = schema(data=payload, context={"log_drops": log_drops})
     if not validator.is_valid():
         raise serializers.ValidationError({"payload": validator.errors})
     return validator.validated_data
@@ -811,7 +813,7 @@ def _apply_event(
     # Events are staged verbatim so that their identity does not move when Sentry's
     # schemas change. Normalizing here is what lets the apply path read coerced
     # values and defaults without re-checking any types.
-    payload = _validate_event_payload(event.type, _event_data(event))
+    payload = _validate_event_payload(event.type, _event_data(event), log_drops=True)
     generation = _event_generation(event)
     if generation < run.generation:
         return False, "stale_generation"
