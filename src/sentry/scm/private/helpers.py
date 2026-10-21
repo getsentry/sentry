@@ -126,6 +126,18 @@ def fetch_repository(
             if domain_name:
                 base_host = domain_name.split("/", 1)[0]
                 web_base_url = f"https://{base_host}"
+    elif provider_name == "gitlab":
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id,
+            organization_id=organization_id,
+        )
+        if integration:
+            # The same instance URL the GitLab API client and source links are built from, so it
+            # keeps the scheme and any path prefix of a self-hosted instance. Installs from older
+            # pipelines may have saved it with a trailing slash.
+            base_url = integration.metadata.get("base_url")
+            if base_url:
+                web_base_url = base_url.rstrip("/")
     elif provider_name == "cursor_origin":
         integration = get_integration(organization_id, repo.integration_id)
         if integration:
