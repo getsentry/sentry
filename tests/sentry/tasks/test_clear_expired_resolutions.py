@@ -395,7 +395,15 @@ class FinalizedResolutionTaskTest(TestCase):
             )
 
             publish.reset_mock()
-            clear_expired_resolutions(self.anchor.id, after_id=other_resolution.id)
+            with (
+                patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
+                patch("sentry.tasks.clear_expired_resolutions.metrics") as metrics,
+            ):
+                # Exhausted pagination and already-completed retry work are quiet.
+                clear_expired_resolutions(self.anchor.id, after_id=other_resolution.id)
+                clear_expired_resolutions(self.anchor.id, resolution_ids=[other_resolution.id])
+            assert logger.mock_calls == []
+            assert metrics.mock_calls == []
             publish.assert_not_called()
 
     def test_time_budget_commits_progress_and_continuation_obeys_killswitch(self) -> None:
@@ -407,7 +415,7 @@ class FinalizedResolutionTaskTest(TestCase):
         with (
             patch(
                 "sentry.tasks.clear_expired_resolutions.monotonic",
-                side_effect=chain([0], repeat(4)),
+                side_effect=chain([0], repeat(2)),
             ),
             patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
         ):

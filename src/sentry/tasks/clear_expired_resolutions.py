@@ -27,7 +27,7 @@ from sentry.utils.db import statement_timeout
 logger = logging.getLogger(__name__)
 
 RESOLUTION_BATCH_SIZE = 100
-RESOLUTION_BATCH_SECONDS = 3
+RESOLUTION_BATCH_SECONDS = 2
 
 
 @dataclass
@@ -260,6 +260,8 @@ def _clear_finalized_resolutions(
             ResolutionCandidate(*row)
             for row in candidates.order_by("id").values_list(*fields)[:RESOLUTION_BATCH_SIZE]
         ]
+    if not resolutions:
+        return ResolutionBatch(None, [])
 
     next_releases: dict[tuple[int, int], tuple[int, str] | None] = {}
     failed_anchors: set[tuple[int, int]] = set()
