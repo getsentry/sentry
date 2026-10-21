@@ -102,10 +102,6 @@ class FeedbackSourceBase(BaseModel):
         """
         return False
 
-    # Whether a person asked Seer for this change directly. Only such feedback is
-    # acted on over commits Seer didn't push, and may overwrite them.
-    is_explicit_request: ClassVar[bool] = False
-
     def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
         """The inputs this source's gates read, for the caller logging a decision.
 

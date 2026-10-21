@@ -1912,8 +1912,8 @@ def _trigger_pr_iteration_from_review(
             external_id=author_external_id,
         )
 
-    # Someone else has pushed to the PR. Seer's next push would overwrite their
-    # commits, so only an explicit request (an @sentry comment, the UI) acts now.
+    # Someone else has pushed to the PR, so the review may not be about Seer's
+    # work. Only an explicit request (an @sentry comment, the UI) acts now.
     if iteration_prs_any_external_head(organization_id, agent_state):
         logger.info(
             "autofix.pr_iteration.review_trigger.external_head",

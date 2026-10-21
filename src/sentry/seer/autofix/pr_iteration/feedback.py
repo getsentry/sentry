@@ -119,19 +119,6 @@ def latest_iteration_feedback_kind(run_state: SeerRunState) -> str:
     return feedback_kind(blocks_feedback(iterations[-1].blocks))
 
 
-def latest_iteration_is_explicit_request(run_state: SeerRunState) -> bool:
-    """Whether a person directly asked for the run's most recent PR iteration."""
-    try:
-        iterations = get_iterations(run_state)
-    except Exception:
-        return False
-    if not iterations:
-        return False
-    return any(
-        feedback.source.is_explicit_request for feedback in blocks_feedback(iterations[-1].blocks)
-    )
-
-
 def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     """Whether a PR iteration was driven *only* by automated feedback.
 

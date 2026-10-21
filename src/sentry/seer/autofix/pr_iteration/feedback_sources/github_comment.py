@@ -119,7 +119,6 @@ class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     # still parse.
     repo_name: str | None = None
     require_command: ClassVar[bool] = True
-    is_explicit_request: ClassVar[bool] = True
     type: Literal["github-pr-comment"] = "github-pr-comment"
 
 

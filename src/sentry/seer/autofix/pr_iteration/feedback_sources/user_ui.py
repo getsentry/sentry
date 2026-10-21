@@ -1,11 +1,10 @@
-from typing import Any, ClassVar, Literal
+from typing import Any, Literal
 
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import FeedbackSourceBase
 
 
 class UserUIFeedbackSource(FeedbackSourceBase):
     type: Literal["user-ui"] = "user-ui"
-    is_explicit_request: ClassVar[bool] = True
     user_id: int
     user: Any = None
     # The feedback the user typed in the UI. Optional so feedback serialized
