@@ -108,10 +108,9 @@ def _ensure_detector(project: Project, type: str, default_enabled: bool = True) 
     # If we may need to create it, we lock the project row to avoid double-creating.
     # There isn't a unique constraint on the detector, so we can't rely on get_or_create
     # to avoid duplicates.
+    #
     # The row lock is held until the outermost transaction ends, so a concurrent caller
     # waits until our detector is committed, then finds it in get_or_create.
-    # If the project was inserted in the current transaction, other transactions cannot
-    # see the row until we commit, so they cannot hold its lock and we do not wait.
     with transaction.atomic(router.db_for_write(Detector)):
         Project.objects.select_for_update(no_key=True).get(id=project.id)
         detector, _ = Detector.objects.get_or_create(
