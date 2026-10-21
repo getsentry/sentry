@@ -16,7 +16,7 @@ function makeMCPNode(attributes: Record<string, string | number>) {
     null,
     makeEAPSpan({
       op: 'mcp.server',
-      name: 'mcp.server',
+      name: 'tools/call example',
       additional_attributes: attributes,
     }),
     {organization: OrganizationFixture()}

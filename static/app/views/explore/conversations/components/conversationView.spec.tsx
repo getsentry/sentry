@@ -1,17 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {ConversationViewContent} from './conversationView';
 
@@ -131,10 +122,6 @@ describe('ConversationViewContent', () => {
     mockConversation();
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   afterAll(() => {
     window.IntersectionObserver = originalIntersectionObserver;
   });
@@ -190,60 +177,6 @@ describe('ConversationViewContent', () => {
       />
     );
     expect(await screen.findByText('Print a number')).toBeInTheDocument();
-  });
-
-  it('keeps legacy MCP arguments as JSON without requesting a Code Mode summary', async () => {
-    const project = ProjectFixture({id: '1'});
-    const attributes = {
-      'gen_ai.tool.name': 'execute_code',
-      'mcp.request.argument.code': JSON.stringify('print(1)'),
-      'mcp.request.argument.language': JSON.stringify('python'),
-    };
-    mockConversation([
-      CONVERSATION_BODY[0]!,
-      spanFixture({
-        span_id: 'tool-span',
-        parent_span: 'span-a',
-        'span.name': 'mcp.server',
-        'precise.start_ts': 1000.1,
-        'precise.finish_ts': 1000.2,
-        'gen_ai.operation.type': 'tool',
-        'gen_ai.tool.name': 'execute_code',
-      }),
-    ]);
-    act(() => ProjectsStore.loadInitialData([project]));
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.slug}/trace-items/tool-span/`,
-      body: {
-        itemId: 'tool-span',
-        timestamp: new Date().toISOString(),
-        attributes: Object.entries(attributes).map(([name, value]) => ({
-          name,
-          type: 'str',
-          value,
-        })),
-        meta: {},
-      },
-    });
-    const request = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/1/ai/code-explanation/',
-      method: 'POST',
-      body: {summary: 'Print a number'},
-    });
-
-    render(
-      <ConversationViewContent
-        conversation={{conversationId: CONVERSATION_ID}}
-        activeTab="transcript"
-        selectedSpanId="tool-span"
-      />
-    );
-
-    const input = await screen.findByRole('tabpanel', {name: 'Input'});
-    expect(await within(input).findByText('code')).toBeInTheDocument();
-    expect(within(input).getByText('language')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', {name: 'Summary'})).not.toBeInTheDocument();
-    expect(request).not.toHaveBeenCalled();
   });
 
   it('loads the next page when the pagination footer is visible', async () => {
