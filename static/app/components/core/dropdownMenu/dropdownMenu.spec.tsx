@@ -9,7 +9,7 @@ describe('DropdownMenu', () => {
     render(
       <DropdownMenu
         triggerLabel="Projects"
-        search={{placeholder: 'Search projects'}}
+        search
         items={[
           {key: 'javascript', label: 'javascript'},
           {key: 'python', label: 'python'},
@@ -18,10 +18,10 @@ describe('DropdownMenu', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search projects'}),
-      'python'
+    expect(screen.getByRole('textbox', {name: 'Search'})).not.toHaveAttribute(
+      'placeholder'
     );
+    await userEvent.type(screen.getByRole('textbox', {name: 'Search'}), 'python');
 
     expect(screen.getByRole('menuitemradio', {name: 'python'})).toBeInTheDocument();
     expect(
@@ -448,7 +448,7 @@ describe('DropdownMenu', () => {
             submenu: {
               title: 'All Projects',
               emptyMessage: 'No projects found',
-              search: {placeholder: 'Search projects'},
+              search: true,
               maxMenuHeight: 240,
             },
             children: [
@@ -469,7 +469,7 @@ describe('DropdownMenu', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const search = screen.getByRole('textbox', {name: 'Search'});
     expect(search).toHaveFocus();
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
@@ -514,7 +514,7 @@ describe('DropdownMenu', () => {
           {
             key: 'all-projects',
             label: 'All Projects',
-            submenu: {search: {placeholder: 'Search projects'}},
+            submenu: {search: true},
             children: [
               {key: 'javascript', label: 'javascript'},
               {key: 'sentry', label: 'sentry'},
@@ -526,10 +526,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search projects'}),
-      'sentry'
-    );
+    await userEvent.type(screen.getByRole('textbox', {name: 'Search'}), 'sentry');
     expect(
       screen.queryByRole('menuitemradio', {name: 'javascript'})
     ).not.toBeInTheDocument();
@@ -538,7 +535,7 @@ describe('DropdownMenu', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
-    expect(screen.getByRole('textbox', {name: 'Search projects'})).toHaveValue('');
+    expect(screen.getByRole('textbox', {name: 'Search'})).toHaveValue('');
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
   });
 

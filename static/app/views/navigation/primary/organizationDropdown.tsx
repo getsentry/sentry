@@ -163,7 +163,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 submenu: {
                   title: t('All Projects'),
                   emptyMessage: t('No projects found'),
-                  search: {placeholder: t('Search')},
+                  search: true,
                   maxMenuHeight: 240,
                   menuWidth: 258,
                 },

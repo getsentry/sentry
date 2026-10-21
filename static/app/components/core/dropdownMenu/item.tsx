@@ -17,8 +17,6 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './context';
 
-export type DropdownMenuSearchOptions = {placeholder?: string};
-
 export interface MenuItemProps extends ListItemProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
@@ -73,7 +71,7 @@ export interface MenuItemProps extends ListItemProps {
         maxMenuHeight?: number;
         menuWidth?: string | number;
         position?: UseOverlayProps['position'];
-        search?: DropdownMenuSearchOptions;
+        search?: boolean;
         title?: string;
       };
   /**

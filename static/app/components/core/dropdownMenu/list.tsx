@@ -25,7 +25,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
-import type {DropdownMenuSearchOptions, MenuItemProps} from './item';
+import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
 import {useSafetyTriangle} from './useSafetyTriangle';
@@ -66,7 +66,7 @@ export interface DropdownMenuListProps
   menuTitle?: React.ReactNode;
   menuWidth?: string | number;
   /** Controlled search input state supplied by DropdownMenuContent. */
-  searchState?: DropdownMenuSearchOptions & {
+  searchState?: {
     onChange: (value: string) => void;
     value: string;
   };
@@ -307,8 +307,7 @@ function DropdownMenuList({
     <Search
       ref={searchRef}
       padding={menuTitle ? '0' : undefined}
-      aria-label={searchState.placeholder ?? 'Search'}
-      placeholder={searchState.placeholder ?? 'Search…'}
+      aria-label="Search"
       value={searchState.value}
       onChange={event => searchState.onChange(event.target.value)}
       onKeyDown={event => {
@@ -462,7 +461,7 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
 
 export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
   items: MenuItemProps[];
-  search?: DropdownMenuSearchOptions;
+  search?: boolean;
 };
 
 export function DropdownMenuContent({
@@ -490,9 +489,7 @@ export function DropdownMenuContent({
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      searchState={
-        search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
-      }
+      searchState={search ? {value: searchValue, onChange: setSearchValue} : undefined}
     >
       {(item: MenuItemProps) => {
         const {onAction: _onAction, ...itemProps} = item;
