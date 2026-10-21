@@ -16,6 +16,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/',
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
+  '/explore/investigations/:investigationId/',
   '/explore/logs/',
   '/explore/logs/trace/:traceSlug/',
   '/explore/metrics/',
@@ -61,6 +62,7 @@ const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType[]>([
   // so at least one "widget" node must be ready. Prebuilt dashboards showing
   // onboarding have no widgets, so "dashboard" node being ready is enough.
   ['/dashboard/:dashboardId/', ['dashboard', 'widget']],
+  ['/explore/investigations/:investigationId/', ['investigation']],
   ['/explore/replays/:replaySlug/', ['replay-detail']],
   ['/issues/:groupId/', ['issue-detail']],
   ['/issues/:groupId/events/', ['issue-detail']],
