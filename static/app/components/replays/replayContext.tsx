@@ -601,11 +601,16 @@ export function Provider({
 
   // When switching between a video and an rrweb replay without remounting
   // (e.g. playlist navigation), tear down the replayer of the other kind so the
-  // init effects below can create the correct one.
+  // init effects below can create the correct one. Player UI state is normally
+  // reset by replayer callbacks (`onBuffer`, `SkipEnd`, ...), which won't fire
+  // after `destroy()`, so reset it here too.
   useEffect(() => {
     if (replayerRef.current && isVideoReplayerRef.current !== isVideoReplay) {
       replayerRef.current.destroy();
       replayerRef.current = null;
+      setIsPlaying(false);
+      setFFSpeed(0);
+      setVideoBuffering(false);
     }
   }, [isVideoReplay]);
 

@@ -457,6 +457,34 @@ describe('replayContext', () => {
     expect(VideoReplayerWithInteractions).toHaveBeenCalledTimes(1);
   });
 
+  it('clears the fast forward speed when switching from an rrweb to a video replay', () => {
+    const {rerender} = render(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({
+          attachments: RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        })}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+    startFastForwarding();
+    expect(screen.getByText('Fast forward: 8')).toBeInTheDocument();
+
+    rerender(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({attachments: [VideoFrameEventFixture()]})}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+
+    expect(screen.getByText('Fast forward: 0')).toBeInTheDocument();
+  });
+
   it('keeps the fast forward speed when the tab stays visible while skipping', async () => {
     renderPlayer();
     await startPlaying();
