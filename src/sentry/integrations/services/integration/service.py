@@ -328,9 +328,9 @@ class IntegrationService(RpcService):
         For callers outside control that hand the token on: they can't refresh it, and can't
         retry after a 401.
 
-        Org-scoped like ``refresh_github_access_token``. None when the integration is missing,
-        not GitLab or not active, when the organization's install is missing or not active,
-        or when there's no token to give (no identity, or GitLab refused the refresh).
+        Org-scoped like ``refresh_github_access_token``. None when the organization has no active
+        install of an active GitLab integration with that id, or when there's no token to give
+        (no identity, or the refresh failed).
         """
 
     @rpc_method

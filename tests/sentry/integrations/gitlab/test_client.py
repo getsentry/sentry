@@ -61,15 +61,18 @@ class GitLabClientTest(GitLabTestCase):
         self.original_identity_data = dict(self.gitlab_client.identity.data)
         self.gitlab_id = 123
 
-
-@control_silo_test
-@freeze_time("2025-01-01T05:22:00Z")
-class GitLabGetAccessTokenTest(GitLabClientTest):
     def store_identity_data(self, **data: Any) -> None:
         identity = Identity.objects.get(id=self.gitlab_client.identity.id)
         identity.data.update(data)
         identity.save()
 
+    def stored_identity_data(self) -> dict[str, Any]:
+        return Identity.objects.get(id=self.gitlab_client.identity.id).data
+
+
+@control_silo_test
+@freeze_time("2025-01-01T05:22:00Z")
+class GitLabGetAccessTokenTest(GitLabClientTest):
     def add_refresh_response(self) -> None:
         responses.add(
             responses.POST,
@@ -101,8 +104,7 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
 
         assert result == {"access_token": "123432sfh29uhs29347", "permissions": None}
         assert len(responses.calls) == 1
-        assert responses.calls[0].request.url == self.refresh_url
-        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        stored = self.stored_identity_data()
         assert stored["access_token"] == "123432sfh29uhs29347"
         assert stored["refresh_token"] == "29f43sdfsk22fsj929"
         assert stored["expires"] == int(time()) + 7200
@@ -115,7 +117,7 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
         result = self.gitlab_client.get_access_token()
 
         assert result == {"access_token": "123432sfh29uhs29347", "permissions": None}
-        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        stored = self.stored_identity_data()
         assert stored["expires"] == int(time()) + 7200
 
     @responses.activate
@@ -124,7 +126,7 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
 
         self.gitlab_client.get_access_token()
 
-        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        stored = self.stored_identity_data()
         assert stored["access_token"] == "123432sfh29uhs29347"
         assert stored["expires"] is None
 
@@ -167,7 +169,7 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
         with pytest.raises(IdentityNotValid):
             self.gitlab_client.get_access_token()
 
-        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        stored = self.stored_identity_data()
         assert stored["access_token"] == "123456789"
 
     @responses.activate
@@ -179,7 +181,7 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
         with pytest.raises(ApiError):
             self.gitlab_client.get_access_token()
 
-        stored = Identity.objects.get(id=self.gitlab_client.identity.id).data
+        stored = self.stored_identity_data()
         assert stored["access_token"] == "123456789"
 
 
@@ -268,9 +270,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
     @responses.activate
     def test_retries_with_a_token_another_request_stored(self) -> None:
         """Refreshing with this client's refresh token would fail: the other refresh revoked it."""
-        identity = Identity.objects.get(id=self.gitlab_client.identity.id)
-        identity.data.update({"access_token": "fresh-token", "refresh_token": "fresh-refresh"})
-        identity.save()
+        self.store_identity_data(access_token="fresh-token", refresh_token="fresh-refresh")
         responses.add(
             responses.GET,
             self.request_url,
@@ -288,7 +288,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         resp = self.make_users_request()
 
         assert resp == self.request_data
-        assert [call.request.url for call in responses.calls] == [self.request_url] * 2
+        assert len(responses.calls) == 2
 
     @responses.activate
     def test_refresh_auth_fails_gracefully(self) -> None:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from datetime import timedelta
 from enum import StrEnum
 from time import time
 from typing import TYPE_CHECKING, Any
@@ -39,7 +38,7 @@ logger = logging.getLogger("sentry.integrations.gitlab")
 
 # GitLab's OAuth tokens last two hours. The margin covers the time until the caller uses the
 # token and the skew between our clock and GitLab's.
-TOKEN_MINIMUM_VALIDITY = timedelta(minutes=5)
+TOKEN_MINIMUM_VALIDITY_S = 5 * 60
 
 # Outlasts a refresh request's connect and read timeouts, so the lock doesn't expire while
 # one is in flight.
@@ -52,7 +51,7 @@ def _expires_soon(identity_data: Mapping[str, Any]) -> bool:
         return True
     expires = identity_data["expires"]
     # None means GitLab issued a token that doesn't expire.
-    return expires is not None and int(expires) < time() + TOKEN_MINIMUM_VALIDITY.total_seconds()
+    return expires is not None and int(expires) < time() + TOKEN_MINIMUM_VALIDITY_S
 
 
 class GitLabApiRequestType(StrEnum):
@@ -167,14 +166,14 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             if needs_refresh(self.identity.data):
                 self._refresh_auth()
 
-    def _refresh_auth(self):
+    def _refresh_auth(self) -> None:
         """
         Modeled after Doorkeeper's docs
         where Doorkeeper is a dependency for GitLab that handles OAuth
 
         https://github.com/doorkeeper-gem/doorkeeper/wiki/Enable-Refresh-Token-Credentials#testing-with-oauth2-gem
         """
-        return self.identity.get_identity().refresh_identity(
+        self.identity.get_identity().refresh_identity(
             self.identity,
             refresh_token_url="{}{}".format(
                 self.base_url.rstrip("/"), GitLabApiClientPath.oauth_token
