@@ -17,6 +17,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {decodeList} from 'sentry/utils/queryString';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   defaultMetricQuery,
@@ -195,6 +196,113 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {},
+    });
+  });
+
+  it('edits panel transformations in the URL without changing other metrics', async () => {
+    const firstMetric = JSON.stringify({
+      metric: {name: 'bar', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {yAxes: ['p50(value,bar,distribution,none)'], transformations: ['fill(locf)']},
+        {yAxes: ['p90(value,bar,distribution,none)'], transformations: ['fill(linear)']},
+        {groupBy: 'project'},
+      ],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+    const otherMetric = JSON.stringify({
+      metric: {name: 'foo', type: 'counter'},
+      query: '',
+      aggregateFields: [
+        {yAxes: ['sum(value,foo,counter,none)'], transformations: ['smooth(asap)']},
+      ],
+      aggregateSortBys: [{field: 'sum(value,foo,counter,none)', kind: 'desc'}],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      mode: 'samples',
+    });
+    const {router} = render(
+      <MetricsTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        additionalWrapper: ProviderWrapper,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        },
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialLocation,
+            query: {...initialLocation.query, metric: [firstMetric, otherMetric]},
+          },
+        },
+      }
+    );
+
+    const firstPanel = screen.getAllByTestId('metric-panel')[0]!;
+    const otherPanel = screen.getAllByTestId('metric-panel')[1]!;
+    expect(
+      within(firstPanel).getByRole('button', {name: 'Fill method'})
+    ).toHaveTextContent('LOCF');
+    expect(
+      within(otherPanel).getByRole('button', {name: 'Smoothing method'})
+    ).toHaveTextContent('ASAP');
+    expect(router.location.query.metric).toEqual([firstMetric, otherMetric]);
+
+    await userEvent.click(
+      within(firstPanel).getByRole('button', {name: 'Add Transformation'})
+    );
+    expect(screen.getByRole('option', {name: 'Fill'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await userEvent.click(
+      within(firstPanel).getByRole('button', {name: 'Smoothing method'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'EMA'}));
+    await userEvent.click(within(firstPanel).getByRole('button', {name: 'Window Size'}));
+    await userEvent.click(screen.getByRole('option', {name: '4'}));
+    await userEvent.click(
+      within(firstPanel).getByRole('button', {name: 'Smoothing Factor'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: '75%'}));
+
+    await waitFor(() => {
+      const encodedMetrics = decodeList(router.location.query.metric);
+      expect(JSON.parse(encodedMetrics[0]!)).toMatchObject({
+        aggregateFields: [
+          {
+            yAxes: ['p50(value,bar,distribution,none)'],
+            transformations: ['fill(locf)', 'smooth(ema,4,0.75)'],
+          },
+          {
+            yAxes: ['p90(value,bar,distribution,none)'],
+            transformations: ['fill(locf)', 'smooth(ema,4,0.75)'],
+          },
+          {groupBy: 'project'},
+        ],
+      });
+      expect(encodedMetrics[1]).toBe(otherMetric);
+    });
+
+    await userEvent.click(
+      within(firstPanel).getAllByRole('button', {name: 'Remove transformation'})[1]!
+    );
+    await userEvent.click(
+      within(firstPanel).getByRole('button', {name: 'Remove transformation'})
+    );
+    await waitFor(() => {
+      const encodedMetrics = decodeList(router.location.query.metric);
+      expect(JSON.parse(encodedMetrics[0]!)).toMatchObject({
+        aggregateFields: [
+          {yAxes: ['p50(value,bar,distribution,none)']},
+          {yAxes: ['p90(value,bar,distribution,none)']},
+          {groupBy: 'project'},
+        ],
+      });
+      expect(encodedMetrics[0]).not.toContain('transformations');
+      expect(encodedMetrics[1]).toBe(otherMetric);
     });
   });
 

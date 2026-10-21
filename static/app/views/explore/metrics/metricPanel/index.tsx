@@ -22,6 +22,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
+import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -294,6 +295,8 @@ export function MetricPanel({
     </Fragment>
   );
 
+  const graphProps = {timeseriesResult, actions, isMetricOptionsEmpty, title};
+
   return (
     <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
       <PanelBody>
@@ -328,7 +331,7 @@ export function MetricPanel({
                   }}
                 >
                   <Grid columns={{xs: '1fr', lg: '1fr 1fr'}} gap="sm">
-                    <Container minWidth="0" ref={chartContainerRef}>
+                    <Stack minWidth="0" alignSelf="start" ref={chartContainerRef}>
                       {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap
                           heatMapData={heatMapData}
@@ -336,16 +339,44 @@ export function MetricPanel({
                           title={title}
                           queryLabel={queryLabel}
                         />
+                      ) : isVisualizeFunction(visualize) &&
+                        !isHeatmap &&
+                        organization.features.includes(
+                          'explore-interpolation-and-smoothing'
+                        ) ? (
+                        <VisualizeTransformations
+                          traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                          transformations={visualize.transformations}
+                          layout="inline"
+                          onChange={transformations =>
+                            setVisualizes(
+                              visualizes.map(v =>
+                                isVisualizeFunction(v) ? v.replace({transformations}) : v
+                              )
+                            )
+                          }
+                        >
+                          {({addTrigger, rows}) => (
+                            <Fragment>
+                              <MetricsGraph {...graphProps} footerActions={addTrigger} />
+                              {rows ? (
+                                <Container padding="xl" paddingTop="0" paddingBottom="md">
+                                  {rows}
+                                </Container>
+                              ) : null}
+                            </Fragment>
+                          )}
+                        </VisualizeTransformations>
                       ) : (
-                        <MetricsGraph
-                          timeseriesResult={timeseriesResult}
-                          actions={actions}
-                          isMetricOptionsEmpty={isMetricOptionsEmpty}
-                          title={title}
-                        />
+                        <MetricsGraph {...graphProps} />
                       )}
-                    </Container>
-                    <Container minWidth="0">
+                    </Stack>
+                    <Container
+                      minWidth="0"
+                      minHeight="0"
+                      contain={{xs: 'none', lg: 'size'}}
+                      height={{xs: `${STACKED_GRAPH_HEIGHT}px`, lg: 'auto'}}
+                    >
                       <MetricInfoTabs
                         traceMetric={traceMetric}
                         isMetricOptionsEmpty={isMetricOptionsEmpty}

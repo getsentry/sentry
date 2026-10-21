@@ -177,7 +177,37 @@ describe('MetricPanel', () => {
     });
 
     expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
   });
+
+  it.each([
+    new VisualizeEquation('equation|1 + 2'),
+    new VisualizeFunction('count(value,bar,distribution,none)', {
+      chartType: ChartType.HEATMAP,
+    }),
+  ])(
+    'keeps the chart visible without transformation controls for $kind $chartType',
+    async visualize => {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        },
+        additionalWrapper: createWrapper({
+          queryParams: queryParams.replace({aggregateFields: [visualize]}),
+          traceMetric,
+        }),
+      });
+
+      expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-panel-chart-type-select')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add Transformation'})
+      ).not.toBeInTheDocument();
+    }
+  );
 
   it('renders the visualize label badge', async () => {
     render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
