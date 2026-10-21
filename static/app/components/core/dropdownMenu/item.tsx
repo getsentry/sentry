@@ -210,14 +210,16 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       // The trailing action sits outside the focusable menu item. Move to its
       // interactive control only when focus is still on the item itself.
       if (e.key === 'ArrowRight' && document.activeElement === innerWrapRef.current) {
-        const interactiveAction =
-          trailingActionWrapperRef.current?.querySelector<HTMLElement>(
+        const interactiveActions =
+          trailingActionWrapperRef.current?.querySelectorAll<HTMLElement>(
             INTERACTIVE_SELECTOR
-          );
-        if (interactiveAction) {
-          e.preventDefault();
+          ) ?? [];
+        for (const interactiveAction of interactiveActions) {
           interactiveAction.focus();
-          return;
+          if (document.activeElement === interactiveAction) {
+            e.preventDefault();
+            return;
+          }
         }
       }
 

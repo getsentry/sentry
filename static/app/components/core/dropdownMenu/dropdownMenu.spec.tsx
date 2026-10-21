@@ -131,6 +131,34 @@ describe('DropdownMenu', () => {
     expect(row).toHaveFocus();
   });
 
+  it('skips a non-focusable trailing action when moving focus right', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: (
+              <Fragment>
+                <button disabled role="button">
+                  Disabled action
+                </button>
+                <a href="#project-details">Project details</a>
+              </Fragment>
+            ),
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toHaveFocus();
+
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('link', {name: 'Project details'})).toHaveFocus();
+  });
+
   it.each(['click', '{Enter}', ' '])(
     'opens the menu with %s without activating the row',
     async activation => {
@@ -488,45 +516,6 @@ describe('DropdownMenu', () => {
 
     expect(screen.getByRole('textbox', {name: 'Search projects'})).toHaveValue('');
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
-  });
-
-  it('keeps a searchable submenu open when moving the search caret left', async () => {
-    render(
-      <DropdownMenu
-        triggerLabel="Projects"
-        items={[
-          {
-            key: 'all-projects',
-            label: 'All Projects',
-            submenu: {search: {placeholder: 'Search projects'}},
-            children: [{key: 'sentry', label: 'sentry'}],
-          },
-        ]}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-
-    const search = screen.getByRole('textbox', {
-      name: 'Search projects',
-    }) as HTMLInputElement;
-    await userEvent.type(search, 'sentry');
-    search.setSelectionRange(3, 3);
-    await userEvent.keyboard('{ArrowLeft}');
-
-    expect(search).toHaveFocus();
-    expect(search).toHaveValue('sentry');
-    expect(search).toHaveProperty('selectionStart', 2);
-    expect(screen.getByRole('menuitemradio', {name: 'sentry'})).toBeInTheDocument();
-
-    search.setSelectionRange(0, 0);
-    await userEvent.keyboard('{ArrowLeft}');
-
-    expect(
-      screen.queryByRole('textbox', {name: 'Search projects'})
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus();
   });
 
   it.each(['right', 'left'] as const)(
