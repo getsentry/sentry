@@ -7,7 +7,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Menu} from '@sentry/scraps/menu';
+import {Footer} from '@sentry/scraps/menu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -596,14 +596,14 @@ function NextStepTemplate({
               position="bottom-end"
               shouldCloseOnBlur={false}
               menuFooter={
-                <Menu.Footer>
+                <Footer>
                   <MenuComponents.CTALinkButton
                     icon={<IconAdd />}
                     to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
                   >
                     {t('Add Integration')}
                   </MenuComponents.CTALinkButton>
-                </Menu.Footer>
+                </Footer>
               }
             />
           )}

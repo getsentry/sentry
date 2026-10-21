@@ -3,7 +3,7 @@ import {IconOpen} from '@sentry/icons/open';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Menu} from '@sentry/scraps/menu';
+import {Footer} from '@sentry/scraps/menu';
 
 import {t} from 'sentry/locale';
 import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
@@ -28,14 +28,14 @@ export function StoppingPointDropdownMenu({
         onAction: () => onChange(option.value),
       }))}
       menuFooter={
-        <Menu.Footer>
+        <Footer>
           <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works">
             <Flex gap="sm" align="center">
               <IconOpen size="xs" />
               {t('Read the Docs')}
             </Flex>
           </ExternalLink>
-        </Menu.Footer>
+        </Footer>
       }
     />
   );

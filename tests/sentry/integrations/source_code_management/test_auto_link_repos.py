@@ -66,33 +66,11 @@ class AutoLinkReposByNameTest(TestCase):
         )
 
     def test_links_matching_repo_to_project(self) -> None:
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            created = auto_link_repos_by_name(self.org, [self.repo.id])
+        created = auto_link_repos_by_name(self.org, [self.repo.id])
 
         assert created == 1
         pr = ProjectRepository.objects.get(project=self.project, repository=self.repo)
         assert pr.source == ProjectRepositorySource.AUTO_NAME_MATCH
-
-    def test_dry_run_does_not_create(self) -> None:
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": True}),
-        ):
-            created = auto_link_repos_by_name(self.org, [self.repo.id])
-
-        assert created == 0
-        assert not ProjectRepository.objects.filter(
-            project=self.project, repository=self.repo
-        ).exists()
-
-    def test_skips_when_flag_disabled(self) -> None:
-        with self.options({"repository.auto-link-by-name-dry-run": False}):
-            created = auto_link_repos_by_name(self.org, [self.repo.id])
-
-        assert created == 0
 
     def test_skips_repo_already_linked(self) -> None:
         ProjectRepository.objects.create(
@@ -101,11 +79,7 @@ class AutoLinkReposByNameTest(TestCase):
             source=ProjectRepositorySource.MANUAL,
         )
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            created = auto_link_repos_by_name(self.org, [self.repo.id])
+        created = auto_link_repos_by_name(self.org, [self.repo.id])
 
         assert created == 0
 
@@ -122,11 +96,7 @@ class AutoLinkReposByNameTest(TestCase):
             source=ProjectRepositorySource.MANUAL,
         )
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            created = auto_link_repos_by_name(self.org, [self.repo.id])
+        created = auto_link_repos_by_name(self.org, [self.repo.id])
 
         assert created == 0
 
@@ -138,11 +108,7 @@ class AutoLinkReposByNameTest(TestCase):
             external_id="789",
         )
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            created = auto_link_repos_by_name(self.org, [repo.id])
+        created = auto_link_repos_by_name(self.org, [repo.id])
 
         assert created == 0
 
@@ -150,11 +116,7 @@ class AutoLinkReposByNameTest(TestCase):
         self.repo.status = ObjectStatus.HIDDEN
         self.repo.save()
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            created = auto_link_repos_by_name(self.org, [self.repo.id])
+        created = auto_link_repos_by_name(self.org, [self.repo.id])
 
         assert created == 0
 
@@ -167,11 +129,7 @@ class AutoLinkReposByNameTest(TestCase):
             external_id="456",
         )
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            created = auto_link_repos_by_name(self.org, [self.repo.id, repo2.id])
+        created = auto_link_repos_by_name(self.org, [self.repo.id, repo2.id])
 
         assert created == 2
         assert ProjectRepository.objects.filter(project=self.project, repository=self.repo).exists()
@@ -193,11 +151,7 @@ class AutoLinkReposByNameTest(TestCase):
             source=ProjectRepositorySource.MANUAL,
         )
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            created = auto_link_repos_by_name(self.org, [repo.id])
+        created = auto_link_repos_by_name(self.org, [repo.id])
 
         assert created == 1
         pr = ProjectRepository.objects.get(project=project, repository=repo)
@@ -208,12 +162,8 @@ class AutoLinkReposByNameTest(TestCase):
         assert created == 0
 
     def test_idempotent(self) -> None:
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            auto_link_repos_by_name(self.org, [self.repo.id])
-            created = auto_link_repos_by_name(self.org, [self.repo.id])
+        auto_link_repos_by_name(self.org, [self.repo.id])
+        created = auto_link_repos_by_name(self.org, [self.repo.id])
 
         assert created == 0
         assert (
@@ -233,11 +183,7 @@ class AutoLinkReposOnProjectCreateTest(TestCase):
         )
         project = self.create_project(organization=org, slug="sentry")
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            auto_link_repos_on_project_create(project)
+        auto_link_repos_on_project_create(project)
 
         assert ProjectRepository.objects.filter(
             project=project,
@@ -254,11 +200,7 @@ class AutoLinkReposOnProjectCreateTest(TestCase):
         )
         project = self.create_project(organization=org, slug="sentry")
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            auto_link_repos_on_project_create(project)
+        auto_link_repos_on_project_create(project)
 
         assert not ProjectRepository.objects.filter(project=project).exists()
 
@@ -278,10 +220,6 @@ class AutoLinkReposOnProjectCreateTest(TestCase):
         )
         project = self.create_project(organization=org, slug="sentry")
 
-        with (
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
-            auto_link_repos_on_project_create(project)
+        auto_link_repos_on_project_create(project)
 
         assert not ProjectRepository.objects.filter(project=project).exists()

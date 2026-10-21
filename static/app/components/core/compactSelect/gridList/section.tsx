@@ -7,7 +7,12 @@ import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterCont
 import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
-import {Menu} from '@sentry/scraps/menu';
+import {
+  SectionGroup,
+  SectionHeader,
+  SectionLabel,
+  SectionList,
+} from '@sentry/scraps/menu';
 
 import {GridListOption, type GridListOptionProps} from './option';
 
@@ -42,14 +47,14 @@ export function GridListSection<T extends ListItemBase>({
   return (
     <Fragment>
       <SectionSeparator {...separatorProps} />
-      <Menu.SectionGroup
+      <SectionGroup
         role="rowgroup"
         {...(node['aria-label']
           ? {'aria-label': node['aria-label']}
           : {'aria-labelledby': titleId})}
       >
         {(node.rendered || showToggleAllButton) && (
-          <Menu.SectionHeader
+          <SectionHeader
             trailingAction={
               showToggleAllButton ? (
                 <SectionToggle item={node} listState={listState} />
@@ -57,13 +62,13 @@ export function GridListSection<T extends ListItemBase>({
             }
           >
             {node.rendered && (
-              <Menu.SectionLabel id={titleId} aria-hidden>
+              <SectionLabel id={titleId} aria-hidden>
                 {node.rendered}
-              </Menu.SectionLabel>
+              </SectionLabel>
             )}
-          </Menu.SectionHeader>
+          </SectionHeader>
         )}
-        <Menu.SectionList>
+        <SectionList>
           {childNodes.map(child => (
             <GridListOption
               key={child.key}
@@ -72,8 +77,8 @@ export function GridListSection<T extends ListItemBase>({
               size={size}
             />
           ))}
-        </Menu.SectionList>
-      </Menu.SectionGroup>
+        </SectionList>
+      </SectionGroup>
     </Fragment>
   );
 }

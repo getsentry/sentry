@@ -19,6 +19,7 @@ import {
   Stack,
 } from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Overlay, type OverlayProps, PositionWrapper} from '@sentry/scraps/overlay';
 import {
   OverlayTrigger,
   type OverlayTriggerIconButtonProps,
@@ -27,14 +28,13 @@ import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import {Overlay, type OverlayProps, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_HEADER_HEIGHT,

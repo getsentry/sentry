@@ -6,7 +6,7 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {LeadWrap} from '@sentry/scraps/compactSelect';
-import {Menu, type ListItemProps} from '@sentry/scraps/menu';
+import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 
 import {
   isMetricSelectorOption,
@@ -60,7 +60,7 @@ export function MetricListBoxOption({
   );
 
   return (
-    <Menu.ListItem
+    <ListItem
       {...optionPropsMerged}
       as="li"
       data-index={dataIndex}

@@ -16,6 +16,9 @@ import {useState} from 'react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconInfo} from '@sentry/icons/info';
+import {IconWarning} from '@sentry/icons/warning';
 
 import * as Storybook from 'sentry/stories';
 
@@ -41,20 +44,43 @@ Use `<CompactSelect>` for UI controls like project selectors, environment filter
 
 In the simplest case, provide a `value`, `onChange` handler, and an array of `options`. The component is controlled—it doesn't maintain its own selection state.
 
+Options can also include `leadingItems`. The selected option shows its checkmark beside the leading icon.
+
 export function SimpleDemo() {
   const [value, setValue] = useState('');
   const options = [
-    {value: '', label: 'All'},
-    {value: '2', label: '2XX', details: 'Success responses'},
-    {value: '3', label: '3XX', details: 'Redirects'},
-    {value: '4', label: '4XX', details: 'Client errors'},
-    {value: '5', label: '5XX', details: 'Server errors'},
+    {value: '', label: 'All', leadingItems: <IconGlobe size="sm" />},
+    {
+      value: '2',
+      label: '2XX',
+      details: 'Success responses',
+      leadingItems: <IconInfo size="sm" />,
+    },
+    {
+      value: '3',
+      label: '3XX',
+      details: 'Redirects',
+      leadingItems: <IconInfo size="sm" />,
+    },
+    {
+      value: '4',
+      label: '4XX',
+      details: 'Client errors',
+      leadingItems: <IconWarning size="sm" />,
+    },
+    {
+      value: '5',
+      label: '5XX',
+      details: 'Server errors',
+      leadingItems: <IconWarning size="sm" />,
+    },
   ];
   return (
     <CompactSelect
       value={value}
       onChange={newValue => setValue(newValue.value)}
       options={options}
+      menuWidth={200}
     />
   );
 }
@@ -66,7 +92,7 @@ export function SimpleDemo() {
 ```jsx
 const [value, setValue] = useState('');
 const options = [
-  {value: '', label: 'All'},
+  {value: '', label: 'All', leadingItems: <IconGlobe size="sm" />},
   {value: '2', label: '2XX', details: 'Success responses'},
   {value: '3', label: '3XX', details: 'Redirects'},
 ];

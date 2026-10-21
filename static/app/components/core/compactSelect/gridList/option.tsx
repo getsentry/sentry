@@ -12,7 +12,7 @@ import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {Menu, type ListItemProps} from '@sentry/scraps/menu';
+import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
@@ -121,7 +121,7 @@ export function GridListOption<T extends ListItemBase>({
   }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
   return (
-    <Menu.ListItem
+    <ListItem
       {...rowPropsMerged}
       ref={ref}
       size={size}

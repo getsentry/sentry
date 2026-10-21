@@ -7,7 +7,7 @@ import {Tag} from '@sentry/scraps/badge';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
-import {Menu} from '@sentry/scraps/menu';
+import {Footer} from '@sentry/scraps/menu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -241,7 +241,7 @@ const InlinePlaceholder = styled(Placeholder)`
   vertical-align: middle;
 `;
 
-const StyledFooter = styled(Menu.Footer)`
+const StyledFooter = styled(Footer)`
   max-width: 230px;
   display: block;
   width: 100%;

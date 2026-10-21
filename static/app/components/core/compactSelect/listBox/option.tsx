@@ -10,7 +10,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
-import {Menu, type ListItemProps} from '@sentry/scraps/menu';
+import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
@@ -102,7 +102,7 @@ export function ListBoxOption({
   }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
 
   return (
-    <Menu.ListItem
+    <ListItem
       {...optionProps}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}

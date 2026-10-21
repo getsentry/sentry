@@ -200,7 +200,12 @@ from sentry.seer.models.run import (
     SeerRunPullRequest,
     SeerRunType,
 )
-from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowRunExecution
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+)
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -2603,6 +2608,7 @@ class Factories:
             {
                 "name": "formula.custom_apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
+                "description": "A custom version of apdex for testing",
                 "unit": None,
                 "dataset": "spans",
                 "references": [
@@ -3388,6 +3394,16 @@ class Factories:
             agent_session_id=session_id,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config(organization, **kwargs) -> SeerWorkflowConfig:
+        return SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config_project(config, project) -> SeerWorkflowConfigProject:
+        return SeerWorkflowConfigProject.objects.create(config=config, project=project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

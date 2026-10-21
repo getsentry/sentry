@@ -3,6 +3,7 @@ import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {BaseField, type BaseFieldProps} from './baseField';
+import {CheckboxGroup, CheckboxGroupItem} from './checkboxGroupField';
 
 type Props = BaseFieldProps<HTMLInputElement> &
   Omit<CheckboxProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'ref'> & {
@@ -50,3 +51,6 @@ export function CheckboxField({
     </BaseField>
   );
 }
+
+CheckboxField.Group = CheckboxGroup;
+CheckboxField.Item = CheckboxGroupItem;

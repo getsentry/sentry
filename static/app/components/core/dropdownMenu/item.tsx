@@ -9,9 +9,9 @@ import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Menu, type ListItemProps} from '@sentry/scraps/menu';
+import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
+import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
-import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './context';
@@ -62,18 +62,16 @@ export interface MenuItemProps extends ListItemProps {
    * `children` is also defined). Pass `true` for the defaults, or an object to
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
-   * `maxMenuHeight` limits the scrollable list while keeping the header visible.
-   * `minMenuHeight` keeps the menu from shrinking as search results change.
    */
   submenu?:
     | boolean
     | {
         emptyMessage?: React.ReactNode;
         maxMenuHeight?: number;
-        menuWidth?: number | string;
+        menuWidth?: number;
         minMenuHeight?: number;
         position?: UseOverlayProps['position'];
-        search?: {placeholder?: string; showIcon?: boolean; size?: 'xs' | 'sm' | 'md'};
+        search?: {placeholder?: string; showIcon?: boolean; size?: 'xs' | 'sm'};
         title?: string;
       };
   /**
@@ -142,7 +140,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
-  // useMenuItem can handle a press before a nested button's click handler runs.
   const isNestedControlPress = useRef(false);
   const markNestedControlPress = useCallback(
     (event: React.SyntheticEvent<HTMLElement>) => {
@@ -285,18 +282,26 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const itemLabel = node.rendered ?? label;
 
   return (
-    <Menu.ListItem
+    <ListItem
       ref={ref}
       as={renderAs}
       label={itemLabel}
       leadingItems={
-        isSelected === undefined ? (
-          leadingItems
-        ) : (
-          <Fragment>
-            {isSelected && <IconCheckmark size="md" variant="accent" />}
-          </Fragment>
-        )
+        isSelected === undefined
+          ? leadingItems
+          : itemState => (
+              <Fragment>
+                <IconCheckmark
+                  size="md"
+                  variant="accent"
+                  aria-hidden
+                  visibility={isSelected ? 'visible' : 'hidden'}
+                />
+                {typeof leadingItems === 'function'
+                  ? leadingItems(itemState)
+                  : leadingItems}
+              </Fragment>
+            )
       }
       disabled={isDisabled}
       isFocused={isFocused}

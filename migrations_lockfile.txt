@@ -33,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0037_rename_agentic_triage_result
+seer: 0038_add_workflow_config_scope
 
-sentry: 1227_drop_incidentproject
+sentry: 1230_add_commit_new_repository_id_no_check
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

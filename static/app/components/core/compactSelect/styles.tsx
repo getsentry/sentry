@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
-import {Menu} from '@sentry/scraps/menu';
+import {SectionSeparator as MenuSectionSeparator} from '@sentry/scraps/menu';
 
 export const ListWrap = styled('ul')`
   margin: 0;
@@ -125,7 +125,7 @@ export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
       {...props}
       role="presentation"
     >
-      <Menu.SectionSeparator />
+      <MenuSectionSeparator />
     </Stack>
   );
 }
@@ -136,7 +136,7 @@ export function LeadWrap(props: FlexProps) {
       justify="center"
       align="center"
       minWidth="1em"
-      height="1.4em"
+      height="1rem"
       pointerEvents="none"
       {...props}
     />
