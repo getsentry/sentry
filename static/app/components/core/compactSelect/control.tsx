@@ -531,9 +531,7 @@ export function Control<Value extends SelectKey>({
               data-menu-has-footer={!!menuFooter}
             >
               <FocusScope contain>
-                {(menuTitle ||
-                  menuHeaderTrailingItems ||
-                  (clearable && hasSelection)) && (
+                {(menuTitle || menuHeaderTrailingItems || clearable) && (
                   <Menu.Header borderBottom={searchEnabled ? 'none' : 'muted'}>
                     <Flex
                       align="center"
@@ -547,11 +545,13 @@ export function Control<Value extends SelectKey>({
                         {typeof menuHeaderTrailingItems === 'function'
                           ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                           : menuHeaderTrailingItems}
-                        {clearable && hasSelection && (
+                        {clearable && (
                           <ClearButton
                             onClick={() => onClear?.({overlayState})}
                             size="zero"
                             variant="transparent"
+                            aria-hidden={!hasSelection}
+                            disabled={!hasSelection}
                           >
                             {t('Clear')}
                           </ClearButton>
@@ -623,6 +623,10 @@ export const ClearButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: 0 -${p => p.theme.space.xs};
+
+  &[aria-hidden='true'] {
+    visibility: hidden;
+  }
 `;
 
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
