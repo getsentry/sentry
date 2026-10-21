@@ -260,6 +260,7 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 
 interface SecondaryNavigationHeaderProps {
   children?: ReactNode;
+  showToggle?: boolean;
 }
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
@@ -267,42 +268,47 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
   const isMobile = layout === 'mobile';
+  const showToggle = props.showToggle ?? true;
 
   return (
     <Grid
-      columns="1fr auto"
+      columns={showToggle ? '1fr auto' : '1fr'}
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding={isMobile ? 'md lg' : '0 md 0 xl'}
     >
-      <Text size="md" bold>
-        {props.children}
-      </Text>
-      <div>
-        {isMobile ? (
-          <Button
-            size="sm"
-            icon={<IconClose />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            variant="transparent"
-          />
-        ) : (
-          <Button
-            size="sm"
-            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            variant={isCollapsed ? 'primary' : 'transparent'}
-            analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-            analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-            analyticsParams={{
-              is_collapsed: isCollapsed,
-            }}
-          />
-        )}
-      </div>
+      <Container whiteSpace={showToggle ? undefined : 'nowrap'}>
+        <Text size="md" bold>
+          {props.children}
+        </Text>
+      </Container>
+      {showToggle && (
+        <div>
+          {isMobile ? (
+            <Button
+              size="sm"
+              icon={<IconClose />}
+              aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+              onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
+              variant="transparent"
+            />
+          ) : (
+            <Button
+              size="sm"
+              icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+              aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+              onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
+              variant={isCollapsed ? 'primary' : 'transparent'}
+              analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+              analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+              analyticsParams={{
+                is_collapsed: isCollapsed,
+              }}
+            />
+          )}
+        </div>
+      )}
     </Grid>
   );
 }

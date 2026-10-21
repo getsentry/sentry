@@ -35,17 +35,16 @@ export function SettingsNavigation({
   const title = settingsV3
     ? location.pathname.startsWith('/settings/account/')
       ? t('Account Settings')
-      : otherProps.organization &&
-          location.pathname.startsWith(
-            `/settings/${otherProps.organization.slug}/projects/`
-          )
+      : /\/projects(?:\/|$)/.test(location.pathname)
         ? t('Project Settings')
         : t('Organization Settings')
     : t('Settings');
 
   return (
     <ErrorBoundary customComponent={null}>
-      <SecondaryNavigation.Header>{title}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header showToggle={!settingsV3}>
+        {title}
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
           <Fragment key={config.name}>

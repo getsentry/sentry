@@ -254,6 +254,12 @@ describe('desktop navigation', () => {
         'Organization Settings'
       )
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).queryByRole(
+        'button',
+        {name: 'Collapse'}
+      )
+    ).not.toBeInTheDocument();
 
     await userEvent.click(within(primaryNav).getByRole('link', {name: 'Project'}));
     expect(router.location.pathname).toBe('/settings/org-slug/projects/');
@@ -262,12 +268,24 @@ describe('desktop navigation', () => {
         'Project Settings'
       )
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).queryByRole(
+        'link',
+        {name: 'Account Details'}
+      )
+    ).not.toBeInTheDocument();
 
     await userEvent.click(within(primaryNav).getByRole('link', {name: 'Account'}));
     expect(router.location.pathname).toBe('/settings/account/');
     expect(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByText(
         'Account Settings'
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
+        'link',
+        {name: 'Account Details'}
       )
     ).toBeInTheDocument();
   });
