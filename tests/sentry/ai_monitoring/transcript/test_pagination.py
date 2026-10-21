@@ -1,0 +1,456 @@
+from collections.abc import Sequence
+
+import pytest
+
+from sentry.ai_monitoring.transcript.builder import (
+    Row,
+    SourceKey,
+    Stream,
+    TranscriptContextError,
+    build_transcript,
+    source_key,
+    source_time,
+)
+from sentry.ai_monitoring.transcript.models import TranscriptMessageResponse
+from sentry.ai_monitoring.transcript.pagination import (
+    StreamPosition,
+    TranscriptPosition,
+    paginate_transcript,
+)
+from sentry.utils import json
+
+
+def span(span_id: str, start: float, end: float, **attributes: object) -> dict[str, object]:
+    return {
+        "project.id": 1,
+        "trace": "trace-a",
+        "span_id": span_id,
+        "precise.start_ts": start,
+        "precise.finish_ts": end,
+        "gen_ai.operation.type": "ai_client",
+        "gen_ai.input.messages": json.dumps([{"role": "user", "content": "question"}]),
+        "gen_ai.output.messages": json.dumps([{"role": "assistant", "content": "answer"}]),
+        **attributes,
+    }
+
+
+class MemorySource:
+    def __init__(self, rows: Sequence[Row]) -> None:
+        self.rows = rows
+        self.reads = 0
+
+    def scan(self, stream: Stream, position: StreamPosition, limit: int) -> Sequence[Row]:
+        rows = sorted(
+            (row for row in self.rows if source_time(row, stream) >= position.timestamp),
+            key=lambda row: (source_time(row, stream), source_key(row)),
+        )[position.offset : position.offset + limit]
+        self.reads += len(rows)
+        return rows
+
+    def parents(self, keys: Sequence[SourceKey]) -> Sequence[Row]:
+        return [row for row in self.rows if source_key(row) in keys]
+
+    def children(self, agent: Row, offset: int, limit: int) -> Sequence[Row]:
+        project, trace, span_id = source_key(agent)
+        return sorted(
+            (
+                row
+                for row in self.rows
+                if source_key(row)[:2] == (project, trace) and row.get("parent_span") == span_id
+            ),
+            key=lambda row: (source_time(row, "start"), source_key(row)),
+        )[offset : offset + limit]
+
+    def previous(self, generation: Row, offset: int, limit: int) -> Sequence[Row]:
+        return sorted(
+            (row for row in self.rows if source_time(row, "end") <= source_time(generation, "end")),
+            key=lambda row: (source_time(row, "end"), source_key(row)),
+            reverse=True,
+        )[offset : offset + limit]
+
+
+def collect(rows: Sequence[Row], per_page: int) -> list[TranscriptMessageResponse]:
+    position = TranscriptPosition(StreamPosition(0), StreamPosition(0))
+    result: list[TranscriptMessageResponse] = []
+    for _ in range(len(rows) * 3 + 2):
+        # Every request gets a fresh source: no server-side pagination session.
+        page = paginate_transcript(MemorySource(rows), position, per_page)
+        assert len(page.items) <= per_page
+        result.extend(page.items)
+        if not page.has_more:
+            assert result == build_transcript(rows)
+            return result
+        assert page.position != position
+        position = page.position
+    pytest.fail("pagination did not terminate")
+
+
+def cases() -> list[list[Row]]:
+    replay = json.dumps(
+        [{"role": "user", "content": "question"}, {"role": "assistant", "content": "answer"}]
+    )
+    return [
+        [],
+        [span("one", 1, 2)],
+        [span("one", 1, 10), span("two", 2, 3), span("three", 4, 5)],
+        [span(str(index), 1, 1) for index in range(8)],
+        [
+            span("one", 1, 2),
+            span("two", 3, 4, **{"gen_ai.input.messages": replay}),
+            span("three", 5, 6),
+        ],
+        [
+            span("one", 1, 2),
+            span("tool", 3, 4, **{"gen_ai.operation.type": "tool", "gen_ai.tool.name": "lookup"}),
+            span("two", 5, 6),
+        ],
+        [span("tool", 1, 2, **{"gen_ai.operation.type": "tool", "gen_ai.tool.name": "lookup"})],
+        [span("one", 1, 2), span("one", 1, 2, **{"trace": "trace-b"})],
+        [
+            span(
+                "one",
+                1,
+                2,
+                **{
+                    "gen_ai.input.messages": "",
+                    "gen_ai.output.messages": "",
+                    "gen_ai.usage.input_tokens": 10,
+                    "gen_ai.usage.output_tokens": 5,
+                },
+            ),
+            span("two", 3, 4),
+        ],
+        [
+            span("agent", 1, 10, **{"gen_ai.operation.type": "agent"}),
+            span(
+                "one",
+                2,
+                3,
+                **{
+                    "parent_span": "agent",
+                    "gen_ai.input.messages": "",
+                    "gen_ai.output.messages": "",
+                },
+            ),
+            span(
+                "two",
+                4,
+                5,
+                **{
+                    "parent_span": "agent",
+                    "gen_ai.input.messages": "",
+                    "gen_ai.output.messages": "",
+                },
+            ),
+        ],
+        [
+            span("agent", 1, 10, **{"gen_ai.operation.type": "agent"}),
+            span("one", 2, 3, **{"parent_span": "agent"}),
+            span("root", 4, 5),
+            span("two", 6, 7, **{"parent_span": "agent", "gen_ai.input.messages": replay}),
+        ],
+        [span("one", 1, 2, **{"parent_span": "two"}), span("two", 3, 4, **{"parent_span": "one"})],
+        [
+            span(
+                "one",
+                1,
+                2,
+                **{"gen_ai.operation.name": "embeddings", "gen_ai.embeddings.input": "text"},
+            ),
+            span("two", 2, 3, **{"gen_ai.operation.name": "evaluate"}),
+            span("three", 3, 4, **{"gen_ai.operation.name": "memory.get"}),
+        ],
+    ]
+
+
+@pytest.mark.parametrize("rows", cases())
+@pytest.mark.parametrize("per_page", [1, 2, 3, 25])
+def test_stitched_pages_equal_complete_event_contract(rows: list[Row], per_page: int) -> None:
+    assert collect(rows, per_page) == build_transcript(rows)
+
+
+def test_repeated_responses_and_genuine_repeated_questions_are_retained() -> None:
+    messages = collect([span("one", 1, 2), span("two", 3, 4)], 1)
+    assert [message["content"] for message in messages] == [
+        "question",
+        "answer",
+        "question",
+        "answer",
+    ]
+
+
+def test_adjacent_history_is_suppressed_but_not_distant_replay() -> None:
+    replay = json.dumps(
+        [{"role": "user", "content": "question"}, {"role": "assistant", "content": "answer"}]
+    )
+    messages = collect(
+        [
+            span("one", 1, 2),
+            span("two", 3, 4, **{"gen_ai.input.messages": replay}),
+            span("three", 5, 6, **{"gen_ai.input.messages": "different"}),
+            span("four", 7, 8, **{"gen_ai.input.messages": replay}),
+        ],
+        1,
+    )
+    assert [message["nodeId"] for message in messages if message["role"] == "user"] == [
+        "one",
+        "three",
+        "four",
+    ]
+
+
+def test_terminal_tool_has_its_own_stable_source_reference() -> None:
+    messages = collect(
+        [
+            span("one", 1, 2),
+            span(
+                "tool",
+                3,
+                4,
+                **{
+                    "gen_ai.operation.type": "tool",
+                    "gen_ai.tool.name": "lookup",
+                    "span.status": "internal_error",
+                },
+            ),
+        ],
+        1,
+    )
+    assert messages[-1]["nodeId"] == "tool"
+    assert messages[-1].get("toolCalls") == [
+        {"name": "lookup", "nodeId": "tool", "hasError": True, "duration": 1}
+    ]
+
+
+def test_large_conversation_does_not_reconstruct_prefix() -> None:
+    rows = [span(f"{index:05d}", index * 2 + 1, index * 2 + 2) for index in range(1000)]
+    source = MemorySource(rows)
+    position = TranscriptPosition(StreamPosition(1801), StreamPosition(1801))
+    page = paginate_transcript(source, position, 10, budget=1000)
+    assert len(page.items) == 10
+    assert page.items[0]["nodeId"] == "00900"
+    assert page.has_more
+    assert page.context_rows < 250
+
+
+def test_context_budget_is_explicit_not_partial_success() -> None:
+    with pytest.raises(TranscriptContextError, match="work limit"):
+        paginate_transcript(
+            MemorySource([span("one", 1, 2)]),
+            TranscriptPosition(StreamPosition(0), StreamPosition(0)),
+            1,
+            budget=1,
+        )
+
+
+@pytest.mark.parametrize("timestamp", [float("nan"), float("inf"), "invalid"])
+def test_invalid_source_timestamp_is_rejected(timestamp: object) -> None:
+    with pytest.raises(TranscriptContextError, match="timestamp"):
+        collect([span("one", 1, 2, **{"precise.finish_ts": timestamp})], 1)
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_same_text_and_counts_do_not_prove_history_replay(per_page: int) -> None:
+    first = [
+        {"role": "system", "content": "first context"},
+        {"role": "user", "content": "question"},
+    ]
+    second = [
+        {"role": "system", "content": "different context"},
+        {"role": "user", "content": "question"},
+    ]
+    messages = collect(
+        [
+            span("one", 1, 2, **{"gen_ai.input.messages": json.dumps(first)}),
+            span("two", 3, 4, **{"gen_ai.input.messages": json.dumps(second)}),
+        ],
+        per_page,
+    )
+    assert [message["nodeId"] for message in messages if message["role"] == "user"] == [
+        "one",
+        "two",
+    ]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_identical_truncated_history_is_ambiguous(per_page: int) -> None:
+    history = json.dumps(
+        [
+            {"role": "user", "content": "question"},
+            {"role": "assistant", "content": "answer"},
+            {"role": "user", "content": "question"},
+        ]
+    )
+    messages = collect(
+        [
+            span("one", 1, 2, **{"gen_ai.input.messages": history}),
+            span("two", 3, 4, **{"gen_ai.input.messages": history}),
+        ],
+        per_page,
+    )
+    assert [message["nodeId"] for message in messages if message["role"] == "user"] == [
+        "one",
+        "two",
+    ]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_new_user_after_verified_history_is_not_a_replay(per_page: int) -> None:
+    history = json.dumps(
+        [
+            {"role": "user", "content": "question"},
+            {"role": "assistant", "content": "answer"},
+            {"role": "user", "content": "question"},
+        ]
+    )
+    messages = collect(
+        [span("one", 1, 2), span("two", 3, 4, **{"gen_ai.input.messages": history})], per_page
+    )
+    assert [message["nodeId"] for message in messages if message["role"] == "user"] == [
+        "one",
+        "two",
+    ]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_verified_replay_is_agent_and_project_scoped(per_page: int) -> None:
+    history = json.dumps(
+        [{"role": "user", "content": "question"}, {"role": "assistant", "content": "answer"}]
+    )
+    messages = collect(
+        [
+            span("agent-a", 0, 10, **{"gen_ai.operation.type": "agent"}),
+            span("agent-b", 0, 10, **{"gen_ai.operation.type": "agent"}),
+            span("one", 1, 2, **{"parent_span": "agent-a"}),
+            span("two", 3, 4, **{"parent_span": "agent-b", "gen_ai.input.messages": history}),
+            span("three", 5, 6, **{"project.id": 2, "gen_ai.input.messages": history}),
+        ],
+        per_page,
+    )
+    assert [message["nodeId"] for message in messages if message["role"] == "user"] == [
+        "one",
+        "two",
+        "three",
+    ]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_matching_message_ids_and_payloads_prove_replay(per_page: int) -> None:
+    attributes = {
+        "gen_ai.input.messages": json.dumps(
+            [{"role": "user", "id": "user-message", "content": "question"}]
+        ),
+        "gen_ai.output.messages": json.dumps(
+            [{"role": "assistant", "id": "response-message", "content": "answer"}]
+        ),
+    }
+    messages = collect([span("one", 1, 2, **attributes), span("two", 3, 4, **attributes)], per_page)
+    assert [(message["role"], message["nodeId"]) for message in messages] == [
+        ("user", "one"),
+        ("assistant", "one"),
+    ]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_reused_response_id_does_not_collapse_a_new_user_turn(per_page: int) -> None:
+    response = json.dumps([{"role": "assistant", "id": "response-message", "content": "answer"}])
+    messages = collect(
+        [
+            span(
+                "one",
+                1,
+                2,
+                **{
+                    "gen_ai.input.messages": json.dumps(
+                        [{"role": "user", "id": "first-user", "content": "question"}]
+                    ),
+                    "gen_ai.output.messages": response,
+                },
+            ),
+            span(
+                "two",
+                3,
+                4,
+                **{
+                    "gen_ai.input.messages": json.dumps(
+                        [{"role": "user", "id": "second-user", "content": "question"}]
+                    ),
+                    "gen_ai.output.messages": response,
+                },
+            ),
+        ],
+        per_page,
+    )
+    assert [message["nodeId"] for message in messages] == ["one", "one", "two", "two"]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_changed_payload_with_same_id_is_not_discarded(per_page: int) -> None:
+    user = json.dumps([{"role": "user", "id": "user-message", "content": "question"}])
+    messages = collect(
+        [
+            span(
+                "one",
+                1,
+                2,
+                **{
+                    "gen_ai.input.messages": user,
+                    "gen_ai.output.messages": json.dumps(
+                        [{"role": "assistant", "id": "response-message", "content": "first answer"}]
+                    ),
+                },
+            ),
+            span(
+                "two",
+                3,
+                4,
+                **{
+                    "gen_ai.input.messages": user,
+                    "gen_ai.output.messages": json.dumps(
+                        [
+                            {
+                                "role": "assistant",
+                                "id": "response-message",
+                                "content": "corrected answer",
+                            }
+                        ]
+                    ),
+                },
+            ),
+        ],
+        per_page,
+    )
+    assert [message["content"] for message in messages] == [
+        "question",
+        "first answer",
+        "corrected answer",
+    ]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_concurrent_generations_do_not_prove_history_continuity(per_page: int) -> None:
+    history = json.dumps(
+        [{"role": "user", "content": "question"}, {"role": "assistant", "content": "answer"}]
+    )
+    messages = collect(
+        [span("one", 1, 5), span("two", 2, 6, **{"gen_ai.input.messages": history})], per_page
+    )
+    assert [message["nodeId"] for message in messages if message["role"] == "user"] == [
+        "one",
+        "two",
+    ]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_duplicate_source_delivery_emits_one_event(per_page: int) -> None:
+    tool = span("tool", 1, 2, **{"gen_ai.operation.type": "tool", "gen_ai.tool.name": "lookup"})
+    assert len(collect([tool, dict(tool)], per_page)) == 1
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+def test_identical_tools_with_distinct_source_ids_are_retained(per_page: int) -> None:
+    attributes = {"gen_ai.operation.type": "tool", "gen_ai.tool.name": "lookup"}
+    messages = collect(
+        [span("tool-a", 1, 2, **attributes), span("tool-b", 3, 4, **attributes)], per_page
+    )
+    assert [message["nodeId"] for message in messages] == ["tool-a", "tool-b"]

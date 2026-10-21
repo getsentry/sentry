@@ -1,5 +1,6 @@
 import ast
 import json  # noqa: S003
+from collections.abc import Mapping
 from typing import Any, TypedDict
 
 FILTERED = "[Filtered]"
@@ -106,13 +107,19 @@ def _output_from_messages(messages: list[RawMessage]) -> AIOutputResult:
 
     response_object = None
     if object_parts:
-        response_object = json.dumps(object_parts[0] if len(object_parts) == 1 else object_parts)
+        response_object = json.dumps(
+            object_parts[0] if len(object_parts) == 1 else object_parts,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
 
     return {
         "response_text": "\n".join(text_parts) if text_parts else None,
         "reasoning_text": "\n".join(reasoning_parts) if reasoning_parts else None,
         "response_object": response_object,
-        "tool_calls": json.dumps(tool_call_parts) if tool_call_parts else None,
+        "tool_calls": json.dumps(tool_call_parts, ensure_ascii=False, separators=(",", ":"))
+        if tool_call_parts
+        else None,
     }
 
 
@@ -255,7 +262,7 @@ def _collapse_parts(parts: list[Any]) -> Any:
     buckets = _bucket_parts(parts)
 
     if buckets["has_renderable_text_part"]:
-        return "\n".join(buckets["text_parts"])
+        return "\n".join(buckets["text_parts"]) if buckets["text_parts"] else EMPTY_TEXT_CONTENT
     if buckets["object_parts"]:
         return (
             buckets["object_parts"][0]
@@ -292,7 +299,8 @@ def _bucket_parts(parts: list[Any]) -> PartBuckets:
         if part_type == "text":
             buckets["has_renderable_text_part"] = True
             text = _text_from_part(part, strip=True)
-            buckets["text_parts"].append(text or EMPTY_TEXT_CONTENT)
+            if text:
+                buckets["text_parts"].append(text)
             continue
         if part_type == "reasoning":
             text = _text_from_part(part, strip=True)
@@ -317,7 +325,7 @@ def _bucket_parts(parts: list[Any]) -> PartBuckets:
 
 
 def _select_assistant_messages(raw_messages: list[RawMessage]) -> list[RawMessage]:
-    has_role = any(msg.get("role_explicit") is True for msg in raw_messages)
+    has_role = any(msg.get("role_explicit", False) for msg in raw_messages)
     if has_role:
         return [msg for msg in raw_messages if msg.get("role") == "assistant"]
     return [raw_messages[-1]]
@@ -362,18 +370,23 @@ def _append_output_from_parts(
     tool_call_parts: list[Any],
     object_parts: list[Any],
 ) -> None:
+    has_empty_text_part = False
+    text_parts_length_before = len(text_parts)
     for part in parts:
         if not isinstance(part, dict):
             continue
 
         part_type = part.get("type")
         if part_type == "text":
-            text = part.get("content") or part.get("text")
-            text_parts.append(text if isinstance(text, str) and text else EMPTY_TEXT_CONTENT)
+            text = _text_from_part(part, content_first=True)
+            if text:
+                text_parts.append(text)
+            else:
+                has_empty_text_part = True
             continue
         if part_type == "reasoning":
-            text = part.get("content") or part.get("text")
-            if isinstance(text, str) and text:
+            text = _text_from_part(part, content_first=True)
+            if text:
                 reasoning_parts.append(text)
             continue
         if part_type == "tool_call":
@@ -384,19 +397,21 @@ def _append_output_from_parts(
             continue
         if part_type in FILE_CONTENT_PARTS:
             text_parts.append(_redacted_file_content(part))
+    if has_empty_text_part and len(text_parts) == text_parts_length_before:
+        text_parts.append(EMPTY_TEXT_CONTENT)
 
 
 def _parse_json_string(value: str, *, fallback: Any) -> Any:
     try:
         return json.loads(value)
-    except (json.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError, RecursionError):
         return fallback
 
 
 def _try_literal_eval(value: str) -> Any:
     try:
         result = ast.literal_eval(value)
-    except (ValueError, SyntaxError):
+    except (ValueError, SyntaxError, RecursionError):
         return _INVALID_JSON
     if isinstance(result, (list, dict)):
         return result
@@ -411,15 +426,77 @@ def _looks_like_json(raw: str) -> bool:
 
 
 def _extract_text_from_content_parts(parts: list[Any]) -> str:
-    return "\n".join(_bucket_parts(parts)["text_parts"])
+    buckets = _bucket_parts(parts)
+    if buckets["text_parts"]:
+        return "\n".join(buckets["text_parts"])
+    return EMPTY_TEXT_CONTENT if buckets["has_renderable_text_part"] else ""
 
 
-def _text_from_part(part: dict[str, Any], *, strip: bool = False) -> str | None:
-    text = part.get("text") or part.get("content")
-    if not isinstance(text, str) or not text:
+def _text_from_part(
+    part: dict[str, Any], *, strip: bool = False, content_first: bool = False
+) -> str | None:
+    fields = ("content", "text") if content_first else ("text", "content")
+    text = next(
+        (part[field] for field in fields if isinstance(part.get(field), str) and part[field]), None
+    )
+    if text is None:
         return None
     return text.strip() if strip else text
 
 
 def _redacted_file_content(part: dict[str, Any]) -> str:
     return f'\n\n[redacted content of type "{part.get("mime_type") or "unknown"}"]\n\n'
+
+
+class NormalizedAISpan(TypedDict):
+    spanId: str
+    traceId: str
+    projectId: str
+    inputMessages: list[AIMessage] | None
+    systemInstructions: list[AIMessage] | None
+    responseText: str | None
+    reasoning: str | None
+    responseObject: Any
+    toolCalls: Any
+    toolName: str | None
+    toolArguments: Any
+    toolResult: Any
+    status: str | None
+    errors: list[dict[str, Any]]
+
+
+def _structured(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except (ValueError, RecursionError):
+        return value
+
+
+def normalize_ai_span(row: Mapping[str, Any]) -> NormalizedAISpan:
+    """Normalize supported AI attributes without discarding unsupported raw payloads."""
+    output = extract_assistant_output(row.get("gen_ai.output.messages"), "assistant")
+    response_object = output["response_object"] or row.get("gen_ai.response.object")
+    return {
+        "spanId": str(row["span_id"]),
+        "traceId": str(row.get("trace") or ""),
+        "projectId": str(row.get("project.id") or ""),
+        "inputMessages": normalize_to_messages(
+            row.get("gen_ai.input.messages") or row.get("gen_ai.request.messages"), "user"
+        ),
+        "systemInstructions": normalize_to_messages(
+            row.get("gen_ai.system_instructions"), "system"
+        ),
+        "responseText": output["response_text"],
+        "reasoning": output["reasoning_text"],
+        "responseObject": _structured(response_object),
+        "toolCalls": _structured(output["tool_calls"]),
+        "toolName": row.get("gen_ai.tool.name"),
+        "toolArguments": _structured(row.get("gen_ai.tool.call.arguments")),
+        "toolResult": _structured(
+            row.get("gen_ai.tool.call.result") or row.get("anthropic.tool_result.content")
+        ),
+        "status": row.get("span.status"),
+        "errors": row.get("errors") or [],
+    }
