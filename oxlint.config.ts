@@ -729,18 +729,6 @@ const config = defineConfig({
       },
     },
     {
-      files: ['static/packages/scraps/scripts/*.mjs'],
-      rules: {
-        'boundaries/no-unknown-files': 'off',
-        'import-js/no-extraneous-dependencies': 'off',
-        'import/no-nodejs-modules': 'off',
-        'no-console': 'off',
-      },
-      env: {
-        node: true,
-      },
-    },
-    {
       files: [
         'static/oxlint/**/*.js',
         'scripts/**/*.{js,ts}',
