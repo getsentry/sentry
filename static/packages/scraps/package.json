@@ -191,6 +191,10 @@
       "types": "./dist/badge/index.d.ts",
       "import": "./dist/badge/index.js"
     },
+    "./interactiveElement": {
+      "types": "./dist/interactiveElement.d.ts",
+      "import": "./dist/interactiveElement.js"
+    },
     "./useIsInsideInteractiveElement": {
       "types": "./dist/useIsInsideInteractiveElement.d.ts",
       "import": "./dist/useIsInsideInteractiveElement.js"
