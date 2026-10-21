@@ -167,11 +167,55 @@ export function PageFiltersContainer({
         );
       }
 
-      return periodStart.getTime() < maxStart.getTime();
+      // Ranges that still end inside the window get their start clamped
+      // instead (see `clampedStart`), so only reset ranges entirely before it.
+      return periodEnd.getTime() <= maxStart.getTime();
     }
 
     return false;
   }, [isReady, maxDateRange, maxPickableDays, selection.datetime]);
+
+  // Chart zooms on a max-length period (e.g. 30d) routinely start a few
+  // minutes before the window, because the first bucket is aligned to the
+  // interval. Resetting those to the full period would silently discard the
+  // zoom, so move the start into the window and keep the user's end.
+  const clampedStart = useMemo(() => {
+    if (!isReady || maxDateRange || shouldResetDateTime) {
+      return null;
+    }
+
+    const {period, start, end} = selection.datetime;
+    if (period || !start || !end) {
+      return null;
+    }
+
+    const maxStart = getOldestPickableStart(maxPickableDays);
+    if (new Date(start).getTime() >= maxStart.getTime()) {
+      return null;
+    }
+
+    // Round up to the next whole minute to match the minute precision of chart
+    // zooms and so the clamped value isn't immediately clamped again.
+    return new Date(Math.ceil((maxStart.getTime() + 1) / 60_000) * 60_000);
+  }, [isReady, maxDateRange, maxPickableDays, selection.datetime, shouldResetDateTime]);
+
+  useLayoutEffect(() => {
+    if (!clampedStart) {
+      return;
+    }
+
+    updateDateTime(
+      {
+        period: null,
+        start: clampedStart,
+        end: selection.datetime.end,
+        utc: selection.datetime.utc,
+      },
+      location,
+      navigate,
+      {replace: true}
+    );
+  }, [clampedStart, location, navigate, selection.datetime.end, selection.datetime.utc]);
 
   const resetPeriodDays = maxDateRange ?? maxPickableDays;
 
