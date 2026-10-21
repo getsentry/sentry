@@ -1,25 +1,131 @@
-import {memo, useEffect, useId, useRef} from 'react';
+import {useEffect, useId, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {autoUpdate, hide, offset, useFloating} from '@floating-ui/react-dom';
 import {mergeRefs} from '@react-aria/utils';
+import {IconSearch} from '@sentry/icons/search';
 
-import {Container} from '@sentry/scraps/layout';
+import {InputGroup} from '@sentry/scraps/input';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import type {ContainerProps} from '@sentry/scraps/layout/container';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+/** Container for a menu header, with a divider below it. */
+export function MenuHeaderLayout(props: FlexProps) {
+  return <Stack borderBottom="muted" gap="0" {...props} />;
+}
+
+/** Text style for the menu's main heading. */
+export function MenuHeading({children}: {children: React.ReactNode}) {
+  return (
+    <Text size="sm" density="fixed" bold tabular>
+      {children}
+    </Text>
+  );
+}
+
+/** Text style for a heading within a menu section. */
+export function MenuSectionLabel({
+  children,
+  padding,
+  ...props
+}: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
+  children: React.ReactNode;
+  padding?: ContainerProps['padding'];
+}) {
+  // TODO: Use the transparent menu heading color when Text exposes a variant for it.
+  return (
+    <Container padding={padding}>
+      <Text as="span" size="sm" density="fixed" bold tabular {...props}>
+        {children}
+      </Text>
+    </Container>
+  );
+}
+
+/** Layout for a menu section heading and an optional action beside it. */
+export function MenuSectionHeader({
+  children,
+  trailingAction,
+  ...props
+}: FlexProps & {trailingAction?: React.ReactNode}) {
+  return (
+    <Flex
+      data-section-header
+      justify="between"
+      align="center"
+      minHeight="1.5em"
+      padding="2xs lg"
+      {...props}
+    >
+      {children}
+      {trailingAction}
+    </Flex>
+  );
+}
+
+/** Divider between menu sections. */
+export function MenuSectionSeparator() {
+  return <Separator orientation="horizontal" border="muted" />;
+}
+
+/** List item wrapper for a menu section. */
+export function MenuSectionGroup(props: ContainerProps<'li'>) {
+  return <Container as="li" display="block" {...props} />;
+}
+
+/** List wrapper for the items within a menu section. */
+export function MenuSectionList(props: ContainerProps<'ul'>) {
+  return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
+}
+
+/** Container for menu footer actions, with a divider above it. */
+export function MenuFooterLayout(props: FlexProps) {
+  return <Flex borderTop="muted" align="center" padding="md lg" {...props} />;
+}
+
+type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input> & {
+  padding?: ContainerProps['padding'];
+};
+
+/** Shared search field with a leading icon for menu controls. */
+export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
+  return (
+    <Container padding={padding}>
+      <InputGroup>
+        <InputGroup.LeadingItems disablePointerEvents>
+          <Flex paddingLeft="2xs" align="center" justify="center">
+            <IconSearch size="xs" variant="muted" />
+          </Flex>
+        </InputGroup.LeadingItems>
+        <InputGroup.Input size="xs" {...props} />
+      </InputGroup>
+    </Container>
+  );
+}
 
 /**
  * Menu item priority. Determines the text and background color.
  */
 type Priority = 'primary' | 'danger' | 'default';
 
+// Padding order: top, right, bottom, left.
+const ITEM_PADDING_BY_SIZE = {
+  xs: 'xs md xs lg',
+  sm: 'sm md sm lg',
+  md: 'xs sm xs md',
+} as const;
+
+/** Resolves an item's text color from its priority and disabled state. */
 function getTextColor({
   theme,
   priority,
@@ -43,26 +149,10 @@ function getTextColor({
   }
 }
 
-/**
- * Returns the appropriate vertical padding based on the size prop. To be used
- * as top/bottom padding/margin in InnerWrap
- */
-const getVerticalPadding = (size: FormSize | undefined, theme: Theme) => {
-  switch (size) {
-    case 'xs':
-      return theme.space.xs;
-    case 'sm':
-      return theme.space.sm;
-    case 'md':
-    default:
-      return theme.space.md;
-  }
-};
-
-const StyledInnerWrap = styled('div', {
+const StyledInnerWrap = styled(Flex, {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
-    isPropValid(prop) &&
+    (isPropValid(prop) || ['padding', 'align', 'alignSelf'].includes(prop)) &&
     !['disabled', 'isFocused', 'priority'].includes(prop),
 })<{
   disabled: boolean;
@@ -70,11 +160,8 @@ const StyledInnerWrap = styled('div', {
   priority: Priority;
   size?: FormSize;
 }>`
-  display: flex;
+  gap: ${p => p.theme.space.xs};
   position: relative;
-  padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.lg};
-  padding-top: ${p => getVerticalPadding(p.size, p.theme)};
-  padding-bottom: ${p => getVerticalPadding(p.size, p.theme)};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
 
@@ -127,29 +214,21 @@ const StyledContentWrap = styled('div')<{
 
 const StyledLeadingItems = styled('div')<{
   disabled: boolean;
+  hasDetails?: boolean;
   size?: FormSize;
 }>`
   display: flex;
   gap: ${p => p.theme.space.md};
-  margin-right: ${p => p.theme.space.md};
+  min-width: ${p => p.theme.space['2xl']};
+  justify-content: center;
   flex-shrink: 0;
-  /* Match the label's first line without centering against any details below it. */
-  min-height: 1.4em;
-  align-self: flex-start;
+  /* Match the label's first line when details appear below it. */
+  min-height: ${p => (p.hasDetails ? p.theme.font.lineHeight.fixed : '24px')};
+  align-self: ${p => (p.hasDetails ? 'flex-start' : 'center')};
   align-items: center;
+  margin-top: ${p => (p.hasDetails ? p.theme.space.xs : '0')};
 
   ${p => p.disabled && 'opacity: 0.5;'}
-`;
-
-const StyledLabel = styled('div')`
-  margin-bottom: 0;
-  line-height: 1.4;
-
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
@@ -178,7 +257,7 @@ type ExtraContent =
       isSelected: boolean;
     }) => React.ReactNode);
 
-export type MenuListItemProps = {
+export type ListItemProps = {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
@@ -233,15 +312,16 @@ interface OtherProps<T extends React.ElementType> {
   isFocused?: boolean;
   isPressed?: boolean;
   isSelected?: boolean;
-  labelProps?: Partial<React.ComponentProps<typeof StyledLabel>>;
+  labelProps?: {as?: 'div' | 'p'; id?: string};
 }
 
-interface Props<T extends React.ElementType = 'li'>
-  extends MenuListItemProps, OtherProps<T> {
+interface MenuListItemProps<T extends React.ElementType = 'li'>
+  extends ListItemProps, OtherProps<T> {
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
-function BaseMenuListItem<T extends React.ElementType = 'li'>({
+/** Renders the shared visual shell for menu and select items. */
+export function MenuListItem<T extends React.ElementType = 'li'>({
   label,
   details,
   as,
@@ -261,7 +341,7 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
   tooltipOptions,
   ref,
   ...props
-}: Props<T>) {
+}: MenuListItemProps<T>) {
   const itemRef = useRef<HTMLElement>(null);
   const labelId = useId();
   const detailId = useId();
@@ -286,6 +366,8 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
         {...tooltipOptions}
       >
         <StyledInnerWrap
+          data-menu-item-content
+          padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
           isFocused={isFocused}
           disabled={disabled}
           priority={priority}
@@ -298,21 +380,34 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
             higherOpacity={priority !== 'default'}
           />
           {leadingItems && (
-            <StyledLeadingItems disabled={disabled} size={size}>
+            <StyledLeadingItems
+              disabled={disabled}
+              hasDetails={Boolean(details && !showDetailsInOverlay)}
+              size={size}
+            >
               {typeof leadingItems === 'function'
                 ? leadingItems({disabled, isFocused, isSelected})
                 : leadingItems}
             </StyledLeadingItems>
           )}
           <StyledContentWrap isFocused={isFocused} size={size}>
-            <Container paddingRight="md" width="100%" minWidth="0">
-              <StyledLabel
+            <Stack padding="xs 0" align="start" gap="2xs" flex="1 0 0" minWidth="0">
+              <Text
+                as="div"
+                size={size ?? 'md'}
+                density="fixed"
+                variant={
+                  disabled ? 'muted' : priority === 'default' ? undefined : priority
+                }
+                bold={false}
+                tabular
+                ellipsis
                 id={labelId}
                 data-test-id="menu-list-item-label"
                 {...labelProps}
               >
                 {label}
-              </StyledLabel>
+              </Text>
               {!showDetailsInOverlay && details && (
                 <StyledDetails
                   id={detailId}
@@ -325,7 +420,7 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
                     : details}
                 </StyledDetails>
               )}
-            </Container>
+            </Stack>
             {trailingItems && (
               <TrailingItems disabled={disabled}>
                 {typeof trailingItems === 'function'
@@ -347,8 +442,6 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
   );
 }
 
-export const MenuListItem = memo(BaseMenuListItem) as typeof BaseMenuListItem;
-
 const DETAILS_MIDDLEWARE = [
   offset({crossAxis: -4, mainAxis: 8}),
   flipOverlay(),
@@ -356,6 +449,7 @@ const DETAILS_MIDDLEWARE = [
   hide(),
 ];
 
+/** Shows item details beside the focused item when overlay details are enabled. */
 function DetailsOverlay({
   children,
   size,
@@ -365,7 +459,7 @@ function DetailsOverlay({
   children: React.ReactNode;
   id: string;
   itemRef: React.RefObject<HTMLElement | null>;
-  size: Props['size'];
+  size: MenuListItemProps['size'];
 }) {
   const theme = useTheme();
   const {
@@ -411,7 +505,7 @@ const StyledPositionWrapper = styled(PositionWrapper)`
 `;
 
 const StyledOverlay = styled(Overlay)<{
-  size: Props['size'];
+  size: MenuListItemProps['size'];
 }>`
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
@@ -444,12 +538,9 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 const TrailingItems = styled('div')<{disabled: boolean}>`
   display: flex;
   align-items: center;
-  height: 1.4em;
+  height: 24px;
   gap: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.xs};
 
   ${p => p.disabled && 'opacity: 0.5;'}
 `;
-
-export const LeadingItems = StyledLeadingItems;
-export const InnerWrap = StyledInnerWrap;

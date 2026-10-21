@@ -58,6 +58,8 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
+`Menu` from `@sentry/scraps/menu` is an internal presentation primitive for shared controls. In product UI, use `DropdownMenu` for actions, `CompactSelect` for choices, or the form system's `field.Select` for form fields. Use `Menu` directly only when implementing those shared controls.
+
 ## Linting
 
 Icons and Scraps own their lint configs and run native Oxlint and Stylelint. Root lint commands and prek route selected files to their owning packages. For file-scoped CSS checks, the root invokes Stylelint directly in each package to avoid its full-scan glob. Use `pnpm run lint:suppressions` at the root for suppression maintenance across all workspaces.
