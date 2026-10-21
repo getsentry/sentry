@@ -25,7 +25,7 @@ class DataConditionEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     condition_id: int
     condition_type: str
     input_type: str
-    input: object = field(repr=False)
+    input: object = field(repr=False)  # repr is set to False, to ensure PII won't leak
     result: DataConditionResult
 
 
