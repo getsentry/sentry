@@ -47,18 +47,6 @@ or are declared dependencies. App stories cover more components than this API;
 for example, the hotkey story uses both `Hotkey` and `Kbd`, but only `Kbd` is
 isolated. Published consumers have no fallback to app components.
 
-## Verify the package
-
-```sh
-pnpm --dir static/packages/scraps verify
-```
-
-Verification deletes `dist` before packing to exercise `prepack`, checks the
-tarball contents and dependencies, typechecks and imports each public export,
-and server renders representative components in both themes.
-The verifier compiles a temporary copy of the source-only icons workspace for
-the test consumer. It does not change or publish the icons package.
-
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
 The package does not include application providers, global CSS, or fonts.
 
