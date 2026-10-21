@@ -1,14 +1,10 @@
-import {useLayoutEffect, type ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  decodeMetricsQueryParams,
-  encodeMetricQueryParams,
-} from 'sentry/views/explore/metrics/metricQuery';
 import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
@@ -21,22 +17,6 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-
-function canonicalMetricQueryParam(name: string) {
-  return encodeMetricQueryParams(
-    decodeMetricsQueryParams(
-      JSON.stringify({
-        metric: {name, type: 'counter'},
-        query: '',
-        aggregateFields: [
-          new VisualizeFunction(`sum(value,${name},counter,none)`).serialize(),
-        ],
-        aggregateSortBys: [],
-        mode: 'samples',
-      })
-    )!
-  );
-}
 
 function TestableMetricComponent() {
   const metricQueries = useMultiMetricsQueryParams();
@@ -487,76 +467,6 @@ describe('MultiMetricsQueryParamsProvider', () => {
         'equation|avg(value,newSelectedMetric,gauge,none) - sum(value,metricC,distribution,none)'
       ),
     ]);
-  });
-
-  it('keeps other queries referentially stable when one query changes', () => {
-    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
-      additionalWrapper: Wrapper,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/metrics/',
-          query: {
-            metric: ['foo', 'bar'].map(canonicalMetricQueryParam),
-          },
-        },
-      },
-    });
-    const unchanged = result.current[1]!;
-
-    act(() => result.current[0]!.setTraceMetric({name: 'baz', type: 'counter'}));
-
-    expect(result.current[0]!.metric).toEqual({name: 'baz', type: 'counter'});
-    expect(result.current[1]!.metric).toBe(unchanged.metric);
-    expect(result.current[1]!.queryParams).toBe(unchanged.queryParams);
-    expect(result.current[1]!.setQueryParams).toBe(unchanged.setQueryParams);
-    expect(result.current[1]!.setTraceMetric).toBe(unchanged.setTraceMetric);
-    expect(result.current[1]!.removeMetric).toBe(unchanged.removeMetric);
-  });
-
-  it('gives mutators called from descendant layout effects the latest queries', () => {
-    let hasUpdatedSecondQuery = false;
-    const {result} = renderHookWithProviders(
-      () => {
-        const metricQueries = useMultiMetricsQueryParams();
-        useLayoutEffect(() => {
-          if (!hasUpdatedSecondQuery && metricQueries[0]!.metric.name === 'baz') {
-            hasUpdatedSecondQuery = true;
-            metricQueries[1]!.setQueryParams(
-              metricQueries[1]!.queryParams.replace({query: 'span.op:db'})
-            );
-          }
-        });
-        return metricQueries;
-      },
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/metrics/',
-            query: {metric: ['foo', 'bar'].map(canonicalMetricQueryParam)},
-          },
-        },
-      }
-    );
-
-    act(() => result.current[0]!.setTraceMetric({name: 'baz', type: 'counter'}));
-
-    expect(result.current[0]!.metric).toEqual({name: 'baz', type: 'counter'});
-    expect(result.current[1]!.queryParams.query).toBe('span.op:db');
-  });
-
-  it('does not share decoded queries between panels with identical URL values', () => {
-    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
-      additionalWrapper: Wrapper,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/metrics/',
-          query: {metric: ['foo', 'foo'].map(canonicalMetricQueryParam)},
-        },
-      },
-    });
-
-    expect(result.current[1]!.queryParams).not.toBe(result.current[0]!.queryParams);
   });
 
   describe('stable labels', () => {

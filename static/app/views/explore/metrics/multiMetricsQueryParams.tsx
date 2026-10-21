@@ -80,27 +80,12 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-const decodedMetricQueries = new Map<string, BaseMetricQuery | null>();
-const MAX_DECODED_METRIC_QUERIES = 100;
-
-function decodeMetricQueryParamsCached(
-  value: string,
-  index: number
-): BaseMetricQuery | null {
-  const key = `${index}:${value}`;
-  if (!decodedMetricQueries.has(key)) {
-    if (decodedMetricQueries.size >= MAX_DECODED_METRIC_QUERIES) {
-      decodedMetricQueries.clear();
-    }
-    decodedMetricQueries.set(key, decodeMetricsQueryParams(value));
-  }
-  return decodedMetricQueries.get(key) ?? null;
-}
-
 function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
-  const metricQueries = rawQueryParams.map(decodeMetricQueryParamsCached).filter(defined);
+  const metricQueries = rawQueryParams
+    .map(value => decodeMetricsQueryParams(value))
+    .filter(defined);
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 
