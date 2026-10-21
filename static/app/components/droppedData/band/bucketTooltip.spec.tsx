@@ -134,4 +134,45 @@ describe('DroppedDataTooltip', () => {
 
     expect(screen.getByText('something_new')).toBeInTheDocument();
   });
+
+  it('labels a filtered outcome as inbound filters', () => {
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[
+          DroppedEventFixture({
+            start: START,
+            end: END,
+            outcome: 'filtered',
+            count: 10,
+          }),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Inbound Filters')).toBeInTheDocument();
+  });
+
+  it('shows a separate row for each unknown outcome', () => {
+    render(
+      <ExampleDroppedDataTooltip
+        dropped={[
+          DroppedEventFixture({
+            start: START,
+            end: END,
+            outcome: 'something_new',
+            count: 10,
+          }),
+          DroppedEventFixture({
+            start: START,
+            end: END,
+            outcome: 'something_else',
+            count: 20,
+          }),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('something_new')).toBeInTheDocument();
+    expect(screen.getByText('something_else')).toBeInTheDocument();
+  });
 });
