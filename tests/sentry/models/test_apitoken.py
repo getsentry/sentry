@@ -39,11 +39,8 @@ class ApiTokenTest(TestCase):
         assert token.is_expired()
 
     def test_get_scopes(self) -> None:
-        token = ApiToken(scopes=1)
+        token = ApiToken()
         assert token.get_scopes() == []
-
-        token = ApiToken(scopes=4, scope_list=["project:read"])
-        assert token.get_scopes() == ["project:read"]
 
         token = ApiToken(scope_list=["project:write", "project:read"])
         assert token.get_scopes() == ["project:read", "project:write"]

@@ -42,6 +42,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -68,7 +69,7 @@ from .client import GitLabApiClient, GitLabSetupApiClient
 from .issue_sync import GitlabIssueSyncSpec
 from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
-from .utils import parse_gitlab_blob_url
+from .utils import build_integration_external_id, parse_gitlab_blob_url
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -245,7 +246,12 @@ class GitlabIntegration(
             raise IntegrationConfigurationError(self.message_from_error(e)) from e
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+        # base_url carries the instance's path prefix, and the group path is what tells
+        # integrations on one instance apart. Installs from before October 2018 can
+        # store base_url with a trailing slash.
+        base_url = self.model.metadata["base_url"].rstrip("/")
+        group_path = self.model.metadata["domain_name"].partition("/")[2]
+        return url_is_under(url, f"{base_url}/{group_path}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]
@@ -638,6 +644,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     integration_cls = GitlabIntegration
 
     needs_default_identity = True
+    reject_pending_deletion_reinstall = True
 
     features = frozenset(
         [
@@ -721,6 +728,15 @@ class GitlabIntegrationProvider(IntegrationProvider):
             lambda: self._make_oauth_api_step(),
         ]
 
+    def _get_external_id(self, hostname: str, group_id: int) -> str:
+        """
+        Each organization gets its own integration.
+        The external_id is embedded in the webhook token, which is how inbound hooks find
+        their integration.
+        """
+        assert self.pipeline.organization is not None
+        return build_integration_external_id(hostname, group_id, self.pipeline.organization.id)
+
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["oauth_data"]
 
@@ -747,20 +763,31 @@ class GitlabIntegrationProvider(IntegrationProvider):
         hostname = urlparse(base_url).netloc
         verify_ssl = state["installation_data"]["verify_ssl"]
 
-        # Splice the gitlab host and group together to
-        # act as unique link between a gitlab instance, group + sentry.
-        # This value is embedded then in the webhook token that we
-        # give to gitlab to allow us to find the integration a hook came
-        # from.
         group_id = group["id"]
         if not group_id or not isinstance(group_id, int):
             raise IntegrationError("Malformed group provided")
-        external_id = f"{hostname}:{group_id}"
 
-        # Hooks on GitLab outlive the org integration that created them, and one
-        # integration row is shared by every org on the group, so the secret has to
-        # survive a reinstall. No status filter: a disabled row still owns hooks
-        # carrying its secret.
+        assert self.pipeline.organization is not None
+        legacy_external_id = f"{hostname}:{group_id}"
+        if OrganizationIntegration.objects.filter(
+            organization_id=self.pipeline.organization.id,
+            integration__provider=self.key,
+            integration__external_id=legacy_external_id,
+        ).exists():
+            raise IntegrationError(
+                _(
+                    "This GitLab integration cannot be reinstalled in its current format. "
+                    "Remove the existing integration before installing it again. "
+                    "We apologize for the inconvenience. Please contact Sentry Support "
+                    "if you need help."
+                )
+            )
+
+        external_id = self._get_external_id(hostname, group_id)
+
+        # Hooks on GitLab outlive the org integration that created them, so the
+        # secret has to survive a reinstall. No status filter: a disabled row still
+        # owns hooks carrying its secret.
         existing = Integration.objects.filter(provider=self.key, external_id=external_id).first()
         webhook_secret = existing.metadata.get("webhook_secret") if existing else None
         if not webhook_secret:

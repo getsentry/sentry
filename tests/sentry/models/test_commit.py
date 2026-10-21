@@ -137,3 +137,46 @@ class FindReferencedGroupsTest(TestCase):
             f"Fixes {self._url_prefix()}/issues/999999999999999999999999999/"
         )
         assert commit.find_referenced_groups() == set()
+
+
+class CommitNewRepositoryIdTest(TestCase):
+    def test_create_sets_new_repository_id(self) -> None:
+        repo = self.create_repo(project=self.project)
+        commit = Commit.objects.create(
+            organization_id=self.organization.id, repository_id=repo.id, key="a" * 40
+        )
+        commit.refresh_from_db()
+        assert commit.new_repository_id == repo.id
+
+    def test_get_or_create_sets_new_repository_id(self) -> None:
+        repo = self.create_repo(project=self.project)
+        commit, created = Commit.objects.get_or_create(
+            organization_id=self.organization.id, repository_id=repo.id, key="b" * 40
+        )
+        assert created
+        commit.refresh_from_db()
+        assert commit.new_repository_id == repo.id
+
+    def test_save_syncs_new_repository_id(self) -> None:
+        repo = self.create_repo(project=self.project)
+        other_repo = self.create_repo(project=self.project, name="other")
+        commit = Commit.objects.create(
+            organization_id=self.organization.id, repository_id=repo.id, key="c" * 40
+        )
+
+        commit.repository_id = other_repo.id
+        commit.save()
+        commit.refresh_from_db()
+        assert commit.new_repository_id == other_repo.id
+
+    def test_save_update_fields_syncs_new_repository_id(self) -> None:
+        repo = self.create_repo(project=self.project)
+        other_repo = self.create_repo(project=self.project, name="other")
+        commit = Commit.objects.create(
+            organization_id=self.organization.id, repository_id=repo.id, key="d" * 40
+        )
+
+        commit.repository_id = other_repo.id
+        commit.save(update_fields=["repository_id"])
+        commit.refresh_from_db()
+        assert commit.new_repository_id == other_repo.id

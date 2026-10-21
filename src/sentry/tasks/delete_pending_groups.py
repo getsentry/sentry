@@ -11,6 +11,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.utils import metrics
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ def delete_pending_groups() -> None:
 
     # Just using status to take advantage of the status DB index
     groups = Group.objects.filter(status__in=statuses_to_delete).values_list(
-        "id", "project_id", "last_seen"
+        "id", "project_id", "project__organization_id", "last_seen"
     )[:BATCH_LIMIT]
 
     if not groups:
@@ -53,10 +54,10 @@ def delete_pending_groups() -> None:
     min_last_seen = now - timedelta(days=MAX_LAST_SEEN_DAYS)
     max_last_seen = now - timedelta(hours=MIN_LAST_SEEN_HOURS)
     # Group by project_id to ensure all groups in a batch belong to the same project
-    groups_by_project: dict[int, list[int]] = defaultdict(list)
-    for group_id, project_id, last_seen in groups:
+    groups_by_project: dict[tuple[int, int], list[int]] = defaultdict(list)
+    for group_id, project_id, organization_id, last_seen in groups:
         if last_seen >= min_last_seen and last_seen <= max_last_seen:
-            groups_by_project[project_id].append(group_id)
+            groups_by_project[(project_id, organization_id)].append(group_id)
 
     total_groups = sum(len(group_ids) for group_ids in groups_by_project.values())
     total_tasks = 0
@@ -66,8 +67,15 @@ def delete_pending_groups() -> None:
         extra={"total_groups": total_groups, "projects_count": len(groups_by_project)},
     )
 
-    for project_id, group_ids in groups_by_project.items():
-        total_tasks += schedule_group_deletion_tasks(project_id, group_ids)
+    for (project_id, organization_id), group_ids in groups_by_project.items():
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=organization_id,
+                project_id=project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            total_tasks += schedule_group_deletion_tasks(project_id, group_ids)
 
     metrics.incr("delete_pending_groups.groups_scheduled", amount=total_groups, sample_rate=1.0)
     metrics.incr("delete_pending_groups.tasks_scheduled", amount=total_tasks, sample_rate=1.0)

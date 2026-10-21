@@ -396,6 +396,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
+    "sentry.middleware.notification_tracking.NotificationTrackingMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -491,6 +492,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.workflow_engine",
     "sentry.explore",
     "sentry.investigations.apps.InvestigationsConfig",
+    "sentry.service_accounts.apps.ServiceAccountsConfig",
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
@@ -1915,6 +1917,8 @@ SENTRY_SCOPES = {
     "dashboard:create",
     "dashboard:write",
     "dashboard:delete",
+    "seer:read",
+    "seer:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1930,6 +1934,7 @@ SENTRY_READONLY_SCOPES = {
     "event:read",
     "alerts:read",
     "dashboard:read",
+    "seer:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1964,6 +1969,8 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
         "dashboard:write",
         "dashboard:delete",
     },
+    "seer:read": {"seer:read"},
+    "seer:write": {"seer:read", "seer:write"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -2053,6 +2060,13 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:create", "Read and create access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
+    (
+        (
+            "seer:write",
+            "Read and write access to Seer-generated work, such as running Autofix analysis.",
+        ),
+        ("seer:read", "Read access to Seer-generated work."),
+    ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -2088,6 +2102,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "team:read",
             "alerts:read",
             "alerts:write",
+            "seer:read",
+            "seer:write",
         },
     },
     {
@@ -2120,6 +2136,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "seer:read",
+            "seer:write",
         },
         "is_retired": True,
     },
@@ -2147,6 +2165,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "org:integrations",
             "alerts:read",
             "alerts:write",
+            "seer:read",
+            "seer:write",
         },
         "is_global": True,
     },
@@ -2181,6 +2201,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:admin",
             "alerts:read",
             "alerts:write",
+            "seer:read",
+            "seer:write",
         },
         "is_global": True,
     },
@@ -2260,6 +2282,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
+            "seer:read",
+            "seer:write",
         },
     },
     {
@@ -2296,6 +2320,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
+            "seer:read",
+            "seer:write",
         },
         "is_retired": True,
     },
@@ -2327,6 +2353,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
+            "seer:read",
+            "seer:write",
         },
         "is_global": True,
     },
@@ -2365,6 +2393,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
+            "seer:read",
+            "seer:write",
         },
         "is_global": True,
     },
@@ -3261,7 +3291,7 @@ SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
 SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
-    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "path": "sentry.utils.locking.backends.redis.RedisClusterLockBackend",
     "options": {"cluster": "default"},
 }
 
@@ -3355,7 +3385,6 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # the service is assumed to be healthy.
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
-    "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-store-transactions": {},
     "processing-locks": {"redis": "default"},

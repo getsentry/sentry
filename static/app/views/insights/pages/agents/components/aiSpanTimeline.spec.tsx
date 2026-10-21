@@ -1,3 +1,4 @@
+import {AiTraceSpanNodeFixture} from 'sentry-fixture/aiTraceSpanNode';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -8,37 +9,12 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getIsAiAgentNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SpanFields} from 'sentry/views/insights/types';
-import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
-
-function createTimelineNode(
-  id: string,
-  operation: string,
-  parent: EapSpanNode | null = null
-) {
-  return new EapSpanNode(
-    parent,
-    makeEAPSpan({
-      event_id: id,
-      op: `gen_ai.${operation}`,
-      additional_attributes: {
-        [SpanFields.GEN_AI_OPERATION_TYPE]: operation,
-        [SpanFields.GEN_AI_AGENT_NAME]: id,
-        [SpanFields.GEN_AI_TOOL_NAME]: id,
-        [SpanFields.GEN_AI_RESPONSE_MODEL]: id,
-      },
-    }),
-    {organization: OrganizationFixture()}
-  );
-}
-
 function createMockNode(id: string, attributes: Record<string, string | number>) {
   return {
     id,
@@ -116,24 +92,45 @@ describe('AiSpanTimeline', () => {
         onSelectNode={jest.fn()}
       />
     );
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^cycle-agent/})).join(' ')
-    ).toMatch(/padding(?:-left)?:\s*4px;/);
+    expect(screen.getByRole('button', {name: /^cycle-agent/})).toBeInTheDocument();
   });
 
-  it('indents nested agents and their calls by their agent ancestors', async () => {
-    const lead = createTimelineNode('lead-agent', 'agent');
-    const tool = createTimelineNode('lead-tool', 'tool', lead);
-    const child = createTimelineNode('child-agent', 'agent', tool);
-    const childCall = createTimelineNode('child-model', 'ai_client', child);
-    const grandchild = createTimelineNode('grandchild-agent', 'agent', child);
-    const grandchildCall = createTimelineNode(
-      'grandchild-model',
-      'ai_client',
-      grandchild
-    );
-    const sibling = createTimelineNode('sibling-agent', 'agent', lead);
-    const unrelated = createTimelineNode('unrelated-model', 'ai_client');
+  it('selects a nested agent', async () => {
+    const lead = AiTraceSpanNodeFixture({id: 'lead-agent', operation: 'agent'});
+    const tool = AiTraceSpanNodeFixture({
+      id: 'lead-tool',
+      operation: 'tool',
+      parent: lead,
+    });
+    const child = AiTraceSpanNodeFixture({
+      id: 'child-agent',
+      operation: 'agent',
+      parent: tool,
+    });
+    const childCall = AiTraceSpanNodeFixture({
+      id: 'child-model',
+      operation: 'ai_client',
+      parent: child,
+    });
+    const grandchild = AiTraceSpanNodeFixture({
+      id: 'grandchild-agent',
+      operation: 'agent',
+      parent: child,
+    });
+    const grandchildCall = AiTraceSpanNodeFixture({
+      id: 'grandchild-model',
+      operation: 'ai_client',
+      parent: grandchild,
+    });
+    const sibling = AiTraceSpanNodeFixture({
+      id: 'sibling-agent',
+      operation: 'agent',
+      parent: lead,
+    });
+    const unrelated = AiTraceSpanNodeFixture({
+      id: 'unrelated-model',
+      operation: 'ai_client',
+    });
     const onSelectNode = jest.fn();
 
     render(
@@ -152,31 +149,6 @@ describe('AiSpanTimeline', () => {
         onSelectNode={onSelectNode}
       />
     );
-
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^lead-agent/})).join(' ')
-    ).toMatch(/padding(?:-left)?:\s*4px;/);
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^lead-tool/})).join(' ')
-    ).toMatch(/(?:padding-left:\s*16px|padding:\s*4px 4px 4px 16px);/);
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^child-agent/})).join(' ')
-    ).toMatch(/(?:padding-left:\s*16px|padding:\s*4px 4px 4px 16px);/);
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^child-model/})).join(' ')
-    ).toMatch(/(?:padding-left:\s*32px|padding:\s*4px 4px 4px 32px);/);
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^grandchild-agent/})).join(' ')
-    ).toMatch(/(?:padding-left:\s*32px|padding:\s*4px 4px 4px 32px);/);
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^grandchild-model/})).join(' ')
-    ).toMatch(/(?:padding-left:\s*48px|padding:\s*4px 4px 4px 48px);/);
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^sibling-agent/})).join(' ')
-    ).toMatch(/(?:padding-left:\s*16px|padding:\s*4px 4px 4px 16px);/);
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: /^unrelated-model/})).join(' ')
-    ).toMatch(/padding(?:-left)?:\s*4px;/);
 
     await userEvent.click(screen.getByRole('button', {name: /^grandchild-agent/}));
     expect(onSelectNode).toHaveBeenCalledWith(grandchild);

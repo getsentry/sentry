@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClose} from '@sentry/icons/close';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
@@ -144,15 +144,11 @@ export function WebVitalDescription({score, value, webVital}: Props) {
             </Flex>
           ))}
         </Flex>
-        <ReferenceLink>{link}</ReferenceLink>
+        <Container marginBottom="xl">{link}</Container>
       </Stack>
     </div>
   );
 }
-
-const ReferenceLink = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const Value = styled('h2')`
   margin-bottom: 0;
