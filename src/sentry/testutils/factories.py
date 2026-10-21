@@ -202,6 +202,7 @@ from sentry.seer.models.run import (
 )
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
 )
@@ -3398,6 +3399,11 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_workflow_config(organization, **kwargs) -> SeerWorkflowConfig:
         return SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config_project(config, project) -> SeerWorkflowConfigProject:
+        return SeerWorkflowConfigProject.objects.create(config=config, project=project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

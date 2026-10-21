@@ -695,9 +695,6 @@ importers:
       dompurify:
         specifier: 3.4.16
         version: 3.4.16
-      downsample:
-        specifier: 1.4.0
-        version: 1.4.0
       echarts:
         specifier: 6.1.0
         version: 6.1.0
@@ -5948,9 +5945,6 @@ packages:
   dotenv@17.4.2:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
-
-  downsample@1.4.0:
-    resolution: {integrity: sha512-teYPhUPxqwtyICt47t1mP/LjhbRV/ghuKb/LmFDbcZ0CjqFD31tn6rVLZoeCEa1xr8+f2skW8UjRiLiGIKQE4w==}
 
   dreamopt@0.8.0:
     resolution: {integrity: sha512-vyJTp8+mC+G+5dfgsY+r3ckxlz+QMX40VjPQsZc5gxVAxLmi64TBoVkP54A/pRAXMXsbu2GMMBrZPxNv23waMg==}
@@ -13779,8 +13773,6 @@ snapshots:
       tslib: 2.8.1
 
   dotenv@17.4.2: {}
-
-  downsample@1.4.0: {}
 
   dreamopt@0.8.0:
     dependencies:
