@@ -1,9 +1,14 @@
 from unittest.mock import MagicMock, patch
 
+import orjson
+from django.test import override_settings
+from urllib3.response import HTTPResponse
+
 from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 class IssueViewTitleGenerateEndpointTest(APITestCase):
@@ -26,11 +31,14 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
 
-    @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
-    def test_successful_title_generation(self, mock_request: MagicMock) -> None:
-        mock_request.return_value = {"title": "My Assigned Errors"}
-
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_successful_title_generation(self, mock_urlopen: MagicMock) -> None:
         query = "is:unresolved assigned:me level:error"
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps({"result": {"title": "My Assigned Errors"}}),
+            status=200,
+        )
 
         response = self.client.post(
             self.url,
@@ -40,12 +48,21 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"title": "My Assigned Errors"}
-        mock_request.assert_called_once_with(
-            "issue_view_title",
-            {"query": query},
-            self.organization,
+        request = mock_urlopen.call_args
+        assert request.args[:2] == ("POST", "/v1/automation/oneshot/run")
+        assert request.kwargs["timeout"] == 10
+        assert orjson.loads(request.kwargs["body"]) == {
+            "oneshot_id": "issue_view_title",
+            "payload": {"query": query},
+        }
+        viewer_context = decode_viewer_context(
+            request.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
             user_id=self.user.id,
-            timeout=10,
+            actor_type=ActorType.USER,
         )
 
     @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")
