@@ -352,6 +352,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   const itemRef = useRef<HTMLElement>(null);
   const labelId = useId();
   const detailId = useId();
+  const hasInlineDetails = Boolean(details && !showDetailsInOverlay);
 
   return (
     <MenuItemWrap
@@ -389,7 +390,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           {leadingItems && (
             <StyledLeadingItems
               disabled={disabled}
-              hasDetails={Boolean(details && !showDetailsInOverlay)}
+              hasDetails={hasInlineDetails}
               size={size}
             >
               {typeof leadingItems === 'function'
@@ -398,7 +399,17 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
             </StyledLeadingItems>
           )}
           <StyledContentWrap isFocused={isFocused} size={size}>
-            <Stack padding="xs 0" align="start" gap="2xs" flex="1 0 0" minWidth="0">
+            {/* Size the label box to match leading and trailing items, so labels that
+                already render at that height do not get extra space. */}
+            <Stack
+              padding={hasInlineDetails ? 'xs 0' : undefined}
+              minHeight={hasInlineDetails ? undefined : '24px'}
+              justify="center"
+              align="start"
+              gap="2xs"
+              flex="1 0 0"
+              minWidth="0"
+            >
               <Text
                 as="div"
                 size={LABEL_TEXT_SIZE_BY_SIZE[size ?? 'md']}
