@@ -7,6 +7,7 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {
@@ -22,7 +23,10 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
-import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 export const METRIC_TIMESERIES_REFERRER = 'api.explore.tracemetrics-timeseries';
@@ -152,6 +156,7 @@ function useMetricTimeseriesImpl({
   queryExtras,
   enabled,
 }: UseMetricTimeseriesImplOptions) {
+  const organization = useOrganization();
   const visualizes = useMetricVisualizes();
   const groupBys = useQueryParamsGroupBys();
   const [interval] = useChartInterval();
@@ -167,6 +172,11 @@ function useMetricTimeseriesImpl({
     {
       search,
       yAxis,
+      transformations: organization.features.includes(
+        'explore-interpolation-and-smoothing'
+      )
+        ? visualizes.map(v => (isVisualizeFunction(v) ? v.transformations : []))
+        : undefined,
       interval,
       fields: [...groupBys, ...yAxis],
       enabled:

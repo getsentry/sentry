@@ -1,8 +1,11 @@
+import fetchMock from 'jest-fetch-mock';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type * as ApiNamespace from 'sentry/api';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -83,6 +86,70 @@ describe('useFetchEventsTimeSeries', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(request).toHaveBeenCalledTimes(0);
+  });
+
+  it('refetches when transformations change and reuses the original cache when cleared', async () => {
+    const original = {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]};
+    const transformed = {timeSeries: [TimeSeriesFixture({yAxis: 'avg(span.duration)'})]};
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: original,
+    });
+    const initialProps: {transformations?: ReadonlyArray<readonly string[]>} = {};
+    const {result, rerender} = renderHookWithProviders(
+      ({transformations}: typeof initialProps) =>
+        useFetchEventsTimeSeries(
+          DiscoverDatasets.SPANS,
+          {
+            yAxis: ['count()', 'avg(span.duration)'],
+            transformations,
+          },
+          REFERRER
+        ),
+      {initialProps}
+    );
+
+    await waitFor(() => expect(result.current.data).toEqual(original));
+
+    const transformedRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      match: [
+        MockApiClient.matchQuery({
+          'transformations[1]': ['fill(locf)', 'smooth(sma,5)'],
+        }),
+      ],
+      body: transformed,
+    });
+    rerender({transformations: [[], ['fill(locf)', 'smooth(sma,5)']]});
+
+    await waitFor(() => expect(result.current.data).toEqual(transformed));
+    expect(transformedRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: ['count()', 'avg(span.duration)'],
+          'transformations[1]': ['fill(locf)', 'smooth(sma,5)'],
+        }),
+      })
+    );
+
+    const {Client} = jest.requireActual<typeof ApiNamespace>('sentry/api');
+    fetchMock.mockResponseOnce(JSON.stringify(transformed));
+    await new Client().requestPromise('/organizations/org-slug/events-timeseries/', {
+      query: transformedRequest.mock.lastCall![1].query,
+    });
+    const url = new URL(String(fetchMock.mock.lastCall![0]), 'https://sentry.io');
+    expect(url.searchParams.getAll('transformations[1]')).toEqual([
+      'fill(locf)',
+      'smooth(sma,5)',
+    ]);
+    expect(url.searchParams.has('transformations[0]')).toBe(false);
+
+    rerender({transformations: [[], []]});
+
+    await waitFor(() => expect(result.current.data).toEqual(original));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(transformedRequest).toHaveBeenCalledTimes(1);
   });
 
   it('requires a referrer', () => {

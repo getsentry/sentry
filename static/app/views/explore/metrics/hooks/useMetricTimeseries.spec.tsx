@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -12,12 +13,22 @@ import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricT
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  type Visualize,
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 function MockMetricQueryParamsContextWithMultiVisualize({
   children,
+  visualizes = [
+    new VisualizeFunction('p50(value,test_metric,distribution,none)'),
+    new VisualizeFunction('p75(value,test_metric,distribution,none)'),
+    new VisualizeFunction('p99(value,test_metric,distribution,none)'),
+  ],
 }: {
   children: ReactNode;
+  visualizes?: Visualize[];
 }) {
   const mockQueryParams = new ReadableQueryParams({
     extrapolate: true,
@@ -27,11 +38,7 @@ function MockMetricQueryParamsContextWithMultiVisualize({
     fields: ['id', 'timestamp'],
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
-    aggregateFields: [
-      new VisualizeFunction('p50(value,test_metric,distribution,none)'),
-      new VisualizeFunction('p75(value,test_metric,distribution,none)'),
-      new VisualizeFunction('p99(value,test_metric,distribution,none)'),
-    ],
+    aggregateFields: visualizes,
     aggregateSortBys: [{field: 'p50(value,test_metric,distribution,none)', kind: 'desc'}],
   });
 
@@ -59,6 +66,64 @@ describe('useMetricTimeseries', () => {
   afterEach(() => {
     PageFiltersStore.reset();
   });
+
+  it.each([true, false])(
+    'preserves transformation axis positions with the feature enabled=%s',
+    async featureEnabled => {
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
+      });
+      const visualizes = [
+        new VisualizeFunction('p50(value,test_metric,distribution,none)', {
+          visible: false,
+        }),
+        new VisualizeEquation('equation|1 + 2'),
+        new VisualizeFunction('p50(value,test_metric,distribution,none)', {
+          transformations: ['fill(locf)', 'smooth(sma,5)'],
+        }),
+        new VisualizeFunction('p99(value,test_metric,distribution,none)', {
+          transformations: ['smooth(ema,3,0.5)', 'fill(zero)'],
+        }),
+      ];
+
+      renderHookWithProviders(useMetricTimeseries, {
+        organization: OrganizationFixture({
+          features: featureEnabled ? ['explore-interpolation-and-smoothing'] : [],
+        }),
+        initialProps: {
+          traceMetric: {name: 'test_metric', type: 'distribution'},
+          enabled: true,
+        },
+        additionalWrapper: ({children}) => (
+          <MockMetricQueryParamsContextWithMultiVisualize visualizes={visualizes}>
+            {children}
+          </MockMetricQueryParamsContextWithMultiVisualize>
+        ),
+      });
+
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+      const query = request.mock.calls[0]![1].query;
+      expect(query.yAxis).toEqual([
+        'p50(value,test_metric,distribution,none)',
+        'equation|1 + 2',
+        'p50(value,test_metric,distribution,none)',
+        'p99(value,test_metric,distribution,none)',
+      ]);
+      expect(
+        Object.fromEntries(
+          Object.entries(query).filter(([key]) => key.startsWith('transformations'))
+        )
+      ).toEqual(
+        featureEnabled
+          ? {
+              'transformations[2]': ['fill(locf)', 'smooth(sma,5)'],
+              'transformations[3]': ['smooth(ema,3,0.5)', 'fill(zero)'],
+            }
+          : {}
+      );
+    }
+  );
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockTimeSeries = TimeSeriesFixture();
@@ -253,11 +318,28 @@ describe('useMetricTimeseries', () => {
     });
 
     renderHookWithProviders(useMetricTimeseries, {
+      organization: OrganizationFixture({
+        features: ['explore-interpolation-and-smoothing'],
+      }),
       initialProps: {
         traceMetric: {name: 'test_metric', type: 'distribution'},
         enabled: true,
       },
-      additionalWrapper: MockMetricQueryParamsContextWithMultiVisualize,
+      additionalWrapper: ({children}) => (
+        <MockMetricQueryParamsContextWithMultiVisualize
+          visualizes={[
+            new VisualizeFunction('p50(value,test_metric,distribution,none)', {
+              transformations: ['fill(locf)', 'smooth(sma,5)'],
+            }),
+            new VisualizeFunction('p75(value,test_metric,distribution,none)'),
+            new VisualizeFunction('p99(value,test_metric,distribution,none)', {
+              transformations: ['smooth(asap)'],
+            }),
+          ]}
+        >
+          {children}
+        </MockMetricQueryParamsContextWithMultiVisualize>
+      ),
     });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
@@ -265,6 +347,18 @@ describe('useMetricTimeseries', () => {
     await waitFor(() => {
       expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1);
     });
+
+    for (const request of [mockNormalRequest, mockHighAccuracyRequest]) {
+      expect(request).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            'transformations[0]': ['fill(locf)', 'smooth(sma,5)'],
+            'transformations[2]': ['smooth(asap)'],
+          }),
+        })
+      );
+    }
 
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
