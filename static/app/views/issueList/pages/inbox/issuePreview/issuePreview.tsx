@@ -327,7 +327,6 @@ function IssuePreviewContent() {
             <IssuePreviewTimeline
               key={group.id}
               group={group}
-              project={project}
               pullRequests={linkedPullRequests.data?.pullRequests ?? []}
             />
           </Container>
