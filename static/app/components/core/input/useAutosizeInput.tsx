@@ -11,6 +11,7 @@ import {useCallback, useLayoutEffect, useRef} from 'react';
  */
 
 interface UseAutosizeInputOptions {
+  placeholder?: string;
   value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
 
@@ -52,14 +53,14 @@ export function useAutosizeInput(
     };
   }, []);
 
-  // A controlled input value change does not trigger a change event,
-  // so we need to manually observe the value...
+  // A controlled input value or placeholder change does not trigger a change
+  // event, so we need to manually observe them...
   useLayoutEffect(() => {
     if (sourceRef.current) {
       resize(sourceRef.current, sizingDivRef);
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [options?.value]);
+  }, [options?.value, options?.placeholder]);
 
   const onInputChange = useCallback((_event: any) => {
     if (sourceRef.current) {
