@@ -65,7 +65,7 @@
     "@r4ai/remark-callout": "^0.6.2",
     "@rsbuild/core": "^2.2.12",
     "@rsbuild/plugin-basic-ssl": "^2.0.0",
-    "@rsdoctor/rspack-plugin": "1.6.4",
+    "@rsdoctor/core": "2.0.0",
     "@rspack/core": "2.2.8",
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry/conventions": "^0.27.0",
