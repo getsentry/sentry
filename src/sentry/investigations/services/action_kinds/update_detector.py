@@ -59,9 +59,9 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
 
     @classmethod
     def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
-        """Drop changes over the text limits, or with a null current aggregate. These limits are
-        policy, so a monitor with a longer query gets no query change. No change left means
-        advice.
+        """Drop changes we won't apply: text over our limits, or a null current aggregate.
+
+        No change left makes the request advice.
         """
 
         before = action.get("before")

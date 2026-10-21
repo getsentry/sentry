@@ -816,7 +816,7 @@ class ActionPayloadSerializer(RelaxedContractSerializer):
 
     @classmethod
     def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
-        """The action without values Sentry cannot store. None keeps the request as advice."""
+        """The action without values this kind won't accept. None keeps the request as advice."""
         return action
 
 
