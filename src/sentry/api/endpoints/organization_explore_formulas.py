@@ -422,12 +422,16 @@ class FormulaSerializer(RequestSerializer):
 
 class FormulaListQuery(TypedDict):
     name: NotRequired[str]
+    parameter: NotRequired[str]
+    reference: NotRequired[str]
     sortBy: SortBy
     prebuilt: NotRequired[bool]
 
 
 class FormulaListSerializer(RequestSerializer[None, FormulaListQuery]):
     name = CharField(max_length=200, required=False)
+    parameter = CharField(max_length=200, required=False)
+    reference = CharField(max_length=200, required=False)
     sortBy = CharField(max_length=200, required=False, default="name")
     prebuilt = BooleanField(required=False)
 
@@ -435,6 +439,12 @@ class FormulaListSerializer(RequestSerializer[None, FormulaListQuery]):
         return parse_sort_by(sortby, allowed_fields=["name", "description"])
 
     def validate_name(self, name: str) -> str:
+        return name.lower()
+
+    def validate_parameter(self, name: str) -> str:
+        return name.lower()
+
+    def validate_reference(self, name: str) -> str:
         return name.lower()
 
 
@@ -601,6 +611,16 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
             queryset = queryset.filter(
                 prebuilt_id__isnull=not serializer.validated_data["prebuilt"]
             )
+        if "parameter" in serializer.validated_data:
+            queryset = queryset.filter(
+                variables__kind=KindItemTypes.PARAM,
+                variables__name__icontains=serializer.validated_data["parameter"],
+            ).distinct()
+        if "reference" in serializer.validated_data:
+            queryset = queryset.filter(
+                variables__kind=KindItemTypes.REFERENCE,
+                variables__name__icontains=serializer.validated_data["reference"],
+            ).distinct()
 
         def data_fn(offset: int, limit: int) -> list[ExploreSavedFormula]:
             return list(queryset[offset : offset + limit])
