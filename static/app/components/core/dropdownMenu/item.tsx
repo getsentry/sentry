@@ -71,7 +71,7 @@ export interface MenuItemProps extends ListItemProps {
         maxMenuHeight?: number;
         menuWidth?: string | number;
         position?: UseOverlayProps['position'];
-        search?: boolean;
+        search?: {placeholder?: string};
         title?: string;
       };
   /**

@@ -69,6 +69,7 @@ export interface DropdownMenuListProps
   searchState?: {
     onChange: (value: string) => void;
     value: string;
+    placeholder?: string;
   };
   size?: MenuItemProps['size'];
   /**
@@ -307,7 +308,8 @@ function DropdownMenuList({
     <Search
       ref={searchRef}
       padding={menuTitle ? '0' : undefined}
-      aria-label="Search"
+      aria-label={searchState.placeholder ?? 'Search'}
+      placeholder={searchState.placeholder ?? 'Search…'}
       value={searchState.value}
       onChange={event => searchState.onChange(event.target.value)}
       onKeyDown={event => {
@@ -461,7 +463,7 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
 
 export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
   items: MenuItemProps[];
-  search?: boolean;
+  search?: {placeholder?: string};
 };
 
 export function DropdownMenuContent({
@@ -489,7 +491,9 @@ export function DropdownMenuContent({
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      searchState={search ? {value: searchValue, onChange: setSearchValue} : undefined}
+      searchState={
+        search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
+      }
     >
       {(item: MenuItemProps) => {
         const {onAction: _onAction, ...itemProps} = item;
