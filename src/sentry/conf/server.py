@@ -476,6 +476,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.search",
     "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
+    "sentry.telemetry_classifiers",
     "sentry.snuba",
     "social_auth",
     "sudo",
@@ -1018,6 +1019,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
+    "sentry.telemetry_classifiers.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
