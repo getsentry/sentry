@@ -139,10 +139,15 @@ jobs:
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile -p fixture_timer"
+          export PYTHONPATH="$PWD/.github/workflows/scripts${PYTHONPATH:+:$PYTHONPATH}"
           timeout -k 30 1200 make run-acceptance || rc=$?
           [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
           exit "${rc:-0}"
+
+      - name: Print startup timings
+        if: ${{ !cancelled() }}
+        run: cat .artifacts/fixture-timings-*.log || true
 
       - name: Inspect failure
         if: failure()
