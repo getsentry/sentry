@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useRef, useState} from 'react';
 import {css, type SerializedStyles, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -15,9 +16,7 @@ import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Text} from '@sentry/scraps/text';
 import type {AlertVariant} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {defined} from 'sentry/utils/defined';
-import {unreachable} from 'sentry/utils/unreachable';
+import {unreachable} from '@sentry/scraps/unreachable';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   variant: AlertVariant;
@@ -184,7 +183,7 @@ export function Alert({
   ...props
 }: AlertProps) {
   const {t} = useTranslation();
-  const showExpand = defined(expand);
+  const showExpand = expand !== undefined && expand !== null;
   const [isExpanded, setIsExpanded] = useState(!!props.defaultExpanded);
 
   const expandRef = useRef<HTMLDivElement>(null);

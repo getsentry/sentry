@@ -1,8 +1,11 @@
+import type * as React from 'react';
 import {useState} from 'react';
-
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import {userEvent} from '@testing-library/user-event';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {lightTheme} from '@sentry/scraps/theme';
 
 function ControlledCheckbox() {
   const [checked, setChecked] = useState(false);
@@ -17,18 +20,20 @@ function ControlledCheckbox() {
 
 describe('Checkbox', () => {
   it('default is unchecked', () => {
-    render(<Checkbox onChange={jest.fn()} />);
+    render(<Checkbox onChange={jest.fn()} />, {wrapper: ThemeWrapper});
 
     expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
   it('checked', () => {
-    render(<Checkbox checked onChange={jest.fn()} />);
+    render(<Checkbox checked onChange={jest.fn()} />, {wrapper: ThemeWrapper});
     expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
   it('indeterminate', () => {
-    render(<Checkbox checked="indeterminate" onChange={jest.fn()} />);
+    render(<Checkbox checked="indeterminate" onChange={jest.fn()} />, {
+      wrapper: ThemeWrapper,
+    });
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     expect(screen.getByRole<HTMLInputElement>('checkbox').indeterminate).toBe(true);
@@ -50,7 +55,8 @@ describe('Checkbox', () => {
           tooltipProps={{title: 'Requires admin access'}}
         />
         Enable feature
-      </label>
+      </label>,
+      {wrapper: ThemeWrapper}
     );
 
     const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
@@ -76,7 +82,10 @@ describe('Checkbox', () => {
     ['no tooltip is present', undefined],
     ['the tooltip is disabled', {title: 'Requires admin access', disabled: true}],
   ])('uses native disabled when %s', (_, tooltipProps) => {
-    render(<Checkbox disabled aria-label="Enable feature" tooltipProps={tooltipProps} />);
+    render(
+      <Checkbox disabled aria-label="Enable feature" tooltipProps={tooltipProps} />,
+      {wrapper: ThemeWrapper}
+    );
 
     const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
     expect(checkbox).toBeDisabled();
@@ -92,7 +101,8 @@ describe('Checkbox', () => {
         onChange={onChange}
         onKeyDown={onKeyDown}
         tooltipProps={{title: 'Enable this feature'}}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
@@ -120,7 +130,8 @@ describe('Checkbox', () => {
           required
           tooltipProps={{title: 'Requires admin access'}}
         />
-      </form>
+      </form>,
+      {wrapper: ThemeWrapper}
     );
 
     const form = screen.getByRole<HTMLFormElement>('form', {name: 'Settings'});
@@ -130,7 +141,7 @@ describe('Checkbox', () => {
 
   describe('controlled checkbox', () => {
     it('toggles on click', async () => {
-      render(<ControlledCheckbox />);
+      render(<ControlledCheckbox />, {wrapper: ThemeWrapper});
 
       expect(screen.getByRole('checkbox')).not.toBeChecked();
       await userEvent.click(screen.getByLabelText('Custom Label'));
@@ -140,3 +151,7 @@ describe('Checkbox', () => {
 
   // @TODO(jonasbadalic): Checkbox should support uncontrolled state
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
