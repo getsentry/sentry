@@ -372,6 +372,9 @@ def normalize_events(context: TranscriptContext) -> list[TranscriptEvent]:
         ):
             if output_tokens > 0 or not user:
                 assistant = NOT_REPORTED
+        reasoning_tokens = number_attr(span, "gen_ai.usage.reasoning.output_tokens") or 0
+        if reasoning is None and reasoning_tokens > 0:
+            reasoning = NOT_REPORTED
         if user and (user in placeholders or not is_user_replay(capture, previous)):
             emit(
                 TranscriptMessage(

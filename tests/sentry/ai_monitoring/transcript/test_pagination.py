@@ -454,3 +454,71 @@ def test_identical_tools_with_distinct_source_ids_are_retained(per_page: int) ->
         [span("tool-a", 1, 2, **attributes), span("tool-b", 3, 4, **attributes)], per_page
     )
     assert [message["nodeId"] for message in messages] == ["tool-a", "tool-b"]
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+@pytest.mark.parametrize(
+    "usage_field",
+    ["gen_ai.usage.reasoning.output_tokens", "gen_ai.usage.output_tokens.reasoning"],
+)
+def test_uncaptured_reasoning_preserves_assistant_event(per_page: int, usage_field: str) -> None:
+    messages = collect(
+        [
+            span(
+                "one",
+                1,
+                2,
+                **{
+                    "gen_ai.input.messages": "",
+                    "gen_ai.output.messages": "",
+                    "gen_ai.usage.input_tokens": 10,
+                    usage_field: 5,
+                },
+            )
+        ],
+        per_page,
+    )
+    assert [(message["role"], message["content"]) for message in messages] == [
+        ("user", "<not reported>"),
+        ("assistant", ""),
+    ]
+    assert messages[1].get("reasoning") == "<not reported>"
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+@pytest.mark.parametrize(
+    ("reasoning_parts", "tokens", "expected"),
+    [
+        ([], 5, "<not reported>"),
+        ([{"type": "reasoning", "text": "captured reasoning"}], 5, "captured reasoning"),
+        ([], 0, None),
+        ([], -1, None),
+        ([], None, None),
+    ],
+)
+def test_reasoning_placeholder_preserves_captured_content(
+    per_page: int, reasoning_parts: list[dict[str, str]], tokens: int | None, expected: str | None
+) -> None:
+    messages = collect(
+        [
+            span(
+                "one",
+                1,
+                2,
+                **{
+                    "gen_ai.output.messages": json.dumps(
+                        [
+                            {
+                                "role": "assistant",
+                                "parts": [{"type": "text", "text": "answer"}, *reasoning_parts],
+                            }
+                        ]
+                    ),
+                    "gen_ai.usage.reasoning.output_tokens": tokens,
+                },
+            )
+        ],
+        per_page,
+    )
+    assert messages[1]["content"] == "answer"
+    assert messages[1].get("reasoning") == expected
