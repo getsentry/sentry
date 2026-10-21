@@ -222,6 +222,35 @@ describe('desktop navigation', () => {
     );
   });
 
+  it('shows settings scope navigation with settings v3', () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+      })
+    );
+
+    const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+    expect(within(primaryNav).getByRole('link', {name: 'Org'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+    expect(within(primaryNav).getByRole('link', {name: 'Project'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/projects/'
+    );
+    expect(within(primaryNav).getByRole('link', {name: 'Account'})).toHaveAttribute(
+      'href',
+      '/settings/account/'
+    );
+    expect(
+      within(primaryNav).getByRole('link', {name: 'Back to main navigation'})
+    ).toHaveAttribute('href', '/organizations/org-slug/issues/');
+  });
+
   it('reopens collapsed account navigation without an organization', async () => {
     localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
