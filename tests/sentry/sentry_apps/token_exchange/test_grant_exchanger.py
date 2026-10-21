@@ -1,7 +1,10 @@
+import threading
+import time
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
+from django.db import connections, router, transaction
 
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
 from sentry.integrations.types import EventLifecycleOutcome
@@ -12,13 +15,14 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.asserts import (
     assert_count_of_metric,
     assert_failure_metric,
     assert_halt_metric,
     assert_success_metric,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import control_silo_test
 
@@ -309,3 +313,64 @@ class TestGrantExchanger(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
+
+
+@control_silo_test
+class TestGrantExchangerConcurrentExchange(TransactionTestCase):
+    def test_exchange_fails_when_other_exchange_commits_after_lock_expires(self) -> None:
+        install = self.create_sentry_app_installation(prevent_token_exchange=True)
+        assert install.api_grant is not None
+        assert install.sentry_app.application is not None
+        grant_id = install.api_grant.id
+        exchanger = GrantExchanger(
+            install=install,
+            code=install.api_grant.code,
+            client_id=install.sentry_app.application.client_id,
+            user=install.sentry_app.proxy_user,
+        )
+
+        using = router.db_for_write(ApiGrant)
+        with connections[using].cursor() as cursor:
+            cursor.execute("SELECT pg_backend_pid()")
+            exchanger_pid = cursor.fetchone()[0]
+
+        grant_deleted = threading.Event()
+        exchanger_blocked = threading.Event()
+
+        # The other request deleted the grant but did not commit yet. It does not hold the
+        # Redis lock, as if its lock expired, so our exchange can take the lock and still
+        # see the grant.
+        def other_exchange() -> None:
+            try:
+                with transaction.atomic(using=using), unguarded_write(using=using):
+                    ApiGrant.objects.filter(id=grant_id).delete()
+                    grant_deleted.set()
+
+                    # Commit only when our exchange waits for the rows this transaction holds.
+                    deadline = time.monotonic() + 30
+                    while time.monotonic() < deadline:
+                        with connections[using].cursor() as cursor:
+                            cursor.execute(
+                                "SELECT cardinality(pg_blocking_pids(%s)) > 0", [exchanger_pid]
+                            )
+                            if cursor.fetchone()[0]:
+                                exchanger_blocked.set()
+                                break
+                        time.sleep(0.01)
+            finally:
+                connections[using].close()
+
+        thread = threading.Thread(target=other_exchange)
+        thread.start()
+        try:
+            assert grant_deleted.wait(30)
+            with pytest.raises(SentryAppIntegratorError) as e:
+                exchanger.run()
+        finally:
+            thread.join(30)
+
+        assert exchanger_blocked.is_set()
+        assert e.value.message == "Could not find grant for given code"
+        assert e.value.status_code == 401
+        assert not ApiToken.objects.filter(application=install.sentry_app.application).exists()
+        assert SentryAppInstallation.objects.get(id=install.id).api_token is None

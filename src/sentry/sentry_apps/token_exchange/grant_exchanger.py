@@ -68,17 +68,6 @@ class GrantExchanger:
                     lock.acquire(),
                     transaction.atomic(using=router.db_for_write(ApiToken)),
                 ):
-                    # self.grant was read before we had the lock. Another request can have
-                    # exchanged and deleted the grant since then.
-                    if not ApiGrant.objects.filter(id=self.grant.id).exists():
-                        raise SentryAppIntegratorError(
-                            "Could not find grant for given code",
-                            webhook_context={
-                                "code": self.code,
-                                "installation_uuid": self.install.uuid,
-                            },
-                            status_code=401,
-                        )
                     self._validate()
                     token = self._create_token()
 
@@ -122,7 +111,16 @@ class GrantExchanger:
     def _delete_grant(self) -> None:
         # This will cause a set null to trigger which does not need to cascade an outbox
         with unguarded_write(router.db_for_write(ApiGrant)):
-            self.grant.delete()
+            _, deleted = self.grant.delete()
+
+        # if another request already deleted the grant, raise an error so
+        # that our transaction rolls back the token we created
+        if not deleted.get(ApiGrant._meta.label):
+            raise SentryAppIntegratorError(
+                "Could not find grant for given code",
+                webhook_context={"code": self.code, "installation_uuid": self.install.uuid},
+                status_code=401,
+            )
 
     def _create_token(self) -> ApiToken:
         token = ApiToken.objects.create(
