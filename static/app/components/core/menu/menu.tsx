@@ -1,9 +1,9 @@
-import {useId, useRef, useState} from 'react';
+import {useEffect, useId, useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {autoUpdate, hide, offset, useFloating} from '@floating-ui/react-dom';
 import {mergeRefs} from '@react-aria/utils';
 import {IconSearch} from '@sentry/icons/search';
 
@@ -11,13 +11,13 @@ import {InputGroup} from '@sentry/scraps/input';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import type {ContainerProps} from '@sentry/scraps/layout/container';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 
 /** Container for a menu header, with a divider below it. */
 export function MenuHeaderLayout(props: FlexProps) {
@@ -442,18 +442,12 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   );
 }
 
-const POPPER_OPTIONS = {
-  placement: 'right-start' as const,
-  strategy: 'fixed' as const,
-  modifiers: [
-    {
-      name: 'offset',
-      options: {
-        offset: [-4, 8],
-      },
-    },
-  ],
-};
+const DETAILS_MIDDLEWARE = [
+  offset({crossAxis: -4, mainAxis: 8}),
+  flipOverlay(),
+  shiftOverlay(),
+  hide(),
+];
 
 /** Shows item details beside the focused item when overlay details are enabled. */
 function DetailsOverlay({
@@ -468,17 +462,29 @@ function DetailsOverlay({
   size: MenuListItemProps['size'];
 }) {
   const theme = useTheme();
-  const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
+  const {
+    refs: {setReference, setFloating},
+    floatingStyles,
+    middlewareData,
+  } = useFloating({
+    placement: 'right-start',
+    strategy: 'fixed',
+    middleware: DETAILS_MIDDLEWARE,
+    whileElementsMounted: autoUpdate,
+  });
 
-  // oxlint-disable-next-line react/refs
-  const popper = usePopper(itemRef.current, overlayElement, POPPER_OPTIONS);
+  // The menu item attaches its ref after this overlay's refs and layout effects
+  // run, so read it once the commit is done
+  useEffect(() => {
+    setReference(itemRef.current);
+  }, [itemRef, setReference]);
 
   return createPortal(
     <StyledPositionWrapper
-      {...popper.attributes.popper}
-      ref={setOverlayElement}
+      data-reference-hidden={middlewareData.hide?.referenceHidden}
+      ref={setFloating}
       zIndex={theme.zIndex.tooltip}
-      style={popper.styles.popper}
+      style={floatingStyles}
     >
       <StyledOverlay id={id} role="tooltip" placement="right-start" size={size}>
         {children}
@@ -492,7 +498,7 @@ function DetailsOverlay({
 }
 
 const StyledPositionWrapper = styled(PositionWrapper)`
-  &[data-popper-reference-hidden='true'] {
+  &[data-reference-hidden='true'] {
     opacity: 0;
     pointer-events: none;
   }

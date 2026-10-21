@@ -15,10 +15,10 @@ import type {LocationDescriptor} from 'history';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useOverlay} from 'sentry/utils/useOverlay';
 
 import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
@@ -507,7 +507,7 @@ function DropdownSubmenu({
     offset: -4,
     preventOverflowOptions: {
       boundary: document.body,
-      altAxis: true,
+      crossAxis: true,
     },
   });
   const {menuTriggerProps, menuProps} = useMenuTrigger(

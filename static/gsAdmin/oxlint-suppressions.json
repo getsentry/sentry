@@ -1,0 +1,135 @@
+{
+  "components/addToStartupProgramAction.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
+  "components/adminConfirmationModal.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 13
+    }
+  },
+  "components/changeBalanceAction.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
+  "components/customerName.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/customers/customerIntegrationDebugDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/customers/customerOverview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/customers/customerStats.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/dropdownActions.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/eventUsers.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/pageHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/planList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "components/provisionSubscriptionAction.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "components/selectableContainer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/toggleConsolePlatformsModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/billingPlans.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 8
+    }
+  },
+  "views/customerContractDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/debuggingTools.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/dynamicSamplingPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/giftRecurringCredits.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "views/invoiceComparison.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/launchpadAdminPage.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/layout.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 6
+    },
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/notFound.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/overview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "views/privateAPIs.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/relocationCreate.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  }
+}

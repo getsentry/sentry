@@ -7898,3 +7898,26 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
         assert meta["dataset"] == "spans"
+
+    def test_chained_or_statements(self) -> None:
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            )
+            for _ in range(50)
+        ]
+        traces = [f"trace:{span['trace_id']}" for span in spans]
+        self.store_spans(spans)
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": f"({' OR '.join(traces)})",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Maximum Number Of Boolean Conditions" in response.data["detail"].title()
