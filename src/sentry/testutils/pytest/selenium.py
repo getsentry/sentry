@@ -17,6 +17,7 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -397,14 +398,10 @@ def start_chrome(**chrome_args):
             )
 
 
-@pytest.fixture(scope="function")
-def browser(request, live_server):
-    window_size = request.config.getoption("window_size")
-    window_width, window_height = map(int, window_size.split("x", 1))
-
-    driver_type = request.config.getoption("selenium_driver")
-    headless = not request.config.getoption("no_headless")
-    slow_network = request.config.getoption("slow_network")
+def _start_driver(config):
+    window_size = config.getoption("window_size")
+    driver_type = config.getoption("selenium_driver")
+    headless = not config.getoption("no_headless")
     if driver_type == "chrome":
         options = webdriver.ChromeOptions()
         options.add_argument("no-sandbox")
@@ -413,25 +410,84 @@ def browser(request, live_server):
         options.add_argument(f"window-size={window_size}")
         if headless:
             options.add_argument("headless")
-        chrome_path = request.config.getoption("chrome_path")
+        chrome_path = config.getoption("chrome_path")
         if chrome_path:
             options.binary_location = chrome_path
-        chromedriver_path = request.config.getoption("chromedriver_path")
+        chromedriver_path = config.getoption("chromedriver_path")
         chrome_args = {"options": options}
         if chromedriver_path:
             chrome_args["executable_path"] = chromedriver_path
 
-        driver = start_chrome(**chrome_args)
-        if slow_network:
-            driver.set_network_conditions(
-                offline=False,
-                latency=400 * 2,  # additional latency (ms)
-                throughput=500 * 1024,  # maximal throughput
-            )
+        return start_chrome(**chrome_args)
     elif driver_type == "firefox":
-        driver = webdriver.Firefox()
+        return webdriver.Firefox()
     else:
         raise pytest.UsageError("--driver must be specified")
+
+
+def _quit_driver(driver):
+    try:
+        driver.quit()
+    except Exception:
+        pass
+
+
+def _reset_chrome(driver, origin):
+    # A new tab drops sessionStorage, per-tab CDP emulation overrides, and any
+    # JS or requests the previous test's page still has in flight, which must
+    # stop before the database is flushed.
+    previous_handles = driver.window_handles
+    driver.switch_to.new_window("tab")
+    fresh_handle = driver.current_window_handle
+    for handle in previous_handles:
+        driver.switch_to.window(handle)
+        driver.close()
+    driver.switch_to.window(fresh_handle)
+
+    # The HTTP cache stays warm: the app cannot read it, and a cold cache
+    # would give back part of what skipping the relaunch saves.
+    driver.execute_cdp_cmd("Network.clearBrowserCookies", {})
+    driver.execute_cdp_cmd("Storage.clearDataForOrigin", {"origin": origin, "storageTypes": "all"})
+
+
+class _SessionDriver:
+    driver: WebDriver | None = None
+
+
+@pytest.fixture(scope="session")
+def _session_driver():
+    # Session scope is per xdist worker, so each worker owns one Chrome.
+    holder = _SessionDriver()
+    yield holder
+    if holder.driver is not None:
+        _quit_driver(holder.driver)
+
+
+@pytest.fixture(scope="function")
+def browser(request, live_server, _session_driver):
+    window_size = request.config.getoption("window_size")
+    window_width, window_height = map(int, window_size.split("x", 1))
+    reuse = request.config.getoption("selenium_driver") == "chrome"
+
+    driver = _session_driver.driver if reuse else None
+    if driver is not None:
+        try:
+            driver.window_handles
+        except WebDriverException:
+            logger.warning("selenium.reused-browser-dead", exc_info=True)
+            _quit_driver(driver)
+            driver = None
+    if driver is None:
+        driver = _start_driver(request.config)
+        if reuse:
+            _session_driver.driver = driver
+
+    if request.config.getoption("slow_network"):
+        driver.set_network_conditions(
+            offline=False,
+            latency=400 * 2,  # additional latency (ms)
+            throughput=500 * 1024,  # maximal throughput
+        )
 
     driver.set_window_size(window_width, window_height)
 
@@ -462,11 +518,19 @@ def browser(request, live_server):
         sys.stderr.write("[browser console] ")
         sys.stderr.write(repr(entry))
         sys.stderr.write("\n")
-    # Teardown Selenium.
+
+    if not reuse:
+        _quit_driver(driver)
+        return
+
     try:
-        driver.quit()
+        _reset_chrome(driver, live_server.url)
     except Exception:
-        pass
+        # A browser that cannot be reset could leak state into the next test,
+        # so replace it instead.
+        logger.warning("selenium.reset-failed", exc_info=True)
+        _session_driver.driver = None
+        _quit_driver(driver)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
