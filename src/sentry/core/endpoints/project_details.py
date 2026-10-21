@@ -46,7 +46,7 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingConfig
+from sentry.grouping.fingerprinting import FingerprintingConfig, normalize_unicode_arrows
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.ingest.legacy_filter_lists import set_list
@@ -551,6 +551,7 @@ E.g. `['release', 'environment']`""",
         if not value:
             return value
 
+        value = normalize_unicode_arrows(value)
         try:
             FingerprintingConfig.from_config_string(value)
         except InvalidFingerprintingConfig as e:

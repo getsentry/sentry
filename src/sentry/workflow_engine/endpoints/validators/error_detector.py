@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.grouping.fingerprinting import FingerprintingConfig
+from sentry.grouping.fingerprinting import FingerprintingConfig, normalize_unicode_arrows
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.issues.grouptype import GroupType
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -55,6 +55,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         if not value:
             return value
 
+        value = normalize_unicode_arrows(value)
         try:
             FingerprintingConfig.from_config_string(value)
         except InvalidFingerprintingConfig as e:

@@ -11,7 +11,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.context import GroupingContext
-from sentry.grouping.fingerprinting import FingerprintingConfig
+from sentry.grouping.fingerprinting import FingerprintingConfig, normalize_unicode_arrows
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.fingerprinting.utils import resolve_fingerprint_values
 from sentry.grouping.strategies.base import StrategyConfiguration
@@ -54,7 +54,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "attributes": {},
             },
             {
-                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailedfoo"',
+                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailed", "foo"',
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
                 "attributes": {},
@@ -84,19 +84,19 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "attributes": {},
             },
             {
-                "text": 'app:"true" -> "{{ default }}stuff"',
+                "text": 'app:"true" -> "{{ default }}", "stuff"',
                 "matchers": [["app", "true"]],
                 "fingerprint": ["{{ default }}", "stuff"],
                 "attributes": {},
             },
             {
-                "text": 'app:"true" -> "{{ default }}stuff"',
+                "text": 'app:"true" -> "{{ default }}", "stuff"',
                 "matchers": [["app", "true"]],
                 "fingerprint": ["{{ default }}", "stuff"],
                 "attributes": {},
             },
             {
-                "text": 'app:"true" -> "{{ default }}stuff"',
+                "text": 'app:"true" -> "{{ default }}", "stuff"',
                 "matchers": [["app", "true"]],
                 "fingerprint": ["{{ default }}", "stuff"],
                 "attributes": {},
@@ -120,7 +120,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "attributes": {},
             },
             {
-                "text": 'logger:"sentry.*" -> "logger-{{ logger }}"',
+                "text": 'logger:"sentry.*" -> "logger-", "{{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
@@ -132,13 +132,13 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "attributes": {},
             },
             {
-                "text": 'logger:"sentry.*" -> "logger-{{ logger }}" title="Message from {{ logger }}"',
+                "text": 'logger:"sentry.*" -> "logger-", "{{ logger }}" title="Message from {{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {"title": "Message from {{ logger }}"},
             },
             {
-                "text": 'logger:"sentry.*" -> "logger-{{ logger }}" title="Message from {{ logger }}"',
+                "text": 'logger:"sentry.*" -> "logger-", "{{ logger }}" title="Message from {{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {"title": "Message from {{ logger }}"},
@@ -165,13 +165,77 @@ logger:sentry.*                                 -> logger, {{ logger }}, title="
         "attributes": {"title": "Message from {{ logger }}"},
         "fingerprint": ["logger", "{{ logger }}"],
         "matchers": [["logger", "sentry.*"]],
-        "text": 'logger:"sentry.*" -> "logger{{ logger }}" title="Message from {{ logger }}"',
+        "text": 'logger:"sentry.*" -> "logger", "{{ logger }}" title="Message from {{ logger }}"',
     }
+
+
+def test_rule_text_round_trips() -> None:
+    rules = FingerprintingConfig.from_config_string(
+        'logger:sentry.* -> logger-{{ logger }}, "two words", {{ default }} title="From {{ logger }}"'
+    )
+    [rule] = rules.rules
+    assert (
+        rule.text
+        == 'logger:"sentry.*" -> "logger-", "{{ logger }}", "two words", "{{ default }}" title="From {{ logger }}"'
+    )
+    [reparsed] = FingerprintingConfig.from_config_string(rule.text).rules
+    assert reparsed.fingerprint == rule.fingerprint
+    assert reparsed.attributes == rule.attributes
 
 
 def test_parsing_errors() -> None:
     with pytest.raises(InvalidFingerprintingConfig):
         FingerprintingConfig.from_config_string("invalid.message:foo -> bar")
+
+
+@pytest.mark.parametrize(
+    ("config", "message"),
+    [
+        (
+            "error.type:A -> a\n# comment\nerror.type:B → b",
+            'Invalid syntax near "→ b" (line 3, column 14): use "->" instead of "→"',
+        ),
+        (
+            "error.type:B => b",
+            'Invalid syntax near "=> b" (line 1, column 14): use "->" instead of "=>"',
+        ),
+        (
+            'message:"a -> b" → b',
+            'Invalid syntax near "→ b" (line 1, column 18): use "->" instead of "→"',
+        ),
+        (
+            "error.type:B b",
+            'Invalid syntax near "error.type:B b" (line 1, column 1): expected "->" between the matchers and the fingerprint',
+        ),
+        (
+            "error.type:B-> b",
+            'Invalid syntax near "-> b" (line 1, column 13): add a space before "->"',
+        ),
+        (
+            "error.type:B -> a{b",
+            'Invalid syntax near "{b" (line 1, column 18)',
+        ),
+    ],
+)
+def test_parsing_error_messages(config: str, message: str) -> None:
+    with pytest.raises(InvalidFingerprintingConfig) as e:
+        FingerprintingConfig.from_config_string(config)
+    assert str(e.value) == message
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        ("error.type:A → a", "error.type:A -> a"),
+        ("error.type:A → a\r\nerror.type:B → b", "error.type:A -> a\r\nerror.type:B -> b"),
+        ('message:"a → b" → b', 'message:"a → b" -> b'),
+        ('message:"a → b" -> b', 'message:"a → b" -> b'),
+        ("error.type:A -> a→b", "error.type:A -> a→b"),
+        ("# a → b", "# a → b"),
+    ],
+)
+def test_normalize_unicode_arrows(config: str, expected: str) -> None:
+    assert normalize_unicode_arrows(config) == expected
 
 
 def test_automatic_argument_splitting() -> None:
@@ -186,25 +250,25 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     assert rules._to_config_structure() == {
         "rules": [
             {
-                "text": 'logger:"test" -> "logger-{{ logger }}"',
+                "text": 'logger:"test" -> "logger-", "{{ logger }}"',
                 "matchers": [["logger", "test"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
             {
-                "text": 'logger:"test" -> "logger-{{ logger }}"',
+                "text": 'logger:"test" -> "logger-", "{{ logger }}"',
                 "matchers": [["logger", "test"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
             {
-                "text": 'logger:"test2" -> "logger-{{ logger }}-{{ level }}"',
+                "text": 'logger:"test2" -> "logger-", "{{ logger }}", "-", "{{ level }}"',
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
                 "attributes": {},
             },
             {
-                "text": 'logger:"test2" -> "logger-{{ logger }}-{{ level }}"',
+                "text": 'logger:"test2" -> "logger-", "{{ logger }}", "-", "{{ level }}"',
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
                 "attributes": {},
@@ -234,7 +298,7 @@ release:foo                                     -> release-foo
                 "attributes": {},
             },
             {
-                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailedfoo"',
+                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailed", "foo"',
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
                 "attributes": {},

@@ -1005,6 +1005,24 @@ class ProjectUpdateTest(APITestCase):
             'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
         ]
 
+    def test_fingerprinting_rules_unicode_arrow(self) -> None:
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            fingerprintingRules='error.type:DatabaseUnavailable → system-down\nmessage:"a → b" -> arrow',
+        )
+        expected = 'error.type:DatabaseUnavailable -> system-down\nmessage:"a → b" -> arrow'
+        assert self.project.get_option("sentry:fingerprinting_rules") == expected
+        assert resp.data["fingerprintingRules"] == expected
+
+    def test_fingerprinting_rules_syntax_error(self) -> None:
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, fingerprintingRules="error.type:DatabaseUnavailable"
+        )
+        assert resp.data["fingerprintingRules"] == [
+            'Invalid syntax near "error.type:DatabaseUnavailable" (line 1, column 1): expected "->" between the matchers and the fingerprint'
+        ]
+
     def test_highlight_tags(self) -> None:
         # Unrelated change returns presets
         resp = self.get_success_response(self.org_slug, self.proj_slug)

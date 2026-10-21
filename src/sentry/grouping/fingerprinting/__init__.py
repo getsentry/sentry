@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Self
@@ -20,6 +21,65 @@ VERSION = 1
 
 CONFIGS_DIR: Path = Path(__file__).with_name("configs")
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
+
+QUOTED_STRING_REGEX = re.compile(r'"(?:[^"\\]|\\.)*"')
+# Arrows people (and LLMs) write when they mean `->`, including an em or en dash followed by `>`
+LOOKALIKE_ARROW_REGEX = re.compile(r"→|⟶|⇒|➔|=>|—>|–>")
+# An unquoted matcher value swallows a `->` written directly after it
+GLUED_ARROW_REGEX = re.compile(r"[^\s-]->")
+
+
+def _blank_quoted_strings(line: str) -> str:
+    """Replace quoted strings with spaces, so arrows inside them are ignored but offsets still line up."""
+    return QUOTED_STRING_REGEX.sub(lambda m: " " * len(m.group()), line)
+
+
+def normalize_unicode_arrows(config: str) -> str:
+    """
+    Replace a `→` written in place of `->` with `->`. Only lines with no ASCII arrow outside quoted
+    strings are changed, so a `→` inside a quoted matcher value is left alone.
+    """
+    lines = config.split("\n")
+    for i, line in enumerate(lines):
+        unquoted_line = _blank_quoted_strings(line)
+        if unquoted_line.lstrip().startswith("#") or "->" in unquoted_line:
+            continue
+        arrow = unquoted_line.find("→")
+        if arrow != -1:
+            lines[i] = line[:arrow] + "->" + line[arrow + 1 :]
+    return "\n".join(lines)
+
+
+def _describe_syntax_error(e: ParseError) -> str:
+    """
+    Build an error message for a config the grammar rejects. When a rule's matchers or arrow are
+    malformed, the parser backtracks to the start of the line, so look for common mistakes on that
+    line and point at them instead.
+    """
+    line_start = e.text.rfind("\n", 0, e.pos) + 1
+    line_end = e.text.find("\n", e.pos)
+    line = e.text[line_start : line_end if line_end != -1 else len(e.text)]
+    unquoted_line = _blank_quoted_strings(line)
+
+    pos = e.pos
+    hint = None
+    if "->" not in unquoted_line:
+        if lookalike := LOOKALIKE_ARROW_REGEX.search(unquoted_line):
+            pos = line_start + lookalike.start()
+            hint = f'use "->" instead of "{lookalike.group()}"'
+        else:
+            hint = 'expected "->" between the matchers and the fingerprint'
+    elif glued := GLUED_ARROW_REGEX.search(unquoted_line):
+        pos = line_start + glued.start() + 1
+        hint = 'add a space before "->"'
+
+    context = line[pos - line_start :].rstrip("\r")
+    if len(context) > 32:
+        context = context[:32] + "..."
+    line_number = e.text.count("\n", 0, pos) + 1
+    column = pos - line_start + 1
+    message = f'Invalid syntax near "{context}" (line {line_number}, column {column})'
+    return f"{message}: {hint}" if hint else message
 
 
 class FingerprintingConfig:
@@ -98,12 +158,7 @@ class FingerprintingConfig:
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
-            context = e.text[e.pos : e.pos + 33]
-            if len(context) == 33:
-                context = context[:-1] + "..."
-            raise InvalidFingerprintingConfig(
-                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
-            )
+            raise InvalidFingerprintingConfig(_describe_syntax_error(e))
 
         rules = FingerprintingVisitor().visit(tree)
 

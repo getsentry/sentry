@@ -49,8 +49,20 @@ class TestErrorDetectorValidator(TestCase):
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("fingerprintingRules") == [
-            ErrorDetail(string="""Invalid syntax near "hello" (line 1, column 1)""", code="invalid")
+            ErrorDetail(
+                string="""Invalid syntax near "hello" (line 1, column 1): expected "->" between the matchers and the fingerprint""",
+                code="invalid",
+            )
         ]
+
+    def test_fingerprinting_rules_unicode_arrow(self) -> None:
+        data = {**self.valid_data, "fingerprinting_rules": "error.type:DatabaseUnavailable → down"}
+        validator = ErrorDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid()
+        assert (
+            validator.validated_data["fingerprinting_rules"]
+            == "error.type:DatabaseUnavailable -> down"
+        )
 
     def test_invalid_resolve_duration(self) -> None:
         data = {**self.valid_data, "resolve_age": "-1"}
