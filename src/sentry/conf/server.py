@@ -801,6 +801,12 @@ VIEWER_CONTEXT_JWT_TTL: int = 900
 # First element is used to sign requests; request is accepted if signed with any element in the list.
 SCM_RPC_SHARED_SECRET: list[str] | None = None
 
+# Verifies the grants Seer signs for the SCM git endpoint. Seer signs with the first element; a grant
+# is accepted if signed with any element in the list. Only Sentry and Seer may hold these, since a
+# holder can mint a git grant for any organization's repositories. Never reuse a secret that signs
+# anything else, such as SEER_API_SHARED_SECRET: whatever holds it could then mint grants too.
+SCM_GIT_GRANT_SECRETS: list[str] | None = None
+
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
