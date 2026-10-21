@@ -525,7 +525,7 @@ If you answered yes to any of these, **use the primitive instead**.
 
 ### Menus and Selects
 
-Use `DropdownMenu` for action menus and `CompactSelect` for choices. In forms, use the form system's `field.Select`. `Menu` from `@sentry/scraps/menu` is an internal presentation primitive; use it directly only when implementing shared controls such as `DropdownMenu` and `CompactSelect`.
+Use `DropdownMenu` for action menus and `CompactSelect` for choices. In forms, use the form system's `field.Select` or `field.CompactSelect`. `Menu` from `@sentry/scraps/menu` is an internal presentation primitive; use it directly only when implementing shared controls such as `DropdownMenu` and `CompactSelect`.
 
 ### Avatars
 
