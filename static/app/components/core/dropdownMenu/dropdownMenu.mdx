@@ -25,8 +25,6 @@ import {IconCopy} from '@sentry/icons/copy';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconDownload} from '@sentry/icons/download';
 import {IconEdit} from '@sentry/icons/edit';
-import {IconFilter} from '@sentry/icons/filter';
-import {IconList} from '@sentry/icons/list';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/dropdownMenu');
@@ -100,8 +98,6 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
 
 Group related items by adding `children` without setting `submenu`. Use `to` for internal links and `externalHref` for external links. Set `submenu` and `children` together to create a nested menu.
 
-The Filter submenu below shows a selected choice. Its checkmark appears beside the leading icon; the other choice reserves the same checkmark space.
-
 <Storybook.Demo>
   <Flex direction="column" gap="md">
     <DropdownMenu
@@ -113,27 +109,6 @@ The Filter submenu below shows a selected choice. Its checkmark appears beside t
           children: [
             {key: 'rename', label: 'Rename', onAction: () => {}},
             {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
-          ],
-        },
-        {
-          key: 'filter',
-          label: 'Filter',
-          submenu: {title: 'Filter options'},
-          children: [
-            {
-              key: 'all',
-              label: 'All issues',
-              isSelected: true,
-              leadingItems: <IconList size="sm" />,
-              onAction: () => {},
-            },
-            {
-              key: 'unresolved',
-              label: 'Unresolved issues',
-              isSelected: false,
-              leadingItems: <IconFilter size="sm" />,
-              onAction: () => {},
-            },
           ],
         },
         {
