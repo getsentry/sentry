@@ -17,6 +17,7 @@ from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     MAX_MARKDOWN_CHARS,
     OrchestrationProjectionSerializer,
+    valid_action_requests,
     validate_text_result,
 )
 from sentry.investigations.models import (
@@ -34,6 +35,12 @@ from sentry.investigations.models import (
     InvestigationOrchestrationStatus,
     InvestigationProject,
     InvestigationStatus,
+)
+from sentry.investigations.services.action_requests import (
+    supersede_action_requests_before,
+    sync_snapshot_action_requests,
+    upsert_action_request,
+    withdraw_action_request,
 )
 from sentry.models.project import Project
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -54,6 +61,8 @@ _NOTEBOOK_EVENT_TYPES = {
     "report_failed",
     "title_delta",
     "metadata_completed",
+    "action_requested",
+    "action_withdrawn",
 }
 
 
@@ -707,6 +716,7 @@ def _clear_report(
         block_ids=list(live_blocks.values_list("id", flat=True)),
     )
     live_blocks.update(deleted_at=now, date_updated=now)
+    supersede_action_requests_before(run.investigation, revision)
     control.update(
         {
             "reportRevision": revision,
@@ -772,10 +782,13 @@ def _apply_snapshot(
     generation = _event_generation(event)
     projection = payload["projection"]
     _set_projection(run, projection, event_generation=generation)
+    revision = payload.get("reportRevision", projection.get("report", {}).get("revision", 0))
     if "blocks" not in payload:
+        # A re-check of the action requests must not touch the notebook.
+        if "actionRequests" in payload and revision == _report_revision(run):
+            _sync_snapshot_action_requests(run, payload["actionRequests"])
         return
     blocks = payload["blocks"]
-    revision = payload.get("reportRevision", projection.get("report", {}).get("revision", 0))
     _clear_report(run, revision, force=True, bump=False, mutate_projection=False)
     seen_keys: set[str] = set()
     for position, raw_block in enumerate(blocks):
@@ -798,7 +811,13 @@ def _apply_snapshot(
         metadata = {**metadata, "reportRevision": revision}
         metadata = _validate_event_payload("metadata_completed", metadata)
         _complete_metadata(run, metadata, bump=False)
+    if "actionRequests" in payload:
+        _sync_snapshot_action_requests(run, payload["actionRequests"])
     _bump_notebook(run, run.investigation)
+
+
+def _sync_snapshot_action_requests(run: InvestigationOrchestrationRun, items: list[object]) -> None:
+    sync_snapshot_action_requests(run, valid_action_requests(items, log=True))
 
 
 def _event_carries_projection(event: InvestigationOrchestrationEvent) -> bool:
@@ -967,6 +986,15 @@ def _apply_event(
                 _bump_notebook(run, investigation)
         elif event.type == "metadata_completed":
             _complete_metadata(run, payload)
+    elif event.type == "action_requested":
+        request = payload["request"]
+        if request is None:
+            return False, "invalid_action_request"
+        if request["reportRevision"] < _report_revision(run):
+            return False, "stale_report_revision"
+        upsert_action_request(run, request)
+    elif event.type == "action_withdrawn":
+        withdraw_action_request(run, payload["key"], payload["reason"])
     elif event.type == "workflow_failed":
         # A delayed failure still fails the run, but it must not replace state
         # that a newer projection has already established.
