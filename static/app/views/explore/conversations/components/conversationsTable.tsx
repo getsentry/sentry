@@ -21,12 +21,12 @@ import {
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/dataGrid';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -39,6 +39,7 @@ import {
   type ConversationUser,
   type useConversations,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
@@ -137,7 +138,7 @@ export function UserNotInstrumentedTooltip() {
   return (
     <Text>
       {tct(
-        'User data not found. Call [code:sentry.setUser()] in your SDK to track users. [link:Learn more]',
+        'User data not found. Call [code:Sentry.setUser()] in your SDK to track users. [link:Learn more]',
         {
           code: <code />,
           link: (
@@ -322,6 +323,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
           isLoading={isFetching}
           error={error}
           data={data}
+          emptyMessage={<TableNoDataPanel />}
           columnOrder={displayedColumns}
           stickyHeader
           // DataGrid has a default bottom margin; drop it so
@@ -416,12 +418,6 @@ function getConversationTitle(
   return plainText.length > 0 ? plainText : null;
 }
 
-function getConversationIdLabel(conversationId: string): string {
-  // UUIDs are long and opaque, so show a short prefix; other id formats
-  // (e.g. `resp_...`, `slack:1234`) are already short enough.
-  return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
-}
-
 function ConversationCell({conversation}: {conversation: Conversation}) {
   // Flattening markdown to plain text renders HTML + parses it, so memoize on
   // the inputs to avoid recomputing on unrelated re-renders (hover, resize).
@@ -449,7 +445,7 @@ function ConversationCell({conversation}: {conversation: Conversation}) {
             />
           )}
           <Text size="sm" variant="muted" ellipsis>
-            {getConversationIdLabel(conversation.conversationId)}
+            {getConversationDisplayId(conversation.conversationId)}
           </Text>
         </Flex>
         <CellDivider orientation="vertical" />

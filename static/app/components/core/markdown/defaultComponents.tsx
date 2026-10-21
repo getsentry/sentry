@@ -1,13 +1,16 @@
 import {Fragment, type ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Quote} from '@sentry/scraps/quote';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
+
+import type {MarkdownTableColumn} from './markdown';
 import {isSafeHref, isInternalHref} from './marked';
 
 export function DefaultParagraph({children}: {children: ReactNode}) {
@@ -160,59 +163,53 @@ export function DefaultLineBreak() {
   return <br />;
 }
 
-export function DefaultTable({children}: {children: ReactNode}) {
+export function DefaultTable({
+  columns,
+  header,
+  rows,
+}: {
+  columns: MarkdownTableColumn[];
+  header: ReactNode[];
+  rows: ReactNode[][];
+}) {
   return (
-    <Container border="primary" radius="md" overflowX="auto">
-      <StyledTable>{children}</StyledTable>
-    </Container>
+    <SimpleTable
+      scrollable
+      columns={columns.map((_, index) => ({
+        key: String(index),
+        width: 'minmax(min-content, auto)',
+      }))}
+      header={
+        <SimpleTable.HeaderRow>
+          {header.map((cell, index) => (
+            <SimpleTable.HeaderCell key={index} align={columns[index]?.align}>
+              {cell}
+            </SimpleTable.HeaderCell>
+          ))}
+        </SimpleTable.HeaderRow>
+      }
+    >
+      {rows.map((row, rowIndex) => (
+        <SimpleTable.Row key={rowIndex}>
+          {row.map((cell, cellIndex) => {
+            const align = columns[cellIndex]?.align ?? 'left';
+            return (
+              <SimpleTable.RowCell
+                key={cellIndex}
+                alignSelf="baseline"
+                justify={COLUMN_ALIGN_JUSTIFY[align]}
+              >
+                <Text align={align} variant="inherit">
+                  {cell}
+                </Text>
+              </SimpleTable.RowCell>
+            );
+          })}
+        </SimpleTable.Row>
+      ))}
+    </SimpleTable>
   );
 }
-
-const StyledTable = styled('table')`
-  min-width: 100%;
-  border-collapse: collapse;
-`;
-
-export const DefaultTableHead = styled('thead')`
-  background: ${p => p.theme.tokens.background.tertiary};
-  border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
-  white-space: nowrap;
-`;
-
-export const DefaultTableBody = styled('tbody')`
-  background: ${p => p.theme.tokens.background.primary};
-  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
-`;
-
-export const DefaultTableRow = styled('tr')`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  vertical-align: baseline;
-
-  &:last-child {
-    border-bottom: 0;
-    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
-  }
-`;
-
-type Align = 'left' | 'center' | 'right';
-export const DefaultTableHeaderCell = styled('th')<{align?: Align}>`
-  padding-inline: ${p => p.theme.space.xl};
-  padding-block: ${p => p.theme.space.sm};
-  text-align: ${p => p.align ?? 'left'};
-
-  &:first-of-type {
-    border-radius: ${p => p.theme.radius.md} 0 0 0;
-  }
-  &:last-of-type {
-    border-radius: 0 ${p => p.theme.radius.md} 0 0;
-  }
-`;
-
-export const DefaultTableCell = styled('td')<{align?: Align}>`
-  padding-inline: ${p => p.theme.space.xl};
-  padding-block: ${p => p.theme.space.lg};
-  text-align: ${p => p.align ?? 'left'};
-`;
 
 /**
  * Fallback for `{% tag %}` tokens that no `components.Tag` renderer handled.

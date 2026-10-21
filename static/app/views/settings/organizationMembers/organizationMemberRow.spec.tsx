@@ -4,6 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {OrganizationMemberRow} from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', () => {
@@ -75,7 +76,8 @@ describe('OrganizationMemberRow', () => {
             ...member,
             user: UserFixture({...member.user, has2fa: true}),
           })}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       expect(screen.getByText('2FA Enabled')).toBeInTheDocument();
@@ -90,7 +92,8 @@ describe('OrganizationMemberRow', () => {
             ...member,
             user: UserFixture({...member.user, has2fa: false}),
           }}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       expect(screen.getByText('2FA Not Enabled')).toBeInTheDocument();
@@ -105,14 +108,16 @@ describe('OrganizationMemberRow', () => {
     };
 
     it('has "Invited" status, no "Resend Invite"', () => {
-      render(<OrganizationMemberRow {...props} />);
+      render(<OrganizationMemberRow {...props} />, {additionalWrapper: SimpleTable});
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
       expect(resendButton()).toBeDisabled();
     });
 
     it('has "Resend Invite" button if `canAddMembers` is true', () => {
-      render(<OrganizationMemberRow {...props} canAddMembers />);
+      render(<OrganizationMemberRow {...props} canAddMembers />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
       expect(resendButton()).toBeEnabled();
@@ -122,7 +127,9 @@ describe('OrganizationMemberRow', () => {
       const org = OrganizationFixture({
         access: ['member:invite'],
       });
-      render(<OrganizationMemberRow {...props} organization={org} />);
+      render(<OrganizationMemberRow {...props} organization={org} />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
       expect(resendButton()).toBeEnabled();
@@ -137,7 +144,8 @@ describe('OrganizationMemberRow', () => {
           {...props}
           organization={org}
           member={{...member, pending: true, inviterName: 'Other User'}}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
@@ -145,13 +153,17 @@ describe('OrganizationMemberRow', () => {
     });
 
     it('has the right inviting states', () => {
-      render(<OrganizationMemberRow {...props} canAddMembers />);
+      render(<OrganizationMemberRow {...props} canAddMembers />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(resendButton()).toBeInTheDocument();
     });
 
     it('has loading state', () => {
-      render(<OrganizationMemberRow {...props} canAddMembers status="loading" />);
+      render(<OrganizationMemberRow {...props} canAddMembers status="loading" />, {
+        additionalWrapper: SimpleTable,
+      });
 
       // Should have loader
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -161,7 +173,9 @@ describe('OrganizationMemberRow', () => {
     });
 
     it('has success status', () => {
-      render(<OrganizationMemberRow {...props} canAddMembers status="success" />);
+      render(<OrganizationMemberRow {...props} canAddMembers status="success" />, {
+        additionalWrapper: SimpleTable,
+      });
 
       // Should not have loader
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -175,7 +189,9 @@ describe('OrganizationMemberRow', () => {
       const org = OrganizationFixture({
         access: ['member:invite'],
       });
-      render(<OrganizationMemberRow {...props} organization={org} />);
+      render(<OrganizationMemberRow {...props} organization={org} />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(removeButton()).toBeEnabled();
     });
@@ -189,7 +205,8 @@ describe('OrganizationMemberRow', () => {
           {...props}
           organization={org}
           member={{...member, pending: true, inviterName: 'Other User'}}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       expect(removeButton()).toHaveAttribute('aria-disabled', 'true');
@@ -203,7 +220,8 @@ describe('OrganizationMemberRow', () => {
           {...defaultProps}
           canAddMembers
           member={{...member, pending: true, expired: true}}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Expired Invite');
@@ -224,7 +242,8 @@ describe('OrganizationMemberRow', () => {
           {...props}
           canAddMembers
           member={{...member, pending: true}}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
@@ -232,14 +251,16 @@ describe('OrganizationMemberRow', () => {
     });
 
     it('shows "missing SSO link" message if user is registered and needs link', () => {
-      render(<OrganizationMemberRow {...props} />);
+      render(<OrganizationMemberRow {...props} />, {additionalWrapper: SimpleTable});
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Member');
       expect(resendSsoButton()).toBeDisabled();
     });
 
     it('has "Resend SSO link" button only if `canAddMembers` is true and no link', () => {
-      render(<OrganizationMemberRow {...props} canAddMembers />);
+      render(<OrganizationMemberRow {...props} canAddMembers />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(resendSsoButton()).toBeEnabled();
     });
@@ -260,7 +281,8 @@ describe('OrganizationMemberRow', () => {
             },
             user: UserFixture({...member.user, has2fa: false}),
           }}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       expect(screen.getByText('2FA Not Enabled')).toBeInTheDocument();
@@ -275,14 +297,18 @@ describe('OrganizationMemberRow', () => {
     };
 
     it('has button to leave organization and no button to remove', () => {
-      render(<OrganizationMemberRow {...props} memberCanLeave />);
+      render(<OrganizationMemberRow {...props} memberCanLeave />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(leaveButton()).toBeInTheDocument();
       expect(removeButton()).not.toBeInTheDocument();
     });
 
     it('has disabled button to leave organization and no button to remove when member can not leave', () => {
-      render(<OrganizationMemberRow {...props} memberCanLeave={false} />);
+      render(<OrganizationMemberRow {...props} memberCanLeave={false} />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(leaveButton()).toHaveAttribute('aria-disabled', 'true');
       expect(removeButton()).not.toBeInTheDocument();
@@ -301,14 +327,17 @@ describe('OrganizationMemberRow', () => {
         <OrganizationMemberRow
           {...props}
           memberCanLeave={!member.flags['idp:provisioned']}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       expect(leaveButton()).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('cannot remove member if member is idp:provisioned', () => {
-      render(<OrganizationMemberRow {...defaultProps} />);
+      render(<OrganizationMemberRow {...defaultProps} />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(removeButton()).toHaveAttribute('aria-disabled', 'true');
     });
@@ -320,7 +349,9 @@ describe('OrganizationMemberRow', () => {
     };
 
     it('does not have Leave button', () => {
-      render(<OrganizationMemberRow {...props} memberCanLeave />);
+      render(<OrganizationMemberRow {...props} memberCanLeave />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(leaveButton()).not.toBeInTheDocument();
     });
@@ -328,7 +359,7 @@ describe('OrganizationMemberRow', () => {
     it('has Remove disabled button when `canRemoveMembers` is false', () => {
       member.flags['idp:provisioned'] = false;
 
-      render(<OrganizationMemberRow {...props} />);
+      render(<OrganizationMemberRow {...props} />, {additionalWrapper: SimpleTable});
 
       expect(removeButton()).toHaveAttribute('aria-disabled', 'true');
     });
@@ -336,7 +367,9 @@ describe('OrganizationMemberRow', () => {
     it('has Remove button when `canRemoveMembers` is true', () => {
       member.flags['idp:provisioned'] = false;
 
-      render(<OrganizationMemberRow {...props} canRemoveMembers />);
+      render(<OrganizationMemberRow {...props} canRemoveMembers />, {
+        additionalWrapper: SimpleTable,
+      });
 
       expect(removeButton()).toBeEnabled();
     });
@@ -377,7 +410,8 @@ describe('OrganizationMemberRow', () => {
             onRemove: () => {},
             onLeave: () => {},
           }}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       // Should render without crashing
@@ -418,7 +452,8 @@ describe('OrganizationMemberRow', () => {
             onRemove: () => {},
             onLeave: () => {},
           }}
-        />
+        />,
+        {additionalWrapper: SimpleTable}
       );
 
       // Component should render without crashing when user is null

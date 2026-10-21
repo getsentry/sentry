@@ -12,10 +12,11 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -53,6 +54,7 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSearch,
@@ -110,6 +112,7 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
 
   return (
     <Fragment>
+      <DroppedDataLLMContext dataset={DiscoverDatasets.OURLOGS} />
       {visualizes.map((visualize, index) => {
         return (
           <Graph
@@ -360,6 +363,7 @@ function Graph({
 function ContextMenu({interval, visualize}: {interval: string; visualize: Visualize}) {
   const location = useLocation();
   const organization = useOrganization();
+  const hasTransformations = useQueryParamsHasTransformations();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
@@ -489,6 +493,12 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
+          disabled={hasTransformations}
+          tooltipProps={
+            hasTransformations
+              ? {title: t('Queries with transformations cannot be saved yet.')}
+              : undefined
+          }
         />
       )}
       position="bottom-end"

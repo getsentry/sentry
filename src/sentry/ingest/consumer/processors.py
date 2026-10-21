@@ -9,6 +9,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 from usageaccountant import UsageUnit
 
 from sentry import features, nodestore
@@ -23,11 +24,8 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services import eventstore
+from sentry.services.eventstore import processing
 from sentry.services.eventstore.models import Event
-from sentry.services.eventstore.processing import (
-    event_processing_store,
-    transaction_processing_store,
-)
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.usage_accountant import record
@@ -37,7 +35,6 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.snuba import RateLimitExceeded
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +47,7 @@ class Retriable(Exception):
     pass
 
 
-def trace_func(**span_kwargs):
+def trace_func(name: str):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
@@ -63,12 +60,20 @@ def trace_func(**span_kwargs):
                     default=getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0),
                 )
             )
+            traces.new_trace()
             # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
-            span_kwargs.setdefault(
-                "custom_sampling_context",
-                {"sample_rate": sample_rate},
-            )
-            with start_span(transaction=True, **span_kwargs):
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            prev_sampling_context = propagation_context.custom_sampling_context
+            Scope.set_custom_sampling_context({"sample_rate": sample_rate})
+            try:
+                span = traces.start_span(name=name, parent_span=None)
+            finally:
+                propagation_context = (
+                    sentry_sdk.get_current_scope().get_active_propagation_context()
+                )
+                propagation_context.custom_sampling_context = prev_sampling_context
+
+            with span:
                 return f(*args, **kwargs)
 
         return inner
@@ -159,9 +164,9 @@ def process_event(
     # We also need to check "type" as transactions are also sent to ingest-attachments
     # along with other event types if they have attachments.
     if consumer_type == ConsumerType.Transactions or data.get("type") == "transaction":
-        processing_store = transaction_processing_store
+        processing_store = processing.transaction_processing_store
     else:
-        processing_store = event_processing_store
+        processing_store = processing.event_processing_store
 
     sentry_sdk.set_extra("event_type", data.get("type"))
     sentry_sdk.set_attribute("event_type", data.get("type"))

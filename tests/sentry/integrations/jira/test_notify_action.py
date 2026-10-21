@@ -5,10 +5,12 @@ from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
-from sentry.notifications.types import NotificationActionContext
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import (
+    TEST_ISSUE_OCCURRENCE,
+    create_notification_action_context,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -48,7 +50,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "issue_type": "Bug",
                 "fixVersions": "[10000]",
             },
-            context=NotificationActionContext.from_legacy_rule(rule),
+            context=create_notification_action_context(rule),
         )
         self.jira_rule.rule = self.create_project_rule(name="test rule")
 

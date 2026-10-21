@@ -9,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -88,6 +89,7 @@ import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
+  useQueryParamsHasTransformations,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsSearch,
@@ -139,6 +141,7 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
+  const hasTransformations = useQueryParamsHasTransformations();
   const saveAsItems = useSaveAsItems({
     visualizes,
     groupBys,
@@ -225,20 +228,25 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
                   trigger={triggerProps => (
                     <Container width={{zero: '100%', sm: 'auto'}}>
                       {buttonProps => (
-                        <Button
+                        <OverlayTrigger.Button
+                          showChevron={false}
                           {...buttonProps}
                           {...triggerProps}
                           variant="primary"
                           aria-label={t('Save as')}
-                          onClick={e => {
-                            e.stopPropagation();
-                            e.preventDefault();
-
-                            triggerProps.onClick?.(e);
-                          }}
+                          disabled={hasTransformations}
+                          tooltipProps={
+                            hasTransformations
+                              ? {
+                                  title: t(
+                                    'Queries with transformations cannot be saved yet.'
+                                  ),
+                                }
+                              : undefined
+                          }
                         >
                           {t('Save as')}
-                        </Button>
+                        </OverlayTrigger.Button>
                       )}
                     </Container>
                   )}

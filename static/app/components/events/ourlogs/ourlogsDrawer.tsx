@@ -128,7 +128,7 @@ export function OurlogsDrawer({
           </Flex>
         </EventNavigator>
         <EventDrawerBody>
-          <Stack position="relative">
+          <Stack position="relative" flex="1" minHeight="0">
             <LogsInfiniteTable
               embedded
               embeddedOptions={embeddedOptions}

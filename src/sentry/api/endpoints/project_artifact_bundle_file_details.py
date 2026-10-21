@@ -3,6 +3,7 @@ import binascii
 import posixpath
 
 import sentry_sdk
+from django.core.exceptions import ValidationError
 from django.http.response import FileResponse, HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -92,7 +93,7 @@ class ProjectArtifactBundleFileDetailsEndpoint(
                 bundle_id=bundle_id,
                 projectartifactbundle__project_id=project.id,
             )[0]
-        except IndexError:
+        except (IndexError, ValidationError):
             return Response(
                 {
                     "error": f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"

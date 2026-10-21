@@ -45,6 +45,7 @@ from sentry.types.activity import ActivityType
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.cache import cache
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -219,8 +220,19 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
 
                 if acting_user:
                     if self_assign_issue == "1" and not group.assignee_set.exists():
-                        with action_context_scope(
-                            source=ActionSource.SYSTEM, actor=GroupActionActor.user(acting_user.id)
+                        with (
+                            viewer_context_scope(
+                                ViewerContext(
+                                    organization_id=group.project.organization_id,
+                                    project_id=group.project_id,
+                                    user_id=acting_user.id,
+                                    actor_type=ActorType.USER,
+                                )
+                            ),
+                            action_context_scope(
+                                source=ActionSource.SYSTEM,
+                                actor=GroupActionActor.user(acting_user.id),
+                            ),
                         ):
                             GroupAssignee.objects.assign(
                                 group=group, assigned_to=acting_user, acting_user=acting_user
@@ -315,8 +327,19 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                     linked_id=instance.id,
                 )
                 if acting_user:
-                    with action_context_scope(
-                        source=ActionSource.SYSTEM, actor=GroupActionActor.user(acting_user.id)
+                    with (
+                        viewer_context_scope(
+                            ViewerContext(
+                                organization_id=group.project.organization_id,
+                                project_id=group.project_id,
+                                user_id=acting_user.id,
+                                actor_type=ActorType.USER,
+                            )
+                        ),
+                        action_context_scope(
+                            source=ActionSource.SYSTEM,
+                            actor=GroupActionActor.user(acting_user.id),
+                        ),
                     ):
                         GroupAssignee.objects.assign(
                             group=group, assigned_to=acting_user, acting_user=acting_user

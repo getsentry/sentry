@@ -34,6 +34,7 @@ Only `title` is required. The grid template is built from whichever other slots 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
     title={{
+      type: 'text',
       label: 'Replay user',
       value: 'anonymous@example.com',
       tags: [
@@ -79,6 +80,7 @@ Only `title` is required. The grid template is built from whichever other slots 
 ```jsx
 <EntityHeader
   title={{
+    type: 'text',
     label: 'Replay user',
     value: 'anonymous@example.com',
     tags: [
@@ -144,7 +146,7 @@ A declared slot holds its space before its contents arrive. Passing `metadata` r
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
     isLoading
-    title={{label: 'Replay user', value: 'anonymous@example.com'}}
+    title={{type: 'text', label: 'Replay user', value: 'anonymous@example.com'}}
     stats={{
       label: 'Replay stats',
       items: [
@@ -170,7 +172,7 @@ A declared slot holds its space before its contents arrive. Passing `metadata` r
 ```jsx
 <EntityHeader
   isLoading
-  title={{label: 'Replay user', value: 'anonymous@example.com'}}
+  title={{type: 'text', label: 'Replay user', value: 'anonymous@example.com'}}
   stats={{
     label: 'Replay stats',
     items: [
@@ -208,8 +210,42 @@ The header sets `aria-busy` while any slot is loading. Note that this is a state
 It's a requirement for titles to have a `label` and a `value`. The `value` is what gets rendered on the screen and the `label` is used to contextualise that value to users who depend on screen readers.
 
 ```jsx
-title={{label: t('Replay user'), value: replay.user.display_name}}
+title={{type: 'text', label: t('Replay user'), value: replay.user.display_name}}
 ```
+
+### Types
+
+A title declares whether it navigates, the same way a stat and a metadata item do. `link` points the entity's name at the list it came from, filtered to it.
+
+<Storybook.Demo resizable direction="column" align="stretch" gap="xl">
+  <EntityHeader title={{type: 'text', label: 'Issue type', value: 'ValueError'}} />
+  <EntityHeader
+    title={{
+      type: 'link',
+      label: 'Replay user',
+      value: 'anonymous@example.com',
+      to: '/replays/?query=user.email%3A%22anonymous%40example.com%22',
+      leadingGraphic: {
+        type: 'user',
+        user: {id: '1', name: 'Alice Chen', email: 'anonymous@example.com'},
+      },
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+{type: 'text', label: t('Issue type'), value: issue.type}
+{type: 'link', label: t('Replay user'), value: replay.user.display_name, to: replaysIndexUrl}
+{type: 'link', label: t('Branch'), value: build.headRef, externalHref: branchUrl}
+```
+
+A destination outside the product takes `externalHref` in place of `to`, such as the branch a build came from on GitHub. The two are mutually exclusive, and the choice is about where the destination lives rather than how it looks: `to` routes inside the app, `externalHref` renders an `ExternalLink` and opens in a new tab. Both draw identically.
+
+A link title is accent-coloured and carries no underline, the same treatment a stat or metadata link gets — one link treatment across the header. Colour is doing the work here, so reserve `link` for a destination the title genuinely implies; a title that merely _could_ link is better left as text with the destination offered elsewhere.
+
+Note where the link sits in each of the three. A stat's **label** navigates, because a link named by a bare count says nothing. A metadata item's **value** navigates, because the value is where the user is going. A title navigates **whole** — it is the entity, so there is no half to choose between.
+
+The title is still an `h2`, now with a link inside it, which is how most of the web marks up an article title. A screen reader announces both — "Replay user, anonymous@example.com, heading level 2, link" — and the link carries the same name as the heading, so a links list reads that rather than a bare address.
 
 ### Leading graphic
 
@@ -218,6 +254,7 @@ title={{label: t('Replay user'), value: replay.user.display_name}}
 <Storybook.Demo resizable direction="column" align="stretch" gap="xl">
   <EntityHeader
     title={{
+      type: 'text',
       label: 'Replay user',
       value: 'alice@example.com',
       leadingGraphic: {
@@ -228,6 +265,7 @@ title={{label: t('Replay user'), value: replay.user.display_name}}
   />
   <EntityHeader
     title={{
+      type: 'text',
       label: 'Trace',
       value: 'GET /api/0/organizations/',
       leadingGraphic: {
@@ -244,6 +282,7 @@ title={{label: t('Replay user'), value: replay.user.display_name}}
   />
   <EntityHeader
     title={{
+      type: 'text',
       label: 'Release',
       value: 'javascript-sdk @ 8.42.0',
       leadingGraphic: {type: 'platform', platform: 'javascript'},
@@ -325,7 +364,7 @@ Colour says it navigates; an underline says it explains. A link label is accent-
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
-    title={{label: 'Issue type', value: 'ValueError'}}
+    title={{type: 'text', label: 'Issue type', value: 'ValueError'}}
     stats={{
       label: 'Issue stats',
       items: [
@@ -350,7 +389,7 @@ Colour says it navigates; an underline says it explains. A link label is accent-
 
 ```jsx
 <EntityHeader
-  title={{label: 'Issue type', value: 'ValueError'}}
+  title={{type: 'text', label: 'Issue type', value: 'ValueError'}}
   stats={{
     label: 'Issue stats',
     items: [
@@ -425,6 +464,17 @@ A value can navigate. `type: 'link'` renders it as one, named from the key and t
 }
 ```
 
+As on the title, a value pointing outside the product, such as a commit or pull request on GitHub, takes `externalHref` rather than `to` and renders an `ExternalLink` that opens in a new tab.
+
+```jsx
+{
+  label: t('Commit'),
+  type: 'link',
+  value: shortSha,
+  externalHref: commitUrl,
+}
+```
+
 `tooltip` adds an explanation on hover against the value, with an underline to signal it.
 
 ### Leading graphic
@@ -435,7 +485,7 @@ The box is a fixed 16px and holds its width through loading, so the row does not
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
-    title={{label: 'Issue type', value: 'ValueError'}}
+    title={{type: 'text', label: 'Issue type', value: 'ValueError'}}
     metadata={{
       label: 'Issue properties',
       items: [
@@ -492,7 +542,7 @@ A description list would tie each label to its value structurally, which sounds 
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
-    title={{label: 'Issue type', value: 'ValueError'}}
+    title={{type: 'text', label: 'Issue type', value: 'ValueError'}}
     metadata={{
       label: 'Issue properties',
       items: [
@@ -538,7 +588,7 @@ A description list would tie each label to its value structurally, which sounds 
 
 ```jsx
 <EntityHeader
-  title={{label: 'Issue type', value: 'ValueError'}}
+  title={{type: 'text', label: 'Issue type', value: 'ValueError'}}
   metadata={{
     label: 'Issue properties',
     items: [

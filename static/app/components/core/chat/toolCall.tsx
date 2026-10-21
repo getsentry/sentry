@@ -276,7 +276,13 @@ function OutputBox({output}: {output: ReactNode}) {
   );
 }
 
-function getStatusLabel(
+/**
+ * The accessible label for a single call's status glyph. `ToolCallIndicator`'s
+ * own defaults describe a whole group of calls (and read `pending` as waiting
+ * for approval), so a consumer drawing one call's glyph outside a `ToolCall`
+ * passes this to keep the two in step.
+ */
+export function getToolCallStatusLabel(
   status: ToolCallStatus,
   t: (text: string) => string
 ): string | undefined {
@@ -332,7 +338,10 @@ export function ToolCall({
     <Stack gap="xs" flex={1} minWidth={0} width="100%" containerType="inline-size">
       <Flex gap="md" align="start" width="100%">
         <GlyphSlot>
-          <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
+          <ToolCallIndicator
+            status={status}
+            aria-label={getToolCallStatusLabel(status, t)}
+          />
         </GlyphSlot>
         <TitleGrid>
           <TitleFlow>

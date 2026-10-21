@@ -63,6 +63,9 @@ MODEL_USAGE_COLUMNS = [
     "gen_ai.response.model",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.input_tokens) as input_cost",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.output_tokens) as output_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.cache_read.input_tokens) as cache_read_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.cache_creation.input_tokens) as cache_write_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.reasoning.output_tokens) as reasoning_cost",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_read.input_tokens) as cache_read_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_creation.input_tokens) as cache_write_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.reasoning.output_tokens) as reasoning_tokens",
@@ -163,6 +166,9 @@ class AIConversationModelUsage(TypedDict):
     reasoningTokens: int
     inputCost: float
     outputCost: float
+    cacheReadCost: float
+    cacheWriteCost: float
+    reasoningCost: float
     totalCost: float
 
 
@@ -171,13 +177,16 @@ class AIConversationStats(AIConversationAggregates):
     cacheWriteTokens: int
     errorToolNames: list[str]
     reasoningTokens: int
+    cacheReadCost: float
+    cacheWriteCost: float
+    reasoningCost: float
     usageByModel: list[AIConversationModelUsage]
 
 
 class AIConversationQueryResult(TypedDict):
     # GenericOffsetPaginator requires the paginated list under this key.
     data: list[SpanRow]
-    stats: AIConversationStats
+    stats: AIConversationStats | None
 
 
 class AIConversationDetailsResponse(TypedDict):
@@ -188,7 +197,7 @@ class AIConversationDetailsResponse(TypedDict):
     projects: list[ConversationProject]
     webUrl: str
     spans: list[dict[str, Any]]
-    stats: AIConversationStats
+    stats: AIConversationStats | None
 
 
 def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
@@ -239,6 +248,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
                 "reasoningTokens": 0,
                 "inputCost": 0,
                 "outputCost": 0,
+                "cacheReadCost": 0.0,
+                "cacheWriteCost": 0.0,
+                "reasoningCost": 0.0,
                 "totalCost": 0,
             },
         )
@@ -251,6 +263,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         usage["reasoningTokens"] += int(row.get("reasoning_tokens") or 0)
         usage["inputCost"] += float(row.get("input_cost") or 0)
         usage["outputCost"] += float(row.get("output_cost") or 0)
+        usage["cacheReadCost"] += float(row.get("cache_read_cost") or 0)
+        usage["cacheWriteCost"] += float(row.get("cache_write_cost") or 0)
+        usage["reasoningCost"] += float(row.get("reasoning_cost") or 0)
         usage["totalCost"] += model_pair_stats["totalCost"]
 
     conversation_stats["toolNames"] = sorted(
@@ -266,6 +281,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         "cacheWriteTokens": sum(usage["cacheWriteTokens"] for usage in sorted_usage),
         "errorToolNames": sorted(error_tool_names),
         "reasoningTokens": sum(usage["reasoningTokens"] for usage in sorted_usage),
+        "cacheReadCost": sum(usage["cacheReadCost"] for usage in sorted_usage),
+        "cacheWriteCost": sum(usage["cacheWriteCost"] for usage in sorted_usage),
+        "reasoningCost": sum(usage["reasoningCost"] for usage in sorted_usage),
         "usageByModel": sorted_usage,
     }
 
@@ -309,9 +327,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         Message, tool, and response attributes contain their recorded string values.
         `stats.errors` counts spans whose status is not `ok`, `cancelled`, or `unknown`.
         `stats.errorToolNames` lists tools used by those spans.
-        `stats.inputTokens` includes cache-read and cache-write tokens.
-        Without an explicit range, Sentry widens the search across available retention.
-        A missing conversation returns an empty `spans` list.
+        `stats.inputTokens` includes cache-read and cache-write tokens. In `stats.usageByModel`,
+        `inputCost` includes cache-read and cache-write costs, and `outputCost` includes
+        reasoning cost. These cost breakdowns are not added to `totalCost`.
+        Stats are returned on the first page only. Without an explicit range, Sentry widens
+        the search across available retention. A missing conversation returns an empty `spans` list.
         """
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -385,11 +405,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         now: datetime,
         conversation_id: str,
     ) -> SnubaParams:
-        """Probe progressively wider windows to find which contains the conversation."""
+        """Probe progressively older, non-overlapping windows for the conversation."""
         candidates = self._build_widening_params(base_params, stats_period, now)
-        for params in candidates:
-            if self._conversation_exists(params, conversation_id):
-                return params
+        probe_end = now
+        for candidate in candidates:
+            assert candidate.start is not None
+            probe_params = replace(candidate, end=probe_end)
+            if self._conversation_exists(probe_params, conversation_id):
+                return candidate
+            probe_end = candidate.start
         return candidates[-1]
 
     def _build_widening_params(
@@ -550,6 +574,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             if (key := self._span_key(row)) in requested_keys
         }
 
+    @traces.trace
     def _repair_parent_links(
         self, spans: list[SpanRow], snuba_params: SnubaParams, conversation_id: str
     ) -> None:
@@ -642,19 +667,21 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 fields_acl=FieldsACL(functions={"collect_unique_if"}),
             ),
         )
-        results = Spans.run_bulk_table_queries(
-            [
-                TableQuery(
-                    name="spans",
-                    query_string=query_string,
-                    selected_columns=AI_CONVERSATION_ATTRIBUTES,
-                    orderby=["precise.start_ts"],
-                    offset=offset,
-                    limit=limit,
-                    referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-                    sampling_mode="HIGHEST_ACCURACY",
-                    resolver=resolver,
-                ),
+        queries = [
+            TableQuery(
+                name="spans",
+                query_string=query_string,
+                selected_columns=AI_CONVERSATION_ATTRIBUTES,
+                orderby=["precise.start_ts"],
+                offset=offset,
+                limit=limit,
+                referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
+                sampling_mode="HIGHEST_ACCURACY",
+                resolver=resolver,
+            )
+        ]
+        if offset == 0:
+            queries.append(
                 TableQuery(
                     name="aggregates",
                     query_string=query_string,
@@ -671,15 +698,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
                     sampling_mode="HIGHEST_ACCURACY",
                     resolver=resolver,
-                ),
-            ],
-            snuba_params.debug,
-        )
-        aggregate_rows = results["aggregates"].get("data", [])
-        return {
-            "data": results["spans"].get("data", []),
-            "stats": _parse_grouped_stats(aggregate_rows),
-        }
+                )
+            )
+
+        results = Spans.run_bulk_table_queries(queries, snuba_params.debug)
+        aggregate_result = results.get("aggregates")
+        stats: AIConversationStats | None = None
+        if aggregate_result is not None:
+            stats = _parse_grouped_stats(aggregate_result.get("data", []))
+        return {"data": results["spans"].get("data", []), "stats": stats}
 
     @traces.trace
     def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:
