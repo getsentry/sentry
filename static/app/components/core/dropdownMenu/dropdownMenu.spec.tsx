@@ -5,6 +5,29 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 describe('DropdownMenu', () => {
+  it.each([true, false])(
+    'keeps leading content when isSelected is %s',
+    async isSelected => {
+      render(
+        <DropdownMenu
+          triggerLabel="Actions"
+          items={[
+            {
+              key: 'action',
+              label: 'Action',
+              isSelected,
+              leadingItems: <span>Leading content</span>,
+            },
+          ]}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+
+      expect(screen.getByText('Leading content')).toBeInTheDocument();
+    }
+  );
+
   it.each(['click', '{Enter}', ' '])(
     'opens the menu with %s without activating the row',
     async activation => {
