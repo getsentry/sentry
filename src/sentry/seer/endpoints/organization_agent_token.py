@@ -28,7 +28,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
 from sentry.seer.endpoints.agent_request import AgentTokenRequestData, AgentTokenRequestSerializer
-from sentry.viewer_context import get_viewer_context
+from sentry.viewer_context import ActorType, get_viewer_context
 
 
 class AgentTokenResponseSerializer(serializers.Serializer):
@@ -106,10 +106,19 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         )
 
         viewer = get_viewer_context()
+        if viewer is not None:
+            actor = viewer.actor
+            viewer_user_id = (
+                actor.actor_id if actor.type == ActorType.USER else actor.delegated_user_id
+            )
+            viewer_superuser = actor.superuser
+        else:
+            viewer_user_id = None
+            viewer_superuser = None
         superuser = (
-            viewer.actor.superuser
+            viewer_superuser
             if viewer is not None
-            and viewer.user_id == user_id
+            and viewer_user_id == user_id
             and viewer.organization_id == organization.id
             else None
         )

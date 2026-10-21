@@ -29,87 +29,24 @@ class TestActorType:
 
 class TestViewerContext:
     @pytest.mark.parametrize(
-        ("kwargs", "actor"),
+        ("actor", "wire_actor"),
         [
-            ({}, Actor(type=ActorType.UNKNOWN)),
-            ({"actor_type": ActorType.SYSTEM}, Actor(type=ActorType.SYSTEM)),
-            (
-                {"user_id": 7, "actor_type": ActorType.USER},
-                Actor(type=ActorType.USER, actor_id=7),
-            ),
-            (
-                {"user_id": 7, "actor_type": ActorType.AGENT},
-                Actor(type=ActorType.AGENT, delegated_user_id=7),
-            ),
-        ],
-    )
-    def test_getsentry_legacy_constructor(self, kwargs, actor):
-        assert ViewerContext(**kwargs).actor == actor
-
-    @pytest.mark.parametrize(
-        "actor",
-        [
-            Actor(type=ActorType.USER, actor_id=7),
-            Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7),
-            Actor(type=ActorType.AGENT, actor_id=90, delegated_user_id=7),
-        ],
-    )
-    def test_getsentry_legacy_replace_preserves_actor(self, actor):
-        ctx = ViewerContext(actor=actor, organization_id=1, token=object())
-        changed = dataclasses.replace(ctx, organization_id=2, token=ctx.token)
-        assert changed == ViewerContext(actor=actor, organization_id=2)
-        assert changed.token is None
-        assert ViewerContext.deserialize(changed.serialize(version=2)) == changed
-
-    @pytest.mark.parametrize(
-        ("actor", "wire_actor", "user_id"),
-        [
-            (Actor(type=ActorType.USER, actor_id=7), {"type": "user", "id": 7}, 7),
+            (Actor(type=ActorType.USER, actor_id=7), {"type": "user", "id": 7}),
             (
                 Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7),
                 {"type": "service_account", "id": 7},
-                None,
             ),
             (
                 Actor(type=ActorType.AGENT, actor_id=90, delegated_user_id=7),
                 {"type": "agent", "id": 90, "delegated_user_id": 7},
-                7,
             ),
         ],
     )
-    def test_actor_roundtrip(self, actor, wire_actor, user_id):
+    def test_actor_roundtrip(self, actor, wire_actor):
         ctx = ViewerContext(actor=actor, organization_id=42)
         wire = {"version": 2, "actor": wire_actor, "organization_id": 42}
-        assert ctx.serialize(version=2) == wire
+        assert ctx.serialize() == wire
         assert ViewerContext.deserialize(wire) == ctx
-        assert ctx.user_id == user_id
-
-    @pytest.mark.parametrize(
-        ("wire", "actor"),
-        [
-            ({"actor_type": "user", "user_id": 7}, Actor(type=ActorType.USER, actor_id=7)),
-            (
-                {"actor_type": "agent", "user_id": 7},
-                Actor(type=ActorType.AGENT, delegated_user_id=7),
-            ),
-            ({"actor_type": "system"}, Actor(type=ActorType.SYSTEM)),
-        ],
-    )
-    def test_legacy_wire_roundtrip(self, wire, actor):
-        ctx = ViewerContext.deserialize(wire)
-        assert ctx.actor == actor
-        assert ctx.serialize(version=1) == wire
-
-    @pytest.mark.parametrize(
-        "actor",
-        [
-            Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7),
-            Actor(type=ActorType.AGENT, actor_id=90, delegated_user_id=7),
-        ],
-    )
-    def test_legacy_serialization_cannot_drop_actor_identity(self, actor):
-        with pytest.raises(ValueError, match="V1 cannot represent this actor's identity"):
-            ViewerContext(actor=actor).serialize(version=1)
 
     @pytest.mark.parametrize(
         "superuser",
@@ -122,17 +59,22 @@ class TestViewerContext:
     )
     def test_invalid_superuser_claim(self, superuser):
         with pytest.raises(ValueError):
-            ViewerContext.deserialize({"superuser": superuser})
+            ViewerContext.deserialize(
+                {
+                    "version": 2,
+                    "organization_id": 42,
+                    "actor": {"type": "user", "id": 7, "superuser": superuser},
+                }
+            )
 
-    @pytest.mark.parametrize("version", [1, 2])
-    def test_superuser_access_roundtrip_and_org_change(self, version):
+    def test_superuser_access_roundtrip_and_org_change(self):
         ctx = ViewerContext(
             actor=Actor(
                 type=ActorType.USER, actor_id=42, superuser=SuperuserAccess(expires_at=1234567890)
             ),
             organization_id=10,
         )
-        assert ViewerContext.deserialize(ctx.serialize(version=version)) == ctx
+        assert ViewerContext.deserialize(ctx.serialize()) == ctx
         assert "1234567890" not in repr(ctx)
         with viewer_context_scope(ctx):
             set_viewer_context_organization(10)
@@ -145,19 +87,19 @@ class TestViewerContext:
     def test_defaults(self):
         ctx = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
         assert ctx.organization_id is None
-        assert ctx.user_id is None
+        assert ctx.actor.actor_id is None
         assert ctx.actor.type is ActorType.UNKNOWN
 
     def test_frozen(self):
         ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
         with pytest.raises(dataclasses.FrozenInstanceError):
-            ctx.user_id = 2  # type: ignore[misc]
+            ctx.actor.actor_id = 2  # type: ignore[misc]
 
     def test_construction(self):
         ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=42), organization_id=10)
         assert ctx.organization_id == 10
-        assert ctx.user_id == 42
-        assert ctx.actor == Actor(type=ActorType.USER, actor_id=42)
+        assert ctx.actor.actor_id == 42
+        assert ctx.actor.type is ActorType.USER
 
 
 class TestViewerContextScope:
@@ -249,7 +191,7 @@ class TestViewerContextScope:
 
             assert updated is not None
             assert updated.organization_id == 42
-            assert updated.user_id == ctx.user_id
+            assert updated.actor.actor_id == ctx.actor.actor_id
             assert updated.actor.type is ctx.actor.type
 
         assert get_viewer_context() is None
@@ -316,7 +258,7 @@ class TestObserve:
 
     def test_explicit_ctx_none_treated_as_missing(self, patch_metrics):
         # Distinguishes "ctx wasn't passed" (sentinel) from "ctx is explicitly None"
-        with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.USER))):
+        with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))):
             observe_viewer_context_propagation("seer_rpc_out", ctx=None)
         tags = self._tags(patch_metrics)
         assert tags["actor_type"] == "none"
@@ -373,6 +315,21 @@ class TestObserve:
         assert len(missing_records) == 1
         assert missing_records[0].method == "ghost_method"
         assert missing_records[0].point == "seer_rpc_in"
+
+
+@pytest.mark.parametrize(
+    "wire",
+    [
+        {"user_id": 7},
+        {"actor_type": "user"},
+        {"actor_type": "agent", "user_id": 7},
+        {"actor_type": "system"},
+        {"version": 1, "organization_id": 42, "user_id": 7},
+    ],
+)
+def test_rejects_legacy_wire_after_cutover(wire):
+    with pytest.raises(ValueError, match="Expected a V2 viewer context"):
+        ViewerContext.deserialize(wire)
 
 
 def test_actor_id_distinguishes_actor_types_and_delegates():

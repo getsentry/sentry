@@ -58,7 +58,7 @@ class SuperuserViewerContextTest(APITestCase):
 
             def capture_context(*_args: Any, **kwargs: Any) -> Any:
                 resolved = _resolve_viewer_context(kwargs["viewer_context"])
-                assert resolved is not None
+                assert isinstance(resolved, ViewerContext)
                 resolved_contexts.append(resolved)
                 return outbound.return_value
 

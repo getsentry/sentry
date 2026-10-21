@@ -82,7 +82,9 @@ class TestEncodeEarlyAdopterClaim(TestCase):
 class TestEncodeDecodeRoundtrip(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_roundtrip(self):
-        vc = ViewerContext(organization_id=42, actor=Actor(type=ActorType.USER, actor_id=7))
+        vc = ViewerContext(
+            organization_id=42, actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7)
+        )
         token = encode_viewer_context(vc)
         result = decode_viewer_context(token)
         assert result == vc

@@ -63,9 +63,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
-from sentry.viewer_context import (
-    Actor as ContextActor,
-)
+from sentry.viewer_context import Actor as ContextActor
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -1974,10 +1972,10 @@ class DeleteGroupsTest(TestCase):
 
         def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
             viewer_context = get_viewer_context()
-            assert viewer_context is not None
+            assert isinstance(viewer_context, ViewerContext)
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
-            assert viewer_context.user_id == self.user.id
+            assert viewer_context.actor.actor_id == self.user.id
             assert viewer_context.actor.type == ActorType.USER
 
         mock_delete_seer_grouping_records_by_hash.side_effect = assert_viewer_context
