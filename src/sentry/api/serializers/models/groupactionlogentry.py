@@ -143,10 +143,11 @@ def get_serialized_activity_items(
     if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
         return None
 
-    action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
     oldest_entry = (
-        GroupActionLogEntry.objects.filter(group_id=group.id)
-        .filter(type__in=[*GroupAction.get_user_visible_types(), *COMMENT_ACTION_TYPES])
+        GroupActionLogEntry.objects.filter(
+            group_id=group.id,
+            type__in=[*GroupAction.get_user_visible_types(), *COMMENT_ACTION_TYPES],
+        )
         .order_by("date_added", "id")
         .first()
     )
@@ -160,6 +161,7 @@ def get_serialized_activity_items(
         )
         return None
 
+    action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
     entries = list(
         action_log.exclude(
             type__in=[
