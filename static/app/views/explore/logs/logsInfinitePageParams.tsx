@@ -19,7 +19,7 @@ import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
  * Pages are represented by a window of time using the precise timestamp of either it's most recent or oldest row, depending on sort direction and which page we're fetching.
  * We will overlap pages on the nanosecond boundary (using => and <=) because events can happen on the same timestamp.
  */
-export function getPageParam(
+export function getLogPageParam(
   pageDirection: 'previous' | 'next',
   sortBys: Sort[],
   autoRefresh: boolean,
@@ -119,7 +119,7 @@ const JSON_NUMBER_NANOSECOND_ROUNDING = 256n;
  * This ensures the first page query filters for logs older than Date.now() - MAX_LOG_INGEST_DELAY
  * which means the next logs page fetched will have results instead of having to wait for the MAX_LOG_INGEST_DELAY to pass.
  */
-export function getInitialPageParam(
+export function getInitialLogPageParam(
   autoRefresh: boolean,
   sortBys: readonly Sort[],
   anchor: LogAnchor | undefined

@@ -20,8 +20,8 @@ import {
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
 import {
-  getInitialPageParam,
-  getPageParam,
+  getInitialLogPageParam,
+  getLogPageParam,
   getParamBasedQuery,
   isAnchoredPageParam,
   type LogPageParam,
@@ -102,7 +102,7 @@ export function useInfiniteLogsQuery({
 
   const getPreviousPageParam = useCallback(
     (data: ApiResponse<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam(
+      getLogPageParam(
         'previous',
         sortBys.slice(),
         autoRefresh,
@@ -112,7 +112,7 @@ export function useInfiniteLogsQuery({
   );
   const getNextPageParam = useCallback(
     (data: ApiResponse<EventsLogsResult>, _: unknown, pageParam: LogPageParam) =>
-      getPageParam(
+      getLogPageParam(
         'next',
         sortBys.slice(),
         autoRefresh,
@@ -122,7 +122,7 @@ export function useInfiniteLogsQuery({
   );
 
   const initialPageParam = useMemo(
-    () => getInitialPageParam(autoRefresh, sortBys, anchor),
+    () => getInitialLogPageParam(autoRefresh, sortBys, anchor),
     [anchor, autoRefresh, sortBys]
   );
 
