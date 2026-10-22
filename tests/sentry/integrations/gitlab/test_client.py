@@ -86,7 +86,11 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
 
         result = self.gitlab_client.get_access_token()
 
-        assert result == {"access_token": "123456789", "permissions": None}
+        assert result == {
+            "access_token": "123456789",
+            "expires_at": "2025-01-01T06:22:00+00:00",
+            "permissions": None,
+        }
         assert len(responses.calls) == 0
 
     def test_returns_none_when_token_empty(self) -> None:
@@ -102,7 +106,11 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
 
         result = self.gitlab_client.get_access_token()
 
-        assert result == {"access_token": "123432sfh29uhs29347", "permissions": None}
+        assert result == {
+            "access_token": "123432sfh29uhs29347",
+            "expires_at": "2025-01-01T07:22:00+00:00",
+            "permissions": None,
+        }
         assert len(responses.calls) == 1
         stored = self.stored_identity_data()
         assert stored["access_token"] == "123432sfh29uhs29347"
@@ -116,7 +124,11 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
 
         result = self.gitlab_client.get_access_token()
 
-        assert result == {"access_token": "123432sfh29uhs29347", "permissions": None}
+        assert result == {
+            "access_token": "123432sfh29uhs29347",
+            "expires_at": "2025-01-01T07:22:00+00:00",
+            "permissions": None,
+        }
         stored = self.stored_identity_data()
         assert stored["expires"] == int(time()) + 7200
 
@@ -136,7 +148,11 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
 
         result = self.gitlab_client.get_access_token()
 
-        assert result == {"access_token": "123456789", "permissions": None}
+        assert result == {
+            "access_token": "123456789",
+            "expires_at": None,
+            "permissions": None,
+        }
         assert len(responses.calls) == 0
 
     @responses.activate
@@ -146,7 +162,11 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
 
         result = self.gitlab_client.get_access_token()
 
-        assert result == {"access_token": "123456789", "permissions": None}
+        assert result == {
+            "access_token": "123456789",
+            "expires_at": "2025-01-01T05:23:00+00:00",
+            "permissions": None,
+        }
         assert len(responses.calls) == 0
 
     @responses.activate
@@ -158,7 +178,11 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
 
         result = self.gitlab_client.get_access_token()
 
-        assert result == {"access_token": "fresh-token", "permissions": None}
+        assert result == {
+            "access_token": "fresh-token",
+            "expires_at": "2025-01-01T07:22:00+00:00",
+            "permissions": None,
+        }
         assert len(responses.calls) == 0
 
     @responses.activate

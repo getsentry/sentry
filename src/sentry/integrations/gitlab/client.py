@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
+from datetime import UTC, datetime
 from enum import StrEnum
 from time import time
 from typing import TYPE_CHECKING, Any
@@ -132,7 +133,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
     @control_silo_function
     def get_access_token(self) -> dict[str, str | None] | None:
-        """Return the stored token, refreshed first if it's about to expire.
+        """Return the stored token and when it expires, refreshed first if it's about to expire.
 
         API requests refresh after GitLab answers 401, but a caller that hands the token on
         can't retry, so it needs one that's still valid.
@@ -141,9 +142,19 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         if self.identity.data.get("refresh_token") and _expires_soon(self.identity.data):
             self._refresh_auth_once(_expires_soon)
 
-        if self.identity.data["access_token"]:
-            return {"access_token": self.identity.data["access_token"], "permissions": None}
-        return None
+        access_token = self.identity.data["access_token"]
+        if not access_token:
+            return None
+        expires = self.identity.data.get("expires")
+        return {
+            "access_token": access_token,
+            "expires_at": (
+                datetime.fromtimestamp(int(expires), UTC).isoformat()
+                if expires is not None
+                else None
+            ),
+            "permissions": None,
+        }
 
     def _refresh_auth_once(self, needs_refresh: Callable[[Mapping[str, Any]], bool]) -> None:
         """Refresh the token, unless another request did while this one waited for the lock.

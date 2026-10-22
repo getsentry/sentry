@@ -322,19 +322,6 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_gitlab_access_token(self, *, integration_id: int, organization_id: int) -> str | None:
-        """Return a GitLab integration's OAuth token, refreshed first if it's about to expire.
-
-        For callers outside control that hand the token on: they can't refresh it, and can't
-        retry after a 401.
-
-        Org-scoped like ``refresh_github_access_token``. None when the organization has no active
-        install of an active GitLab integration with that id, or when there's no token to give
-        (no identity, or the refresh failed).
-        """
-
-    @rpc_method
-    @abstractmethod
     def refresh_github_permissions(
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
