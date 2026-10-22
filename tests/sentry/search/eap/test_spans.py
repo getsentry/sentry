@@ -938,6 +938,20 @@ class SearchResolverColumnTest(TestCase):
             definitions=SPAN_DEFINITIONS,
         )
 
+    def test_tool_output_size_field(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "gen_ai.tool.call.result.size"
+        )
+        assert resolved_column.search_type == "byte"
+        assert resolved_column.proto_definition == AttributeKey(
+            name="gen_ai.tool.call.result.size", type=AttributeKey.Type.TYPE_DOUBLE
+        )
+        assert virtual_context == [None]
+        assert (
+            SPAN_EAP_COLUMN_MAP["gen_ai.tool.call.result.size"]
+            == "attr_num[gen_ai.tool.call.result.size]"
+        )
+
     def test_simple_op_field(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("span.op")
         assert resolved_column.proto_definition == AttributeKey(

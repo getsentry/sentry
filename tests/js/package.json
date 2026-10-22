@@ -219,7 +219,7 @@
     "mockdate": "3.0.5",
     "moment-timezone": "0.6.2",
     "nuqs": "2.10.2",
-    "peggy": "5.0.6",
+    "peggy": "5.1.1",
     "playwright": "^1.61.1",
     "query-string": "7.0.1",
     "react": "19.3.0",

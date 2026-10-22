@@ -113,7 +113,6 @@ export function IssuePreviewTimeline({
             group={group}
             minHeight={40}
             variant="standalone"
-            inputPosition="end"
             placeholder={t('Add a comment. Tag users with @, or teams with #')}
             items={items}
           />

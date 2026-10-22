@@ -505,7 +505,7 @@ export function ProjectPageFilter({
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
 
   const menuFooterContent = (
-    <Stack gap="md" direction="column" width="100%">
+    <Stack gap="md" direction="column">
       {selectionLimitExceeded && (
         <MenuComponents.Alert variant="warning">
           {tct(
@@ -636,7 +636,7 @@ function QuickSelectLabel({
           aria-hidden
           position="absolute"
           bottom="-4px"
-          left="-24px"
+          left="-20px"
           right="0"
           pointerEvents="none"
         >

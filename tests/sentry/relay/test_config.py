@@ -1532,3 +1532,31 @@ def test_project_config_skips_the_row_of_a_legacy_list(default_project) -> None:
     assert [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)] == [
         f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{mine.id}"
     ]
+
+
+@django_db_all
+@cell_silo_test
+def test_project_config_serves_release_comparisons(default_project) -> None:
+    comparison = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "operator": "lt", "value": ["2.0.0"]}],
+    )
+    text = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:inbound-filters-v2": True,
+        }
+    ):
+        cfg = get_project_config(default_project).to_dict()
+
+    _validate_project_config(cfg["config"])
+    generic_ids = [f["id"] for f in get_path(cfg, "config", "filterSettings", "generic", "filters")]
+    custom_ids = [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)]
+    assert custom_ids == [f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{f.id}" for f in (comparison, text)]
