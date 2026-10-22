@@ -301,7 +301,10 @@ const appConfig: Configuration = {
     futureDefaults: true,
     // https://rspack.rs/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
-    nativeWatcher: true,
+    // On Linux the native (inotify) watcher confuses the
+    // static/app/node_modules/sentry -> .. self-link with the real directory,
+    // so edits under static/app never trigger a rebuild.
+    nativeWatcher: process.platform === 'darwin',
   },
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
