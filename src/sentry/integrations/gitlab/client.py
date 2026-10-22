@@ -31,28 +31,27 @@ from sentry.silo.base import SiloMode, control_silo_function
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.utils.locking import UnableToAcquireLock
 
 if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
-# GitLab's OAuth tokens last two hours. The margin covers the time until the caller uses the
-# token and the skew between our clock and GitLab's.
+# A token with less than this left is refreshed before it's handed out. The margin covers the
+# time until the caller uses the token and the skew between our clock and GitLab's.
 TOKEN_MINIMUM_VALIDITY_S = 5 * 60
 
 # Outlasts a refresh request's connect and read timeouts, so the lock doesn't expire while
 # one is in flight.
 REFRESH_LOCK_DURATION_S = 90
+REFRESH_LOCK_WAIT_S = 10
 
 
 def _expires_soon(identity_data: Mapping[str, Any]) -> bool:
-    if "expires" not in identity_data:
-        # Stored before Sentry recorded GitLab's expiry; refreshing records it.
-        return True
-    expires = identity_data["expires"]
-    # None means GitLab issued a token that doesn't expire.
-    return expires is not None and int(expires) < time() + TOKEN_MINIMUM_VALIDITY_S
+    # A token stored before Sentry recorded GitLab's expiry has none; refreshing records one.
+    expires = identity_data.get("expires")
+    return expires is None or int(expires) < time() + TOKEN_MINIMUM_VALIDITY_S
 
 
 class GitLabApiRequestType(StrEnum):
@@ -133,7 +132,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
     @control_silo_function
     def get_access_token(self) -> dict[str, str | None] | None:
-        """Return the stored token and when it expires, refreshed first if it's about to expire.
+        """Return the stored token and until when to use it, refreshed first if it's about to expire.
 
         API requests refresh after GitLab answers 401, but a caller that hands the token on
         can't retry, so it needs one that's still valid.
@@ -148,8 +147,10 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         expires = self.identity.data.get("expires")
         return {
             "access_token": access_token,
+            # Within the margin any request may refresh the token, which revokes it, so a caller
+            # holding it should get a new one by then.
             "expires_at": (
-                datetime.fromtimestamp(int(expires), UTC).isoformat()
+                datetime.fromtimestamp(int(expires) - TOKEN_MINIMUM_VALIDITY_S, UTC).isoformat()
                 if expires is not None
                 else None
             ),
@@ -167,15 +168,19 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             duration=REFRESH_LOCK_DURATION_S,
             name="gitlab_refresh_identity",
         )
-        with lock.blocking_acquire(initial_delay=0.1, timeout=10):
-            stored = identity_service.get_identity(filter={"id": self.identity.id})
-            if stored is None:
-                raise Identity.DoesNotExist
-            # Update in place, as refresh_identity does: the identity is cached on the
-            # installation.
-            self.identity.data.update(stored.data)
+        with lock.blocking_acquire(initial_delay=0.1, timeout=REFRESH_LOCK_WAIT_S):
+            self._reload_identity()
             if needs_refresh(self.identity.data):
                 self._refresh_auth()
+
+    def _reload_identity(self) -> None:
+        stored = identity_service.get_identity(filter={"id": self.identity.id})
+        if stored is None:
+            raise Identity.DoesNotExist
+        # Replace in place, as refresh_identity updates in place: the identity is cached on the
+        # installation.
+        self.identity.data.clear()
+        self.identity.data.update(stored.data)
 
     def _refresh_auth(self) -> None:
         """
@@ -226,14 +231,17 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
     def _attempt_request_after_refreshing_token(self, *args: Any, **kwargs: Any):
         assert not self.is_refreshing_token, "A token refresh is already occurring"
         self.is_refreshing_token = True
-        rejected_token = self.identity.data["access_token"]
-        self._refresh_auth_once(lambda data: data["access_token"] == rejected_token)
-
-        response = super().request(*args, **kwargs)
-
-        self.is_refreshing_token = False
-
-        return response
+        try:
+            rejected_token = self.identity.data["access_token"]
+            try:
+                self._refresh_auth_once(lambda data: data["access_token"] == rejected_token)
+            except UnableToAcquireLock:
+                # Another request's refresh is taking long. Retry with whatever is stored, so a
+                # failure is still the 401 it was rather than a lock error.
+                self._reload_identity()
+            return super().request(*args, **kwargs)
+        finally:
+            self.is_refreshing_token = False
 
     def get_user(self):
         """Get a user

@@ -19,6 +19,9 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integration.gitlab")
 
+# GitLab's OAuth access tokens last two hours.
+ACCESS_TOKEN_LIFETIME_S = 2 * 60 * 60
+
 
 def get_oauth_data(payload):
     data = {"access_token": payload["access_token"]}
@@ -34,8 +37,9 @@ def get_oauth_data(payload):
     #   "scope": "api"
     # }
     # Measured on our clock rather than from GitLab's created_at, since it's compared against
-    # our clock. GitLab before 15.0 can issue tokens that don't expire, recorded as None.
-    data["expires"] = int(time()) + int(payload["expires_in"]) if "expires_in" in payload else None
+    # our clock. GitLab before 15.0 can issue a token without an expiry, and gives it one when
+    # the instance upgrades; assuming the usual lifetime refreshes it often enough either way.
+    data["expires"] = int(time()) + int(payload.get("expires_in", ACCESS_TOKEN_LIFETIME_S))
     if "refresh_token" in payload:
         data["refresh_token"] = payload["refresh_token"]
     if "token_type" in payload:
