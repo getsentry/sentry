@@ -5,6 +5,7 @@ packages:
   - static/gsAdmin
   - static/packages/icons
   - static/packages/scraps
+  - static/packages/search-syntax
   - tests/js
   - tests/js/getsentry-test
   - static/oxlint/eslintPluginScraps

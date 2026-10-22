@@ -11,6 +11,7 @@ on:
           - sentry
           - static/packages/scraps
           - static/packages/icons
+          - static/packages/search-syntax
       version:
         description: Exact version, bump type (major, minor, patch), or auto; leave blank for the workspace policy
         required: false

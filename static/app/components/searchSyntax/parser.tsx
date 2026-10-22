@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import {parse} from '@sentry/search-syntax/grammar';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
@@ -10,8 +11,9 @@ import {
   measurementType,
 } from 'sentry/utils/discover/fields';
 
-import {parse} from './grammar.pegjs';
 import {
+  BooleanOperator,
+  FilterType,
   regexOperators,
   TermOperator,
   Token,
@@ -20,7 +22,14 @@ import {
 } from './tokens';
 import {getKeyName} from './utils';
 
-export {regexOperators, TermOperator, Token, wildcardOperators};
+export {
+  BooleanOperator,
+  FilterType,
+  regexOperators,
+  TermOperator,
+  Token,
+  wildcardOperators,
+};
 export type {WildcardOperator};
 
 type TextFn = () => string;
@@ -39,40 +48,6 @@ const listJoiner = <K,>([s1, comma, s2, value]: ListItem<K>) => {
     value: value ? value[1] : null,
   };
 };
-
-/**
- * Logic operators
- */
-export enum BooleanOperator {
-  AND = 'AND',
-  OR = 'OR',
-}
-
-/**
- * The Token.Filter may be one of many types of filters. This enum declares the
- * each variant filter type.
- */
-export enum FilterType {
-  TEXT = 'text',
-  TEXT_IN = 'textIn',
-  DATE = 'date',
-  SPECIFIC_DATE = 'specificDate',
-  RELATIVE_DATE = 'relativeDate',
-  DURATION = 'duration',
-  SIZE = 'size',
-  NUMERIC = 'numeric',
-  NUMERIC_IN = 'numericIn',
-  BOOLEAN = 'boolean',
-  AGGREGATE_DURATION = 'aggregateDuration',
-  AGGREGATE_SIZE = 'aggregateSize',
-  AGGREGATE_PERCENTAGE = 'aggregatePercentage',
-  AGGREGATE_NUMERIC = 'aggregateNumeric',
-  AGGREGATE_DATE = 'aggregateDate',
-  AGGREGATE_RELATIVE_DATE = 'aggregateRelativeDate',
-  HAS = 'has',
-  IS = 'is',
-  ARRAY_INCLUDES = 'arrayIncludes',
-}
 
 /**
  * These are the wildcard operators that can be used in the search query. We use the
@@ -833,6 +808,9 @@ export class TokenConverter {
 
       case FilterType.AGGREGATE_DURATION:
         return checkAggregate(isDuration);
+
+      case FilterType.AGGREGATE_SIZE:
+        return checkAggregate(isSize);
 
       case FilterType.AGGREGATE_DATE:
         return checkAggregate(isDate);

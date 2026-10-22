@@ -76,3 +76,27 @@ workspaces:
         access: public
     versioning:
       policy: auto
+  static/packages/search-syntax:
+    preReleaseCommand: >-
+      sh -c 'npm --prefix static/packages/search-syntax --no-git-tag-version --package-lock=false --allow-same-version version "$CRAFT_NEW_VERSION"'
+    releaseBranchPrefix: search-syntax/release
+    changelog:
+      policy: auto
+    statusProvider:
+      name: github
+      config:
+        contexts:
+          - search-syntax-package-pack
+    artifactProvider:
+      name: github
+      config:
+        artifacts:
+          Search syntax package:
+            - search-syntax-tarball
+    targets:
+      - name: github
+        tagPrefix: search-syntax@
+      - name: npm
+        access: public
+    versioning:
+      policy: auto
