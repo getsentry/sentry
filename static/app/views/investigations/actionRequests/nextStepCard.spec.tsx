@@ -429,6 +429,51 @@ describe('NextStepCard', () => {
     expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
   });
 
+  it('formats each threshold with its own aggregate unit', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            action: changeOf(
+              {aggregate: 'p95(span.duration)', highThreshold: 800},
+              {aggregate: 'count()', highThreshold: 50}
+            ),
+          }),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      'High thresholdCurrent value: 800ms → , suggested value: 50'
+    );
+    expect(getCard()).not.toHaveTextContent('50ms');
+  });
+
+  it('does not describe the opening condition when the aggregate changes', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            action: changeOf(
+              {aggregate: 'p95(span.duration)'},
+              {aggregate: 'p99(span.duration)'}
+            ),
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent(
+      'AggregateCurrent value: p95(span.duration) → , suggested value: p99(span.duration)'
+    );
+    expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
+  });
+
   it('formats percent thresholds like the monitor page', () => {
     render(
       <NextStepCard

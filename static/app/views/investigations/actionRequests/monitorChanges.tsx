@@ -57,6 +57,11 @@ export function MonitorChanges({action, impact, monitor}: MonitorChangesProps) {
     changedKeys.includes('query') ? null : monitor?.query,
   ].filter(Boolean);
   const opensAnIssue = getOpensAnIssueDescription(action, monitor);
+  const currentAggregate = monitor?.aggregate ?? null;
+  const suggestedAggregate =
+    typeof action.changes.aggregate === 'string'
+      ? action.changes.aggregate
+      : currentAggregate;
 
   return (
     <Container border="primary" radius="md" padding="lg">
@@ -91,12 +96,22 @@ export function MonitorChanges({action, impact, monitor}: MonitorChangesProps) {
                 <Text>
                   <VisuallyHidden>{t('Current value:')} </VisuallyHidden>
                   <Text strikethrough variant="muted" monospace={monospace}>
-                    {formatChangeValue(key, action.before[key], monitor)}
+                    {formatChangeValue(
+                      key,
+                      action.before[key],
+                      monitor?.detectionType ?? null,
+                      currentAggregate
+                    )}
                   </Text>
                   <span aria-hidden> → </span>
                   <VisuallyHidden>, {t('suggested value:')} </VisuallyHidden>
                   <Text bold monospace={monospace}>
-                    {formatChangeValue(key, action.changes[key], monitor)}
+                    {formatChangeValue(
+                      key,
+                      action.changes[key],
+                      monitor?.detectionType ?? null,
+                      suggestedAggregate
+                    )}
                   </Text>
                 </Text>
               </SettingRow>
@@ -152,7 +167,8 @@ function getOpensAnIssueDescription(
   monitor: SourceMonitor | null
 ) {
   const config = monitor ? getMetricConfig(monitor) : null;
-  if (!monitor?.aggregate || !config) {
+  // The condition would read against the old aggregate.
+  if (!monitor?.aggregate || !config || action.changes.aggregate !== undefined) {
     return null;
   }
   const condition = monitor.conditions
@@ -177,7 +193,8 @@ function getOpensAnIssueDescription(
 function formatChangeValue(
   key: InvestigationDetectorChangeKey,
   value: number | string | null | undefined,
-  monitor: SourceMonitor | null
+  detectionType: SourceMonitor['detectionType'],
+  aggregate: string | null
 ) {
   if (key === 'query') {
     return value || t('No filter');
@@ -191,13 +208,11 @@ function formatChangeValue(
   if (key === 'timeWindowSeconds') {
     return getDuration(value);
   }
-  if (monitor?.detectionType === 'percent') {
+  if (detectionType === 'percent') {
     const delta = `${percentThresholdAbsoluteToDelta(value)}%`;
     return value >= 100 ? t('%s higher', delta) : t('%s lower', delta);
   }
-  const suffix = monitor?.aggregate
-    ? getStaticDetectorThresholdSuffix(monitor.aggregate)
-    : '';
+  const suffix = aggregate ? getStaticDetectorThresholdSuffix(aggregate) : '';
   return `${value}${suffix}`;
 }
 
