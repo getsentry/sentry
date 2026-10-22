@@ -1,13 +1,19 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
+import {matchPath} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBuilding} from '@sentry/icons/building';
 import {IconCompass} from '@sentry/icons/compass';
 import {IconDashboard} from '@sentry/icons/dashboard';
 import {IconGraph} from '@sentry/icons/graph';
 import {IconIssues} from '@sentry/icons/issues';
+import {IconProject} from '@sentry/icons/project';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
+import {IconUser} from '@sentry/icons/user';
 import {motion, type MotionProps} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack, Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
@@ -15,7 +21,10 @@ import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
@@ -29,7 +38,10 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {
+  isPrimaryNavigationLinkActive,
+  PrimaryNavigation,
+} from 'sentry/views/navigation/primary/components';
 import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
@@ -42,12 +54,14 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
+  const isSettingsNavigation = useSettingsNavigation();
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
@@ -91,10 +105,20 @@ function NavigationImpl() {
     <Fragment>
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          {organization ? <OrganizationDropdown /> : <UserDropdown />}
+          {isSettingsNavigation && organization ? (
+            <SettingsNavigationBackButton organizationSlug={organization.slug} />
+          ) : organization ? (
+            <OrganizationDropdown />
+          ) : (
+            <UserDropdown />
+          )}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List ref={ref}>
-          <PrimaryNavigationItems listRef={ref} />
+          {isSettingsNavigation && organization ? (
+            <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
+          ) : (
+            <PrimaryNavigationItems listRef={ref} />
+          )}
         </PrimaryNavigation.List>
 
         {organization && (
@@ -145,6 +169,77 @@ function NavigationImpl() {
 }
 
 export const Navigation = registerLLMContext('navigation', NavigationImpl);
+
+export function SettingsNavigationBackButton({
+  organizationSlug,
+}: {
+  organizationSlug: string;
+}) {
+  const navigate = useNavigate();
+  const {setActiveGroup} = usePrimaryNavigation();
+  return (
+    <Button
+      size="sm"
+      icon={<IconArrow direction="left" />}
+      aria-label={t('Back to app')}
+      tooltipProps={{title: t('Back to app')}}
+      onClick={() => {
+        setActiveGroup(null);
+        navigate(`/organizations/${organizationSlug}/issues/`);
+      }}
+    />
+  );
+}
+
+export function SettingsPrimaryNavigationItems({
+  organizationSlug,
+}: {
+  organizationSlug: string;
+}) {
+  const location = useLocation();
+  const {projects} = useProjects();
+  const projectSettingsMatch = matchPath(
+    {path: '/settings/:orgId?/projects/:projectId', end: false},
+    location.pathname
+  );
+  const projectSlug = projectSettingsMatch?.params.projectId ?? projects[0]?.slug;
+  const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
+  const items = [
+    {
+      key: 'org',
+      label: t('Org'),
+      to: `/settings/${organizationSlug}/`,
+      icon: <IconBuilding />,
+    },
+    {
+      key: 'project',
+      label: t('Project'),
+      to: projectSlug ? `${projectSettingsPath}${projectSlug}/` : projectSettingsPath,
+      icon: <IconProject />,
+    },
+    {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
+  ];
+  const activeScope =
+    items.find(item =>
+      item.key === 'project'
+        ? !!projectSettingsMatch
+        : item.key === 'account' &&
+          isPrimaryNavigationLinkActive(item.to, location.pathname)
+    )?.key ?? 'org';
+
+  return items.map(({key, label, to, icon}) => (
+    <PrimaryNavigation.ListItem key={to}>
+      <PrimaryNavigation.Link
+        to={to}
+        analyticsKey={`settings-${key}`}
+        label={label}
+        aria-current={key === activeScope ? 'location' : undefined}
+      >
+        {icon}
+      </PrimaryNavigation.Link>
+    </PrimaryNavigation.ListItem>
+  ));
+}
 
 interface PrimaryNavigationItemsProps {
   listRef?: RefObject<HTMLUListElement | null>;

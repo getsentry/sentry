@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
@@ -6,6 +7,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {SettingsNavItem} from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function isItemVisible(item: NavigationItem, props: NavigationGroupProps): boolean {
   if (typeof item.show === 'function') {
@@ -14,11 +16,37 @@ function isItemVisible(item: NavigationItem, props: NavigationGroupProps): boole
   return item.show ?? true;
 }
 
+function getItemTitle(
+  item: NavigationItem,
+  groupId: string,
+  settingsV3: boolean
+): NavigationItem['title'] {
+  if (!settingsV3) {
+    return item.title;
+  }
+
+  switch (groupId) {
+    case 'settings-organization':
+    case 'settings-project':
+      return item.index ? t('General') : item.title;
+    case 'settings-account':
+      return item.path === '/settings/account/details/' ? t('General') : item.title;
+    default:
+      return item.title;
+  }
+}
+
 function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
   const params = useParams();
+  const settingsV3 = useSettingsV3();
+  const hideTitle =
+    settingsV3 &&
+    ['settings-organization', 'settings-account', 'settings-project'].includes(props.id);
 
-  const visibleItems = items.filter(item => isItemVisible(item, props));
+  const visibleItems = items
+    .filter(item => isItemVisible(item, props))
+    .map(item => ({...item, title: getItemTitle(item, props.id, settingsV3)}));
 
   // A settings category and the links inside it that are actually visible to
   // this user (post access/feature/hook filtering) — the same list rendered
@@ -65,7 +93,11 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   );
 
   return (
-    <SecondaryNavigation.Section id={props.id} title={name}>
+    <SecondaryNavigation.Section
+      id={props.id}
+      title={hideTitle ? undefined : name}
+      collapsible={!hideTitle}
+    >
       <SecondaryNavigation.List>{navLinks}</SecondaryNavigation.List>
     </SecondaryNavigation.Section>
   );

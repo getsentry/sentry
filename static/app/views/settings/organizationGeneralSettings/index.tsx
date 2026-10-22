@@ -26,6 +26,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {OrganizationSettingsForm} from './organizationSettingsForm';
 
@@ -34,6 +35,7 @@ export default function OrganizationGeneralSettings() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
+  const settingsV3 = useSettingsV3();
   const removeConfirmMessage = (
     <Fragment>
       <TextBlock>
@@ -97,7 +99,9 @@ export default function OrganizationGeneralSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
-        <SettingsPageHeader title={t('Organization Settings')} />
+        <SettingsPageHeader
+          title={settingsV3 ? t('General') : t('Organization Settings')}
+        />
         <OrganizationPermissionAlert />
 
         <OrganizationSettingsForm
