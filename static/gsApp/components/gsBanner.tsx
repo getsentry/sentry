@@ -78,6 +78,13 @@ function SuspensionModal({
   organization,
   subscription,
 }: SuspensionModalProps) {
+  useEffect(() => {
+    trackGetsentryAnalytics('intercom_link.viewed', {
+      organization,
+      source: 'account-suspension',
+    });
+  }, [organization]);
+
   async function handleIntercomClick() {
     trackGetsentryAnalytics('intercom_link.clicked', {
       organization,

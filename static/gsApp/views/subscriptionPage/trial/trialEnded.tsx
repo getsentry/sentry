@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
@@ -23,6 +25,15 @@ export function TrialEnded({subscription}: Props) {
     subscription.canTrial ||
     !canRequestTrial
   );
+
+  useEffect(() => {
+    if (shouldRender) {
+      trackGetsentryAnalytics('intercom_link.viewed', {
+        organization,
+        source: 'trial',
+      });
+    }
+  }, [shouldRender, organization]);
 
   if (!shouldRender) {
     return null;

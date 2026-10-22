@@ -525,6 +525,13 @@ function AMCheckout(props: Props) {
   }, [organization, subscription]);
 
   useEffect(() => {
+    trackGetsentryAnalytics('intercom_link.viewed', {
+      organization,
+      source: 'checkout',
+    });
+  }, [organization]);
+
+  useEffect(() => {
     if (subscription.canSelfServe) {
       if (!hasFetchedBillingConfig.current) {
         hasFetchedBillingConfig.current = true;
