@@ -129,10 +129,22 @@ describe('mobile navigation', () => {
     const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
     expect(within(secondaryNav).getByRole('link', {name: 'General'})).toBeInTheDocument();
 
-    await userEvent.click(within(primaryNav).getByRole('button', {name: 'Back to app'}));
+    await userEvent.click(within(secondaryNav).getByRole('button', {name: 'Collapse'}));
+    expect(
+      screen.queryByRole('navigation', {name: 'Primary Navigation'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Back to app'}));
     expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
-    expect(within(primaryNav).getByRole('link', {name: 'Issues'})).toBeInTheDocument();
-    expect(within(primaryNav).queryByRole('link', {name: 'Org'})).not.toBeInTheDocument();
+    const reopenedPrimaryNav = screen.getByRole('navigation', {
+      name: 'Primary Navigation',
+    });
+    expect(
+      within(reopenedPrimaryNav).getByRole('link', {name: 'Issues'})
+    ).toBeInTheDocument();
+    expect(
+      within(reopenedPrimaryNav).queryByRole('link', {name: 'Org'})
+    ).not.toBeInTheDocument();
   });
 
   it('navigates account settings without an organization', async () => {

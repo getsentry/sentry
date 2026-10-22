@@ -1,5 +1,5 @@
 import {cloneElement, Fragment} from 'react';
-import {matchPath} from 'react-router';
+import {matchPath, useMatches} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 
@@ -11,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -20,6 +21,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -69,7 +71,7 @@ export function SettingsNavigation({
         ) : (
           <SecondaryNavigation.HeaderTitle>{title}</SecondaryNavigation.HeaderTitle>
         )}
-        {!settingsV3 && <SecondaryNavigation.Toggle />}
+        <SecondaryNavigation.Toggle />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
@@ -89,7 +91,16 @@ function SettingsProjectSelector() {
   const location = useLocation();
   const subpage = matchPath('/settings/:orgId?/projects/:projectId/*', location.pathname)
     ?.params['*'];
-  const {projectId} = useParams<{projectId?: string}>();
+  const params = useParams<{orgId?: string; projectId?: string}>();
+  const {projectId} = params;
+  const matches = useMatches();
+  const projectBreadcrumb = matches
+    .flatMap(
+      match =>
+        (match.handle as {settingsBreadcrumb?: SettingsBreadcrumb} | undefined)
+          ?.settingsBreadcrumb ?? []
+    )
+    .findLast(item => item.type === 'project');
   const {projects, onSearch} = useProjects();
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();
@@ -149,7 +160,13 @@ function SettingsProjectSelector() {
           onChange={selection =>
             navigate(
               normalizeUrl(
-                `/settings/${organization.slug}/projects/${selection.value}/${subpage ? `${subpage}/` : ''}`
+                projectBreadcrumb?.type === 'project'
+                  ? replaceRouterParams(projectBreadcrumb.switchTo, {
+                      ...params,
+                      orgId: organization.slug,
+                      projectId: selection.value,
+                    })
+                  : `/settings/${organization.slug}/projects/${selection.value}/${subpage ? `${subpage}/` : ''}`
               )
             )
           }

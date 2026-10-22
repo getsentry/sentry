@@ -302,6 +302,70 @@ describe('desktop navigation', () => {
     }
   );
 
+  it('expands previously collapsed settings navigation with settings v3', async () => {
+    localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+      })
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    expect(screen.getByRole('button', {name: 'Collapse'})).toBeInTheDocument();
+    expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+      'false'
+    );
+  });
+
+  it('switches from project key details to the new project key list', async () => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/second-project/',
+      body: ProjectFixture({id: '999', slug: 'second-project'}),
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture(),
+      ProjectFixture({id: '999', slug: 'second-project'}),
+    ]);
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {
+          location: {pathname: '/settings/org-slug/projects/project-slug/keys/123/'},
+          route: '/settings/:orgId/projects/:projectId/',
+          children: [
+            {
+              path: 'keys/',
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'project',
+                  to: '/settings/:orgId/projects/:projectId/',
+                  switchTo: '/settings/:orgId/projects/:projectId/keys/',
+                },
+              },
+              children: [
+                {path: ':keyId/', element: <div />},
+                {index: true, element: <div />},
+              ],
+            },
+          ],
+        },
+      })
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Select a project'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'second-project'}));
+    expect(router.location.pathname).toBe(
+      '/settings/org-slug/projects/second-project/keys/'
+    );
+  });
+
   it('shows settings scope navigation with settings v3', async () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
     const {router} = render(
@@ -344,11 +408,11 @@ describe('desktop navigation', () => {
       )
     ).toBeInTheDocument();
     expect(
-      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).queryByRole(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
         'button',
         {name: 'Collapse'}
       )
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
