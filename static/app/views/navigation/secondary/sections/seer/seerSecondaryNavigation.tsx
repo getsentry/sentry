@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getInvestigationsPath} from 'sentry/views/investigations/utils';
@@ -13,7 +15,7 @@ function SeerSecondaryNavigationImpl() {
 
   useLLMContext({
     contextHint: 'The Seer secondary nav panel.',
-    navItems: [{label: 'Investigations', to: investigationsPath}],
+    navItems: [{label: 'Investigations', badge: 'alpha', to: investigationsPath}],
   });
 
   return (
@@ -26,6 +28,7 @@ function SeerSecondaryNavigationImpl() {
               <SecondaryNavigation.Link
                 to={investigationsPath}
                 analyticsItemName="seer_investigations"
+                trailingItems={<FeatureBadge type="alpha" />}
               >
                 {t('Investigations')}
               </SecondaryNavigation.Link>

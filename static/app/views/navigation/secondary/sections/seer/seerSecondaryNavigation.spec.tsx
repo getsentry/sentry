@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
@@ -43,19 +43,21 @@ describe('SeerSecondaryNavigation', () => {
     );
   }
 
-  it('renders the Investigations link', () => {
+  it('renders the Investigations link with an alpha badge', () => {
     renderNavigation('/organizations/org-slug/seer/investigations/');
 
-    expect(screen.getByRole('link', {name: 'Investigations'})).toHaveAttribute(
+    const investigations = screen.getByRole('link', {name: /Investigations/});
+    expect(investigations).toHaveAttribute(
       'href',
       '/organizations/org-slug/seer/investigations/'
     );
+    expect(within(investigations).getByLabelText('alpha')).toBeInTheDocument();
   });
 
   it('marks Investigations as active on investigation detail pages', () => {
     renderNavigation('/organizations/org-slug/seer/investigations/investigation-1/');
 
-    expect(screen.getByRole('link', {name: 'Investigations'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: /Investigations/})).toHaveAttribute(
       'aria-current',
       'page'
     );

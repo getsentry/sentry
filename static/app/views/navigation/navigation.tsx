@@ -9,7 +9,6 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack, Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
@@ -22,7 +21,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   getInvestigationsPath,
-  isInvestigationsEnabled,
+  useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -158,6 +157,7 @@ interface PrimaryNavigationItemsProps {
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
+  const investigationsEnabled = useInvestigationsEnabled();
   const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
@@ -215,13 +215,12 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
-      {isInvestigationsEnabled(organization) && (
+      {investigationsEnabled && (
         <PrimaryNavigation.ListItem>
           <PrimaryNavigation.Link
             to={getInvestigationsPath(organization.slug)}
             analyticsKey="seer"
             label={t('Seer')}
-            badge={<FeatureBadge type="alpha" />}
             {...makeNavigationItemProps(
               'seer',
               getInvestigationsPath(organization.slug),

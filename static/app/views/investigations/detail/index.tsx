@@ -69,7 +69,7 @@ import type {
 import {
   getInvestigationPath,
   getInvestigationsPath,
-  isInvestigationsEnabled,
+  useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
@@ -679,6 +679,7 @@ const MetaDivider = styled('span')`
 
 export default function InvestigationDetailView() {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const {investigationId} = useParams<{investigationId: string}>();
 
   return (
@@ -688,7 +689,7 @@ export default function InvestigationDetailView() {
         features="organizations:investigations"
         renderDisabled={() => <FeatureDisabledPage />}
       >
-        {isInvestigationsEnabled(organization) ? (
+        {investigationsEnabled ? (
           <InvestigationBootstrapPage investigationId={investigationId} />
         ) : (
           <ClosedMembershipPage />

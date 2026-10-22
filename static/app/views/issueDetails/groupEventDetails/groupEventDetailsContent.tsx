@@ -57,7 +57,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isInvestigationsEnabled} from 'sentry/views/investigations/utils';
+import {useInvestigationsEnabled} from 'sentry/views/investigations/utils';
 import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
 import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -98,6 +98,7 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries} = event;
@@ -158,10 +159,9 @@ export function EventDetailsContent({
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeAssertionsSection event={event} />
       )}
-      {group.issueType === IssueType.METRIC_ISSUE &&
-        isInvestigationsEnabled(organization) && (
-          <MetricIssueSeerInvestigationSection group={group} event={event} />
-        )}
+      {group.issueType === IssueType.METRIC_ISSUE && investigationsEnabled && (
+        <MetricIssueSeerInvestigationSection group={group} event={event} />
+      )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />

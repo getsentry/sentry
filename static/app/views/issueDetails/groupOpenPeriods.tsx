@@ -23,7 +23,7 @@ import {investigationCandidatesQueryOptions} from 'sentry/views/investigations/a
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
 import {
   getInvestigationPath,
-  isInvestigationsEnabled,
+  useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
 import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
 
@@ -69,7 +69,7 @@ function IssueOpenPeriodsList() {
     select: selectJsonWithHeaders,
   });
   const openPeriods = response?.json ?? [];
-  const investigationsEnabled = isInvestigationsEnabled(organization);
+  const investigationsEnabled = useInvestigationsEnabled();
   const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
     period => ({
       type: 'metric_open_period',

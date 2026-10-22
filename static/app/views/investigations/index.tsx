@@ -43,7 +43,7 @@ import {updateInvestigationCache} from 'sentry/views/investigations/investigatio
 import type {InvestigationListItem} from 'sentry/views/investigations/types';
 import {
   getInvestigationPath,
-  isInvestigationsEnabled,
+  useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
@@ -375,6 +375,7 @@ export function InvestigationsPage() {
 
 export default function InvestigationsView() {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
 
   return (
     <AnalyticsArea name="investigations.list" overrideParent>
@@ -383,11 +384,7 @@ export default function InvestigationsView() {
         features="organizations:investigations"
         renderDisabled={() => <FeatureDisabledPage />}
       >
-        {isInvestigationsEnabled(organization) ? (
-          <InvestigationsPage />
-        ) : (
-          <ClosedMembershipPage />
-        )}
+        {investigationsEnabled ? <InvestigationsPage /> : <ClosedMembershipPage />}
       </Feature>
     </AnalyticsArea>
   );

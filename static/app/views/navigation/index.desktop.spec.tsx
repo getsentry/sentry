@@ -597,13 +597,12 @@ describe('desktop navigation', () => {
 
       const links = within(primaryNav).getAllByRole('link');
       expect(links[0]).toHaveAccessibleName('Issues');
-      expect(links[1]).toHaveAccessibleName(/Seer/);
+      expect(links[1]).toHaveAccessibleName('Seer');
       expect(links[2]).toHaveAccessibleName('Explore');
       expect(links[1]).toHaveAttribute(
         'href',
         '/organizations/org-slug/seer/investigations/'
       );
-      expect(within(links[1]!).getByLabelText('alpha')).toBeInTheDocument();
     });
 
     it('hides Seer with investigations and closed membership', () => {
@@ -613,7 +612,7 @@ describe('desktop navigation', () => {
       });
 
       expect(
-        within(primaryNav).queryByRole('link', {name: /Seer/})
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
       ).not.toBeInTheDocument();
     });
 
@@ -624,7 +623,7 @@ describe('desktop navigation', () => {
       });
 
       expect(
-        within(primaryNav).queryByRole('link', {name: /Seer/})
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
       ).not.toBeInTheDocument();
     });
 
@@ -634,7 +633,7 @@ describe('desktop navigation', () => {
         '/organizations/org-slug/seer/investigations/investigation-1/'
       );
 
-      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: /Seer/}));
+      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Seer'}));
       assertInactiveNavLink(within(primaryNav).getByRole('link', {name: 'Explore'}));
     });
   });
