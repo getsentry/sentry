@@ -331,9 +331,7 @@ export function useIncidentMarkers({
   const incidentPeriods = useMemo(() => incidents || [], [incidents]);
 
   // since onChartReady only runs one time when its created, its handler functions
-  // need to read these refs to avoid calling a stale onClick and reading stale
-  // onChartReady only runs when the chart is created, so its handlers read these
-  // refs to avoid calling a stale onClick or matching against stale periods
+  // need to read these refs to avoid calling a stale onClick and reading stale incidentPeriods
   const latestIncidentPeriodsRef = useRef(incidentPeriods);
 
   const latestOnClickRef = useRef(onClick);
