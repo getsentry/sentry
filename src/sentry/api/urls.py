@@ -819,10 +819,6 @@ from .endpoints.organization_events_meta import (
 from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
-from .endpoints.organization_events_trace import (
-    OrganizationEventsTraceEndpoint,
-    OrganizationEventsTraceMetaEndpoint,
-)
 from .endpoints.organization_events_validate import OrganizationEventsValidateEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
@@ -1971,16 +1967,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-has-measurements/$",
         OrganizationEventsHasMeasurementsEndpoint.as_view(),
         name="sentry-api-0-organization-events-has-measurements",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        OrganizationEventsTraceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trace",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        OrganizationEventsTraceMetaEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trace-meta",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

@@ -150,8 +150,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/events-sql/'
   | '/organizations/$organizationIdOrSlug/events-stats/'
   | '/organizations/$organizationIdOrSlug/events-timeseries/'
-  | '/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/'
-  | '/organizations/$organizationIdOrSlug/events-trace/$traceId/'
   | '/organizations/$organizationIdOrSlug/events-vitals/'
   | '/organizations/$organizationIdOrSlug/events/'
   | '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/'
