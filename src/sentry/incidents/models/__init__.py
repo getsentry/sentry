@@ -1,6 +1,3 @@
-__all__ = (
-    "AlertRule",
-    "AlertRuleTrigger",
-)
+__all__ = ("AlertRule",)
 
-from .alert_rule import AlertRule, AlertRuleTrigger
+from .alert_rule import AlertRule
