@@ -101,7 +101,9 @@ function ExploreSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>{t('Explore')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header trailingItems={<SecondaryNavigation.Toggle />}>
+        {t('Explore')}
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>

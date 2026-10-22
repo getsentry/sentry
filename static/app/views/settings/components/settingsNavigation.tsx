@@ -64,7 +64,7 @@ export function SettingsNavigation({
   return (
     <ErrorBoundary customComponent={null}>
       <SecondaryNavigation.Header
-        showToggle={!settingsV3}
+        trailingItems={settingsV3 ? undefined : <SecondaryNavigation.Toggle />}
         padding={showProjectSelector ? '0 sm' : undefined}
       >
         {showProjectSelector ? <SettingsProjectSelector /> : title}

@@ -7,7 +7,9 @@ import {ProjectsNavigationItems} from 'sentry/views/navigation/secondary/section
 export function ProjectsSecondaryNavigation() {
   return (
     <Fragment>
-      <SecondaryNavigation.Header>{t('Projects')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header trailingItems={<SecondaryNavigation.Toggle />}>
+        {t('Projects')}
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <ProjectsNavigationItems />
       </SecondaryNavigation.Body>

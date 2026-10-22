@@ -285,57 +285,60 @@ interface SecondaryNavigationHeaderProps {
   children?: ReactNode;
   /** Overrides the header padding, which otherwise depends on the navigation layout. */
   padding?: ContainerProps['padding'];
-  /** Shows the expand/collapse button on desktop or close button on mobile. Defaults to true. */
-  showToggle?: boolean;
+  /** Optional header controls, such as SecondaryNavigation.Toggle. */
+  trailingItems?: ReactNode;
 }
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
   const isMobile = layout === 'mobile';
-  const showToggle = props.showToggle ?? true;
 
   return (
     <Grid
-      columns={showToggle ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
+      columns={props.trailingItems ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding={props.padding ?? (isMobile ? 'md lg' : '0 md 0 xl')}
     >
-      <Container minWidth="0" whiteSpace={showToggle ? undefined : 'nowrap'}>
+      <Container minWidth="0" whiteSpace={props.trailingItems ? undefined : 'nowrap'}>
         <Text size="md" bold>
           {props.children}
         </Text>
       </Container>
-      {showToggle && (
-        <div>
-          {isMobile ? (
-            <Button
-              size="sm"
-              icon={<IconClose />}
-              aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-              onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-              variant="transparent"
-            />
-          ) : (
-            <Button
-              size="sm"
-              icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-              aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-              onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-              variant={isCollapsed ? 'primary' : 'transparent'}
-              analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-              analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-              analyticsParams={{
-                is_collapsed: isCollapsed,
-              }}
-            />
-          )}
-        </div>
-      )}
+      {props.trailingItems && <Container>{props.trailingItems}</Container>}
     </Grid>
+  );
+}
+
+function SecondaryNavigationToggle() {
+  const {layout} = usePrimaryNavigation();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
+
+  if (layout === 'mobile') {
+    return (
+      <Button
+        size="sm"
+        icon={<IconClose />}
+        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+        onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+        variant="transparent"
+      />
+    );
+  }
+
+  return (
+    <Button
+      size="sm"
+      icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+      aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+      onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+      variant={isCollapsed ? 'primary' : 'transparent'}
+      analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+      analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+      analyticsParams={{is_collapsed: isCollapsed}}
+    />
   );
 }
 
@@ -1002,6 +1005,7 @@ const SidebarNavigationLink = styled(Link)`
 
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
+  Toggle: SecondaryNavigationToggle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,
