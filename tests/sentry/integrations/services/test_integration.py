@@ -680,23 +680,18 @@ class GetAccessTokenTest(TestCase):
             metadata={"access_token": "gh-token", "expires_at": expires_at},
         )
 
-    def create_gitlab(self) -> Integration:
-        identity = self.create_identity(
-            user=self.user,
-            identity_provider=self.create_identity_provider(type="gitlab", external_id="gl:1"),
-            external_id="1",
-            data={
-                "access_token": "gl-token",
-                "refresh_token": "gl-refresh",
-                "expires": int(datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc).timestamp()),
-            },
-        )
+    def create_github_enterprise(self, expires_at: str = "2025-01-01T06:22:00") -> Integration:
         return self.create_integration(
             organization=self.organization,
-            provider="gitlab",
-            external_id="gitlab.example.com:1",
-            metadata={"base_url": "https://gitlab.example.com", "verify_ssl": True},
-            oi_params={"default_auth_id": identity.id},
+            provider="github_enterprise",
+            external_id="ghe.example.com:2",
+            metadata={
+                "access_token": "ghe-token",
+                "expires_at": expires_at,
+                "domain_name": "ghe.example.com/org",
+                "installation_id": "2",
+                "installation": {"private_key": "key", "id": "3", "verify_ssl": True},
+            },
         )
 
     def get_token(
@@ -720,7 +715,7 @@ class GetAccessTokenTest(TestCase):
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="app-jwt")
     def test_github_mints_a_token_about_to_expire(self, mock_jwt: MagicMock) -> None:
-        integration = self.create_github(expires_at="2025-01-01T05:27:00")
+        integration = self.create_github(expires_at="2025-01-01T05:25:00")
         responses.add(
             responses.POST,
             "https://api.github.com/app/installations/1/access_tokens",
@@ -731,30 +726,29 @@ class GetAccessTokenTest(TestCase):
             token="gh-token-2", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
         )
 
+    @responses.activate
     def test_github_enterprise_returns_the_stored_token(self) -> None:
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="ghe.example.com:2",
-            metadata={
-                "access_token": "ghe-token",
-                "expires_at": "2025-01-01T06:22:00",
-                "domain_name": "ghe.example.com/org",
-                "installation": {"private_key": "key", "id": "2", "verify_ssl": True},
-            },
+        assert self.get_token(self.create_github_enterprise()) == RpcAccessToken(
+            token="ghe-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="app-jwt")
+    def test_github_enterprise_mints_a_token_about_to_expire(self, mock_jwt: MagicMock) -> None:
+        integration = self.create_github_enterprise(expires_at="2025-01-01T05:25:00")
+        responses.add(
+            responses.POST,
+            "https://ghe.example.com/api/v3/app/installations/2/access_tokens",
+            json={"token": "ghe-token-2", "expires_at": "2025-01-01T06:22:00Z", "permissions": {}},
         )
 
-        token = self.get_token(integration)
+        assert self.get_token(integration) == RpcAccessToken(
+            token="ghe-token-2", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        mock_jwt.assert_called_once_with(github_id="3", github_private_key="key")
 
-        assert token is not None
-        assert token.token == "ghe-token"
-
-    def test_gitlab_returns_the_stored_token(self) -> None:
-        token = self.get_token(self.create_gitlab())
-
-        assert token is not None
-        assert token.token == "gl-token"
-
+    @responses.activate
     def test_cursor_origin_returns_the_stored_token(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
@@ -766,6 +760,7 @@ class GetAccessTokenTest(TestCase):
         assert self.get_token(integration) == RpcAccessToken(
             token="oit_stored", expires_at=datetime(2025, 1, 1, 5, 36, tzinfo=timezone.utc)
         )
+        assert len(responses.calls) == 0
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="app-jwt")
@@ -773,7 +768,7 @@ class GetAccessTokenTest(TestCase):
     def test_none_when_the_provider_fails(
         self, mock_logger: MagicMock, mock_jwt: MagicMock
     ) -> None:
-        integration = self.create_github(expires_at="2025-01-01T05:27:00")
+        integration = self.create_github(expires_at="2025-01-01T05:25:00")
         responses.add(
             responses.POST, "https://api.github.com/app/installations/1/access_tokens", status=503
         )
@@ -787,26 +782,6 @@ class GetAccessTokenTest(TestCase):
                 "provider": "github",
                 "error": "ApiError",
                 "status_code": 503,
-            },
-        )
-
-    @patch("sentry.integrations.services.integration.impl.logger")
-    def test_none_without_a_gitlab_identity(self, mock_logger: MagicMock) -> None:
-        integration = self.create_gitlab()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.get(integration_id=integration.id).update(
-                default_auth_id=None
-            )
-
-        assert self.get_token(integration) is None
-        mock_logger.warning.assert_called_once_with(
-            "integration_service.access_token.unavailable",
-            extra={
-                "integration_id": integration.id,
-                "organization_id": self.organization.id,
-                "provider": "gitlab",
-                "error": "IntegrationConfigurationError",
-                "status_code": None,
             },
         )
 

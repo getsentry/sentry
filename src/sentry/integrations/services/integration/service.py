@@ -329,8 +329,8 @@ class IntegrationService(RpcService):
         """Return an access token for the integration's provider, minted or refreshed in control.
 
         For callers outside control that hand the token on: they can't mint or refresh one, and
-        can't retry after a 401, so the token has at least a few minutes left. Supports GitHub,
-        GitHub Enterprise, GitLab and Cursor Origin.
+        can't retry after a 401, so the token has at least five minutes left. Supports GitHub,
+        GitHub Enterprise and Cursor Origin.
 
         Org-scoped like ``refresh_github_access_token``. None when the organization has no active
         install of an active integration with that id from one of those providers, or when

@@ -8,16 +8,13 @@ from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
-from requests.exceptions import RequestException
 
 from sentry import analytics
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
     AlertRuleUiComponentWebhookSentEvent,
 )
 from sentry.api.paginator import OffsetPaginator
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus, SentryAppInstallationStatus
-from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
@@ -64,14 +61,8 @@ from sentry.sentry_apps.utils.webhooks import (
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
 )
-from sentry.shared_integrations.exceptions import (
-    ApiError,
-    IntegrationConfigurationError,
-    IntegrationError,
-)
-from sentry.users.models.identity import Identity
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import json
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 logger = logging.getLogger(__name__)
@@ -80,20 +71,32 @@ logger = logging.getLogger(__name__)
 ACCESS_TOKEN_PROVIDERS = (
     IntegrationProviderSlug.GITHUB.value,
     IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-    IntegrationProviderSlug.GITLAB.value,
     IntegrationProviderSlug.CURSOR_ORIGIN.value,
 )
 
+# Covers the time until the caller uses the token, and clock skew with the provider.
+ACCESS_TOKEN_MINIMUM_VALIDITY = timedelta(minutes=5)
 
-def _parse_expires_at(value: str | None) -> datetime | None:
-    # GitHub stores a naive UTC time; GitLab and Cursor Origin store an aware one.
-    if value is None:
-        return None
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        return None
+
+def _parse_expires_at(value: str) -> datetime:
+    # GitHub stores a naive UTC time, Cursor Origin an aware one.
+    parsed = datetime.fromisoformat(value)
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+
+
+def _log_access_token_unavailable(
+    integration: Integration, organization_id: int, error: str, status_code: int | None = None
+) -> None:
+    logger.warning(
+        "integration_service.access_token.unavailable",
+        extra={
+            "integration_id": integration.id,
+            "organization_id": organization_id,
+            "provider": integration.provider,
+            "error": error,
+            "status_code": status_code,
+        },
+    )
 
 
 class DatabaseBackedIntegrationService(IntegrationService):
@@ -699,43 +702,27 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         try:
             client = integration.get_installation(organization_id=organization_id).get_client()
-            if integration.provider in (
-                IntegrationProviderSlug.GITHUB.value,
-                IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-            ):
-                # Unless asked for a margin, GitHub's client refreshes only an expired token.
-                token = client.get_access_token(token_minimum_validity_time=timedelta(minutes=10))
-            else:
-                token = client.get_access_token()
+            token = client.get_access_token(
+                token_minimum_validity_time=ACCESS_TOKEN_MINIMUM_VALIDITY
+            )
         except (
-            # GitLab: no identity to take the token from.
-            IntegrationConfigurationError,
-            Identity.DoesNotExist,
+            # The organization's install went away after the lookup above.
+            OrganizationIntegrationNotFound,
             # The provider refused, failed, or couldn't be reached.
-            IdentityNotValid,
             ApiError,
-            RequestException,
-            RestrictedIPAddress,
-            # GitLab: another request's refresh held the lock too long.
-            UnableToAcquireLock,
         ) as e:
             # Not the message: it can carry the provider's response.
-            logger.warning(
-                "integration_service.access_token.unavailable",
-                extra={
-                    "integration_id": integration_id,
-                    "organization_id": organization_id,
-                    "provider": integration.provider,
-                    "error": type(e).__name__,
-                    "status_code": getattr(e, "code", None),
-                },
+            _log_access_token_unavailable(
+                integration, organization_id, type(e).__name__, getattr(e, "code", None)
             )
             return None
 
         if not token:
+            # The integration was deleted while a token was being minted.
+            _log_access_token_unavailable(integration, organization_id, "no_token")
             return None
         return RpcAccessToken(
-            token=token["access_token"], expires_at=_parse_expires_at(token.get("expires_at"))
+            token=token["access_token"], expires_at=_parse_expires_at(token["expires_at"])
         )
 
     def refresh_github_permissions(
