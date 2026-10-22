@@ -182,6 +182,12 @@ export interface SearchQueryBuilderProps {
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
+  /**
+   * When true, picking a value from the dropdown keeps the operator the user
+   * chose. By default a filter under "contains" with no value yet switches to
+   * "is" on a pick, since a suggestion is an exact value.
+   */
+  keepOperatorOnValueSelect?: boolean;
   label?: string;
   /**
    * Allows for key suggestions to be rendered when the value matches the pattern.

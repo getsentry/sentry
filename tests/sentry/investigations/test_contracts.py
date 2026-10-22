@@ -645,6 +645,15 @@ class _Kind(ActionKind):
     payload_serializer = _Payload
 
 
+def fake_action(target: str = "a") -> dict[str, Any]:
+    return {"kind": "test_kind", "target": target}
+
+
+def fake_action_kind() -> Any:
+    """Register the test-only kind, for tests of the shared action request code."""
+    return patch.dict(ACTION_KINDS, {"test_kind": _Kind()})
+
+
 @pytest.fixture(autouse=True)
 def test_kind() -> Generator[None]:
     with patch.dict(ACTION_KINDS, {"test_kind": _Kind()}):

@@ -69,10 +69,16 @@ function constrainAndAlignListBox({
 function WildcardFooter({
   canUseWildcard,
   token,
+  valueHint,
 }: {
   canUseWildcard: boolean;
   token: TokenResult<Token.FILTER>;
+  valueHint: string | undefined;
 }) {
+  if (valueHint) {
+    return <Container>{valueHint}</Container>;
+  }
+
   if (isRegexOperator(token.operator)) {
     return <Container>{t('Regular expression (RE2 syntax)')}</Container>;
   }
@@ -96,6 +102,7 @@ interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
   isMultiSelect: boolean;
   items: T[];
   token: TokenResult<Token.FILTER>;
+  valueHint: string | undefined;
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   portalTarget?: HTMLElement | null;
 }
@@ -104,12 +111,19 @@ function Footer({
   isMultiSelect,
   canUseWildcard,
   token,
+  valueHint,
 }: {
   canUseWildcard: boolean;
   isMultiSelect: boolean;
   token: TokenResult<Token.FILTER>;
+  valueHint: string | undefined;
 }) {
-  if (!isMultiSelect && !canUseWildcard && !isRegexOperator(token.operator)) {
+  if (
+    !isMultiSelect &&
+    !canUseWildcard &&
+    !valueHint &&
+    !isRegexOperator(token.operator)
+  ) {
     return null;
   }
 
@@ -118,7 +132,11 @@ function Footer({
       {isMultiSelect ? (
         <Container>{t('Use the checkboxes to select multiple')}</Container>
       ) : null}
-      <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
+      <WildcardFooter
+        canUseWildcard={canUseWildcard}
+        token={token}
+        valueHint={valueHint}
+      />
     </FooterContainer>
   );
 }
@@ -138,6 +156,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   canUseWildcard,
   portalTarget,
   token,
+  valueHint,
   wrapperRef,
 }: ValueListBoxProps<T>) {
   const {menuPresentation} = useSearchQueryBuilderLayout();
@@ -180,7 +199,11 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     [listBoxRef, menuPresentation, popoverRef, wrapperRef]
   );
 
-  if (!isOpen || (!anyItemsShowing && !isLoading && !isRegexOperator(token.operator))) {
+  // A field with a value hint shows it even while there is nothing to suggest.
+  if (
+    !isOpen ||
+    (!anyItemsShowing && !isLoading && !isRegexOperator(token.operator) && !valueHint)
+  ) {
     return null;
   }
 
@@ -214,6 +237,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               isMultiSelect={isMultiSelect}
               canUseWildcard={canUseWildcard}
               token={token}
+              valueHint={valueHint}
             />
           </Fragment>
         )}
