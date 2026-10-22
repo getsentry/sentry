@@ -122,7 +122,7 @@ export function isHighlighted(bucket: DroppedDataBucket): boolean {
 export function hasDroppedData(
   droppedEvents: DroppedEventsBucket[] | undefined,
   acceptedEvents?: DroppedEventsBucket[]
-): droppedEvents is DroppedEventsBucket[] {
+): boolean {
   return (
     defined(droppedEvents) &&
     groupIntoBuckets(droppedEvents, acceptedEvents).some(isHighlighted)
