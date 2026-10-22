@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+import multiprocessing
 import os
 import random
 import signal
 import time
+from multiprocessing.synchronize import Event
 from typing import Any
 
 import click
@@ -248,23 +250,41 @@ def taskworker(autoreload: bool, **options: Any) -> None:
     if autoreload:
         # The worker registers signal handlers, so it must own the main thread of
         # its own process. watchfiles restarts that process with SIGINT on change.
+        configured = multiprocessing.get_context("spawn").Event()
         watchfiles.run_process(
             os.path.dirname(sentry.__file__),
             discover_configs()[0],
             target=_run_reloaded_taskworker,
-            kwargs=options,
+            kwargs={"configured": configured, **options},
+            callback=lambda changes: _wait_for_reloaded_taskworker(configured),
             watch_filter=watchfiles.PythonFilter(),
         )
     else:
         run_taskworker(**options)
 
 
-def _run_reloaded_taskworker(**options: Any) -> None:
+def _wait_for_reloaded_taskworker(configured: Event) -> None:
+    # A SIGINT during startup prints a KeyboardInterrupt traceback, so let the
+    # worker finish configuring before watchfiles restarts it.
+    while not configured.wait(timeout=0.1):
+        if not multiprocessing.active_children():
+            break
+    configured.clear()
+
+
+def _run_reloaded_taskworker(configured: Event, **options: Any) -> None:
     # Runs in a fresh spawned process, which has to configure Sentry again.
     from sentry.runner import configure
 
-    configure()
-    run_taskworker(**options)
+    try:
+        configure()
+    finally:
+        configured.set()
+    try:
+        run_taskworker(**options)
+    except KeyboardInterrupt:
+        # The restart arrived before the worker registered its SIGINT handler.
+        pass
 
 
 def run_taskworker(
