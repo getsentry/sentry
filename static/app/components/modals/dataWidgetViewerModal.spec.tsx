@@ -1104,8 +1104,8 @@ describe('Modals -> DataWidgetViewerModal', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {},
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       const projects = [ProjectFixture()];
       initialData = {
@@ -1209,10 +1209,10 @@ describe('Modals -> DataWidgetViewerModal', () => {
       expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
     });
 
-    it('does not make an events-stats request with an arbitrary table sort as a y-axis', async () => {
-      const eventsStatsMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {},
+    it('does not make an events-timeseries request with an arbitrary table sort as a y-axis', async () => {
+      const eventsTimeseriesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       const mockWidget = WidgetFixture({
         widgetType: WidgetType.SPANS,
@@ -1228,11 +1228,11 @@ describe('Modals -> DataWidgetViewerModal', () => {
         ],
       });
       await renderModal({initialData, widget: mockWidget});
-      expect(eventsStatsMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+      expect(eventsTimeseriesMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
-            orderby: '-count(span.duration)',
+            sort: '-count(span.duration)',
 
             // The orderby should not appear as a yAxis
             yAxis: ['p90(span.duration)'],

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/scraps",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/sentry.git",
@@ -201,7 +201,6 @@
   },
   "scripts": {
     "build": "rslib build",
-    "verify": "node scripts/verify.mjs",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
     "typecheck": "tsc --build tsconfig.test.json",
     "prepack": "pnpm run build",
@@ -235,7 +234,7 @@
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
     "query-string": "7.0.1",
-    "type-fest": "^5.8.0"
+    "type-fest": "^5.10.0"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",

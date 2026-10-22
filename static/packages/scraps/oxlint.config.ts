@@ -56,14 +56,5 @@ export default createPackageConfig(import.meta.dirname, {
       files: ['src/**/*.spec.{ts,tsx}', 'test/**/*.{ts,tsx,mjs}'],
       rules: {'import/no-relative-parent-imports': 'off'},
     },
-    {
-      files: ['scripts/*.mjs'],
-      env: {node: true},
-      rules: {
-        'import-js/no-extraneous-dependencies': 'off',
-        'import/no-nodejs-modules': 'off',
-        'no-console': 'off',
-      },
-    },
   ],
 });

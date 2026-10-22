@@ -54,6 +54,7 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSearch,
@@ -362,6 +363,7 @@ function Graph({
 function ContextMenu({interval, visualize}: {interval: string; visualize: Visualize}) {
   const location = useLocation();
   const organization = useOrganization();
+  const hasTransformations = useQueryParamsHasTransformations();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
@@ -491,6 +493,12 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
+          disabled={hasTransformations}
+          tooltipProps={
+            hasTransformations
+              ? {title: t('Queries with transformations cannot be saved yet.')}
+              : undefined
+          }
         />
       )}
       position="bottom-end"
