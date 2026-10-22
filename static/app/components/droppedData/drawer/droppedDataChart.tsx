@@ -118,7 +118,7 @@ export function DroppedDataChart({
                 'Your filtered events are broken down by category below. Use Seer to understand what each category means and how to fix common causes of unintentional data loss.'
               )
             : t(
-                'Your filtered events are broken down by category below. Each reason links to docs that explain what it means and how to fix common causes of unintentional data loss.'
+                'Your filtered events are broken down by category below. Each reason links to docs with explanations and common fixes of unintentional data loss.'
               )}
         </Text>
       </Stack>

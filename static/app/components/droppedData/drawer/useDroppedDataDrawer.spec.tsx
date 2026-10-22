@@ -138,7 +138,9 @@ describe('useDroppedDataDrawer', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
     expect(
-      await screen.findByText(/Each reason links to docs that explain what it means/)
+      await screen.findByText(
+        /Each reason links to docs with explanations and common fixes/
+      )
     ).toBeInTheDocument();
     expect(screen.queryByText(/Use Seer/)).not.toBeInTheDocument();
   });
