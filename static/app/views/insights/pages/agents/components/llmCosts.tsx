@@ -8,7 +8,7 @@ import {
   formatLLMCostsExact,
 } from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 
-const COST_DOCS_URL = 'https://docs.sentry.io/ai/monitoring/agents/costs/';
+const COST_DOCS_URL = 'https://docs.sentry.io/product/agents/costs/';
 
 interface LLMCostsProps {
   cost: number | string | null;

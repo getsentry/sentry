@@ -1,10 +1,9 @@
 import {useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Grid} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -30,7 +29,6 @@ interface EventListProps {
 }
 
 export function EventList({group}: EventListProps) {
-  const theme = useTheme();
   const referrer = 'issue_details.streamline_list';
   const location = useLocation();
   const organization = useOrganization();
@@ -79,7 +77,6 @@ export function EventList({group}: EventListProps) {
     <EventListTable pagination={{enabled: false}}>
       <EventsTable
         key={retryCount}
-        theme={theme}
         eventView={eventView}
         location={location}
         issueId={group.id}

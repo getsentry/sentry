@@ -4,9 +4,11 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {SourceMapDebugResponseFixture} from 'sentry-fixture/sourceMapDebug';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -15,6 +17,7 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {SourceMapDebugResponse} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -27,6 +30,7 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -353,6 +357,178 @@ describe('groupEventDetails', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  describe('source-map issue content', () => {
+    const eventUrl = '/organizations/org-slug/issues/1/events/recommended/';
+    const diagnosticUrl =
+      '/projects/org-slug/project-slug/events/sample-event/source-map-debug/';
+    let props: ReturnType<typeof makeDefaultMockData>;
+
+    beforeEach(() => {
+      props = makeDefaultMockData();
+      props.group = GroupFixture({
+        issueCategory: IssueCategory.CONFIGURATION,
+        issueType: IssueType.SOURCEMAP_CONFIGURATION,
+      });
+      props.event = EventFixture({
+        sdk: {name: 'sentry.javascript.browser', version: '10.0.0'},
+        occurrence: {
+          ...EventFixture().occurrence!,
+          evidenceData: {sampleEventId: 'sample-event'},
+        },
+      });
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      MockApiClient.addMockResponse({
+        url: diagnosticUrl,
+        body: SourceMapDebugResponseFixture(),
+      });
+    });
+
+    it('loads project content before the sample, then shows the diagnosis and event header', async () => {
+      const sampleResponse = Promise.withResolvers<void>();
+      MockApiClient.addMockResponse({
+        url: eventUrl,
+        body: props.event,
+        asyncDelay: sampleResponse.promise,
+      });
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(await screen.findByRole('heading', {name: 'Problem'})).toBeInTheDocument();
+      expect(
+        await screen.findByText('No impacted events found in the last 30 days.')
+      ).toBeInTheDocument();
+
+      await act(() => {
+        sampleResponse.resolve();
+        return sampleResponse.promise;
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'Upload Instructions'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Copy Event ID'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'JSON'})).toHaveAttribute(
+        'href',
+        `${props.organization.links.regionUrl}/api/0/projects/${props.organization.slug}/${props.project.slug}/events/${props.event.id}/json/`
+      );
+    });
+
+    it.each([
+      {
+        url: eventUrl,
+        statusCode: 404,
+        message:
+          'No sample event is available for diagnosis. Use the troubleshooting suggestions below.',
+      },
+      {
+        url: eventUrl,
+        statusCode: 500,
+        message: 'Unable to load a sample event for diagnosis.',
+      },
+      {
+        url: diagnosticUrl,
+        statusCode: 404,
+        message:
+          'The sample event is no longer available for diagnosis. Use the troubleshooting suggestions below.',
+      },
+    ])(
+      'keeps project content visible after $statusCode from $url',
+      async ({url, statusCode, message}) => {
+        MockApiClient.addMockResponse({url, statusCode});
+        render(<GroupEventDetails />, {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+        });
+
+        expect(await screen.findByText(message)).toBeInTheDocument();
+        expect(screen.getByRole('heading', {name: 'Problem'})).toBeInTheDocument();
+        expect(screen.getByRole('heading', {name: 'Impact'})).toBeInTheDocument();
+      }
+    );
+
+    it.each([eventUrl, diagnosticUrl])(
+      'keeps the cached diagnosis after a failed refresh of %s',
+      async url => {
+        const queryClient = makeTestQueryClient();
+        await queryClient.fetchQuery(
+          groupEventApiOptions({
+            orgSlug: props.organization.slug,
+            groupId: props.group.id,
+            eventId: 'recommended',
+            environments: [],
+          })
+        );
+        await queryClient.fetchQuery(
+          apiOptions.as<SourceMapDebugResponse>()(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
+            {
+              path: {
+                organizationIdOrSlug: props.organization.slug,
+                projectIdOrSlug: props.project.slug,
+                eventId: 'sample-event',
+              },
+              staleTime: Infinity,
+            }
+          )
+        );
+        MockApiClient.addMockResponse({url, statusCode: 500});
+        await queryClient.refetchQueries();
+
+        render(
+          <QueryClientProvider client={queryClient}>
+            <GroupEventDetails />
+          </QueryClientProvider>,
+          {
+            organization: props.organization,
+            initialRouterConfig: props.initialRouterConfig,
+          }
+        );
+
+        expect(
+          await screen.findByRole('button', {name: 'Upload Instructions'})
+        ).toBeInTheDocument();
+      }
+    );
+
+    it('retries the sample request and displays its diagnosis', async () => {
+      MockApiClient.addMockResponse({url: eventUrl, statusCode: 500});
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+      const retry = await screen.findByRole('button', {name: 'Retry'});
+
+      MockApiClient.addMockResponse({url: eventUrl, body: props.event});
+      await userEvent.click(retry);
+
+      expect(
+        await screen.findByRole('button', {name: 'Upload Instructions'})
+      ).toBeInTheDocument();
+    });
+
+    it('shows general guidance when the sample has no SDK', async () => {
+      MockApiClient.addMockResponse({
+        url: eventUrl,
+        body: EventFixture({...props.event, sdk: undefined}),
+      });
+      render(<GroupEventDetails />, {
+        organization: props.organization,
+        initialRouterConfig: props.initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByText(
+          'Diagnostic information is unavailable for this sample. Use the troubleshooting suggestions below.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Verify Artifacts Are Uploaded'})
+      ).toBeInTheDocument();
+    });
   });
 
   it('redirects on switching to an invalid environment selection for event', async () => {

@@ -1,7 +1,8 @@
+import {IconInfo} from '@sentry/icons/info';
+
 import {Button} from '@sentry/scraps/button';
 
 import {openAlertsMonitorsShowcase} from 'sentry/components/workflowEngine/ui/alertsMonitorsShowcase';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

@@ -68,8 +68,9 @@ export type GrowthEventParameters = {
   'github_invite_banner.snoozed': Record<string, unknown>;
   'github_invite_banner.viewed': {members_shown: number; total_members: number};
   'growth.clicked_enter_sandbox': {
-    scenario: string;
+    scenario?: string;
     source?: string;
+    step?: string;
   };
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;

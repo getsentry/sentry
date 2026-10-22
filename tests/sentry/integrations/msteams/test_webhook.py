@@ -15,6 +15,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils import jwt
@@ -182,7 +183,28 @@ class MsTeamsWebhookTest(APITestCase):
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
-    def test_member_added(self, mock_time: MagicMock, mock_decode: MagicMock) -> None:
+    def test_team_member_added_is_ignored(
+        self, mock_time: MagicMock, mock_decode: MagicMock
+    ) -> None:
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+
+        resp = self.client.post(
+            path=webhook_url,
+            data=EXAMPLE_TEAM_MEMBER_ADDED,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+        )
+
+        assert resp.status_code == 204
+        assert not any(call.request.method == "POST" for call in responses.calls)
+
+    @responses.activate
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
+    def test_team_installation_update_sends_setup_message(
+        self, mock_time: MagicMock, mock_decode: MagicMock
+    ) -> None:
         conversation_id = "19:selected-channel@thread.tacv2"
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
@@ -196,14 +218,20 @@ class MsTeamsWebhookTest(APITestCase):
             json={},
         )
 
-        team_member_added = deepcopy(EXAMPLE_TEAM_MEMBER_ADDED)
-        team_member_added["conversation"]["id"] = conversation_id
+        installation_update = deepcopy(EXAMPLE_TEAM_MEMBER_ADDED)
+        installation_update.update({"action": "add", "type": "installationUpdate"})
+        installation_update.pop("membersAdded")
+        installation_update["conversation"]["id"] = conversation_id
+        installation_update["channelData"].pop("eventType")
+        installation_update["channelData"]["settings"] = {
+            "selectedChannel": {"id": conversation_id}
+        }
 
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
             path=webhook_url,
-            data=team_member_added,
+            data=installation_update,
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
@@ -322,6 +350,26 @@ class MsTeamsWebhookTest(APITestCase):
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
+    def test_personal_member_added_message_disabled(
+        self, mock_time: MagicMock, mock_decode: MagicMock
+    ) -> None:
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+
+        resp = self.client.post(
+            path=webhook_url,
+            data=EXAMPLE_PERSONAL_MEMBER_ADDED,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+        )
+
+        assert resp.status_code == 204
+        assert not any(call.request.method == "POST" for call in responses.calls)
+
+    @responses.activate
+    @override_options({"msteams.personal-installation-link.enabled": True})
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
     def test_personal_member_added(self, mock_time: MagicMock, mock_decode: MagicMock) -> None:
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
@@ -345,7 +393,10 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 201
-        assert "Personal Installation of Sentry" in responses.calls[3].request.body.decode("utf-8")
+        response_body = responses.calls[3].request.body.decode("utf-8")
+        assert "Personal Installation of Sentry" in response_body
+        assert "Complete Setup" in response_body
+        assert "/extensions/msteams/configure/?signed_params=" in response_body
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
@@ -361,7 +412,7 @@ class MsTeamsWebhookTest(APITestCase):
         responses.add(
             responses.POST,
             "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
-            % EXAMPLE_PERSONAL_MEMBER_ADDED["conversation"]["id"],
+            % EXAMPLE_MENTIONED["conversation"]["id"],
             json={},
         )
         mock_time.return_value = 1594839999 + 60
@@ -374,9 +425,57 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert "Sentry for Microsoft Teams does not support any commands" in responses.calls[
-            3
-        ].request.body.decode("utf-8")
+        response_body = responses.calls[3].request.body.decode("utf-8")
+        assert "Sentry installation is incomplete for this team." in response_body
+        assert "View Guide" in response_body
+        assert (
+            "https://docs.sentry.io/integrations/notification-incidents/msteams/" in response_body
+        )
+        assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+    @responses.activate
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
+    def test_mentioned_when_team_is_installed(
+        self, mock_time: MagicMock, mock_decode: MagicMock
+    ) -> None:
+        integration = self.create_provider_integration(
+            external_id=team_id, name="Example Team", provider="msteams"
+        )
+        self.create_organization_integration(
+            organization_id=self.organization.id, integration=integration
+        )
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        responses.add(
+            responses.POST,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            % EXAMPLE_MENTIONED["conversation"]["id"],
+            json={},
+        )
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+
+        resp = self.client.post(
+            path=webhook_url,
+            data=EXAMPLE_MENTIONED,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+        )
+
+        assert resp.status_code == 204
+        response_body = responses.calls[3].request.body.decode("utf-8")
+        assert "Sentry is already installed for this team" in response_body
+        assert "Example Team" in response_body
+        assert "To unlink your Microsoft Teams identity" in response_body
+        assert "Installation" in response_body
+        assert "Alerts" in response_body
+        assert "/settings/integrations/msteams/" in response_body
+        assert "/alerts/" in response_body
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate

@@ -16,9 +16,8 @@ from sentry.issues.action_log import (
     get_action_context,
     publish_action,
     publish_actions_from_context_bulk,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.action_log.types import (
     ActionSource,
@@ -86,6 +85,15 @@ class TestResolveActionSource(TestCase):
             },
         )
         assert resolve_action_source(request) == "mcp:claude-code"
+
+    def test_mcp_legacy_claude_desktop_family_is_recorded_as_claude(self) -> None:
+        request = _make_request(
+            meta={
+                "HTTP_USER_AGENT": MCP_USER_AGENT,
+                "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-desktop",
+            },
+        )
+        assert resolve_action_source(request) == "mcp:claude"
 
     def test_mcp_unrecognized_family_logs_and_falls_back(self) -> None:
         request = _make_request(
@@ -884,3 +892,22 @@ class TestActivitiesCreateActions(TestCase):
         caption = cast(CapturedAction, log.assert_logged(SetResolvedByAgeAction))
         action: SetResolvedByAgeAction = cast(SetResolvedByAgeAction, caption.action)
         assert action.auto_resolve_age_threshold == 123
+
+    def test_smart_assignment_completed_creates_log_entry(self) -> None:
+        data = {
+            "run_id": 123,
+            "run_uuid": "00000000-0000-0000-0000-000000000001",
+            "predicted_assignee_user_ids": [456, None],
+        }
+
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+                data=data,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.type == GroupActionType.SMART_ASSIGNMENT_COMPLETED
+        assert entry.data == data

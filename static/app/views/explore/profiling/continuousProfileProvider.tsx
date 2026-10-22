@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 import {Stack} from '@sentry/scraps/layout';
 

@@ -1,9 +1,10 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import {IconCode} from '@sentry/icons/code';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
@@ -32,8 +33,7 @@ import {
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {IconCode} from 'sentry/icons/iconCode';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -276,6 +276,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
               <FileDiffViewer
                 key={index}
                 patch={patch.patch}
+                fileUrl={patch.code_url}
                 showBorder
                 collapsible
                 defaultExpanded={shouldExpandDiffs}
@@ -290,7 +291,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <ArtifactDetails gap="lg">
         <Stack gap="md">
           <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
-          <Markdown raw={explanation} />
+          <SeerMarkdown raw={explanation} />
         </Stack>
         {shouldShowReset ? (
           resetPrompt(

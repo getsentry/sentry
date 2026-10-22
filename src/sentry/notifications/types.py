@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -8,11 +9,71 @@ from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.models.rule import Rule
+    from sentry.models.project import Project
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(eq=False, frozen=True)
+class NotificationOrigin:
+    """Identifies the rule or workflow that caused a notification."""
+
+    label: str
+    environment_id: int | None
+    workflow_id: int | None
+    legacy_rule_id: int | None
+
+    def __post_init__(self) -> None:
+        # identifier and link_id assume at least one ID is set; log where an origin
+        # without one is created rather than only failing when it's later used.
+        if self.workflow_id is None and self.legacy_rule_id is None:
+            logger.warning(
+                "notifications.origin.missing_identity",
+                extra={"label": self.label, "environment_id": self.environment_id},
+                stack_info=True,
+            )
+
+    def is_test_notification(self) -> bool:
+        return (
+            self.workflow_id == TEST_NOTIFICATION_ID or self.legacy_rule_id == TEST_NOTIFICATION_ID
+        )
+
+    @property
+    def identifier(self) -> tuple[str, int]:
+        """Stable identity used to compare and group notification origins."""
+        if self.workflow_id is not None:
+            return ("workflow", self.workflow_id)
+        assert self.legacy_rule_id is not None
+        return ("legacy-rule", self.legacy_rule_id)
+
+    @property
+    def link_id(self) -> int:
+        """Legacy-compatible ID for contexts that previously consumed Rule.id."""
+        if self.legacy_rule_id is not None:
+            return self.legacy_rule_id
+        assert self.workflow_id is not None
+        return self.workflow_id
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NotificationOrigin):
+            return NotImplemented
+        return self.identifier == other.identifier
+
+    def __hash__(self) -> int:
+        return hash(self.identifier)
+
+
+@dataclass(frozen=True)
+class NotificationActionContext:
+    """Identity for action execution; executable configuration is passed separately."""
+
+    origin: NotificationOrigin
+    action_id: int
+    project: Project
 
 
 class RuleFuture(NamedTuple):
-    rule: Rule
+    context: NotificationActionContext
     kwargs: dict[str, Any]
 
 

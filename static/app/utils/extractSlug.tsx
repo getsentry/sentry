@@ -5,7 +5,7 @@ type ExtractedSlug = {
 
 // XXX: If you change this also change its sibiling in:
 // - static/index.ejs
-// - rspack.config.ts
+// - rsbuild.config.ts
 const KNOWN_DOMAINS = /\.?((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
 /**
@@ -27,4 +27,20 @@ export function extractSlug(hostname: string): ExtractedSlug | null {
   const domain = domainParts.concat(matchedDomain!).join('.');
 
   return {slug: slug!, domain};
+}
+
+/**
+ * Organization slug from the current dev-ui organization domain, such as
+ * `acme.dev.getsentry.net`. Returns null outside dev-ui and on deploy
+ * previews: previews are served from a single deployment host such as
+ * `sentry-abc123.sentry.dev`, so its first label is not an organization.
+ */
+export function getDevUiOrganizationSlug(): string | null {
+  // Read the build define directly: bootstrap runs before hydration and
+  // locale init, so it must not load `sentry/constants`.
+  if (!window.__SENTRY_DEV_UI || process.env.DEPLOY_PREVIEW_CONFIG) {
+    return null;
+  }
+
+  return extractSlug(window.location.host)?.slug || null;
 }

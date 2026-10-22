@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.rules.actions import TicketEventAction
@@ -24,10 +23,7 @@ class JiraServerCreateTicketAction(TicketEventAction):
             self.data["fixVersions"] = [fix_versions]
 
     def generate_footer(self, rule_url: str) -> str:
-        return f"This ticket was automatically created by Sentry via [{self.rule.label}|{absolute_uri(rule_url)}]"
+        return f"This ticket was automatically created by Sentry via [{self.action_context.origin.label}|{absolute_uri(rule_url)}]"
 
     def translate_integration(self, integration: RpcIntegration) -> str:
         return integration.metadata.get("domain_name", integration.name)
-
-    def get_form_instance(self) -> JiraServerNotifyServiceForm:
-        return JiraServerNotifyServiceForm(self.data, integrations=self.get_integrations())

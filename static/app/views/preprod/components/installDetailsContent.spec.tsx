@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   getDeviceInstallUrl,
@@ -83,6 +83,10 @@ describe('InstallDetailsContent', () => {
     });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('shows settings link on 404 when distribution is disabled', async () => {
     MockApiClient.addMockResponse({
       url: INSTALL_DETAILS_URL,
@@ -154,7 +158,8 @@ describe('InstallDetailsContent', () => {
   });
 
   it('shows generic error with retry for non-404 errors', async () => {
-    MockApiClient.addMockResponse({
+    jest.useFakeTimers();
+    const installDetailsRequest = MockApiClient.addMockResponse({
       url: INSTALL_DETAILS_URL,
       statusCode: 500,
       body: {detail: 'Internal error'},
@@ -164,9 +169,12 @@ describe('InstallDetailsContent', () => {
       organization,
     });
 
-    expect(
-      await screen.findByRole('button', {name: 'Retry'}, {timeout: 10_000})
-    ).toBeInTheDocument();
+    // Non-404 errors are retried twice with react-query's default exponential
+    // backoff (1s, then 2s) before the error is shown
+    await act(() => jest.advanceTimersByTimeAsync(3000));
+
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(installDetailsRequest).toHaveBeenCalledTimes(3);
   });
 
   it('shows distribution error reason when no install URL and error code is provided', async () => {

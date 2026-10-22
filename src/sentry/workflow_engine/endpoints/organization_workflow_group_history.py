@@ -53,7 +53,16 @@ class OrganizationWorkflowGroupHistoryEndpoint(OrganizationWorkflowEndpoint):
         except InvalidParams:
             raise ParseError(detail="Invalid start and end dates")
 
-        results = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page, sort)
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        results = fetch_workflow_groups_paginated(
+            workflow,
+            start,
+            end,
+            cursor,
+            per_page,
+            sort,
+            project_ids=[project.id for project in projects],
+        )
 
         response = Response(
             serialize(results.results, request.user, WorkflowGroupHistorySerializer())

@@ -6,6 +6,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    MAX_FILTERS_PER_PROJECT,
     ConditionType,
     CustomInboundFilter,
     DataType,
@@ -393,7 +394,7 @@ def _chunk_load_error_filter() -> RuleCondition:
 def _custom_error_filter() -> RuleCondition | None:
     values = settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES
     # The filter is enabled by default for all projects, but is a no-op unless custom
-    # values are configured. Return None so it is omitted from the Relay config entirely.
+    # values are configured. Omit the global condition until there are values to match.
     if not values:
         return None
     return _error_message_condition(values, match_logentry=True)
@@ -428,6 +429,21 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]]
     ("react-hydration-errors", _hydration_error_filter),
     ("custom-error", _custom_error_filter),
 ]
+
+
+def get_global_generic_filters() -> GenericFiltersConfig:
+    """Build shared generic filter definitions for Relay's global config.
+
+    These definitions are disabled globally. Projects opt in with a lightweight
+    entry containing the filter ID and their existing project-level toggle.
+    """
+    filters: list[GenericFilter] = []
+    for filter_id, filter_fn in ACTIVE_GENERIC_FILTERS:
+        condition = filter_fn()
+        if condition is not None:
+            filters.append({"id": filter_id, "isEnabled": False, "condition": condition})
+
+    return {"version": GENERIC_FILTERS_VERSION, "filters": filters}
 
 
 def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
@@ -507,16 +523,17 @@ def get_generic_filters(
         if filter_features.custom_inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)
 
-    for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
+    # These filters are defined once in global config. Keep the project toggle
+    # independent from the current condition so global conditions can change
+    # without rebuilding each project's cached config.
+    for generic_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
         # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
         # why the value true is determined by either `1` or `True`.
         if project.get_option(f"filters:{generic_filter_id}") not in ("1", True):
             continue
 
-        condition = generic_filter_fn()
-        if condition is not None:
-            generic_filters.append(_generic_filter(generic_filter_id, condition))
+        generic_filters.append({"id": generic_filter_id, "isEnabled": True, "condition": None})
 
     if not generic_filters:
         return None
@@ -609,6 +626,10 @@ _CONDITION_MATCHERS: Mapping[
         DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
     },
     ConditionType.IP_ADDRESS: _client_ip_matcher,
+    # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
+    ConditionType.GEO_COUNTRY_CODE: {
+        DataType.ERROR: _field_matcher("event.user.geo.country_code"),
+    },
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
@@ -698,7 +719,7 @@ def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericF
     # through the legacy path, so serving it here would filter the same data twice.
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True, legacy_filter__isnull=True
-    ).order_by("id")
+    ).order_by("id")[:MAX_FILTERS_PER_PROJECT]
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
         if condition is not None:

@@ -10,7 +10,9 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {ApiResult} from 'sentry/types/api';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {PreloadRequestName} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {
   addOrganizationFeaturesHandler,
@@ -98,15 +100,9 @@ export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
     queryKey: ['bootstrap-organization', orgSlug],
     queryFn: orgSlug
       ? async (): Promise<Organization> => {
-          // Get the preloaded data promise
-          try {
-            const preloadResponse = await getPreloadedData('organization', orgSlug);
-            // If the preload request was for a different org or the promise was rejected
-            if (Array.isArray(preloadResponse) && preloadResponse[0] !== null) {
-              return preloadResponse[0];
-            }
-          } catch {
-            // Silently try again with non-preloaded data
+          const preloadResponse = await consumePreloadedData('organization', orgSlug);
+          if (preloadResponse) {
+            return preloadResponse[0];
           }
 
           const uncancelableApi = new Client();
@@ -153,15 +149,9 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
           hasMore: boolean;
           teams: Team[];
         }> => {
-          // Get the preloaded data promise
-          try {
-            const preloadResponse = await getPreloadedData('teams', orgSlug);
-            // If the preload request was successful, find the matching team
-            if (preloadResponse !== null && preloadResponse[0] !== null) {
-              return createTeamsObject(preloadResponse);
-            }
-          } catch {
-            // Silently try again with non-preloaded data
+          const preloadResponse = await consumePreloadedData('teams', orgSlug);
+          if (preloadResponse) {
+            return createTeamsObject(preloadResponse);
           }
 
           const uncancelableApi = new Client();
@@ -187,15 +177,9 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
     queryKey: ['bootstrap-projects', orgSlug],
     queryFn: orgSlug
       ? async (): Promise<Project[]> => {
-          // Get the preloaded data promise
-          try {
-            const preloadResponse = await getPreloadedData('projects', orgSlug);
-            // If the preload request was successful
-            if (preloadResponse !== null && preloadResponse[0] !== null) {
-              return preloadResponse[0];
-            }
-          } catch {
-            // Silently try again with non-preloaded data
+          const preloadResponse = await consumePreloadedData('projects', orgSlug);
+          if (preloadResponse) {
+            return preloadResponse[0];
           }
 
           const uncancelableApi = new Client();
@@ -221,21 +205,48 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
 }
 
 /**
- * Small helper to access the preload requests in window.__sentry_preload
+ * Small helper to consume the preload requests in window.__sentry_preload
  * See preload-data.html for more details, this request is started before the app is loaded
  * saving time on the initial page load.
+ *
+ * Resolves to null when there is no usable preloaded response, in which case
+ * the caller fetches the data through the API client instead.
  */
-function getPreloadedData(
-  name: 'organization' | 'projects' | 'teams',
+async function consumePreloadedData(
+  name: PreloadRequestName,
   slug: string
 ): Promise<ApiResult | null> {
   const data = window.__sentry_preload;
-  if (!data?.[name] || data.orgSlug?.toLowerCase() !== slug.toLowerCase()) {
-    throw new Error('Prefetch query not found or slug mismatch');
+  const promise = data?.[name];
+  if (!promise || data.orgSlug?.toLowerCase() !== slug.toLowerCase()) {
+    recordPreloadUsage(name, 'missing');
+    return null;
   }
 
-  const promise = data[name];
   // Prevent reusing the promise later
   delete data[name];
-  return promise;
+
+  try {
+    const response = await promise;
+    if (defined(response[0])) {
+      recordPreloadUsage(name, 'used');
+      return response;
+    }
+  } catch {
+    // The preload request failed, its outcome is reported separately
+  }
+
+  recordPreloadUsage(name, 'failed');
+  return null;
+}
+
+/**
+ * Records whether a bootstrap request was served by the preload request or had
+ * to fall back to the API client.
+ */
+function recordPreloadUsage(
+  request: PreloadRequestName,
+  preload: 'used' | 'missing' | 'failed'
+) {
+  Sentry.metrics.count('ui.bootstrap-request', 1, {attributes: {request, preload}});
 }

@@ -49,13 +49,7 @@ export function hasAdditionalData(extra: EventExtra | undefined) {
   return !!extra && !isEmptyObject(extra);
 }
 
-export function AdditionalData({
-  extra,
-  meta,
-}: {
-  extra: EventExtra | undefined;
-  meta?: Record<string, any>;
-}) {
+export function AdditionalData({extra}: {extra: EventExtra | undefined}) {
   const [raw, setRaw] = useState(false);
 
   if (!defined(extra) || isEmptyObject(extra)) {
@@ -65,7 +59,6 @@ export function AdditionalData({
   const knownData = getKnownData<TEventExtraData, EventExtraDataType>({
     data: extra,
     knownDataTypes: Object.keys(extra),
-    meta,
     onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
   });
 
@@ -76,12 +69,7 @@ export function AdditionalData({
           key: data.key,
           subject: data.subject,
           value: (
-            <StructuredData
-              withAnnotatedText
-              value={data.value}
-              maxDefaultDepth={2}
-              meta={meta}
-            />
+            <StructuredData withAnnotatedText value={data.value} maxDefaultDepth={2} />
           ),
         };
       });

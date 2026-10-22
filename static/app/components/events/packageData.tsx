@@ -1,8 +1,7 @@
-import {useRef} from 'react';
-import styled from '@emotion/styled';
-
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
+import {
+  KeyValueColumns,
+  KeyValueTableDataRow,
+} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
@@ -15,8 +14,6 @@ type Props = {
 };
 
 export function EventPackageData({event}: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef) + 1;
   let title: string;
 
   const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
@@ -50,41 +47,10 @@ export function EventPackageData({event}: Props) {
   ));
 
   return (
-    <FoldSection
-      sectionKey={SectionKey.PACKAGES}
-      title={title}
-      ref={containerRef}
-      initialCollapse
-    >
-      <ColumnsContainer columnCount={columnCount}>
-        {splitIntoColumns(componentItems, columnCount).map((column, i) => (
-          <Column key={`highlight-column-${i}`}>{column}</Column>
-        ))}
-      </ColumnsContainer>
+    <FoldSection sectionKey={SectionKey.PACKAGES} title={title} initialCollapse>
+      <KeyValueColumns>
+        {columnCount => splitIntoColumns(componentItems, columnCount)}
+      </KeyValueColumns>
     </FoldSection>
   );
 }
-
-const ColumnsContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-`;
-
-const Column = styled('div')`
-  display: grid;
-  grid-template-columns: fit-content(65%) 1fr;
-  font-size: ${p => p.theme.font.size.sm};
-  &:first-child {
-    margin-left: -${p => p.theme.space.md};
-  }
-  &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${p => p.theme.space.xl};
-    margin-left: -1px;
-  }
-  &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${p => p.theme.space.xl};
-  }
-`;

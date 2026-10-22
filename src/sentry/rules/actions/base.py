@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Generator
+from collections.abc import Generator, MutableMapping
+from typing import Any
 
-from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationActionContext
 from sentry.rules.base import CallbackFuture, RuleBase
 from sentry.services.eventstore.models import GroupEvent
 
 logger = logging.getLogger("sentry.rules")
 
 
-def instantiate_action(rule: Rule, action):
+def instantiate_action(
+    context: NotificationActionContext, action: MutableMapping[str, Any]
+) -> EventAction | None:
     from sentry.rules import rules
 
     action_id = action["id"]
@@ -20,7 +23,7 @@ def instantiate_action(rule: Rule, action):
         logger.warning("Unregistered action %r", action["id"])
         return None
 
-    action_inst = action_cls(rule.project, data=action, rule=rule)
+    action_inst = action_cls(context.project, data=action, context=context)
     if not isinstance(action_inst, EventAction):
         logger.warning("Unregistered action %r", action["id"])
         return None

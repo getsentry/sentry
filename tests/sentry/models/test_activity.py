@@ -36,6 +36,11 @@ class ActivityTest(TestCase):
         Activity.objects.create_group_activity(
             group=group,
             type=ActivityType.SMART_ASSIGNMENT_COMPLETED,
+            data={
+                "run_id": 123,
+                "run_uuid": "00000000-0000-0000-0000-000000000001",
+                "predicted_assignee_user_ids": [],
+            },
             send_notification=False,
         )
 

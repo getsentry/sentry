@@ -12,6 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tct, tn} from 'sentry/locale';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -24,8 +25,11 @@ import {
 } from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getToolOutputBytesFromAttributes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
+import {isMemoryOperation} from 'sentry/views/insights/pages/agents/utils/memory';
 import {
   getIsAiAgentSpan,
+  getIsExecuteToolSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -118,9 +122,16 @@ function getAISpanAttributes({
   attributes: Record<string, string | number | boolean>;
   spanId: string;
 }) {
-  const highlightedAttributes = [];
-
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
+
+  const operationName = attributes['gen_ai.operation.name'];
+  // Memory spans carry none of the model/token/cost attributes below, so they
+  // get their own rows and skip the rest (including the missing-attr warning).
+  if (typeof operationName === 'string' && isMemoryOperation(operationName)) {
+    return getMemoryHighlightedAttributes(attributes);
+  }
+
+  const highlightedAttributes = [];
 
   const agentName = resolveAgentName(attributes);
   if (agentName) {
@@ -214,6 +225,14 @@ function getAISpanAttributes({
     });
   }
 
+  const toolOutputBytes = getToolOutputBytesFromAttributes(key => attributes[key]);
+  if (getIsExecuteToolSpan(genAiOpType) && toolOutputBytes > 0) {
+    highlightedAttributes.push({
+      name: t('Result Size'),
+      value: formatBytesBase10(toolOutputBytes),
+    });
+  }
+
   const toolsArray = getAIToolDefinitions(attributes);
   if (toolsArray && toolsArray.length > 0 && getIsAiAgentSpan(genAiOpType)) {
     highlightedAttributes.push({
@@ -257,6 +276,39 @@ function getAISpanAttributes({
         span_id: spanId,
       },
     });
+  }
+
+  return highlightedAttributes;
+}
+
+function getMemoryHighlightedAttributes(
+  attributes: Record<string, string | number | boolean>
+): HighlightedAttribute[] {
+  // The operation is shown as the detail heading, so it isn't repeated here.
+  const highlightedAttributes: HighlightedAttribute[] = [];
+
+  const storeId = attributes[SpanFields.GEN_AI_MEMORY_STORE_ID];
+  if (storeId) {
+    highlightedAttributes.push({name: t('Memory Store'), value: storeId.toString()});
+  }
+
+  const recordCount = Number(attributes[SpanFields.GEN_AI_MEMORY_RECORD_COUNT]);
+  if (
+    attributes[SpanFields.GEN_AI_MEMORY_RECORD_COUNT] !== undefined &&
+    Number.isFinite(recordCount)
+  ) {
+    highlightedAttributes.push({
+      name: t('Records'),
+      value: recordCount.toLocaleString(),
+    });
+  }
+
+  // The query can be long, so it isn't surfaced here; it's shown in full in the
+  // Input tab for search_memory spans.
+
+  const recordId = attributes[SpanFields.GEN_AI_MEMORY_RECORD_ID];
+  if (recordId) {
+    highlightedAttributes.push({name: t('Record'), value: recordId.toString()});
   }
 
   return highlightedAttributes;

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -7,7 +8,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -335,7 +335,7 @@ export function CellAction({pin, allowActions, usePortalOnDropdown, ...props}: P
           <Flex position="absolute" top="0" bottom="0" right="0" align="center">
             <DropdownMenu
               items={cellActions}
-              usePortal={usePortalOnDropdown ?? true}
+              usePortal={usePortalOnDropdown}
               disableTextSelection
               strategy="fixed"
               size="sm"

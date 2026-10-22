@@ -7,13 +7,13 @@ import {
   useMemo,
   useState,
 } from 'react';
-import type {NavigateOptions} from 'react-router-dom';
+import type {NavigateOptions} from 'react-router';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import type {
   AggregateField,
   WritableAggregateField,
@@ -25,6 +25,7 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
+  hasVisualizeTransformations,
   isVisualize,
   isVisualizeEquation,
   type BaseVisualize,
@@ -365,6 +366,10 @@ export function useSetQueryParamsVisualizes() {
     },
     [queryParams, setQueryParams]
   );
+}
+
+export function useQueryParamsHasTransformations(): boolean {
+  return hasVisualizeTransformations(useQueryParamsVisualizes());
 }
 
 export function useQueryParamsGroupBys(): readonly string[] {

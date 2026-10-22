@@ -1,9 +1,9 @@
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -17,6 +17,17 @@ type Props = ModalRenderProps & {
   onSubmit: (user: User) => void;
   user: User;
 };
+
+const userPermissionsSchema = z.object({
+  isStaff: z.boolean(),
+  isSuperuser: z.boolean(),
+  permissionChoices: z.array(
+    z.object({
+      permission: z.string(),
+      enabled: z.boolean(),
+    })
+  ),
+});
 
 export function UserPermissionsModal({
   Body,
@@ -53,6 +64,9 @@ export function UserPermissionsModal({
 
   const permissions = permissionList ?? [];
   const available = availablePermissions ?? [];
+  const uneditablePermissions = permissions.filter(
+    permission => !available.includes(permission)
+  );
 
   const mutation = useMutation({
     mutationFn: async (data: {
@@ -94,7 +108,7 @@ export function UserPermissionsModal({
         ...user,
         isSuperuser: Boolean(data.isSuperuser),
         isStaff: Boolean(data.isStaff),
-        permissions: new Set(newPerms),
+        permissions: new Set([...newPerms, ...uneditablePermissions]),
       };
     },
     onSuccess: newUser => {
@@ -107,12 +121,28 @@ export function UserPermissionsModal({
   const defaultValues = {
     isSuperuser: user.isSuperuser,
     isStaff: user.isStaff,
-    permissions,
+    permissionChoices: available.map(permission => ({
+      permission,
+      enabled: permissions.includes(permission),
+    })),
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    validators: {onDynamic: userPermissionsSchema},
+    onSubmit: ({value}) =>
+      mutation
+        .mutateAsync({
+          isStaff: value.isStaff,
+          isSuperuser: value.isSuperuser,
+          permissions: [
+            ...value.permissionChoices
+              .filter(choice => choice.enabled)
+              .map(choice => choice.permission),
+            ...uneditablePermissions,
+          ],
+        })
+        .catch(() => {}),
   });
 
   if (permissionListError || availablePermissionsError) {
@@ -154,32 +184,28 @@ export function UserPermissionsModal({
           <Heading as="h5" size="md">
             Additional Permissions
           </Heading>
-          <form.AppField name="permissions">
-            {field =>
-              available.map(perm => (
-                <Grid
-                  key={perm}
-                  columns="12rem max-content"
-                  align="center"
-                  gap="md"
-                  width="fit-content"
+          <form.AppField name="permissionChoices" mode="array">
+            {arrayField =>
+              arrayField.state.value.map(({permission}, index) => (
+                <form.AppField
+                  key={permission}
+                  name={`permissionChoices[${index}].enabled`}
                 >
-                  <Text as="label" htmlFor={`permission-${perm}`}>
-                    {perm}
-                  </Text>
-                  <Switch
-                    id={`permission-${perm}`}
-                    size="lg"
-                    checked={field.state.value.includes(perm)}
-                    onChange={event =>
-                      field.handleChange(
-                        event.target.checked
-                          ? [...field.state.value, perm]
-                          : field.state.value.filter(value => value !== perm)
-                      )
-                    }
-                  />
-                </Grid>
+                  {field => (
+                    <Grid
+                      columns="12rem max-content"
+                      align="center"
+                      gap="md"
+                      width="fit-content"
+                    >
+                      <field.Meta.Label>{permission}</field.Meta.Label>
+                      <field.Switch
+                        checked={field.state.value}
+                        onChange={field.handleChange}
+                      />
+                    </Grid>
+                  )}
+                </form.AppField>
               ))
             }
           </form.AppField>

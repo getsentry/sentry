@@ -108,25 +108,25 @@ describe('segmentTimeSeriesByIncompleteData', () => {
         value: 90,
         timestamp: 1729785485000, // '2024-10-24T15:58:05.000Z'
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
       {
         value: 100,
         timestamp: 1729785490000, // '2024-10-24T15:58:10.000Z'
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
       {
         value: 110,
         timestamp: 1729785495000, // '2024-10-24T15:58:15.000Z'
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
       {
         value: 120,
         timestamp: 1729785500000, // '2024-10-24T15:58:20.000Z'
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
     ]);
   });
@@ -193,19 +193,19 @@ describe('segmentTimeSeriesByIncompleteData', () => {
         value: 120,
         timestamp: 1729785420000, // '2024-10-24T15:57:00.000Z'
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
       {
         value: 130,
         timestamp: 1729785480000, // '2024-10-24T15:58:00.000Z'
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
       {
         value: 140,
         timestamp: 1729785540000, // '2024-10-24T15:59:00.000Z'
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
     ]);
   });
@@ -275,7 +275,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
         value: 140,
         timestamp: 1729782000000, // '2024-10-24T15:00:00.000Z'
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
     ]);
   });

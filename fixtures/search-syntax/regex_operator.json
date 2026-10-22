@@ -153,7 +153,7 @@
   },
   {
     "desc": "Array membership keys accept a pattern",
-    "query": "tags[csv_headers,array][*]://^a b//",
+    "query": "tags[csv_headers[*],array]://^a b//",
     "additionalConfig": {
       "allowRegex": true
     },

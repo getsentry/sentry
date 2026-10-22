@@ -27,6 +27,11 @@ def get_old_json_components(filename: str) -> Any:
 
 OPENAPI_TAGS = [
     {
+        "name": "Investigations",
+        "description": "Private endpoints for investigation notebooks and agent workflows. Requires the organizations:investigations feature and open organization membership. Notebook and workflow versions are independent optimistic concurrency tokens.",
+        "x-display-description": True,
+    },
+    {
         "name": "Teams",
         "description": "Endpoints for teams",
         "x-display-description": False,
@@ -228,6 +233,15 @@ OPENAPI_TAGS = [
         "externalDocs": {
             "description": "Found an error? Let us know.",
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/profiling/&template=api_error_template.md",
+        },
+    },
+    {
+        "name": "Flags",
+        "description": "Endpoints for retrieving feature flag change logs",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/flags/&template=api_error_template.md",
         },
     },
 ]

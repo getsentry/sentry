@@ -1,5 +1,4 @@
 import logging
-import re
 from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
@@ -7,6 +6,7 @@ import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
 from sentry.ai_monitoring.conversation_aggregates import (
@@ -14,7 +14,10 @@ from sentry.ai_monitoring.conversation_aggregates import (
     AIConversationAggregates,
     parse_conversation_aggregates,
 )
-from sentry.ai_monitoring.conversation_query import compile_conversation_query
+from sentry.ai_monitoring.conversation_query import (
+    compile_conversation_query,
+    is_conversation_id_lookup,
+)
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
@@ -46,7 +49,6 @@ from sentry.search.eap.types import EAPResponse, FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
@@ -63,7 +65,7 @@ class UserResponse(TypedDict):
 
 class AIConversationData(AIConversationAggregates):
     conversationId: str
-    errors: int
+    timeSpan: float
     title: str | None
     projectId: int | None
     flow: list[str]
@@ -78,10 +80,6 @@ class AIConversationResponse(AIConversationData):
     projects: list[ConversationProject]
     webUrl: str
 
-
-# Matches a query that is exactly a single gen_ai.conversation.id filter, e.g.
-# `gen_ai.conversation.id:abc` or `gen_ai.conversation.id:"slack:1234"`.
-_CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|\S+)$')
 
 AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
     name="query",
@@ -102,10 +100,6 @@ AI_CONVERSATIONS_PER_PAGE_PARAM = OpenApiParameter(
     type=int,
     description="Number of conversations to return per page. Defaults to 10; maximum is 100.",
 )
-
-
-def _is_conversation_id_lookup(user_query: str) -> bool:
-    return bool(_CONVERSATION_ID_LOOKUP_RE.match(user_query.strip()))
 
 
 def _extract_conversation_ids(results: EAPResponse) -> list[str]:
@@ -187,8 +181,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
           `conversation.toolErrors`.
         - Usage: `conversation.inputTokens`, `conversation.outputTokens`,
           `conversation.totalTokens`, and `conversation.totalCost`.
-        - Duration: `conversation.duration` sums AI spans;
-          `conversation.generationDuration` sums LLM calls.
+        - Timespan: `conversation.timeSpan` measures elapsed time between first and last AI spans;
+          `conversation.generationDuration` sums LLM call durations. Both use milliseconds.
 
         Use numeric comparisons such as `conversation.toolCalls:>2`. Queries return
         conversations, not spans. Each `AND` condition may match a different span.
@@ -210,11 +204,16 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         validated_data = serializer.validated_data
         user_query = validated_data.get("query", "")
+        direct_id_lookup = is_conversation_id_lookup(user_query)
 
         with handle_query_errors():
             resolver = Spans.get_resolver(
                 snuba_params,
-                SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+                SearchResolverConfig(
+                    auto_fields=True,
+                    disable_aggregate_extrapolation=True,
+                    fields_acl=FieldsACL(functions={"elapsed_if"}),
+                ),
             )
             query_string = compile_conversation_query(user_query, resolver)
 
@@ -238,15 +237,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         # A search for a single conversation ID that resolves to exactly one
         # conversation signals the client to redirect straight to the detail view.
-        if (
-            _is_conversation_id_lookup(validated_data.get("query") or "")
-            and len(response.data) == 1
-        ):
+        if direct_id_lookup and len(response.data) == 1:
             response["X-Sentry-Direct-Hit"] = "1"
 
         return response
 
-    @trace
+    @traces.trace
     def _get_conversations(
         self,
         snuba_params: SnubaParams,
@@ -289,7 +285,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             )
         return response
 
-    @trace
+    @traces.trace
     def _fetch_conversation_ids(
         self,
         snuba_params: SnubaParams,
@@ -323,15 +319,20 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
-            config=SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+            config=SearchResolverConfig(
+                auto_fields=True,
+                disable_aggregate_extrapolation=True,
+                fields_acl=FieldsACL(functions={"elapsed_if"}),
+            ),
             sampling_mode=sampling_mode,
         )
 
-    @trace
+    @traces.trace
     def _get_conversations_data(
         self, snuba_params: SnubaParams, conversation_ids: list[str]
     ) -> list[AIConversationData]:
         operation_filter = "has:gen_ai.operation.type"
+        time_span_expression, _ = AI_CONVERSATIONS_FIELDS["conversation.timeSpan"]
         ai_client_filter = "gen_ai.operation.type:ai_client"
         # Some SDKs put messages on the agent span instead of its generation spans.
         agent_filter = "gen_ai.operation.type:agent"
@@ -340,8 +341,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
-                "failure_count() as errors",
                 *CONVERSATION_AGGREGATE_COLUMNS,
+                f"{time_span_expression} as time_span",
                 f"collect_unique_if(`{operation_filter}`, trace) as trace_ids",
                 f"collect_unique_if(`{operation_filter}`, project.id) as project_ids",
                 "collect_unique_if(`gen_ai.operation.type:agent`, gen_ai.agent.name) as flow",
@@ -367,7 +368,14 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             config=SearchResolverConfig(
                 auto_fields=True,
                 disable_aggregate_extrapolation=True,
-                fields_acl=FieldsACL(functions={"collect_unique_if", "first_if", "last_if"}),
+                fields_acl=FieldsACL(
+                    functions={
+                        "collect_unique_if",
+                        "first_if",
+                        "last_if",
+                        "elapsed_if",
+                    }
+                ),
             ),
             sampling_mode="HIGHEST_ACCURACY",
         )
@@ -384,7 +392,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             trace_ids = sorted(row.get("trace_ids") or [])
             conversations_map[conversation_id] = {
                 "conversationId": conversation_id,
-                "errors": int(row.get("errors") or 0),
+                # elapsed_if returns seconds; API timespans use milliseconds.
+                "timeSpan": float(row.get("time_span") or 0) * 1000,
                 "title": None,
                 "projectId": min(project_ids, default=None),
                 "flow": row.get("flow") or [],
@@ -409,7 +418,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             if conversation_id in conversations_map
         ]
 
-    @trace
+    @traces.trace
     def _apply_titles(
         self,
         conversations_map: dict[str, AIConversationData],

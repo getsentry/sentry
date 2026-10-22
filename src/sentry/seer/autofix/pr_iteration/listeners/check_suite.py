@@ -3,6 +3,7 @@ import logging
 import orjson
 import sentry_sdk
 from pydantic import ValidationError
+from sentry_sdk import traces
 
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
@@ -40,12 +41,11 @@ from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_rev
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.utils import metrics
-from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
 
-@trace
+@traces.trace
 def _retrigger_deferred_iteration(
     log_ctx: PrIterationLogContext, resolved: ResolvedGreenCheckSuite
 ) -> None:
@@ -127,37 +127,36 @@ def _retrigger_deferred_iteration(
 @scm_event_stream.listen_for(event_type="check_suite")
 def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent) -> None:
     """Drop suites we can't act on, then queue the rest for a task that can retry."""
-    with (
-        sentry_sdk.isolation_scope(),
-        start_span(
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.check_suite_listener",
-            op="function",
-            transaction=True,
-        ),
-    ):
-        if check_suite_event.action != "completed":
+            attributes={"sentry.op": "function"},
+            parent_span=None,
+        ):
+            if check_suite_event.action != "completed":
+                return None
+
+            conclusion = check_suite_event.check_suite["conclusion"]
+            is_green = conclusion in GREEN_CONCLUSIONS
+            if not is_green and conclusion not in FAILURE_CONCLUSIONS:
+                return None
+
+            # Drop suites nobody behind the installation can act on
+            gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
+            if not resolve_check_suite_flag_gate(
+                check_suite_event, gate_flags
+            ).flagged_organization_ids:
+                return None
+
+            # Lazy: the task module can't load while this listener registers in AppConfig.ready.
+            from sentry.scm.private.ipc import serialize_check_suite_event
+            from sentry.tasks.seer.pr_iteration import process_pr_iteration_check_suite
+
+            process_pr_iteration_check_suite.delay(
+                event_data=serialize_check_suite_event(check_suite_event)
+            )
             return None
-
-        conclusion = check_suite_event.check_suite["conclusion"]
-        is_green = conclusion in GREEN_CONCLUSIONS
-        if not is_green and conclusion not in FAILURE_CONCLUSIONS:
-            return None
-
-        # Drop suites nobody behind the installation can act on
-        gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
-        if not resolve_check_suite_flag_gate(
-            check_suite_event, gate_flags
-        ).flagged_organization_ids:
-            return None
-
-        # Lazy: the task module can't load while this listener registers in AppConfig.ready.
-        from sentry.scm.private.ipc import serialize_check_suite_event
-        from sentry.tasks.seer.pr_iteration import process_pr_iteration_check_suite
-
-        process_pr_iteration_check_suite.delay(
-            event_data=serialize_check_suite_event(check_suite_event)
-        )
-        return None
 
 
 def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
@@ -245,6 +244,22 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
 
     organization_id = autofix_run.repository.organization_id
     agent_state = autofix_run.run_state
+
+    # Lazy: pr_state imports the SCM factory, which can't load while this listener registers.
+    from sentry.seer.autofix.pr_iteration.pr_state import iteration_prs_any_external_head
+
+    # Someone else has pushed to the PR, so CI is no longer judging Seer's work alone.
+    if iteration_prs_any_external_head(organization_id, agent_state):
+        logger.info(
+            "autofix.pr_iteration.check_suite.external_head",
+            extra={
+                "run_id": agent_state.run_id,
+                "organization_id": organization_id,
+                "check_suite_id": check_suite_event.check_suite["id"],
+            },
+        )
+        return None
+
     feedback = Feedback(source=source)
     # One identity for both decisions below, so the queue line and the trigger
     # line of a single check suite are found by the same search.

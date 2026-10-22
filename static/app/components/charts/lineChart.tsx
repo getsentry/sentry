@@ -13,7 +13,6 @@ export interface LineChartSeries
 
 export interface LineChartProps extends Omit<BaseChartProps, 'series'> {
   series: LineChartSeries[];
-  additionalSeries?: LineSeriesOption[];
   seriesOptions?: LineSeriesOption;
 }
 

@@ -7,6 +7,7 @@ import {
   initializeSdk,
   isEventWithFileUrl,
   isFilteredRequestErrorEvent,
+  isWalletProviderError,
 } from './initializeSdk';
 
 const ERROR_MAP: Record<number, string | undefined> = {
@@ -90,6 +91,63 @@ describe('initializeSdk', () => {
       )
     ).toBe(true);
   });
+
+  it('drops unhandled rejections from crypto wallet extensions', () => {
+    initializeSdk({
+      ...window.__initialData,
+      apmSampling: 1,
+      sentryConfig: {
+        allowUrls: [],
+        dsn: '',
+        release: '',
+        tracePropagationTargets: [],
+      },
+    });
+
+    const beforeSend = jest.mocked(Sentry.init).mock.lastCall?.[0]?.beforeSend;
+    const event = {
+      type: undefined,
+      exception: {
+        values: [
+          {
+            type: 'UnhandledRejection',
+            value: 'Object captured as promise rejection with keys: code, message',
+          },
+        ],
+      },
+    };
+
+    expect(
+      beforeSend?.(event, {
+        originalException: {
+          code: 4900,
+          message: 'The provider is disconnected from all chains.',
+        },
+      })
+    ).toBeNull();
+  });
+});
+
+describe('isWalletProviderError', () => {
+  it.each([
+    {code: 4001, message: 'User rejected the request.'},
+    {code: 4900, message: 'The provider is disconnected from all chains.'},
+    {code: -32603, message: 'Internal JSON-RPC error.'},
+    {code: -32000, message: 'execution reverted', data: '0x'},
+  ])('recognizes provider error $code', error => {
+    expect(isWalletProviderError(error)).toBe(true);
+  });
+
+  it.each([
+    ['Error instances', Object.assign(new Error('Disconnected'), {code: 4900})],
+    ['HTTP status codes', {code: 404, message: 'Not Found'}],
+    ['string codes', {code: 'ECONNRESET', message: 'socket hang up'}],
+    ['objects without a message', {code: 4001}],
+    ['strings', 'User rejected the request.'],
+    ['undefined', undefined],
+  ])('rejects %s', (_, error) => {
+    expect(isWalletProviderError(error)).toBe(false);
+  });
 });
 
 describe('isFilteredRequestErrorEvent', () => {
@@ -172,6 +230,47 @@ describe('isFilteredRequestErrorEvent', () => {
         });
       }
     }
+  });
+
+  describe('requests that never got a response', () => {
+    for (const method of [...methods, 'PATCH']) {
+      it(`recognizes ${method} RequestErrors without a status`, () => {
+        const event = {
+          exception: {values: [{type: 'RequestError', value: `${method} /assistant/`}]},
+        };
+
+        expect(isFilteredRequestErrorEvent(event)).toBeTruthy();
+      });
+    }
+
+    it('recognizes RequestErrors without a status as causes', () => {
+      const event = {
+        exception: {
+          values: [
+            {type: 'RequestError', value: 'GET /assistant/'},
+            {type: 'InsufficientTreatsError', value: 'Not enough treats!'},
+          ],
+        },
+      };
+
+      expect(isFilteredRequestErrorEvent(event)).toBeTruthy();
+    });
+
+    it('rejects RequestErrors with a non-numeric status', () => {
+      const event = {
+        exception: {values: [{type: 'RequestError', value: 'GET /assistant/ n/a'}]},
+      };
+
+      expect(isFilteredRequestErrorEvent(event)).toBeFalsy();
+    });
+
+    it('rejects other error types without a status', () => {
+      const event = {
+        exception: {values: [{type: 'InternalServerError', value: 'GET /assistant/'}]},
+      };
+
+      expect(isFilteredRequestErrorEvent(event)).toBeFalsy();
+    });
   });
 
   describe('non-matching error type, non-matching message', () => {

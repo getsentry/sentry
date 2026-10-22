@@ -14,10 +14,8 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import eventstore, features
-from sentry.api import client
+from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
-from sentry.api.event_search import parse_search_query
-from sentry.api.exceptions import BadRequest as SentryBadRequest
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.commit import CommitSerializer
@@ -25,7 +23,6 @@ from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
 from sentry.issues.formatting.mixin import FORMATTER_FEATURE, VALID_FORMATS
@@ -54,10 +51,7 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import (
     query_replay_id_by_prefix,
     query_replay_instance,
-    query_replays_collection_paginated,
-    replay_url_parser_config,
 )
-from sentry.replays.validators import VALID_FIELD_SET as REPLAY_VALID_FIELD_SET
 from sentry.search.eap.constants import (
     BOOLEAN,
     DOUBLE,
@@ -79,6 +73,14 @@ from sentry.seer.agent.utils import (
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.autofix.utils import get_repo_url_path
+from sentry.seer.public_caller import (
+    caller_can_access_project,
+    caller_can_access_project_id,
+    caller_can_access_team,
+    public_caller_restricted,
+    restrict_projects,
+    scope_projects,
+)
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
@@ -323,6 +325,11 @@ def execute_table_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteQuerySuccessResponse(data=[])
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     # Note if both project_ids and project_slugs are provided, the API request will 400.
@@ -442,6 +449,11 @@ def execute_timeseries_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteTimeseriesQuerySuccessResponse(__root__={})
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     group_by = group_by or []
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
@@ -557,6 +569,12 @@ def execute_trace_table_query(
             extra={"org_id": organization_id},
         )
         return None
+
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteQuerySuccessResponse(data=[])
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
 
@@ -607,147 +625,6 @@ def execute_trace_table_query(
         raise
 
 
-DEFAULT_REPLAY_SEARCH_FIELDS = [
-    "id",
-    "project_id",
-    "started_at",
-    "finished_at",
-    "duration",
-    "count_errors",
-    "count_dead_clicks",
-    "count_rage_clicks",
-    "count_urls",
-    "urls",
-    "user",
-    "trace_ids",
-    "platform",
-]
-
-
-def execute_replays_query(
-    *,
-    organization_id: int,
-    per_page: int,
-    query: str | None = None,
-    fields: list[str] | None = None,
-    sort: str | None = None,
-    project_ids: list[int] | None = None,
-    project_slugs: list[str] | None = None,
-    stats_period: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
-) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
-    """
-    Execute a session replay search using the dedicated Replay collection query.
-
-    Arg notes:
-        project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
-        project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
-        If neither project_ids nor project_slugs are provided, all active projects will be queried.
-        Start/end params take precedence over stats_period. Defaults to Sentry's standard max period.
-    """
-    try:
-        organization = Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "execute_replays_query: Organization not found", extra={"org_id": organization_id}
-        )
-        return None
-
-    if not features.has("organizations:session-replay", organization):
-        return ExecuteQueryErrorResponse(
-            error="Session Replay is not enabled for this organization."
-        )
-
-    if project_ids and project_slugs:
-        return ExecuteQueryErrorResponse(
-            error="Pass either project_ids or project_slugs, not both."
-        )
-
-    project_filter: dict[str, Any] = {}
-    if project_ids:
-        project_filter["id__in"] = project_ids
-    elif project_slugs:
-        project_filter["slug__in"] = project_slugs
-
-    resolved_project_ids = list(
-        Project.objects.filter(
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            **project_filter,
-        ).values_list("id", flat=True)
-    )
-    if not resolved_project_ids:
-        return ExecuteQuerySuccessResponse(data=[])
-
-    requested_fields = fields or DEFAULT_REPLAY_SEARCH_FIELDS
-    invalid_fields = sorted(set(requested_fields) - set(REPLAY_VALID_FIELD_SET))
-    if invalid_fields:
-        return ExecuteQueryErrorResponse(
-            error=f"Invalid replay field(s): {', '.join(invalid_fields)}"
-        )
-
-    date_params: dict[str, Any] = {}
-    if start and end:
-        date_params["start"] = start
-        date_params["end"] = end
-    elif stats_period:
-        date_params["statsPeriod"] = stats_period
-
-    try:
-        start_dt, end_dt = get_date_range_from_params(date_params)
-        search_filters = parse_search_query(query or "", config=replay_url_parser_config)
-        response = query_replays_collection_paginated(
-            project_ids=resolved_project_ids,
-            start=start_dt,
-            end=end_dt,
-            environment=[],
-            sort=sort,
-            fields=requested_fields,
-            limit=per_page + 1,
-            offset=0,
-            search_filters=search_filters,
-            preferred_source="scalar",
-            organization=organization,
-            actor=None,
-            referrer=Referrer.SEER_EXPLORER_TOOLS.value,
-        )
-        processed_response = process_raw_response(response.response, fields=requested_fields)
-    except KeyError as e:
-        logger.exception(
-            "execute_replays_query: unsupported response field",
-            extra={
-                "org_id": organization_id,
-                "query": query,
-                "field": e.args[0] if e.args else None,
-            },
-        )
-        return ExecuteQueryErrorResponse(
-            error=f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
-        )
-    except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
-        error_detail = str(e)
-        logger.warning(
-            "execute_replays_query: bad request",
-            extra={
-                "org_id": organization_id,
-                "error_detail": error_detail,
-                "query": query,
-                "start": start,
-                "end": end,
-                "project_ids": project_ids,
-                "sort": sort,
-                "fields": fields,
-            },
-        )
-        return ExecuteQueryErrorResponse(error=error_detail)
-
-    return ExecuteQuerySuccessResponse(
-        data=processed_response,
-        meta={"source": response.source, "has_more": response.has_more},
-    )
-
-
 def get_trace_waterfall(
     trace_id: str,
     organization_id: int,
@@ -776,7 +653,11 @@ def get_trace_waterfall(
         )
         return None
 
-    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    projects = restrict_projects(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    )
+    if public_caller_restricted() and not projects:
+        return None
 
     if len(trace_id) < 32:
         full_trace_id = _get_full_trace_id(trace_id, organization, projects)
@@ -868,7 +749,9 @@ def rpc_get_profile_flamegraph(
         return ProfileFlamegraphErrorResponse(error="Organization not found")
 
     # Get all projects for the organization
-    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    projects = restrict_projects(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    )
 
     if not projects:
         logger.warning(
@@ -1978,6 +1861,8 @@ def get_team_members(
         )
     except Team.DoesNotExist:
         return None
+    if not caller_can_access_team(team):
+        return None
 
     # ``User`` lives in the control silo, so resolve the team's member ids (a region
     # query) through the user service to get emails/display names from the region the RPC
@@ -2317,13 +2202,16 @@ def get_replay_metadata(
     if not features.has("organizations:session-replay", organization):
         return None
 
-    p_ids_and_slugs = list(
-        Project.objects.filter(
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", "slug")
-    )
+    p_ids_and_slugs = [
+        (project.id, project.slug)
+        for project in restrict_projects(
+            Project.objects.filter(
+                organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            )
+        )
+    ]
 
     if not p_ids_and_slugs:
         logger.warning(
@@ -2548,13 +2436,15 @@ def get_log_attributes_for_trace(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    projects = list(
+    projects = restrict_projects(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
             **({"slug__in": project_slugs} if bool(project_slugs) else {}),
         )
     )
+    if public_caller_restricted() and not projects:
+        return TraceItemEventsResponse(data=[])
 
     snuba_params = SnubaParams(
         start=start_dt,
@@ -2625,13 +2515,15 @@ def get_metric_attributes_for_trace(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    projects = list(
+    projects = restrict_projects(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
             **({"slug__in": project_slugs} if project_slugs else {}),
         )
     )
+    if public_caller_restricted() and not projects:
+        return TraceItemEventsResponse(data=[])
 
     snuba_params = SnubaParams(
         start=start_dt,
@@ -2698,6 +2590,9 @@ def get_baseline_tag_distribution(
         Dict with "baseline_tag_distribution" containing list of
         {"tag_key": str, "tag_value": str, "count": int} entries.
     """
+
+    if not caller_can_access_project_id(organization_id, project_id):
+        return BaselineTagDistributionResponse(baseline_tag_distribution=[])
 
     group = Group.objects.get(id=group_id, project_id=project_id)
     organization = group.organization
@@ -2807,7 +2702,7 @@ def get_dsn(
         status=ObjectStatus.ACTIVE,
         slug=project_slug,
     ).first()
-    if project is None:
+    if project is None or not caller_can_access_project(project):
         return None
 
     # Mirror the filters applied by OrganizationProjectKeysEndpoint for non-superuser

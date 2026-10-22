@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-export const TABLE_HEAD_ROW_HEIGHT = 45;
+const TABLE_HEAD_ROW_HEIGHT = 45;
 
 const Z_INDEX_RESIZER = 1;
 

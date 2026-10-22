@@ -101,6 +101,21 @@ describe('resolveHostname', () => {
     expect(result).toBe('/api/0/broadcasts/');
   });
 
+  it('uses the org domain proxy for region silo in dev-ui org domains', () => {
+    window.__SENTRY_DEV_UI = true;
+    setWindowLocation('https://acme.dev.getsentry.net:7999/issues/');
+
+    let result = resolveHostname(regionPath);
+    expect(result).toBe(regionPath);
+
+    result = resolveHostname(controlPath);
+    expect(result).toBe(controlPath);
+
+    // Explicit regions still use the region proxy.
+    result = resolveHostname(regionPath, 'https://de.sentry.io');
+    expect(result).toBe(`/region/de${regionPath}`);
+  });
+
   it('removes sentryUrl from dev-ui mode requests', () => {
     window.__SENTRY_DEV_UI = true;
 

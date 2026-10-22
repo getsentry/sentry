@@ -142,7 +142,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
     customMeasurements,
     dataset,
     includeTransactions = true,
-    enableAISearch: enableAISearchProp = false,
+    enableAISearch = false,
   } = props;
 
   const placeholderText = t('Search for events, users, tags, and more');
@@ -158,13 +158,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
-  // AI search is only enabled for Errors dataset if translate endpoint is enabled.
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
-  const organization = useOrganization();
-  const hasTranslateEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-  const enableAISearch = hasTranslateEndpoint && enableAISearchProp;
 
   const searchBarProps = {
     placeholderText,

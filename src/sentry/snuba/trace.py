@@ -4,6 +4,8 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypedDict
 
+from sentry_sdk import traces
+
 from sentry import options
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.utils import metrics
@@ -46,7 +48,6 @@ from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
 from sentry.utils.snuba import bulk_snuba_queries
 from sentry.utils.snuba_rpc import table_rpc
-from sentry.utils.tracing import set_span_data, start_span, trace
 
 # Mostly here for testing
 ERROR_LIMIT = 10_000
@@ -356,7 +357,7 @@ def _process_errors_query(
     return error_data
 
 
-@trace
+@traces.trace
 def _run_errors_query(
     errors_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
@@ -512,7 +513,7 @@ def _process_perf_issues_query(
     return result
 
 
-@trace
+@traces.trace
 def _run_perf_issues_query(
     occurrence_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
@@ -521,7 +522,7 @@ def _run_perf_issues_query(
     return _process_perf_issues_query(occurrence_query, snuba_result)
 
 
-@trace
+@traces.trace
 def get_issues_by_span_for_traces(
     snuba_params: SnubaParams,
     trace_ids: Sequence[str],
@@ -731,7 +732,7 @@ def _serialize_columnar_uptime_item(
     return uptime_check
 
 
-@trace
+@traces.trace
 def query_trace_data(
     snuba_params: SnubaParams,
     trace_id: str,
@@ -872,14 +873,18 @@ def query_trace_data(
     for event in errors_data:
         id_to_error.setdefault(event["trace.span"], []).append(event)
     id_to_occurrence = defaultdict(list)
-    with start_span(op="process.occurrence_data", name="process.occurrence_data") as sdk_span:
+    with traces.start_span(
+        name="process.occurrence_data", attributes={"sentry.op": "process.occurrence_data"}
+    ) as sdk_span:
         for event in occurrence_data:
             offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
             if len(offender_span_ids) == 0:
-                set_span_data(sdk_span, "evidence_data.empty", event["occurrence"].evidence_data)
+                sdk_span.set_attribute("evidence_data.empty", event["occurrence"].evidence_data)
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
-    with start_span(op="process.trace_data", name="process.trace_data"):
+    with traces.start_span(
+        name="process.trace_data", attributes={"sentry.op": "process.trace_data"}
+    ):
         # calculate min & max start as a metric then log as a metric to see if we need to adjust
         # performance.traces.transaction_query_timebuffer_days
         span_min_ts = None
@@ -946,11 +951,13 @@ def query_trace_data(
             for attr in metric_only_attributes:
                 span.pop(attr, None)
 
-    with start_span(op="process.errors_data", name="process.errors_data"):
+    with traces.start_span(
+        name="process.errors_data", attributes={"sentry.op": "process.errors_data"}
+    ):
         for errors in id_to_error.values():
             result.extend(errors)
     group_cache: dict[int, Group] = {}
-    with start_span(op="serializing_data", name="serializing_data"):
+    with traces.start_span(name="serializing_data", attributes={"sentry.op": "serializing_data"}):
         return [
             event
             for event in [

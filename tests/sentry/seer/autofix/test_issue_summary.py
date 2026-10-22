@@ -22,7 +22,7 @@ from sentry.seer.autofix.issue_summary import (
     _trigger_autofix_task,
     get_and_update_group_fixability_score,
     get_automation_stopping_point,
-    get_issue_summary,
+    get_or_generate_issue_summary,
     is_group_eligible_for_automation,
     run_automation,
 )
@@ -82,6 +82,22 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Clear the cache after each test
         cache.delete(f"ai-group-summary-v2:{self.group.id}")
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.seer.autofix.issue_summary._generate_summary")
+    def test_first_assignment_does_not_record_scanner_usage(
+        self, mock_generate_summary: MagicMock, mock_record_seer_run: MagicMock
+    ) -> None:
+        summary = IssueSummary(group_id=str(self.group.id), event_id="event", headline="Summary")
+        mock_generate_summary.return_value = summary
+
+        result = get_or_generate_issue_summary(
+            self.group, source=SeerAutomationSource.FIRST_ASSIGNMENT
+        )
+
+        assert result == summary
+        mock_generate_summary.assert_called_once()
+        mock_record_seer_run.assert_not_called()
+
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     def test_get_issue_summary_with_existing_summary(self, mock_call_seer):
         existing_summary = {
@@ -102,7 +118,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             f"ai-group-summary-v2:{self.group.id}", existing_summary, timeout=60 * 60 * 24 * 7
         )
 
-        summary_data = get_issue_summary(self.group, self.user)
+        summary_data = get_or_generate_issue_summary(self.group, self.user)
 
         assert summary_data == IssueSummary.validate(existing_summary)
         mock_call_seer.assert_not_called()
@@ -114,7 +130,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         with pytest.raises(
             IssueSummaryEventNotFound, match="Could not find an event for the issue"
         ):
-            get_issue_summary(self.group, self.user)
+            get_or_generate_issue_summary(self.group, self.user)
 
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") is None
 
@@ -124,7 +140,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             IssueSummarySelfHosted,
             match="Seer is not available on this installation",
         ):
-            get_issue_summary(self.group, self.user)
+            get_or_generate_issue_summary(self.group, self.user)
 
     @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
@@ -156,7 +172,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         expected_summary = IssueSummary(**mock_summary.dict(), event_id=event.event_id)
 
-        summary_data = get_issue_summary(self.group, self.user)
+        summary_data = get_or_generate_issue_summary(self.group, self.user)
 
         assert summary_data == expected_summary
         mock_get_event.assert_called_once_with(self.group, self.user, provided_event_id=None)
@@ -205,7 +221,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             event_id=event.event_id,
         )
 
-        summary_data = get_issue_summary(self.group, self.user)
+        summary_data = get_or_generate_issue_summary(self.group, self.user)
 
         assert summary_data == expected_summary
         mock_request.assert_called_once()
@@ -215,7 +231,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") == expected_summary.dict()
 
-    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    @patch("sentry.seer.autofix.issue_summary.get_or_generate_issue_summary")
     def test_get_issue_summary_cache_write_read(self, mock_get_issue_summary):
         # First request to populate the cache
         mock_get_event = Mock()
@@ -253,7 +269,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             patch("sentry.seer.autofix.issue_summary._get_event") as mock_get_event,
             patch("sentry.seer.autofix.issue_summary._call_seer") as mock_call_seer,
         ):
-            summary_data = get_issue_summary(self.group, self.user)
+            summary_data = get_or_generate_issue_summary(self.group, self.user)
 
             assert summary_data == expected_summary
 
@@ -288,7 +304,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         def target(req_id):
             try:
-                results[req_id] = get_issue_summary(self.group, self.user)
+                results[req_id] = get_or_generate_issue_summary(self.group, self.user)
             except Exception as e:
                 exceptions[req_id] = e
 
@@ -342,7 +358,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         locks.get(lock_key, duration=1).release()  # Ensure lock isn't held
 
         # Call with force_event_id=True
-        summary_data = get_issue_summary(self.group, self.user, force_event_id="some_event")
+        summary_data = get_or_generate_issue_summary(
+            self.group, self.user, force_event_id="some_event"
+        )
 
         assert summary_data == forced_summary
 
@@ -395,7 +413,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_cache_get.return_value = None
 
         with pytest.raises(UnableToAcquireLock):
-            get_issue_summary(self.group, self.user)
+            get_or_generate_issue_summary(self.group, self.user)
         # Ensure lock acquisition was attempted
         mock_blocking_acquire.assert_called_once()
         # Ensure generation was NOT called
@@ -516,7 +534,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
-    def test_get_issue_summary_runs_automation_for_web_vitals_issue(
+    def test_summary_and_automation_for_web_vitals_issue(
         self,
         mock_get_event,
         mock_call_seer,
@@ -582,11 +600,13 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert group_info is not None
         self.group = group_info.group
 
-        get_issue_summary(
+        get_or_generate_issue_summary(
             self.group,
             self.user,
             source=SeerAutomationSource.POST_PROCESS,
         )
+        mock_trigger_autofix_task.assert_not_called()
+        run_automation(self.group, self.user, summarized_event, SeerAutomationSource.POST_PROCESS)
 
         mock_record_seer_run.assert_called_once()
         mock_trigger_autofix_task.assert_called_once()
@@ -617,7 +637,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 ),
             ) as mock_call_seer,
         ):
-            get_issue_summary(self.group, self.user)
+            get_or_generate_issue_summary(self.group, self.user)
 
         mock_call_seer.assert_called_once_with(
             self.group, serialized_event, None, experiment_variant=None
@@ -658,10 +678,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         expected_summary = IssueSummary(**mock_summary.dict(), event_id=event.event_id)
 
-        summary_data = get_issue_summary(
+        summary_data = get_or_generate_issue_summary(
             self.group,
             self.user,
-            should_run_automation=False,
         )
 
         assert summary_data == expected_summary
@@ -682,7 +701,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
-    def test_get_issue_summary_returns_summary_when_automation_fails(
+    def test_get_issue_summary_does_not_run_post_process_automation(
         self,
         mock_get_event: MagicMock,
         mock_call_seer: MagicMock,
@@ -703,15 +722,12 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.return_value = mock_summary
         mock_run_automation.side_effect = Exception("Automation failed")
 
-        summary = get_issue_summary(self.group, self.user)
+        summary = get_or_generate_issue_summary(
+            self.group, self.user, source=SeerAutomationSource.POST_PROCESS
+        )
 
         assert summary == IssueSummary(**mock_summary.dict(), event_id=event.event_id)
-        mock_run_automation.assert_called_once_with(
-            self.group,
-            self.user,
-            event,
-            SeerAutomationSource.ISSUE_DETAILS,
-        )
+        mock_run_automation.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary.run_automation")
     @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
@@ -750,7 +766,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_trace_tree.return_value = {"trace": "tree"}
 
         with self.feature("organizations:issue-summary-experimental"):
-            get_issue_summary(self.group, self.user)
+            get_or_generate_issue_summary(self.group, self.user)
 
         assert mock_call_seer.call_count == 2
 
@@ -802,7 +818,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_call_seer.return_value = mock_summary
         mock_get_trace_tree.return_value = {"trace": "tree"}
 
-        get_issue_summary(self.group, self.user)
+        get_or_generate_issue_summary(self.group, self.user)
 
         mock_call_seer.assert_called_once_with(
             self.group, serialized_event, {"trace": "tree"}, experiment_variant=None
@@ -842,7 +858,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_trace_tree.return_value = {"trace": "tree"}
 
         with self.feature("organizations:issue-summary-experimental"):
-            summary_data = get_issue_summary(self.group, self.user)
+            summary_data = get_or_generate_issue_summary(self.group, self.user)
 
         assert summary_data.headline == "Test headline"
 

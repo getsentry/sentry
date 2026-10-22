@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
@@ -29,7 +30,6 @@ from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawne
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
-from sentry.utils.tracing import start_span
 
 # Identifies this task in the self-chain idempotency guard.
 REPROCESS_GROUP_TASK_NAME = "reprocessing2.reprocess_group"
@@ -165,7 +165,9 @@ def reprocess_group(
 
     for event in events:
         if max_events is None or max_events > 0:
-            with start_span(op="reprocess_event", name="reprocess_event"):
+            with traces.start_span(
+                name="reprocess_event", attributes={"sentry.op": "reprocess_event"}
+            ):
                 try:
                     reprocess_event(
                         project_id=project_id,

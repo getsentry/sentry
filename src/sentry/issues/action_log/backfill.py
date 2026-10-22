@@ -134,7 +134,7 @@ def backfill_actions(
                 entry.actor.actor_type.value,
                 entry.actor.actor_id,
                 entry.source,
-                json.dumps(entry.action.dict()),
+                json.dumps(entry.action.json_dict()),
                 entry.date_added,
                 timezone.now(),  # date_updated
                 entry.idempotency_key,

@@ -106,7 +106,7 @@ PREBUILT_SAVED_QUERIES = [
     },
     {
         "prebuilt_id": 5,
-        "prebuilt_version": 1,
+        "prebuilt_version": 2,
         "name": "LLM Calls",
         "dataset": "spans",
         "query": [
@@ -118,7 +118,7 @@ PREBUILT_SAVED_QUERIES = [
                     "gen_ai.cost.total_tokens",
                     "timestamp",
                 ],
-                "query": "gen_ai.operation.type:ai_client has:gen_ai.output.messages",
+                "query": "gen_ai.operation.type:ai_client",
                 "mode": "samples",
                 "visualize": [
                     {

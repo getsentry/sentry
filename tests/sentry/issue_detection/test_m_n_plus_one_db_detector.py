@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from itertools import count
 from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -10,6 +11,8 @@ from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from sentry.issue_detection.performance_detection import (
     _detect_performance_problems,
+    build_tree,
+    flatten_tree,
     get_detection_settings,
     run_detector_on_data,
 )
@@ -21,6 +24,108 @@ from sentry.issues.grouptype import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import get_event
+
+PARENT_SPAN_ID = "f" * 16
+
+
+def _span(
+    span_id: int,
+    op: str,
+    description: str,
+    start_ms: float,
+    end_ms: float,
+    *,
+    parent_span_id: str = PARENT_SPAN_ID,
+    hash: str | None = None,
+) -> dict[str, Any]:
+    span: dict[str, Any] = {
+        "span_id": f"{span_id:016x}",
+        "parent_span_id": parent_span_id,
+        "op": op,
+        "description": description,
+        "start_timestamp": start_ms / 1000,
+        "timestamp": end_ms / 1000,
+    }
+    if hash:
+        span["hash"] = hash
+    return span
+
+
+def _event(spans: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build an event whose spans are ordered the way performance detection visits them."""
+    parent = {
+        "span_id": PARENT_SPAN_ID,
+        "op": "function",
+        "description": "load_books",
+        "start_timestamp": 0.0,
+        "timestamp": 1.0,
+    }
+    return {"transaction": "GET /books", "spans": flatten_tree(*build_tree([parent, *spans]))}
+
+
+def _nested_connection_event(
+    op: str, outer_description: str, inner_description: str
+) -> dict[str, Any]:
+    """Three overlapping connection acquisitions, each wrapping a nested connection open."""
+    ids = count(1)
+    spans: list[dict[str, Any]] = []
+    for start in range(3):
+        outer = _span(next(ids), op, outer_description, start, start + 100, hash=outer_description)
+        inner = _span(
+            next(ids),
+            op,
+            inner_description,
+            start + 1,
+            start + 99,
+            parent_span_id=outer["span_id"],
+            hash=inner_description,
+        )
+        spans.extend([outer, inner])
+    return _event(spans)
+
+
+def _pg_query_pattern_event(
+    *, connection_ms: float, query_ms: float, app_ms: float, with_connections: bool = True
+) -> dict[str, Any]:
+    """Three repetitions of `pg-pool.connect` (wrapping `pg.connect`), a query, and app work."""
+    ids = count(1)
+    spans: list[dict[str, Any]] = []
+    repetition_ms = connection_ms + query_ms + app_ms
+    for repetition in range(3):
+        start = repetition * repetition_ms
+        query_start = start + connection_ms
+        app_start = query_start + query_ms
+        if with_connections:
+            pool = _span(
+                next(ids),
+                "db",
+                "pg-pool.connect",
+                start,
+                query_start,
+                hash="pg-pool-connect",
+            )
+            client = _span(
+                next(ids),
+                "db",
+                "pg.connect",
+                start + connection_ms * 0.1,
+                start + connection_ms * 0.9,
+                parent_span_id=pool["span_id"],
+                hash="pg-connect",
+            )
+            spans.extend([pool, client])
+        spans.append(
+            _span(
+                next(ids),
+                "db",
+                "SELECT * FROM authors WHERE book_id = $1",
+                query_start,
+                app_start,
+                hash="select-authors",
+            )
+        )
+        spans.append(_span(next(ids), "serialize", "serialize_book", app_start, app_start + app_ms))
+    return _event(spans)
 
 
 @pytest.mark.django_db
@@ -191,7 +296,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
         _detect_performance_problems(event, sdk_span_mock, self.create_project())
-        sdk_span_mock.set_tag.assert_has_calls(
+        sdk_span_mock.set_attribute.assert_has_calls(
             [
                 call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", "sentry.javascript.node"),
@@ -306,3 +411,49 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
         assert self.find_problems(event, settings) == []
         metrics_mock.incr.assert_called_with("mn_plus_one_db_span_detector.no_parent_span")
+
+    def test_ignores_connection_only_patterns(self) -> None:
+        for op, outer_description, inner_description in [
+            ("db", "pg-pool.connect", "pg.connect"),
+            ("db.connection", "acquire connection", "open connection"),
+            ("db.connection.postgresql", "acquire connection", "open connection"),
+        ]:
+            with self.subTest(op=op, description=outer_description):
+                event = _nested_connection_event(op, outer_description, inner_description)
+                assert self.find_problems(event) == []
+
+    def test_connection_spans_do_not_become_the_query(self) -> None:
+        event = _pg_query_pattern_event(connection_ms=10, query_ms=20, app_ms=10)
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+        problem = problems[0]
+
+        query_span_ids = [
+            span["span_id"] for span in event["spans"] if span.get("hash") == "select-authors"
+        ]
+        assert problem.desc == "SELECT * FROM authors WHERE book_id = $1"
+        assert problem.cause_span_ids == query_span_ids
+        assert problem.offender_span_ids == [
+            span["span_id"] for span in event["spans"] if span["span_id"] != PARENT_SPAN_ID
+        ]
+
+        # Connection spans in the pattern must not change how the problem is grouped.
+        event_without_connections = _pg_query_pattern_event(
+            connection_ms=10, query_ms=20, app_ms=10, with_connections=False
+        )
+        problems_without_connections = self.find_problems(event_without_connections)
+        assert len(problems_without_connections) == 1
+        assert problem.fingerprint == problems_without_connections[0].fingerprint
+
+    @patch("sentry.issue_detection.detectors.mn_plus_one_db_span_detector.metrics")
+    def test_connection_time_does_not_count_as_query_time(self, metrics_mock: MagicMock) -> None:
+        # Queries take 1% of the pattern; connection acquisition takes nearly all of it.
+        event = _pg_query_pattern_event(connection_ms=98, query_ms=1, app_ms=1)
+        assert self.find_problems(event) == []
+        metrics_mock.incr.assert_called_with(
+            "mn_plus_one_db_span_detector.below_db_span_percentage"
+        )
+
+        # Queries take 10% of the pattern, above the 5% minimum.
+        event = _pg_query_pattern_event(connection_ms=89, query_ms=10, app_ms=1)
+        assert len(self.find_problems(event)) == 1

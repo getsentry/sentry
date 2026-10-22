@@ -13,7 +13,7 @@ type PluggableList = NonNullable<ProcessorOptions['remarkPlugins']>;
 /**
  * Shared remark plugins for MDX processing.
  *
- * Used by rspack.config.ts (build) and story-manifest.ts (search index).
+ * Used by rsbuild.config.ts (build) and story-manifest.ts (search index).
  * Order matters — plugins run in array order.
  */
 export const remarkPlugins: PluggableList = [
@@ -43,7 +43,7 @@ export const remarkPlugins: PluggableList = [
 /**
  * Shared rehype plugins for MDX processing.
  *
- * Used by rspack.config.ts (build).
+ * Used by rsbuild.config.ts (build).
  */
 export const rehypePlugins = [
   [

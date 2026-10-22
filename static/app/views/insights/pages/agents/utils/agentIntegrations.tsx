@@ -7,11 +7,14 @@ export enum AgentIntegration {
   GOOGLE_GENAI = 'google_genai',
   LANGCHAIN = 'langchain',
   LANGGRAPH = 'langgraph',
-  LITTELLM = 'litellm',
+  LITELLM = 'litellm',
   // Flue is a TypeScript agent framework (by the Astro team) that ships an
   // official Sentry blueprint. It runs on both Node and Cloudflare.
   FLUE = 'flue',
   MASTRA = 'mastra',
+  // Pi Durable, Earendil's durable agent harness (`@earendil-works/pi-durable`).
+  // The SDK instruments it automatically on Node, Bun, Deno, and Cloudflare.
+  PI = 'pi',
   PYDANTIC_AI = 'pydantic_ai',
   VERCEL_AI = 'vercel_ai',
   // Node-only: Vercel's filesystem-first framework for durable backend AI
@@ -25,16 +28,17 @@ export enum AgentIntegration {
   MANUAL = 'manual',
 }
 
-export const AGENT_INTEGRATION_LABELS = {
+export const AGENT_INTEGRATION_LABELS: Record<AgentIntegration, string> = {
   [AgentIntegration.OPENAI]: 'OpenAI SDK',
   [AgentIntegration.OPENAI_AGENTS]: 'OpenAI Agents SDK',
   [AgentIntegration.ANTHROPIC]: 'Anthropic SDK',
   [AgentIntegration.GOOGLE_GENAI]: 'Google Gen AI SDK',
   [AgentIntegration.LANGCHAIN]: 'LangChain',
   [AgentIntegration.LANGGRAPH]: 'LangGraph',
-  [AgentIntegration.LITTELLM]: 'LiteLLM',
+  [AgentIntegration.LITELLM]: 'LiteLLM',
   [AgentIntegration.FLUE]: 'Flue',
   [AgentIntegration.MASTRA]: 'Mastra',
+  [AgentIntegration.PI]: 'Pi Durable',
   [AgentIntegration.PYDANTIC_AI]: 'Pydantic AI',
   [AgentIntegration.VERCEL_AI]: 'Vercel AI SDK',
   [AgentIntegration.EVE]: 'Eve',
@@ -50,9 +54,10 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.GOOGLE_GENAI]: 'gemini',
   [AgentIntegration.LANGCHAIN]: 'langchain',
   [AgentIntegration.LANGGRAPH]: 'langchain',
-  [AgentIntegration.LITTELLM]: 'litellm',
-  [AgentIntegration.FLUE]: 'astro',
+  [AgentIntegration.LITELLM]: 'litellm',
+  [AgentIntegration.FLUE]: 'flue',
   [AgentIntegration.MASTRA]: 'mastra',
+  [AgentIntegration.PI]: 'pi',
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
   [AgentIntegration.VERCEL_AI]: 'vercel',
   // Eve is a Vercel framework, so it reuses the Vercel icon.
@@ -69,7 +74,7 @@ export const PYTHON_AGENT_INTEGRATIONS = [
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
   AgentIntegration.LANGGRAPH,
-  AgentIntegration.LITTELLM,
+  AgentIntegration.LITELLM,
   AgentIntegration.PYDANTIC_AI,
   AgentIntegration.MANUAL,
 ];
@@ -92,11 +97,13 @@ export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.LANGGRAPH,
   AgentIntegration.MASTRA,
   AgentIntegration.OPENAI,
+  AgentIntegration.PI,
   AgentIntegration.MANUAL,
 ];
 
 export const DENO_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
+  AgentIntegration.PI,
   AgentIntegration.MANUAL,
 ];
 
@@ -128,6 +135,7 @@ const DEFAULT_AGENT_INTEGRATION_BY_PROJECT_PLATFORM: Partial<
   'node-eve': AgentIntegration.EVE,
   'node-flue': AgentIntegration.FLUE,
   'node-mastra': AgentIntegration.MASTRA,
+  'node-pi-durable': AgentIntegration.PI,
 };
 
 export function getDefaultAgentIntegration(
@@ -146,6 +154,9 @@ export function getDefaultAgentIntegration(
  * - Mastra's `@mastra/sentry` exporter is not part of the Cloudflare `withSentry`
  *   flow, so it is Node-only.
  * - Eve is a Vercel backend framework that runs on Node, so it is Node-only.
+ * - Pi Durable runs on Cloudflare too, but its Cloudflare setup is only shown in
+ *   Cloudflare Workers projects, which force the Cloudflare target. In other Node
+ *   projects it is Node-only (see INTEGRATIONS_WITHOUT_DEPLOYMENT_TARGET_SELECTOR).
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
  */
@@ -156,7 +167,22 @@ const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
   [AgentIntegration.CLOUDFLARE_AGENTS]: DeploymentTarget.CLOUDFLARE,
   [AgentIntegration.MASTRA]: DeploymentTarget.NODE,
   [AgentIntegration.EVE]: DeploymentTarget.NODE,
+  [AgentIntegration.PI]: DeploymentTarget.NODE,
 };
+
+/**
+ * SDKs pinned to a runtime that hide the runtime selector instead of showing it
+ * locked to that runtime.
+ */
+const INTEGRATIONS_WITHOUT_DEPLOYMENT_TARGET_SELECTOR: ReadonlySet<string> = new Set([
+  AgentIntegration.PI,
+]);
+
+export function hidesDeploymentTargetSelector(integration: string | undefined): boolean {
+  return integration
+    ? INTEGRATIONS_WITHOUT_DEPLOYMENT_TARGET_SELECTOR.has(integration)
+    : false;
+}
 
 /**
  * Returns the runtime a given SDK is pinned to, or undefined when the SDK works

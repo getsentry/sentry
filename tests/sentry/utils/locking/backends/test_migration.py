@@ -79,16 +79,17 @@ class TestMigrationLockBackend(TestCase):
         backend.backend_new.acquire(lk, 10)
         assert backend.locked(lk)
 
-    def test_release_both_backends(self) -> None:
+    def test_release_stops_after_picked_backend(self) -> None:
+        # default selector function always returns new backend
         backend = MigrationLockBackend(
             backend_new_config={"path": DummyLockBackend.path},
             backend_old_config={"path": DummyLockBackend.path},
         )
         backend.backend_new.acquire("hello", 10)
         backend.backend_old.acquire("hello", 10)
-        assert backend.locked("hello")
         backend.release("hello")
-        assert not backend.locked("hello")
+        assert not backend.backend_new.locked("hello")
+        assert backend.backend_old.locked("hello")
 
 
 # Two real Redis backends, kept apart by their key prefix. Each MigrationLockBackend
@@ -257,6 +258,34 @@ class TestMigrationLockBackendOnRedis(TestCase):
         ):
             backend.release(self.key)
             assert not backend.locked(self.key)
+
+    def test_release_with_check_on_at_rate_zero_does_not_touch_new(self) -> None:
+        # The release on the old backend succeeds, so the release does not go to the
+        # new backend. The copy on the new backend shows that it was not touched.
+        backend = self.build(post_process_locks_selector)
+
+        with override_options(
+            {
+                "locks.post-process.migration-check-new": True,
+                "locks.post-process.migration-rollout-rate": 0.0,
+            }
+        ):
+            backend.acquire(self.key, 10)
+            backend.backend_new.acquire(self.key, 10)
+            backend.release(self.key)
+        assert not backend.backend_old.locked(self.key)
+        assert backend.backend_new.locked(self.key)
+
+    def test_release_falls_back_when_picked_backend_is_unavailable(self) -> None:
+        backend = MigrationLockBackend(
+            backend_new_config={"path": UnavailableLockBackend.path},
+            backend_old_config=OLD_CONFIG,
+            selector_func_path=pick_new,
+        )
+        backend.backend_old.acquire(self.key, 10)
+
+        backend.release(self.key)
+        assert not backend.backend_old.locked(self.key)
 
     def test_locked_skips_new_when_check_is_off(self) -> None:
         backend = MigrationLockBackend(

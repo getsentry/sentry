@@ -25,8 +25,6 @@ describe('analyticsInitUser', () => {
   afterEach(() => {
     sessionStorageWrapper.removeItem('marketing_event_recorded');
     jest.mocked(trackMarketingEvent).mockClear();
-    jest.mocked(Amplitude.init).mockClear();
-    jest.mocked(Amplitude.identify).mockClear();
     jest.mocked(Amplitude.setUserId).mockClear();
     jest.mocked(Amplitude.track).mockClear();
     jest.mocked(Amplitude.Identify).mockClear();
@@ -36,12 +34,6 @@ describe('analyticsInitUser', () => {
     expect(Amplitude.Identify).toHaveBeenCalledWith();
     expect(_identifyInstance.set).toHaveBeenCalledWith('user_id', user.id);
     expect(_identifyInstance.set).toHaveBeenCalledWith('isInternalUser', false);
-  });
-  it('initializes Amplitude without identifying an anonymous user', () => {
-    analyticsInitUser(null);
-
-    expect(Amplitude.init).toHaveBeenCalledTimes(1);
-    expect(Amplitude.identify).not.toHaveBeenCalled();
   });
   it('calls user properties and sets isInternalUser with organization', () => {
     const internalUser = UserFixture({});

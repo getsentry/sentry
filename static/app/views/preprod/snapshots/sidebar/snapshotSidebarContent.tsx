@@ -1,13 +1,15 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconClose, IconSearch, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
 import {useTagFilters} from 'sentry/views/preprod/snapshots/tagFilterContext';
@@ -226,7 +228,11 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
             {virtualItems.map(vi => {
               const row = virtualRows[vi.index]!;
               return (
-                <VirtualRowPositioner
+                <Container
+                  width="100%"
+                  position="absolute"
+                  top="0"
+                  left="0"
                   key={vi.key}
                   ref={virtualizer.measureElement}
                   data-index={vi.index}
@@ -246,7 +252,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
                       onSelect={onSelectItem}
                     />
                   )}
-                </VirtualRowPositioner>
+                </Container>
               );
             })}
           </div>
@@ -538,10 +544,4 @@ const TagDisclosure = styled(Disclosure)`
       border-radius: 0;
     }
   }
-`;
-const VirtualRowPositioner = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
 `;

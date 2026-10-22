@@ -371,6 +371,58 @@ describe('SpansTable', () => {
     expect(request.mock.calls[0]![1].query.routing_hint).toBe('original-hint');
   });
 
+  it('shows the query timeout message instead of a generic loading error', () => {
+    const failedResult = makeQueryResult(undefined);
+    Object.assign(failedResult, {
+      error: new QueryError(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      ),
+      isError: true,
+      isPending: false,
+      isSuccess: false,
+      status: 'error',
+    });
+
+    render(<ExampleSpansTable result={failedResult} />, renderOptions());
+
+    expect(
+      screen.getByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the query timeout message when retained span rows fail to refresh', () => {
+    const timeoutMessage =
+      'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.';
+    const {rerender} = render(
+      <ExampleSpansTable result={makeQueryResult([firstRow])} />,
+      renderOptions()
+    );
+
+    expect(screen.getByText('GET /one')).toBeInTheDocument();
+
+    const failedResult = makeQueryResult(undefined);
+    Object.assign(failedResult, {
+      error: new QueryError(timeoutMessage),
+      isError: true,
+      isPending: false,
+      isSuccess: false,
+      status: 'error',
+    });
+    rerender(<ExampleSpansTable result={failedResult} />);
+
+    expect(screen.getByText('GET /one')).toBeInTheDocument();
+    expect(screen.getByText(timeoutMessage)).toBeInTheDocument();
+    expect(screen.queryByText('Failed to update span samples')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
+  });
+
   it('resets expanded details when the result identity changes', async () => {
     mockSpanDetails(firstRow, [
       {name: 'span.custom', type: 'str', value: 'custom value'},

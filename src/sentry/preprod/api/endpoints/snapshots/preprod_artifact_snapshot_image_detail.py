@@ -22,7 +22,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
-from sentry.issues.action_log import resolve_action_source
+from sentry.issues.action_log.request import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotImageEvent
 from sentry.preprod.api.models.public.snapshots import SnapshotImageDetailResponseDict

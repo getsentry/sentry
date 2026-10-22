@@ -236,6 +236,56 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             "team": [f"You do not have permission to access {other_team.name}"]
         }
 
+    def test_post_key_transaction_other_org_team(self) -> None:
+        team = self.create_team(organization=self.org, name="Team Foo")
+        self.create_team_membership(team, user=self.user)
+        self.project.add_team(team)
+
+        other_org = self.create_organization(owner=self.create_user())
+        other_org_team = self.create_team(organization=other_org, name="Other Org Team")
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.event_data["transaction"],
+                    "team": [other_org_team.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"team": ["One or more teams do not exist."]}
+        assert not TeamKeyTransaction.objects.filter(
+            transaction=self.event_data["transaction"]
+        ).exists()
+
+    def test_post_key_transaction_mixed_org_teams(self) -> None:
+        team = self.create_team(organization=self.org, name="Team Foo")
+        self.create_team_membership(team, user=self.user)
+        self.project.add_team(team)
+
+        other_org = self.create_organization(owner=self.create_user())
+        other_org_team = self.create_team(organization=other_org, name="Other Org Team")
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.event_data["transaction"],
+                    "team": [team.id, other_org_team.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"team": ["One or more teams do not exist."]}
+        assert not TeamKeyTransaction.objects.filter(
+            transaction=self.event_data["transaction"]
+        ).exists()
+
     def test_post_key_transaction_no_access_project(self) -> None:
         team1 = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team1, user=self.user)
@@ -576,6 +626,35 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 204, response.content
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 0
+
+    def test_delete_key_transaction_other_org_team(self) -> None:
+        team = self.create_team(organization=self.org, name="Team Foo")
+        self.create_team_membership(team, user=self.user)
+        self.project.add_team(team)
+
+        other_org = self.create_organization(owner=self.create_user())
+        other_org_team = self.create_team(organization=other_org, name="Other Org Team")
+        other_org_project = self.create_project(organization=other_org, teams=[other_org_team])
+        other_org_key_transaction = TeamKeyTransaction.objects.create(
+            organization=other_org,
+            project_team=ProjectTeam.objects.get(project=other_org_project, team=other_org_team),
+            transaction=self.event_data["transaction"],
+        )
+
+        with self.feature(self.features):
+            response = self.client.delete(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.event_data["transaction"],
+                    "team": [other_org_team.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"team": ["One or more teams do not exist."]}
+        assert TeamKeyTransaction.objects.filter(id=other_org_key_transaction.id).exists()
 
     def test_delete_key_transaction_no_access_team(self) -> None:
         org = self.create_organization(

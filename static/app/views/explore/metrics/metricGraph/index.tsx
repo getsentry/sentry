@@ -2,21 +2,27 @@ import {Fragment, useMemo, useState} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
-import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
+import {
+  doesMetricSupportHeatMapVisualization,
+  METRICS_CHART_GROUP,
+} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 import {
@@ -26,7 +32,6 @@ import {
   useMetricVisualizes,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   MINIMIZED_GRAPH_HEIGHT,
@@ -37,6 +42,7 @@ import {
   getEquationMetricsTotalFilter,
 } from 'sentry/views/explore/metrics/utils';
 import {
+  useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
@@ -45,6 +51,7 @@ import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getFirstSamplingWarning,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {
@@ -149,6 +156,8 @@ function Graph({
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
   const userQuery = useQueryParamsQuery();
+  const groupBys = useQueryParamsGroupBys();
+  const {selection} = usePageFilters();
   const traceMetric = useTraceMetric();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
@@ -160,11 +169,15 @@ function Graph({
       : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
-  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({
+  const [interval] = useChartInterval();
+  const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.TRACEMETRICS,
+    interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.TRACEMETRICS);
+  const openDroppedDataDrawer = useDroppedDataDrawer({
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
@@ -221,17 +234,40 @@ function Graph({
     return title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
   }, [aggregate, metricLabel, metricName, visualizes.length, title]);
 
+  const isEmptyEquation = isVisualizeEquation(visualize) && !visualize.expression.text;
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
-  const showChart = visualize.visible && !isMetricOptionsEmpty;
-  const canShowDroppedData =
-    showChart && hasDroppedData(droppedAnnotations, acceptedAnnotations);
+  const showEquationPrompt = isEmptyEquation && visualize.visible;
+  const showChart = visualize.visible && !isMetricOptionsEmpty && !isEmptyEquation;
+  const samplingWarning = showChart
+    ? getFirstSamplingWarning(
+        visualizes.map(v => v.yAxis),
+        timeseriesResult.data,
+        chartInfo.dataScanned
+      )
+    : null;
+  const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
+
+  // ECharts keeps its toolbox zoom window across option merges, so a chart that
+  // stays mounted after a zoom keeps clipping to the old range when the query
+  // changes (e.g. switching back to a larger preset). Remounting gives each
+  // query a fresh chart instance, matching `LogsGraph`.
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${visualizes.map(v => v.yAxis).join(',')}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
     <WidgetWrapper hideFooterBorder>
       <Widget
         Title={<Widget.WidgetTitle title={chartTitle} />}
+        TitleBadges={
+          samplingWarning ? (
+            <SamplingWarning
+              yAxis={samplingWarning.yAxis}
+              reason={samplingWarning.reason}
+            />
+          ) : null
+        }
         Actions={
           <Fragment>
             {canShowDroppedData ? (
@@ -257,14 +293,20 @@ function Graph({
                 }
               )}
             />
+          ) : showEquationPrompt ? (
+            <GenericWidgetEmptyStateWarning
+              title={t('Enter an equation to see results')}
+              message=""
+            />
           ) : showChart ? (
             <ChartVisualization
+              key={chartRemountKey}
               chartInfo={chartInfo}
               droppedData={
                 showDroppedDataBand
                   ? {
-                      droppedAnnotations,
-                      acceptedAnnotations,
+                      droppedEvents,
+                      acceptedEvents,
                       onClick: openDroppedDataDrawer,
                     }
                   : undefined

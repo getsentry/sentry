@@ -12,3 +12,7 @@ export function stripAnsi(input: string): string {
 export function hasAnsi(input: string): boolean {
   return input.includes('\x1B');
 }
+
+export function applyCarriageReturns(input: string): string {
+  return input.replace(/^.*\r(?!$)/gm, '');
+}

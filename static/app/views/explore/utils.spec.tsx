@@ -3,19 +3,17 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import type {Meta, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {DiscoverSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
+  getFirstSamplingWarning,
   getSamplingWarningReason,
-  hasRemarkedValue,
-  hasScrubbedValue,
   getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
   prettifyAggregation,
@@ -206,6 +204,31 @@ describe('viewSamplesTarget', () => {
         mode: 'samples',
         query: '',
         project: String(project.id),
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down with boolean group by value', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['tags[api_token_is_sentry_app,boolean]'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        'tags[api_token_is_sentry_app,boolean]': false,
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'tags[api_token_is_sentry_app,boolean]:false',
         sort: ['-span.duration'],
       },
     });
@@ -588,9 +611,10 @@ function seriesWithSampleRates(sampleRates: Array<number | null>): TimeSeries[] 
 describe('isSamplingSensitiveAggregate', () => {
   it.each([
     'count_unique(user)',
-    'failure_count()',
-    'failure_rate()',
+    'min(span.duration)',
+    'max(span.duration)',
     'count_unique_if(`span.op:db`,user)',
+    'max_if(`span.op:db`,span.duration)',
   ])('returns true for sampling-sensitive aggregate %s', aggregate => {
     expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
   });
@@ -599,6 +623,8 @@ describe('isSamplingSensitiveAggregate', () => {
     'count()',
     'avg(span.duration)',
     'p50(span.duration)',
+    'failure_count()',
+    'failure_rate()',
     'count_if(`span.op:db`,span.duration)',
   ])('returns false for non-sensitive aggregate %s', aggregate => {
     expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
@@ -695,6 +721,45 @@ describe('getSamplingWarningReason', () => {
   });
 });
 
+describe('getFirstSamplingWarning', () => {
+  it('returns the first sampling-sensitive yAxis that has a warning', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['avg(span.duration)', 'max(span.duration)', 'count_unique(user)'],
+        {
+          'avg(span.duration)': seriesWithSampleRates([0.05]),
+          'max(span.duration)': seriesWithSampleRates([0.05]),
+          'count_unique(user)': seriesWithSampleRates([0.05]),
+        },
+        'full'
+      )
+    ).toEqual({yAxis: 'max(span.duration)', reason: 'lowSampleRate'});
+  });
+
+  it('skips sensitive yAxes without plotted data', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['min(span.duration)', 'count_unique(user)'],
+        {'count_unique(user)': seriesWithSampleRates([1])},
+        'partial'
+      )
+    ).toEqual({yAxis: 'count_unique(user)', reason: 'partialData'});
+  });
+
+  it('returns null when no yAxis has a warning', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['avg(span.duration)', 'max(span.duration)'],
+        {
+          'avg(span.duration)': seriesWithSampleRates([0.05]),
+          'max(span.duration)': seriesWithSampleRates([1]),
+        },
+        'full'
+      )
+    ).toBeNull();
+  });
+});
+
 describe('prettifyAggregation', () => {
   it('prettifies typed tag keys inside conditional filters', () => {
     expect(prettifyAggregation('avg_if(`tags[Limit,number]:>5`,span.duration)')).toBe(
@@ -732,53 +797,5 @@ describe('getYAxisDiscoverSavedQuery', () => {
     expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([
       {yAxes: ['count_unique(release)']},
     ]);
-  });
-});
-
-function traceItemMetaFixture(rem: Meta['rem']): TraceItemDetailsMeta {
-  return {'user.email': {meta: {value: {'': {len: 0, rem}}}}};
-}
-
-describe('hasScrubbedValue', () => {
-  const metaFor = traceItemMetaFixture;
-
-  it('returns true when a privacy rule redacted the value', () => {
-    const isScrubbed = hasScrubbedValue(
-      metaFor([['organization:0', 's', 0, 5]]),
-      'user.email'
-    );
-
-    expect(isScrubbed).toBe(true);
-  });
-
-  it('returns false when the value was only trimmed for size', () => {
-    const isScrubbed = hasScrubbedValue(metaFor([['!limit', 'x', 0, 100]]), 'user.email');
-
-    expect(isScrubbed).toBe(false);
-  });
-
-  it('returns false when the attribute has no meta', () => {
-    const isScrubbed = [
-      hasScrubbedValue(undefined, 'user.email'),
-      hasScrubbedValue(metaFor([]), 'other.attribute'),
-    ];
-
-    expect(isScrubbed).toEqual([false, false]);
-  });
-});
-
-describe('hasRemarkedValue', () => {
-  const metaFor = traceItemMetaFixture;
-
-  it('returns true when the value was trimmed for size', () => {
-    const isRemarked = hasRemarkedValue(metaFor([['!limit', 'x', 0, 100]]), 'user.email');
-
-    expect(isRemarked).toBe(true);
-  });
-
-  it('returns false when there are no remarks', () => {
-    const isRemarked = hasRemarkedValue(metaFor([]), 'user.email');
-
-    expect(isRemarked).toBe(false);
   });
 });

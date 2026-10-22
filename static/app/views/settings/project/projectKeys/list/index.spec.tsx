@@ -75,11 +75,11 @@ describe('ProjectKeys', () => {
       initialRouterConfig,
     });
 
-    const allDsn = await screen.findAllByRole('textbox', {name: 'DSN URL'});
+    const allDsn = await screen.findAllByRole('textbox', {name: 'DSN'});
     expect(allDsn).toHaveLength(1);
 
     const expandButton = screen.getByRole('button', {name: 'Expand'});
-    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
+    const dsn = screen.getByRole('textbox', {name: 'DSN'});
 
     expect(expandButton).toBeInTheDocument();
     expect(dsn).toHaveValue(projectKeys[0].dsn.public);
@@ -105,21 +105,21 @@ describe('ProjectKeys', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'Security Header'}));
     const securityHeaderEndpoint = screen.getByRole('textbox', {
-      name: 'Security Header Endpoint URL',
+      name: 'Security Header Endpoint',
     });
     expect(securityHeaderEndpoint).toHaveValue(projectKeys[0].dsn.security);
 
     // Click on Minidump tab and verify endpoint
     await userEvent.click(screen.getByRole('tab', {name: 'Minidump'}));
     const minidumpEndpoint = await screen.findByRole('textbox', {
-      name: 'Minidump Endpoint URL',
+      name: 'Minidump Endpoint',
     });
     expect(minidumpEndpoint).toHaveValue(projectKeys[0].dsn.minidump);
 
     // Click on Unreal Engine tab and verify endpoint
     await userEvent.click(screen.getByRole('tab', {name: 'Unreal Engine'}));
     const unrealEndpoint = await screen.findByRole('textbox', {
-      name: 'Unreal Engine Endpoint URL',
+      name: 'Unreal Engine Endpoint',
     });
     // this is empty in the default ProjectKey
     expect(unrealEndpoint).toHaveValue('');
@@ -133,15 +133,15 @@ describe('ProjectKeys', () => {
     });
 
     const expandButton = screen.queryByRole('button', {name: 'Expand'});
-    const dsn = await screen.findByRole('textbox', {name: 'DSN URL'});
+    const dsn = await screen.findByRole('textbox', {name: 'DSN'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
-      name: 'Minidump Endpoint URL',
+      name: 'Minidump Endpoint',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine Endpoint URL',
+      name: 'Unreal Engine Endpoint',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
-      name: 'Security Header Endpoint URL',
+      name: 'Security Header Endpoint',
     });
 
     expect(expandButton).not.toBeInTheDocument();
@@ -168,15 +168,15 @@ describe('ProjectKeys', () => {
     });
 
     const expandButton = screen.queryByRole('button', {name: 'Expand'});
-    const dsn = await screen.findByRole('textbox', {name: 'DSN URL'});
+    const dsn = await screen.findByRole('textbox', {name: 'DSN'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
-      name: 'Minidump Endpoint URL',
+      name: 'Minidump Endpoint',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine Endpoint URL',
+      name: 'Unreal Engine Endpoint',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
-      name: 'Security Header Endpoint URL',
+      name: 'Security Header Endpoint',
     });
 
     expect(expandButton).not.toBeInTheDocument();
@@ -249,7 +249,7 @@ describe('ProjectKeys', () => {
       initialRouterConfig,
     });
 
-    const allDsn = await screen.findAllByRole('textbox', {name: 'DSN URL'});
+    const allDsn = await screen.findAllByRole('textbox', {name: 'DSN'});
     expect(allDsn).toHaveLength(2);
   });
 
@@ -353,7 +353,7 @@ describe('ProjectKeys', () => {
       initialRouterConfig,
     });
 
-    await screen.findByRole('textbox', {name: 'DSN URL'});
+    await screen.findByRole('textbox', {name: 'DSN'});
     expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
   });

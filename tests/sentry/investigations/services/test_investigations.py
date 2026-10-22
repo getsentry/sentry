@@ -25,6 +25,7 @@ from sentry.investigations.services.investigations import (
     create_block,
     create_manual_investigation,
     create_template_investigation,
+    default_investigation_title,
     delete_block,
     duplicate_investigation,
     investigation_legacy_source_key,
@@ -228,6 +229,58 @@ class BreachedMetricSourceRefTest(TestCase):
                 },
                 accessible_project_ids={self.project.id},
             )
+
+
+def test_default_title_names_the_investigation_type() -> None:
+    assert (
+        default_investigation_title(InvestigationSourceType.METRIC_OPEN_PERIOD)
+        == "New breached metrics investigation"
+    )
+    assert (
+        default_investigation_title(InvestigationSourceType.BREACHED_METRIC)
+        == "New breached metrics investigation"
+    )
+    assert default_investigation_title(InvestigationSourceType.MANUAL) == "New manual investigation"
+
+
+class DefaultTitleTest(TestCase):
+    def test_untitled_agentic_investigation_gets_a_default_title(self) -> None:
+        investigation, _ = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+
+        assert investigation.title == "New manual investigation"
+
+    def test_untitled_template_investigation_gets_a_default_title(self) -> None:
+        source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": {"groupId": "1", "openPeriodId": "2"},
+            "snapshot": {"monitor": {"name": "Checkout errors"}},
+        }
+        resolved = BreachedMetricSource(project_id=self.project.id, dataset="errors", source=source)
+
+        with mock.patch(
+            "sentry.investigations.services.investigations.resolve_investigation_source",
+            return_value=resolved,
+        ):
+            investigation, created = create_template_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                template_key="breached_metric",
+                template_version=1,
+                source={"type": "metric_open_period", "ref": source["ref"]},
+                supplied_parameters={},
+                accessible_project_ids={self.project.id},
+            )
+
+        assert created
+        investigation.refresh_from_db()
+        assert investigation.title == "New breached metrics investigation"
 
 
 class SourceTransitionCompatibilityTest(TestCase):

@@ -133,6 +133,7 @@ class Repository(Model):
         app_label = "sentry"
         db_table = "sentry_repository"
         unique_together = (("organization_id", "provider", "external_id"),)
+        indexes = (models.Index(fields=("organization_id", "status", "name")),)
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 
@@ -173,6 +174,7 @@ class Repository(Model):
         )
 
         data = UnableToDeleteRepository(
+            organization_id=self.organization_id,
             repository_name=self.name,
             provider_name=provider.name if (provider := self.get_provider()) else self.provider,
             error_message=error_message,

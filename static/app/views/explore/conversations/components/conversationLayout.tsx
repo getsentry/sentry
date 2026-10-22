@@ -142,6 +142,7 @@ export function ConversationContentLayout({
               content={
                 <Container
                   ref={contentRef}
+                  data-scrollable
                   flex="1"
                   minWidth="0"
                   minHeight="0"
@@ -233,11 +234,8 @@ export function ConversationDetailPanel({
     >
       {selectedNode?.renderDetails({
         node: selectedNode,
-        manager: null,
-        onParentClick: () => {},
         onTabScrollToNode: () => {},
         organization,
-        replay: null,
         traceId: nodeTraceMap.get(selectedNode.id) ?? '',
         hideNodeActions: true,
         initiallyCollapseAiIO,

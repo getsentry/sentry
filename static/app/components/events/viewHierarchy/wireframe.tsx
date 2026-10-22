@@ -1,9 +1,12 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSubtract} from '@sentry/icons/subtract';
 import {mat3, vec2} from 'gl-matrix';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
@@ -12,7 +15,6 @@ import {
   getHierarchyDimensions,
   useResizeCanvasObserver,
 } from 'sentry/components/events/viewHierarchy/utils';
-import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
@@ -328,7 +330,7 @@ function Wireframe({
   ]);
 
   return (
-    <Stack>
+    <Container width="100%" height="100%" position="relative">
       <InteractionContainer>
         <Controls>
           <Button size="xs" ref={setZoomIn} aria-label={t('Zoom In on wireframe')}>
@@ -347,17 +349,11 @@ function Wireframe({
         data-test-id="view-hierarchy-wireframe"
         ref={r => setCanvasRef(r)}
       />
-    </Stack>
+    </Container>
   );
 }
 
 export {Wireframe};
-
-const Stack = styled('div')`
-  position: relative;
-  height: 100%;
-  width: 100%;
-`;
 
 const InteractionContainer = styled('div')`
   position: absolute;
