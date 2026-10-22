@@ -70,6 +70,68 @@ describe('EventAttachments', () => {
     ).toBeInTheDocument();
   });
 
+  describe('attachments quota exceeded', () => {
+    const quotaOrganization = {
+      ...organization,
+      features: [...organization.features, 'attachments-quota-exceeded-notice'],
+    };
+    const quotaExceededEvent = {...event, metadata: {attachments_quota_exceeded: true}};
+
+    it('explains that no attachments were stored', async () => {
+      MockApiClient.addMockResponse({url: attachmentsUrl, body: []});
+
+      render(<EventAttachments {...props} event={quotaExceededEvent} />, {
+        organization: quotaOrganization,
+      });
+
+      expect(await screen.findByText('Attachments (0)')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "This event had attachments, but they weren't stored because your attachment quota was exceeded at the time the event was ingested.",
+          {exact: false}
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'View your attachment usage'})
+      ).toHaveAttribute(
+        'href',
+        `/settings/org-slug/stats/?dataCategory=attachments&project=${project.id}`
+      );
+    });
+
+    it('explains that some attachments were not stored', async () => {
+      MockApiClient.addMockResponse({
+        url: attachmentsUrl,
+        body: [EventAttachmentFixture()],
+      });
+
+      render(<EventAttachments {...props} event={quotaExceededEvent} />, {
+        organization: quotaOrganization,
+      });
+
+      expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Some of this event's attachments weren't stored because your attachment quota was exceeded at the time the event was ingested.",
+          {exact: false}
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not render without the feature flag', async () => {
+      MockApiClient.addMockResponse({url: attachmentsUrl, body: []});
+
+      const {container} = render(
+        <EventAttachments {...props} event={quotaExceededEvent} />,
+        {organization}
+      );
+
+      await tick();
+
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
   it('does not render anything if no attachments (nor stripped) are available', async () => {
     MockApiClient.addMockResponse({
       url: attachmentsUrl,
