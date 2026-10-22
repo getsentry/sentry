@@ -262,7 +262,6 @@ export function useInviteModal({organization, initialData, source}: Props) {
     });
   }, []);
 
-  // oxlint-disable-next-line react/refs
   return {
     addInviteRow,
     invites,

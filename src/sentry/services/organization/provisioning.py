@@ -5,7 +5,6 @@ from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception
 
-from sentry import options
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
@@ -16,7 +15,6 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.options.rollout import in_random_rollout
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
@@ -267,8 +265,4 @@ def resolve_provisioning_cell(locality_name: str) -> str:
     """
     Resolve the cell that a new organization should be created in.
     """
-    if in_random_rollout("provision_organization.override.rate"):
-        override_map = options.get("provision_organization.override.mapping")
-        if locality_name in override_map:
-            locality_name = override_map[locality_name]
     return get_new_org_cell_for_locality(locality_name).name

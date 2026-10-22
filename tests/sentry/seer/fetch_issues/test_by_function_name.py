@@ -504,6 +504,34 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
         call_args = mock_get_issues.call_args[0]
         assert call_args[0] == [self.project]
 
+    @patch("sentry.seer.fetch_issues.by_function_name._get_projects_and_filenames_from_source_file")
+    @patch("sentry.seer.fetch_issues.by_function_name._get_issues_for_file")
+    def test_drops_projects_outside_the_authorized_repo_projects(
+        self, mock_get_issues, mock_get_projects
+    ):
+        other_project = self.create_project(organization=self.organization)
+        mock_get_projects.return_value = ({self.project, other_project}, {"test.py"})
+        mock_get_issues.return_value = []
+
+        assert self.gh_repo.external_id is not None
+        repo_projects = RepoProjects(
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id=self.gh_repo.external_id,
+            repo=self.gh_repo,
+            repo_configs=[],
+            projects=[self.project],
+        )
+
+        _fetch_issues_from_repo_projects(
+            repo_projects=repo_projects,
+            filename="test.py",
+            function_name="target_function",
+        )
+
+        mock_get_issues.assert_called_once()
+        assert mock_get_issues.call_args[0][0] == [self.project]
+
     def test_fetch_issues_from_repo_projects_returns_groups(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns a list of Group objects."""
         # Create a group that should match

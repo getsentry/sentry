@@ -113,8 +113,6 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime) -> None:
     # check-in correctly reflects the time of when the checkin SHOULD
     # have happened. It is the same as the expected_time.
     checkin = MonitorCheckIn.objects.create(
-        project_id=monitor_environment.monitor.project_id,
-        monitor=monitor_environment.monitor,
         monitor_environment=monitor_environment,
         status=CheckInStatus.MISSED,
         date_added=expected_time,

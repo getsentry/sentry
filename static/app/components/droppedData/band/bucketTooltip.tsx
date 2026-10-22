@@ -86,16 +86,20 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
             {formatDroppedShare(bucket.ratio)}
           </Text>
         </Flex>
-        <Separator orientation="horizontal" />
-        <Stack as="section" gap="md" padding="lg xl">
-          {bucket.byOutcome.map(outcome => (
-            <VolumeRow
-              key={outcome.outcome}
-              label={outcomeLabel(outcome)}
-              {...formatCountRatio(outcome.count, totalEvents)}
-            />
-          ))}
-        </Stack>
+        {bucket.byOutcome.length > 0 && (
+          <Fragment>
+            <Separator orientation="horizontal" />
+            <Stack as="section" gap="md" padding="lg xl">
+              {bucket.byOutcome.map(outcome => (
+                <VolumeRow
+                  key={outcome.outcome}
+                  label={outcomeLabel(outcome)}
+                  {...formatCountRatio(outcome.count, totalEvents)}
+                />
+              ))}
+            </Stack>
+          </Fragment>
+        )}
       </TooltipBody>
       <Container className="tooltip-footer tooltip-footer-centered">
         <Text size="xs" variant="muted">

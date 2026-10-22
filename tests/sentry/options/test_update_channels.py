@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
+from django.test import override_settings
 
 from sentry.options.manager import (
     FLAG_ADMIN_MODIFIABLE,
@@ -29,13 +30,9 @@ def manager():
     store = OptionsStore(cache=c)
     manager = OptionsManager(store=store)
 
-    default_options = settings.SENTRY_DEFAULT_OPTIONS.copy()
-    settings.SENTRY_DEFAULT_OPTIONS = {}
-    store.flush_local_cache()
-
-    yield manager
-
-    settings.SENTRY_DEFAULT_OPTIONS = default_options
+    with override_settings(SENTRY_DEFAULT_OPTIONS={}):
+        store.flush_local_cache()
+        yield manager
 
 
 @pytest.mark.django_db
@@ -133,10 +130,12 @@ def test_non_writable_options(
     """
     manager = request.getfixturevalue(manager_fixture)
     manager.register("option", flags=flags)
+    sentry_options = settings.SENTRY_OPTIONS
     if set_settings_val:
-        settings.SENTRY_OPTIONS["option"] = "a_value"
+        sentry_options = {**sentry_options, "option": "a_value"}
 
-    reason_automator = manager.can_update("option", "val", UpdateChannel.AUTOMATOR)
+    with override_settings(SENTRY_OPTIONS=sentry_options):
+        reason_automator = manager.can_update("option", "val", UpdateChannel.AUTOMATOR)
     assert reason_automator == outcome
 
 

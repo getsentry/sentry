@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.api.base import BaseEndpointMixin, StatsMixin
 from sentry.api.helpers.environments import get_environments
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+from sentry.monitors.utils import get_monitor_environment_ids
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int):
@@ -39,19 +40,13 @@ class MonitorStatsMixin(BaseEndpointMixin, StatsMixin):
             CheckInStatus.UNKNOWN,
         ]
 
+        environments = get_environments(request, project.organization)
         check_ins = MonitorCheckIn.objects.filter(
-            monitor=monitor,
+            monitor_environment_id__in=get_monitor_environment_ids(monitor, environments),
             status__in=tracked_statuses,
             date_added__gt=args["start"],
             date_added__lte=args["end"],
         )
-
-        environments = get_environments(request, project.organization)
-
-        if environments:
-            check_ins = check_ins.filter(
-                monitor_environment__environment_id__in=[e.id for e in environments]
-            )
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(

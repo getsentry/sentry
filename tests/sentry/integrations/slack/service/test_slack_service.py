@@ -538,7 +538,13 @@ class TestSlackServiceMethods(TestCase):
             client=SlackSdkClient(integration_id=self.integration.id),
         )
 
-    def test_send_notification_to_slack_channel_error(self) -> None:
+    @mock.patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_send_notification_to_slack_channel_error(self, mock_api_call: mock.MagicMock) -> None:
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": False, "error": "invalid_auth"}).decode(),
+            "headers": {},
+            "status": 200,
+        }
         with pytest.raises(SlackApiError) as err:
             self.service._send_notification_to_slack_channel(
                 channel_id=self.channel_id,

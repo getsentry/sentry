@@ -1,10 +1,20 @@
+from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import ANY, Mock, patch
 
 import pytest
+from slack_sdk.errors import SlackApiError
 from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
+from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.investigations.models.orchestration import (
+    InvestigationOrchestrationPhase,
+    InvestigationOrchestrationStatus,
+)
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -20,9 +30,17 @@ from sentry.notifications.platform.types import (
     NotificationSource,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
-from sentry.seer.agent.client_models import PendingUserInput
+from sentry.seer.agent.client_models import (
+    MemoryBlock,
+    Message,
+    PendingUserInput,
+    SeerRunState,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
-from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.cache import (
+    SeerOperatorAutofixCache,
+    SeerOperatorInvestigationCache,
+)
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
@@ -31,6 +49,8 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackAgentEntrypoint,
     SlackAutofixCachePayload,
     SlackAutofixEntrypoint,
+    SlackInvestigationCachePayload,
+    SlackInvestigationEntrypoint,
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
@@ -44,8 +64,10 @@ from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class SlackAutofixEntrypointTest(TestCase):
@@ -664,6 +686,32 @@ class SlackAutofixEntrypointTest(TestCase):
         mock_update_message.assert_not_called()
 
 
+def _agent_state(
+    summary: str | None, pending_user_input: PendingUserInput | None = None
+) -> SeerRunState:
+    """A finished run with one turn, which ends with `summary` if given."""
+    blocks = [
+        MemoryBlock(
+            id="b1", message=Message(role="user", content="hi"), timestamp="2024-01-01T00:00:00Z"
+        )
+    ]
+    if summary:
+        blocks.append(
+            MemoryBlock(
+                id="b2",
+                message=Message(role="assistant", content=summary),
+                timestamp="2024-01-01T00:00:01Z",
+            )
+        )
+    return SeerRunState(
+        run_id=12345,
+        blocks=blocks,
+        status="completed",
+        updated_at="2024-01-01T00:00:00Z",
+        pending_user_input=pending_user_input,
+    )
+
+
 class SlackAgentEntrypointTest(TestCase):
     def setUp(self) -> None:
         self.slack_user_id = "UXXXXXXXXX2"
@@ -794,8 +842,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Test summary",
             run_id=run_id,
+            state=_agent_state("Test summary"),
         )
 
         mock_schedule_all_thread_updates.assert_called_once_with(
@@ -816,14 +864,33 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary=None,
             run_id=12345,
+            state=_agent_state(None),
         )
 
         mock_schedule_all_thread_updates.assert_called_once()
         call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
         assert isinstance(call_data, SeerAgentError)
         assert call_data.error_message == "Seer was unable to generate a response."
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_agent_update_does_not_reuse_the_previous_turns_answer(
+        self, mock_schedule_all_thread_updates
+    ):
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("First answer")
+        state.blocks.append(
+            MemoryBlock(
+                id="b3",
+                message=Message(role="user", content="follow-up"),
+                timestamp="2024-01-01T00:00:02Z",
+            )
+        )
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentError)
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     @patch("sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval")
@@ -835,12 +902,14 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary=None,
             run_id=12345,
-            pending_user_input=PendingUserInput(
-                id="approval-1",
-                input_type="agent_write_approval",
-                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            state=_agent_state(
+                None,
+                pending_user_input=PendingUserInput(
+                    id="approval-1",
+                    input_type="agent_write_approval",
+                    data={"required_scopes": ["org:write"], "session_id": "12345"},
+                ),
             ),
         )
 
@@ -868,12 +937,14 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary=None,
             run_id=12345,
-            pending_user_input=PendingUserInput(
-                id="approval-1",
-                input_type="agent_write_approval",
-                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            state=_agent_state(
+                None,
+                pending_user_input=PendingUserInput(
+                    id="approval-1",
+                    input_type="agent_write_approval",
+                    data={"required_scopes": ["org:write"], "session_id": "12345"},
+                ),
             ),
         )
 
@@ -887,12 +958,14 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Prior summary",
             run_id=12345,
-            pending_user_input=PendingUserInput(
-                id="approval-1",
-                input_type="agent_write_approval",
-                data={"required_scopes": ["org:write"]},
+            state=_agent_state(
+                "Prior summary",
+                pending_user_input=PendingUserInput(
+                    id="approval-1",
+                    input_type="agent_write_approval",
+                    data={"required_scopes": ["org:write"]},
+                ),
             ),
         )
 
@@ -914,8 +987,8 @@ class SlackAgentEntrypointTest(TestCase):
         ):
             SlackAgentEntrypoint.on_agent_update(
                 cache_payload=cache_payload,
-                summary=None,
                 run_id=12345,
+                state=_agent_state(None),
             )
 
         # Still schedules the thread update even without a fresh integration
@@ -933,8 +1006,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Test summary",
             run_id=12345,
+            state=_agent_state("Test summary"),
         )
 
         call_data = mock_schedule.call_args.kwargs["data"]
@@ -956,8 +1029,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Test summary",
             run_id=12345,
+            state=_agent_state("Test summary"),
         )
 
         call_data = mock_schedule.call_args.kwargs["data"]
@@ -978,8 +1051,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="First response",
             run_id=12345,
+            state=_agent_state("First response"),
         )
         first_data = mock_schedule.call_args.kwargs["data"]
         assert first_data.missing_scope_settings_url is not None
@@ -988,8 +1061,539 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Second response",
             run_id=12346,
+            state=_agent_state("Second response"),
         )
         second_data = mock_schedule.call_args.kwargs["data"]
         assert second_data.missing_scope_settings_url is None
+
+
+def _slack_response(data: dict[str, Any]) -> SlackResponse:
+    return SlackResponse(
+        client=None,
+        http_verb="POST",
+        api_url="https://slack.com/api/",
+        req_args={},
+        data=data,
+        headers={},
+        status_code=200,
+    )
+
+
+def _hypothesis(**overrides: Any) -> dict[str, Any]:
+    return {
+        "id": "h1",
+        "order": 0,
+        "generation": 1,
+        "statement": "Database or cache degradation delayed the response",
+        "rationale": "Server response time rose with the breach.",
+        "effectiveStatus": "investigating",
+        "agentVerdict": None,
+        "verificationSteps": [
+            {"id": "s1", "order": 0, "title": "Read the error logs", "status": "completed"},
+            {"id": "s2", "order": 1, "title": "Compare cache behavior", "status": "running"},
+        ],
+        **overrides,
+    }
+
+
+class SlackInvestigationEntrypointTest(TestCase):
+    def setUp(self) -> None:
+        self.slack_user_id = "UXXXXXXXXX3"
+        self.channel_id = "CXXXXXXXXX3"
+        self.message_ts = "1712345678.333333"
+        self.status_ts = "1712345678.444444"
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="TXXXXXXXXX3",
+            provider="slack",
+            metadata={"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        self.investigation = self.create_investigation(
+            organization=self.organization,
+            source={
+                "type": "metric_open_period",
+                "snapshot": {
+                    "monitor": {
+                        "name": "FCP on organization login pages",
+                        "query": "transaction:/auth/login/[org]/",
+                    },
+                    "analysisWindow": {
+                        "breachStart": "2024-08-27T09:00:00+00:00",
+                        "end": "2024-08-27T11:00:00+00:00",
+                    },
+                },
+            },
+        )
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            phase=InvestigationOrchestrationPhase.INVESTIGATING,
+            status=InvestigationOrchestrationStatus.PROCESSING,
+        )
+        self.mock_update = self.enterContext(
+            patch(
+                "slack_sdk.web.client.WebClient.chat_update",
+                return_value=_slack_response({"ok": True}),
+            )
+        )
+        self.mock_post_message = self.enterContext(
+            patch(
+                "slack_sdk.web.client.WebClient.chat_postMessage",
+                return_value=_slack_response({"ok": True, "ts": self.status_ts}),
+            )
+        )
+
+    def _get_entrypoint(self) -> SlackInvestigationEntrypoint:
+        slack_request = Mock()
+        slack_request.integration = self.integration
+        slack_request.data = {"message": {"ts": self.message_ts}}
+        return SlackInvestigationEntrypoint(
+            slack_request=slack_request,
+            organization=self.organization,
+            channel_id=self.channel_id,
+            message_ts=self.message_ts,
+            slack_user_id=self.slack_user_id,
+        )
+
+    def _set_cache(
+        self, *, status_message_ts: str | None = "1712345678.444444"
+    ) -> SlackInvestigationCachePayload:
+        cache_payload = SlackInvestigationCachePayload(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            channel_id=self.channel_id,
+            thread_ts=self.message_ts,
+            alert_message_ts=self.message_ts,
+            status_message_ts=status_message_ts,
+            slack_user_id=self.slack_user_id,
+            last_sent_state=None,
+            final_sent=False,
+        )
+        SeerOperatorInvestigationCache.set(
+            entrypoint_key="slack",
+            investigation_id=self.investigation.id,
+            cache_payload=cache_payload,
+        )
+        return cache_payload
+
+    def _get_cache(self) -> SlackInvestigationCachePayload | None:
+        return SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key="slack", investigation_id=self.investigation.id
+        )
+
+    def _update(
+        self,
+        hypotheses: list[dict[str, Any]],
+        updated_at: datetime = datetime(2024, 8, 27, 11, 0, tzinfo=UTC),
+    ) -> None:
+        self.orchestration_run.projection = {"hypotheses": hypotheses}
+        InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
+            projection=self.orchestration_run.projection, date_updated=updated_at
+        )
+        cache_payload = self._get_cache()
+        assert cache_payload is not None
+        SlackInvestigationEntrypoint.on_investigation_update(
+            cache_payload=cache_payload, run=self.orchestration_run
+        )
+
+    def _updated_blocks(self) -> list[Any]:
+        return self.mock_update.call_args.kwargs["blocks"]
+
+    def _quotes(self, blocks: list[Any]) -> list[list[dict[str, Any]]]:
+        return [
+            block.to_dict()["elements"][0]["elements"]
+            for block in blocks
+            if block.type == "rich_text"
+        ]
+
+    def _task_card(self, blocks: list[Any]) -> dict[str, Any]:
+        (task_card,) = [block.to_dict() for block in blocks if block.type == "task_card"]
+        return {
+            "title": task_card["title"],
+            "status": task_card["status"],
+            "detail": task_card["details"]["elements"][0]["elements"][0]["text"],
+        }
+
+    def _set_status(self, status: InvestigationOrchestrationStatus) -> None:
+        InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
+            status=status
+        )
+
+    def _report_cell(self, content: str, **kwargs: Any) -> None:
+        kwargs.setdefault("report_revision", 0)
+        self.create_investigation_block(investigation=self.investigation, content=content, **kwargs)
+
+    def _conclusion_sections(self) -> list[str]:
+        (call,) = [
+            call
+            for call in self.mock_post_message.call_args_list
+            if call.kwargs["text"] == "Seer finished the investigation"
+        ]
+        assert call.kwargs["thread_ts"] == self.message_ts
+        *sections, _divider, actions = call.kwargs["blocks"]
+        assert actions.elements[0].url.startswith(self.investigation.get_absolute_url())
+        return [section.text for section in sections]
+
+    def test_trigger_success_leaves_status_message_to_updates(self) -> None:
+        entrypoint = self._get_entrypoint()
+
+        entrypoint.on_trigger_investigation_success(investigation=self.investigation)
+
+        (started_call,) = self.mock_post_message.call_args_list
+        assert started_call.kwargs["text"] != "Investigating FCP on organization login pages"
+        cache_payload = entrypoint.create_investigation_cache_payload()
+        assert cache_payload["status_message_ts"] is None
+        assert cache_payload["last_sent_state"] is None
+
+    def test_update_with_hypotheses_updates_status_message(self) -> None:
+        self._set_cache()
+
+        self._update([_hypothesis()])
+
+        self.mock_post_message.assert_not_called()
+        update_kwargs = self.mock_update.call_args.kwargs
+        assert update_kwargs["channel"] == self.channel_id
+        assert update_kwargs["ts"] == self.status_ts
+        assert update_kwargs["text"] == "Investigating FCP on organization login pages"
+        blocks = update_kwargs["blocks"]
+        (quote,) = self._quotes(blocks)
+        assert [part["text"] for part in quote] == [
+            "1. Database or cache degradation delayed the response",
+            "\n● Verifying",
+            "\nCompare cache behavior",
+        ]
+        assert self._task_card(blocks) == {
+            "title": "Verifying hypotheses",
+            "status": "in_progress",
+            "detail": "Checking the remaining explanations against related telemetry.",
+        }
+        cache_payload = self._get_cache()
+        assert cache_payload is not None
+        assert cache_payload["status_message_ts"] == self.status_ts
+        assert cache_payload["last_sent_state"] is not None
+
+    @override_options(
+        {"notifications.tracking.sources": [NotificationSource.SEER_INVESTIGATION_STATUS]}
+    )
+    @patch("sentry.seer.entrypoints.slack.entrypoint.record_sent")
+    def test_status_message_links_are_tracked(self, mock_record_sent: Mock) -> None:
+        self._set_cache(status_message_ts=None)
+        self._update([])
+        self._update([_hypothesis()])
+
+        (status_call,) = self.mock_post_message.call_args_list
+        referrer = (
+            f"{self.investigation.get_absolute_url()}?referrer=seer-investigation-status-slack"
+        )
+        assert status_call.kwargs["blocks"][-1].elements[0].url.startswith(referrer)
+        assert self._updated_blocks()[-1].elements[0].url.startswith(referrer)
+        sent_call, updated_call = mock_record_sent.call_args_list
+        assert sent_call.args[0].source == NotificationSource.SEER_INVESTIGATION_STATUS
+        assert (
+            sent_call.kwargs["links"]
+            == updated_call.kwargs["links"]
+            == {NotificationLink.INVESTIGATION}
+        )
+
+    def test_identical_update_makes_no_slack_call(self) -> None:
+        self._set_cache()
+        self._update([_hypothesis()])
+        self.mock_update.reset_mock()
+
+        self._update([_hypothesis()])
+
+        self.mock_update.assert_not_called()
+        self.mock_post_message.assert_not_called()
+
+    def test_task_card_forms_hypotheses_before_checks_are_planned(self) -> None:
+        self._set_cache()
+
+        self._update([_hypothesis(verificationSteps=[])])
+
+        assert self._task_card(self._updated_blocks()) == {
+            "title": "Forming hypotheses",
+            "status": "in_progress",
+            "detail": "Checking the available telemetry for plausible explanations of the alert.",
+        }
+
+    def test_task_card_follows_run_phase(self) -> None:
+        cases = {
+            InvestigationOrchestrationPhase.BROAD_SCAN: {
+                "title": "Gathering context",
+                "status": "in_progress",
+                "detail": "Comparing the alert with related telemetry.",
+            },
+            InvestigationOrchestrationPhase.JUDGING: {
+                "title": "Reviewing findings",
+                "status": "in_progress",
+                "detail": "Reviewing the evidence behind each verdict and identifying what remains uncertain.",
+            },
+            InvestigationOrchestrationPhase.REPORTING: {
+                "title": "Preparing conclusion",
+                "status": "in_progress",
+                "detail": "Bringing the evidence, remaining uncertainty, and suggested next steps into a conclusion.",
+            },
+            InvestigationOrchestrationPhase.COMPLETED: {
+                "title": "Investigation complete",
+                "status": "complete",
+                "detail": "Seer finished checking every hypothesis.",
+            },
+        }
+        for phase, task_card in cases.items():
+            InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
+                phase=phase
+            )
+            self._set_cache()
+
+            self._update([_hypothesis()])
+
+            assert self._task_card(self._updated_blocks()) == task_card, phase
+
+    def test_failed_or_cancelled_run_shows_interrupted(self) -> None:
+        for status in (
+            InvestigationOrchestrationStatus.FAILED,
+            InvestigationOrchestrationStatus.CANCELLED,
+        ):
+            self._set_cache()
+            InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
+                status=status
+            )
+
+            self._update(
+                [
+                    _hypothesis(id="h1", order=0),
+                    _hypothesis(
+                        id="h2",
+                        order=1,
+                        effectiveStatus="supported",
+                        agentVerdict={"rationale": "Cache misses exposed a slow lookup."},
+                    ),
+                ]
+            )
+
+            quotes = self._quotes(self._updated_blocks())
+            assert [(quote[1]["text"], quote[2]["text"]) for quote in quotes] == [
+                (
+                    "\n● Not completed",
+                    "\nVerification stopped before this explanation could be assessed.",
+                ),
+                ("\n● Supported", "\nCache misses exposed a slow lookup."),
+            ], status
+            assert self._task_card(self._updated_blocks()) == {
+                "title": "Investigation interrupted",
+                "status": "error",
+                "detail": "Seer couldn't finish the investigation. "
+                "The available work is preserved; no conclusion was produced.",
+            }, status
+
+    def test_run_awaiting_input_shows_waiting_card(self) -> None:
+        self._set_cache()
+        InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
+            phase=InvestigationOrchestrationPhase.INVESTIGATING,
+            status=InvestigationOrchestrationStatus.AWAITING_INPUT,
+        )
+
+        self._update([_hypothesis()])
+
+        assert self._task_card(self._updated_blocks()) == {
+            "title": "Waiting for input",
+            "status": "error",
+            "detail": "Seer is paused until someone responds. Open the investigation to continue.",
+        }
+
+    def test_missing_status_message_ts_posts_new_message(self) -> None:
+        self._set_cache(status_message_ts=None)
+
+        self._update([_hypothesis()])
+
+        self.mock_update.assert_not_called()
+        post_kwargs = self.mock_post_message.call_args.kwargs
+        assert post_kwargs["channel"] == self.channel_id
+        assert post_kwargs["thread_ts"] == self.message_ts
+        cache_payload = self._get_cache()
+        assert cache_payload is not None
+        assert cache_payload["status_message_ts"] == self.status_ts
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.record_sent")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_integration_error_on_update_is_swallowed(
+        self, mock_record: Mock, mock_record_sent: Mock
+    ) -> None:
+        cache_payload = self._set_cache()
+        self.mock_update.side_effect = SlackApiError(
+            "error", _slack_response({"ok": False, "error": "message_not_found"})
+        )
+
+        self._update([_hypothesis()])
+
+        assert self._get_cache() == cache_payload
+        assert_halt_metric(mock_record, IntegrationError())
+        mock_record_sent.assert_not_called()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_lock_failure_raises_for_task_retry(self, mock_record: Mock) -> None:
+        self._set_cache()
+        lock = Mock()
+        lock.blocking_acquire.side_effect = UnableToAcquireLock("locked")
+
+        with (
+            patch("sentry.seer.entrypoints.slack.entrypoint.locks.get", return_value=lock),
+            pytest.raises(UnableToAcquireLock),
+        ):
+            self._update([_hypothesis()])
+
+        self.mock_update.assert_not_called()
+        self.mock_post_message.assert_not_called()
+        assert_halt_metric(mock_record, UnableToAcquireLock())
+
+    def test_stale_cache_payload_argument_is_ignored(self) -> None:
+        stale_payload = self._set_cache()
+        self._update([_hypothesis()])
+        self.mock_update.reset_mock()
+
+        SlackInvestigationEntrypoint.on_investigation_update(
+            cache_payload=stale_payload, run=self.orchestration_run
+        )
+
+        self.mock_update.assert_not_called()
+        self.mock_post_message.assert_not_called()
+
+    def test_stale_run_argument_uses_latest_run(self) -> None:
+        self._set_cache()
+        stale_run = InvestigationOrchestrationRun.objects.get(id=self.orchestration_run.id)
+        self.orchestration_run.projection = {"hypotheses": [_hypothesis(statement="Latest")]}
+        self.orchestration_run.save(update_fields=["projection"])
+        cache_payload = self._get_cache()
+        assert cache_payload is not None
+
+        SlackInvestigationEntrypoint.on_investigation_update(
+            cache_payload=cache_payload, run=stale_run
+        )
+
+        (quote,) = self._quotes(self._updated_blocks())
+        assert quote[0]["text"] == "1. Latest"
+
+    def test_completed_run_posts_conclusion_once(self) -> None:
+        self._set_cache()
+        self._report_cell("## Summary\n\nA release added a slow font.", position=0)
+        self._report_cell("## Next steps\n\nPreload the font.", position=1)
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+        self._update([_hypothesis()])
+
+        self.mock_update.assert_called_once()
+        assert self._conclusion_sections() == [
+            "## Summary\n\nA release added a slow font.",
+            "## Next steps\n\nPreload the font.",
+        ]
+        cache_payload = self._get_cache()
+        assert cache_payload is not None
+        assert cache_payload["final_sent"] is True
+
+    def test_conclusion_posts_when_status_is_unchanged(self) -> None:
+        self._set_cache()
+        self._report_cell("The release added a slow font.")
+        self._update([_hypothesis()])
+        self.mock_update.reset_mock()
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        self.mock_update.assert_not_called()
+        assert self._conclusion_sections() == ["The release added a slow font."]
+
+    def test_failed_or_cancelled_run_posts_no_conclusion(self) -> None:
+        self._report_cell("The release added a slow font.")
+        for status in (
+            InvestigationOrchestrationStatus.FAILED,
+            InvestigationOrchestrationStatus.CANCELLED,
+        ):
+            self._set_cache()
+            self._set_status(status)
+
+            self._update([_hypothesis()])
+
+            self.mock_post_message.assert_not_called()
+
+    def test_conclusion_skips_query_deleted_empty_and_manual_cells(self) -> None:
+        self._set_cache()
+        self._report_cell("Second", position=2)
+        self._report_cell("First", position=0)
+        self._report_cell("Query", position=1, kind="query")
+        self._report_cell("Deleted", position=3, deleted_at=datetime(2024, 8, 27, tzinfo=UTC))
+        self._report_cell("  \n", position=4)
+        self._report_cell("Manual", position=5, report_revision=None)
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections() == ["First", "Second"]
+
+    def test_conclusion_strips_embed_tags(self) -> None:
+        self._set_cache()
+        self._report_cell(
+            "Errors are a known `KeyError` (PYTHON-FLASK-6).\n\n"
+            '{% issue %}{"id": "PYTHON-FLASK-6 (id 5)"}{% /issue %}\n\n'
+            '## Why\nIt started at {% timestamp %}{"value": "now"}{% /timestamp %}.\n'
+            '{% chart %}\n{"title": "Errors"}\n{% /chart %}\n'
+            'See {% docs href="https://docs.sentry.io" title="Docs" /%}.'
+        )
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections() == [
+            "Errors are a known `KeyError` (PYTHON-FLASK-6).\n\n## Why\nIt started at .\nSee ."
+        ]
+
+    def test_no_text_cells_marks_final_sent(self) -> None:
+        self._set_cache()
+        self._report_cell("", kind="query")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        self.mock_post_message.assert_not_called()
+        cache_payload = self._get_cache()
+        assert cache_payload is not None
+        assert cache_payload["final_sent"] is True
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_failed_conclusion_post_leaves_final_sent_unset(self, mock_record: Mock) -> None:
+        self._report_cell("The release added a slow font.")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+        for error, halt_count in (("ratelimited", 2), ("invalid_blocks", 1)):
+            self._set_cache()
+            mock_record.reset_mock()
+            self.mock_post_message.side_effect = SlackApiError(
+                "error", _slack_response({"ok": False, "error": error})
+            )
+
+            self._update([_hypothesis()])
+
+            cache_payload = self._get_cache()
+            assert cache_payload is not None
+            assert cache_payload["final_sent"] is False, error
+            assert cache_payload["last_sent_state"] is not None, error
+            halts = [
+                call
+                for call in mock_record.mock_calls
+                if call.args[0] == EventLifecycleOutcome.HALTED
+            ]
+            assert len(halts) == halt_count, error
+
+    def test_conclusion_is_cut_at_a_paragraph(self) -> None:
+        self._set_cache()
+        self._report_cell("a" * 6000, position=0)
+        self._report_cell("b" * 4000 + "\n\n" + "c" * 4000, position=1)
+        self._report_cell("d", position=2)
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections() == [
+            "a" * 6000,
+            "b" * 4000,
+            "_The rest of the report is in the full investigation._",
+        ]

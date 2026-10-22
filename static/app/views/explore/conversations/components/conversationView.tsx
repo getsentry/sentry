@@ -1,8 +1,12 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
@@ -50,7 +54,17 @@ export function ConversationViewContent({
 }: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
 
-  const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
+  const {
+    nodes,
+    nodeTraceMap,
+    canAutoFetchNextPage,
+    hasNextPage,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    loadNextPage,
+    isNextPageError,
+  } = useConversation({...conversation, autoFetchAll: false});
 
   const [detailState, setDetailState] = useQueryStates(
     {
@@ -66,6 +80,10 @@ export function ConversationViewContent({
     focusedTool,
     isLoading,
   });
+  const needsMoreSelectionData = Boolean(
+    (selectedSpanId && !selectedNode) || focusedTool
+  );
+  const hasUnresolvedSelection = !selectedNode && needsMoreSelectionData;
 
   // The timeline opens on its first span by default; the transcript opens on
   // nothing. This default is view-local (never written to the URL) so returning
@@ -80,15 +98,10 @@ export function ConversationViewContent({
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [activeTab]);
 
-  const displayedNode = useMemo(() => {
-    if (selectedNode) {
-      return selectedNode;
-    }
-    if (isTimeline && !timelineDefaultDismissed) {
-      return defaultTimelineNode;
-    }
-    return;
-  }, [selectedNode, isTimeline, timelineDefaultDismissed, defaultTimelineNode]);
+  const showTimelineDefault =
+    isTimeline && !timelineDefaultDismissed && !hasUnresolvedSelection;
+  const displayedNode =
+    selectedNode ?? (showTimelineDefault ? defaultTimelineNode : undefined);
 
   // Each tab keeps its own scroll position in the shared content container; a
   // selected span is scrolled into view instead when switching tabs. This keys
@@ -99,6 +112,32 @@ export function ConversationViewContent({
     activeTab,
     selectedNodeId: selectedNode?.id ?? null,
   });
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasNextPage || isFetchingNextPage || isNextPageError) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          loadNextPage();
+        }
+      },
+      {root: contentRef.current}
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [contentRef, hasNextPage, isFetchingNextPage, isNextPageError, loadNextPage]);
+
+  useEffect(() => {
+    if (!isLoading && canAutoFetchNextPage && needsMoreSelectionData) {
+      loadNextPage();
+    }
+  }, [canAutoFetchNextPage, isLoading, loadNextPage, needsMoreSelectionData]);
 
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
@@ -116,21 +155,25 @@ export function ConversationViewContent({
     onDeselectSpan?.();
   }, [onDeselectSpan, setDetailState]);
 
+  const isEmptyConversation = !isLoading && !hasNextPage && nodes.length === 0;
+
   useEffect(() => {
-    if (!isLoading && !error && nodes.length === 0) {
+    if (!error && isEmptyConversation) {
       Sentry.captureMessage('User landed on empty conversation detail page', {
         level: 'warning',
       });
     }
-  }, [isLoading, error, nodes.length]);
+  }, [error, isEmptyConversation]);
 
   const isTranscript = !isTimeline;
+  const isDetailLoading =
+    hasUnresolvedSelection && (isLoading || canAutoFetchNextPage || isFetchingNextPage);
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (!isLoading && nodes.length === 0) {
+  if (isEmptyConversation) {
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
 
@@ -140,31 +183,44 @@ export function ConversationViewContent({
         contentRef={contentRef}
         leftPadding={isTranscript ? '0' : 'md'}
         left={
-          isTranscript ? (
-            <MessagesPanel
-              isLoading={isLoading}
-              nodes={nodes}
-              selectedNodeId={displayedNode?.id ?? null}
-              onSelectNode={handleSelectAndOpenDetail}
-              onViewTimeline={onViewTimeline}
-            />
-          ) : (
-            <AiSpanTimeline
-              isLoading={isLoading}
-              nodes={nodes}
-              selectedNodeKey={displayedNode?.id ?? ''}
-              onSelectNode={handleSelectAndOpenDetail}
-              compressGaps
-            />
-          )
+          <Fragment>
+            {isTranscript ? (
+              <MessagesPanel
+                isLoading={isLoading}
+                nodes={nodes}
+                selectedNodeId={displayedNode?.id ?? null}
+                onSelectNode={handleSelectAndOpenDetail}
+                onViewTimeline={onViewTimeline}
+              />
+            ) : (
+              <AiSpanTimeline
+                isLoading={isLoading}
+                nodes={nodes}
+                selectedNodeKey={displayedNode?.id ?? ''}
+                onSelectNode={handleSelectAndOpenDetail}
+                compressGaps
+              />
+            )}
+            {(hasNextPage || isFetchingNextPage) && (
+              <Flex ref={loadMoreRef} align="center" justify="center" minHeight="120px">
+                {isNextPageError ? (
+                  <Button size="sm" onClick={loadNextPage}>
+                    {t('Retry')}
+                  </Button>
+                ) : (
+                  <LoadingIndicator size={24} />
+                )}
+              </Flex>
+            )}
+          </Fragment>
         }
         right={
           // Show the detail pane once a span is resolved: a deep link or manual
           // selection (either tab), or the timeline's default span. While
           // loading, only the deep-linked skeleton is known.
-          (isLoading ? Boolean(selectedSpanId) : Boolean(displayedNode)) ? (
+          isDetailLoading || displayedNode ? (
             <ConversationSpanDetail
-              isLoading={isLoading}
+              isLoading={isDetailLoading}
               scrollResetKey={activeTab}
               node={displayedNode ?? undefined}
               traceId={displayedNode ? (nodeTraceMap?.get(displayedNode.id) ?? '') : ''}

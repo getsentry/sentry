@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,7 +6,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -24,7 +22,6 @@ import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermis
 
 export default function BuildComparison() {
   const organization = useOrganization();
-  const theme = useTheme();
   const {headArtifactId, baseArtifactId} = useParams<{
     baseArtifactId?: string;
     headArtifactId?: string;
@@ -87,13 +84,11 @@ export default function BuildComparison() {
     return (
       <SentryDocumentTitle title={t('Build comparison')}>
         <Stack flex={1}>
-          <Layout.Header>
-            <Placeholder
-              height="20px"
-              width="200px"
-              style={{marginBottom: theme.space.md}}
-            />
-          </Layout.Header>
+          <BuildCompareHeaderContent
+            headArtifactId={headArtifactId}
+            baseArtifactId={baseArtifactId}
+            isLoading
+          />
 
           <Layout.Body>
             <Layout.Main>
@@ -127,15 +122,13 @@ export default function BuildComparison() {
   return (
     <SentryDocumentTitle title={t('Build comparison')}>
       <Stack flex={1}>
-        <Layout.Header>
-          <BuildCompareHeaderContent
-            buildDetails={headBuildDetailsQuery.data}
-            headArtifactId={headArtifactId}
-            baseArtifactId={baseArtifactId}
-            onRerunComparison={() => rerunComparison()}
-            isRerunning={isRerunning}
-          />
-        </Layout.Header>
+        <BuildCompareHeaderContent
+          buildDetails={headBuildDetailsQuery.data}
+          headArtifactId={headArtifactId}
+          baseArtifactId={baseArtifactId}
+          onRerunComparison={() => rerunComparison()}
+          isRerunning={isRerunning}
+        />
 
         <Layout.Body>
           <Layout.Main width="full">{mainContent}</Layout.Main>

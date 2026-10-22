@@ -10,7 +10,6 @@ import {IconWarning} from '@sentry/icons/warning';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -31,6 +30,7 @@ import {
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
@@ -103,7 +103,8 @@ export function NativeFrame({
   const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||
     frame.absPath === '<asynchronous suspension>';
-  const {displayOptions, stackView, hasScmSourceContext} = useStacktraceContext();
+  const {displayOptions, stackView, hasScmSourceContext, collapseAll} =
+    useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
   const debugMetaSearch = useOptionalDebugMetaSearch();
@@ -147,7 +148,7 @@ export function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(() => isFirstInAppFrame);
+  const [expanded, setExpanded] = useState(() => !collapseAll && isFirstInAppFrame);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);

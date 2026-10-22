@@ -26,7 +26,7 @@ from sentry.apidocs.response_types import DetailResponse
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
 
-from sentry import features, ratelimits
+from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -277,9 +277,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if debug_file is None:
             raise Http404
 
-        if debug_file.uses_objectstore_for_read() and features.has(
-            "organizations:objectstore-debugfiles-direct-read", project.organization
-        ):
+        if debug_file.uses_objectstore_for_read():
             return HttpResponseRedirect(debug_file.get_objectstore_presigned_url(self.request))
 
         try:

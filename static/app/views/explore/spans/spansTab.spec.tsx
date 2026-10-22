@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -175,6 +176,81 @@ describe('SpansTabContent', () => {
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
+  });
+
+  it('disables saving when a hidden sibling has transformations and restores it after clearing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({yAxes: ['count(span.duration)']}),
+                JSON.stringify({
+                  yAxes: ['avg(span.duration)'],
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  visible: false,
+                }),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByRole('button', {name: 'Save as'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Chart actions'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    act(() => {
+      router.navigate('/organizations/org-slug/explore/traces/');
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled()
+    );
+    expect(screen.getByRole('button', {name: 'Chart actions'})).toBeEnabled();
+    expect(await screen.findByText(/No spans found/)).toBeInTheDocument();
+  });
+
+  it('shows the spans table timeout message', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 400,
+      body: {
+        detail:
+          'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.',
+      },
+    });
+
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
   });
 
   it('should fire analytics once per change', async () => {
