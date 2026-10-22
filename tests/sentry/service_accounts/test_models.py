@@ -9,6 +9,7 @@ from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_ke
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.project import Project
 from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProject,
@@ -194,6 +195,31 @@ class ServiceAccountReplicationTest(TestCase):
             )
 
         assert self.get_replica_project_ids() == {project.id for project in self.projects}
+
+    def test_project_transfer_removes_link(self) -> None:
+        other_org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.projects[0].transfer_to(organization=other_org)
+
+        assert self.get_replica_project_ids() == {self.projects[1].id}
+
+        # The control link survives the transfer, so a later update must not restore it.
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(name="seer-autofix-2")
+
+        assert self.get_replica_project_ids() == {self.projects[1].id}
+
+    def test_update_drops_existing_link_to_project_outside_the_org(self) -> None:
+        other_org = self.create_organization()
+        # Moves the project without the transfer cleanup, to test replication on its own.
+        with assume_test_silo_mode(SiloMode.CELL):
+            Project.objects.filter(id=self.projects[0].id).update(organization_id=other_org.id)
+        assert self.get_replica_project_ids() == {project.id for project in self.projects}
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(name="seer-autofix-2")
+
+        assert self.get_replica_project_ids() == {self.projects[1].id}
 
     def test_replication_is_idempotent(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():

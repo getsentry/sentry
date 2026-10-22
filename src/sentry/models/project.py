@@ -514,6 +514,7 @@ class Project(Model):
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
+        from sentry.service_accounts.models import ServiceAccountProjectReplica
         from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
         from sentry.workflow_engine.models import (
             DataConditionGroup,
@@ -545,6 +546,11 @@ class Project(Model):
 
             if org_changed:
                 ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
+                # The control link stays behind, and the old org's account replicas drop
+                # it on their next update. Don't leave the access in place until then.
+                ServiceAccountProjectReplica.objects.filter(project_id=self.id).exclude(
+                    service_account__organization_id=organization.id
+                ).delete()
 
         # Both environments and releases are bound at an organization level.
         # Due to this, when you transfer a project into another org, we have to

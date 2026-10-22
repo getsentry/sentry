@@ -245,16 +245,20 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         with enforce_constraints(transaction.atomic(router.db_for_write(ServiceAccountReplica))):
             handle_replication(ServiceAccount, destination)
             replica = ServiceAccountReplica.objects.get(service_account_id=service_account.id)
+            # A control link can outlive its project until the tombstone cascade reaches
+            # control, and survives a transfer of its project to another org.
+            valid_project_ids = set(
+                Project.objects.filter(
+                    organization_id=organization.id, id__in=service_account.project_ids
+                ).values_list("id", flat=True)
+            )
             links = ServiceAccountProjectReplica.objects.filter(service_account=replica)
-            links.exclude(project_id__in=service_account.project_ids).delete()
-            # A link can outlive its project until the tombstone cascade reaches control.
-            missing_project_ids = Project.objects.filter(
-                organization_id=organization.id, id__in=service_account.project_ids
-            ).exclude(id__in=links.values_list("project_id", flat=True))
+            links.exclude(project_id__in=valid_project_ids).delete()
+            existing_project_ids = set(links.values_list("project_id", flat=True))
             ServiceAccountProjectReplica.objects.bulk_create(
                 [
                     ServiceAccountProjectReplica(service_account=replica, project_id=project_id)
-                    for project_id in missing_project_ids.values_list("id", flat=True)
+                    for project_id in valid_project_ids - existing_project_ids
                 ]
             )
 
