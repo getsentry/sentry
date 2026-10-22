@@ -113,17 +113,34 @@ class ReleaseModelManager(BaseManager["Release"]):
             current_release.date_released,
             use_finalized_order=use_finalized_order,
         )
+        return self.get_next_release_queryset(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            current_release_id=current_release.id,
+            current_date=current_date,
+            use_finalized_order=use_finalized_order,
+        ).get()
+
+    def get_next_release_queryset(
+        self,
+        *,
+        organization_id: int,
+        project_id: int,
+        current_release_id: int,
+        current_date: datetime,
+        use_finalized_order: bool,
+    ) -> models.QuerySet[Release]:
+        """Allow batch resolution tasks to fetch just a successor's ID and version."""
         date_field = "release_order" if use_finalized_order else "date_added"
         return (
-            self.filter(projects=project, organization_id=project.organization_id)
+            self.filter(projects=project_id, organization_id=organization_id)
             .filter(Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True))
             .alias(release_order=Coalesce("date_released", "date_added"))
             .filter(
                 Q(**{f"{date_field}__gt": current_date})
-                | Q(**{date_field: current_date}, id__gt=current_release.id)
+                | Q(**{date_field: current_date}, id__gt=current_release_id)
             )
             .order_by("release_order", "id")[:1]
-            .get()
         )
 
     def get_queryset(self) -> ReleaseQuerySet:
