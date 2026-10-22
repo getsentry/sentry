@@ -176,13 +176,17 @@ export function SettingsNavigationBackButton({
   organizationSlug: string;
 }) {
   const navigate = useNavigate();
+  const {setActiveGroup} = usePrimaryNavigation();
   return (
     <Button
       size="sm"
       icon={<IconArrow direction="left" />}
       aria-label={t('Back to app')}
       tooltipProps={{title: t('Back to app')}}
-      onClick={() => navigate(`/organizations/${organizationSlug}/issues/`)}
+      onClick={() => {
+        setActiveGroup(null);
+        navigate(`/organizations/${organizationSlug}/issues/`);
+      }}
     />
   );
 }
@@ -194,6 +198,11 @@ export function SettingsPrimaryNavigationItems({
 }) {
   const location = useLocation();
   const {projects} = useProjects();
+  const projectSettingsMatch = matchPath(
+    {path: '/settings/:orgId?/projects/:projectId', end: false},
+    location.pathname
+  );
+  const projectSlug = projectSettingsMatch?.params.projectId ?? projects[0]?.slug;
   const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
   const items = [
     {
@@ -205,9 +214,7 @@ export function SettingsPrimaryNavigationItems({
     {
       key: 'project',
       label: t('Project'),
-      to: projects[0]
-        ? `${projectSettingsPath}${projects[0].slug}/`
-        : projectSettingsPath,
+      to: projectSlug ? `${projectSettingsPath}${projectSlug}/` : projectSettingsPath,
       icon: <IconProject />,
     },
     {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
@@ -215,10 +222,7 @@ export function SettingsPrimaryNavigationItems({
   const activeScope =
     items.find(item =>
       item.key === 'project'
-        ? !!matchPath(
-            {path: '/settings/:orgId?/projects/:projectId', end: false},
-            location.pathname
-          )
+        ? !!projectSettingsMatch
         : item.key === 'account' &&
           isPrimaryNavigationLinkActive(item.to, location.pathname)
     )?.key ?? 'org';

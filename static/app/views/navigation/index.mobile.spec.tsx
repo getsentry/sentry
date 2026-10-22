@@ -145,6 +145,31 @@ describe('mobile navigation', () => {
     expect(within(primaryNav).queryByRole('link', {name: 'Org'})).not.toBeInTheDocument();
   });
 
+  it('restores the issues sidebar after returning from settings entered through the menu', async () => {
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
+      })
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Settings'}));
+    expect(router.location.pathname).toBe('/settings/org-slug/');
+    await userEvent.click(screen.getByRole('button', {name: 'Back to app'}));
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+    const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+    expect(within(secondaryNav).getByRole('link', {name: /^Feed$/})).toBeInTheDocument();
+    expect(
+      within(secondaryNav).queryByText('Organization Settings')
+    ).not.toBeInTheDocument();
+  });
+
   it('navigates account settings without an organization', async () => {
     document.getElementById('main')?.remove();
 

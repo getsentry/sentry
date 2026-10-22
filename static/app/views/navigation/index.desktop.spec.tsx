@@ -299,6 +299,10 @@ describe('desktop navigation', () => {
       ).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Create Project'})).toBeInTheDocument();
       assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Project'}));
+      expect(within(primaryNav).getByRole('link', {name: 'Project'})).toHaveAttribute(
+        'href',
+        pathname + 'second-project/'
+      );
     }
   );
 
