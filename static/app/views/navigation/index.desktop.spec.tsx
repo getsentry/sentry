@@ -589,20 +589,21 @@ describe('desktop navigation', () => {
       return screen.getByRole('navigation', {name: 'Primary Navigation'});
     }
 
-    it('shows Seer below Explore with investigations and open membership', () => {
+    it('shows Seer between Issues and Explore with investigations and open membership', () => {
       const primaryNav = renderSeerNavigation({
         features: [...ALL_AVAILABLE_FEATURES, 'investigations'],
         openMembership: true,
       });
 
       const links = within(primaryNav).getAllByRole('link');
-      expect(links[1]).toHaveAccessibleName('Explore');
-      expect(links[2]).toHaveAccessibleName(/Seer/);
-      expect(links[2]).toHaveAttribute(
+      expect(links[0]).toHaveAccessibleName('Issues');
+      expect(links[1]).toHaveAccessibleName(/Seer/);
+      expect(links[2]).toHaveAccessibleName('Explore');
+      expect(links[1]).toHaveAttribute(
         'href',
         '/organizations/org-slug/seer/investigations/'
       );
-      expect(within(links[2]!).getByLabelText('alpha')).toBeInTheDocument();
+      expect(within(links[1]!).getByLabelText('alpha')).toBeInTheDocument();
     });
 
     it('hides Seer with investigations and closed membership', () => {

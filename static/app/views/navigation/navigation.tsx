@@ -215,6 +215,24 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
+      {isInvestigationsEnabled(organization) && (
+        <PrimaryNavigation.ListItem>
+          <PrimaryNavigation.Link
+            to={getInvestigationsPath(organization.slug)}
+            analyticsKey="seer"
+            label={t('Seer')}
+            badge={<FeatureBadge type="alpha" />}
+            {...makeNavigationItemProps(
+              'seer',
+              getInvestigationsPath(organization.slug),
+              `/${prefix}/seer`
+            )}
+          >
+            <IconSeer />
+          </PrimaryNavigation.Link>
+        </PrimaryNavigation.ListItem>
+      )}
+
       <NavigationTourElement id={NavigationTour.EXPLORE} title={null} description={null}>
         {tourProps => (
           <PrimaryNavigation.ListItem>
@@ -236,24 +254,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
           </PrimaryNavigation.ListItem>
         )}
       </NavigationTourElement>
-
-      {isInvestigationsEnabled(organization) && (
-        <PrimaryNavigation.ListItem>
-          <PrimaryNavigation.Link
-            to={getInvestigationsPath(organization.slug)}
-            analyticsKey="seer"
-            label={t('Seer')}
-            badge={<FeatureBadge type="alpha" />}
-            {...makeNavigationItemProps(
-              'seer',
-              getInvestigationsPath(organization.slug),
-              `/${prefix}/seer`
-            )}
-          >
-            <IconSeer />
-          </PrimaryNavigation.Link>
-        </PrimaryNavigation.ListItem>
-      )}
 
       <Feature
         features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
