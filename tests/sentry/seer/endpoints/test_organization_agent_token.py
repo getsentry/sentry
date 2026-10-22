@@ -1210,33 +1210,17 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
             resource = self.create_repo(
                 project=self.project,
-                name="permission-matrix/repo",
+                name="permission-matrix/bulk-repo",
                 provider="integrations:github",
                 integration_id=integration.id,
                 external_id="123",
-                url="https://github.com/permission-matrix/repo",
+                url="https://github.com/permission-matrix/bulk-repo",
             )
         elif name == "data_forwarder":
             resource = self.create_data_forwarder(
                 organization=self.org,
                 provider="segment",
                 config={"write_key": "matrix-key"},
-            )
-        elif name == "scm_repository":
-            integration, _organization_integration = self.create_provider_integration_for(
-                self.org,
-                self.owner,
-                provider="github",
-                external_id=f"matrix-github-{uuid4()}",
-                name="Matrix GitHub integration",
-            )
-            resource = self.create_repo(
-                project=self.project,
-                name="permission-matrix/repo",
-                provider="integrations:github",
-                integration_id=integration.id,
-                external_id="123",
-                url="https://github.com/permission-matrix/repo",
             )
         elif name == "flag_log":
             resource = FlagAuditLogModel.objects.create(
@@ -1975,12 +1959,19 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("OrganizationCodeMappingsBulkEndpoint", "POST"): {
                 "project": self.project.slug,
                 "repository": self._resource("scm_repository").name,
+                "provider": "github",
                 "defaultBranch": "main",
                 "mappings": [{"stackRoot": "/app/", "sourceRoot": "src/"}],
             },
             ("OrganizationCodeMappingsEndpoint", "POST"): {
-                "integrationId": self._resource("scm_repository").integration_id,
-                "repositoryId": self._resource("scm_repository").id,
+                "integrationId": self._resource(
+                    "scm_code_mapping"
+                ).project_repository.repository.integration_id,
+                "repositoryId": self._resource("scm_code_mapping").project_repository.repository_id,
+                "projectId": self.project.id,
+                "stackRoot": "/new-app/",
+                "sourceRoot": "src/new/",
+                "defaultBranch": "main",
             },
             ("OrganizationDetectorIndexEndpoint", "PUT"): {"enabled": False},
             ("OrganizationGroupSearchViewsEndpoint", "POST"): {
