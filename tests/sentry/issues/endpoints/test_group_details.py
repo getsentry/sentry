@@ -905,9 +905,11 @@ class GroupUpdateTest(APITestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
 
+    @override_options({"groups.post-update-invalidates-cache": True})
     def test_resolved_in_next_release_semver_no_first_release(self) -> None:
         self.resolved_in_next_release_helper(with_first_release=False)
 
+    @override_options({"groups.post-update-invalidates-cache": True})
     def test_resolved_in_next_release_semver_and_first_release(self) -> None:
         self.resolved_in_next_release_helper(with_first_release=True)
 
