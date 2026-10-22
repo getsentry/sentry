@@ -151,7 +151,9 @@ describe('tokenSupportsMultipleValues', () => {
     ).toBe(false);
   });
 
-  it('allows multiple values for comparison operators when the field definition allows them', () => {
+  it('does not allow multiple values for comparison operators on text filters', () => {
+    // The search syntax has no list form for `key:>[a,b]`, so a second value
+    // would only break the token.
     const fieldDefinition: FieldDefinition = {
       kind: FieldKind.FIELD,
       valueType: FieldValueType.STRING,
@@ -164,6 +166,6 @@ describe('tokenSupportsMultipleValues', () => {
         filterKeys,
         fieldDefinition
       )
-    ).toBe(true);
+    ).toBe(false);
   });
 });

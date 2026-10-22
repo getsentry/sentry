@@ -71,6 +71,7 @@ import {
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
+  comparisonOperators,
   FilterType,
   TermOperator,
   Token,
@@ -307,6 +308,10 @@ export function tokenSupportsMultipleValues(
 
   switch (token.filter) {
     case FilterType.TEXT: {
+      // The search syntax has no list form for a comparison on text.
+      if ((comparisonOperators as readonly TermOperator[]).includes(token.operator)) {
+        return false;
+      }
       // The search parser defaults to the text type, so we need to do further
       // checks to ensure that the filter actually supports multiple values
       const keyName = getKeyName(token.key);
@@ -642,6 +647,7 @@ function ValueComboboxCustomMenu(
     onSelectAbsoluteDate,
     showDatePicker,
     token,
+    valueHint,
     wrapperRef,
   } = useValueComboboxMenuContext();
 
@@ -672,6 +678,7 @@ function ValueComboboxCustomMenu(
       isLoading={isFetching}
       canUseWildcard={canUseWildcard}
       token={token}
+      valueHint={valueHint}
     />
   );
 }
@@ -719,6 +726,7 @@ export function SearchQueryBuilderValueCombobox({
     searchSource,
     recentSearches,
     disallowWildcard,
+    keepOperatorOnValueSelect,
   } = useSearchQueryBuilderConfig();
   const {wrapperRef: topLevelWrapperRef} = useSearchQueryBuilderLayout();
   const keyName = getKeyName(token.key);
@@ -734,6 +742,7 @@ export function SearchQueryBuilderValueCombobox({
     disallowWildcard || isRegexValue
       ? false
       : keySupportsWildcard(fieldDefinition, valueType);
+  const valueHint = fieldDefinition?.valueHint?.(token.operator);
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
@@ -989,6 +998,7 @@ export function SearchQueryBuilderValueCombobox({
       onSelectAbsoluteDate: handleSelectAbsoluteDate,
       showDatePicker,
       token,
+      valueHint,
       wrapperRef: topLevelWrapperRef,
     }),
     [
@@ -997,6 +1007,7 @@ export function SearchQueryBuilderValueCombobox({
       inputValue,
       isFetching,
       items,
+      valueHint,
       handleBackFromAbsoluteDate,
       handleSaveAbsoluteDate,
       handleSelectAbsoluteDate,
@@ -1140,6 +1151,7 @@ export function SearchQueryBuilderValueCombobox({
       // When selecting from dropdown with no existing value, switch from "contains" to "is"
       let newOp: TermOperator | undefined;
       if (
+        !keepOperatorOnValueSelect &&
         token.operator === TermOperator.CONTAINS &&
         token.value.type === Token.VALUE_TEXT &&
         !token.value.value
@@ -1153,7 +1165,7 @@ export function SearchQueryBuilderValueCombobox({
         filter_value: value,
       });
     },
-    [analyticsData, token, updateFilterValue]
+    [analyticsData, keepOperatorOnValueSelect, token, updateFilterValue]
   );
 
   const addTypedValue = useCallback(
