@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -102,7 +103,10 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
 
         # now find the matching integration
         integrations = integration_service.get_integrations(
-            organization_id=self.org_id, providers=self.providers
+            organization_id=self.org_id,
+            providers=self.providers,
+            status=ObjectStatus.ACTIVE,
+            org_integration_status=ObjectStatus.ACTIVE,
         )
 
         matching_integrations = {
@@ -114,7 +118,8 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
             raise serializers.ValidationError("Could not find integration")
 
         # Several integrations can claim the same link, such as two Bitbucket Cloud
-        # workspaces, so the repository decides which integration the link belongs to.
+        # workspaces or a GitLab group and its subgroup, so the repository decides
+        # which integration the link belongs to.
         repos = Repository.objects.filter(
             organization_id=self.org_id,
             integration_id__in=matching_integrations,
