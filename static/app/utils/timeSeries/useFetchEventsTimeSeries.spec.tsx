@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
-import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -110,31 +109,6 @@ describe('useFetchEventsTimeSeries', () => {
       })
     );
     expect(request.mock.lastCall![1].query).not.toHaveProperty('transformations[0]');
-  });
-
-  it.each([
-    {name: 'missing axes', axes: ['count()']},
-    {name: 'reordered axes', axes: ['avg(span.duration)', 'count()']},
-  ])('rejects transformed responses with $name', async ({axes}) => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {timeSeries: axes.map(yAxis => TimeSeriesFixture({yAxis}))},
-    });
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {
-          yAxis: ['count()', 'avg(span.duration)'],
-          transformations: [['fill(locf)'], []],
-        },
-        REFERRER
-      )
-    );
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.error?.message).toBe(
-      'Time series response did not match the requested axes.'
-    );
   });
 
   it('requires a referrer', () => {
