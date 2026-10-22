@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -21,6 +22,7 @@ class PreprodArtifactModelTestBase(TestCase):
         head_sha: str,
         base_sha: str | None,
         artifact_type: int | None = None,
+        project: Project | None = None,
     ) -> PreprodArtifact:
         commit_comparison = self.create_commit_comparison(
             organization=self.organization, head_sha=head_sha, base_sha=base_sha
@@ -29,7 +31,9 @@ class PreprodArtifactModelTestBase(TestCase):
             # create_commit_comparison replaces a None base_sha with a random one
             commit_comparison.update(base_sha=None)
         return self.create_preprod_artifact(
-            project=self.project, artifact_type=artifact_type, commit_comparison=commit_comparison
+            project=project or self.project,
+            artifact_type=artifact_type,
+            commit_comparison=commit_comparison,
         )
 
 
@@ -659,6 +663,24 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         )
 
         assert head_artifact.get_base_artifact_for_commit().first() == size_base_artifact
+
+    def test_get_base_artifact_for_commit_excludes_other_project(self) -> None:
+        """Test that a matching base artifact from another project in the org is excluded."""
+        other_project = self.create_project(organization=self.organization)
+        self._create_artifact_on_commit(
+            "b" * 40,
+            base_sha="c" * 40,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            project=other_project,
+        )
+        base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="d" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+
+        assert head_artifact.get_base_artifact_for_commit().first() == base_artifact
 
     def test_get_head_artifacts_for_commit_single_artifact(self) -> None:
         """Test getting head artifacts when there's only one head artifact."""
@@ -1744,6 +1766,26 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
         )
 
         assert result == {head_artifact.id: snapshot_base_artifact}
+
+    def test_get_base_artifacts_for_commit_excludes_other_project(self) -> None:
+        """Test that a matching base artifact from another project in the org is excluded."""
+        other_project = self.create_project(organization=self.organization)
+        self._create_artifact_on_commit(
+            "b" * 40,
+            base_sha="c" * 40,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            project=other_project,
+        )
+        base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="d" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert result == {head_artifact.id: base_artifact}
 
 
 @cell_silo_test

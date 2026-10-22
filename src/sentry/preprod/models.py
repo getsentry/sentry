@@ -332,7 +332,7 @@ class PreprodArtifact(DefaultFieldsModel):
     ) -> models.QuerySet[PreprodArtifact]:
         """
         Get the base artifacts for this artifact's base commit, matching on
-        (app_id, artifact_type, build_configuration), best match first.
+        (project, app_id, artifact_type, build_configuration), best match first.
         """
         if not self.commit_comparison or not self.commit_comparison.base_sha:
             return PreprodArtifact.objects.none()
@@ -342,6 +342,7 @@ class PreprodArtifact(DefaultFieldsModel):
             self.commit_comparison.head_repo_name,
             self.commit_comparison.base_sha,
         ).filter(
+            project_id=self.project_id,
             app_id=self.app_id,
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
             build_configuration=self.build_configuration,
@@ -357,7 +358,8 @@ class PreprodArtifact(DefaultFieldsModel):
         """
         Batch lookup base artifacts for a list of head artifacts.
 
-        Finds base artifacts by matching (app_id, artifact_type, build_configuration_id).
+        Finds base artifacts by matching
+        (project_id, app_id, artifact_type, build_configuration_id).
         All artifacts must share the same commit_comparison (same base_sha).
         See `_base_commit_artifacts` for which base artifact wins.
 
@@ -395,7 +397,8 @@ class PreprodArtifact(DefaultFieldsModel):
         for artifact in artifacts:
             for ba in base_artifacts:
                 if (
-                    ba.app_id == artifact.app_id
+                    ba.project_id == artifact.project_id
+                    and ba.app_id == artifact.app_id
                     and ba.artifact_type == artifact.artifact_type
                     and ba.build_configuration_id == artifact.build_configuration_id
                 ):
