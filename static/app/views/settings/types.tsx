@@ -1,4 +1,4 @@
-import type {ReactElement} from 'react';
+import type {ReactElement, ReactNode} from 'react';
 
 import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -46,6 +46,7 @@ export type NavigationItem = {
    * Additional search keywords for this item (e.g. aliases or common abbreviations).
    */
   keywords?: string[];
+  leadingItems?: ReactNode;
   /**
    * Should clicking on the sidebar generate an analytics event
    */
