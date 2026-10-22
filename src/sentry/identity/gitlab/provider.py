@@ -19,7 +19,6 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integration.gitlab")
 
-# GitLab's OAuth access tokens last two hours.
 ACCESS_TOKEN_LIFETIME_S = 2 * 60 * 60
 
 

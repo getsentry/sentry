@@ -132,7 +132,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
     @control_silo_function
     def get_access_token(self) -> dict[str, str | None] | None:
-        """Return the stored token and until when to use it, refreshed first if it's about to expire.
+        """Return the stored token, refreshed if it's about to expire, and until when to use it.
 
         API requests refresh after GitLab answers 401, but a caller that hands the token on
         can't retry, so it needs one that's still valid.
