@@ -4,13 +4,9 @@ import styled from '@emotion/styled';
  * The cell that names its row. On narrow containers it becomes the title of
  * the row's card, above the row's labelled `data-label` cells.
  */
-export function ResultTableRowHeader(props: React.ComponentProps<'th'>) {
-  return <RowHeader scope="row" {...props} />;
+export function ResultTableRowHeader(props: React.ComponentProps<'td'>) {
+  return <td data-row-header {...props} />;
 }
-
-const RowHeader = styled('th')`
-  font-weight: inherit;
-`;
 
 export const ResultTable = styled('table')`
   margin: 0;
@@ -31,26 +27,23 @@ export const ResultTable = styled('table')`
     margin-top: ${p => p.theme.space.xs};
   }
 
-  @container (width > ${p => p.theme.container.xl}) {
-    thead th {
-      font-size: ${p => p.theme.font.size.sm};
-      text-transform: uppercase;
-      padding: ${p => p.theme.space.xl} ${p => p.theme.space.lg};
-    }
+  thead th {
+    font-size: ${p => p.theme.font.size.sm};
+    text-transform: uppercase;
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space.lg};
+  }
 
-    td,
-    ${RowHeader} {
-      padding: ${p => p.theme.space.lg};
-    }
+  td {
+    padding: ${p => p.theme.space.lg};
+  }
 
-    th,
-    td {
-      &:first-child {
-        padding-left: ${p => p.theme.space['2xl']};
-      }
-      &:last-child {
-        padding-right: ${p => p.theme.space['2xl']};
-      }
+  th,
+  td {
+    &:first-child {
+      padding-left: ${p => p.theme.space['2xl']};
+    }
+    &:last-child {
+      padding-right: ${p => p.theme.space['2xl']};
     }
   }
 
@@ -86,13 +79,20 @@ export const ResultTable = styled('table')`
       gap: ${p => p.theme.space['2xs']};
       text-align: left !important;
 
+      &,
+      &:first-child,
+      &:last-child {
+        padding: 0;
+      }
+
       /* The column already stacks children; a <br> would become a blank flex item. */
       > br {
         display: none;
       }
     }
 
-    ${RowHeader} {
+    td[data-row-header] {
+      display: block;
       grid-column: 1 / -1;
       padding-bottom: ${p => p.theme.space.sm};
       border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};

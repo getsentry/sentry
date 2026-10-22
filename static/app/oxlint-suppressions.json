@@ -1198,9 +1198,6 @@
     }
   },
   "components/resultGrid.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 8
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1730,11 +1727,6 @@
   "views/admin/adminPackages.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "views/admin/adminRelays.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 5
     }
   },
   "views/admin/adminWarnings.tsx": {
