@@ -56,7 +56,7 @@ describe('groupIntoBuckets', () => {
     ]);
 
     expect(buckets).toHaveLength(1);
-    expect(buckets[0]!.dropped.count).toBe(15);
+    expect(buckets[0]!.dropped).toBe(15);
     expect(buckets[0]!.start).toBe(0);
     expect(buckets[0]!.end).toBe(60_000);
   });
@@ -68,12 +68,12 @@ describe('groupIntoBuckets', () => {
     ]);
 
     expect(buckets).toHaveLength(2);
-    expect(buckets.map(bucket => bucket.dropped.count)).toEqual([10, 20]);
+    expect(buckets.map(bucket => bucket.dropped)).toEqual([10, 20]);
   });
 
   it('excludes intentional drops', () => {
     expect(groupIntoBuckets([DroppedEventFixture({tags: ['intentional']})])).toEqual([
-      expect.objectContaining({dropped: {count: 0}, ratio: 0}),
+      expect.objectContaining({dropped: 0, ratio: 0}),
     ]);
   });
 
@@ -88,7 +88,7 @@ describe('groupIntoBuckets', () => {
 
     expect(buckets).toEqual([
       expect.objectContaining({
-        dropped: {count: 10},
+        dropped: 10,
         ratio: 0.1,
       }),
     ]);
@@ -121,7 +121,7 @@ describe('groupIntoBuckets', () => {
       ]
     );
 
-    expect(buckets[0]!.accepted.count).toBe(90);
+    expect(buckets[0]!.accepted).toBe(90);
     expect(buckets[0]!.ratio).toBe(0.1);
   });
 
@@ -130,7 +130,7 @@ describe('groupIntoBuckets', () => {
       DroppedEventFixture({start: 0, end: 60_000, count: 10}),
     ]);
 
-    expect(buckets[0]!.accepted.count).toBe(0);
+    expect(buckets[0]!.accepted).toBe(0);
     expect(buckets[0]!.ratio).toBe(1);
   });
 
@@ -167,8 +167,8 @@ describe('groupIntoBuckets', () => {
         start: 60_000,
         end: 120_000,
         ratio: 0,
-        accepted: {count: 50},
-        dropped: {count: 0},
+        accepted: 50,
+        dropped: 0,
         byOutcome: [],
       }),
       expect.objectContaining({start: 120_000, end: 180_000, ratio: 0}),

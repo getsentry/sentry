@@ -17,11 +17,8 @@ export interface DroppedDataProps {
   onClick?: () => void;
 }
 
-export interface EventVolume {
+export interface OutcomeVolume {
   count: number;
-}
-
-export interface OutcomeVolume extends EventVolume {
   outcome: string;
 }
 
@@ -29,9 +26,9 @@ export interface OutcomeVolume extends EventVolume {
  * Dropped and accepted volume for one chart time bucket.
  */
 export interface DroppedDataBucket {
-  accepted: EventVolume;
+  accepted: number;
   byOutcome: OutcomeVolume[];
-  dropped: EventVolume;
+  dropped: number;
   end: number;
   ratio: number;
   start: number;

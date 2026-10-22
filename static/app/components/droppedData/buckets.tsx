@@ -1,7 +1,6 @@
 import type {
   DroppedDataBucket,
   DroppedEventsBucket,
-  EventVolume,
   OutcomeVolume,
 } from 'sentry/components/droppedData/types';
 import {defined} from 'sentry/utils/defined';
@@ -10,17 +9,9 @@ const MIN_HIGHLIGHT_RATIO = 0.001;
 
 interface BucketDraft {
   byOutcome: Map<string, OutcomeVolume>;
-  dropped: EventVolume;
+  dropped: number;
   end: number;
   start: number;
-}
-
-function emptyVolume(): EventVolume {
-  return {count: 0};
-}
-
-function addCount(volume: EventVolume, event: DroppedEventsBucket): void {
-  volume.count += event.count;
 }
 
 function getOrCreateDraft(
@@ -30,7 +21,7 @@ function getOrCreateDraft(
   let draft = drafts.get(start);
 
   if (!draft) {
-    draft = {start, end, byOutcome: new Map(), dropped: emptyVolume()};
+    draft = {start, end, byOutcome: new Map(), dropped: 0};
     drafts.set(start, draft);
   }
 
@@ -47,26 +38,21 @@ function addDroppedEvent(
     return;
   }
 
-  addCount(draft.dropped, event);
+  draft.dropped += event.count;
 
   let outcomeVolume = draft.byOutcome.get(event.outcome);
   if (!outcomeVolume) {
-    outcomeVolume = {
-      outcome: event.outcome,
-      ...emptyVolume(),
-    };
+    outcomeVolume = {outcome: event.outcome, count: 0};
     draft.byOutcome.set(event.outcome, outcomeVolume);
   }
-  addCount(outcomeVolume, event);
+  outcomeVolume.count += event.count;
 }
 
-function acceptedVolumeByStart(events: DroppedEventsBucket[]): Map<number, EventVolume> {
-  const volumes = new Map<number, EventVolume>();
+function acceptedVolumeByStart(events: DroppedEventsBucket[]): Map<number, number> {
+  const volumes = new Map<number, number>();
 
   for (const event of events) {
-    const accepted = volumes.get(event.start) ?? emptyVolume();
-    addCount(accepted, event);
-    volumes.set(event.start, accepted);
+    volumes.set(event.start, (volumes.get(event.start) ?? 0) + event.count);
   }
 
   return volumes;
@@ -74,11 +60,11 @@ function acceptedVolumeByStart(events: DroppedEventsBucket[]): Map<number, Event
 
 function toBucket(
   draft: BucketDraft,
-  acceptedByStart: Map<number, EventVolume>
+  acceptedByStart: Map<number, number>
 ): DroppedDataBucket {
-  const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
-  const total = draft.dropped.count + accepted.count;
-  const ratio = total > 0 ? draft.dropped.count / total : 0;
+  const accepted = acceptedByStart.get(draft.start) ?? 0;
+  const total = draft.dropped + accepted;
+  const ratio = total > 0 ? draft.dropped / total : 0;
 
   return {
     start: draft.start,
