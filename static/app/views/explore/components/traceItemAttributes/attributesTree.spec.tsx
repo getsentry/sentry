@@ -186,8 +186,9 @@ describe('attributesTree', () => {
       />
     );
 
-    expect(screen.getByText('timestamp')).toBeInTheDocument();
-    expect(screen.getByText('message')).toBeInTheDocument();
+    expect(screen.getByTestId('attribute-tree-row')).toHaveTextContent(
+      '[timestamp,message]'
+    );
 
     await userEvent.hover(
       within(screen.getByTestId('tree-key-tags[csv_headers,array]')).getByText(

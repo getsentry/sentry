@@ -62,6 +62,7 @@ import {
   getScalarAttributeValue,
   usePrefetchTraceItemDetailsOnHover,
   usePrefetchTraceItemDetailsOnMount,
+  type TraceItemAttributeScalarValue,
   type TraceItemDetailsResponse,
   type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -841,7 +842,7 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
   const attributes =
-    data?.attributes?.reduce<Record<string, string | number | boolean>>(
+    data?.attributes?.reduce<Record<string, TraceItemAttributeScalarValue>>(
       (it, attr) => {
         it[attr.name] = getScalarAttributeValue(attr);
         return it;

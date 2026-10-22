@@ -22,6 +22,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   getScalarAttributeValue,
+  type TraceItemAttributeScalarValue,
   type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -195,7 +196,7 @@ function ensureAttributeObject(
   attributes: Record<string, string | number | boolean> | TraceItemResponseAttribute[]
 ) {
   if (Array.isArray(attributes)) {
-    return attributes.reduce<Record<string, string | number | boolean>>(
+    return attributes.reduce<Record<string, TraceItemAttributeScalarValue>>(
       (acc, attribute) => {
         // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
         // prettifyAttributeName normalizes those

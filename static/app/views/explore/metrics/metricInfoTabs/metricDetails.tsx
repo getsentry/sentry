@@ -19,6 +19,7 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   getScalarAttributeValue,
+  type TraceItemAttributeScalarValue,
   type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -131,7 +132,7 @@ export function MetricDetails({
     );
   }
 
-  const attributes: Record<string, string | number | boolean> = {
+  const attributes: Record<string, TraceItemAttributeScalarValue> = {
     [TraceMetricKnownFieldKey.TIMESTAMP]: dataRow[TraceMetricKnownFieldKey.TIMESTAMP],
   };
   const attributeTypes: Record<string, TraceItemResponseAttribute['type']> = {};

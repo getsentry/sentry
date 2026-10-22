@@ -125,13 +125,22 @@ export type TraceItemResponseAttribute =
   | {name: string; type: 'array'; value: Array<string | number | boolean>};
 
 /**
+ * The scalar value an attribute flattens to for the string-keyed maps field
+ * renderers consume. Array attributes are JSON-encoded into this shape.
+ */
+export type TraceItemAttributeScalarValue = Exclude<
+  TraceItemResponseAttribute,
+  {type: 'array'}
+>['value'];
+
+/**
  * Flattens an attribute to a scalar for the string-keyed maps field renderers
  * consume. Arrays are JSON-encoded so the representation matches the attribute
  * tree rather than a lossy comma-join.
  */
 export function getScalarAttributeValue(
   attribute: TraceItemResponseAttribute
-): string | number | boolean {
+): TraceItemAttributeScalarValue {
   return attribute.type === 'array' ? JSON.stringify(attribute.value) : attribute.value;
 }
 
