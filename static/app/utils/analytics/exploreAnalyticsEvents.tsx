@@ -45,7 +45,7 @@ export type ExploreAnalyticsEventParameters = {
     transformation_type: TransformationType;
   };
   'explore.visualize.transformation.factor_changed': TransformationAnalyticsContext & {
-    factor: number;
+    factor: number | null;
   };
   'explore.visualize.transformation.method_changed': TransformationAnalyticsContext &
     (

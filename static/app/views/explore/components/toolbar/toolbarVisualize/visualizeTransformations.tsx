@@ -103,7 +103,7 @@ type SmoothTransformation = Extract<Transformation, {kind: 'smooth'}>;
 
 const SMOOTH_DEFAULTS: Record<SmoothMethod, SmoothTransformation> = {
   sma: {kind: 'smooth', method: 'sma', window: 3},
-  ema: {kind: 'smooth', method: 'ema', window: 10, factor: 0.25},
+  ema: {kind: 'smooth', method: 'ema', window: 10},
   asap: {kind: 'smooth', method: 'asap', window: 5},
 };
 
@@ -354,6 +354,9 @@ function SmoothingSettings({
         <CompactSelect
           options={WINDOW_OPTIONS}
           value={transformation.window}
+          disabled={
+            transformation.method === 'ema' && transformation.factor !== undefined
+          }
           trigger={props => (
             <OverlayTrigger.Button {...props} aria-label={windowLabel}>
               {transformation.window === undefined ? t('Auto') : props.children}
@@ -378,20 +381,22 @@ function SmoothingSettings({
           <CompactSelect
             options={FACTOR_OPTIONS}
             value={transformation.factor}
+            clearable
             trigger={props => (
               <OverlayTrigger.Button {...props} aria-label={t('Smoothing Factor')}>
                 {transformation.factor === undefined ? t('Auto') : props.children}
               </OverlayTrigger.Button>
             )}
-            onChange={({value}) => {
-              if (value !== transformation.factor) {
+            onChange={option => {
+              const factor = option?.value;
+              if (factor !== transformation.factor) {
                 trackAnalytics('explore.visualize.transformation.factor_changed', {
                   organization,
                   ...analyticsParams,
-                  factor: value,
+                  factor: factor ?? null,
                 });
               }
-              onChange({...transformation, factor: value});
+              onChange({...transformation, factor});
             }}
           />
         </Stack>

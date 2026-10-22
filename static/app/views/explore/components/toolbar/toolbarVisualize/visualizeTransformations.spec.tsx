@@ -126,10 +126,24 @@ describe('VisualizeTransformations', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Smoothing method'}));
     await userEvent.click(screen.getByRole('option', {name: 'EMA'}));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '["fill(locf)","smooth(ema,1)"]'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Smoothing Factor'}));
     await userEvent.click(screen.getByRole('option', {name: '75%'}));
     expect(screen.getByRole('status')).toHaveTextContent(
       '["fill(locf)","smooth(ema,1,0.75)"]'
+    );
+    expect(screen.getByRole('button', {name: 'Window Size'})).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Factor'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+    expect(screen.getByRole('button', {name: 'Smoothing Factor'})).toHaveTextContent(
+      'Auto'
+    );
+    expect(screen.getByRole('button', {name: 'Window Size'})).toBeEnabled();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '["fill(locf)","smooth(ema,1)"]'
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Smoothing method'}));
