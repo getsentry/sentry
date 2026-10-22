@@ -20,7 +20,7 @@ class PreprodArtifactModelTestBase(TestCase):
         self,
         head_sha: str,
         base_sha: str | None,
-        artifact_type: int | None = PreprodArtifact.ArtifactType.APK,
+        artifact_type: int | None = None,
     ) -> PreprodArtifact:
         commit_comparison = self.create_commit_comparison(
             organization=self.organization, head_sha=head_sha, base_sha=base_sha
@@ -651,8 +651,12 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
     def test_get_base_artifact_multiple_commit_comparisons_falls_through_to_match(self) -> None:
         """Test that a newer commit_comparison is used when the oldest has no matching artifact."""
         self._create_artifact_on_commit("b" * 40, base_sha=None, artifact_type=None)
-        size_base_artifact = self._create_artifact_on_commit("b" * 40, base_sha="c" * 40)
-        head_artifact = self._create_artifact_on_commit("a" * 40, base_sha="b" * 40)
+        size_base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="c" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
 
         assert head_artifact.get_base_artifact_for_commit().first() == size_base_artifact
 
@@ -1694,9 +1698,15 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
     def test_get_base_artifacts_for_commit_multiple_commit_comparisons_uses_oldest(self) -> None:
         """Test that the oldest commit_comparison wins when more than one has a match."""
-        old_base_artifact = self._create_artifact_on_commit("b" * 40, base_sha="c" * 40)
-        self._create_artifact_on_commit("b" * 40, base_sha="d" * 40)
-        head_artifact = self._create_artifact_on_commit("a" * 40, base_sha="b" * 40)
+        old_base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="c" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        self._create_artifact_on_commit(
+            "b" * 40, base_sha="d" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
 
         result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
 
@@ -1707,8 +1717,12 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
     ) -> None:
         """Test that a newer commit_comparison is used when the oldest has no matching artifact."""
         self._create_artifact_on_commit("b" * 40, base_sha=None, artifact_type=None)
-        size_base_artifact = self._create_artifact_on_commit("b" * 40, base_sha="c" * 40)
-        head_artifact = self._create_artifact_on_commit("a" * 40, base_sha="b" * 40)
+        size_base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="c" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
 
         result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
 
