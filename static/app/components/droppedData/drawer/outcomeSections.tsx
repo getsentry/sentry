@@ -42,14 +42,6 @@ export function filterDroppedEventsByScope(
   return scope === 'all' ? droppedEvents : droppedEvents.filter(isUnintentional);
 }
 
-export function droppedEventsToOutcomeSections(
-  droppedEvents: DroppedEventsBucket[],
-  acceptedEvents: DroppedEventsBucket[]
-): OutcomeSection[] {
-  const totalEvents = sumCounts(droppedEvents) + sumCounts(acceptedEvents);
-  return buildOutcomeSections(droppedEvents, totalEvents);
-}
-
 export function droppedEventsToOutcomeGroups(
   droppedEvents: DroppedEventsBucket[],
   acceptedEvents: DroppedEventsBucket[],
