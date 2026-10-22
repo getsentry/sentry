@@ -8,6 +8,8 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from requests import PreparedRequest, Request
 
 from sentry.constants import ObjectStatus
@@ -213,6 +215,15 @@ class AccessTokenTest(TestCase):
         assert self.integration.name == "renamed"
         assert self.integration.metadata["domain_name"] == "renamed"
         assert self.integration.metadata["access_token"] == "oit_abc"
+
+    @responses.activate
+    def test_takes_no_row_lock(self, mock_jwt: mock.MagicMock) -> None:
+        self._mint()
+
+        with CaptureQueriesContext(connections[router.db_for_write(Integration)]) as queries:
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        assert not [q for q in queries.captured_queries if "FOR UPDATE" in q["sql"]]
 
     @responses.activate
     def test_keeps_an_uninstall_made_while_minting(self, mock_jwt: mock.MagicMock) -> None:

@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
-from django.db import router, transaction
+from django.utils import timezone
 from requests import PreparedRequest
 
 from sentry.integrations.cursor_origin.constants import (
@@ -301,16 +301,17 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         if _parse_expires_at(expires_at) is None:
             raise ApiError(f"unparseable expiresAt from Cursor Origin: {expires_at!r}")
 
-        # Merge into the row as it is now: saving a copy read before the request would undo
-        # a rename or an uninstall that landed meanwhile.
-        with transaction.atomic(using=router.db_for_write(Integration)):
-            integration = (
-                Integration.objects.select_for_update().filter(id=self.integration.id).first()
-            )
-            if not integration:
-                return None
-            integration.metadata.update({"access_token": token, "expires_at": expires_at})
-            integration.save(update_fields=["metadata", "date_updated"])
+        # Re-read and write only the metadata: saving the copy read before the request would
+        # undo a rename or an uninstall that landed meanwhile. No row lock, since locks on
+        # control tables have stalled the control database before.
+        integration = Integration.objects.filter(id=self.integration.id).first()
+        if not integration:
+            return None
+        integration.metadata.update({"access_token": token, "expires_at": expires_at})
+        if not Integration.objects.filter(id=integration.id).update(
+            metadata=integration.metadata, date_updated=timezone.now()
+        ):
+            return None
         self.integration = integration
 
         return {"access_token": token, "expires_at": expires_at}
