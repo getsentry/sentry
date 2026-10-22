@@ -12,21 +12,29 @@ const sourceConditionSchema = z.object({
   thresholdChangePercent: z.number().optional(),
 });
 
-const sourceMonitorSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  aggregate: z.string(),
-  query: z.string(),
-  environment: z.string().nullable(),
-  // Snapshots taken before dynamic and percent monitors were supported leave this out.
-  detectionType: z.enum(['static', 'percent', 'dynamic']).optional(),
-  comparisonDeltaSeconds: z.number().nullable(),
-  // Drop conditions we can't read, such as a type added on the backend later,
-  // instead of losing the whole snapshot.
-  conditions: z
-    .array(sourceConditionSchema.optional().catch(undefined))
-    .transform(conditions => conditions.filter(condition => condition !== undefined)),
-});
+const sourceMonitorSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    aggregate: z.string(),
+    query: z.string(),
+    environment: z.string().nullable(),
+    // Snapshots taken before dynamic and percent monitors were supported leave this out.
+    detectionType: z.enum(['static', 'percent', 'dynamic']).optional(),
+    comparisonDeltaSeconds: z.number().nullable(),
+    // Drop conditions we can't read, such as a type added on the backend later,
+    // instead of losing the whole snapshot.
+    conditions: z
+      .array(sourceConditionSchema.optional().catch(undefined))
+      .transform(conditions => conditions.filter(condition => condition !== undefined)),
+  })
+  .transform(monitor => ({
+    ...monitor,
+    // Like the backend, a comparison delta makes it a percent monitor.
+    detectionType:
+      monitor.detectionType ??
+      (monitor.comparisonDeltaSeconds === null ? 'static' : 'percent'),
+  }));
 
 const metricOpenPeriodSourceSchema = z.object({
   type: z.literal('metric_open_period'),

@@ -519,6 +519,37 @@ describe('NextStepCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('describes the opening condition from a snapshot without a detection type', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({...latencyMonitor, detectionType: undefined})}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent('Opens an issueAbove 800ms');
+  });
+
+  it('reads a percent monitor from a snapshot without a detection type', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({
+          ...latencyMonitor,
+          detectionType: undefined,
+          comparisonDeltaSeconds: 3600,
+          conditions: [{type: 'gt', comparison: 110, result: 75}],
+        })}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(
+      within(getCard()).getByText('10% higher than the previous 1 hour')
+    ).toBeInTheDocument();
+  });
+
   it('names the monitor without an opening condition for a dynamic monitor', () => {
     render(
       <NextStepCard

@@ -197,7 +197,7 @@ function getOpensAnIssueDescription(
 function formatChangeValue(
   key: InvestigationDetectorChangeKey,
   value: number | string | null | undefined,
-  detectionType: SourceMonitor['detectionType'],
+  detectionType: SourceMonitor['detectionType'] | undefined,
   aggregate: string | null
 ) {
   if (key === 'query') {

@@ -86,9 +86,18 @@ describe('getSourceMonitor', () => {
     );
   });
 
-  it('reads a snapshot taken before the detection type was recorded', () => {
+  it('reads a static monitor from a snapshot without a detection type', () => {
     const source = InvestigationMetricSourceFixture({detectionType: undefined});
 
-    expect(getSourceMonitor(source, '789')?.detectionType).toBeUndefined();
+    expect(getSourceMonitor(source, '789')?.detectionType).toBe('static');
+  });
+
+  it('reads a percent monitor from a snapshot without a detection type', () => {
+    const source = InvestigationMetricSourceFixture({
+      detectionType: undefined,
+      comparisonDeltaSeconds: 3600,
+    });
+
+    expect(getSourceMonitor(source, '789')?.detectionType).toBe('percent');
   });
 });
