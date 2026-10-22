@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+import time
+from unittest.mock import ANY, MagicMock, patch
 
 import responses
 from django.test.utils import override_settings
@@ -16,7 +17,10 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_query_hash,
+)
 from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
 from sentry.models.group import Group
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -27,6 +31,7 @@ from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.useremail import UserEmail
+from sentry.utils import jwt
 from sentry.viewer_context import ActorType, get_viewer_context
 
 TOKEN = "JWT anexampletoken"
@@ -219,6 +224,30 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         assert group.get_assignee() is None
 
     @patch.object(IssueSyncIntegration, "sync_status_inbound")
+    def test_cell_accepts_token_that_expired_while_queued(
+        self, mock_sync_status_inbound: MagicMock
+    ) -> None:
+        path = "/extensions/jira/issue-updated/"
+        token = jwt.encode(
+            {
+                "iss": self.integration.external_id,
+                "exp": int(time.time()) - 60 * 60,
+                "qsh": get_query_hash(path, "POST", {}),
+            },
+            self.integration.metadata["shared_secret"],
+        )
+        data = StubService.get_stub_data("jira", "edit_issue_status_payload.json")
+        headers = dict(HTTP_AUTHORIZATION=f"JWT {token}")
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            self.get_error_response(**data, extra_headers=headers, status_code=409)
+        assert not mock_sync_status_inbound.called
+
+        with override_settings(SILO_MODE=SiloMode.CELL):
+            self.get_success_response(**data, extra_headers=headers)
+        assert mock_sync_status_inbound.called
+
+    @patch.object(IssueSyncIntegration, "sync_status_inbound")
     def test_simple_status_sync_inbound(self, mock_sync_status_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
@@ -232,6 +261,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 provider="jira",
                 query_params={},
                 method="POST",
+                leeway=ANY,
             )
             mock_sync_status_inbound.assert_called_with(
                 "APP-123",
