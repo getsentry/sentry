@@ -278,26 +278,8 @@ export class ReplayReader {
       return archivedReader;
     }
 
-    const {
-      breadcrumbFrames,
-      emptyPointerMoveCount,
-      optionFrame,
-      rrwebFrames,
-      spanFrames,
-      videoFrames,
-    } = hydrateFrames(attachments);
-
-    // Only log once all segments are loaded, so a replay is counted once per
-    // load and not once per partial fetch.
-    if (emptyPointerMoveCount > 0 && !fetching) {
-      Sentry.logger.warn('Replay: dropped pointer moves without positions', {
-        replay_id: replayRecord.id,
-        sdk_name: replayRecord.sdk.name,
-        sdk_version: replayRecord.sdk.version,
-        dropped_count: emptyPointerMoveCount,
-        url: window.location.href,
-      });
-    }
+    const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames, videoFrames} =
+      hydrateFrames(attachments);
 
     let readerReplayRecord = replayRecord;
 

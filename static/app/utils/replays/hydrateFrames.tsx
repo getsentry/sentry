@@ -31,7 +31,6 @@ export function hydrateFrames(attachments: unknown[]) {
   const spanFrames: RawSpanFrame[] = [];
   const videoFrames: VideoEvent[] = [];
   let optionFrame = undefined as OptionFrame | undefined;
-  let emptyPointerMoveCount = 0;
 
   attachments.forEach(attachment => {
     if (!attachment) {
@@ -51,18 +50,13 @@ export function hydrateFrames(attachments: unknown[]) {
         id: attachment.data.payload.segmentId,
         timestamp: attachment.timestamp,
       });
-    } else if (isRecordingFrame(attachment)) {
-      if (isEmptyPointerMoveFrame(attachment)) {
-        emptyPointerMoveCount++;
-      } else {
-        rrwebFrames.push(attachment);
-      }
+    } else if (isRecordingFrame(attachment) && !isEmptyPointerMoveFrame(attachment)) {
+      rrwebFrames.push(attachment);
     }
   });
 
   return {
     breadcrumbFrames,
-    emptyPointerMoveCount,
     optionFrame,
     rrwebFrames,
     spanFrames,
