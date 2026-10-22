@@ -8,13 +8,16 @@ from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
+from sentry.locks import locks
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -1657,3 +1660,204 @@ class SlackInvestigationEntrypointTest(TestCase):
             self._record_thread()
 
         assert self._get_open_period_cache() is None
+
+    def _set_open_period_cache(
+        self, threads: list[dict[str, Any]], investigation_id: int | None = None
+    ) -> None:
+        self.investigation.update(
+            source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
+            source_ref={"groupId": "1", "openPeriodId": 2},
+            source_key="open-period",
+            source_revision=1,
+        )
+        SeerOperatorInvestigationCache.set_for_source(
+            entrypoint_key="slack",
+            source_type="metric_open_period",
+            source_ids=[1, 2],
+            cache_payload={
+                "organization_id": self.organization.id,
+                "investigation_id": investigation_id,
+                "threads": threads,
+            },
+        )
+
+    def _open_period_thread(self, channel_id: str, **overrides: Any) -> dict[str, Any]:
+        return {
+            "integration_id": self.integration.id,
+            "channel_id": channel_id,
+            "thread_ts": self.message_ts,
+            "show_status": False,
+            "status_message_ts": None,
+            "last_sent_state": None,
+            "final_sent": False,
+            **overrides,
+        }
+
+    def _create_other_integration(self, **kwargs: Any) -> Any:
+        return self.create_integration(
+            organization=self.organization,
+            external_id="TXXXXXXXXX4",
+            provider="slack",
+            metadata={"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            **kwargs,
+        )
+
+    def _complete_with_conclusion(self) -> None:
+        self._report_cell("The release added a slow font.")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+    def _update_open_period(
+        self, cache_payload: SlackInvestigationCachePayload | None = None
+    ) -> None:
+        SlackInvestigationEntrypoint.on_investigation_update(
+            cache_payload=cache_payload, run=self.orchestration_run
+        )
+
+    def _posts(self) -> list[tuple[str, str]]:
+        return [
+            (
+                call.kwargs["channel"],
+                "conclusion"
+                if call.kwargs["text"] == "Seer finished the investigation"
+                else "status",
+            )
+            for call in self.mock_post_message.call_args_list
+        ]
+
+    def test_open_period_status_goes_to_shown_thread_and_conclusion_to_all(self) -> None:
+        other = self._create_other_integration()
+        self._set_open_period_cache(
+            [
+                self._open_period_thread("CSTATUS000", show_status=True),
+                self._open_period_thread("COTHER0000", integration_id=other.id),
+            ]
+        )
+        self._complete_with_conclusion()
+
+        self._update_open_period()
+        self._update_open_period()
+
+        assert self._posts() == [
+            ("CSTATUS000", "status"),
+            ("CSTATUS000", "conclusion"),
+            ("COTHER0000", "conclusion"),
+        ]
+        assert self._get_open_period_cache() == {
+            "organization_id": self.organization.id,
+            "investigation_id": self.investigation.id,
+            "threads": [
+                self._open_period_thread(
+                    "CSTATUS000",
+                    show_status=True,
+                    status_message_ts=self.status_ts,
+                    last_sent_state=ANY,
+                    final_sent=True,
+                ),
+                self._open_period_thread("COTHER0000", integration_id=other.id, final_sent=True),
+            ],
+        }
+
+    def test_open_period_skips_clicked_thread(self) -> None:
+        cache_payload = self._set_cache(status_message_ts=None)
+        self._set_open_period_cache(
+            [
+                self._open_period_thread(self.channel_id, show_status=True),
+                self._open_period_thread("COTHER0000"),
+            ]
+        )
+        self._complete_with_conclusion()
+
+        self._update_open_period(cache_payload)
+
+        assert self._posts() == [
+            (self.channel_id, "status"),
+            (self.channel_id, "conclusion"),
+            ("COTHER0000", "conclusion"),
+        ]
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_open_period_inactive_integration_skips_only_its_threads(
+        self, mock_record: Mock
+    ) -> None:
+        disabled = self._create_other_integration(status=ObjectStatus.DISABLED)
+        self._set_open_period_cache(
+            [
+                self._open_period_thread("CDISABLED0", integration_id=disabled.id),
+                self._open_period_thread("COTHER0000"),
+            ]
+        )
+        self._complete_with_conclusion()
+
+        self._update_open_period()
+
+        assert self._posts() == [("COTHER0000", "conclusion")]
+        payload = self._get_open_period_cache()
+        assert payload is not None
+        assert [thread["final_sent"] for thread in payload["threads"]] == [False, True]
+        assert_halt_metric(mock_record, "integration_not_found")
+
+    def test_open_period_new_investigation_posts_again(self) -> None:
+        self._set_open_period_cache(
+            [
+                self._open_period_thread(
+                    "COTHER0000",
+                    show_status=True,
+                    status_message_ts="1712345678.000000",
+                    last_sent_state="old",
+                    final_sent=True,
+                )
+            ],
+            investigation_id=self.investigation.id + 1,
+        )
+        self._complete_with_conclusion()
+
+        self._update_open_period()
+
+        self.mock_update.assert_not_called()
+        assert self._posts() == [("COTHER0000", "status"), ("COTHER0000", "conclusion")]
+        payload = self._get_open_period_cache()
+        assert payload is not None
+        assert payload["investigation_id"] == self.investigation.id
+
+    def test_open_period_keeps_thread_recorded_during_sends(self) -> None:
+        self._set_open_period_cache([self._open_period_thread("COTHER0000")])
+        self._complete_with_conclusion()
+
+        def post_and_record(**kwargs: Any) -> SlackResponse:
+            self._record_thread(channel_id="CNEW000000")
+            return _slack_response({"ok": True, "ts": self.status_ts})
+
+        self.mock_post_message.side_effect = post_and_record
+
+        self._update_open_period()
+
+        payload = self._get_open_period_cache()
+        assert payload is not None
+        assert [(thread["channel_id"], thread["final_sent"]) for thread in payload["threads"]] == [
+            ("COTHER0000", True),
+            ("CNEW000000", False),
+        ]
+
+    def test_open_period_save_lock_failure_raises_for_task_retry(self) -> None:
+        self._set_open_period_cache([self._open_period_thread("COTHER0000")])
+        self._complete_with_conclusion()
+        busy_lock = Mock()
+        busy_lock.blocking_acquire.side_effect = UnableToAcquireLock("locked")
+        get_lock = locks.get
+
+        with (
+            patch(
+                "sentry.seer.entrypoints.slack.entrypoint.locks.get",
+                side_effect=lambda key, **kwargs: (
+                    busy_lock
+                    if key == "seer:investigation:slack:metric_open_period:1:2"
+                    else get_lock(key, **kwargs)
+                ),
+            ),
+            pytest.raises(UnableToAcquireLock),
+        ):
+            self._update_open_period()
+
+        payload = self._get_open_period_cache()
+        assert payload is not None
+        assert payload["investigation_id"] is None
