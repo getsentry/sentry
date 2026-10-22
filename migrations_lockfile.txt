@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0039_seerprojectrepository_one_to_one
 
-sentry: 1236_retire_metric_trigger
+sentry: 1237_drop_metric_trigger_action
 
 service_accounts: 0001_initial
 
