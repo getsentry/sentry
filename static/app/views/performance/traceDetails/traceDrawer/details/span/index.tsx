@@ -72,9 +72,7 @@ import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
-export function useAvgSpanDuration(
-  span: TraceTree.EAPSpan | undefined
-): number | undefined {
+function useAvgSpanDuration(span: TraceTree.EAPSpan | undefined): number | undefined {
   return useSpanAverages(span).avgDuration;
 }
 
