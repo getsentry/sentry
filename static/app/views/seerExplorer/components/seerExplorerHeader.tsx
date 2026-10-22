@@ -44,6 +44,7 @@ interface SeerExplorerHeaderProps {
   overrideBashModeEnabled: boolean;
   overrideCtxEngEnable: boolean;
   showThinking: boolean;
+  conversationsUrl?: string;
   disableNewChatButton?: boolean;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
   sidebarPosition?: SeerExplorerSidebarPosition;
@@ -60,6 +61,7 @@ export function SeerExplorerHeader({
   onOverrideBashModeToggle,
   showThinking,
   onShowThinkingToggle,
+  conversationsUrl,
   isPipSupported,
   isPoppedOut,
   onTogglePictureInPicture,
@@ -138,6 +140,7 @@ export function SeerExplorerHeader({
           onOverrideBashModeToggle={onOverrideBashModeToggle}
           showThinking={showThinking}
           onShowThinkingToggle={onShowThinkingToggle}
+          conversationsUrl={conversationsUrl}
         />
         <Flex display={{zero: 'none', '2xs': 'flex'}} align="center">
           <SeerExplorerHeaderActions {...actionsProps} />

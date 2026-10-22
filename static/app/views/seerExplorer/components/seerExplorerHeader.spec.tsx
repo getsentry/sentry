@@ -147,6 +147,65 @@ describe('SeerExplorerHeader', () => {
       await userEvent.click(screen.getByRole('option', {name: /Context Engine/}));
       expect(onOverrideCtxEngEnableToggle).toHaveBeenCalled();
     });
+
+    it('renders the agent trace link alongside the toggles', async () => {
+      const conversationsUrl =
+        'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
+      await renderHeader(
+        {conversationsUrl},
+        orgWith('seer-explorer-context-engine-fe-override-ui-flag')
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(screen.getByRole('option', {name: /Context Engine/})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Open agent trace'})).toBeInTheDocument();
+    });
+
+    it('opens the agent trace in a new tab without toggling anything', async () => {
+      const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+      const onOverrideCtxEngEnableToggle = jest.fn();
+      const conversationsUrl =
+        'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
+      await renderHeader(
+        {conversationsUrl, onOverrideCtxEngEnableToggle},
+        orgWith('seer-explorer-context-engine-fe-override-ui-flag')
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Open agent trace'}));
+
+      expect(openSpy).toHaveBeenCalledWith(
+        conversationsUrl,
+        '_blank',
+        'noopener,noreferrer'
+      );
+      expect(onOverrideCtxEngEnableToggle).not.toHaveBeenCalled();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      openSpy.mockRestore();
+    });
+
+    it('renders with only the agent trace link when no debug flags are enabled', async () => {
+      const conversationsUrl =
+        'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
+      await renderHeader({conversationsUrl});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(screen.getAllByRole('option')).toEqual([
+        screen.getByRole('option', {name: 'Open agent trace'}),
+      ]);
+    });
+
+    it('does not render the agent trace link for non-employees', async () => {
+      ConfigStore.set('user', UserFixture());
+      await renderHeader({
+        conversationsUrl:
+          'https://sentry.io/organizations/sentry/explore/conversations/run-id/',
+      });
+
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+    });
   });
 
   describe('New chat', () => {
