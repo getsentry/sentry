@@ -57,6 +57,7 @@ from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -327,8 +328,7 @@ def _detect_function_change_points(
             if get_viewer_context() is None:
                 viewer_context_manager = viewer_context_scope(
                     ViewerContext(
-                        organization_id=organization_id,
-                        actor_type=ActorType.SYSTEM,
+                        actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id
                     )
                 )
 
