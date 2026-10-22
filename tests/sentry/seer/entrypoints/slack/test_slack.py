@@ -873,7 +873,9 @@ class SlackAgentEntrypointTest(TestCase):
         assert call_data.error_message == "Seer was unable to generate a response."
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
-    @patch("sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval")
+    @patch(
+        "sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval", return_value="9.9"
+    )
     def test_on_agent_update_with_write_approval(self, mock_send_write_approval, mock_send):
         state = self._state(
             summary=None,
@@ -1015,7 +1017,9 @@ class SlackAgentEntrypointTest(TestCase):
         assert SlackSeerAgentReplyCache.get(run_id=12345).keys() == {"b2", "b4"}
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
-    @patch("sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval")
+    @patch(
+        "sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval", return_value="9.9"
+    )
     def test_on_agent_update_sends_each_approval_once(self, mock_send_write_approval, mock_send):
         state = self._state(
             pending_user_input=PendingUserInput(
@@ -1034,6 +1038,62 @@ class SlackAgentEntrypointTest(TestCase):
 
         mock_send_write_approval.assert_called_once()
         mock_send.assert_called_once()
+
+    @patch(
+        "sentry.seer.entrypoints.slack.entrypoint.send_thread_update",
+        side_effect=[IntegrationError("post failed"), "1.1"],
+    )
+    @patch(
+        "sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval", return_value="9.9"
+    )
+    def test_on_agent_update_does_not_resend_approval_when_the_reply_is_retried(
+        self, mock_send_write_approval, mock_send
+    ):
+        state = self._state(
+            pending_user_input=PendingUserInput(
+                id="approval-1",
+                input_type="agent_write_approval",
+                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            ),
+        )
+
+        with patch(
+            "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+            return_value=True,
+        ):
+            with pytest.raises(IntegrationError):
+                self._update(state)
+            self._update(state)
+
+        mock_send_write_approval.assert_called_once()
+        assert mock_send.call_count == 2
+        assert SlackSeerAgentReplyCache.get(run_id=12345) == {
+            "approval_dm:approval-1": {"message_ts": "9.9"},
+            "approval:approval-1": {"message_ts": "1.1"},
+        }
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch("sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval", return_value=None)
+    def test_on_agent_update_posts_the_error_when_the_approval_is_not_sent(
+        self, mock_send_write_approval, mock_send
+    ):
+        state = self._state(
+            pending_user_input=PendingUserInput(
+                id="approval-1",
+                input_type="agent_write_approval",
+                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            ),
+        )
+
+        self._update(state)
+        self._update(state)
+
+        mock_send_write_approval.assert_called_once()
+        mock_send.assert_called_once()
+        assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentError)
+        assert SlackSeerAgentReplyCache.get(run_id=12345) == {
+            "approval:approval-1": {"message_ts": "1.1"}
+        }
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     def test_on_agent_update_sends_the_error_once(self, mock_send):

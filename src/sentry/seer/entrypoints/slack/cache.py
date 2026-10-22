@@ -60,7 +60,7 @@ class SlackSeerAgentReply(TypedDict):
 class SlackSeerAgentReplyCache:
     """
     The Seer Agent replies posted for a run, keyed by the answer's block id, "approval:<input id>",
-    or "error". It's the only record of what was posted: if it expires or is evicted, or a worker
+    "approval_dm:<input id>", or "error". It's the only record of what was posted: if it expires or is evicted, or a worker
     dies between posting and recording, the next refresh posts that reply again.
     """
 

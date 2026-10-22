@@ -170,7 +170,8 @@ def _send_agent_write_approval(
     thread: SlackThreadDetails,
     data: SeerAgentWriteApproval,
     slack_user_id: str,
-) -> None:
+) -> str | None:
+    """Send the approval request only to the user. Returns its ts, or None if it wasn't sent."""
     from sentry.integrations.slack.integration import SlackIntegration
 
     integration = integration_service.get_integration(
@@ -183,8 +184,8 @@ def _send_agent_write_approval(
             "seer.entrypoint.slack.agent_write_approval.integration_not_found",
             extra={"integration_id": integration_id, "organization_id": organization_id},
         )
-        return
-    send_thread_update(
+        return None
+    return send_thread_update(
         install=SlackIntegration(model=integration, organization_id=organization_id),
         thread=thread,
         data=data,
@@ -684,7 +685,7 @@ def _next_agent_reply(
 ) -> tuple[str, SeerAgentError | SeerAgentResponse] | None:
     """The reply to post and its cache key, or None if the thread is up to date.
 
-    Sends the write approval DM when a new approval is pending.
+    Sends and records the write approval DM when a new approval is pending.
     """
     organization_id = cache_payload["organization_id"]
     integration_id = cache_payload["integration_id"]
@@ -711,19 +712,28 @@ def _next_agent_reply(
             )
             return None
         input_id, scopes = approval
-        # Keep this synchronous so mixed-version workers never deserialize the new source.
-        _send_agent_write_approval(
-            integration_id=integration_id,
-            organization_id=organization_id,
-            thread=thread,
-            data=SeerAgentWriteApproval(
-                run_id=state.run_id,
+        dm_key = f"approval_dm:{input_id}"
+        if dm_key not in replies:
+            # Keep this synchronous so mixed-version workers never deserialize the new source.
+            dm_ts = _send_agent_write_approval(
+                integration_id=integration_id,
                 organization_id=organization_id,
-                input_id=input_id,
-                scopes=scopes,
-            ),
-            slack_user_id=slack_user_id,
-        )
+                thread=thread,
+                data=SeerAgentWriteApproval(
+                    run_id=state.run_id,
+                    organization_id=organization_id,
+                    input_id=input_id,
+                    scopes=scopes,
+                ),
+                slack_user_id=slack_user_id,
+            )
+            if not dm_ts:
+                # Slack refused the DM, so don't tell the user to look for it.
+                return key, error
+            # Record the DM before the thread reply, so a failed reply doesn't resend it.
+            SlackSeerAgentReplyCache.set(
+                run_id=state.run_id, key=dm_key, reply=SlackSeerAgentReply(message_ts=dm_ts)
+            )
         summary = (
             f"<@{slack_user_id}> I need your approval to make changes in Sentry. "
             "I sent you a message."
