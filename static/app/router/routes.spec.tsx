@@ -249,6 +249,8 @@ describe('buildRoutes()', () => {
 
   describe('seer routes', () => {
     it.each([
+      ['/seer/automations/', 'automations/', true],
+      ['/organizations/test-org/seer/automations/', 'automations/', false],
       ['/seer/investigations/', 'investigations/', true],
       ['/seer/investigations/investigation-1/', 'investigations/:investigationId/', true],
       ['/organizations/test-org/seer/investigations/', 'investigations/', false],

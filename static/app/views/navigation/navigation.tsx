@@ -49,6 +49,10 @@ import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigatio
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
@@ -158,6 +162,7 @@ interface PrimaryNavigationItemsProps {
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
   const investigationsEnabled = useInvestigationsEnabled();
+  const automationsEnabled = useAutomationsEnabled();
   const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
@@ -193,6 +198,10 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
     return settingsItem;
   }
 
+  const seerPath = automationsEnabled
+    ? getAutomationsPath(organization.slug)
+    : getInvestigationsPath(organization.slug);
+
   const prefix = `organizations/${organization.slug}`;
 
   return (
@@ -215,17 +224,13 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
-      {investigationsEnabled && (
+      {(investigationsEnabled || automationsEnabled) && (
         <PrimaryNavigation.ListItem>
           <PrimaryNavigation.Link
-            to={getInvestigationsPath(organization.slug)}
+            to={seerPath}
             analyticsKey="seer"
             label={t('Seer')}
-            {...makeNavigationItemProps(
-              'seer',
-              getInvestigationsPath(organization.slug),
-              `/${prefix}/seer`
-            )}
+            {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
           >
             <IconSeer />
           </PrimaryNavigation.Link>

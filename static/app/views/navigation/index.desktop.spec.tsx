@@ -616,9 +616,33 @@ describe('desktop navigation', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('hides Seer without investigations', () => {
+    it('shows Seer linking to automations with only automations', () => {
       const primaryNav = renderSeerNavigation({
         features: [...ALL_AVAILABLE_FEATURES, 'seer-automations'],
+        openMembership: false,
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/automations/'
+      );
+    });
+
+    it('links Seer to automations when both are enabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'investigations', 'seer-automations'],
+        openMembership: true,
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/automations/'
+      );
+    });
+
+    it('hides Seer without investigations or automations', () => {
+      const primaryNav = renderSeerNavigation({
+        features: ALL_AVAILABLE_FEATURES,
         openMembership: true,
       });
 

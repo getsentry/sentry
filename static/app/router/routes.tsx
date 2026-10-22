@@ -2743,6 +2743,10 @@ function buildRoutes(): RouteObject[] {
       path: 'investigations/:investigationId/',
       component: make(() => import('sentry/views/investigations/detail')),
     },
+    {
+      path: 'automations/',
+      component: make(() => import('sentry/views/seerWorkflows')),
+    },
   ];
   const seerRoutes: SentryRouteObject = {
     path: '/seer/',
@@ -2940,10 +2944,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'autofix/',
       component: make(() => import('sentry/views/seerWorkflows/overview')),
-    },
-    {
-      path: 'autofix/workflows/',
-      component: make(() => import('sentry/views/seerWorkflows')),
     },
     {
       path: 'autofix/recent/',
