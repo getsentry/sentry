@@ -257,7 +257,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
     objects_for_deletion: ClassVar[BaseManager[Self]] = BaseManager()
 
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
+    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", db_constraint=False)
 
     date_added = models.DateTimeField(default=timezone.now)
     sentry_app_config: models.Field[
