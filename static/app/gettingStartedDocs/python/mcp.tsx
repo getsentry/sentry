@@ -9,6 +9,9 @@ import {t, tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
+// `data_collection`, used in the snippets below, needs 2.70.0 or later.
+const MIN_REQUIRED_VERSION = '2.70.0';
+
 export const mcp: OnboardingConfig = {
   install: params => {
     const packageName = 'sentry-sdk';
@@ -22,19 +25,20 @@ export const mcp: OnboardingConfig = {
             text:
               params.platformOptions?.integration === 'mcp_sdk'
                 ? tct(
-                    'To enable MCP monitoring for the [code:fastmcp] and [code:mcp] packages, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
+                    'To enable MCP monitoring for the [code:fastmcp] and [code:mcp] packages, you need to install the Sentry SDK with a minimum version of [version] or higher.',
                     {
                       code: <code />,
+                      version: <code>{MIN_REQUIRED_VERSION}</code>,
                     }
                   )
                 : tct(
-                    'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
+                    'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [version] or higher.',
                     {
-                      code: <code />,
+                      version: <code>{MIN_REQUIRED_VERSION}</code>,
                     }
                   ),
           },
-          getPythonInstallCodeBlock({packageName}),
+          getPythonInstallCodeBlock({packageName, minimumVersion: MIN_REQUIRED_VERSION}),
         ],
       },
     ];
@@ -62,9 +66,9 @@ from sentry_sdk.integrations.mcp import MCPIntegration
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # Add data like inputs and responses to/from MCP servers;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    # Record AI inputs and outputs (prompts, responses, tool calls). To change what's
+    # collected, see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
     integrations=[
         MCPIntegration(),
     ],

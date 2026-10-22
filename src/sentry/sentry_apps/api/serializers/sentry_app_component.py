@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
@@ -23,13 +23,15 @@ class SentryAppComponentSerializerResponse(TypedDict):
     schema: dict[str, Any]
     error: str | SentryAppPublicErrorBody
     sentryApp: SentryAppComponentAppResponse
+    installationUuid: NotRequired[str]
 
 
 @register(SentryAppComponent)
 class SentryAppComponentSerializer(Serializer[SentryAppComponentSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> SentryAppComponentSerializerResponse:
         errors = kwargs["errors"]
-        return {
+        installation_uuids: dict[int, str] | None = kwargs.get("installation_uuids")
+        data: SentryAppComponentSerializerResponse = {
             "uuid": str(obj.uuid),
             "type": obj.type,
             "schema": obj.schema,
@@ -41,6 +43,9 @@ class SentryAppComponentSerializer(Serializer[SentryAppComponentSerializerRespon
                 "avatars": [serialize(avatar) for avatar in obj.sentry_app.avatar.all()],
             },
         }
+        if installation_uuids is not None:
+            data["installationUuid"] = installation_uuids[obj.sentry_app_id]
+        return data
 
 
 class SentryAppAlertRuleActionSerializer(Serializer):

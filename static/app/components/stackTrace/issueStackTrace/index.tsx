@@ -28,6 +28,7 @@ import {formatExceptionsAsText, getOrderedExceptions} from './utils';
 
 interface IssueStackTraceBaseProps {
   event: Event;
+  collapseAll?: boolean;
   group?: Group;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   projectSlug?: Project['slug'];
@@ -48,12 +49,9 @@ interface StandaloneStackTraceProps extends IssueStackTraceBaseProps {
 type IssueStackTraceProps = ExceptionStackTraceProps | StandaloneStackTraceProps;
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {
-    event,
-    group,
-    projectSlug,
-    groupingCurrentLevel = group?.metadata.current_level,
-  } = props;
+  const {event, group, projectSlug} = props;
+  const groupingCurrentLevel =
+    props.groupingCurrentLevel ?? group?.metadata.current_level;
   const organization = useOrganization();
   const storageKey = projectSlug
     ? `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`

@@ -1,11 +1,14 @@
 import {useQuery} from '@tanstack/react-query';
+import moment from 'moment-timezone';
 
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getRetryDelay,
@@ -55,7 +58,20 @@ export function useDroppedData(
   );
   const {isReady: arePageFiltersReady, selection} = usePageFilters();
 
-  const {data, isPending} = useQuery({
+  // Keep in sync with useSortedTimeSeries so the band refetches with the chart
+  const {period, start, end} = selection.datetime;
+  const intervalInMilliseconds = intervalToMilliseconds(interval);
+  let staleTime = defined(end) && moment.utc(end).isAfter() ? 0 : Infinity;
+  if (
+    defined(period) &&
+    !defined(start) &&
+    !defined(end) &&
+    intervalInMilliseconds !== 0
+  ) {
+    staleTime = intervalInMilliseconds;
+  }
+
+  const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<DroppedEventsResponse>()(
       '/organizations/$organizationIdOrSlug/events-dropped/',
       {
@@ -68,7 +84,7 @@ export function useDroppedData(
           project: selection.projects,
           environment: selection.environments,
         },
-        staleTime: Infinity,
+        staleTime,
       }
     ),
     retry: shouldRetryHandler,
@@ -81,5 +97,7 @@ export function useDroppedData(
     droppedEvents: data?.droppedEvents,
     acceptedEvents: data?.acceptedEvents,
     isPending,
+    isError,
+    refetch,
   };
 }

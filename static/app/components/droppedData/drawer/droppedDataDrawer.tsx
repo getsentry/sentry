@@ -1,74 +1,201 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Text} from '@sentry/scraps/text';
 
+import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
+import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {
-  DroppedDataCategoryList,
-  droppedEventsToCategorySections,
-} from 'sentry/components/droppedData/drawer/categoryList';
-import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedEventsChart';
+  droppedEventsToOutcomeGroups,
+  filterDroppedEventsByScope,
+  type DroppedDataScope,
+  type ReasonRow,
+} from 'sentry/components/droppedData/drawer/outcomeSections';
+import {
+  getOutcomeColors,
+  isOutcomeSelected,
+  type OutcomeSelection,
+} from 'sentry/components/droppedData/outcomes';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
   interval?: string;
-  onInvestigate?: () => void;
+  onAskSeer?: (row: ReasonRow) => void;
 }
 
-function DroppedDataDrawerInner({
+export function DroppedDataDrawer({
   dataset,
   interval,
-  onInvestigate,
+  onAskSeer,
 }: DroppedDataDrawerProps) {
+  const theme = useTheme();
+  const organization = useOrganization();
   const [chartInterval] = useChartInterval();
-  const {droppedEvents, acceptedEvents, isPending} = useDroppedData({
+  const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
     interval: interval ?? chartInterval,
   });
 
-  useLLMContext({
-    contextHint:
-      'Sentry dropped-data panel. drops are the events Sentry dropped for this ' +
-      'dataset over the current date range, grouped by outcome then reason, each ' +
-      'with its event count and share of total (accepted + dropped) events.',
-    dataset,
-    drops: droppedEventsToCategorySections(droppedEvents ?? [], acceptedEvents ?? []),
-  });
+  const [scope, setScope] = useState<DroppedDataScope>('contributing');
+  const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
+
+  const scopedDroppedEvents = filterDroppedEventsByScope(droppedEvents ?? [], scope);
+  const hasExpectedDrops = scopedDroppedEvents.length < (droppedEvents?.length ?? 0);
+  const groups = droppedEventsToOutcomeGroups(
+    droppedEvents ?? [],
+    acceptedEvents ?? [],
+    scope
+  );
+  // Colored from every outcome so colors stay stable when the scope changes.
+  const outcomeColors = getOutcomeColors(
+    (droppedEvents ?? []).map(event => event.outcome),
+    theme
+  );
+  const selectedUnintentional = groups.unintentional.filter(section =>
+    isOutcomeSelected(outcomeSelection, section.outcome)
+  );
+  const selectedIntentional = groups.intentional.filter(section =>
+    isOutcomeSelected(outcomeSelection, section.outcome)
+  );
 
   return (
     <Fragment>
       <DrawerHeader>
-        <Text size="md" variant="muted">
-          {t('Dropped Data')}
-        </Text>
+        <Flex flex="1" align="center" justify="between" gap="md" paddingRight="lg">
+          <Text size="md">{t('Dropped and Filtered Events')}</Text>
+          <SegmentedControl
+            aria-label={t('Filter dropped events')}
+            size="xs"
+            value={scope}
+            onChange={nextScope => {
+              setScope(nextScope);
+              trackAnalytics('explore.dropped_data.scope_toggled', {
+                organization,
+                dataset,
+                scope: nextScope,
+              });
+            }}
+          >
+            <SegmentedControl.Item key="contributing">
+              {t('Unexpected')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Flex>
       </DrawerHeader>
-      <DrawerBody>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : (
-          <Stack gap="xl">
-            <DroppedDataChart droppedEvents={droppedEvents ?? []} />
-            <DroppedDataCategoryList
-              droppedEvents={droppedEvents ?? []}
-              acceptedEvents={acceptedEvents ?? []}
-              onInvestigate={onInvestigate}
+      <BandedDrawerBody>
+        {isError ? (
+          <Container padding="xl 2xl">
+            <LoadingError
+              message={t('There was an error loading dropped events.')}
+              onRetry={() => void refetch()}
             />
-          </Stack>
+          </Container>
+        ) : isPending ? (
+          <Container padding="xl 2xl">
+            <LoadingIndicator />
+          </Container>
+        ) : scopedDroppedEvents.length === 0 ? (
+          <Container padding="xl 2xl">
+            {hasExpectedDrops ? (
+              <EmptyState
+                title={t('No unexpected drops.')}
+                description={t(
+                  'All events dropped in this time range were expected, like sampling and inbound filters.'
+                )}
+                action={
+                  <Button size="sm" onClick={() => setScope('all')}>
+                    {t('Show all drops')}
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                title={t('No dropped or filtered events.')}
+                description={t('Nothing was dropped or filtered in this time range.')}
+              />
+            )}
+          </Container>
+        ) : (
+          <Fragment>
+            <Container background="primary" padding="xl 3xl lg">
+              <DroppedDataChart
+                droppedEvents={scopedDroppedEvents}
+                colors={outcomeColors}
+                hasAskSeer={onAskSeer !== undefined}
+                selection={outcomeSelection}
+                onSelectionChange={nextSelection => {
+                  for (const [outcome, selected] of Object.entries(nextSelection)) {
+                    if (isOutcomeSelected(outcomeSelection, outcome) !== selected) {
+                      trackAnalytics('explore.dropped_data.legend_outcome_toggled', {
+                        organization,
+                        dataset,
+                        outcome,
+                        selected,
+                      });
+                    }
+                  }
+                  setOutcomeSelection(nextSelection);
+                }}
+              />
+            </Container>
+            <Stack flex="1" gap="2xl" background="secondary" padding="2xl xl">
+              {selectedUnintentional.length > 0 && (
+                <Stack gap="xl">
+                  <Container padding="0 xl">
+                    <Heading as="h3" size="xl">
+                      {t('Unexpected Drops')}
+                    </Heading>
+                  </Container>
+                  <DroppedDataOutcomeList
+                    sections={selectedUnintentional}
+                    onAskSeer={onAskSeer}
+                  />
+                </Stack>
+              )}
+              {selectedIntentional.length > 0 && (
+                <Stack gap="xl">
+                  <Stack gap="2xl">
+                    <Separator orientation="horizontal" border="primary" />
+                    <Container padding="0 xl">
+                      <Heading as="h3" size="xl">
+                        {t('Expected Drops')}
+                      </Heading>
+                    </Container>
+                  </Stack>
+                  <DroppedDataOutcomeList
+                    sections={selectedIntentional}
+                    onAskSeer={onAskSeer}
+                  />
+                </Stack>
+              )}
+            </Stack>
+          </Fragment>
         )}
-      </DrawerBody>
+      </BandedDrawerBody>
     </Fragment>
   );
 }
 
-export const DroppedDataDrawer = registerLLMContext(
-  'dropped-data',
-  DroppedDataDrawerInner
-);
+const BandedDrawerBody = styled(DrawerBody)`
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100% - ${PRIMARY_HEADER_HEIGHT}px);
+  padding: 0;
+`;

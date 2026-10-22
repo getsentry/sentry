@@ -22,6 +22,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedTemplate,
 )
+from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 
 
@@ -59,13 +60,22 @@ class IssueCardLegacyParityTest(TestCase):
         )
         assert self.event.group is not None
         self.issue_group = self.event.group
-        self.rule = self.create_project_rule(project=self.project, name="Issue Stream")
+        workflow = self.create_workflow(organization=self.organization, name="Issue Stream")
+        self.origin = NotificationOrigin(
+            label=workflow.name,
+            environment_id=workflow.environment_id,
+            workflow_id=workflow.id,
+            legacy_rule_id=None,
+        )
 
     def legacy_card(self) -> AdaptiveCard:
         rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
         assert rpc_integration is not None
         return MSTeamsIssueMessageBuilder(
-            self.issue_group, self.event, [self.rule], rpc_integration
+            self.issue_group,
+            self.event,
+            [self.origin],
+            rpc_integration,
         ).build_group_card()
 
     def platform_card(self) -> AdaptiveCard:
@@ -74,7 +84,12 @@ class IssueCardLegacyParityTest(TestCase):
             group_id=self.issue_group.id,
             event_id=self.event.event_id,
             notification_uuid="",
-            rule=SerializableRuleProxy.from_rule(self.rule),
+            rule=SerializableRuleProxy.from_origin(
+                self.origin,
+                action_id=self.origin.workflow_id or 0,
+                data={},
+                project_id=self.project.id,
+            ),
         )
         return IssueMSTeamsRenderer.render(
             data=data,

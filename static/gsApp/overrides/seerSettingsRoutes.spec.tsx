@@ -1,6 +1,6 @@
 import {matchRoutes} from 'react-router';
 
-import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
+import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 import {seerSettingsRoutes} from './seerSettingsRoutes';

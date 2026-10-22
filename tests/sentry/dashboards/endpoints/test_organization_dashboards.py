@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
+from django.db import connection
 from django.urls import reverse
 
 from sentry import audit_log
@@ -2494,6 +2495,43 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             ).values_list("prebuilt_id", flat=True)
         )
         assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
+    def test_prebuilt_autostar_skips_unfavorited_position(self) -> None:
+        stale_favorite = DashboardFavoriteUser.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=self.dashboard,
+            position=1,
+            favorited=False,
+        )
+
+        # The position unique constraint is DEFERRABLE INITIALLY DEFERRED, so inside
+        # the test transaction a conflict would not be checked until teardown.
+        # Making constraints immediate matches a committed request in production.
+        with connection.cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+
+        assert response.status_code == 200, response.content
+        stale_favorite.refresh_from_db()
+        assert stale_favorite.favorited is False
+        assert stale_favorite.position == 1
+
+        first_autostar = DashboardFavoriteUser.objects.get(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard__prebuilt_id=PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
+        )
+        assert first_autostar.favorited is True
+        assert first_autostar.position == 2
 
     def test_endpoint_does_not_create_favorites_without_starred_flag(self) -> None:
         with self.feature(

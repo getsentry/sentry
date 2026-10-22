@@ -1,19 +1,27 @@
 import itertools
 import uuid
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import orjson
 import pytest
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import Partition
+from arroyo.types import Topic as ArroyoTopic
 from django.db.models import F
 from django.test import override_settings
 from urllib3.response import HTTPResponse
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.grouptype import (
     ProfileFunctionRegressionType,
 )
-from sentry.issues.occurrence_consumer import _process_message
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.occurrence_consumer import _get_kwargs, _process_message
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -28,7 +36,11 @@ from sentry.seer.breakpoints import BreakpointData
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
-from sentry.statistical_detectors.detector import TrendBundle, generate_fingerprint
+from sentry.statistical_detectors.detector import (
+    MISSING_ISSUE_GROUP_GRACE_PERIOD,
+    TrendBundle,
+    generate_fingerprint,
+)
 from sentry.statistical_detectors.redis import (
     FUNCTION_CHANGE_POINT_LEASE_DURATION,
     FunctionChangePointQueue,
@@ -42,13 +54,14 @@ from sentry.tasks.statistical_detectors import (
     query_functions,
     run_detection,
 )
-from sentry.testutils.cases import ProfilesSnubaTestCase
+from sentry.testutils.cases import ProfilesSnubaTestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -256,8 +269,8 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
                 (1, False, "1"),
                 (2, True, "1"),
             ],
-            [None],
-            id="existing active",
+            [2],
+            id="existing active without issue",
         ),
         pytest.param(
             [
@@ -289,7 +302,7 @@ def test_get_regression_versions(
     project,
     timestamp,
 ):
-    if regression_groups:
+    with freeze_time(timestamp - MISSING_ISSUE_GROUP_GRACE_PERIOD):
         RegressionGroup.objects.bulk_create(
             RegressionGroup(
                 type=detector_cls.regression_type.value,
@@ -325,13 +338,106 @@ def test_get_regression_versions(
     def mock_regressions():
         yield from breakpoints
 
-    regressions = list(detector_cls.get_regression_versions(mock_regressions()))
+    with freeze_time(timestamp):
+        regressions = list(detector_cls.get_regression_versions(mock_regressions()))
 
     assert regressions == [
         (expected_version, None if expected_version == 0 else timestamp, breakpoints[i])
         for i, expected_version in enumerate(expected_versions)
         if expected_version is not None
     ]
+    assert all(
+        not group.active
+        for group in get_regression_groups(
+            detector_cls.regression_type,
+            [(project.id, generate_fingerprint(detector_cls.regression_type, "1"))],
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    ["age", "expected_versions", "expected_groups"],
+    [
+        pytest.param(timedelta(0), [], [(1, True)], id="just created"),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD - timedelta(microseconds=1),
+            [],
+            [(1, True)],
+            id="before grace expires",
+        ),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD,
+            [1],
+            [(1, False), (2, True)],
+            id="grace boundary",
+        ),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD + timedelta(microseconds=1),
+            [1],
+            [(1, False), (2, True)],
+            id="after grace expires",
+        ),
+    ],
+)
+@django_db_all
+def test_missing_issue_group_grace_period(
+    age, expected_versions, expected_groups, project, timestamp
+):
+    detector_cls = FunctionRegressionDetector
+    fingerprint = generate_fingerprint(detector_cls.regression_type, "123")
+    previous_breakpoint = timestamp - timedelta(days=2)
+    original_group = RegressionGroup(
+        type=detector_cls.regression_type.value,
+        date_regressed=previous_breakpoint,
+        version=1,
+        active=True,
+        project_id=project.id,
+        fingerprint=fingerprint,
+        baseline=100,
+        regressed=200,
+    )
+    with freeze_time(timestamp - age):
+        RegressionGroup.objects.bulk_create([original_group])
+
+    regression: BreakpointData = {
+        "project": str(project.id),
+        "transaction": "123",
+        "aggregate_range_1": 200,
+        "aggregate_range_2": 400,
+        "unweighted_t_value": 1.23,
+        "unweighted_p_value": 1.23,
+        "trend_percentage": 1.23,
+        "absolute_percentage_change": 1.23,
+        "trend_difference": 1.23,
+        "breakpoint": (timestamp - timedelta(hours=12)).timestamp(),
+    }
+
+    def get_regressions():
+        yield regression
+
+    with freeze_time(timestamp):
+        versions = list(detector_cls.get_regression_versions(get_regressions()))
+        assert versions == [
+            (version, previous_breakpoint, regression) for version in expected_versions
+        ]
+        original_group.refresh_from_db()
+        assert original_group.active == (not expected_versions)
+
+        emitted = list(detector_cls.save_regressions_with_versions(get_regressions()))
+        assert emitted == [regression for _ in expected_versions]
+
+    assert (
+        list(
+            RegressionGroup.objects.filter(
+                type=detector_cls.regression_type.value,
+                project_id=project.id,
+                fingerprint=fingerprint,
+            )
+            .order_by("version")
+            .values_list("version", "active")
+        )
+        == expected_groups
+    )
 
 
 @pytest.mark.parametrize(
@@ -884,7 +990,10 @@ def test_process_function_change_points_groups_by_start(detect, timestamp):
     ]
 
 
-@mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
+@mock.patch("sentry.tasks.statistical_detectors.metrics.incr")
+@mock.patch(
+    "sentry.tasks.statistical_detectors.emit_function_regression_issue", return_value=(2, 3)
+)
 @mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
 @mock.patch("sentry.search.events.builder.base.raw_snql_query")
 @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
@@ -893,6 +1002,7 @@ def test_detect_function_change_points(
     mock_raw_snql_query,
     mock_urlopen,
     mock_emit_function_regression_issue,
+    mock_metrics_incr,
     timestamp,
     project,
 ):
@@ -950,6 +1060,22 @@ def test_detect_function_change_points(
         detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
 
     assert mock_emit_function_regression_issue.called
+    mock_metrics_incr.assert_has_calls(
+        [
+            mock.call(
+                "statistical_detectors.breakpoint.emitted",
+                amount=2,
+                tags={"source": "profile", "kind": "function", "producer": "vroom"},
+                sample_rate=1.0,
+            ),
+            mock.call(
+                "statistical_detectors.breakpoint.emitted",
+                amount=3,
+                tags={"source": "profile", "kind": "function", "producer": "sentry"},
+                sample_rate=1.0,
+            ),
+        ]
+    )
     viewer_context = decode_viewer_context(
         mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
         key="viewer-context-test-secret",
@@ -1116,23 +1242,28 @@ def test_new_regression_group(
         ),
     ],
 )
+@pytest.mark.parametrize("active", [False, True])
 @django_db_all
 def test_save_regressions_with_versions(
     detector_cls,
     object_name,
     project,
     timestamp,
+    active,
 ):
-    RegressionGroup.objects.create(
+    fingerprint = generate_fingerprint(detector_cls.regression_type, object_name)
+    original_group = RegressionGroup(
         type=detector_cls.regression_type.value,
         date_regressed=timestamp,
         version=1,
-        active=False,
+        active=active,
         project_id=project.id,
-        fingerprint=generate_fingerprint(detector_cls.regression_type, object_name),
+        fingerprint=fingerprint,
         baseline=100,
         regressed=300,
     )
+    with freeze_time(timestamp - MISSING_ISSUE_GROUP_GRACE_PERIOD):
+        RegressionGroup.objects.bulk_create([original_group])
 
     def get_regressions(ts):
         yield {
@@ -1159,6 +1290,151 @@ def test_save_regressions_with_versions(
     regressions = get_regressions(timestamp + timedelta(hours=24))
     regressions = detector_cls.save_regressions_with_versions(regressions)
     assert len(list(regressions)) == 1
+
+    original_group.refresh_from_db()
+    assert not original_group.active
+    new_group = RegressionGroup.objects.get(
+        type=detector_cls.regression_type.value,
+        project_id=project.id,
+        fingerprint=fingerprint,
+        version=2,
+    )
+    assert new_group.active
+    assert new_group.date_regressed == timestamp + timedelta(hours=24)
+
+
+@pytest.mark.parametrize(
+    ["age", "expected_active"],
+    [
+        pytest.param(timedelta(0), True, id="just created"),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD - timedelta(microseconds=1),
+            True,
+            id="before grace expires",
+        ),
+        pytest.param(MISSING_ISSUE_GROUP_GRACE_PERIOD, False, id="grace boundary"),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD + timedelta(microseconds=1),
+            False,
+            id="after grace expires",
+        ),
+    ],
+)
+@pytest.mark.parametrize("trend_type", [TrendType.Unchanged, TrendType.Regressed])
+@mock.patch("sentry.tasks.statistical_detectors.FunctionRegressionDetector.detect_trends")
+@mock.patch("sentry.tasks.statistical_detectors.FunctionChangePointQueue")
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_detect_function_trends_missing_issue_group(
+    produce_occurrence_to_kafka,
+    change_point_queue,
+    detect_trends,
+    age,
+    expected_active,
+    trend_type,
+    project,
+    timestamp,
+):
+    detector_cls = FunctionRegressionDetector
+    original_group = RegressionGroup(
+        type=detector_cls.regression_type.value,
+        date_regressed=timestamp - timedelta(days=2),
+        version=1,
+        active=True,
+        project_id=project.id,
+        fingerprint=generate_fingerprint(detector_cls.regression_type, "123"),
+        baseline=100_000_000,
+        regressed=300_000_000,
+    )
+    with freeze_time(timestamp - age):
+        RegressionGroup.objects.bulk_create([original_group])
+
+    def get_trends():
+        yield TrendBundle(
+            type=trend_type,
+            score=1,
+            payload=DetectorPayload(
+                project_id=project.id,
+                group="123",
+                fingerprint="",
+                count=100,
+                value=500_000_000,
+                timestamp=timestamp - timedelta(hours=1),
+            ),
+            state=MovingAverageDetectorState(
+                timestamp=timestamp - timedelta(hours=1),
+                count=100,
+                moving_avg_short=500_000_000,
+                moving_avg_long=500_000_000,
+            ),
+        )
+
+    detect_trends.return_value = get_trends()
+    with freeze_time(timestamp), override_options({"statistical_detectors.enable": True}):
+        detect_function_trends([project.id], timestamp.isoformat())
+
+    expected_enqueue_calls = [mock.call([(project.id, "123", timestamp + timedelta(hours=12))])] * (
+        not expected_active and trend_type == TrendType.Regressed
+    )
+    assert change_point_queue.return_value.enqueue_many.call_args_list == expected_enqueue_calls
+    original_group.refresh_from_db()
+    assert original_group.active == expected_active
+    assert original_group.version == 1
+    assert RegressionGroup.objects.filter(project_id=project.id).count() == 1
+    produce_occurrence_to_kafka.assert_not_called()
+
+
+@pytest.mark.parametrize("batch_size", [1, 2, 100])
+@django_db_all
+def test_filter_escalating_groups_missing_issues_in_batches(batch_size, project, timestamp):
+    detector_cls = FunctionRegressionDetector
+    bundles = []
+    groups = []
+    ages = [
+        MISSING_ISSUE_GROUP_GRACE_PERIOD + timedelta(hours=1),
+        timedelta(0),
+        MISSING_ISSUE_GROUP_GRACE_PERIOD,
+    ]
+    for index, age in enumerate(ages):
+        group = RegressionGroup(
+            type=detector_cls.regression_type.value,
+            date_regressed=timestamp - timedelta(days=2),
+            version=1,
+            active=True,
+            project_id=project.id,
+            fingerprint=generate_fingerprint(detector_cls.regression_type, index),
+            baseline=100_000_000,
+            regressed=300_000_000,
+        )
+        with freeze_time(timestamp - age):
+            RegressionGroup.objects.bulk_create([group])
+        groups.append(group)
+        bundles.append(
+            TrendBundle(
+                type=TrendType.Unchanged,
+                score=1,
+                payload=DetectorPayload(
+                    project_id=project.id,
+                    group=index,
+                    fingerprint="",
+                    count=100,
+                    value=500_000_000,
+                    timestamp=timestamp - timedelta(hours=1),
+                ),
+                regression_group=group,
+            )
+        )
+
+    with freeze_time(timestamp):
+        assert list(detector_cls._filter_escalating_groups(bundles, batch_size=batch_size)) == [
+            (bundles[0], False),
+            (bundles[2], False),
+        ]
+
+    for group in groups:
+        group.refresh_from_db()
+    assert [group.active for group in groups] == [False, True, False]
+    assert RegressionGroup.objects.filter(project_id=project.id).count() == 3
 
 
 @pytest.mark.parametrize(
@@ -1348,6 +1624,209 @@ def test_redirect_escalations(
             ).first()
             is None
         )
+
+
+@override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+class EmitFunctionRegressionOccurrencesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.now = datetime(2023, 8, 1, 12, tzinfo=UTC)
+        self.broker = LocalBroker(MemoryMessageStorage[KafkaPayload]())
+        self.topic = ArroyoTopic(get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"])
+        self.broker.create_topic(self.topic, partitions=1)
+        producer_patch = mock.patch(
+            "sentry.issues.producer._occurrence_producer", self.broker.get_producer()
+        )
+        producer_patch.start()
+        self.addCleanup(producer_patch.stop)
+        query_patch = mock.patch("sentry.tasks.statistical_detectors.functions.query")
+        self.query = query_patch.start()
+        self.addCleanup(query_patch.stop)
+        self.query.return_value = {
+            "data": [
+                {
+                    "project.id": self.project.id,
+                    "fingerprint": 1176630088,
+                    "all_examples()": [{"profile_id": "a" * 32}],
+                }
+            ]
+        }
+        vroom_patch = mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
+        self.vroom = vroom_patch.start()
+        self.addCleanup(vroom_patch.stop)
+        self.payload = {
+            "culprit": "work",
+            "detection_time": "2023-08-01T12:00:00.123456789Z",
+            "event": {
+                "debug_meta": {},
+                "event_id": "a" * 32,
+                "platform": "node",
+                "project_id": self.project.id,
+                "received": "2023-08-01T12:00:00.123456789Z",
+                "stacktrace": {"frames": None},
+                "tags": {},
+                "timestamp": "2023-08-01T12:00:00.123456789Z",
+            },
+            "evidence_data": {
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "file": "",
+                "fingerprint": 1176630088,
+                "function": "work",
+                "module": "",
+                "package": "",
+                "path": "",
+                "symbol": "",
+                "absolute_percentage_change": 1,
+                "aggregate_range_1": 100_000_000,
+                "aggregate_range_2": 200_000_000,
+                "breakpoint": 1690804800,
+                "trend_difference": 100_000_000,
+                "trend_percentage": 2,
+                "unweighted_p_value": 0.01,
+                "unweighted_t_value": 1.23,
+            },
+            "evidence_display": [
+                {
+                    "name": "Regression",
+                    "value": "work duration increased from 100ms to 200ms (P95).",
+                    "important": True,
+                },
+                {"name": "Breakpoint", "value": "1690804800", "important": False},
+                {"name": "Fully qualified name", "value": "work", "important": False},
+            ],
+            "fingerprint": ["4621f348"],
+            "id": "b" * 32,
+            "issue_title": "Function Regression",
+            "level": "info",
+            "payload_type": "occurrence",
+            "project_id": self.project.id,
+            "subtitle": "Duration increased from 100ms to 200ms (P95).",
+            "type": 2011,
+        }
+        self.vroom.return_value = HTTPResponse(
+            status=200,
+            body=orjson.dumps(
+                {"occurrences": 1, "emitted": [], "occurrence_payloads": [self.payload]}
+            ),
+        )
+
+    def regression(self, project: Project) -> BreakpointData:
+        return {
+            "project": str(project.id),
+            "transaction": "1176630088",
+            "aggregate_range_1": 100_000_000,
+            "aggregate_range_2": 200_000_000,
+            "unweighted_t_value": 1.23,
+            "unweighted_p_value": 0.01,
+            "trend_percentage": 2,
+            "absolute_percentage_change": 1,
+            "trend_difference": 100_000_000,
+            "breakpoint": 1690804800,
+        }
+
+    def emit(self) -> tuple[int, int]:
+        return emit_function_regression_issue(
+            {self.project.id: self.project}, [self.regression(self.project)], self.now
+        )
+
+    def test_enabled_payload_compatibility(self) -> None:
+        with self.feature("organizations:profiling-sentry-regression-occurrences"):
+            assert self.emit() == (0, 1)
+        assert self.vroom.call_args.kwargs["path"] == "/regressed?produce=false"
+        message = self.broker.consume(Partition(self.topic, 0), 0)
+        assert message is not None
+        payload = orjson.loads(message.payload.value)
+        assert message.payload.key == f"4621f348-{self.project.id}".encode()
+        assert payload["event_id"] == self.payload["event"]["event_id"]
+        assert payload["resource_id"] is None
+        assert payload["type"] == ProfileFunctionRegressionType.type_id
+        assert (
+            payload["detection_time"]
+            == datetime(2023, 8, 1, 12, 0, 0, 123456, tzinfo=UTC).timestamp()
+        )
+        assert payload["evidence_data"] == self.payload["evidence_data"]
+        assert payload["evidence_display"] == self.payload["evidence_display"]
+        assert payload["fingerprint"] == self.payload["fingerprint"]
+        assert payload["payload_type"] == "occurrence"
+        assert payload["event"].items() >= self.payload["event"].items()
+        original = _get_kwargs(deepcopy(self.payload))
+        produced = _get_kwargs(payload)
+        assert (
+            IssueOccurrence.from_dict(original["occurrence_data"]).to_dict()
+            == IssueOccurrence.from_dict(produced["occurrence_data"]).to_dict()
+        )
+        original["event_data"]["contexts"]["trace"].pop("trace_id")
+        produced["event_data"]["contexts"]["trace"].pop("trace_id")
+        assert original["event_data"] == produced["event_data"]
+        assert self.broker.consume(Partition(self.topic, 0), 1) is None
+
+    def test_disabled(self) -> None:
+        self.vroom.return_value = HTTPResponse(status=200, body=b'{"occurrences":1}')
+        with self.feature({"organizations:profiling-sentry-regression-occurrences": False}):
+            assert self.emit() == (1, 0)
+        assert self.vroom.call_args.kwargs["path"] == "/regressed"
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
+
+    def test_mixed_organizations(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        self.query.return_value["data"].append(
+            {
+                "project.id": other_project.id,
+                "fingerprint": 1176630088,
+                "all_examples()": [{"profile_id": "c" * 32}],
+            }
+        )
+        self.vroom.side_effect = [
+            self.vroom.return_value,
+            HTTPResponse(status=200, body=b'{"occurrences":1}'),
+        ]
+        with self.feature(
+            {"organizations:profiling-sentry-regression-occurrences": [self.organization.slug]}
+        ):
+            assert emit_function_regression_issue(
+                {self.project.id: self.project, other_project.id: other_project},
+                [self.regression(self.project), self.regression(other_project)],
+                self.now,
+            ) == (1, 1)
+        assert self.vroom.call_count == 2
+        inline, legacy = self.vroom.call_args_list
+        assert inline.kwargs["path"] == "/regressed?produce=false"
+        assert [p["project_id"] for p in inline.kwargs["json_data"]] == [self.project.id]
+        assert legacy.kwargs["path"] == "/regressed"
+        assert [p["project_id"] for p in legacy.kwargs["json_data"]] == [other_project.id]
+        assert self.broker.consume(Partition(self.topic, 0), 0) is not None
+        assert self.broker.consume(Partition(self.topic, 0), 1) is None
+
+    def test_empty_response(self) -> None:
+        self.vroom.return_value = HTTPResponse(
+            status=200, body=b'{"occurrences":0,"emitted":[],"occurrence_payloads":[]}'
+        )
+        with self.feature("organizations:profiling-sentry-regression-occurrences"):
+            assert self.emit() == (0, 0)
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
+
+    def test_no_examples(self) -> None:
+        self.query.return_value = {"data": []}
+        assert self.emit() == (0, 0)
+        self.vroom.assert_not_called()
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
+
+    def test_failed_response(self) -> None:
+        self.vroom.return_value = HTTPResponse(status=500)
+        with self.feature("organizations:profiling-sentry-regression-occurrences"):
+            assert self.emit() == (0, 0)
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
+
+    def test_missing_payloads_does_not_fall_back(self) -> None:
+        self.vroom.return_value = HTTPResponse(status=200, body=b'{"occurrences":1}')
+        with (
+            self.feature("organizations:profiling-sentry-regression-occurrences"),
+            pytest.raises(KeyError, match="occurrence_payloads"),
+        ):
+            self.emit()
+        assert self.vroom.call_count == 1
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
 
 
 class FunctionsTasksTest(ProfilesSnubaTestCase):

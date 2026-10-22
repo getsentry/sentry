@@ -67,7 +67,7 @@ import {
   investigationOrchestrationQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
+import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/block';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
@@ -831,6 +831,7 @@ function getInvestigationStatusBlock(
     // automatically"), so only the stopped states, whose descriptions explain
     // what happened, carry it here.
     description: runStatus.variant === 'running' ? undefined : runStatus.description,
+    toolActivity: runStatus.toolActivity,
   };
 }
 

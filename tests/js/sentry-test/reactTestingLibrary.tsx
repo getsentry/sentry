@@ -185,7 +185,7 @@ function createRoutesFromConfig(
   children: React.ReactNode,
   config: RouterConfig | undefined
 ): RouteObject[] {
-  // By default react-router 6 catches exceptions and displays the stack
+  // By default React Router catches exceptions and displays the stack
   // trace. For tests we want them to bubble out
   function ErrorBoundary(): React.ReactNode {
     throw useRouteError();
@@ -247,10 +247,6 @@ function makeRouter({
     : childRoutes;
 
   const router = UNSAFE_createRouter({
-    future: {
-      v7_prependBasename: true,
-      v7_relativeSplatPath: true,
-    },
     history,
     routes,
   }).initialize();
@@ -371,10 +367,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  const renderResult = rtl.render(
-    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
-    options
-  );
+  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -384,11 +377,11 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(
-      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
-    );
+    renderResult.rerender(<RouterProvider router={newRouter} />);
     // Force the router to update children
-    rtl.act(() => newRouter.revalidate());
+    rtl.act(() => {
+      newRouter.revalidate();
+    });
   };
 
   const testRouter = new TestRouter(memoryRouter);
@@ -427,7 +420,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
+    return <RouterProvider router={memoryRouter} />;
   }
 
   const {initialProps, ...rest} = options;

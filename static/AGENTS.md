@@ -18,7 +18,9 @@
 - `rsbuild.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `oxlint.config.ts`: Oxlint configuration
+- `oxlint.base.ts`: Shared Oxlint rules used by root and package configs
 - `stylelint.config.js`: CSS/styling linting
+- `stylelint.base.js`: Shared Stylelint rules used by root and package configs
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
 - **Stores**: `static/app/stores/{store}Store.tsx`
@@ -29,14 +31,12 @@
 
 ### Routing
 
-- Routes defined in `static/app/routes.tsx`
-- The app still runs React Router V6; follow V6 routing patterns and behavior.
-- Use V8 import paths: import router APIs and types from `react-router`, and
-  `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
-  runtime through `static/app/utils/reactRouterV6`.
-- Only the compatibility modules may import `react-router-dom` or
-  `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
-  Nuqs adapters and Sentry tracing integrations remain V6.
+- Routes defined in `static/app/router/routes.tsx`
+- Builds, tests, and typechecks use React Router V8.
+- Import router APIs and types from `react-router`, and `RouterProvider` from
+  `react-router/dom`. Use the Nuqs adapter from `nuqs/adapters/react-router/v8`.
+- Keep using Sentry's routing helpers where required. Use Sentry's
+  `reactRouterBrowserTracingIntegration` and `wrapCreateBrowserRouter`.
 - Lazy load route components when possible
 
 ### Frontend API Calls
@@ -51,6 +51,14 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 4. ALWAYS use TypeScript
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
+
+`Menu` from `@sentry/scraps/menu` is an internal presentation primitive for shared controls. In product UI, use `DropdownMenu` for actions, `CompactSelect` for choices, or the form system's `field.Select` for form fields. Use `Menu` directly only when implementing those shared controls.
+
+## Linting
+
+Icons and Scraps own their lint configs and run native Oxlint and Stylelint. Root lint commands and prek route selected files to their owning packages. For file-scoped CSS checks, the root invokes Stylelint directly in each package to avoid its full-scan glob. Use `pnpm run lint:suppressions` at the root for suppression maintenance across all workspaces.
+
+Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. Each workspace's `oxlint-suppressions.json` uses project-relative paths and caps existing debt per file and rule. Missing or empty files mean empty budgets. Successful fixes lower counts automatically. Run `pnpm run lint:suppressions --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
 
 ## Refs
 
@@ -89,7 +97,8 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 - **Layout**: use `Flex`, `Grid`, `Stack`, `Container` — never styled `display: flex/grid`.
 - **Typography**: use `Text` and `Heading` — never raw `<p>`, `<span>`, `<div>`, or `<h1>`–`<h6>`.
 - Prefer component props over the `style` attribute; use `gap`/padding over `margin`.
-- Use responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries.
+- Use container responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries. Do not add viewport `screen:` keys; preserve existing viewport behavior with a lint suppression when a container query would change it.
+- Do not add layout `@media` or `@container` queries to Emotion styles, including tests. Use responsive primitive props. `@media` is allowed for modal sizing in `modalCss`, viewport sizing or placement in the core drawer shell, and non-layout features such as reduced motion, hover, pointer, and color scheme.
 - Split layout from typography — compose `Flex`/`Grid` with `Text`/`Heading`; don't couple them in one styled component.
 - Prefer `InfoTip`/`InfoText` over a raw `Tooltip`.
 - Add `*.stories.mdx` stories for new components.

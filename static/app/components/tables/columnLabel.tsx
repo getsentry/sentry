@@ -15,6 +15,7 @@ interface ColumnLabelProps {
   tooltip?: ReactNode;
 }
 
+// oxlint-disable-next-line react/todo
 export function ColumnLabel({align, column, tooltip = column.tooltip}: ColumnLabelProps) {
   const label = tooltip ? (
     <LabelTooltip showUnderline title={tooltip}>

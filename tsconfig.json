@@ -20,18 +20,11 @@
     "strictBindCallApply": false,
 
     "paths": {
-      "react-router": ["./static/app/utils/reactRouterV6/types.d.ts"],
-      "react-router/dom": ["./static/app/utils/reactRouterV6/dom.ts"],
-      "@sentry/scraps/text": ["./static/app/components/core/text/index.tsx"],
-      "@sentry/scraps": ["./static/packages/scraps/src/index.ts"],
       // The app falls back to core components until they move into scraps.
       "@sentry/scraps/*": [
         "./static/packages/scraps/src/*",
         "./static/app/components/core/*"
       ],
-      "sentry-fixture/*": ["./tests/js/fixtures/*"],
-      "sentry-test/*": ["./tests/js/sentry-test/*"],
-      "getsentry-test/*": ["./tests/js/getsentry-test/*"],
       "sentry-images/*": ["./static/images/*"],
       "sentry-locale/*": ["./src/sentry/locale/*"],
       "sentry-logos/*": ["./src/sentry/static/sentry/images/logos/*"],
@@ -51,6 +44,7 @@
   ],
   "exclude": [
     "./node_modules",
+    "**/*.figma.tsx",
     "static/app/serviceWorker/worker",
     // Referenced packages are checked separately and consumed as declarations.
     "static/packages"
