@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
@@ -16,6 +16,60 @@ import type {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {isSessionPercentageOperation} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
+import {
+  createPercentThresholdBandSeries,
+  createStaticThresholdBandSeries,
+  getThresholdBands,
+  type ThresholdBand,
+} from 'sentry/views/detectors/utils/thresholdBands';
+
+function getThresholdColor(theme: Theme, priority: DetectorPriorityLevel) {
+  return priority === DetectorPriorityLevel.HIGH
+    ? theme.colors.red400
+    : theme.colors.yellow400;
+}
+
+function sortThresholdsBySeverity<Threshold extends {priority: DetectorPriorityLevel}>(
+  thresholds: Threshold[]
+): Threshold[] {
+  return thresholds.toSorted((a, b) => a.priority - b.priority);
+}
+
+/**
+ * Thresholds must be ordered from least to most severe. Without a resolution,
+ * the OK band ends at the least severe threshold.
+ */
+function createPriorityThresholdBands<Bound>({
+  resolution,
+  theme,
+  thresholds,
+}: {
+  theme: Theme;
+  thresholds: Array<{
+    bound: Bound;
+    priority: DetectorPriorityLevel;
+    type: DataConditionType;
+  }>;
+  resolution?: Bound;
+}): Array<ThresholdBand<Bound>> {
+  const [leastSevereThreshold] = thresholds;
+
+  if (!leastSevereThreshold) {
+    return [];
+  }
+
+  return getThresholdBands({
+    alertBoundaries: thresholds.map(threshold => ({
+      bound: threshold.bound,
+      color: getThresholdColor(theme, threshold.priority),
+    })),
+    isAbove: leastSevereThreshold.type === DataConditionType.GREATER,
+    okBoundary: {
+      bound: resolution ?? leastSevereThreshold.bound,
+      color: theme.colors.green400,
+    },
+  });
+}
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return markLine({
@@ -185,24 +239,26 @@ export function useMetricDetectorThresholdSeries({
         return {maxValue: undefined, additionalSeries: additional};
       }
 
-      const percentThresholdSeries = thresholds.map(threshold => {
+      const thresholdLines = sortThresholdsBySeverity(thresholds).map(threshold => {
         const isAbove = threshold.type === DataConditionType.GREATER;
-        const lineColor =
-          threshold.priority === DetectorPriorityLevel.HIGH
-            ? theme.colors.red400
-            : theme.colors.yellow400;
-
         const seriesName = `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`;
 
-        const series = createPercentThresholdSeries(
-          comparisonSeries,
-          threshold.value,
-          isAbove,
-          seriesName
-        );
+        return {
+          ...threshold,
+          series: createPercentThresholdSeries(
+            comparisonSeries,
+            threshold.value,
+            isAbove,
+            seriesName
+          ),
+        };
+      });
+
+      const percentThresholdSeries = thresholdLines.map(({priority, series}) => {
+        const lineColor = getThresholdColor(theme, priority);
 
         return createLineSeries({
-          name: seriesName,
+          name: series.seriesName,
           data: series.data.map(({name, value}) => [name, value]),
           lineStyle: {
             color: lineColor,
@@ -217,19 +273,22 @@ export function useMetricDetectorThresholdSeries({
         });
       });
 
-      additional.push(...percentThresholdSeries);
+      const percentThresholdBands = createPriorityThresholdBands({
+        theme,
+        thresholds: thresholdLines.map(line => ({...line, bound: line.series.data})),
+      });
+
+      additional.push(
+        ...percentThresholdSeries,
+        ...percentThresholdBands.flatMap((band, index) =>
+          createPercentThresholdBandSeries(band, `percent-threshold-band-${index}`)
+        )
+      );
 
       // Calculate maxValue from threshold data points (similar to static thresholds)
-      const thresholdValues = thresholds.flatMap(threshold => {
-        const isAbove = threshold.type === DataConditionType.GREATER;
-        const series = createPercentThresholdSeries(
-          comparisonSeries,
-          threshold.value,
-          isAbove,
-          `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`
-        );
-        return series.data.map(point => point.value);
-      });
+      const thresholdValues = thresholdLines.flatMap(({series}) =>
+        series.data.map(point => point.value)
+      );
 
       const maxValue =
         thresholdValues.length > 0 ? Math.max(...thresholdValues) : undefined;
@@ -239,10 +298,7 @@ export function useMetricDetectorThresholdSeries({
     if (detectionType === 'static') {
       // For static detection, use traditional horizontal threshold lines
       const thresholdSeries = thresholds.map((threshold): LineSeriesOption => {
-        const lineColor =
-          threshold.priority === DetectorPriorityLevel.HIGH
-            ? theme.colors.red400
-            : theme.colors.yellow400;
+        const lineColor = getThresholdColor(theme, threshold.priority);
         // Thresholds are normalized to correct scale via normalizePercentageThreshold()
         const displayThreshold = threshold.value;
 
@@ -268,6 +324,17 @@ export function useMetricDetectorThresholdSeries({
         };
         additional.push(resolutionSeries);
       }
+
+      const staticThresholdBands = createPriorityThresholdBands({
+        theme,
+        thresholds: sortThresholdsBySeverity(thresholds).map(threshold => ({
+          ...threshold,
+          bound: threshold.value,
+        })),
+        resolution: resolution?.value,
+      });
+
+      additional.push(...staticThresholdBands.map(createStaticThresholdBandSeries));
 
       const valuesForMax = [
         ...thresholds.map(threshold => threshold.value),
