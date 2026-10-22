@@ -15,6 +15,35 @@ describe('getHighlightedSpanAttributes', () => {
     jest.clearAllMocks();
   });
 
+  it('keeps MCP metadata when a tool also has a Gen AI operation type', () => {
+    expect(
+      getHighlightedSpanAttributes({
+        op: 'mcp.server',
+        spanId: 'span-id',
+        attributes: {
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': 'example',
+          'mcp.transport': 'CustomHTTPTransport',
+          'network.transport': 'tcp',
+        },
+      })
+    ).toEqual([
+      {name: 'Tool Name', value: 'example'},
+      {name: 'MCP Transport', value: 'CustomHTTPTransport'},
+      {name: 'Transport', value: 'tcp'},
+    ]);
+  });
+
+  it('shows the MCP transport when its network transport is unknown', () => {
+    expect(
+      getHighlightedSpanAttributes({
+        op: 'mcp.server',
+        spanId: 'span-id',
+        attributes: {'mcp.transport': 'CustomTransport'},
+      })
+    ).toEqual([{name: 'MCP Transport', value: 'CustomTransport'}]);
+  });
+
   it('should emit Sentry error when gen_ai span with auto.ai origin is missing required attributes', () => {
     const attributes = {
       'gen_ai.origin': 'auto.ai.openai',
