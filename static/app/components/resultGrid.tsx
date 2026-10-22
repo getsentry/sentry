@@ -1082,7 +1082,11 @@ export function ResultGrid({
         ? 'minmax(min-content, auto)'
         : 'minmax(min-content, max-content)',
   }));
-  const GridTable = inPanel === true && !panelTitle ? BorderlessTable : FlushTable;
+  const GridTable = inPanel
+    ? inPanel === true && !panelTitle
+      ? PanelTable
+      : PanelBodyTable
+    : FlushTable;
 
   const resultTable = (
     <Container position="relative">
@@ -1309,15 +1313,26 @@ export function ResultGrid({
   );
 }
 
-const BorderlessTable = styled(SimpleTable)`
+const PanelTable = styled(SimpleTable)`
   border: none;
-  border-radius: 0;
+  border-radius: calc(${p => p.theme.radius.md} - 1px);
+
+  > tbody > tr {
+    align-items: start;
+  }
 `;
 
-const FlushTable = styled(BorderlessTable)`
+const PanelBodyTable = styled(PanelTable)`
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+
   > thead > tr {
     border-radius: 0;
   }
+`;
+
+const FlushTable = styled(PanelBodyTable)`
+  border-radius: 0;
 `;
 
 const indeterminateSlide = keyframes`
