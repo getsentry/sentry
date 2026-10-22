@@ -9,11 +9,14 @@ from typing import Any
 
 import click
 import taskbroker_client.constants as taskworker_constants
+import watchfiles
 from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
+import sentry
 from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
+from sentry.runner.settings import discover_configs
 from sentry.utils.kafka import run_processor_with_signals
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
@@ -229,14 +232,38 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=None,
     type=int,
 )
+@click.option(
+    "--autoreload",
+    is_flag=True,
+    default=False,
+    help="Restart the worker when Python files change. For local development only.",
+)
 @log_options()
 @configuration
-def taskworker(**options: Any) -> None:
+def taskworker(autoreload: bool, **options: Any) -> None:
     """
     Run a taskworker worker
     """
     os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
-    # TODO(mark) restore autoreload
+    if autoreload:
+        # The worker registers signal handlers, so it must own the main thread of
+        # its own process. watchfiles restarts that process with SIGINT on change.
+        watchfiles.run_process(
+            os.path.dirname(sentry.__file__),
+            discover_configs()[0],
+            target=_run_reloaded_taskworker,
+            kwargs=options,
+            watch_filter=watchfiles.PythonFilter(),
+        )
+    else:
+        run_taskworker(**options)
+
+
+def _run_reloaded_taskworker(**options: Any) -> None:
+    # Runs in a fresh spawned process, which has to configure Sentry again.
+    from sentry.runner import configure
+
+    configure()
     run_taskworker(**options)
 
 
