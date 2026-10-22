@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useId, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -254,18 +254,21 @@ function waitToSettle(pick: {settled: boolean; timeout: number}) {
  */
 export function InvestigationOutline({entries}: {entries: InvestigationOutlineEntry[]}) {
   const [activeKey, pickEntry] = useActiveEntry(entries);
+  const titleId = useId();
 
   return (
     <Stack
       as="nav"
-      aria-label={t('On this page')}
+      aria-labelledby={titleId}
       gap="md"
       position="sticky"
       top={`calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + ${OFFSET_BELOW_TOP_BAR}px)`}
       maxHeight={`calc(100vh - var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) - ${OFFSET_BELOW_TOP_BAR * 2}px)`}
       overflowY="auto"
     >
-      <Text bold>{t('On this page')}</Text>
+      <OutlineTitle id={titleId} size="xs" variant="muted" bold uppercase>
+        {t('Investigation')}
+      </OutlineTitle>
       <OutlineList>
         {entries.map(entry => (
           <li key={entry.key}>
@@ -313,18 +316,29 @@ function OutlineEntryLink({
         }
       }}
     >
-      <OutlineLabel ref={labelRef} variant={isActive ? 'accent' : 'muted'}>
+      <OutlineLabel
+        ref={labelRef}
+        variant={isActive ? 'accent' : 'muted'}
+        bold={isActive}
+        density="comfortable"
+      >
         {entry.label}
       </OutlineLabel>
     </OutlineLink>
   );
 }
 
+/** Lines up with the entries' text, inside the rail. */
+const OutlineTitle = styled(Text)`
+  padding-left: calc(${p => p.theme.space.lg} + 1px);
+  letter-spacing: 0.06em;
+`;
+
 const OutlineList = styled('ul')`
   list-style: none;
   margin: 0;
   padding: 0;
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
+  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 /** Long headings stop at two lines. */
@@ -340,8 +354,8 @@ const OutlineLink = styled('a')<{nested: boolean}>`
   display: block;
   /* Overlaps the list's border, so the current entry's marker stands in for it. */
   margin-left: -1px;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  padding-left: ${p => (p.nested ? p.theme.space['2xl'] : p.theme.space.md)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+  padding-left: ${p => (p.nested ? p.theme.space['2xl'] : p.theme.space.lg)};
   border-left: 2px solid transparent;
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
 
@@ -351,5 +365,11 @@ const OutlineLink = styled('a')<{nested: boolean}>`
 
   &[aria-current] {
     border-left-color: ${p => p.theme.tokens.graphics.accent.vibrant};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
+
+    &:hover {
+      background: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
   }
 `;
