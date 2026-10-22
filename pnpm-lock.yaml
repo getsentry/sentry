@@ -279,8 +279,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0(@rspack/core@2.2.8(@swc/helpers@0.5.23))(less@4.9.1(supports-color@8.1.1))
       peggy:
-        specifier: 5.0.6
-        version: 5.0.6
+        specifier: 5.1.1
+        version: 5.1.1
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -333,6 +333,9 @@ importers:
       '@mdx-js/mdx':
         specifier: 3.1.1
         version: 3.1.1(supports-color@8.1.1)
+      '@sentry/decision-model-linter':
+        specifier: 0.2.0
+        version: 0.2.0
       '@tanstack/eslint-plugin-query':
         specifier: 5.101.4
         version: 5.101.4(@typescript/typescript6@6.0.2)(eslint@10.8.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
@@ -756,8 +759,8 @@ importers:
         specifier: ^5.3.2
         version: 5.3.2
       peggy:
-        specifier: 5.0.6
-        version: 5.0.6
+        specifier: 5.1.1
+        version: 5.1.1
       platformicons:
         specifier: ^9.10.0
         version: 9.10.0(react@19.3.0)
@@ -1124,6 +1127,12 @@ importers:
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
         version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0))
+      '@rsbuild/plugin-react':
+        specifier: 2.1.1
+        version: 2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))
+      '@rslib/core':
+        specifier: 1.0.3
+        version: 1.0.3(@typescript/typescript6@6.0.2)(core-js@3.45.0)
       '@swc/core':
         specifier: 1.16.13
         version: 1.16.13(@swc/helpers@0.5.23)
@@ -1462,8 +1471,8 @@ importers:
         specifier: 2.10.2
         version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
       peggy:
-        specifier: 5.0.6
-        version: 5.0.6
+        specifier: 5.1.1
+        version: 5.1.1
       playwright:
         specifier: ^1.61.1
         version: 1.61.1
@@ -3561,9 +3570,9 @@ packages:
     resolution: {integrity: sha512-C2Xj8FZ0uHWeCXXqX5B4/gVFQmtSkiuOolzAgutjTfseNOHT3pUjljDZsTSxXFGgio54bCzVFqmEOUrIVk8RDA==}
     engines: {node: '>=20.0.0'}
 
-  '@peggyjs/from-mem@3.1.1':
-    resolution: {integrity: sha512-m5OEjgJaePWpyNtQCvRZkpLoV+z44eh6QIO9yEwQuOThdUdkECO3wcKLT3tFA3H8WM5bxU/K/dpmo7r/X16UEw==}
-    engines: {node: '>=20.8'}
+  '@peggyjs/from-mem@4.0.0':
+    resolution: {integrity: sha512-JrTyhN5Vo2K3Ktz+bTTpt7ueL6PRG/11xhW7BdSK2TaJIbxSJpRk10TLn+4eBPQUCtrkQeYAg0MlVrc9QZMFEg==}
+    engines: {node: '>=22'}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -4052,6 +4061,11 @@ packages:
   '@sentry/core@11.7.0':
     resolution: {integrity: sha512-jhnI/RHpZoe32ouzbdcR2K42bzVuSfCl8SlOe0VcDxrU/KtNi99hFzjrRBDnft9ozpa4I7xjoN+s+8xihVKtww==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0'}
+
+  '@sentry/decision-model-linter@0.2.0':
+    resolution: {integrity: sha512-z7ywhtYPZcQ2tJZQ0GXjIb4mroRODyDLd+JvI4km/Ziyd3Ry9xkHhG0isVDS/XyFrYY8BsLI3Yehs8H3FNgZQA==}
+    engines: {node: '>=24'}
+    hasBin: true
 
   '@sentry/feedback@11.7.0':
     resolution: {integrity: sha512-DHnYyAZAh5ytm8gwrCaYq71/7cojGJrjH9w24yMsIcEY+6B01JT0AS2KyseMWh6jeeuPKFWD7FgPnS92Z8Nepw==}
@@ -7881,9 +7895,9 @@ packages:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
 
-  peggy@5.0.6:
-    resolution: {integrity: sha512-Sud8Zus0JAgE+U4zwkJv29OOaXhviFI7J90/6cGfy3OoqR8dpnieeF9a46dj0bTtqiFnrFatldA6ltQyOJvNmg==}
-    engines: {node: '>=20'}
+  peggy@5.1.1:
+    resolution: {integrity: sha512-HhhbwH1MoCq9YNqeC2n1ap6YzLSL1YUgUxGoeiXcmGOlAYTqxwmifPJ7gFZtkR/S2+KXZ6BkJ5FfycTtq9oCRQ==}
+    engines: {node: '>=22'}
     hasBin: true
 
   picocolors@1.1.1:
@@ -8447,11 +8461,6 @@ packages:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
 
-  semver@7.7.2:
-    resolution: {integrity: sha512-RF0Fw+rO5AMf9MAyaRXI4AV0Ulj5lMHqVxxdSgiVbixSCXoEmmX/jk0CuJw4+3SqroYO9VoUh+HcuJivvtJemA==}
-    engines: {node: '>=10'}
-    hasBin: true
-
   semver@7.8.5:
     resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
@@ -8606,8 +8615,8 @@ packages:
       '@types/react':
         optional: true
 
-  source-map-generator@2.0.2:
-    resolution: {integrity: sha512-unCl5BQhF/us51DiT7SvlSY3QUPhyfAdHJxd8l7FXdwzqxli0UDMV2dEuei2SeGp3Z4rB/AJ9zKi1mGOp2K2ww==}
+  source-map-generator@2.0.7:
+    resolution: {integrity: sha512-DJBSmVt7U50+Z+MihfPJKhrbAAC0VHriNQlufDfgaikQfAmPck05rjJ9BO2LXTabA6644umhFm2+XZ8aRZxTkQ==}
     engines: {node: '>=20'}
 
   source-map-js@1.2.2:
@@ -11161,9 +11170,9 @@ snapshots:
       tslib: 2.8.1
       tsyringe: 4.10.0
 
-  '@peggyjs/from-mem@3.1.1':
+  '@peggyjs/from-mem@4.0.0':
     dependencies:
-      semver: 7.7.2
+      semver: 7.8.5
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -11655,6 +11664,8 @@ snapshots:
   '@sentry/core@11.7.0':
     dependencies:
       '@sentry/conventions': 0.27.0
+
+  '@sentry/decision-model-linter@0.2.0': {}
 
   '@sentry/feedback@11.7.0':
     dependencies:
@@ -16285,11 +16296,11 @@ snapshots:
 
   path-type@4.0.0: {}
 
-  peggy@5.0.6:
+  peggy@5.1.1:
     dependencies:
-      '@peggyjs/from-mem': 3.1.1
+      '@peggyjs/from-mem': 4.0.0
       commander: 14.0.3
-      source-map-generator: 2.0.2
+      source-map-generator: 2.0.7
 
   picocolors@1.1.1: {}
 
@@ -16955,8 +16966,6 @@ snapshots:
 
   semver@6.3.1: {}
 
-  semver@7.7.2: {}
-
   semver@7.8.5: {}
 
   sentry@0.45.0: {}
@@ -17108,7 +17117,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  source-map-generator@2.0.2: {}
+  source-map-generator@2.0.7: {}
 
   source-map-js@1.2.2: {}
 

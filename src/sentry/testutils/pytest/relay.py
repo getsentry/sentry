@@ -160,12 +160,11 @@ def relay_server_setup(live_server, tmpdir_factory):
 
 
 @pytest.fixture(scope="function")
-def relay_server(relay_server_setup, settings):
+def relay_server(relay_server_setup):
     # Imported lazily: this module is loaded as a pytest plugin before Django is set up,
     # and override_options pulls in app code that requires configured settings.
     from sentry.testutils.helpers.options import override_options
 
-    adjust_settings_for_relay_tests(settings)
     options = relay_server_setup["options"]
 
     # `relay.endpoint-fetch-config.enabled` (default True since #114947) makes Relay's
@@ -176,7 +175,10 @@ def relay_server(relay_server_setup, settings):
     # so turn it off.
     # It is served to the test Relay via the upstream global config, hence the override
     # must wrap Relay startup.
-    with override_options({"relay.endpoint-fetch-config.enabled": False}):
+    with (
+        relay_test_settings(),
+        override_options({"relay.endpoint-fetch-config.enabled": False}),
+    ):
         # Keep the docker client open through the readiness wait so the error paths
         # below can still fetch `container.logs()` for diagnostics.
         with get_docker_client() as docker_client:
@@ -224,31 +226,32 @@ def relay_server(relay_server_setup, settings):
         yield {"url": relay_server_setup["url"]}
 
 
-def adjust_settings_for_relay_tests(settings):
+def relay_test_settings():
     """
-    Adjusts the application settings to accept calls from a Relay instance running inside a
-    docker container.
+    Settings that let a Relay instance running inside a docker container call the app.
+    """
+    from django.test import override_settings
 
-    :param settings: the app settings
-    """
-    settings.ALLOWED_HOSTS = [
-        "localhost",
-        "testserver",
-        "host.docker.internal",
-        "0.0.0.0",
-        "127.0.0.1",
-    ]
-    settings.KAFKA_CLUSTERS = {
-        "default": {
-            "common": {"bootstrap.servers": "127.0.0.1:9092"},
-            "producers": {
-                "compression.type": "lz4",
-                "message.max.bytes": 50000000,  # 50MB, default is 1MB
-            },
-        }
-    }
-    settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
-    settings.SENTRY_USE_RELAY = True
+    return override_settings(
+        ALLOWED_HOSTS=[
+            "localhost",
+            "testserver",
+            "host.docker.internal",
+            "0.0.0.0",
+            "127.0.0.1",
+        ],
+        KAFKA_CLUSTERS={
+            "default": {
+                "common": {"bootstrap.servers": "127.0.0.1:9092"},
+                "producers": {
+                    "compression.type": "lz4",
+                    "message.max.bytes": 50000000,  # 50MB, default is 1MB
+                },
+            }
+        },
+        SENTRY_RELAY_WHITELIST_PK=["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"],
+        SENTRY_USE_RELAY=True,
+    )
 
 
 @pytest.fixture
