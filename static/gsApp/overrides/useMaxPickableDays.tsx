@@ -88,10 +88,7 @@ function getMaxPickableDaysBySubscription(
       );
       return {
         maxPickableDays,
-        maxUpgradableDays: Math.max(
-          90, // use 90 as a placeholder, business plans get downsampled retention
-          maxPickableDays
-        ),
+        maxUpgradableDays: maxPickableDays,
         defaultPeriod: '24h',
       };
     }

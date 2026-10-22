@@ -56,7 +56,7 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 30/90 for tracemetrics', () => {
+    it('returns 30/30 for tracemetrics', () => {
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
           dataCategories: [DataCategory.TRACE_METRICS],
@@ -66,7 +66,7 @@ describe('useMaxPickableDays', () => {
       expect(result.current).toEqual({
         defaultPeriod: '24h',
         maxPickableDays: 30,
-        maxUpgradableDays: 90,
+        maxUpgradableDays: 30,
       });
     });
 

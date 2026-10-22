@@ -79,6 +79,19 @@ describe('useMaxPickableDays', () => {
     });
   });
 
+  it('returns 30/30 days for tracemetrics with the explore range flag', () => {
+    const {result} = renderHookWithProviders(
+      () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
+      {organization: OrganizationFixture({features: ['visibility-explore-range-high']})}
+    );
+
+    expect(result.current).toEqual({
+      defaultPeriod: '24h',
+      maxPickableDays: 30,
+      maxUpgradableDays: 30,
+    });
+  });
+
   it('returns 30/30 days for logs', () => {
     const {result} = renderHookWithProviders(() =>
       useMaxPickableDays({
