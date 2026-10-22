@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
@@ -99,103 +98,100 @@ export function DroppedDataDrawer({
           </SegmentedControl>
         </Flex>
       </DrawerHeader>
-      <BandedDrawerBody>
-        {isError ? (
-          <Container padding="xl 2xl">
-            <LoadingError
-              message={t('There was an error loading dropped events.')}
-              onRetry={() => void refetch()}
-            />
-          </Container>
-        ) : isPending ? (
-          <Container padding="xl 2xl">
-            <LoadingIndicator />
-          </Container>
-        ) : scopedDroppedEvents.length === 0 ? (
-          <Container padding="xl 2xl">
-            {hasExpectedDrops ? (
-              <EmptyState
-                title={t('No unexpected drops.')}
-                description={t(
-                  'All events dropped in this time range were expected, like sampling and inbound filters.'
-                )}
-                action={
-                  <Button size="sm" onClick={() => setScope('all')}>
-                    {t('Show all drops')}
-                  </Button>
-                }
-              />
-            ) : (
-              <EmptyState
-                title={t('No dropped or filtered events.')}
-                description={t('Nothing was dropped or filtered in this time range.')}
-              />
-            )}
-          </Container>
-        ) : (
-          <Fragment>
-            <Container background="primary" padding="xl 3xl lg">
-              <DroppedDataChart
-                droppedEvents={scopedDroppedEvents}
-                colors={outcomeColors}
-                hasAskSeer={onAskSeer !== undefined}
-                selection={outcomeSelection}
-                onSelectionChange={nextSelection => {
-                  for (const [outcome, selected] of Object.entries(nextSelection)) {
-                    if (isOutcomeSelected(outcomeSelection, outcome) !== selected) {
-                      trackAnalytics('explore.dropped_data.legend_outcome_toggled', {
-                        organization,
-                        dataset,
-                        outcome,
-                        selected,
-                      });
+      <Stack minHeight={`calc(100% - ${PRIMARY_HEADER_HEIGHT}px)`} padding="0">
+        {props => (
+          <DrawerBody {...props}>
+            {isError ? (
+              <Container padding="xl 2xl">
+                <LoadingError
+                  message={t('There was an error loading dropped events.')}
+                  onRetry={() => void refetch()}
+                />
+              </Container>
+            ) : isPending ? (
+              <Container padding="xl 2xl">
+                <LoadingIndicator />
+              </Container>
+            ) : scopedDroppedEvents.length === 0 ? (
+              <Container padding="xl 2xl">
+                {hasExpectedDrops ? (
+                  <EmptyState
+                    title={t('No unexpected drops.')}
+                    description={t(
+                      'All events dropped in this time range were expected, like sampling and inbound filters.'
+                    )}
+                    action={
+                      <Button size="sm" onClick={() => setScope('all')}>
+                        {t('Show all drops')}
+                      </Button>
                     }
-                  }
-                  setOutcomeSelection(nextSelection);
-                }}
-              />
-            </Container>
-            <Stack flex="1" gap="2xl" background="secondary" padding="2xl xl">
-              {selectedUnintentional.length > 0 && (
-                <Stack gap="xl">
-                  <Container padding="0 xl">
-                    <Heading as="h3" size="xl">
-                      {t('Unexpected Drops')}
-                    </Heading>
-                  </Container>
-                  <DroppedDataOutcomeList
-                    sections={selectedUnintentional}
-                    onAskSeer={onAskSeer}
                   />
-                </Stack>
-              )}
-              {selectedIntentional.length > 0 && (
-                <Stack gap="xl">
-                  <Stack gap="2xl">
-                    <Separator orientation="horizontal" border="primary" />
-                    <Container padding="0 xl">
-                      <Heading as="h3" size="xl">
-                        {t('Expected Drops')}
-                      </Heading>
-                    </Container>
-                  </Stack>
-                  <DroppedDataOutcomeList
-                    sections={selectedIntentional}
-                    onAskSeer={onAskSeer}
+                ) : (
+                  <EmptyState
+                    title={t('No dropped or filtered events.')}
+                    description={t('Nothing was dropped or filtered in this time range.')}
                   />
+                )}
+              </Container>
+            ) : (
+              <Fragment>
+                <Container background="primary" padding="xl 3xl lg">
+                  <DroppedDataChart
+                    droppedEvents={scopedDroppedEvents}
+                    colors={outcomeColors}
+                    hasAskSeer={onAskSeer !== undefined}
+                    selection={outcomeSelection}
+                    onSelectionChange={nextSelection => {
+                      for (const [outcome, selected] of Object.entries(nextSelection)) {
+                        if (isOutcomeSelected(outcomeSelection, outcome) !== selected) {
+                          trackAnalytics('explore.dropped_data.legend_outcome_toggled', {
+                            organization,
+                            dataset,
+                            outcome,
+                            selected,
+                          });
+                        }
+                      }
+                      setOutcomeSelection(nextSelection);
+                    }}
+                  />
+                </Container>
+                <Stack flex="1" gap="2xl" background="secondary" padding="2xl xl">
+                  {selectedUnintentional.length > 0 && (
+                    <Stack gap="xl">
+                      <Container padding="0 xl">
+                        <Heading as="h3" size="xl">
+                          {t('Unexpected Drops')}
+                        </Heading>
+                      </Container>
+                      <DroppedDataOutcomeList
+                        sections={selectedUnintentional}
+                        onAskSeer={onAskSeer}
+                      />
+                    </Stack>
+                  )}
+                  {selectedIntentional.length > 0 && (
+                    <Stack gap="xl">
+                      <Stack gap="2xl">
+                        <Separator orientation="horizontal" border="primary" />
+                        <Container padding="0 xl">
+                          <Heading as="h3" size="xl">
+                            {t('Expected Drops')}
+                          </Heading>
+                        </Container>
+                      </Stack>
+                      <DroppedDataOutcomeList
+                        sections={selectedIntentional}
+                        onAskSeer={onAskSeer}
+                      />
+                    </Stack>
+                  )}
                 </Stack>
-              )}
-            </Stack>
-          </Fragment>
+              </Fragment>
+            )}
+          </DrawerBody>
         )}
-      </BandedDrawerBody>
+      </Stack>
     </Fragment>
   );
 }
-
-const BandedDrawerBody = styled(DrawerBody)`
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100% - ${PRIMARY_HEADER_HEIGHT}px);
-  padding: 0;
-`;
