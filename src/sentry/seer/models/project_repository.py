@@ -22,6 +22,7 @@ class SeerProjectRepository(DefaultFieldsModel):
     )
     branch_name = models.TextField(null=True, blank=True)
     instructions = models.TextField(null=True, blank=True)
+    enabled_autofix = models.BooleanField(db_default=True)
 
     class Meta:
         app_label = "seer"
