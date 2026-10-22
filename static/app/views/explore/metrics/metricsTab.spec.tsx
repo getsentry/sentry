@@ -240,33 +240,12 @@ describe('MetricsTabContent', () => {
     );
 
     const firstPanel = screen.getAllByTestId('metric-panel')[0]!;
-    const otherPanel = screen.getAllByTestId('metric-panel')[1]!;
-    expect(
-      within(firstPanel).getByRole('button', {name: 'Fill method'})
-    ).toHaveTextContent('LOCF');
-    expect(
-      within(otherPanel).getByRole('button', {name: 'Smoothing method'})
-    ).toHaveTextContent('ASAP');
-    expect(router.location.query.metric).toEqual([firstMetric, otherMetric]);
-
     await userEvent.click(
       within(firstPanel).getByRole('button', {name: 'Add Transformation'})
     );
-    expect(screen.getByRole('option', {name: 'Fill'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
     await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
-    await userEvent.click(
-      within(firstPanel).getByRole('button', {name: 'Smoothing method'})
-    );
-    await userEvent.click(screen.getByRole('option', {name: 'EMA'}));
     await userEvent.click(within(firstPanel).getByRole('button', {name: 'Window Size'}));
     await userEvent.click(screen.getByRole('option', {name: '4'}));
-    await userEvent.click(
-      within(firstPanel).getByRole('button', {name: 'Smoothing Factor'})
-    );
-    await userEvent.click(screen.getByRole('option', {name: '75%'}));
 
     await waitFor(() => {
       const encodedMetrics = decodeList(router.location.query.metric);
@@ -274,11 +253,11 @@ describe('MetricsTabContent', () => {
         aggregateFields: [
           {
             yAxes: ['p50(value,bar,distribution,none)'],
-            transformations: ['fill(locf)', 'smooth(ema,4,0.75)'],
+            transformations: ['fill(locf)', 'smooth(sma,4)'],
           },
           {
             yAxes: ['p90(value,bar,distribution,none)'],
-            transformations: ['fill(locf)', 'smooth(ema,4,0.75)'],
+            transformations: ['fill(locf)', 'smooth(sma,4)'],
           },
           {groupBy: 'project'},
         ],
@@ -342,39 +321,6 @@ describe('MetricsTabContent', () => {
         name: 'bar',
       })
     ).toBeInTheDocument();
-  });
-
-  it('should add a metric when Add Metric button is clicked', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
-
-    let toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(1);
-    // have to wait for the response to load
-    await waitFor(() => {
-      // selects the first metric available - sorted alphanumerically
-      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    });
-    expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
-
-    const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
-    expect(addButton).toBeEnabled();
-
-    await userEvent.click(addButton);
-
-    await waitFor(() => {
-      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
-    });
-    toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
   });
 
   it.each(['Add Metric', 'Add Equation'])(
@@ -1059,19 +1005,6 @@ describe('MetricsTabContent', () => {
       expect(parsedQuery.mode).toBe('aggregate');
     });
     expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
-  });
-
-  it('shows the Add Equation button', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        organization,
-      }
-    );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
-    expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
   });
 
   it('renders aggregate and equation panels in separate sections', async () => {

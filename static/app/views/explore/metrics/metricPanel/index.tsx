@@ -22,7 +22,10 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
-import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -126,6 +129,10 @@ export function MetricPanel({
   const setAggregateFields = useSetMetricAggregateFields();
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+  const showTransformationControls =
+    isVisualizeFunction(visualize) &&
+    !isHeatmap &&
+    organization.features.includes('explore-interpolation-and-smoothing');
 
   const [interval, setInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
@@ -295,7 +302,11 @@ export function MetricPanel({
     </Fragment>
   );
 
-  const graphProps = {timeseriesResult, actions, isMetricOptionsEmpty, title};
+  function handleTransformationsChange(transformations: readonly string[]) {
+    setVisualizes(
+      visualizes.map(v => (isVisualizeFunction(v) ? v.replace({transformations}) : v))
+    );
+  }
 
   return (
     <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
@@ -339,36 +350,35 @@ export function MetricPanel({
                           title={title}
                           queryLabel={queryLabel}
                         />
-                      ) : isVisualizeFunction(visualize) &&
-                        !isHeatmap &&
-                        organization.features.includes(
-                          'explore-interpolation-and-smoothing'
-                        ) ? (
-                        <VisualizeTransformations
-                          traceItemDataset={TraceItemDataset.TRACEMETRICS}
-                          transformations={visualize.transformations}
-                          layout="inline"
-                          onChange={transformations =>
-                            setVisualizes(
-                              visualizes.map(v =>
-                                isVisualizeFunction(v) ? v.replace({transformations}) : v
-                              )
-                            )
-                          }
-                        >
-                          {({addTrigger, rows}) => (
-                            <Fragment>
-                              <MetricsGraph {...graphProps} footerActions={addTrigger} />
-                              {rows ? (
-                                <Container padding="xl" paddingTop="0" paddingBottom="md">
-                                  {rows}
-                                </Container>
-                              ) : null}
-                            </Fragment>
-                          )}
-                        </VisualizeTransformations>
                       ) : (
-                        <MetricsGraph {...graphProps} />
+                        <Fragment>
+                          <MetricsGraph
+                            timeseriesResult={timeseriesResult}
+                            actions={actions}
+                            isMetricOptionsEmpty={isMetricOptionsEmpty}
+                            title={title}
+                            footerActions={
+                              showTransformationControls ? (
+                                <AddTransformationButton
+                                  traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                                  transformations={visualize.transformations}
+                                  onChange={handleTransformationsChange}
+                                />
+                              ) : undefined
+                            }
+                          />
+                          {showTransformationControls &&
+                          visualize.transformations.length > 0 ? (
+                            <Container padding="xl" paddingTop="0" paddingBottom="md">
+                              <VisualizeTransformationRows
+                                traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                                transformations={visualize.transformations}
+                                layout="inline"
+                                onChange={handleTransformationsChange}
+                              />
+                            </Container>
+                          ) : null}
+                        </Fragment>
                       )}
                     </Stack>
                     <Container

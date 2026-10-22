@@ -115,45 +115,19 @@ interface Props {
     | TraceItemDataset.LOGS
     | TraceItemDataset.TRACEMETRICS;
   transformations: readonly string[];
-  children?: (parts: {
-    addTrigger: React.ReactNode;
-    rows: React.ReactNode;
-  }) => React.ReactNode;
-  layout?: TransformationLayout;
 }
 
 export function VisualizeTransformations({
   transformations,
   onChange,
   traceItemDataset,
-  children,
-  layout = 'stacked',
 }: Props) {
-  return children ? (
-    children({
-      addTrigger: (
-        <AddTransformationButton
-          transformations={transformations}
-          onChange={onChange}
-          traceItemDataset={traceItemDataset}
-        />
-      ),
-      rows: transformations.length ? (
-        <VisualizeTransformationRows
-          transformations={transformations}
-          onChange={onChange}
-          traceItemDataset={traceItemDataset}
-          layout={layout}
-        />
-      ) : null,
-    })
-  ) : (
+  return (
     <Stack gap="sm">
       <VisualizeTransformationRows
         transformations={transformations}
         onChange={onChange}
         traceItemDataset={traceItemDataset}
-        layout={layout}
       />
       <AddTransformationButton
         transformations={transformations}
