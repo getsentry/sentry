@@ -8,9 +8,9 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
-import {INTERACTIVE_SELECTOR} from '@sentry/scraps/interactiveElement';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
+import {INTERACTIVE_SELECTOR} from '@sentry/scraps/useIsInsideInteractiveElement';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {usePrevious} from 'sentry/utils/usePrevious';
