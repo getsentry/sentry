@@ -1,8 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from scm.errors import GitProviderNotSupported
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
-from scm.types import Repository
+from scm.types import ProviderName, Repository
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcRemoteException
@@ -470,7 +472,9 @@ class TestMakeFetchers(TestCase):
 
 @cell_silo_test
 class TestFetchAccessToken(TestCase):
-    def scm_repository(self, integration_id: int) -> Repository:
+    def scm_repository(
+        self, integration_id: int, provider_name: ProviderName = "github"
+    ) -> Repository:
         return Repository(
             external_id="1",
             id=1,
@@ -478,7 +482,7 @@ class TestFetchAccessToken(TestCase):
             is_active=True,
             name="getsentry/sentry",
             organization_id=self.organization.id,
-            provider_name="github",
+            provider_name=provider_name,
             web_base_url=None,
             installation_id=None,
         )
@@ -519,3 +523,10 @@ class TestFetchAccessToken(TestCase):
 
         assert token is None
         mock_capture_exception.assert_called_once_with()
+
+    @patch("sentry.scm.private.helpers.integration_service.get_access_token")
+    def test_refuses_gitlab(self, mock_get_access_token: MagicMock) -> None:
+        with pytest.raises(GitProviderNotSupported):
+            fetch_access_token(self.scm_repository(1, "gitlab"), "fetch")
+
+        mock_get_access_token.assert_not_called()
