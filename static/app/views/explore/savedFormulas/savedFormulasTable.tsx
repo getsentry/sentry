@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -13,6 +15,7 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
+import {userDisplayName} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteFormula} from 'sentry/views/explore/hooks/useDeleteFormula';
 import type {
@@ -75,6 +78,29 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
         <FormulaRow key={formula.id} formula={formula} isFirst={index === 0} />
       ))}
     </SavedEntityTable>
+  );
+}
+
+function FormulaCreator({formula}: {formula: SavedFormula}) {
+  if (!formula.prebuilt) {
+    // User created formulas are created by a user, so show only the creator.
+    return formula.createdBy ? <UserAvatar user={formula.createdBy} hasTooltip /> : null;
+  }
+
+  // Prebuilt formulas are created by Sentry, so show the Sentry avatar and last editor (if a user edited it.)
+  return (
+    <Flex gap="xs" align="center">
+      <Tooltip title={t('Created by Sentry')}>
+        <ActivityAvatar type="system" size={20} />
+      </Tooltip>
+      {formula.updatedBy && (
+        <UserAvatar
+          user={formula.updatedBy}
+          hasTooltip
+          tooltip={t('Edited by %s', userDisplayName(formula.updatedBy))}
+        />
+      )}
+    </Flex>
   );
 }
 
@@ -148,11 +174,7 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
         </Tooltip>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell justify="center">
-        {formula.prebuilt ? (
-          <Tooltip title="Sentry">
-            <ActivityAvatar type="system" size={20} />
-          </Tooltip>
-        ) : null}
+        <FormulaCreator formula={formula} />
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell hasButton>
         <SavedEntityTable.CellActions

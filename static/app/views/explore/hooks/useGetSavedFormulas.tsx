@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import {keepPreviousData, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -26,6 +27,8 @@ export type FormulaReference = {
 };
 
 export type SavedFormula = {
+  /** Null for prebuilt formulas, which are created by Sentry. */
+  createdBy: User | null;
   dataset: FormulaDataset;
   description: string | null;
   formula: string;
@@ -33,11 +36,12 @@ export type SavedFormula = {
   /** Prefixed with `formula.` so it cannot collide with a built in function. */
   name: string;
   params: FormulaParam[];
-  /** True for the formulas Sentry ships, which cannot be edited. */
+  /** True for the formulas Sentry ships. */
   prebuilt: boolean;
   references: FormulaReference[];
   type: FormulaType;
   unit: string | null;
+  updatedBy: User | null;
 };
 
 function savedFormulasApiOptions(
