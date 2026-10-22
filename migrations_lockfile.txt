@@ -25,7 +25,7 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0013_add_notificationmessage_parent_lookup_index
+notifications: 0014_add_notificationthread_group_index
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 

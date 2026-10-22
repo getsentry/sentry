@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from django.db import models
+from django.db.models import F
+from django.db.models.fields.json import KeyTransform
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
@@ -14,7 +16,7 @@ class NotificationThread(DefaultFieldsModel):
 
     The thread_key is a hash of key_type + key_data, which allows for efficient lookups
     without needing to query by multiple fields. The key_type and key_data fields store
-    the original values for debugging and auditing purposes.
+    the original values for debugging and auditing, and for lookups by group.
 
     key_type uses NotificationSource values. Example key_data for different sources:
     - slow-load-metric-alert: {"alert_rule_id": 456, "incident_id": 789, "trigger_action_id": 101}
@@ -50,6 +52,15 @@ class NotificationThread(DefaultFieldsModel):
             models.UniqueConstraint(
                 fields=["thread_key", "provider_key", "target_id"],
                 name="uniq_notification_thread_per_provider_target",
+            ),
+        ]
+        indexes = [
+            # Lookups by group (e.g. every thread for an issue) can't use thread_key, which
+            # hashes the full key. Filter on key_type and key_data__group_id to use this index.
+            models.Index(
+                F("key_type"),
+                KeyTransform("group_id", "key_data"),
+                name="idx_notifthread_type_group",
             ),
         ]
 
