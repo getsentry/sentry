@@ -43,8 +43,8 @@ class ProjectReplayEndpoint(ProjectEndpoint):
             # Any normalization belongs next to the consumer that needs a specific format.
             try:
                 validate_event_id(replay_id)
-            except InvalidSearchQuery as e:
-                raise ParseError(detail=str(e))
+            except InvalidSearchQuery:
+                raise ParseError(detail="Invalid replay id.")
 
         return args, kwargs
 
