@@ -188,7 +188,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
-  const {data: orchestration} = useQuery({
+  const {data: orchestration, isPending: orchestrationPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
   });
@@ -490,7 +490,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
-              <NextStepCard actionRequests={investigation.actionRequests} />
+              <NextStepCard
+                actionRequests={investigation.actionRequests}
+                orchestration={orchestration}
+                orchestrationLoading={
+                  Boolean(investigation.orchestration) && orchestrationPending
+                }
+              />
 
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 

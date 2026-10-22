@@ -1,29 +1,106 @@
+import {useId} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
 import {ActionRequestCard} from 'sentry/views/investigations/actionRequests/actionRequestCard';
-import type {InvestigationActionRequest} from 'sentry/views/investigations/types';
+import {PlaceholderBar} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
+import type {
+  InvestigationActionRequest,
+  InvestigationOrchestration,
+} from 'sentry/views/investigations/types';
+
+type NextStepCardProps = {
+  actionRequests: InvestigationActionRequest[] | undefined;
+  orchestration: InvestigationOrchestration | undefined;
+  orchestrationLoading?: boolean;
+};
 
 export function NextStepCard({
   actionRequests,
-}: {
-  actionRequests: InvestigationActionRequest[] | undefined;
-}) {
-  const actionRequest = getPrimaryActionRequest(actionRequests ?? []);
+  orchestration,
+  orchestrationLoading = false,
+}: NextStepCardProps) {
+  const heading = t('Recommended action');
 
-  if (!actionRequest) {
+  if (orchestrationLoading) {
     return null;
   }
 
+  const actionRequest = getPrimaryActionRequest(
+    actionRequests ?? [],
+    orchestration?.report.revision
+  );
+
+  if (actionRequest) {
+    return <ActionRequestCard actionRequest={actionRequest} heading={heading} />;
+  }
+
+  if (isNextStepPending(orchestration)) {
+    return <NextStepPlaceholder heading={heading} />;
+  }
+
+  if (orchestration?.report.nextStep?.status === 'failed') {
+    return <NextStepFailed heading={heading} />;
+  }
+
+  return null;
+}
+
+function getPrimaryActionRequest(
+  actionRequests: InvestigationActionRequest[],
+  reportRevision: number | undefined
+) {
+  const revision =
+    reportRevision ??
+    Math.max(...actionRequests.map(actionRequest => actionRequest.reportRevision));
+  return actionRequests
+    .filter(
+      actionRequest => actionRequest.primary && actionRequest.reportRevision >= revision
+    )
+    .toSorted(
+      (a, b) =>
+        Number(a.state === 'withdrawn') - Number(b.state === 'withdrawn') ||
+        Number(b.id) - Number(a.id)
+    )[0];
+}
+
+function isNextStepPending(orchestration: InvestigationOrchestration | undefined) {
+  const status = orchestration?.report.nextStep?.status;
+  if (status === 'generating') {
+    return true;
+  }
+  const runningMetadata =
+    orchestration?.status === 'processing' && orchestration.phase === 'metadata';
+  return runningMetadata && (status === 'not_started' || status === 'completed');
+}
+
+function NextStepFailed({heading}: {heading: string}) {
+  const headingId = useId();
   return (
-    <ActionRequestCard actionRequest={actionRequest} heading={t('Recommended action')} />
+    <Stack as="section" gap="md" aria-labelledby={headingId}>
+      <Heading as="h2" size="lg" id={headingId}>
+        {heading}
+      </Heading>
+      <Text as="p" size="md" density="comfortable" variant="muted">
+        {t('Seer could not suggest a next step for this investigation.')}
+      </Text>
+    </Stack>
   );
 }
 
-function getPrimaryActionRequest(actionRequests: InvestigationActionRequest[]) {
-  const latestRevision = Math.max(
-    ...actionRequests.map(actionRequest => actionRequest.reportRevision)
-  );
-  return actionRequests.find(
-    actionRequest =>
-      actionRequest.primary && actionRequest.reportRevision === latestRevision
+function NextStepPlaceholder({heading}: {heading: string}) {
+  const headingId = useId();
+  return (
+    <Stack as="section" gap="lg" aria-labelledby={headingId} aria-busy>
+      <Heading as="h2" size="lg" id={headingId}>
+        {heading}
+      </Heading>
+      <Stack gap="sm" aria-hidden>
+        <PlaceholderBar height="12px" />
+        <PlaceholderBar height="12px" width="65%" />
+      </Stack>
+    </Stack>
   );
 }

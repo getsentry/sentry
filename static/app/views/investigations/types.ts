@@ -419,6 +419,13 @@ type InvestigationOrchestrationReport = {
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
   currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
+  nextStep?: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationOpenString<
+      'not_started' | 'generating' | 'completed' | 'failed'
+    >;
+    automaticRetryCount?: number;
+  } | null;
   suggestedHypotheses?: Array<{
     statement: string;
     rationale?: string | null;
