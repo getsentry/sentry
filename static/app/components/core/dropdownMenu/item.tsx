@@ -65,13 +65,15 @@ export interface MenuItemProps extends ListItemProps {
    * `children` is also defined). Pass `true` for the defaults, or an object to
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
+   * `maxHeight` and `maxWidth` cap its size without forcing smaller
+   * menus to fill those dimensions.
    */
   submenu?:
     | boolean
     | {
         emptyMessage?: React.ReactNode;
-        maxMenuHeight?: number;
-        menuWidth?: string | number;
+        maxHeight?: string | number;
+        maxWidth?: string | number;
         position?: UseOverlayProps['position'];
         search?: DropdownMenuSearchOptions;
         title?: string;

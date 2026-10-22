@@ -164,8 +164,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                   title: t('All Projects'),
                   emptyMessage: t('No projects found'),
                   search: {placeholder: t('Search')},
-                  maxMenuHeight: 240,
-                  menuWidth: 258,
+                  maxHeight: 240,
+                  maxWidth: 258,
                 },
                 hidden: projects.length === 0,
                 children: [

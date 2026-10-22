@@ -115,7 +115,7 @@ describe('OrganizationDropdown', () => {
     const projectItems = screen.getAllByRole('menuitemradio', {name: slug});
     expect(projectItems).toHaveLength(2);
     expect(projectItems[1]?.closest('[data-overlay]')).toHaveStyle({
-      width: '258px',
+      maxWidth: 'min(258px, 100%)',
       maxHeight: '240px',
     });
   });

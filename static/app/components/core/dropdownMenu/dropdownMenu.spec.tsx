@@ -449,7 +449,7 @@ describe('DropdownMenu', () => {
               title: 'All Projects',
               emptyMessage: 'No projects found',
               search: {placeholder: 'Search projects'},
-              maxMenuHeight: 240,
+              maxHeight: 240,
             },
             children: [
               {
