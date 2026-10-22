@@ -121,6 +121,41 @@ describe('useDroppedDataDrawer', () => {
     ).toBeInTheDocument();
   });
 
+  it('points to the docs instead of Seer when Seer Explorer is disabled', async () => {
+    mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByText(/Each reason links to docs that explain what it means/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Use Seer/)).not.toBeInTheDocument();
+  });
+
+  it('mentions Seer when Seer Explorer is enabled', async () => {
+    const seerOrganization = OrganizationFixture({
+      openMembership: true,
+      hideAiFeatures: false,
+      features: ['explore-data-fidelity-annotations', 'seer-explorer'],
+    });
+    mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization: seerOrganization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByText(/Use Seer to understand what each category means/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Each reason links to docs/)).not.toBeInTheDocument();
+  });
+
   it('uses the singular heading for one dropped event', async () => {
     mockDroppedData(1, '14d');
 

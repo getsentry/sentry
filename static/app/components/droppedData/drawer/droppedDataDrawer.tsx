@@ -104,6 +104,7 @@ export function DroppedDataDrawer({
               <DroppedDataChart
                 droppedEvents={scopedDroppedEvents}
                 colors={outcomeColors}
+                hasAskSeer={onAskSeer !== undefined}
                 selection={outcomeSelection}
                 onSelectionChange={setOutcomeSelection}
               />

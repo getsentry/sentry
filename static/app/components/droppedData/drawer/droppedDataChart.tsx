@@ -62,6 +62,7 @@ export function droppedEventsToSeries(
 interface DroppedDataChartProps {
   colors: OutcomeColors;
   droppedEvents: DroppedEventsBucket[];
+  hasAskSeer: boolean;
   onSelectionChange: (selection: OutcomeSelection) => void;
   selection: OutcomeSelection;
 }
@@ -69,6 +70,7 @@ interface DroppedDataChartProps {
 export function DroppedDataChart({
   droppedEvents,
   colors,
+  hasAskSeer,
   selection,
   onSelectionChange,
 }: DroppedDataChartProps) {
@@ -110,11 +112,14 @@ export function DroppedDataChart({
             formatAbbreviatedNumber(totalDropped)
           )}
         </Heading>
-        {/* TODO: Only mention Seer once the Ask Seer button is limited to organizations with Seer access. */}
         <Text size="sm">
-          {t(
-            'Your filtered events are broken down by category below. Use Seer to understand what each category means and how to fix common causes of unintentional data loss.'
-          )}
+          {hasAskSeer
+            ? t(
+                'Your filtered events are broken down by category below. Use Seer to understand what each category means and how to fix common causes of unintentional data loss.'
+              )
+            : t(
+                'Your filtered events are broken down by category below. Each reason links to docs that explain what it means and how to fix common causes of unintentional data loss.'
+              )}
         </Text>
       </Stack>
       <ChartLegend
