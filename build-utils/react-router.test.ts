@@ -28,7 +28,19 @@ export const router = createMemoryRouter([
 
 const cases: Array<[string, NodeJS.ProcessEnv, '8.4.0' | '6.30.6']> = [
   ['local development', {NODE_ENV: 'development'}, '8.4.0'],
-  ['production', {NODE_ENV: 'production'}, '6.30.6'],
+  ['production', {NODE_ENV: 'production'}, '8.4.0'],
+  ['production CI', {NODE_ENV: 'production', CI: '1'}, '8.4.0'],
+  ['production test suite', {NODE_ENV: 'production', TEST_SUITE: '1'}, '6.30.6'],
+  [
+    'production acceptance tests',
+    {NODE_ENV: 'production', IS_ACCEPTANCE_TEST: '1'},
+    '8.4.0',
+  ],
+  [
+    'production CI acceptance tests',
+    {NODE_ENV: 'production', CI: '1', IS_ACCEPTANCE_TEST: '1'},
+    '8.4.0',
+  ],
   [
     'development deploy preview',
     {NODE_ENV: 'development', NOW_GITHUB_DEPLOYMENT: '1'},
@@ -53,12 +65,12 @@ const cases: Array<[string, NodeJS.ProcessEnv, '8.4.0' | '6.30.6']> = [
   [
     'deploy preview acceptance tests',
     {NODE_ENV: 'production', NOW_GITHUB_DEPLOYMENT: '1', IS_ACCEPTANCE_TEST: '1'},
-    '6.30.6',
+    '8.4.0',
   ],
   ['CI', {NODE_ENV: 'development', CI: '1'}, '6.30.6'],
   ['test mode', {NODE_ENV: 'test'}, '6.30.6'],
   ['test suite', {NODE_ENV: 'development', TEST_SUITE: '1'}, '6.30.6'],
-  ['acceptance tests', {NODE_ENV: 'development', IS_ACCEPTANCE_TEST: '1'}, '6.30.6'],
+  ['acceptance tests', {NODE_ENV: 'development', IS_ACCEPTANCE_TEST: '1'}, '8.4.0'],
 ];
 
 for (const [name, env, version] of cases) {

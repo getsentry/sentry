@@ -598,6 +598,50 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
   });
 
+  it('holds back the activity feed until the run has stopped', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.orchestration = {
+      phase: 'investigating',
+      status: 'processing',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Activity'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Comment'})).not.toBeInTheDocument();
+  });
+
+  it.each(['completed', 'failed', 'cancelled'] as const)(
+    'shows the activity feed once the run has %s',
+    async status => {
+      const investigation = investigationWithQueryResult();
+      investigation.orchestration = {
+        phase: status,
+        status,
+        heartbeatAt: '2026-08-27T11:06:30Z',
+        notebookRevision: 5,
+      };
+      MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({status}),
+      });
+
+      renderView();
+
+      expect(await screen.findByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Comment'})).toBeInTheDocument();
+    }
+  );
+
   it.each(['failed', 'cancelled'] as const)(
     'still awaits the report when a cell has %s',
     async status => {

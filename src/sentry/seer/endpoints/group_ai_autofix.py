@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Collection
 from typing import Any
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -15,6 +16,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.conditional_get import ConditionalGetResponseMixin
+from sentry.api.exceptions import InsufficientScope
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -35,7 +37,7 @@ from sentry.issues.action_log import (
 )
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import GroupActorType
-from sentry.issues.endpoints.bases.group import GroupAiEndpoint
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.issues.formatting.autofix import format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
 from sentry.models.activity import Activity
@@ -57,6 +59,7 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
 from sentry.seer.autofix.steps import AutofixStep
@@ -100,6 +103,50 @@ AUTOFIX_SETUP_REQUIRED_DETAIL = {
         "before a new run can be started."
     ),
 }
+
+
+class GroupAutofixPermission(GroupAiPermission):
+    # `seer:write` covers the analysis steps only; see _require_publish_scope.
+    scope_map = {
+        **GroupAiPermission.scope_map,
+        "POST": ["event:write", "event:admin", "seer:write"],
+    }
+
+
+# Steps that still need explicit user approval (`event:write`) because they act outside
+# Sentry: pushing a branch, opening or iterating on a pull request, or handing the run to
+# an external coding agent.
+PUBLISH_STEPS = frozenset({"open_pr", "coding_agent_handoff", "pr_iteration"})
+PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
+
+
+# If an autofix can be handed off we want to use these stopping points to require user approval
+HANDOFF_STOPPING_POINTS = frozenset(
+    {AutofixStoppingPoint.SOLUTION.value, AutofixStoppingPoint.CODE_CHANGES.value}
+)
+
+
+def _require_publish_scope(
+    request: Request, group: Group, step: str, stopping_points: Collection[str | None]
+) -> None:
+    """`seer:write` lets a caller run Autofix analysis but not publish its result. A
+    request still needs `event:write` when it, or the completion hook continuing the run
+    toward `stopping_points`, can act outside Sentry: a publishing step, a run headed
+    for a pull request, or root cause on a run that may then hand off to a coding agent.
+    Raising the RFC 6750 challenge lets the Seer agent ask for approval."""
+    may_publish = (
+        step in PUBLISH_STEPS
+        or AutofixStoppingPoint.OPEN_PR.value in stopping_points
+        or (
+            step == AutofixStep.ROOT_CAUSE.value
+            and not HANDOFF_STOPPING_POINTS.isdisjoint(stopping_points)
+        )
+    )
+    if not may_publish:
+        return
+    if request.access.has_any_project_scope(group.project, PUBLISH_SCOPES):
+        return
+    raise InsufficientScope({"event:write"})
 
 
 def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
@@ -240,6 +287,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
     }
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
+    permission_classes = (GroupAutofixPermission,)
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -303,6 +351,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
+        _require_publish_scope(request, group, step, {stopping_point})
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
@@ -444,6 +493,15 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         if _is_unknown_run_id_error(e):
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
+
+                    # A continued run keeps the stopping point it started with, and the
+                    # completion hook acts on it after this step, so gate on it too.
+                    _require_publish_scope(
+                        request,
+                        group,
+                        step,
+                        {get_run_stopping_point(group.organization, resolved_run_id, run_state)},
+                    )
 
                     # Seer accepts a step while one is still processing, and the two
                     # workers then write to the same run state; a truncating re-run

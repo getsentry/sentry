@@ -1,24 +1,14 @@
 import {useMemo} from 'react';
-import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import {useQueries} from '@tanstack/react-query';
 
-import type {Series} from 'sentry/types/echarts';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getUtcDateString} from 'sentry/utils/dates';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {mobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
-import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
-import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
-import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
 import {
   combineIngestionMeta,
   type WidgetTimeSeries,
@@ -30,14 +20,7 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
-
-type MobileAppSizeSeriesResponse =
-  | EventsStats
-  | MultiSeriesEventsStats
-  | EventsTimeSeriesResponse;
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -59,7 +42,6 @@ export function useMobileAppSizeSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   const filteredWidget = useMemo(
     () =>
@@ -86,68 +68,15 @@ export function useMobileAppSizeSeriesQuery(
   });
 
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequestData.map(requestData => {
-      if (!isEventsTimeseriesEnabled) {
-        const {
-          organization: _org,
-          includeAllArgs: _includeAllArgs,
-          includePrevious: _includePrevious,
-          generatePathname: _generatePathname,
-          period,
-          ...restParams
-        } = requestData;
-
-        const queryParams = {
-          ...restParams,
-          ...(period ? {statsPeriod: period} : {}),
-          excludeOther: restParams.excludeOther ? '1' : undefined,
-          partial: restParams.partial ? '1' : undefined,
-        };
-
-        if (queryParams.start) {
-          queryParams.start = getUtcDateString(queryParams.start);
-        }
-        if (queryParams.end) {
-          queryParams.end = getUtcDateString(queryParams.end);
-        }
-
-        return queryOptions({
-          ...apiOptions.as<MobileAppSizeSeriesResponse>()(
-            '/organizations/$organizationIdOrSlug/events-stats/',
-            {
-              path: {organizationIdOrSlug: organization.slug},
-              method: 'GET' as const,
-              query: queryParams,
-              staleTime: getWidgetStaleTime(pageFilters),
-            }
-          ),
-          queryFn: (context): Promise<ApiResponse<MobileAppSizeSeriesResponse>> => {
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    apiFetch<MobileAppSizeSeriesResponse>(context).then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-            return apiFetch<MobileAppSizeSeriesResponse>(context);
-          },
-          enabled,
-          retry: false,
-          retryDelay: getRetryDelay,
-          placeholderData: keepPreviousData,
-        });
-      }
-
-      return getTimeseriesWidgetQueryOptions({
+    queries: seriesRequestData.map(requestData =>
+      getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
         query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      });
-    }),
+      })
+    ),
     combine: combineWidgetQueryResults,
   });
 
@@ -166,7 +95,7 @@ export function useMobileAppSizeSeriesQuery(
       };
     }
 
-    const timeseriesResults: Array<Series | WidgetTimeSeries> = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
@@ -177,36 +106,15 @@ export function useMobileAppSizeSeriesQuery(
 
       const responseData = q.data;
 
-      if (isEventsTimeSeriesResponse(responseData)) {
-        const transformedResult = mobileAppSizeResponseTransforms.transformTimeSeries!(
-          responseData,
-          filteredWidget,
-          requestIndex
-        );
+      const transformedResult = mobileAppSizeResponseTransforms.transformTimeSeries!(
+        responseData,
+        filteredWidget,
+        requestIndex
+      );
 
-        transformedResult.forEach((result, resultIndex) => {
-          timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-            result;
-        });
-      } else {
-        const transformedResult = mobileAppSizeResponseTransforms.transformSeries!(
-          responseData,
-          filteredWidget.queries[requestIndex]!,
-          organization
-        );
-        const seriesQueryPrefix = getSeriesQueryPrefix(
-          filteredWidget.queries[requestIndex]!,
-          filteredWidget
-        );
-
-        transformedResult.forEach((result: Series, resultIndex: number) => {
-          if (seriesQueryPrefix) {
-            result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-          }
-          timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-            result;
-        });
-      }
+      transformedResult.forEach((result, resultIndex) => {
+        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
+      });
 
       const resultTypes = mobileAppSizeResponseTransforms.getSeriesResultType?.(
         responseData,
@@ -233,9 +141,7 @@ export function useMobileAppSizeSeriesQuery(
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      ingestion: combineIngestionMeta(
-        queryResults.map(q => q?.data).filter(isEventsTimeSeriesResponse)
-      ),
+      ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
   })();
