@@ -25,7 +25,11 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
-import type {DropdownMenuSearchOptions, MenuItemProps} from './item';
+import type {
+  DropdownMenuContentSizeOptions,
+  DropdownMenuSearchOptions,
+  MenuItemProps,
+} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
 import {useSafetyTriangle} from './useSafetyTriangle';
@@ -40,7 +44,8 @@ export interface DropdownMenuListProps
       | 'onSelectionChange'
       | 'disallowEmptySelection'
     >,
-    TreeProps<MenuItemProps> {
+    TreeProps<MenuItemProps>,
+    DropdownMenuContentSizeOptions {
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * The open state of the current overlay that contains this menu
@@ -55,7 +60,6 @@ export interface DropdownMenuListProps
    */
   disableTextSelection?: boolean;
   emptyMessage?: React.ReactNode;
-  maxWidth?: string | number;
   /**
    * To be displayed below the menu items
    */
@@ -204,6 +208,7 @@ function DropdownMenuList({
   menuTitle,
   emptyMessage,
   menuHeight,
+  maxHeight,
   maxWidth,
   menuWidth,
   menuFooter,
@@ -339,8 +344,8 @@ function DropdownMenuList({
                 style={{
                   width: menuWidth,
                   height: menuHeight,
-                  // The overlay positioner limits the menu to the available viewport height.
-                  maxHeight: overlayPositionProps.style?.maxHeight,
+                  // Cap the requested height by the space available to the overlay.
+                  maxHeight: minHeight(maxHeight, overlayPositionProps.style?.maxHeight),
                   maxWidth:
                     maxWidth === undefined
                       ? '100%'
@@ -573,8 +578,6 @@ function DropdownSubmenu({
     triggerRef
   );
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const maxHeight = minHeight(options.maxHeight, overlayProps.style?.maxHeight);
-
   return (
     <Container as="li" display="contents" role="presentation">
       <DropdownMenuItem
@@ -604,6 +607,7 @@ function DropdownSubmenu({
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
           emptyMessage={options.emptyMessage}
+          maxHeight={options.maxHeight}
           maxWidth={options.maxWidth}
           search={options.search}
           size={size}
@@ -611,10 +615,7 @@ function DropdownSubmenu({
           items={items}
           autoFocus={false}
           overlayState={overlayState}
-          overlayPositionProps={{
-            ...overlayProps,
-            style: {...overlayProps.style, maxHeight},
-          }}
+          overlayPositionProps={overlayProps}
         />
       )}
     </Container>

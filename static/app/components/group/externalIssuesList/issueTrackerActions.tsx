@@ -150,7 +150,7 @@ export function InlineIssueTrackerActions({
         return (
           <ErrorBoundary key={integration.key} mini>
             <DropdownMenu
-              maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
+              maxHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
               trigger={triggerProps => (
                 <IssueActionDropdownMenu
                   {...sharedButtonProps}
@@ -274,7 +274,7 @@ export function IssueTrackerActionDropdown({
 
   return (
     <DropdownMenu
-      maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
+      maxHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
       trigger={(triggerProps, isOpen) => {
         const DropdownButtonComponent = fullWidth
           ? FullWidthDropdownButton

@@ -19,6 +19,11 @@ import {DropdownMenuContext} from './context';
 
 export type DropdownMenuSearchOptions = {placeholder?: string};
 
+export type DropdownMenuContentSizeOptions = {
+  maxHeight?: string | number;
+  maxWidth?: string | number;
+};
+
 export interface MenuItemProps extends ListItemProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
@@ -70,14 +75,12 @@ export interface MenuItemProps extends ListItemProps {
    */
   submenu?:
     | boolean
-    | {
+    | (DropdownMenuContentSizeOptions & {
         emptyMessage?: React.ReactNode;
-        maxHeight?: string | number;
-        maxWidth?: string | number;
         position?: UseOverlayProps['position'];
         search?: DropdownMenuSearchOptions;
         title?: string;
-      };
+      });
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
