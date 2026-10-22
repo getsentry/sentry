@@ -215,13 +215,7 @@ describe('transformWidgetSeriesToTimeSeries', () => {
       const widget = WidgetFixture({queries: [totalQuery, groupedQuery]});
 
       const result = transformWidgetSeriesToTimeSeries(
-        {
-          ...makeSeries('grouped > (no value) : avg(span.duration)'),
-          timeSeries: TimeSeriesFixture({
-            yAxis: 'avg(span.duration)',
-            groupBy: [{key: 'browser', value: null}],
-          }),
-        },
+        makeSeries('grouped > None : avg(span.duration)'),
         widget
       );
 
