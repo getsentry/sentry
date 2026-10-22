@@ -1,12 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-import pytest
-from scm.errors import GitProviderNotSupported
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.types import Repository
 
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.private.helpers import (
@@ -471,7 +470,7 @@ class TestMakeFetchers(TestCase):
 
 @cell_silo_test
 class TestFetchAccessToken(TestCase):
-    def scm_repository(self, provider_name: str, integration_id: int) -> Repository:
+    def scm_repository(self, integration_id: int) -> Repository:
         return Repository(
             external_id="1",
             id=1,
@@ -479,12 +478,12 @@ class TestFetchAccessToken(TestCase):
             is_active=True,
             name="getsentry/sentry",
             organization_id=self.organization.id,
-            provider_name=provider_name,  # type: ignore[typeddict-item]
+            provider_name="github",
             web_base_url=None,
             installation_id=None,
         )
 
-    def test_returns_the_github_installation_token(self) -> None:
+    def test_returns_the_installation_token(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -492,7 +491,7 @@ class TestFetchAccessToken(TestCase):
             metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
         )
 
-        token = fetch_access_token(self.scm_repository("github", integration.id), "fetch")
+        token = fetch_access_token(self.scm_repository(integration.id), "fetch")
 
         assert token == TOKEN
 
@@ -504,14 +503,19 @@ class TestFetchAccessToken(TestCase):
             metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
         )
 
-        token = fetch_access_token(self.scm_repository("github", integration.id), "fetch")
+        token = fetch_access_token(self.scm_repository(integration.id), "fetch")
 
         assert token is None
 
-    def test_refuses_gitlab(self) -> None:
-        with pytest.raises(GitProviderNotSupported):
-            fetch_access_token(self.scm_repository("gitlab", 1), "fetch")
+    @patch("sentry.scm.private.helpers.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.scm.private.helpers.integration_service.get_access_token",
+        side_effect=RpcRemoteException("integration", "get_access_token", "timed out"),
+    )
+    def test_returns_none_when_control_cannot_be_reached(
+        self, mock_get_access_token: MagicMock, mock_capture_exception: MagicMock
+    ) -> None:
+        token = fetch_access_token(self.scm_repository(1), "fetch")
 
-    def test_refuses_cursor_origin(self) -> None:
-        with pytest.raises(GitProviderNotSupported):
-            fetch_access_token(self.scm_repository("cursor_origin", 1), "fetch")
+        assert token is None
+        mock_capture_exception.assert_called_once_with()
