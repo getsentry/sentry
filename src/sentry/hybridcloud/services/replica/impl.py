@@ -246,11 +246,17 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
             handle_replication(ServiceAccount, destination)
             replica = ServiceAccountReplica.objects.get(service_account_id=service_account.id)
             # A control link can outlive its project until the tombstone cascade reaches
-            # control, and survives a transfer of its project to another org.
+            # control, and survives a transfer of its project to another org. Locking the
+            # projects makes a concurrent transfer wait for these links to commit, so it
+            # deletes them, or makes this read see the project in its new org.
+            # `no_key` avoids blocking inserts that reference the projects.
             valid_project_ids = set(
                 Project.objects.filter(
                     organization_id=organization.id, id__in=service_account.project_ids
-                ).values_list("id", flat=True)
+                )
+                .order_by("id")
+                .select_for_update(no_key=True)
+                .values_list("id", flat=True)
             )
             links = ServiceAccountProjectReplica.objects.filter(service_account=replica)
             links.exclude(project_id__in=valid_project_ids).delete()
