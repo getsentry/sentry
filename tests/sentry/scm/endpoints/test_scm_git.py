@@ -321,6 +321,37 @@ class ScmGitEndpointTest(TestCase):
         )
 
     @responses.activate
+    def test_refuses_a_gitlab_repository(self) -> None:
+        identity_provider = self.create_identity_provider(
+            type="gitlab", external_id="gitlab.com:acme"
+        )
+        identity = self.create_identity(self.user, identity_provider, "gitlab-user")
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gitlab.com:acme",
+            metadata={
+                "instance": "gitlab.com",
+                "base_url": "https://gitlab.com",
+                "verify_ssl": True,
+            },
+            oi_params={"default_auth_id": identity.id},
+        )
+        repo = self.create_repo(
+            self.project,
+            name="acme / widget",
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+            external_id="gitlab.com:42",
+        )
+        repo.update(config={"path": "acme/widget"})
+        grant = sign(self.organization.id, "fetch", [repo.id])
+
+        response = self.fetch_refs(grant, repo.id)
+
+        self.assert_refused(response, 404, b"Sentry can't relay git for gitlab repositories yet.")
+
+    @responses.activate
     def test_refuses_a_route_with_a_trailing_slash(self) -> None:
         response = self.git("GET", "info/refs/", "service=git-upload-pack", self.fetch_grant())
 
