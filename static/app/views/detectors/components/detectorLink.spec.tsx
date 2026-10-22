@@ -8,7 +8,7 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type {CronDetector, MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 
@@ -153,5 +153,37 @@ describe('DetectorLink', () => {
 
     expect(screen.getByText(/8% higher than previous 1 hour/)).toBeInTheDocument();
     expect(screen.getByText(/15% higher than previous 1 hour/)).toBeInTheDocument();
+  });
+
+  it('renders cron detector with null queryObj without crashing', () => {
+    const cronDetector: CronDetector = {
+      id: 'cron-1',
+      name: 'Cron Detector',
+      type: 'monitor_check_in_failure',
+      projectId: '1',
+      enabled: true,
+      dateCreated: '2024-01-01T00:00:00Z',
+      dateUpdated: '2024-01-01T00:00:00Z',
+      createdBy: null,
+      description: null,
+      lastTriggered: '2024-01-01T00:00:00Z',
+      latestGroup: null,
+      owner: null,
+      workflowIds: [],
+      dataSources: [
+        {
+          id: 'ds-cron-1',
+          organizationId: '1',
+          sourceId: 'source-cron-1',
+          type: 'cron_monitor',
+          queryObj: null,
+        },
+      ],
+    };
+
+    render(<DetectorLink detector={cronDetector} />, {organization});
+
+    // Should render the detector name link without throwing
+    expect(screen.getByRole('link', {name: /cron detector/i})).toBeInTheDocument();
   });
 });
