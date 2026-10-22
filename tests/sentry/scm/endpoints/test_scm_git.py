@@ -12,15 +12,12 @@ from django.http import HttpResponseBase
 from django.test import override_settings
 from django.urls import resolve, reverse
 from responses import matchers
-from scm.errors import GitProviderNotSupported
 from scm.git.grant import sign_grant
 from scm.git.types import GRANT_HEADER, GitOperation, Grant
-from scm.types import Repository as ScmRepository
 from scm.types import RepositoryId
 from sentry_sdk.data_collection import _apply_key_value_collection_filtering
 
 from sentry.constants import ObjectStatus
-from sentry.scm.endpoints.scm_git import get_git_token
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -267,9 +264,9 @@ class ScmGitEndpointTest(TestCase):
         self.assert_refused(response, 404, b"A repository could not be found.")
 
     @responses.activate
-    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk.capture_exception")
+    @mock.patch("sentry.scm.private.helpers.sentry_sdk.capture_exception")
     @mock.patch(
-        "sentry.scm.endpoints.scm_git.integration_service.refresh_github_access_token",
+        "sentry.scm.private.helpers.integration_service.refresh_github_access_token",
         side_effect=ApiError("Forbidden", code=403),
     )
     def test_answers_a_token_github_refuses_to_mint_with_a_bad_gateway(
@@ -356,51 +353,3 @@ def test_the_sdk_filters_the_grant_header_out_of_telemetry() -> None:
     filtered = _apply_key_value_collection_filtering({GRANT_HEADER: "a.signed.grant"}, behaviour)
 
     assert filtered == {GRANT_HEADER: "[Filtered]"}
-
-
-@cell_silo_test
-class GetGitTokenTest(TestCase):
-    def scm_repository(self, provider_name: str, integration_id: int) -> ScmRepository:
-        return ScmRepository(
-            external_id="1",
-            id=1,
-            integration_id=integration_id,
-            is_active=True,
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider_name=provider_name,  # type: ignore[typeddict-item]
-            web_base_url=None,
-            installation_id=None,
-        )
-
-    def test_returns_the_github_installation_token(self) -> None:
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id="1",
-            metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
-        )
-
-        token = get_git_token(self.scm_repository("github", integration.id), "fetch")
-
-        assert token == TOKEN
-
-    def test_returns_none_for_an_integration_the_organization_does_not_have(self) -> None:
-        integration = self.create_integration(
-            organization=self.create_organization(),
-            provider="github",
-            external_id="2",
-            metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
-        )
-
-        token = get_git_token(self.scm_repository("github", integration.id), "fetch")
-
-        assert token is None
-
-    def test_refuses_gitlab(self) -> None:
-        with pytest.raises(GitProviderNotSupported):
-            get_git_token(self.scm_repository("gitlab", 1), "fetch")
-
-    def test_refuses_cursor_origin(self) -> None:
-        with pytest.raises(GitProviderNotSupported):
-            get_git_token(self.scm_repository("cursor_origin", 1), "fetch")

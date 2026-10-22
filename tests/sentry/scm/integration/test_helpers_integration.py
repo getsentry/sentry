@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+from scm.errors import GitProviderNotSupported
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.types import Repository
@@ -7,8 +9,18 @@ from scm.types import Repository
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.private.helpers import fetch_repository, fetch_service_provider, make_fetchers
+from sentry.scm.private.helpers import (
+    fetch_access_token,
+    fetch_repository,
+    fetch_service_provider,
+    make_fetchers,
+)
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import cell_silo_test
+
+TOKEN = "ghs_installation_token"
+# Far enough ahead that the GitHub client never refreshes the token over the network.
+TOKEN_EXPIRES_AT = "3000-01-01T00:00:00"
 
 
 class TestFetchRepository(TestCase):
@@ -455,3 +467,51 @@ class TestMakeFetchers(TestCase):
 
         assert isinstance(provider, GitHubProvider)
         assert service.get_integration.call_count == 1
+
+
+@cell_silo_test
+class TestFetchAccessToken(TestCase):
+    def scm_repository(self, provider_name: str, integration_id: int) -> Repository:
+        return Repository(
+            external_id="1",
+            id=1,
+            integration_id=integration_id,
+            is_active=True,
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider_name=provider_name,  # type: ignore[typeddict-item]
+            web_base_url=None,
+            installation_id=None,
+        )
+
+    def test_returns_the_github_installation_token(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="1",
+            metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
+        )
+
+        token = fetch_access_token(self.scm_repository("github", integration.id), "fetch")
+
+        assert token == TOKEN
+
+    def test_returns_none_for_an_integration_the_organization_does_not_have(self) -> None:
+        integration = self.create_integration(
+            organization=self.create_organization(),
+            provider="github",
+            external_id="2",
+            metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
+        )
+
+        token = fetch_access_token(self.scm_repository("github", integration.id), "fetch")
+
+        assert token is None
+
+    def test_refuses_gitlab(self) -> None:
+        with pytest.raises(GitProviderNotSupported):
+            fetch_access_token(self.scm_repository("gitlab", 1), "fetch")
+
+    def test_refuses_cursor_origin(self) -> None:
+        with pytest.raises(GitProviderNotSupported):
+            fetch_access_token(self.scm_repository("cursor_origin", 1), "fetch")

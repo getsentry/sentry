@@ -4,20 +4,22 @@ from typing import NamedTuple, cast
 
 import sentry_sdk
 from django.db.models import Q
-from scm.errors import SCMCodedError, UnhandledException
+from scm.errors import GitProviderNotSupported, SCMCodedError, UnhandledException
+from scm.git.types import GitOperation
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 
 type IntegrationGetter = Callable[[int, int], RpcIntegration | None]
@@ -82,6 +84,32 @@ def fetch_service_provider(
         )
     else:
         return None
+
+
+def fetch_access_token(repository: Repository, operation: GitOperation) -> str | None:
+    """Return a token that can run git against the repository, minted in control.
+
+    A GitHub installation token carries all of the installation's permissions, so a fetch gets the
+    same token as a push.
+    """
+    provider_name = repository["provider_name"]
+    if provider_name in ("github", "github_enterprise"):
+        try:
+            integration = integration_service.refresh_github_access_token(
+                integration_id=repository["integration_id"],
+                organization_id=repository["organization_id"],
+            )
+        except (ApiError, RpcRemoteException):
+            # GitHub refused to mint a token, e.g. for a suspended app. Answered as a 500, git
+            # would show only "HTTP 500"; GitServer turns None into a 502 that says why.
+            sentry_sdk.capture_exception()
+            return None
+        if integration is None:
+            return None
+        return integration.metadata.get("access_token")
+    raise GitProviderNotSupported(
+        detail=f"Sentry can't relay git for {provider_name} repositories yet."
+    )
 
 
 def fetch_repository(
