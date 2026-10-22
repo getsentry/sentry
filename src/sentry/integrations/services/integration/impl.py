@@ -67,7 +67,7 @@ from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 logger = logging.getLogger(__name__)
 
-# Providers whose client mints or refreshes a short-lived access token in control.
+# Providers whose client takes token_minimum_validity_time and refreshes ahead of expiry.
 ACCESS_TOKEN_PROVIDERS = (
     IntegrationProviderSlug.GITHUB.value,
     IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
@@ -708,7 +708,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         except (
             # The organization's install went away after the lookup above.
             OrganizationIntegrationNotFound,
-            # The provider refused, failed, or couldn't be reached.
             ApiError,
         ) as e:
             # Not the message: it can carry the provider's response.

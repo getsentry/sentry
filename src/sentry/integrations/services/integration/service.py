@@ -334,7 +334,7 @@ class IntegrationService(RpcService):
 
         Org-scoped like ``refresh_github_access_token``. None when the organization has no active
         install of an active integration with that id from one of those providers, or when
-        there's no token to give (no identity, or the provider refused or failed).
+        there's no token to give (the provider refused or failed).
         """
 
     @rpc_method
