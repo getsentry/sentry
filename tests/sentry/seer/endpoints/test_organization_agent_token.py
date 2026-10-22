@@ -1174,6 +1174,25 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 project=self.project,
                 organization_integration=organization_integration,
             )
+        elif name == "scm_code_mapping":
+            _integration, organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            repo = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=_integration.id,
+            )
+            resource = self.create_code_mapping(
+                project=self.project,
+                repo=repo,
+                organization_integration=organization_integration,
+            )
         elif name == "codeowners":
             resource = self.create_codeowners(
                 project=self.project,
@@ -1191,33 +1210,17 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
             resource = self.create_repo(
                 project=self.project,
-                name="permission-matrix/repo",
+                name="permission-matrix/bulk-repo",
                 provider="integrations:github",
                 integration_id=integration.id,
                 external_id="123",
-                url="https://github.com/permission-matrix/repo",
+                url="https://github.com/permission-matrix/bulk-repo",
             )
         elif name == "data_forwarder":
             resource = self.create_data_forwarder(
                 organization=self.org,
                 provider="segment",
                 config={"write_key": "matrix-key"},
-            )
-        elif name == "scm_repository":
-            integration, _organization_integration = self.create_provider_integration_for(
-                self.org,
-                self.owner,
-                provider="github",
-                external_id=f"matrix-github-{uuid4()}",
-                name="Matrix GitHub integration",
-            )
-            resource = self.create_repo(
-                project=self.project,
-                name="permission-matrix/repo",
-                provider="integrations:github",
-                integration_id=integration.id,
-                external_id="123",
-                url="https://github.com/permission-matrix/repo",
             )
         elif name == "flag_log":
             resource = FlagAuditLogModel.objects.create(
@@ -1420,6 +1423,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return self.project.slug
         if placeholder == "codeowners_id":
             return str(self._resource("codeowners").id)
+        if placeholder == "config_id":
+            return str(self._resource("scm_code_mapping").id)
         if placeholder == "team_id_or_slug":
             if endpoint.endpoint_name == "OrganizationSCIMTeamDetails":
                 return str(self.team.id)
@@ -1944,18 +1949,28 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "title": "Permission matrix dashboard mutation"
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
+            ("OrganizationCodeMappingDetailsEndpoint", "PUT"): {
+                "repositoryId": self._resource("scm_code_mapping").project_repository.repository_id,
+                "projectId": self.project.id,
+                "stackRoot": "/app/",
+                "sourceRoot": "src/",
+                "defaultBranch": "main",
+            },
             ("OrganizationCodeMappingsBulkEndpoint", "POST"): {
                 "project": self.project.slug,
                 "repository": self._resource("scm_repository").name,
+                "provider": "github",
                 "defaultBranch": "main",
                 "mappings": [{"stackRoot": "/app/", "sourceRoot": "src/"}],
             },
             ("OrganizationCodeMappingsEndpoint", "POST"): {
-                "integrationId": self._resource("scm_repository").integration_id,
-                "repositoryId": self._resource("scm_repository").id,
+                "integrationId": self._resource(
+                    "scm_code_mapping"
+                ).project_repository.repository.integration_id,
+                "repositoryId": self._resource("scm_code_mapping").project_repository.repository_id,
                 "projectId": self.project.id,
-                "stackRoot": "/app/",
-                "sourceRoot": "src/",
+                "stackRoot": "/new-app/",
+                "sourceRoot": "src/new/",
                 "defaultBranch": "main",
             },
             ("OrganizationDetectorIndexEndpoint", "PUT"): {"enabled": False},

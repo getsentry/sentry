@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0038_add_workflow_config_scope"),
+        ("seer", "0039_seerprojectrepository_one_to_one"),
     ]
 
     operations = [

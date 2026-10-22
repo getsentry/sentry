@@ -33,7 +33,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0039_add_seerprojectrepository_enabled
+seer: 0040_add_seerprojectrepository_enabled
 
 sentry: 1232_backfill_commit_new_repository_id
 

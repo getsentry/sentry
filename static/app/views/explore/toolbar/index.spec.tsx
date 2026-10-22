@@ -24,7 +24,10 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeFunction,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 
@@ -411,6 +414,82 @@ describe('ExploreToolbar', () => {
 
     expect(within(section).queryByLabelText('Clear Visualize')).not.toBeInTheDocument();
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
+  });
+
+  it('allows visualizing saved formulas', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/formulas/`,
+      body: [
+        {
+          id: '1',
+          name: 'formula.apdex',
+          dataset: 'spans',
+          description: null,
+          formula: '{count_satisfied} / count()',
+          prebuilt: true,
+          type: 'number',
+          unit: null,
+          references: [],
+          params: [
+            {name: 'duration', type: 'column', order: 0, value: ''},
+            {name: 'threshold', type: 'number', order: 1, value: ''},
+            {name: 'frustrated', type: 'calculation', order: 2, value: '{threshold} * 4'},
+          ],
+        },
+        {
+          id: '2',
+          name: 'formula.log_rate',
+          dataset: 'logs',
+          description: null,
+          formula: 'count()',
+          prebuilt: false,
+          type: 'number',
+          unit: null,
+          references: [],
+          params: [],
+        },
+      ],
+    });
+
+    let visualizes: readonly Visualize[] = [];
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-saved-formulas'],
+      }),
+      additionalWrapper: Wrapper,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    expect(
+      within(section).queryByRole('option', {name: 'log_rate'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(await within(section).findByRole('option', {name: 'apdex'}));
+    expect(visualizes).toEqual([new VisualizeFunction('formula.apdex(span.duration,1)')]);
+
+    const threshold = within(section).getByRole('textbox', {name: 'threshold'});
+    await userEvent.clear(threshold);
+    await userEvent.type(threshold, '300{Enter}');
+    expect(visualizes).toEqual([
+      new VisualizeFunction('formula.apdex(span.duration,300)'),
+    ]);
+
+    await userEvent.clear(threshold);
+    await userEvent.type(threshold, 'abc');
+    await userEvent.tab();
+    expect(threshold).toHaveValue('300');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'apdex'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
   });
 
   it('does not show a clear button when the default chart is only hidden', async () => {
