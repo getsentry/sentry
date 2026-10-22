@@ -62,6 +62,45 @@ export default Storybook.story('Investigations — Recommended Action', story =>
     </Fragment>
   ));
 
+  story('Threshold change', () => (
+    <CardStory
+      actionRequests={[
+        {
+          ...intervalChange,
+          title: 'Raise the high threshold',
+          rationale: 'Daytime p95 sits near 700 ms, so 650 ms fires on normal traffic.',
+          impact: null,
+          action: {
+            kind: 'update_detector',
+            detectorId: '789',
+            before: {highThreshold: 650, resolutionThreshold: 650},
+            changes: {highThreshold: 800, resolutionThreshold: 750},
+          },
+        },
+      ]}
+    />
+  ));
+
+  story('Query change', () => (
+    <CardStory
+      actionRequests={[
+        {
+          ...intervalChange,
+          title: 'Exclude handled errors',
+          rationale:
+            'Handled payment declines make up most of the errors this monitor counts.',
+          impact: null,
+          action: {
+            kind: 'update_detector',
+            detectorId: '789',
+            before: {query: 'transaction:/api/cart'},
+            changes: {query: 'transaction:/api/cart !error.handled:true'},
+          },
+        },
+      ]}
+    />
+  ));
+
   story('No action', () => (
     <Fragment>
       <Text as="p">

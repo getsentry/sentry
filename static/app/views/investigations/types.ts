@@ -254,7 +254,7 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'cancelled'
 >;
 
-type InvestigationDetectorChangeKey =
+export type InvestigationDetectorChangeKey =
   | 'query'
   | 'aggregate'
   | 'environment'
@@ -267,13 +267,15 @@ type InvestigationDetectorValues = Partial<
   Record<InvestigationDetectorChangeKey, number | string | null>
 >;
 
-type InvestigationAction =
-  | {
-      before: InvestigationDetectorValues;
-      changes: InvestigationDetectorValues;
-      detectorId: string;
-      kind: 'update_detector';
-    }
+export type InvestigationUpdateDetectorAction = {
+  before: InvestigationDetectorValues;
+  changes: InvestigationDetectorValues;
+  detectorId: string;
+  kind: 'update_detector';
+};
+
+export type InvestigationAction =
+  | InvestigationUpdateDetectorAction
   | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
 
 type InvestigationActionRequestAnchor = {
