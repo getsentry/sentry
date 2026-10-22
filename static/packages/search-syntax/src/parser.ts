@@ -810,10 +810,7 @@ export type SearchSyntaxError = Error & {
  * Apply `overrides` onto `base`, skipping `undefined` values so an unset
  * override never clears a default.
  */
-function mergeSearchConfig<C extends SearchConfig>(
-  base: C,
-  overrides: Partial<C>
-): C {
+function mergeSearchConfig<C extends SearchConfig>(base: C, overrides: Partial<C>): C {
   return {
     ...base,
     ...Object.fromEntries(
