@@ -798,7 +798,7 @@ class PerforceClientTest(TestCase):
         with self.p4_client._connect():
             pass
 
-        assert p4_stub.timeout == 20
+        assert p4_stub.timeout == 10
         assert "timeout" in p4_stub.attrs_set_before_connect
 
     @mock.patch("sentry.integrations.perforce.client.P4")

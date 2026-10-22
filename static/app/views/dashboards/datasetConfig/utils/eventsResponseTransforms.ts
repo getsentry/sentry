@@ -7,13 +7,12 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
-import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {
   getTimeSeriesResultTypes,
   getTimeSeriesResultUnits,
-  transformTimeSeriesResponseToSeries,
-} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
+} from 'sentry/views/dashboards/utils/getTimeSeriesResultMeta';
+import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
+import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 
 export const eventsResponseTransforms: Pick<
   DatasetConfig<
@@ -23,13 +22,10 @@ export const eventsResponseTransforms: Pick<
     | EventsTimeSeriesResponse,
     TableData | EventsTableData
   >,
-  'transformTable' | 'transformSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
+  'transformTable' | 'transformTimeSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
 > = {
   transformTable: transformEventsResponseToTable,
-  transformSeries: (data, widgetQuery) =>
-    isEventsTimeSeriesResponse(data)
-      ? transformTimeSeriesResponseToSeries(data, widgetQuery)
-      : transformEventsResponseToSeries(data, widgetQuery),
+  transformTimeSeries: transformTimeSeriesResponse,
   getSeriesResultType: data =>
     isEventsTimeSeriesResponse(data) ? getTimeSeriesResultTypes(data) : {},
   getSeriesResultUnit: data =>

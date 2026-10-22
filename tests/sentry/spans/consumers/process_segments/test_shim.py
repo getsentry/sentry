@@ -214,6 +214,8 @@ class TestBuildShimEventData:
     def test_excludes_attributes_used_elsewhere_in_the_event_from_tags(self) -> None:
         segment_span = build_segment_span(
             attributes={
+                # This is the only attribute which should be kept as a tag, as the rest are used in
+                # other places in the event
                 "dog.name": {"value": "maisey", "type": "string"},
                 # These end up at the top level of the event
                 "sentry.segment.name": {"value": "/dogpark", "type": "string"},
@@ -221,18 +223,22 @@ class TestBuildShimEventData:
                 # These end up in `event["contexts"]`
                 "sentry.profile_id": {"value": "11211231415908", "type": "string"},
                 "browser.name": {"value": "chrome", "type": "string"},
+                "resource.os.name": {"value": "OSX", "type": "string"},
                 # These end up in `event["user"]`
                 "user.id": {"value": "1231908", "type": "string"},
                 "user.geo.city": {"value": "Boston", "type": "string"},
                 # These end up in `event["sdk"]`
                 "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
                 "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
-                # These end up in `event["request"]`
+                # These end up in various parts of `event["request"]`
+                "url.domain": {"value": "dogs.are.great", "type": "string"},
                 "url.query": {"value": "dogs=great", "type": "string"},
                 "http.request.body.data": {
                     "value": '{"so": "much", "fur": "everywhere"}',
                     "type": "string",
                 },
+                "http.request.header.content-type": {"value": "application/json", "type": "string"},
+                "user_agent.original": {"value": "Mozilla/5.0 (Dogs)", "type": "string"},
             }
         )
 
@@ -400,6 +406,128 @@ class TestBuildShimEventData:
         event = build_shim_event_data(segment_span, [segment_span])
 
         assert event["request"]["url"] == "/dogpark"
+
+    @pytest.mark.parametrize(
+        ("additional_server_attributes", "expected_url"),
+        (
+            (  # HTTP with default port
+                {
+                    "url.scheme": {"value": "http", "type": "string"},
+                    "server.port": {"value": 80, "type": "integer"},
+                },
+                "http://dogs.are.great/dogpark",
+            ),
+            (  # HTTP with non-default port
+                {
+                    "url.scheme": {"value": "http", "type": "string"},
+                    "server.port": {"value": 8080, "type": "integer"},
+                },
+                "http://dogs.are.great:8080/dogpark",
+            ),
+            (  # HTTPS with default port
+                {
+                    "url.scheme": {"value": "https", "type": "string"},
+                    "server.port": {"value": 443, "type": "integer"},
+                },
+                "https://dogs.are.great/dogpark",
+            ),
+            (  # HTTPS with non-default port
+                {
+                    "url.scheme": {"value": "https", "type": "string"},
+                    "server.port": {"value": 8443, "type": "integer"},
+                },
+                "https://dogs.are.great:8443/dogpark",
+            ),
+            (  # IPV6 without brackets
+                {
+                    "server.address": {"value": "::1", "type": "string"},
+                },
+                "http://[::1]/dogpark",
+            ),
+            (  # IPV6 with brackets
+                {
+                    "server.address": {"value": "[::1]", "type": "string"},
+                },
+                "http://[::1]/dogpark",
+            ),
+            (  # IPV6 with port
+                {
+                    "server.address": {"value": "::1", "type": "string"},
+                    "server.port": {"value": 8080, "type": "integer"},
+                },
+                "http://[::1]:8080/dogpark",
+            ),
+            (  # No scheme or port
+                {},
+                "http://dogs.are.great/dogpark",
+            ),
+            (  # No host
+                {
+                    "server.address": {"value": "", "type": "string"},
+                },
+                "/dogpark",
+            ),
+        ),
+        ids=repr,
+    )
+    def test_reconstructs_full_url(
+        self, additional_server_attributes: Attributes, expected_url: str
+    ) -> None:
+        # OTel spans
+        segment_span = build_segment_span(
+            attributes={
+                "url.path": {"value": "/dogpark", "type": "string"},
+                "server.address": {"value": "dogs.are.great", "type": "string"},
+                **additional_server_attributes,
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == expected_url
+
+    def test_reconstructs_request_headers(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                # Header with dedicated attribute name
+                "user_agent.original": {"value": "Mozilla/5.0 (Dogs)", "type": "string"},
+                # Same header, keyed using the catch-all header attribute convention (should get
+                # dropped as a duplicate)
+                "http.request.header.user-agent": {
+                    "value": ["Mozilla/5.0 (Dogs)"],
+                    "type": "array",
+                },
+                # Single-element array value (should get pulled out of the array)
+                "http.request.header.referer": {
+                    "value": ["https://dogs.are.great/"],
+                    "type": "array",
+                },
+                # Multiple-element array value (should get joined into a single string)
+                "http.request.header.accept-encoding": {
+                    "value": ["gzip", "br"],
+                    "type": "array",
+                },
+                # String value (should be used as is)
+                "http.request.header.content-type": {
+                    "value": "application/json",
+                    "type": "string",
+                },
+                # Empty value (should be ignored)
+                "http.request.header.x-empty": {
+                    "value": [],
+                    "type": "array",
+                },
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["headers"] == [
+            ["User-Agent", "Mozilla/5.0 (Dogs)"],
+            ["Referer", "https://dogs.are.great/"],
+            ["Accept-Encoding", "gzip, br"],
+            ["Content-Type", "application/json"],
+        ]
 
     @pytest.mark.parametrize(
         "body",

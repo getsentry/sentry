@@ -4,6 +4,7 @@ import logging
 import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
+from time import time
 from typing import Any
 
 import orjson
@@ -577,6 +578,9 @@ def _do_save_event(
 
     data = load_event_payload(data, cache_key, processing_store)
     event_type = data and data.get("type") or "none"
+
+    if data:
+        data["save_event_start"] = time()
 
     track_event_since_received(
         step="start_save_event",

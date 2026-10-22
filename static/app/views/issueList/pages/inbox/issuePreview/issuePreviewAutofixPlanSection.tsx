@@ -19,12 +19,10 @@ import {WorkingIndicator} from './workingIndicator';
 
 export function IssuePreviewAutofixPlanSection({
   autofix,
-  defaultExpanded,
   readOnly = false,
   section,
 }: {
   autofix: ReturnType<typeof useExplorerAutofix>;
-  defaultExpanded: boolean;
   section: AutofixSection;
   readOnly?: boolean;
 }) {
@@ -39,53 +37,44 @@ export function IssuePreviewAutofixPlanSection({
       step="solution"
     >
       <IssuePreviewSection
-        aria-label={t('Implementation Plan')}
-        defaultExpanded={defaultExpanded}
+        title={t('Implementation Plan')}
+        actions={
+          <Fragment>
+            <RetryableAutofixSection.Button />
+            <CopySectionMarkdown section={section} />
+          </Fragment>
+        }
       >
-        <IssuePreviewSection.Title
-          trailingItems={
-            <Fragment>
-              <RetryableAutofixSection.Button />
-              <CopySectionMarkdown section={section} />
-            </Fragment>
-          }
-        >
-          {t('Implementation Plan')}
-        </IssuePreviewSection.Title>
-        <IssuePreviewSection.Summary>
-          <RetryableAutofixSection.Prompt
-            placeholder={t('Give Seer additional context to improve this plan.')}
-            prompt={t('How can this plan be improved?')}
-          />
-          {section.status === 'processing' ? (
-            <WorkingIndicator blocks={section.blocks}>
-              {t('Generating implementation plan...')}
-            </WorkingIndicator>
-          ) : plan ? (
-            <Markdown raw={plan.one_line_summary} />
-          ) : (
-            <Text variant="muted">{t('No implementation plan was generated.')}</Text>
-          )}
-        </IssuePreviewSection.Summary>
-        <IssuePreviewSection.Content>
-          {plan?.steps.length ? (
-            <Stack gap="md">
-              <Text bold>{t('Steps to Resolve')}</Text>
-              <Stack as="ol" gap="md" paddingLeft="xl">
-                {plan.steps.map((step, index) => (
-                  <Container as="li" key={index}>
-                    <Stack gap="xs">
-                      <Markdown raw={step.title} />
-                      <Text size="sm" variant="muted">
-                        {step.description}
-                      </Text>
-                    </Stack>
-                  </Container>
-                ))}
-              </Stack>
+        <RetryableAutofixSection.Prompt
+          placeholder={t('Give Seer additional context to improve this plan.')}
+          prompt={t('How can this plan be improved?')}
+        />
+        {section.status === 'processing' ? (
+          <WorkingIndicator blocks={section.blocks}>
+            {t('Generating implementation plan...')}
+          </WorkingIndicator>
+        ) : plan ? (
+          <Markdown raw={plan.one_line_summary} />
+        ) : (
+          <Text variant="muted">{t('No implementation plan was generated.')}</Text>
+        )}
+        {plan?.steps.length ? (
+          <Stack gap="md">
+            <Text bold>{t('Steps to Resolve')}</Text>
+            <Stack as="ol" gap="md" paddingLeft="xl">
+              {plan.steps.map((step, index) => (
+                <Container as="li" key={index}>
+                  <Stack gap="xs">
+                    <Markdown raw={step.title} />
+                    <Text size="sm" variant="muted">
+                      {step.description}
+                    </Text>
+                  </Stack>
+                </Container>
+              ))}
             </Stack>
-          ) : null}
-        </IssuePreviewSection.Content>
+          </Stack>
+        ) : null}
       </IssuePreviewSection>
     </RetryableAutofixSection>
   );

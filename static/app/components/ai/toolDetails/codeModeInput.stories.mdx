@@ -1,8 +1,8 @@
 ---
 title: Code Mode Span Details
-description: Formatted code inputs and structured tool outputs.
+description: Code summaries, formatted inputs, and structured tool outputs.
 category: patterns
-source: sentry/components/ai/toolDetails/codeModeInput
+source: sentry/components/ai/toolDetails/codeModeDetails
 ---
 
 import {CodeModeInput} from './codeModeInput';
@@ -12,14 +12,29 @@ import * as Storybook from 'sentry/stories';
 ## Code Execution
 
 JavaScript and TypeScript inputs are formatted and syntax-highlighted.
+`CodeModeDetails` requests a short summary for the conversation and trace detail
+panels and passes it to the presentational `CodeModeInput`. Summaries respect
+organization AI settings and are skipped for code longer than 4,000 characters.
+A Summary placeholder is shown while generation is pending; the code stays
+available throughout loading or failure. The language label and copy button share
+the snippet's built-in header. Transcript previews do not request summaries.
+
+This preview provides a static summary without making a generation request.
 
 <Storybook.Demo>
   <CodeModeInput
+    summary="Search and summarize recent issues"
     language="javascript"
     code={
       'const results=await Promise.all([api.search({query:"is:unresolved",limit:5}),api.search({query:"level:error",limit:5})]);const issues=results.flat();return issues.map(issue=>({title:issue.title,count:issue.count}));'
     }
   />
+</Storybook.Demo>
+
+## Loading
+
+<Storybook.Demo>
+  <CodeModeInput isSummaryLoading language="javascript" code="const total = 2 + 3;" />
 </Storybook.Demo>
 
 ## Tool Output

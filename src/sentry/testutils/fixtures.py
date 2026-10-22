@@ -203,6 +203,9 @@ class Fixtures:
     def create_investigation_comment(self, *args, **kwargs):
         return Factories.create_investigation_comment(*args, **kwargs)
 
+    def create_investigation_action_request(self, *args, **kwargs):
+        return Factories.create_investigation_action_request(*args, **kwargs)
+
     def create_investigation_orchestration_run(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_run(*args, **kwargs)
 
@@ -792,9 +795,6 @@ class Fixtures:
 
     def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
-
-    def snooze_rule(self, *args, **kwargs):
-        return Factories.snooze_rule(*args, **kwargs)
 
     def create_request_access(self, *args, **kwargs):
         return Factories.create_request_access(*args, **kwargs)

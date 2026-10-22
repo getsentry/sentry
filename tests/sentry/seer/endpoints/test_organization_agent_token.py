@@ -661,7 +661,7 @@ class OrganizationAgentTokenTest(APITestCase):
             scope_list=list(scopes),
         )
 
-    def test_mint_defaults_to_readonly(self) -> None:
+    def test_mint_defaults_to_readonly_and_default_writes(self) -> None:
         self.login_as(self.owner)
         with self.feature(FLAG):
             resp = self._mint(sessionId="s1")
@@ -672,7 +672,11 @@ class OrganizationAgentTokenTest(APITestCase):
         assert claims["org"] == self.org.id
         assert claims["sid"] == "s1"
         assert "org:write" not in claims["scopes"]
-        assert set(claims["scopes"]) <= agent_token.readonly_scopes()
+        assert "event:write" not in claims["scopes"]
+        assert "seer:write" in claims["scopes"]
+        assert set(claims["scopes"]) <= (
+            agent_token.readonly_scopes() | agent_token.AGENT_DEFAULT_WRITE_SCOPES
+        )
 
     def test_feature_off_is_not_found(self) -> None:
         self.login_as(self.owner)
@@ -1177,11 +1181,43 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 raw="",
                 schema={},
             )
+        elif name == "scm_repository":
+            integration, _organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            resource = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id="123",
+                url="https://github.com/permission-matrix/repo",
+            )
         elif name == "data_forwarder":
             resource = self.create_data_forwarder(
                 organization=self.org,
                 provider="segment",
                 config={"write_key": "matrix-key"},
+            )
+        elif name == "scm_repository":
+            integration, _organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            resource = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id="123",
+                url="https://github.com/permission-matrix/repo",
             )
         elif name == "flag_log":
             resource = FlagAuditLogModel.objects.create(
@@ -1513,6 +1549,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         return path
 
     def _query_params(self, endpoint: PublicGetEndpoint | PublicMutationEndpoint) -> dict[str, Any]:
+        if endpoint.endpoint_name == "ProjectStacktraceLinkEndpoint":
+            return {"file": "src/matrix.py", "platform": "python"}
         if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
             return {"channel": "permission-matrix"}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
@@ -1846,12 +1884,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("CustomInboundFilterDetailsEndpoint", "PUT"): {
                 "name": "Updated permission matrix filter",
                 "dataType": "error",
-                "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+                "conditions": [
+                    {"type": "error_message", "operator": "glob", "value": ["TypeError*"]}
+                ],
             },
             ("CustomInboundFiltersEndpoint", "POST"): {
                 "name": "Permission matrix new filter",
                 "dataType": "all",
-                "conditions": [{"type": "release", "value": ["2.*"]}],
+                "conditions": [{"type": "release", "operator": "glob", "value": ["2.*"]}],
             },
             ("DataForwardingDetailsEndpoint", "PUT"): {
                 "provider": "segment",
@@ -1904,6 +1944,20 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "title": "Permission matrix dashboard mutation"
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
+            ("OrganizationCodeMappingsBulkEndpoint", "POST"): {
+                "project": self.project.slug,
+                "repository": self._resource("scm_repository").name,
+                "defaultBranch": "main",
+                "mappings": [{"stackRoot": "/app/", "sourceRoot": "src/"}],
+            },
+            ("OrganizationCodeMappingsEndpoint", "POST"): {
+                "integrationId": self._resource("scm_repository").integration_id,
+                "repositoryId": self._resource("scm_repository").id,
+                "projectId": self.project.id,
+                "stackRoot": "/app/",
+                "sourceRoot": "src/",
+                "defaultBranch": "main",
+            },
             ("OrganizationDetectorIndexEndpoint", "PUT"): {"enabled": False},
             ("OrganizationGroupSearchViewsEndpoint", "POST"): {
                 "name": "Permission Matrix Issue View",
@@ -1914,6 +1968,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "timeFilters": {"period": "14d"},
             },
             ("OrganizationReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
+            ("OrganizationRepositorySettingsEndpoint", "PUT"): {
+                "repositoryIds": [self._resource("scm_repository").id],
+                "enabledCodeReview": True,
+            },
             ("OrganizationStarredServiceSpansEndpoint", "POST"): {
                 "service_span": "permission-matrix-span",
                 "project_id": self.project.id,

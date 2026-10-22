@@ -112,7 +112,13 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
     def create(self, validated_value: dict[str, Any]) -> Action:
         self._check_action_type(Action.Type(validated_value["type"]))
-        return Action.objects.create(**validated_value)
+        return Action.objects.create(
+            type=validated_value["type"],
+            config=validated_value["config"],
+            data=validated_value["data"],
+            integration_id=validated_value.get("integration_id"),
+            status=validated_value.get("status", ObjectStatus.ACTIVE),
+        )
 
     def update(self, instance: Action, validated_value: dict[str, Any]) -> Action:
         if instance.type != validated_value["type"]:

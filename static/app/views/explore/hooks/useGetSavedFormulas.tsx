@@ -27,6 +27,7 @@ export type FormulaReference = {
 
 export type SavedFormula = {
   dataset: FormulaDataset;
+  description: string | null;
   formula: string;
   id: string;
   /** Prefixed with `formula.` so it cannot collide with a built in function. */
