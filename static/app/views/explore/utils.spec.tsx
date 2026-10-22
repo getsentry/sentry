@@ -1,5 +1,6 @@
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -7,13 +8,18 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {DiscoverSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import type {
+  DiscoverSavedQuery,
+  ReadableSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQuery, SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
   getFirstSamplingWarning,
   getSamplingWarningReason,
+  getSavedQueryTraceItemUrl,
   getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
   prettifyAggregation,
@@ -797,5 +803,43 @@ describe('getYAxisDiscoverSavedQuery', () => {
     expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([
       {yAxes: ['count_unique(release)']},
     ]);
+  });
+});
+
+describe('getSavedQueryTraceItemUrl', () => {
+  const organization = OrganizationFixture();
+
+  function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {
+    return new SavedQuery({
+      id: 1,
+      name: 'Conversations',
+      dataset: 'ai_conversations',
+      projects: [1],
+      starred: false,
+      position: null,
+      interval: '',
+      lastVisited: '',
+      dateAdded: '',
+      dateUpdated: '',
+      statsPeriod: '24h',
+      query: [{fields: [], mode: Mode.SAMPLES, orderby: '', query: ''}],
+      ...overrides,
+    });
+  }
+
+  it('restores the errors only filter for conversations', () => {
+    const url = getSavedQueryTraceItemUrl({
+      organization,
+      savedQuery: conversationsSavedQuery({errorsOnly: true}),
+    });
+    expect(new URL(url, 'https://sentry.io').searchParams.get('errorsOnly')).toBe('true');
+  });
+
+  it('omits the errors only filter when it was not saved', () => {
+    const url = getSavedQueryTraceItemUrl({
+      organization,
+      savedQuery: conversationsSavedQuery(),
+    });
+    expect(new URL(url, 'https://sentry.io').searchParams.has('errorsOnly')).toBe(false);
   });
 });
