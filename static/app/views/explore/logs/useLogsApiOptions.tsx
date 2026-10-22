@@ -180,3 +180,7 @@ export function useLogsApiOptionsWithInfinite({
     },
   };
 }
+
+export type LogsInfiniteQueryKey = ReturnType<
+  typeof useLogsApiOptionsWithInfinite
+>['infiniteApiOptions']['queryKey'];
