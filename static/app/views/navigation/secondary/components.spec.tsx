@@ -2,7 +2,7 @@ import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {Navigation} from 'sentry/views/navigation';
@@ -11,6 +11,7 @@ import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
@@ -59,6 +60,48 @@ function setupMocks() {
     body: [],
   });
 }
+
+describe('SecondaryNavigation.Section', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('remembers whether a section is collapsed', async () => {
+    const section = (
+      <SecondaryNavigation.Section id="test-section" title="Saved views">
+        <a href="/saved/">Saved view</a>
+      </SecondaryNavigation.Section>
+    );
+    const {unmount} = render(section);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Saved views'}));
+    expect(screen.queryByRole('link', {name: 'Saved view'})).not.toBeInTheDocument();
+    unmount();
+    render(section);
+
+    expect(screen.getByRole('button', {name: 'Saved views'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.queryByRole('link', {name: 'Saved view'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Saved views'}));
+    expect(screen.getByRole('link', {name: 'Saved view'})).toBeVisible();
+  });
+
+  it('keeps non-collapsible sections visible despite a saved collapsed state', () => {
+    localStorage.setItem('secondary-nav-section-test-section-collapsed', 'true');
+    render(
+      <SecondaryNavigation.Section
+        id="test-section"
+        title="Saved views"
+        collapsible={false}
+      >
+        <a href="/saved/">Saved view</a>
+      </SecondaryNavigation.Section>
+    );
+
+    expect(screen.queryByRole('button', {name: 'Saved views'})).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Saved view'})).toBeVisible();
+  });
+});
 
 describe('SecondarySidebar', () => {
   beforeEach(setupMocks);

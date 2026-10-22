@@ -60,7 +60,8 @@ export function useCollapsedNavigation() {
   const shouldNavigationStayOpen = useCallback(() => {
     const hasKeyboardFocus = navigationParentRef.current?.querySelector(':focus-visible');
     const hasOpenMenu = navigationParentRef.current?.querySelector(
-      '[aria-expanded="true"]'
+      // Expanded link groups should not keep the sidebar's hover preview open.
+      '[aria-expanded="true"]:not([data-nav-section-toggle])'
     );
     const isDragging = navigationParentRef.current?.querySelector('[data-is-dragging]');
 
