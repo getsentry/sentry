@@ -20,6 +20,11 @@ export interface ConversationTrace {
   /** A span within the trace, used to focus the trace view on the conversation. */
   spanId: string;
   traceId: string;
+  /**
+   * Start of the representative span, in seconds. Without it the trace view only
+   * searches the page's time range and may miss traces older than that.
+   */
+  timestamp?: number;
 }
 
 interface ConversationTraceLinkProps {
@@ -74,10 +79,7 @@ export function ConversationTraceLink({
 
   if (traces.length === 1) {
     return (
-      <Link
-        to={getTraceUrl(organization.slug, firstTrace.traceId, firstTrace.spanId)}
-        onClick={trackClick}
-      >
+      <Link to={getTraceUrl(organization.slug, firstTrace)} onClick={trackClick}>
         <Flex align="center" gap="xs">
           <IconSpan size="xs" />
           <Text size="sm" variant="inherit" wrap="nowrap">
@@ -89,13 +91,13 @@ export function ConversationTraceLink({
   }
 
   const items: MenuItemProps[] = [
-    ...traces.slice(0, VISIBLE_TRACE_COUNT).map(({traceId, spanId}) => ({
-      key: traceId,
-      label: getShortTraceId(traceId),
+    ...traces.slice(0, VISIBLE_TRACE_COUNT).map(trace => ({
+      key: trace.traceId,
+      label: getShortTraceId(trace.traceId),
       // Accents the id and its icon, so each trace reads as a link.
       priority: 'primary' as const,
       leadingItems: <MenuTraceIcon size="xs" />,
-      to: getTraceUrl(organization.slug, traceId, spanId),
+      to: getTraceUrl(organization.slug, trace),
       onAction: trackClick,
     })),
     {
@@ -148,8 +150,10 @@ function getShortTraceId(traceId: string) {
   return traceId.slice(0, 8);
 }
 
-function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
+function getTraceUrl(orgSlug: string, {traceId, spanId, timestamp}: ConversationTrace) {
+  const timestampParam =
+    timestamp === undefined ? '' : `&timestamp=${Math.floor(timestamp)}`;
   return normalizeUrl(
-    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
+    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}${timestampParam}`
   );
 }

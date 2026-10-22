@@ -54,6 +54,27 @@ describe('ConversationTraceLink', () => {
     );
   });
 
+  it('anchors the trace link to the span start timestamp', () => {
+    render(
+      <ConversationTraceLink
+        conversationId="conversation-1"
+        traces={[
+          {
+            traceId: 'a3805648ffffffffffffffffffffffff',
+            spanId: 'span-1',
+            timestamp: 1700000000.789,
+          },
+        ]}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByRole('link', {name: 'a3805648'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/explore/traces/trace/a3805648ffffffffffffffffffffffff/?node=span-span-1&timestamp=1700000000`
+    );
+  });
+
   it('lists every trace and "View all" for multiple traces', async () => {
     render(
       <ConversationTraceLink conversationId="conversation-1" traces={makeTraces(2)} />,

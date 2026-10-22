@@ -32,7 +32,10 @@ import {
   normalizeUserField,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
-import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
+import {
+  ConversationTraceLink,
+  type ConversationTrace,
+} from 'sentry/views/explore/conversations/components/conversationTraceLink';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {
   ConversationModelUsage,
@@ -127,18 +130,25 @@ export function ConversationSummary({
 
   // Distinct traces the conversation spans, keyed by trace ID with a
   // representative span ID to deep-link into the trace view.
-  const traces = useMemo(() => {
+  const traces = useMemo((): ConversationTrace[] => {
     if (!nodeTraceMap) {
       return [];
     }
+    const startTimestamps = new Map<string, number | undefined>(
+      nodes.map(node => [node.id, node.startTimestamp])
+    );
     const seen = new Map<string, string>();
     for (const [spanId, traceId] of nodeTraceMap) {
       if (!seen.has(traceId)) {
         seen.set(traceId, spanId);
       }
     }
-    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
-  }, [nodeTraceMap]);
+    return Array.from(seen, ([traceId, spanId]) => ({
+      traceId,
+      spanId,
+      timestamp: startTimestamps.get(spanId),
+    }));
+  }, [nodeTraceMap, nodes]);
 
   return (
     <Flex
