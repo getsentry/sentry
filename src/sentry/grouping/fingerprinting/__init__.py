@@ -27,88 +27,81 @@ QUOTED_STRING_REGEX = re.compile(r'"(?:[^"\\]|\\.)*"')
 LOOKALIKE_ARROW_REGEX = re.compile(r"→|⟶|⇒|➔|=>|—>|–>")
 # An unquoted matcher value swallows a `->` written directly after it
 GLUED_ARROW_REGEX = re.compile(r"[^\s-]->")
+# `->` and `→` written as their own words, rather than inside a value like `a->b`
+SEPARATOR_REGEX = re.compile(r"(?<!\S)->(?!\S)")
+UNICODE_ARROW_REGEX = re.compile(r"(?<!\S)→(?!\S)")
 
 
-def _blank_quoted_strings(line: str) -> str:
+def _blank_quoted_strings(text: str) -> str:
     """Blank out quoted strings without shifting offsets."""
-    return QUOTED_STRING_REGEX.sub(lambda m: " " * len(m.group()), line)
+    return QUOTED_STRING_REGEX.sub(lambda m: " " * len(m.group()), text)
 
 
-def _find_unicode_arrow(config: str, rule_start: int) -> int | None:
+def _parse_rules(config: str) -> list[FingerprintRule]:
+    try:
+        tree = fingerprinting_grammar.parse(config)
+    except ParseError as e:
+        raise InvalidFingerprintingConfig(_describe_syntax_error(e))
+    return FingerprintingVisitor().visit(tree)
+
+
+def _convert_unicode_arrows(config: str) -> str:
     """
-    Find a `→` written in place of `->` in the rule starting at `rule_start`, skipping quoted
-    strings (which can span lines). Returns None if the rule already has a `->`.
+    Use `->` in place of the first `→` in each rule that has no `->`. Quoted strings are blanked
+    first, since they can span lines.
     """
-    if config[config.rfind("\n", 0, rule_start) + 1 : rule_start].strip():
-        # The parser stopped partway through a line rather than at the start of a rule
-        return None
-
-    arrow = None
-    in_quote = False
-    i = rule_start
-    while i < len(config) and (in_quote or config[i] != "\n"):
-        if in_quote:
-            if config[i] == "\\":
-                i += 1
-            elif config[i] == '"':
-                in_quote = False
-        elif config[i] == '"':
-            in_quote = True
-        elif config.startswith("->", i):
-            return None
-        elif config[i] == "→" and arrow is None:
-            arrow = i
-        i += 1
-    return arrow
+    chars = list(config)
+    offset = 0
+    for line in _blank_quoted_strings(config).split("\n"):
+        if not line.lstrip().startswith("#") and not SEPARATOR_REGEX.search(line):
+            if arrow := UNICODE_ARROW_REGEX.search(line):
+                chars[offset + arrow.start()] = "->"
+        offset += len(line) + 1
+    return "".join(chars)
 
 
-def validate_config_string(config: str) -> str:
+def normalize_config_string(config: str) -> str:
     """
-    Check that a config parses, returning the string to save. A config that already parses is
-    returned unchanged. Otherwise each rule the parser rejects for using `→` in place of `->` is
-    fixed, and the result is checked again.
+    Check that a config parses, returning the string to save. A config that doesn't parse gets
+    `->` in place of `→` and is checked again.
     """
-    while True:
-        try:
-            fingerprinting_grammar.parse(config)
-        except ParseError as e:
-            arrow = _find_unicode_arrow(config, e.pos)
-            if arrow is None:
-                raise InvalidFingerprintingConfig(_describe_syntax_error(e))
-            config = config[:arrow] + "->" + config[arrow + 1 :]
-        else:
-            # Parse fully as well, which checks matcher names and attributes
-            FingerprintingConfig.from_config_string(config)
-            return config
+    try:
+        _parse_rules(config)
+    except InvalidFingerprintingConfig:
+        config = _convert_unicode_arrows(config)
+        _parse_rules(config)
+    return config
 
 
 def _describe_syntax_error(e: ParseError) -> str:
     """
-    The parser reports a bad matcher or arrow at the start of its line, so look for common mistakes
-    on that line and point at them instead.
+    The parser reports a rule it can't read at all, such as one with a bad arrow, at the start of
+    its line. Look for common mistakes in that rule and point at them instead.
     """
     line_start = e.text.rfind("\n", 0, e.pos) + 1
-    line_end = e.text.find("\n", e.pos)
-    line = e.text[line_start : line_end if line_end != -1 else len(e.text)]
-    unquoted_line = _blank_quoted_strings(line)
+    # Quoted strings can span lines, so blank them to keep the rule on one line
+    rule = _blank_quoted_strings(e.text[line_start:]).split("\n", 1)[0]
 
     pos = e.pos
     hint = None
-    if "->" not in unquoted_line:
-        if lookalike := LOOKALIKE_ARROW_REGEX.search(unquoted_line):
-            pos = line_start + lookalike.start()
-            hint = f'use "->" instead of "{lookalike.group()}"'
-        else:
-            hint = 'expected "->" between the matchers and the fingerprint'
-    elif glued := GLUED_ARROW_REGEX.search(unquoted_line):
-        pos = line_start + glued.start() + 1
-        hint = 'add a space before "->"'
+    if not e.text[line_start : e.pos].strip():
+        if "->" not in rule:
+            if lookalike := LOOKALIKE_ARROW_REGEX.search(rule):
+                pos = line_start + lookalike.start()
+                hint = f'use "->" instead of "{lookalike.group()}"'
+            else:
+                hint = 'expected "->" between the matchers and the fingerprint'
+        elif glued := GLUED_ARROW_REGEX.search(rule):
+            pos = line_start + glued.start() + 1
+            hint = 'add a space before "->"'
 
-    context = line[pos - line_start :].rstrip("\r")
+    pos_line_start = e.text.rfind("\n", 0, pos) + 1
+    pos_line_end = e.text.find("\n", pos)
+    context = e.text[pos : pos_line_end if pos_line_end != -1 else len(e.text)].rstrip("\r")
     if len(context) > 32:
         context = context[:32] + "..."
     line_number = e.text.count("\n", 0, pos) + 1
-    column = pos - line_start + 1
+    column = pos - pos_line_start + 1
     message = f'Invalid syntax near "{context}" (line {line_number}, column {column})'
     return f"{message}: {hint}" if hint else message
 
@@ -186,12 +179,7 @@ class FingerprintingConfig:
     def from_config_string(
         cls, s: Any, bases: Sequence[str] | None = None, mark_as_built_in: bool = False
     ) -> FingerprintingConfig:
-        try:
-            tree = fingerprinting_grammar.parse(s)
-        except ParseError as e:
-            raise InvalidFingerprintingConfig(_describe_syntax_error(e))
-
-        rules = FingerprintingVisitor().visit(tree)
+        rules = _parse_rules(s)
 
         if mark_as_built_in:
             for rule in rules:

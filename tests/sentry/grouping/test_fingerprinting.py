@@ -11,7 +11,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.context import GroupingContext
-from sentry.grouping.fingerprinting import FingerprintingConfig, validate_config_string
+from sentry.grouping.fingerprinting import FingerprintingConfig, normalize_config_string
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.fingerprinting.utils import resolve_fingerprint_values
 from sentry.grouping.strategies.base import StrategyConfiguration
@@ -215,6 +215,15 @@ def test_parsing_errors() -> None:
             "error.type:B -> a{b",
             'Invalid syntax near "{b" (line 1, column 18)',
         ),
+        # Once the parser gets past the arrow, its own position is used
+        (
+            "message:a -> b->c{d",
+            'Invalid syntax near "{d" (line 1, column 18)',
+        ),
+        (
+            'message:a -> "x\ny → z" {d',
+            'Invalid syntax near "{d" (line 2, column 8)',
+        ),
     ],
 )
 def test_parsing_error_messages(config: str, message: str) -> None:
@@ -230,6 +239,9 @@ def test_parsing_error_messages(config: str, message: str) -> None:
         ("error.type:A → a\r\nerror.type:B → b", "error.type:A -> a\r\nerror.type:B -> b"),
         ('message:"a → b" → b', 'message:"a → b" -> b'),
         ("# a → b\nerror.type:A → a", "# a → b\nerror.type:A -> a"),
+        # A `->` inside a value isn't the rule's arrow
+        ("message:a->b → c", "message:a->b -> c"),
+        ("message:a → b->c", "message:a -> b->c"),
         # Quoted values can span lines, so a `→` on its own line can be part of an existing rule
         ('message:"a\n→ b\nc" -> x', 'message:"a\n→ b\nc" -> x'),
         (
@@ -242,13 +254,13 @@ def test_parsing_error_messages(config: str, message: str) -> None:
         ),
     ],
 )
-def test_validate_config_string_unicode_arrows(config: str, expected: str) -> None:
-    assert validate_config_string(config) == expected
+def test_normalize_config_string_unicode_arrows(config: str, expected: str) -> None:
+    assert normalize_config_string(config) == expected
 
 
-def test_validate_config_string_reports_remaining_errors() -> None:
+def test_normalize_config_string_reports_remaining_errors() -> None:
     with pytest.raises(InvalidFingerprintingConfig) as e:
-        validate_config_string("error.type:A → a\nerror.type:B b")
+        normalize_config_string("error.type:A → a\nerror.type:B b")
     assert str(e.value) == (
         'Invalid syntax near "error.type:B b" (line 2, column 1): expected "->" between the matchers and the fingerprint'
     )

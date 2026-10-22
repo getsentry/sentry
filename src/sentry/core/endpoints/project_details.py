@@ -46,7 +46,7 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import validate_config_string
+from sentry.grouping.fingerprinting import normalize_config_string
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.ingest.legacy_filter_lists import set_list
@@ -552,7 +552,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            return validate_config_string(value)
+            return normalize_config_string(value)
         except InvalidFingerprintingConfig as e:
             raise serializers.ValidationError(str(e))
 
