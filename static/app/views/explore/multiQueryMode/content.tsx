@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   addErrorMessage,
@@ -90,7 +91,7 @@ function Content({datePageFilterProps}: ContentProps) {
           (pageFilters.selection.datetime.end
             ? new Date(pageFilters.selection.datetime.end).getTime()
             : null),
-        (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+        (savedQuery.statsPeriod ?? null) !== pageFilters.selection.datetime.period,
       ];
       return hasChangesArray.some(Boolean);
     });
@@ -159,19 +160,14 @@ function Content({datePageFilterProps}: ContentProps) {
               },
             ]}
             trigger={triggerProps => (
-              <Button
+              <OverlayTrigger.Button
+                showChevron={false}
                 {...triggerProps}
                 variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
                 aria-label={t('Save')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-
-                  triggerProps.onClick?.(e);
-                }}
               >
                 {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
-              </Button>
+              </OverlayTrigger.Button>
             )}
           />
         </Flex>

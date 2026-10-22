@@ -22,6 +22,7 @@ import type {LocationDescriptor} from 'history';
 
 import {DragHandle} from '@sentry/scraps/dragHandle';
 import {type Responsive, useResponsivePropResolver} from '@sentry/scraps/layout';
+import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 import {
   COLUMN_ALIGN_JUSTIFY,
@@ -32,7 +33,6 @@ import {
 } from 'sentry/components/tables/sortableHeaderCell';
 import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
-import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
 
 import {
   TableBody,
@@ -264,12 +264,12 @@ export function Table({
   return (
     <TableContext value={contextValue}>
       <TableGrid
+        role="table"
         {...props}
         hiddenColumnIndexes={resolvedColumns.flatMap((column, index) =>
           column.hidden ? [index] : []
         )}
         ref={gridRef}
-        role="table"
         style={template ? {...props.style, gridTemplateColumns: template} : props.style}
       >
         {children}

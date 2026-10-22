@@ -456,11 +456,20 @@ class BaseMetricAlertHandler(ABC):
 
     @classmethod
     def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
+        from sentry.notifications.notification_action.platform_dispatch import (
+            get_platform_provider,
+            send_metric_alert,
+        )
         from sentry.notifications.notification_action.utils import (
             metric_alert_notification_data_factory,
         )
 
         issue_notification_context = IssueNotificationContext(invocation)
+        provider = get_platform_provider(invocation, NotificationSource.METRIC_ALERT)
+        if provider is not None:
+            send_metric_alert(issue_notification_context, provider)
+            return
+
         with shadow_read(
             invocation,
             NotificationSource.METRIC_ALERT,

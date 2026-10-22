@@ -42,7 +42,12 @@ import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/uti
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
+import {
+  combineIngestionMeta,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -55,7 +60,6 @@ import {
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
 import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
@@ -237,7 +241,6 @@ export function useSpansSeriesQuery(
     return {
       requestData,
       skippedForInvalidConditionalFilter,
-      widgetQuery: widgetForRequest.queries[queryIndex]!,
     };
   });
 
@@ -324,25 +327,6 @@ export function useSpansSeriesQuery(
     combine,
   });
 
-  useEventsTimeseriesSpotCheck({
-    config: spansResponseTransforms,
-    enabled,
-    statsQueryResults: queryResults,
-    organization,
-    pageFilters,
-    widget: filteredWidget,
-    timeSeriesQueries: seriesRequests.map(
-      ({requestData, skippedForInvalidConditionalFilter, widgetQuery}) =>
-        skippedForInvalidConditionalFilter
-          ? undefined
-          : {
-              params:
-                convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-              widgetQuery,
-            }
-    ),
-  });
-
   const transformedData = (() => {
     if (allQueriesSkippedForConditionalFilter) {
       return {
@@ -373,7 +357,7 @@ export function useSpansSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
+    const timeseriesResults: Array<Series | WidgetTimeSeries> = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
@@ -388,24 +372,35 @@ export function useSpansSeriesQuery(
 
       const responseData = q.data;
 
-      const queryForTransform = withValidConditionalAggregates(
+      const widgetForTransform = withValidConditionalAggregates(
         filteredWidget,
         requestIndex
-      ).queries[requestIndex]!;
-
-      const transformedResult = spansResponseTransforms.transformSeries!(
-        responseData,
-        queryForTransform,
-        organization
       );
-      const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
+      const queryForTransform = widgetForTransform.queries[requestIndex]!;
 
-      transformedResult.forEach((result: Series) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
-        timeseriesResults.push(result);
-      });
+      if (isEventsTimeSeriesResponse(responseData)) {
+        timeseriesResults.push(
+          ...spansResponseTransforms.transformTimeSeries!(
+            responseData,
+            widgetForTransform,
+            requestIndex
+          )
+        );
+      } else {
+        const transformedResult = spansResponseTransforms.transformSeries!(
+          responseData,
+          queryForTransform,
+          organization
+        );
+        const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
+
+        transformedResult.forEach((result: Series) => {
+          if (seriesQueryPrefix) {
+            result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
+          }
+          timeseriesResults.push(result);
+        });
+      }
 
       // Get result types and units from config
       const resultTypes = spansResponseTransforms.getSeriesResultType?.(
@@ -431,6 +426,9 @@ export function useSpansSeriesQuery(
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
+      ingestion: combineIngestionMeta(
+        queryResults.map(q => q?.data).filter(isEventsTimeSeriesResponse)
+      ),
       rawData,
     };
   })();
@@ -649,7 +647,9 @@ export function useSpansTableQuery(
       const meta = transformedDataItem.meta;
       const fieldMeta = queryForTransform.fieldMeta;
       if (fieldMeta && meta) {
+        // oxlint-disable-next-line react/todo
         const units = (meta.units ??= {});
+        // oxlint-disable-next-line react/todo
         const fields = (meta.fields ??= {});
         fieldMeta.forEach((m, index) => {
           const field = queryForTransform.fields?.[index];

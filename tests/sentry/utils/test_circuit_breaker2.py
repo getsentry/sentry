@@ -129,7 +129,7 @@ class CircuitBreakerTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.flushdb()
         self.breaker.redis_pipeline.execute()
 
     def test_sets_default_values(self) -> None:
@@ -261,7 +261,7 @@ class RecordErrorTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.flushdb()
         self.breaker.redis_pipeline.execute()
 
     def test_increments_error_count(self) -> None:
@@ -435,7 +435,7 @@ class ShouldAllowRequestTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.flushdb()
         self.breaker.redis_pipeline.execute()
 
     def test_allows_request_in_non_broken_state_with_quota_remaining(self) -> None:
@@ -516,7 +516,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.flushdb()
         self.breaker.redis_pipeline.execute()
 
     def test_sets_rate_based_defaults(self) -> None:
@@ -689,7 +689,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         count_breaker = MockCircuitBreaker(
             "count_only", DEFAULT_CONFIG, CountBasedTripStrategy.from_config(DEFAULT_CONFIG)
         )
-        count_breaker.redis_pipeline.flushall()
+        count_breaker.redis_pipeline.flushdb()
         count_breaker.redis_pipeline.execute()
 
         assert isinstance(count_breaker.trip_strategy, CountBasedTripStrategy)

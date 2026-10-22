@@ -604,6 +604,105 @@ pool.urlopen("GET", "/")
     assert _run(src, filename="src/sentry/example.py") == []
 
 
+def test_S030_allows_exact_legacy_callsite_baseline() -> None:
+    src = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+
+
+def generate_title_from_query():
+    body = LlmGenerateRequest(prompt="hello")
+    return make_llm_generate_request(body)
+"""
+
+    assert _run(src, filename="src/sentry/seer/endpoints/issue_view_title_generate.py") == []
+
+
+def test_S030_rejects_new_legacy_caller() -> None:
+    src = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+
+
+def new_caller():
+    body = LlmGenerateRequest(prompt="hello")
+    return make_llm_generate_request(body)
+"""
+
+    errors = _run(src, filename="src/sentry/seer/new_caller.py")
+    assert len(errors) == 4
+    assert all("S030 Do not add new callers" in error for error in errors)
+
+
+def test_S030_rejects_second_call_in_allowlisted_function() -> None:
+    src = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+
+
+def generate_title_from_query():
+    first = LlmGenerateRequest(prompt="first")
+    second = LlmGenerateRequest(prompt="second")
+    make_llm_generate_request(first)
+    return make_llm_generate_request(second)
+"""
+
+    errors = _run(src, filename="src/sentry/seer/endpoints/issue_view_title_generate.py")
+    assert errors == [
+        "t.py:6:13: S030 Do not add new callers of the legacy Seer LLM generate API; "
+        "add a named Seer one-shot so prompts and model selection stay in Seer",
+        "t.py:8:11: S030 Do not add new callers of the legacy Seer LLM generate API; "
+        "add a named Seer one-shot so prompts and model selection stay in Seer",
+    ]
+
+
+def test_S030_rejects_aliased_and_module_qualified_calls() -> None:
+    aliased = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest as LegacyRequest
+
+LegacyRequest(prompt="hello")
+"""
+    module_qualified = """\
+import sentry.seer.signed_seer_api as seer_api
+
+seer_api.make_llm_generate_request({})
+"""
+
+    assert len(_run(aliased, filename="src/sentry/example.py")) == 2
+    assert len(_run(module_qualified, filename="src/sentry/example.py")) == 2
+
+
+def test_S030_rejects_direct_route_bypass() -> None:
+    src = 'make_signed_seer_api_request(pool, "/v1/llm/generate", b"{}")\n'
+
+    assert _run(src, filename="src/sentry/example.py") == [
+        "t.py:1:35: S030 Do not add new callers of the legacy Seer LLM generate API; "
+        "add a named Seer one-shot so prompts and model selection stay in Seer"
+    ]
+
+
+def test_S030_reports_stale_allowlist_entry() -> None:
+    src = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+
+
+def generate_title_from_query():
+    return None
+"""
+
+    errors = _run(src, filename="src/sentry/seer/endpoints/issue_view_title_generate.py")
+    assert len(errors) == 2
+    assert all("S030 stale legacy Seer LLM generate allowlist entry" in error for error in errors)
+
+
+def test_S030_allows_legacy_api_definition() -> None:
+    src = """\
+class LlmGenerateRequest: ...
+
+def make_llm_generate_request(body):
+    return make_signed_seer_api_request(pool, "/v1/llm/generate", body)
+"""
+
+    assert _run(src, filename="src/sentry/seer/signed_seer_api.py") == []
+
+
 def _codes(src: str) -> list[str]:
     """`line:CODE` for each diagnostic, for terse assertions."""
     tree = ast.parse(src)

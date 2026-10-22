@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -20,7 +21,7 @@ export function DiscordPreview({
   registration: NotificationTemplateRegistration;
 }) {
   const {body, actions, subject, chart, footer} = registration.example;
-  const previewTime = moment(new Date()).format('MM/DD/YY, h:mm A');
+  const [previewTime] = useState(() => moment(new Date()).format('MM/DD/YY, h:mm A'));
   const payload = registration.previews[NotificationProviderKey.DISCORD];
   return (
     <DebugNotificationsPreview title="Discord">

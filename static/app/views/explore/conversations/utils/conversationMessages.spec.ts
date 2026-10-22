@@ -675,7 +675,9 @@ describe('conversationMessages utilities', () => {
         nodeId: 'eval-1',
         duration: 500,
       });
-      expect(message?.evaluation?.input?.state).toBe('I cannot log in.');
+      expect(message?.evaluation?.input?.state).toEqual([
+        {parts: [{kind: 'text', text: 'I cannot log in.'}]},
+      ]);
       expect(message?.evaluation?.answers).toEqual([
         {kind: 'score', key: 'urgency', score: 1.6},
       ]);

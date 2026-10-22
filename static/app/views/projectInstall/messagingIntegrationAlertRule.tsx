@@ -12,7 +12,7 @@ import {
   providerDetails,
   type IntegrationChannel,
   type IssueAlertNotificationProps,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
 
 /**

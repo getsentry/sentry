@@ -864,14 +864,11 @@ class Group(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(
-        max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME), db_index=True
-    )
+    logger = models.CharField(max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME))
     level = BoundedPositiveIntegerField(
         choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
         blank=True,
-        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
@@ -898,7 +895,7 @@ class Group(Model):
             (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
-    times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
+    times_seen = BoundedPositiveIntegerField(default=1)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_release = FlexibleForeignKey("sentry.Release", null=True, on_delete=models.PROTECT)

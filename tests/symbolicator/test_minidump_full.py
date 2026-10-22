@@ -273,7 +273,6 @@ class SymbolicatorLargeCompressedDifIntegrationTest(RelayStoreHelper, Transactio
                 **self._FEATURES,
                 "organizations:objectstore-debugfiles-write": True,
                 "organizations:objectstore-debugfiles-read": True,
-                "organizations:objectstore-debugfiles-direct-read": True,
             }
         ):
             self.upload_large_symbols()

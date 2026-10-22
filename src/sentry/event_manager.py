@@ -164,7 +164,6 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -456,6 +455,7 @@ class EventManager:
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         attachments: list[CachedAttachment] | None = None,
+        unprocessed: MutableMapping[str, Any] | None = None,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -491,6 +491,7 @@ class EventManager:
             "project_id": project.id,
             "raw": raw,
             "start_time": start_time,
+            "unprocessed": unprocessed,
         }
 
         # After calling _pull_out_data we get some keys in the job like the platform
@@ -1137,12 +1138,23 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         event = job["event"]
         # We only care about `unprocessed` for error events
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
-            unprocessed = event_processing_store.get(
-                cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
-                unprocessed=True,
-            )
+            unprocessed = job.get("unprocessed")
+            unprocessed_source = "inline"
+            if unprocessed is None:
+                # Clean up after `store.enable-inline-payloads` is 1.0 and
+                # `store.disable-processing-store` is `True`
+                unprocessed_source = "processing_store"
+                unprocessed = event_processing_store.get(
+                    cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
+                    unprocessed=True,
+                )
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
+                metrics.incr(
+                    "events.unprocessed_copy.promoted",
+                    tags={"source": unprocessed_source},
+                    sample_rate=1.0,
+                )
 
         if app_feature:
             event_size = 0
@@ -2935,8 +2947,9 @@ def save_transaction_events(
                 )
             except KeyError:
                 continue
-    set_span_attribute("jobs", len(jobs))
-    set_span_attribute("projects", len(projects))
+    span = traces.get_current_span()
+    if span:
+        span.set_attributes({"jobs": len(jobs), "projects": len(projects)})
 
     # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 
