@@ -140,8 +140,33 @@ describe('Onboarding deployment target', () => {
       })
     );
     expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.onboarding.interaction',
+      expect.objectContaining({action: 'copy_agent_prompt'})
+    );
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
       'agent-monitoring.copy-llm-prompt-click',
-      expect.objectContaining({source: 'agent_setup_prompt'})
+      expect.anything()
+    );
+  });
+
+  it('tracks switching tabs and changing the setup options', async () => {
+    const {organization} = setupProject('node');
+
+    await renderInstructions({organization});
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.onboarding.interaction',
+      expect.objectContaining({action: 'switch_tab', tab: 'human'})
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Cloudflare'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.onboarding.interaction',
+      expect.objectContaining({
+        action: 'select_setup_option',
+        option: 'deploymentTarget',
+        value: 'cloudflare',
+      })
     );
   });
 

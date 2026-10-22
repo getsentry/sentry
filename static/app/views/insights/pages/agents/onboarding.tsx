@@ -53,7 +53,14 @@ function WaitingIndicator({project}: {project: Project}) {
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button variant="primary" busy={fetching} onClick={reloadProjects}>
+    <Button
+      variant="primary"
+      busy={fetching}
+      analyticsEventKey="agent-monitoring.onboarding.interaction"
+      analyticsEventName="Agent Monitoring: Onboarding Interaction"
+      analyticsParams={{action: 'view_agent_monitoring'}}
+      onClick={reloadProjects}
+    >
       {t('View Agent Monitoring')}
     </Button>
   ) : (
@@ -141,12 +148,10 @@ function OnboardingPanel({
                     hasPlatformInstructions={hasPlatformInstructions}
                     waitingIndicator={<WaitingIndicator project={project} />}
                     onInteraction={interaction => {
-                      if (interaction.action === 'copy_agent_prompt') {
-                        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-                          organization,
-                          source: 'agent_setup_prompt',
-                        });
-                      }
+                      trackAnalytics('agent-monitoring.onboarding.interaction', {
+                        organization,
+                        ...interaction,
+                      });
                     }}
                   >
                     {children}
@@ -204,7 +209,17 @@ export function Onboarding() {
     <OnboardingPanel project={project} dsn={dsn.public}>
       {setup.showPlatformOptions && (
         <OptionsWrapper>
-          <AgentSetupOptions setup={setup} />
+          <AgentSetupOptions
+            setup={setup}
+            onChange={(option, value) => {
+              trackAnalytics('agent-monitoring.onboarding.interaction', {
+                organization,
+                action: 'select_setup_option',
+                option,
+                value,
+              });
+            }}
+          />
         </OptionsWrapper>
       )}
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
@@ -226,6 +241,10 @@ export function Onboarding() {
       <AgentSetupSteps
         setup={setup}
         steps={steps}
+        analyticsEvent={{
+          key: 'agent-monitoring.onboarding.interaction',
+          name: 'Agent Monitoring: Onboarding Interaction',
+        }}
         lastStepItems={<WaitingIndicator project={project} />}
         firstStepTrailingItems={
           <OnboardingCopyMarkdownButton

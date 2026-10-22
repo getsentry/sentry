@@ -3,6 +3,21 @@ export type AgentMonitoringEventParameters = {
   'agent-monitoring.drawer.open': Record<string, unknown>;
   'agent-monitoring.drawer.span-select': Record<string, unknown>;
   'agent-monitoring.drawer.view-full-trace-click': Record<string, unknown>;
+  'agent-monitoring.onboarding.interaction': {
+    action:
+      | 'collapse_prompt'
+      | 'copy_agent_prompt'
+      | 'expand_prompt'
+      | 'next_step'
+      | 'previous_step'
+      | 'select_setup_option'
+      | 'switch_tab'
+      | 'view_agent_monitoring';
+    option?: string;
+    step?: number;
+    tab?: 'agent' | 'human';
+    value?: string;
+  };
   'agent-monitoring.page-filter-change': {
     filter: 'project' | 'environment' | 'date' | 'agent' | 'search';
   };
@@ -17,6 +32,7 @@ export const agentMonitoringEventMap: Record<
   string
 > = {
   'agent-monitoring.copy-llm-prompt-click': 'Agent Monitoring: Copy LLM Prompt Click',
+  'agent-monitoring.onboarding.interaction': 'Agent Monitoring: Onboarding Interaction',
   'agent-monitoring.page-filter-change': 'Agent Monitoring: Page Filter Change',
   'agent-monitoring.drawer.open': 'Agent Monitoring: Drawer Open',
   'agent-monitoring.drawer.span-select': 'Agent Monitoring: Span Select',
