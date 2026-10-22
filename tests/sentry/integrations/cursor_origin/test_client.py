@@ -15,6 +15,7 @@ from sentry.integrations.cursor_origin.client import (
     CursorOriginSetupApiClient,
 )
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_URL
+from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiPaginationTruncated
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -192,7 +193,9 @@ class AccessTokenTest(TestCase):
         self, mock_jwt: mock.MagicMock
     ) -> None:
         def rename_then_mint(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
-            self.integration.update(name="renamed", metadata={"account_slug": "renamed"})
+            Integration.objects.filter(id=self.integration.id).update(
+                name="renamed", metadata={"domain_name": "renamed"}
+            )
             return (
                 200,
                 {},
@@ -205,12 +208,60 @@ class AccessTokenTest(TestCase):
 
         self.integration.refresh_from_db()
         assert self.integration.name == "renamed"
-        assert self.integration.metadata["account_slug"] == "renamed"
+        assert self.integration.metadata["domain_name"] == "renamed"
         assert self.integration.metadata["access_token"] == "oit_abc"
+
+    @responses.activate
+    def test_keeps_an_uninstall_made_while_minting(self, mock_jwt: mock.MagicMock) -> None:
+        def disable_then_mint(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            Integration.objects.filter(id=self.integration.id).update(status=ObjectStatus.DISABLED)
+            return (
+                200,
+                {},
+                json.dumps({"token": "oit_abc", "expiresAt": _iso(timedelta(minutes=15))}),
+            )
+
+        responses.add_callback(responses.POST, TOKEN_URL, callback=disable_then_mint)
+
+        CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        self.integration.refresh_from_db()
+        assert self.integration.status == ObjectStatus.DISABLED
+
+    @responses.activate
+    def test_stores_nothing_for_an_integration_deleted_while_minting(
+        self, mock_jwt: mock.MagicMock
+    ) -> None:
+        def delete_then_mint(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            Integration.objects.get(id=self.integration.id).delete()
+            return (
+                200,
+                {},
+                json.dumps({"token": "oit_abc", "expiresAt": _iso(timedelta(minutes=15))}),
+            )
+
+        responses.add_callback(responses.POST, TOKEN_URL, callback=delete_then_mint)
+
+        assert CursorOriginApiClient(integration=self.integration).get_access_token() is None
+        assert not Integration.objects.filter(id=self.integration.id).exists()
 
     @responses.activate
     def test_rejects_a_response_without_a_token(self, mock_jwt: mock.MagicMock) -> None:
         responses.add(responses.POST, TOKEN_URL, json={"expiresAt": _iso(timedelta(minutes=15))})
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+    @responses.activate
+    def test_rejects_a_response_without_an_expiry(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json={"token": "oit_abc", "expiresAt": None})
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+    @responses.activate
+    def test_rejects_a_response_that_is_not_an_object(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json=["oit_abc"])
 
         with pytest.raises(ApiError):
             CursorOriginApiClient(integration=self.integration).get_access_token()

@@ -291,6 +291,8 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
             return None
 
         data = self.post(f"/app/installations/{self.integration.external_id}/access_tokens")
+        if not isinstance(data, Mapping):
+            raise ApiError("no token or expiresAt from Cursor Origin")
 
         token = data.get("token")
         expires_at = data.get("expiresAt")
@@ -308,7 +310,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
             if not integration:
                 return None
             integration.metadata.update({"access_token": token, "expires_at": expires_at})
-            integration.save(update_fields=["metadata"])
+            integration.save(update_fields=["metadata", "date_updated"])
         self.integration = integration
 
         return {"access_token": token, "expires_at": expires_at}
