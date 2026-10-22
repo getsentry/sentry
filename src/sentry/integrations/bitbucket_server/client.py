@@ -19,19 +19,16 @@ from sentry.shared_integrations.exceptions import ApiError
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 
-class BitbucketServerWebhookSecretConfiguration(TypedDict):
-    secret: str
-
-
 class BitbucketServerWebhookFields(TypedDict):
     name: str
     url: str
     active: bool
     events: list[str]
+    sslVerificationRequired: NotRequired[bool]
 
 
 class BitbucketServerWebhookData(BitbucketServerWebhookFields):
-    configuration: BitbucketServerWebhookSecretConfiguration
+    configuration: dict[str, Any]
 
 
 class BitbucketServerWebhookResponse(BitbucketServerWebhookFields):

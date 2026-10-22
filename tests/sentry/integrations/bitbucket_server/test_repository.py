@@ -231,7 +231,11 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
                 "url": "https://sentry.example.com/custom-webhook",
                 "active": False,
                 "events": ["repo:refs_changed"],
-                "configuration": {"secret": "old-secret"},
+                "sslVerificationRequired": False,
+                "configuration": {
+                    "secret": "old-secret",
+                    "custom-setting": "preserved",
+                },
             },
             secret="new-secret",
         ) == {
@@ -239,7 +243,11 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             "url": "https://sentry.example.com/custom-webhook",
             "active": False,
             "events": ["repo:refs_changed"],
-            "configuration": {"secret": "new-secret"},
+            "sslVerificationRequired": False,
+            "configuration": {
+                "secret": "new-secret",
+                "custom-setting": "preserved",
+            },
         }
 
     @responses.activate

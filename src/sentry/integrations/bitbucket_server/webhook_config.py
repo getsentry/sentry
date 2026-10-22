@@ -37,10 +37,13 @@ def build_webhook_data(
 def build_webhook_update_data(
     webhook: BitbucketServerWebhookResponse, *, secret: str
 ) -> BitbucketServerWebhookData:
-    return {
+    data: BitbucketServerWebhookData = {
         "name": webhook["name"],
         "url": webhook["url"],
         "active": webhook["active"],
         "events": webhook["events"],
-        "configuration": {"secret": secret},
+        "configuration": {**webhook.get("configuration", {}), "secret": secret},
     }
+    if "sslVerificationRequired" in webhook:
+        data["sslVerificationRequired"] = webhook["sslVerificationRequired"]
+    return data
