@@ -152,16 +152,14 @@ class GroupNotesEndpoint(GroupEndpoint):
         if should_serve_action_log_activity(group.project, request.user, endpoint=endpoint):
             entry = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
-                type__in=[GroupActionType.COMMENT.value, GroupActionType.COMMENT_CREATED.value],
+                type=GroupActionType.COMMENT.value,
                 idempotency_key=activity_action_idempotency_key(activity),
             ).first()
             if entry:
                 record_activity_read(endpoint, ActivityReadResult.GAL)
-                if entry.type == GroupActionType.COMMENT_CREATED.value:
-                    return Response(
-                        serialize_group_notes(group, [activity], request.user)[0], status=201
-                    )
-                return Response(serialize(entry, request.user), status=201)
+                return Response(
+                    serialize_group_notes(group, [activity], request.user)[0], status=201
+                )
             record_activity_read(
                 endpoint,
                 ActivityReadResult.FELL_BACK,

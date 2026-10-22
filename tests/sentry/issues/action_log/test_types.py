@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from sentry.issues.action_log.types import FirstSeenAction, GroupAction, GroupActionType
 
@@ -115,31 +115,48 @@ def test_checks_nested_models() -> None:
 
 
 @pytest.mark.parametrize(
-    "action_type",
+    "action_type,payload,expected_kind",
     [
-        GroupActionType.COMMENT_CREATED,
-        GroupActionType.COMMENT_EDITED,
-        GroupActionType.COMMENT_DELETED,
+        (GroupActionType.COMMENT, {"comment_id": 42, "text": "original", "mentions": []}, None),
+        (
+            GroupActionType.COMMENT_EDIT,
+            {"comment_id": 73, "text": "edited", "mentions": []},
+            "group_action_log",
+        ),
+        (GroupActionType.COMMENT_DELETE, {"comment_id": 73}, "group_action_log"),
+        (GroupActionType.COMMENT, {"comment_id": 42}, None),
+        (
+            GroupActionType.COMMENT_EDIT,
+            {"comment_id": 42, "comment_id_kind": "activity"},
+            "activity",
+        ),
+        (
+            GroupActionType.COMMENT_DELETE,
+            {"comment_id": 42, "comment_id_kind": "activity"},
+            "activity",
+        ),
     ],
 )
-def test_body_free_comment_contract(action_type: GroupActionType) -> None:
+def test_comment_payload_compatibility(
+    action_type: GroupActionType, payload: dict[str, Any], expected_kind: str | None
+) -> None:
     action_class = GroupAction.by_type(action_type)
     assert action_class is not None
-    action = action_class(comment_id=42)
-    assert action.json_dict() == {"comment_id": 42}
-    assert action_class(**action.json_dict()) == action
+    action = action_class(**payload)
+    stored = action.json_dict()
+    assert {key: stored[key] for key in payload} == payload
+    assert stored.get("comment_id_kind") == expected_kind
+    assert stored.get("text") == payload.get("text")
+    assert stored.get("mentions") == payload.get("mentions")
+    assert action_class(**stored) == action
     assert action_type not in GroupAction.get_user_visible_types()
 
 
 @pytest.mark.parametrize(
-    "action_type,payload",
-    [
-        (GroupActionType.COMMENT, {"comment_id": 42, "text": "original", "mentions": []}),
-        (GroupActionType.COMMENT_EDIT, {"comment_id": 73, "text": "edited", "mentions": []}),
-        (GroupActionType.COMMENT_DELETE, {"comment_id": 73}),
-    ],
+    "action_type", [GroupActionType.COMMENT_EDIT, GroupActionType.COMMENT_DELETE]
 )
-def test_historical_comment_payload(action_type: GroupActionType, payload: dict[str, Any]) -> None:
+def test_comment_mutation_rejects_unknown_id_kind(action_type: GroupActionType) -> None:
     action_class = GroupAction.by_type(action_type)
     assert action_class is not None
-    assert action_class(**payload).json_dict() == payload
+    with pytest.raises(ValidationError, match="comment_id_kind"):
+        action_class(comment_id=42, comment_id_kind="unknown")

@@ -87,9 +87,6 @@ class GroupActionType(IntEnum):
     PULL_REQUEST_MERGED = 32
     PULL_REQUEST_UNLINKED = 33
     FIRST_SEEN = 34
-    COMMENT_CREATED = 35
-    COMMENT_EDITED = 36
-    COMMENT_DELETED = 37
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -176,12 +173,7 @@ ACTION_TYPES_WITH_COMMIT_DATA = {
 }
 
 COMMENT_ACTION_TYPES = {
-    GroupActionType.COMMENT_CREATED.value,
-    GroupActionType.COMMENT_EDITED.value,
-    GroupActionType.COMMENT_DELETED.value,
-}
-
-COMMENT_MUTATION_ACTION_TYPES = {
+    GroupActionType.COMMENT.value,
     GroupActionType.COMMENT_EDIT.value,
     GroupActionType.COMMENT_DELETE.value,
 }
@@ -403,10 +395,10 @@ class SentryActorRef(BaseModel):
 
 
 class CommentAction(GroupAction):
-    """Historical comment creation payload."""
+    """Comment creation. Current content lives in the Activity NOTE row."""
 
-    user_visible = True
     comment_id: int  # Activity NOTE ID
+    # Historical payloads include content; new producers may omit it.
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -416,10 +408,12 @@ class CommentAction(GroupAction):
 
 
 class CommentEditAction(GroupAction):
-    """Historical comment edit payload."""
+    """Comment edit. The ID kind distinguishes historical GAL references from notes."""
 
-    user_visible = True
-    comment_id: int  # Original COMMENT GAL ID
+    comment_id: int
+    # Missing in historical payloads: comment_id refers to the original COMMENT GAL row.
+    # "activity" means the Activity NOTE ID, independent of any creation event.
+    comment_id_kind: Literal["group_action_log", "activity"] = "group_action_log"
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -429,44 +423,15 @@ class CommentEditAction(GroupAction):
 
 
 class CommentDeleteAction(GroupAction):
-    """Historical comment deletion payload."""
+    """Comment deletion. The referenced Activity NOTE may no longer exist."""
 
-    user_visible = True
-    comment_id: int  # Original COMMENT GAL ID
+    comment_id: int
+    # Same reference semantics as CommentEditAction; omitted means the original GAL row.
+    comment_id_kind: Literal["group_action_log", "activity"] = "group_action_log"
 
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.COMMENT_DELETE
-
-
-class CommentCreatedAction(GroupAction):
-    """Records comment creation. Current content lives in the Activity NOTE row."""
-
-    comment_id: int  # Activity NOTE ID
-
-    @classmethod
-    def get_type(cls) -> GroupActionType:
-        return GroupActionType.COMMENT_CREATED
-
-
-class CommentEditedAction(GroupAction):
-    """Records a comment edit without storing previous or current comment content."""
-
-    comment_id: int  # Activity NOTE ID
-
-    @classmethod
-    def get_type(cls) -> GroupActionType:
-        return GroupActionType.COMMENT_EDITED
-
-
-class CommentDeletedAction(GroupAction):
-    """Records comment deletion."""
-
-    comment_id: int  # Activity NOTE ID
-
-    @classmethod
-    def get_type(cls) -> GroupActionType:
-        return GroupActionType.COMMENT_DELETED
 
 
 class SubscribeAction(GroupAction):

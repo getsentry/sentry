@@ -6,7 +6,7 @@ from django.test.utils import CaptureQueriesContext
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log.read_metrics import ActivityReadResult
-from sentry.issues.action_log.types import CommentCreatedAction, GroupActionType, GroupActorType
+from sentry.issues.action_log.types import CommentAction, GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -281,7 +281,7 @@ class GroupNoteTest(APITestCase):
         )
         self.create_group_action_log_entry(
             group=group,
-            type=GroupActionType.COMMENT_CREATED,
+            type=GroupActionType.COMMENT,
             data={"comment_id": new_note.id},
             idempotency_key=activity_action_idempotency_key(new_note),
             source="api",
@@ -289,7 +289,7 @@ class GroupNoteTest(APITestCase):
         # The same key in another group must not supply this note's source.
         self.create_group_action_log_entry(
             group=self.create_group(),
-            type=GroupActionType.COMMENT_CREATED,
+            type=GroupActionType.COMMENT,
             data={"comment_id": app_note.id},
             idempotency_key=activity_action_idempotency_key(app_note),
             source="api",
@@ -437,7 +437,7 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 400, response.content
 
     @action_log_activity_enabled()
-    def test_returns_gale(self) -> None:
+    def test_returns_activity_with_gale_source(self) -> None:
         group = self.group
 
         self.login_as(user=self.user)
@@ -459,7 +459,8 @@ class GroupNoteCreateTest(APITestCase):
             group_id=group.id, type=GroupActionType.COMMENT.value
         )
 
-        assert response.data["id"] == str(entry.id)
+        assert response.data["id"] == str(activity.id)
+        assert entry.data["comment_id"] == activity.id
         assert response.data["commentId"] == str(activity.id)
         assert response.data["type"] == "note"
         assert response.data["source"] == "mcp:claude-code"
@@ -474,7 +475,7 @@ class GroupNoteCreateTest(APITestCase):
         # Simulate the creation format produced by a newer server/backfill worker.
         with patch(
             "sentry.models.activity.activity_to_action",
-            side_effect=lambda activity: CommentCreatedAction(comment_id=activity.id),
+            side_effect=lambda activity: CommentAction(comment_id=activity.id),
         ):
             response = self.client.post(
                 f"/api/0/issues/{group.id}/comments/",

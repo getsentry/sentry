@@ -236,14 +236,16 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 201, response.content
         comment_id = response.data["commentId"]
         original_entry = GroupActionLogEntry.objects.get(
-            group_id=group.id, id=response.data["id"], type=GroupActionType.COMMENT.value
+            group_id=group.id,
+            idempotency_key=f"activity:{comment_id}",
+            type=GroupActionType.COMMENT.value,
         )
 
         put_url = f"{post_url}{comment_id}/"
         response = self.client.put(put_url, format="json", data={"text": "updated text"})
         assert response.status_code == 200, response.content
 
-        assert response.data["id"] == str(original_entry.id)
+        assert response.data["id"] == comment_id
         assert response.data["commentId"] == comment_id
         assert response.data["type"] == "note"
         assert response.data["user"]["id"] == str(self.user.id)
@@ -273,7 +275,9 @@ class GroupNotesDetailsTest(APITestCase):
         comment_id = response.data["commentId"]
 
         original_entry = GroupActionLogEntry.objects.get(
-            group_id=group.id, id=response.data["id"], type=GroupActionType.COMMENT.value
+            group_id=group.id,
+            idempotency_key=f"activity:{comment_id}",
+            type=GroupActionType.COMMENT.value,
         )
 
         delete_url = f"{post_url}{comment_id}/"
@@ -288,54 +292,57 @@ class GroupNotesDetailsTest(APITestCase):
         assert delete_entry.data["comment_id"] == original_entry.id
 
     def test_edit_and_delete_body_free_comment(self) -> None:
-        self.login_as(user=self.user)
-        for serve_from_log, expected_source in ((True, "api"), (False, None)):
-            note = self.create_group_activity(
-                type=ActivityType.NOTE.value, user_id=self.user.id, data={"text": "original"}
-            )
-            created = self.create_group_action_log_entry(
-                id=note.id + 1000,
-                type=GroupActionType.COMMENT_CREATED,
-                data={"comment_id": note.id},
-                idempotency_key=f"activity:{note.id}",
-                source="api",
-            )
-            url = f"/api/0/issues/{self.group.id}/comments/{note.id}/"
-            with (
-                action_log_activity_enabled(),
-                self.feature({"projects:issue-action-log-activity": serve_from_log}),
-            ):
-                response = self.client.put(url, data={"text": "updated"}, format="json")
-                assert response.status_code == 200, response.content
-                assert response.data["id"] == response.data["commentId"] == str(note.id)
-                assert response.data["type"] == "note"
-                assert response.data["data"]["text"] == "updated"
-                assert response.data.get("source") == expected_source
-                note.refresh_from_db()
-                assert note.data["text"] == "updated"
+        self._assert_edit_and_delete_body_free_comment(True, "api")
 
-                response = self.client.delete(url, format="json")
-                assert response.status_code == 204, response.content
-            assert not Activity.objects.filter(id=note.id).exists()
-            mutations = list(
-                GroupActionLogEntry.objects.filter(
-                    group_id=self.group.id,
-                    type__in=[GroupActionType.COMMENT_EDITED, GroupActionType.COMMENT_DELETED],
-                    data={"comment_id": note.id},
-                ).order_by("id")
-            )
-            assert [entry.type for entry in mutations] == [
-                GroupActionType.COMMENT_EDITED,
-                GroupActionType.COMMENT_DELETED,
-            ]
-            keys = [entry.idempotency_key for entry in mutations]
-            assert all(keys) and len(set(keys)) == 2
-            assert not GroupActionLogEntry.objects.filter(
-                group_id=self.group.id,
-                type__in=[GroupActionType.COMMENT_EDIT, GroupActionType.COMMENT_DELETE],
-            ).exists()
-            created.refresh_from_db()
-            assert created.data == {"comment_id": note.id}
+    def test_edit_and_delete_body_free_comment_without_gal_serving(self) -> None:
+        self._assert_edit_and_delete_body_free_comment(False, None)
+
+    def _assert_edit_and_delete_body_free_comment(
+        self, serve_from_log: bool, expected_source: str | None
+    ) -> None:
+        self.login_as(user=self.user)
+        note = self.create_group_activity(
+            type=ActivityType.NOTE.value, user_id=self.user.id, data={"text": "original"}
+        )
+        created = self.create_group_action_log_entry(
+            # Keep GAL and Activity IDs different to catch accidental substitution.
+            id=note.id + 1000,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note.id},
+            idempotency_key=f"activity:{note.id}",
+            source="api",
+        )
+        url = f"/api/0/issues/{self.group.id}/comments/{note.id}/"
+        with (
+            action_log_activity_enabled(),
+            self.feature({"projects:issue-action-log-activity": serve_from_log}),
+        ):
+            response = self.client.put(url, data={"text": "updated"}, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == response.data["commentId"] == str(note.id)
+            assert response.data["type"] == "note"
+            assert response.data["data"]["text"] == "updated"
+            assert response.data.get("source") == expected_source
+            note.refresh_from_db()
+            assert note.data["text"] == "updated"
+
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 204, response.content
+        assert not Activity.objects.filter(id=note.id).exists()
+        edit = GroupActionLogEntry.objects.get(
+            group_id=self.group.id, type=GroupActionType.COMMENT_EDIT
+        )
+        deletion = GroupActionLogEntry.objects.get(
+            group_id=self.group.id, type=GroupActionType.COMMENT_DELETE
+        )
+        # This server still writes historical references, even for newer creation payloads.
+        assert edit.data["comment_id"] == deletion.data["comment_id"] == created.id
+        assert (
+            edit.data["comment_id_kind"] == deletion.data["comment_id_kind"] == "group_action_log"
+        )
+        assert edit.data["text"] == "updated"
+        created.refresh_from_db()
+        assert created.data == {"comment_id": note.id}
 
     @action_log_activity_enabled()
     def test_put_returns_404_without_gale_entry(self) -> None:

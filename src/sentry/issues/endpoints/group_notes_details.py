@@ -1,5 +1,4 @@
 import logging
-from uuid import uuid4
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -28,13 +27,7 @@ from sentry.issues.action_log.read_metrics import (
     record_activity_read,
 )
 from sentry.issues.action_log.request import resolve_action_source
-from sentry.issues.action_log.types import (
-    CommentDeleteAction,
-    CommentDeletedAction,
-    CommentEditAction,
-    CommentEditedAction,
-    GroupActionType,
-)
+from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction, GroupActionType
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -90,7 +83,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         # Activity alone and preserve the pre-existing behavior.
         original_comment_log_action = GroupActionLogEntry.objects.filter(
             group_id=group.id,
-            type__in=[GroupActionType.COMMENT.value, GroupActionType.COMMENT_CREATED.value],
+            type=GroupActionType.COMMENT.value,
             idempotency_key=activity_action_idempotency_key(note),
         ).first()
         endpoint = activity_read_endpoint(request)
@@ -114,16 +107,12 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         note.delete()
 
         if original_comment_log_action is not None:
-            body_free = original_comment_log_action.type == GroupActionType.COMMENT_CREATED.value
             publish_action(
-                CommentDeletedAction(comment_id=note_id_int)
-                if body_free
-                else CommentDeleteAction(comment_id=original_comment_log_action.id),
+                CommentDeleteAction(comment_id=original_comment_log_action.id),
                 source=resolve_action_source(request),
                 group_id=group.id,
                 project=group.project,
                 actor=GroupActionActor.user(request.user.id),
-                idempotency_key=f"comment-event:{uuid4()}" if body_free else None,
             )
         else:
             logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
@@ -185,7 +174,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # on the Activity alone and preserve the pre-existing behavior.
             original_comment_log_action = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
-                type__in=[GroupActionType.COMMENT.value, GroupActionType.COMMENT_CREATED.value],
+                type=GroupActionType.COMMENT.value,
                 idempotency_key=activity_action_idempotency_key(note),
             ).first()
             endpoint = activity_read_endpoint(request)
@@ -202,13 +191,8 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             note.save()
 
             if original_comment_log_action is not None:
-                body_free = (
-                    original_comment_log_action.type == GroupActionType.COMMENT_CREATED.value
-                )
                 publish_action(
-                    CommentEditedAction(comment_id=note.id)
-                    if body_free
-                    else CommentEditAction(
+                    CommentEditAction(
                         comment_id=original_comment_log_action.id,
                         text=payload.get("text"),
                         mentions=mentions,
@@ -217,7 +201,6 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                     group_id=group.id,
                     project=group.project,
                     actor=GroupActionActor.user(request.user.id),
-                    idempotency_key=f"comment-event:{uuid4()}" if body_free else None,
                 )
             else:
                 logger.info(
@@ -243,18 +226,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             )
 
             if serve_from_log and original_comment_log_action is not None:
-                if original_comment_log_action.type == GroupActionType.COMMENT_CREATED.value:
-                    return Response(
-                        serialize_group_notes(group, [note], request.user)[0], status=200
-                    )
-                # Edits append a COMMENT_EDIT rather than updating the COMMENT.
-                # Return the original entry's identity with the fresh text;
-                # commentId remains the reference for subsequent edits/deletes.
-                original_comment_log_action.data = {
-                    **original_comment_log_action.data,
-                    "text": payload.get("text"),
-                }
-                return Response(serialize(original_comment_log_action, request.user), status=200)
+                return Response(serialize_group_notes(group, [note], request.user)[0], status=200)
 
             return Response(serialize(note, request.user), status=200)
 

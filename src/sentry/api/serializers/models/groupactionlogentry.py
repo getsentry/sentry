@@ -16,11 +16,12 @@ from sentry.issues.action_log.read_metrics import (
 from sentry.issues.action_log.types import (
     ACTION_TYPES_WITH_COMMIT_DATA,
     COMMENT_ACTION_TYPES,
-    COMMENT_MUTATION_ACTION_TYPES,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
     ActionSource,
     CommentAction,
+    CommentDeleteAction,
+    CommentEditAction,
     FirstSeenAction,
     GroupAction,
     GroupActionType,
@@ -111,14 +112,18 @@ def _serialized_comment_id(obj: GroupActionLogEntry) -> str | None:
     """
     The comment reference accepted by the notes endpoints.
 
-    The notes endpoints resolve ``note_id`` against ``Activity.id``, so a COMMENT
-    references its ``comment_id`` (the Activity it mirrors).
-    COMMENT_EDIT and COMMENT_DELETE carry a ``comment_id`` too, but theirs points
-    at the GALE id of the COMMENT they supersede, not an addressable comment.
+    Creation events always reference Activity. Historical edit/delete events instead
+    reference the original COMMENT GAL row; only explicit Activity references can be
+    used with the notes endpoints.
     """
-    if obj.type == GroupActionType.COMMENT.value:
+    if obj.type in COMMENT_ACTION_TYPES:
         match obj.action:
             case CommentAction(comment_id=comment_id):
+                return str(comment_id)
+            case (
+                CommentEditAction(comment_id=comment_id, comment_id_kind="activity")
+                | CommentDeleteAction(comment_id=comment_id, comment_id_kind="activity")
+            ):
                 return str(comment_id)
     return None
 
@@ -163,13 +168,9 @@ def get_serialized_activity_items(
 
     action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
     entries = list(
-        action_log.exclude(
-            type__in=[
-                GroupActionType.COMMENT.value,
-                *COMMENT_MUTATION_ACTION_TYPES,
-                GroupActionType.FIRST_SEEN.value,
-            ]
-        ).order_by("-date_added", "-id")[:limit]
+        action_log.exclude(type=GroupActionType.FIRST_SEEN.value).order_by("-date_added", "-id")[
+            :limit
+        ]
     )
     notes = list(
         Activity.objects.filter(group=group, type=ActivityType.NOTE.value).order_by(
