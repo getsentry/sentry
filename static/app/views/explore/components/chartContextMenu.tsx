@@ -12,8 +12,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {useQueryParamsHasTransformations} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
+} from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
   type Visualize,
@@ -42,6 +46,10 @@ export function ChartContextMenu({
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
+  const yAxes = visualizeYAxes.map(visualizeYAxis => visualizeYAxis.yAxis);
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys});
 
   const items = useMemo(() => {
     const menuItems = [];
@@ -53,8 +61,8 @@ export function ChartContextMenu({
 
     if (visualizeYAxes.length === 1) {
       const yAxis = visualizeYAxes[0]!.yAxis;
-      menuItems.push(
-        getSaveAsAlertMenuItem({
+      menuItems.push({
+        ...getSaveAsAlertMenuItem({
           disabled:
             isVisualizeEquation(visualizeYAxes[0]!) ||
             hasConditionalAggregateFilter(yAxis),
@@ -75,8 +83,9 @@ export function ChartContextMenu({
             });
             return;
           },
-        })
-      );
+        }),
+        details: alertCaseDetails,
+      });
     } else {
       const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
         key: `${visualizeYAxis.yAxis}-${index}`,
@@ -103,19 +112,21 @@ export function ChartContextMenu({
         },
       }));
 
-      menuItems.push(
-        getSaveAsAlertMenuItem({
+      menuItems.push({
+        ...getSaveAsAlertMenuItem({
           alertsUrls,
           submenu: true,
           label: getCreateAlertForLabel(),
-        })
-      );
+        }),
+        details: alertCaseDetails,
+      });
     }
 
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
     menuItems.push({
       key: 'add-to-dashboard',
       textValue: t('Add to Dashboard'),
+      details: dashboardCaseDetails,
       label: (
         <Feature
           overrideName="feature-disabled:dashboards-edit"
@@ -142,6 +153,8 @@ export function ChartContextMenu({
     return menuItems;
   }, [
     addToDashboard,
+    alertCaseDetails,
+    dashboardCaseDetails,
     organization,
     projects,
     pageFilters,

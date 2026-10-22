@@ -29,6 +29,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -85,6 +86,9 @@ export function ToolbarSaveAs() {
     [visualizeFunctions]
   );
   const [caseInsensitive] = useCaseInsensitivity();
+  const yAxes = visualizes.map(visualize => visualize.yAxis);
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys});
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
@@ -172,7 +176,10 @@ export function ToolbarSaveAs() {
     },
   });
 
-  items.push(getSaveAsAlertMenuItem({alertsUrls, submenu: true}));
+  items.push({
+    ...getSaveAsAlertMenuItem({alertsUrls, submenu: true}),
+    details: alertCaseDetails,
+  });
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
@@ -206,6 +213,7 @@ export function ToolbarSaveAs() {
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
+    details: dashboardCaseDetails,
     submenu: chartOptions.length > 1 ? true : false,
     label: (
       <Feature

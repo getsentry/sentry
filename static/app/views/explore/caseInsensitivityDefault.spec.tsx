@@ -8,6 +8,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {
   ExploreCaseInsensitivityDefault,
   isCaseIndependent,
+  useAlwaysMatchesCaseDetails,
 } from 'sentry/views/explore/caseInsensitivityDefault';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useSetQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
@@ -199,5 +200,68 @@ describe('isCaseIndependent', () => {
         crossEvents: [{type: 'logs', query: 'message:Deleted'}],
       })
     ).toBe(false);
+  });
+});
+
+describe('useAlwaysMatchesCaseDetails', () => {
+  function renderDetails(
+    query: string,
+    caseInsensitive: string,
+    options: {groupBys?: string[]; queryCaseInsensitive?: boolean} = {}
+  ) {
+    return renderHookWithProviders(
+      () =>
+        useAlwaysMatchesCaseDetails({
+          query,
+          yAxes: ['count(message)'],
+          groupBys: options.groupBys,
+          caseInsensitive: options.queryCaseInsensitive,
+        }),
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/logs/',
+            query: {caseInsensitive},
+          },
+        },
+      }
+    );
+  }
+
+  it('returns notes for alerts and dashboards when ignoring case on a filtered view', () => {
+    const {result} = renderDetails('message:Deleted', '1');
+
+    expect(result.current).toEqual({
+      alert: 'Always matches case',
+      dashboard: 'Always matches case',
+    });
+  });
+
+  it('returns a note only for dashboards when ignoring case on a grouped view', () => {
+    const {result} = renderDetails('', '1', {groupBys: ['message']});
+
+    expect(result.current).toEqual({alert: null, dashboard: 'Always matches case'});
+  });
+
+  it('returns notes when a compare query ignores case', () => {
+    const {result} = renderDetails('message:Deleted', '0', {queryCaseInsensitive: true});
+
+    expect(result.current).toEqual({
+      alert: 'Always matches case',
+      dashboard: 'Always matches case',
+    });
+  });
+
+  it('returns nothing when nothing is filtered', () => {
+    const {result} = renderDetails('', '1');
+
+    expect(result.current).toEqual({alert: null, dashboard: null});
+  });
+
+  it('returns nothing when matching case', () => {
+    const {result} = renderDetails('message:Deleted', '0');
+
+    expect(result.current).toEqual({alert: null, dashboard: null});
   });
 });
