@@ -321,28 +321,19 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 
 
 class TestIsActionPermitted(BaseWorkflowTest):
-    def test_handler_requires_all_declared_features(self) -> None:
+    def test_non_integration_action_requires_handler_features(self) -> None:
         class GatedActionHandler(ActionHandler):
-            required_features = ("organizations:seer-automations", "organizations:seer-night-shift")
+            required_features = ("organizations:seer-automations",)
 
         with patch(
             "sentry.workflow_engine.processors.action.action_handler_registry.get",
             return_value=GatedActionHandler,
         ):
-            with self.feature(
-                {"organizations:seer-automations": False, "organizations:seer-night-shift": True}
-            ):
-                assert not is_action_permitted(Action.Type.EMAIL, self.organization)
+            with self.feature({"organizations:seer-automations": False}):
+                assert not is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
 
-            with self.feature(
-                {"organizations:seer-automations": True, "organizations:seer-night-shift": False}
-            ):
-                assert not is_action_permitted(Action.Type.EMAIL, self.organization)
-
-            with self.feature(
-                {"organizations:seer-automations": True, "organizations:seer-night-shift": True}
-            ):
-                assert is_action_permitted(Action.Type.EMAIL, self.organization)
+            with self.feature("organizations:seer-automations"):
+                assert is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
 
     def test_integration_requires_handler_and_provider_features(self) -> None:
         class GatedActionHandler(ActionHandler):
