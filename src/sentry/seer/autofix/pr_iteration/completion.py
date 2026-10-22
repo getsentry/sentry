@@ -14,12 +14,18 @@ from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import trigger_push_changes
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
+from sentry.seer.autofix.feature.models import PrIterationStepArgs
+from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
     complete_pr_iteration_details,
     outcome_for_failed_run,
 )
-from sentry.seer.autofix.pr_iteration.feedback import latest_iteration_feedback_kind
+from sentry.seer.autofix.pr_iteration.feedback import (
+    automated_iteration_allowed,
+    latest_iteration_feedback_kind,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.iterations import (
     get_iterations,
@@ -35,6 +41,7 @@ from sentry.seer.autofix.pr_iteration.pr_state import (
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.utils import metrics
 
@@ -42,6 +49,11 @@ if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
 
 logger = logging.getLogger(__name__)
+
+BRANCH_MOVED_RETRY_PROMPT = (
+    "Your last push failed because the pull request's branch has new commits. Make sure your "
+    "changes are integrated with the latest code on the branch."
+)
 
 
 def _iteration_repo_states(state: SeerRunState) -> list[dict[str, Any]]:
@@ -390,6 +402,8 @@ def pr_iteration_push_outcome(
         return PrIterationOutcome.ALREADY_PUSHED
 
     errored_repos = iteration_terminal_errored_repos(state)
+    if errored_repos and _push_failed_on_moved_branch(group, state, errored_repos):
+        return _retry_push_on_moved_branch(log_ctx, group, run_id, state)
     if errored_repos:
         log_ctx.info(
             "autofix.pr_iteration.push",
@@ -461,3 +475,57 @@ def _push_iteration_changes(
 
     log_ctx.info("autofix.pr_iteration.push", outcome="pushed", reason="ok")
     return True
+
+
+def _push_failed_on_moved_branch(
+    group: Group, state: SeerRunState, errored_repos: list[str]
+) -> bool:
+    return features.has(
+        "organizations:autofix-pr-iteration-pin-to-pr-head", group.organization
+    ) and any(
+        state.repo_pr_states[repo].pr_creation_error_code == "branch_moved"
+        for repo in errored_repos
+    )
+
+
+@traces.trace
+def _retry_push_on_moved_branch(
+    log_ctx: PrIterationLogContext,
+    group: Group,
+    run_id: int,
+    state: SeerRunState,
+) -> PrIterationOutcome | None:
+    """Run another turn of the same iteration. It starts on the PR's latest commit, so the push
+    that follows it can land on top."""
+    decision = automated_iteration_allowed(state)
+    if not decision.ok:
+        log_ctx.info(
+            "autofix.pr_iteration.push",
+            outcome="not_pushed",
+            reason="branch_moved_retry_blocked",
+            decision=decision.reason,
+        )
+        return PrIterationOutcome.PR_CREATION_ERRORED
+
+    iteration = get_iterations(state)[-1]
+    metadata = iteration.blocks[0].message.metadata or {}
+    trigger_autofix_feature(
+        group,
+        AutofixFeatureArgs(
+            step=AutofixStep.PR_ITERATION,
+            referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+            existing_run_id=run_id,
+            user_context=BRANCH_MOVED_RETRY_PROMPT,
+            step_args=PrIterationStepArgs(
+                iteration_index=iteration.index,
+                iteration_id=triggered_iteration_id(state),
+                feedback=metadata.get("feedback"),
+                commit_author=metadata.get("commit_author"),
+                pr_urls={
+                    pr.repo_name: pr.pr_url for pr in state.repo_pr_states.values() if pr.pr_url
+                },
+            ),
+        ),
+    )
+    log_ctx.info("autofix.pr_iteration.push", outcome="retrying", reason="branch_moved")
+    return None
