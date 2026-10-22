@@ -67,7 +67,6 @@ function DashboardsSecondaryNavigationImpl() {
         <SecondaryNavigation.HeaderTitle>
           {t('Dashboards')}
         </SecondaryNavigation.HeaderTitle>
-        <SecondaryNavigation.Toggle />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="dashboards-all">

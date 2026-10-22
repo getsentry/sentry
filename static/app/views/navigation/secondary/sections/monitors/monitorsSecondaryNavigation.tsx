@@ -30,7 +30,6 @@ function MonitorsSecondaryNavigationImpl() {
     <Fragment>
       <SecondaryNavigation.Header>
         <SecondaryNavigation.HeaderTitle>{t('Monitors')}</SecondaryNavigation.HeaderTitle>
-        <SecondaryNavigation.Toggle />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="monitors-views">

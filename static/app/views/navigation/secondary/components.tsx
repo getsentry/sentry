@@ -300,6 +300,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       padding={props.padding ?? (isMobile ? 'md lg' : '0 md 0 xl')}
     >
       {props.children}
+      <SecondaryNavigationToggle />
     </Grid>
   );
 }
@@ -1009,7 +1010,6 @@ const SidebarNavigationLink = styled(Link)`
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
   HeaderTitle: SecondaryNavigationHeaderTitle,
-  Toggle: SecondaryNavigationToggle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,

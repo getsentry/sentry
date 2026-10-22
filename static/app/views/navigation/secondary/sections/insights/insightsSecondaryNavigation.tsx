@@ -65,7 +65,6 @@ function InsightsSecondaryNavigationImpl() {
     <Fragment>
       <SecondaryNavigation.Header>
         <SecondaryNavigation.HeaderTitle>{t('Insights')}</SecondaryNavigation.HeaderTitle>
-        <SecondaryNavigation.Toggle />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="insights-main">

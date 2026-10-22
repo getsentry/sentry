@@ -71,7 +71,6 @@ export function SettingsNavigation({
         ) : (
           <SecondaryNavigation.HeaderTitle>{title}</SecondaryNavigation.HeaderTitle>
         )}
-        <SecondaryNavigation.Toggle />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (

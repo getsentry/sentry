@@ -9,7 +9,6 @@ export function ProjectsSecondaryNavigation() {
     <Fragment>
       <SecondaryNavigation.Header>
         <SecondaryNavigation.HeaderTitle>{t('Projects')}</SecondaryNavigation.HeaderTitle>
-        <SecondaryNavigation.Toggle />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <ProjectsNavigationItems />

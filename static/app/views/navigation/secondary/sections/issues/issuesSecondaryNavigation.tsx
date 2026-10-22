@@ -60,7 +60,6 @@ function IssuesSecondaryNavigationImpl() {
     <Fragment>
       <SecondaryNavigation.Header>
         <SecondaryNavigation.HeaderTitle>{t('Issues')}</SecondaryNavigation.HeaderTitle>
-        <SecondaryNavigation.Toggle />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="issues-feed">
