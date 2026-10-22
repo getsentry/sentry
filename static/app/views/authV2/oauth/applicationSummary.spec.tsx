@@ -46,6 +46,20 @@ it('shows granted access and special capabilities in a permission table', async 
             actions: [],
             description: 'Upload source maps and create releases.',
           },
+          {
+            resource: 'teams',
+            label: 'Teams',
+            scopes: ['team:write'],
+            actions: ['read', 'write'],
+            description: null,
+          },
+          {
+            resource: 'organizations',
+            label: 'Organizations',
+            scopes: ['org:admin'],
+            actions: ['admin'],
+            description: null,
+          },
         ],
       })}
     />
@@ -55,32 +69,42 @@ it('shows granted access and special capabilities in a permission table', async 
     name: /Projects Granted Not granted Not granted/,
   });
   expect(within(projects).getByRole('img', {name: 'Granted'})).toBeInTheDocument();
-  expect(within(projects).getAllByRole('img', {name: 'Not granted'})).toHaveLength(2);
+  expect(within(projects).getAllByRole('cell', {name: 'Not granted'})).toHaveLength(2);
+  expect(screen.getAllByRole('rowheader').map(row => row.textContent)).toEqual([
+    'Organizations',
+    'Teams',
+    'Members',
+    'CI workflows',
+    'Projects',
+  ]);
 
   await userEvent.tab();
   await userEvent.tab();
 
   expect(screen.getByRole('rowgroup', {name: 'Permission list'})).toHaveFocus();
 
-  await userEvent.tab();
+  for (let index = 0; index < 5; index++) {
+    await userEvent.tab();
+  }
 
-  expect(within(projects).getByRole('img', {name: 'Granted'})).toHaveFocus();
+  expect(projects).toHaveFocus();
   expect(
     await screen.findByText('View projects and their settings.')
   ).toBeInTheDocument();
-  expect(
-    within(projects).getByRole('img', {name: 'Granted'})
-  ).toHaveAccessibleDescription('View projects and their settings.');
+  expect(projects).toHaveAccessibleDescription(
+    'Read View projects and their settings. Write Manage project settings and alert rules, including deleting them. Admin Delete projects.'
+  );
 
   const members = screen.getByRole('row', {name: /Members/});
-  expect(within(members).getAllByRole('img', {name: 'Not granted'})).toHaveLength(3);
+  expect(within(members).getAllByRole('cell', {name: 'Not granted'})).toHaveLength(3);
 
   const workflows = screen.getByRole('row', {name: /CI workflows/});
   expect(within(workflows).getAllByRole('cell', {name: 'Not applicable'})).toHaveLength(
     3
   );
 
-  await userEvent.hover(within(workflows).getByRole('img', {name: 'Permission details'}));
+  await userEvent.tab();
+  await userEvent.hover(workflows);
 
   expect(
     await screen.findByText('Upload source maps and create releases.')
