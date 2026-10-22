@@ -10,7 +10,6 @@ import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -34,7 +33,7 @@ import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 
 function MobileNavigationHeader(props: FlexProps<'header'>) {
   const theme = useTheme();
@@ -70,9 +69,7 @@ function MobileHelpMenuFallback() {
 
 function MobilePrimaryNavigation() {
   const organization = useOrganization({allowNull: true});
-  const settingsV3 = useSettingsV3();
-  const location = useLocation();
-  const isSettingsNavigation = settingsV3 && location.pathname.startsWith('/settings/');
+  const isSettingsNavigation = useSettingsNavigation();
   const {view} = useSecondaryNavigation();
 
   return (

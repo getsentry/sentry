@@ -288,16 +288,11 @@ describe('desktop navigation', () => {
       await userEvent.click(
         within(secondaryNav).getByRole('button', {name: 'Select a project'})
       );
-      await userEvent.click(screen.getByRole('option', {name: 'All Projects'}));
-      expect(router.location.pathname).toBe(pathname);
-      expect(router.location.search).toBe('?view=all');
-      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Project'}));
       expect(
-        within(secondaryNav).queryByRole('link', {name: 'Project Teams'})
+        screen.queryByRole('option', {name: 'All Projects'})
       ).not.toBeInTheDocument();
-      expect(
-        within(secondaryNav).getByRole('button', {name: 'Select a project'})
-      ).toHaveTextContent('All Projects');
+      expect(screen.getByRole('button', {name: 'Create Project'})).toBeInTheDocument();
+      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Project'}));
     }
   );
 

@@ -128,13 +128,10 @@ interface PrimaryNavigationLinkProps
   label: string;
   to: string;
   children?: React.ReactNode;
-  navigateOnTouch?: boolean;
 }
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
-  const {layout, features} = usePrimaryNavigation();
-  const isMobile = layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
@@ -148,10 +145,6 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // On touch mobile devices, prevent navigation and let setActiveGroup handle the active state
-      if (isMobile && !features.hover && !props.navigateOnTouch) {
-        e.preventDefault();
-      }
       trackAnalytics('navigation.primary_item_clicked', {
         item: props.analyticsKey,
         organization,

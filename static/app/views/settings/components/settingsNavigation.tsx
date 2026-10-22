@@ -1,18 +1,21 @@
 import {cloneElement, Fragment} from 'react';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -41,10 +44,6 @@ export function SettingsNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
   const location = useLocation();
   const settingsV3 = useSettingsV3();
-  const navigate = useNavigate();
-  const {projectId} = useParams<{projectId?: string}>();
-  const {projects, onSearch} = useProjects();
-  const selectedProject = projects.find(project => project.slug === projectId);
   const showProjectSelector = settingsV3 && /\/projects(?:\/|$)/.test(location.pathname);
   const title = settingsV3
     ? location.pathname.startsWith('/settings/account/')
@@ -60,58 +59,7 @@ export function SettingsNavigation({
         showToggle={!settingsV3}
         padding={showProjectSelector ? '0 sm' : undefined}
       >
-        {showProjectSelector ? (
-          <Container width="100%">
-            {containerProps => (
-              <CompactSelect
-                {...containerProps}
-                size="sm"
-                position="bottom-start"
-                menuWidth="100%"
-                preventOverflowOptions={{boundary: 'clippingAncestors', padding: 8}}
-                value={projectId ?? ''}
-                trigger={triggerProps => (
-                  <Container width="100%">
-                    {buttonProps => (
-                      <OverlayTrigger.Button
-                        {...buttonProps}
-                        {...triggerProps}
-                        aria-label={t('Select a project')}
-                        icon={
-                          selectedProject ? (
-                            <ProjectAvatar project={selectedProject} size={16} />
-                          ) : undefined
-                        }
-                      >
-                        {projectId ?? t('All Projects')}
-                      </OverlayTrigger.Button>
-                    )}
-                  </Container>
-                )}
-                search={{onChange: onSearch}}
-                options={[
-                  {value: '', label: t('All Projects')},
-                  ...projects.map(project => ({
-                    value: project.slug,
-                    label: project.slug,
-                    leadingItems: <ProjectAvatar project={project} size={16} />,
-                  })),
-                ]}
-                onChange={selection =>
-                  navigate(
-                    normalizeUrl(
-                      selection.value
-                        ? `/settings/${otherProps.organization?.slug}/projects/${selection.value}/`
-                        : `/settings/${otherProps.organization?.slug}/projects/?view=all`
-                    )
-                  )
-                }
-              />
-            )}
-          </Container>
-        ) : (
-          title
-        )}
+        {showProjectSelector ? <SettingsProjectSelector /> : title}
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
@@ -123,5 +71,71 @@ export function SettingsNavigation({
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </SecondaryNavigation.Body>
     </ErrorBoundary>
+  );
+}
+
+function SettingsProjectSelector() {
+  const navigate = useNavigate();
+  const {projectId} = useParams<{projectId?: string}>();
+  const {projects, onSearch} = useProjects();
+  const selectedProject = projects.find(project => project.slug === projectId);
+  const organization = useOrganization();
+  const canCreateProject = useCanCreateProject();
+
+  return (
+    <Container width="100%">
+      {containerProps => (
+        <CompactSelect
+          {...containerProps}
+          size="sm"
+          position="bottom-start"
+          menuWidth="100%"
+          preventOverflowOptions={{boundary: 'clippingAncestors', padding: 8}}
+          value={projectId ?? ''}
+          trigger={triggerProps => (
+            <Container width="100%">
+              {buttonProps => (
+                <OverlayTrigger.Button
+                  {...buttonProps}
+                  {...triggerProps}
+                  aria-label={t('Select a project')}
+                  icon={
+                    selectedProject ? (
+                      <ProjectAvatar project={selectedProject} size={16} />
+                    ) : undefined
+                  }
+                >
+                  {projectId ?? t('Select a project')}
+                </OverlayTrigger.Button>
+              )}
+            </Container>
+          )}
+          search={{onChange: onSearch}}
+          menuFooter={
+            <MenuComponents.CTALinkButton
+              to={makeProjectsPathname({path: '/new/', organization})}
+              disabled={!canCreateProject}
+              tooltipProps={{
+                title: canCreateProject
+                  ? undefined
+                  : t('You do not have permission to create projects'),
+              }}
+            >
+              {t('Create Project')}
+            </MenuComponents.CTALinkButton>
+          }
+          options={projects.map(project => ({
+            value: project.slug,
+            label: project.slug,
+            leadingItems: <ProjectAvatar project={project} size={16} />,
+          }))}
+          onChange={selection =>
+            navigate(
+              normalizeUrl(`/settings/${organization.slug}/projects/${selection.value}/`)
+            )
+          }
+        />
+      )}
+    </Container>
   );
 }

@@ -1,9 +1,9 @@
 import {useContext, useEffect} from 'react';
+import {useQueryState} from 'nuqs';
 
 import type {Organization} from 'sentry/types/organization';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -23,11 +23,8 @@ export function ProjectSettingsNavigation({
   const {projectId} = useParams<{projectId?: string}>();
   const settingsV3 = useSettingsV3();
   const navigate = useNavigate();
-  const location = useLocation();
-  const showAllProjects =
-    settingsV3 &&
-    !projectId &&
-    new URLSearchParams(location.search).get('view') === 'all';
+  const [view] = useQueryState('view');
+  const showAllProjects = settingsV3 && !projectId && view === 'all';
   const {projects} = useProjects({
     slugs: projectId ? [projectId] : settingsV3 ? undefined : [],
   });

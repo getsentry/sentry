@@ -26,7 +26,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/createProjectButton';
-import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {ProjectStatsGraph} from './projectStatsGraph';
 
@@ -35,7 +34,6 @@ type ProjectListItem = Project & {stats?: ProjectStats};
 
 function OrganizationProjects() {
   const organization = useOrganization();
-  const settingsV3 = useSettingsV3();
   const [{query, cursor}, setSearchParams] = useQueryStates({
     query: parseAsString.withDefault(''),
     cursor: parseAsString,
@@ -78,7 +76,7 @@ function OrganizationProjects() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Projects'), organization.slug, false)}
       />
-      <SettingsPageHeader title={settingsV3 ? t('All Projects') : 'Projects'} />
+      <SettingsPageHeader title="Projects" />
       <SearchWrapper>
         <Flex align="center" gap="md">
           <Container flex={1}>

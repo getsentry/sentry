@@ -52,16 +52,14 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
-  const location = useLocation();
-  const settingsV3 = useSettingsV3();
-  const isSettingsNavigation =
-    settingsV3 && !!organization && location.pathname.startsWith('/settings/');
+  const isSettingsNavigation = useSettingsNavigation();
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
@@ -220,7 +218,6 @@ export function SettingsPrimaryNavigationItems({
         to={to}
         analyticsKey={`settings-${key}`}
         label={label}
-        navigateOnTouch
         aria-current={key === activeScope ? 'location' : undefined}
       >
         {icon}
