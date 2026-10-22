@@ -110,6 +110,16 @@ describe('mobile navigation', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    await userEvent.click(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
+        'button',
+        {name: 'Collapse'}
+      )
+    );
+    expect(
+      screen.queryByRole('navigation', {name: 'Primary Navigation'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
     const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
     expect(within(primaryNav).getByRole('link', {name: 'Org'})).toHaveAttribute(
       'aria-current',

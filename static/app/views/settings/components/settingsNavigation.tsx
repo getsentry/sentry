@@ -19,6 +19,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
@@ -50,6 +51,7 @@ export function SettingsNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
   const location = useLocation();
   const settingsV3 = useSettingsV3();
+  const {layout} = usePrimaryNavigation();
   const isProjectSettings = !!matchPath(
     {path: '/settings/:orgId?/projects/:projectId', end: false},
     location.pathname
@@ -71,9 +73,9 @@ export function SettingsNavigation({
         ) : (
           <SecondaryNavigation.HeaderTitle>{title}</SecondaryNavigation.HeaderTitle>
         )}
-        {/* Hide the Settings V3 toggle until header spacing and navigation controls
-            have been reviewed with design. */}
-        {!settingsV3 && <SecondaryNavigation.Toggle />}
+        {/* Hide the desktop Settings V3 toggle pending design review of header
+            spacing. Mobile still needs this control to close the menu. */}
+        {(!settingsV3 || layout === 'mobile') && <SecondaryNavigation.Toggle />}
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
