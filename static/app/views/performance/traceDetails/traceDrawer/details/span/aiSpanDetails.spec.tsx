@@ -1,17 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {ConversationSpanDetail} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 import {AiSpanDetails} from './aiSpanDetails';
-import {AVG_TOOL_OUTPUT_SIZE} from './index';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture({id: '1'});
+const sizeField = 'avg(gen_ai.tool.call.result.size)';
 
 function toolNode() {
   return new EapSpanNode(
@@ -22,15 +23,13 @@ function toolNode() {
       project_slug: project.slug,
       op: 'gen_ai.execute_tool',
       description: 'execute_tool search',
-      start_timestamp: 1000,
-      end_timestamp: 1000.4,
       additional_attributes: {'gen_ai.operation.type': 'tool'},
     }),
     {organization}
   );
 }
 
-function mockAttributes(size: number | string | undefined) {
+function mockAttributes(withSize = true) {
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/trace-items/tool-span/`,
     body: {
@@ -39,134 +38,86 @@ function mockAttributes(size: number | string | undefined) {
       meta: {},
       attributes: [
         {name: 'gen_ai.operation.type', type: 'str', value: 'tool'},
+        {name: 'gen_ai.tool.name', type: 'str', value: 'search'},
         {name: 'gen_ai.tool.call.result', type: 'str', value: 'legacy output'},
-        ...(size === undefined
-          ? []
-          : [
-              {
-                name: 'gen_ai.tool.call.result.size',
-                type: typeof size === 'number' ? 'int' : 'str',
-                value: size,
-              },
-            ]),
+        ...(withSize
+          ? [{name: 'gen_ai.tool.call.result.size', type: 'int', value: 4000}]
+          : []),
       ],
     },
   });
 }
 
-function mockAverages(baseline: number | undefined) {
+function mockAverage() {
   return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
-    body: {
-      data: [
-        {
-          'avg(span.duration)': 100,
-          [AVG_TOOL_OUTPUT_SIZE]: baseline,
-        },
-      ],
-    },
+    match: [MockApiClient.matchQuery({field: [sizeField]})],
+    body: {data: [{[sizeField]: 1000}]},
   });
 }
 
-describe('AI span size comparison', () => {
+describe('Result Size highlighted attribute', () => {
   beforeEach(() => {
     Element.prototype.scrollTo = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.loadInitialData([project]));
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'avg(span.duration)': 100}]},
+    });
   });
 
-  it('batches the size baseline with duration and explains the cohort', async () => {
-    mockAttributes(4000);
-    const request = mockAverages(1000);
-    render(<AiSpanDetails node={toolNode()} traceId="trace-id" />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            project: '2',
-            environment: 'production',
-            start: '2020-01-01T00:00:00',
-            end: '2020-01-02T00:00:00',
-          },
-        },
-      },
-    });
-
+  it('compares size in trace details using a project-scoped tool average', async () => {
+    mockAttributes();
+    const request = mockAverage();
+    render(<AiSpanDetails node={toolNode()} traceId="trace-id" />, {organization});
     expect(await screen.findByText('300% larger than avg 1 kB')).toBeInTheDocument();
-    expect(screen.getByText(/300% slower than avg/)).toBeInTheDocument();
-    expect(request).toHaveBeenCalledTimes(1);
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          field: ['avg(span.duration)', AVG_TOOL_OUTPUT_SIZE],
-          project: ['1'],
-          environment: [],
+          field: [sizeField],
+          project: [1],
           statsPeriod: '24h',
-          query: 'span.op:gen_ai.execute_tool span.description:"execute_tool search"',
+          query:
+            'gen_ai.operation.type:tool has:gen_ai.tool.call.result.size gen_ai.tool.name:search',
         }),
       })
     );
-    await userEvent.hover(screen.getByText('300% larger than avg 1 kB'));
-    expect(
-      await screen.findByText(
-        'Average output size for matching tool calls in this project over the last 24 hours'
-      )
-    ).toBeInTheDocument();
   });
 
-  it('does not query output size for non-tool spans', async () => {
-    mockAttributes(4000);
-    const request = mockAverages(1000);
+  it('also compares size in standalone conversation details without a parent baseline', async () => {
+    mockAttributes();
+    mockAverage();
     const node = toolNode();
-    node.value.additional_attributes = {'gen_ai.operation.type': 'ai_client'};
-    render(<AiSpanDetails node={node} traceId="trace-id" />, {organization});
-
-    await waitFor(() =>
-      expect(request).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['avg(span.duration)']}),
-        })
-      )
+    node.value.op = 'execute_tool search';
+    render(
+      <ConversationSpanDetail
+        node={node}
+        traceId="trace-id"
+        activeTab="input"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
     );
+    expect(await screen.findByText('300% larger than avg 1 kB')).toBeInTheDocument();
+    expect(screen.getByText('Result Size')).toBeInTheDocument();
   });
 
-  it('shows comparisons at the 10% threshold', async () => {
-    mockAttributes(1100);
-    mockAverages(1000);
-    render(<AiSpanDetails node={toolNode()} traceId="trace-id" />, {organization});
-    expect(await screen.findByText('10% larger than avg 1 kB')).toBeInTheDocument();
-  });
-
-  it.each([0, '0', 500, '500'])(
-    'compares reported size %p, including zero and string values',
-    async size => {
-      mockAttributes(size);
-      mockAverages(1000);
-      render(<AiSpanDetails node={toolNode()} traceId="trace-id" />, {organization});
-      const percent = Number(size) === 0 ? 100 : 50;
-      expect(
-        await screen.findByText(`${percent}% smaller than avg 1 kB`)
-      ).toBeInTheDocument();
-    }
-  );
-
-  it.each([
-    {size: 1090, baseline: 1000},
-    {size: 1000, baseline: 1000},
-    {size: 4000, baseline: 0},
-    {size: 4000, baseline: undefined},
-    {size: undefined, baseline: 1000},
-    {size: 'invalid', baseline: 1000},
-  ])('hides unavailable or insignificant comparisons: %p', async ({size, baseline}) => {
-    mockAttributes(size);
-    const request = mockAverages(baseline);
-    render(<AiSpanDetails node={toolNode()} traceId="trace-id" />, {organization});
-    await waitFor(() => expect(request).toHaveBeenCalled());
-    expect(await screen.findByText('No input for this span')).toBeInTheDocument();
-    expect(await screen.findByText(/300% slower than avg/)).toBeInTheDocument();
+  it('retains the calculated size without querying a baseline for legacy spans', async () => {
+    mockAttributes(false);
+    const request = mockAverage();
+    render(
+      <ConversationSpanDetail
+        node={toolNode()}
+        traceId="trace-id"
+        activeTab="input"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+    expect(await screen.findByText('13 B')).toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
     expect(
       screen.queryByText(/larger than avg|smaller than avg/)
     ).not.toBeInTheDocument();

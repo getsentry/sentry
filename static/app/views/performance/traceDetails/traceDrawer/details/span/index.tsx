@@ -72,17 +72,10 @@ import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
-function useAvgSpanDuration(span: TraceTree.EAPSpan | undefined): number | undefined {
-  return useSpanAverages(span).avgDuration;
-}
-
-export const AVG_TOOL_OUTPUT_SIZE =
-  'avg_if(`has:gen_ai.tool.call.result.size`, gen_ai.tool.call.result.size)';
-
-export function useSpanAverages(
+export function useAvgSpanDuration(
   span: TraceTree.EAPSpan | undefined,
-  includeToolOutputSize = false
-): {avgDuration: number | undefined; avgToolOutputSize: number | undefined} {
+  location: Location
+): number | undefined {
   const dataset = useSpansDataset();
 
   const eventView = useMemo(() => {
@@ -94,10 +87,7 @@ export function useSpanAverages(
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Trace View - Span Avg Duration',
-      fields: [
-        'avg(span.duration)',
-        ...(includeToolOutputSize ? [AVG_TOOL_OUTPUT_SIZE] : []),
-      ],
+      fields: ['avg(span.duration)'],
       query: search.formatString(),
       projects: span ? [span.project_id] : [],
       version: 2,
@@ -105,8 +95,8 @@ export function useSpanAverages(
       dataset,
     };
 
-    return EventView.fromSavedQuery(discoverQuery);
-  }, [span, dataset, includeToolOutputSize]);
+    return EventView.fromNewQueryWithLocation(discoverQuery, location);
+  }, [span, location, dataset]);
 
   const result = useSpansQueryWithoutPageFilters({
     enabled: !!span?.description && !!span?.op,
@@ -116,12 +106,7 @@ export function useSpanAverages(
     trackResponseAnalytics: false,
   });
 
-  return {
-    avgDuration: result.data?.[0]?.['avg(span.duration)'],
-    avgToolOutputSize: includeToolOutputSize
-      ? result.data?.[0]?.[AVG_TOOL_OUTPUT_SIZE]
-      : undefined,
-  };
+  return result.data?.[0]?.['avg(span.duration)'];
 }
 
 type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<EapSpanNode>;
@@ -179,7 +164,7 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     organization,
   });
 
-  const avgSpanDuration = useAvgSpanDuration(node.value);
+  const avgSpanDuration = useAvgSpanDuration(node.value, location);
 
   if (isTraceItemPending || isEventTransactionLoading) {
     return <LoadingIndicator />;

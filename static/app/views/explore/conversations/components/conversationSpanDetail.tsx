@@ -13,8 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {Placeholder} from 'sentry/components/placeholder';
-import {t, tct} from 'sentry/locale';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -40,10 +39,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
-import {
-  getIsExecuteToolNode,
-  getTraceNodeAttribute,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
   isCodeModeNode,
@@ -57,7 +53,6 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
 import {
   getDurationComparison,
-  getPercentageDifference,
   MIN_PCT_DURATION_DIFFERENCE,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/durationComparison';
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/highlightedAttributes';
@@ -98,7 +93,6 @@ interface ConversationSpanDetailProps {
    * a "faster/slower than avg" pill is shown next to the duration.
    */
   avgDuration?: number;
-  avgToolOutputSize?: number;
   /**
    * Embeds the panel flush inside another surface (trace views), dropping the
    * border and radius. Off, it renders as a standalone bordered card.
@@ -121,7 +115,6 @@ export function ConversationSpanDetail({
   onTabChange,
   onClose,
   avgDuration,
-  avgToolOutputSize,
   embedded,
   isLoading,
   scrollResetKey,
@@ -216,12 +209,7 @@ export function ConversationSpanDetail({
         {isAttributesLoading ? (
           <SpanMetadataSkeleton />
         ) : (
-          <SpanMetadata
-            node={node}
-            attributes={attributes}
-            evaluation={evaluation}
-            avgToolOutputSize={avgToolOutputSize}
-          />
+          <SpanMetadata node={node} attributes={attributes} evaluation={evaluation} />
         )}
       </Stack>
 
@@ -305,69 +293,18 @@ function SpanMetadata({
   node,
   attributes,
   evaluation,
-  avgToolOutputSize,
 }: {
   attributes: SpanAttributes;
   evaluation: Evaluation | null;
   node: AITraceSpanNode;
-  avgToolOutputSize?: number;
 }) {
   const rows = getHighlightedSpanAttributes({
     op: node.op,
     spanId: node.id,
     attributes: attributes ?? node.attributes,
+    projectId: node.value.project_id,
+    description: node.description,
   });
-  const reportedSize = getTraceNodeAttribute(
-    'gen_ai.tool.call.result.size',
-    node,
-    undefined,
-    attributes
-  );
-  const outputSize =
-    typeof reportedSize === 'number' ||
-    (typeof reportedSize === 'string' && reportedSize.trim() !== '')
-      ? Number(reportedSize)
-      : undefined;
-  const deltaPct =
-    outputSize === undefined
-      ? null
-      : getPercentageDifference(avgToolOutputSize, outputSize);
-  if (
-    getIsExecuteToolNode(node) &&
-    outputSize !== undefined &&
-    avgToolOutputSize !== undefined &&
-    deltaPct !== null &&
-    deltaPct >= MIN_PCT_DURATION_DIFFERENCE
-  ) {
-    const sizeRow = rows.find(row => row.name === t('Result Size'));
-    const comparison = (
-      <Flex align="center" gap="sm" wrap="wrap">
-        <Text>{formatBytesBase10(outputSize)}</Text>
-        <Tag variant={outputSize > avgToolOutputSize ? 'danger' : 'success'}>
-          <InfoText
-            title={t(
-              'Average output size for matching tool calls in this project over the last 24 hours'
-            )}
-          >
-            {outputSize > avgToolOutputSize
-              ? tct('[deltaPct] larger than avg [size]', {
-                  deltaPct: `${deltaPct}%`,
-                  size: formatBytesBase10(avgToolOutputSize),
-                })
-              : tct('[deltaPct] smaller than avg [size]', {
-                  deltaPct: `${deltaPct}%`,
-                  size: formatBytesBase10(avgToolOutputSize),
-                })}
-          </InfoText>
-        </Tag>
-      </Flex>
-    );
-    if (sizeRow) {
-      sizeRow.value = comparison;
-    } else {
-      rows.push({name: t('Result Size'), value: comparison});
-    }
-  }
 
   // Skip the row when no answer has a short label to show.
   if (evaluation?.answers?.some(answer => answer.kind !== 'invalid')) {

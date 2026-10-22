@@ -1,12 +1,12 @@
 import {useState} from 'react';
 
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   ConversationSpanDetail,
   type DetailTab,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {getIsExecuteToolNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {useSpanAverages} from 'sentry/views/performance/traceDetails/traceDrawer/details/span';
+import {useAvgSpanDuration} from 'sentry/views/performance/traceDetails/traceDrawer/details/span';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 
 interface AiSpanDetailsProps {
@@ -15,13 +15,11 @@ interface AiSpanDetailsProps {
 }
 
 export function AiSpanDetails({node, traceId}: AiSpanDetailsProps) {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<DetailTab>('input');
 
   const eapSpan = isEAPSpanNode(node) ? node.value : undefined;
-  const {avgDuration, avgToolOutputSize} = useSpanAverages(
-    eapSpan,
-    getIsExecuteToolNode(node)
-  );
+  const avgSpanDuration = useAvgSpanDuration(eapSpan, location);
 
   return (
     <ConversationSpanDetail
@@ -29,8 +27,7 @@ export function AiSpanDetails({node, traceId}: AiSpanDetailsProps) {
       traceId={traceId}
       activeTab={activeTab}
       onTabChange={setActiveTab}
-      avgDuration={avgDuration ? avgDuration / 1000 : undefined}
-      avgToolOutputSize={avgToolOutputSize}
+      avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       embedded
     />
   );
