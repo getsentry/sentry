@@ -182,6 +182,10 @@ class ServiceAccountProjectReplica(Model):
     """
     The cell's copy of a `ServiceAccountProject`. The account's outbox replaces the whole
     set of an account's links at once, so there's no reference to the control row.
+
+    Replication can race a project transfer and briefly keep a link to a project that has
+    left the account's org, until the transfer's outbox cleanup replicates. Readers must
+    check that the project is in the account's org.
     """
 
     __relocation_scope__ = RelocationScope.Excluded

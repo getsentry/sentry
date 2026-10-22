@@ -1,20 +1,16 @@
-import threading
-from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import timedelta
-from typing import Any
 from unittest import mock
 
 import pytest
 from django.core.exceptions import ValidationError
-from django.db import connections, router, transaction
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import deletions
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.services.replica import cell_replica_service
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.service_accounts.models import (
@@ -25,18 +21,11 @@ from sentry.service_accounts.models import (
     validate_grantable_scopes,
 )
 from sentry.service_accounts.services.service_account import service_account_service
-from sentry.service_accounts.services.service_account.model import RpcServiceAccount
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import (
-    all_silo_test,
-    assume_test_silo_mode,
-    cell_silo_test,
-    control_silo_test,
-)
-from sentry.types.cell import get_local_cell
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 
 
 def test_validate_grantable_scopes_accepts_api_scopes() -> None:
@@ -344,82 +333,3 @@ class ServiceAccountReplicationTest(TestCase):
 
         assert self.get_replica() is None
         assert self.get_replica_project_ids() == set()
-
-
-@cell_silo_test
-class ServiceAccountReplicationTransferRaceTest(TransactionTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.organization = self.create_organization()
-        self.project = self.create_project(organization=self.organization)
-        self.other_org = self.create_organization()
-        self.errors: list[BaseException] = []
-
-    def in_thread(self, target: Callable[[], object]) -> threading.Thread:
-        def run() -> None:
-            try:
-                target()
-            except BaseException as e:
-                self.errors.append(e)
-            finally:
-                for connection in connections.all():
-                    connection.close()
-
-        return threading.Thread(target=run)
-
-    def replicate(self) -> None:
-        cell_replica_service.upsert_replicated_service_account(
-            service_account=RpcServiceAccount(
-                id=1,
-                organization_id=self.organization.id,
-                name="seer-autofix",
-                scope_list=["project:read"],
-                is_active=True,
-                project_ids=[self.project.id],
-            ),
-            cell_name=get_local_cell().name,
-        )
-
-    def transfer(self) -> None:
-        Project.objects.get(id=self.project.id).transfer_to(organization=self.other_org)
-
-    def assert_no_cross_org_link(self) -> None:
-        assert self.errors == []
-        assert Project.objects.get(id=self.project.id).organization_id == self.other_org.id
-        assert not ServiceAccountProjectReplica.objects.filter(project_id=self.project.id).exists()
-
-    def test_transfer_during_replication_removes_link(self) -> None:
-        transfer_thread = self.in_thread(self.transfer)
-        bulk_create = ServiceAccountProjectReplica.objects.bulk_create
-
-        def transfer_then_bulk_create(*args: Any, **kwargs: Any) -> Any:
-            transfer_thread.start()
-            # Gives a transfer that isn't blocked by the replication time to commit.
-            transfer_thread.join(timeout=1)
-            return bulk_create(*args, **kwargs)
-
-        with mock.patch.object(
-            ServiceAccountProjectReplica.objects,
-            "bulk_create",
-            side_effect=transfer_then_bulk_create,
-        ):
-            self.replicate()
-        transfer_thread.join()
-
-        self.assert_no_cross_org_link()
-
-    def test_replication_during_transfer_skips_link(self) -> None:
-        replication_thread = self.in_thread(self.replicate)
-        outbox_for_transfer = Project.outbox_for_transfer
-
-        def replicate_then_outbox(*args: Any, **kwargs: Any) -> CellOutbox:
-            replication_thread.start()
-            # Gives a replication that isn't blocked by the transfer time to read the project.
-            replication_thread.join(timeout=1)
-            return outbox_for_transfer(*args, **kwargs)
-
-        with mock.patch.object(Project, "outbox_for_transfer", side_effect=replicate_then_outbox):
-            self.transfer()
-        replication_thread.join()
-
-        self.assert_no_cross_org_link()
