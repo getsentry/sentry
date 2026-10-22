@@ -25,7 +25,7 @@ export function AttributeDetails({
   return (
     <Details>
       <DetailsLabel>{label}</DetailsLabel>
-      <AttributeDescription description={description} />
+      <AttributeDescription description={description} linksAsText />
     </Details>
   );
 }
