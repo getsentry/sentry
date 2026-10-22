@@ -61,14 +61,15 @@ export function SettingsNavigation({
         : t('Organization Settings')
     : t('Settings');
 
+  const Header = settingsV3
+    ? SecondaryNavigation.Header
+    : SecondaryNavigation.ExpandableHeader;
+
   return (
     <ErrorBoundary customComponent={null}>
-      <SecondaryNavigation.Header
-        trailingItems={settingsV3 ? undefined : <SecondaryNavigation.Toggle />}
-        padding={showProjectSelector ? '0 sm' : undefined}
-      >
+      <Header padding={showProjectSelector ? '0 sm' : undefined}>
         {showProjectSelector ? <SettingsProjectSelector /> : title}
-      </SecondaryNavigation.Header>
+      </Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
           <Fragment key={config.name}>

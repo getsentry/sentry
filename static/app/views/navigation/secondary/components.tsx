@@ -285,29 +285,49 @@ interface SecondaryNavigationHeaderProps {
   children?: ReactNode;
   /** Overrides the header padding, which otherwise depends on the navigation layout. */
   padding?: ContainerProps['padding'];
-  /** Optional header controls, such as SecondaryNavigation.Toggle. */
-  trailingItems?: ReactNode;
 }
 
-function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
+function SecondaryNavigationHeaderLayout(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
 
   return (
     <Grid
-      columns={props.trailingItems ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
+      columns="minmax(0, 1fr) auto"
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding={props.padding ?? (isMobile ? 'md lg' : '0 md 0 xl')}
     >
-      <Container minWidth="0" whiteSpace={props.trailingItems ? undefined : 'nowrap'}>
+      {props.children}
+    </Grid>
+  );
+}
+
+function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
+  return (
+    <SecondaryNavigationHeaderLayout padding={props.padding}>
+      <Container minWidth="0" whiteSpace="nowrap">
         <Text size="md" bold>
           {props.children}
         </Text>
       </Container>
-      {props.trailingItems && <Container>{props.trailingItems}</Container>}
-    </Grid>
+    </SecondaryNavigationHeaderLayout>
+  );
+}
+
+function SecondaryNavigationExpandableHeader(props: SecondaryNavigationHeaderProps) {
+  return (
+    <SecondaryNavigationHeaderLayout padding={props.padding}>
+      <Container minWidth="0">
+        <Text size="md" bold>
+          {props.children}
+        </Text>
+      </Container>
+      <Container>
+        <SecondaryNavigationToggle />
+      </Container>
+    </SecondaryNavigationHeaderLayout>
   );
 }
 
@@ -1005,7 +1025,7 @@ const SidebarNavigationLink = styled(Link)`
 
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
-  Toggle: SecondaryNavigationToggle,
+  ExpandableHeader: SecondaryNavigationExpandableHeader,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,

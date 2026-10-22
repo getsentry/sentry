@@ -28,9 +28,9 @@ function MonitorsSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header trailingItems={<SecondaryNavigation.Toggle />}>
+      <SecondaryNavigation.ExpandableHeader>
         {t('Monitors')}
-      </SecondaryNavigation.Header>
+      </SecondaryNavigation.ExpandableHeader>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="monitors-views">
           <SecondaryNavigation.List>

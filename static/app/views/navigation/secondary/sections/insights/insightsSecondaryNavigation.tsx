@@ -63,9 +63,9 @@ function InsightsSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header trailingItems={<SecondaryNavigation.Toggle />}>
+      <SecondaryNavigation.ExpandableHeader>
         {t('Insights')}
-      </SecondaryNavigation.Header>
+      </SecondaryNavigation.ExpandableHeader>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="insights-main">
           <SecondaryNavigation.List>
