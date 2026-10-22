@@ -99,7 +99,7 @@ export function MonitorChanges({action, impact, monitor}: MonitorChangesProps) {
                     {formatChangeValue(
                       key,
                       action.before[key],
-                      monitor?.detectionType ?? null,
+                      monitor?.detectionType,
                       currentAggregate
                     )}
                   </Text>
@@ -109,7 +109,7 @@ export function MonitorChanges({action, impact, monitor}: MonitorChangesProps) {
                     {formatChangeValue(
                       key,
                       action.changes[key],
-                      monitor?.detectionType ?? null,
+                      monitor?.detectionType,
                       suggestedAggregate
                     )}
                   </Text>
@@ -175,7 +175,11 @@ function getOpensAnIssueDescription(
     .filter(candidate => candidate.result !== DetectorPriorityLevel.OK)
     .toSorted((a, b) => a.result - b.result)[0];
   const changeKey = condition ? PRIORITY_CHANGE_KEYS[condition.result] : undefined;
-  if (!condition || (changeKey && action.changes[changeKey] !== undefined)) {
+  if (
+    !condition ||
+    typeof condition.comparison !== 'number' ||
+    (changeKey && action.changes[changeKey] !== undefined)
+  ) {
     return null;
   }
   return getConditionDescription({

@@ -519,7 +519,31 @@ describe('NextStepCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('skips a condition type it does not know', () => {
+  it('names the monitor without an opening condition for a dynamic monitor', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({
+          ...latencyMonitor,
+          detectionType: 'dynamic',
+          conditions: [
+            {
+              type: 'anomaly_detection',
+              comparison: {sensitivity: 'medium', seasonality: 'auto', threshold_type: 0},
+              result: 75,
+            },
+          ],
+        })}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    const card = getCard();
+    expect(within(card).getByText('Cart p95 latency')).toBeInTheDocument();
+    expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
+  });
+
+  it('ignores a snapshot with a condition type it does not know', () => {
     render(
       <NextStepCard
         orchestration={completedRun}
@@ -531,14 +555,16 @@ describe('NextStepCard', () => {
       />
     );
 
-    expect(within(getCard()).queryByText('Opens an issue')).not.toBeInTheDocument();
+    const card = getCard();
+    expect(within(card).getByText('Monitor')).toBeInTheDocument();
+    expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
   });
 
-  it('leaves out monitor details the snapshot does not describe', () => {
+  it('leaves out monitor details when the snapshot does not parse', () => {
     render(
       <NextStepCard
         orchestration={completedRun}
-        source={sourceWith({id: '42', name: 'Another monitor'})}
+        source={sourceWith({id: '789', name: 'Another monitor'})}
         actionRequests={[InvestigationActionRequestFixture()]}
       />
     );
@@ -548,6 +574,20 @@ describe('NextStepCard', () => {
     expect(card).not.toHaveTextContent('Another monitor');
     expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
     expect(card).toHaveTextContent('15 minutes');
+  });
+
+  it('leaves out a different monitor than the one the suggestion changes', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({...latencyMonitor, id: '42', name: 'Another monitor'})}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    const card = getCard();
+    expect(within(card).getByText('Monitor')).toBeInTheDocument();
+    expect(card).not.toHaveTextContent('Another monitor');
   });
 
   it('shows query and environment changes in place of what they replace', () => {

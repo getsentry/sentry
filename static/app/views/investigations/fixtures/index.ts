@@ -251,6 +251,33 @@ export function InvestigationActionRequestFixture(
   };
 }
 
+export function InvestigationMetricSourceFixture(
+  monitor: Record<string, unknown> = {}
+): NonNullable<InvestigationDetail['source']> {
+  return {
+    type: 'metric_open_period',
+    ref: {groupId: '123', openPeriodId: '456'},
+    revision: null,
+    snapshot: {
+      monitor: {
+        id: '789',
+        name: 'Checkout error rate',
+        aggregate: 'count()',
+        query: '',
+        environment: null,
+        detectionType: 'static',
+        comparisonDeltaSeconds: null,
+        conditions: [
+          {type: 'gt', comparison: 100, result: 75},
+          {type: 'lte', comparison: 100, result: 0},
+        ],
+        ...monitor,
+      },
+      project: {id: '1', slug: 'checkout-api'},
+    },
+  };
+}
+
 export function InvestigationBreachedMetricDetailFixture(
   overrides: Partial<InvestigationDetail> = {}
 ): InvestigationDetail & {blocks: InvestigationBlock[]} {
@@ -261,12 +288,7 @@ export function InvestigationBreachedMetricDetailFixture(
     summaryDescription:
       'All active releases increased together.\nCheck shared infrastructure and dependencies.',
     template: {key: 'breached_metric', version: 1},
-    source: {
-      type: 'metric_open_period',
-      ref: {groupId: '123', openPeriodId: '456'},
-      revision: null,
-      snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
-    },
+    source: InvestigationMetricSourceFixture(),
     blocks: [
       InvestigationBlockFixture({
         id: 'summary-block',
