@@ -707,6 +707,7 @@ export const ATTRIBUTE_VALUE_TYPES: Record<
   float: FieldValueType.NUMBER,
   int: FieldValueType.INTEGER,
   str: FieldValueType.STRING,
+  array: FieldValueType.ARRAY,
 };
 
 /**
