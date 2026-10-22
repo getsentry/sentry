@@ -53,6 +53,13 @@ import {
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+import {
+  ACTIVITY_ELEMENT_ID,
+  getInvestigationOutline,
+  HYPOTHESES_ELEMENT_ID,
+  InvestigationOutline,
+  SUMMARY_ELEMENT_ID,
+} from 'sentry/views/investigations/detail/outline';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
@@ -318,10 +325,18 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     Boolean(investigation.orchestration) ||
     visibleBlocks.length > 0 ||
     awaitingReportCell;
+  const hasSummary = Boolean(investigation.summary && investigation.summaryDescription);
   // The "Investigation details" heading only appears below a summary.
-  const showDetailsHeading =
-    hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
+  const showDetailsHeading = hasDetails && hasSummary;
   const showActivity = isInvestigationRunDone(investigation);
+  const outline = getInvestigationOutline({
+    blocks: visibleBlocks,
+    hasActivity: showActivity,
+    hasHypotheses: Boolean(
+      investigation.orchestration && orchestration?.hypotheses.length
+    ),
+    hasSummary,
+  });
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -484,74 +499,97 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         </Container>
         <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
           <Layout.Main width="full">
-            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
-              <InvestigationSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
-
-              {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
-
-              {hasDetails ? (
-                <Stack gap="lg">
-                  {showDetailsHeading ? (
-                    <Heading as="h2" size="lg">
-                      {t('Investigation details')}
-                    </Heading>
-                  ) : null}
-                  <DetailsBody gap="3xl">
-                    {/*
-                     * Only an agentic investigation has hypotheses, and `orchestration`
-                     * being present is the only thing that says one is: it is null for
-                     * manual and template investigations, whose orchestration endpoint
-                     * 404s.
-                     */}
-                    {investigation.orchestration ? (
-                      <InvestigationHypotheses
-                        investigationId={investigation.id}
-                        phase={investigation.orchestration.phase}
-                        status={investigation.orchestration.status}
-                      />
-                    ) : null}
-                    {visibleBlocks.length > 0 || awaitingReportCell ? (
-                      <Stack>
-                        {visibleBlocks.map((block, index) => (
-                          <Container
-                            key={block.id}
-                            paddingTop={getCellSpacing(block, index)}
-                          >
-                            <InvestigationCell
-                              block={block}
-                              canRun={investigation.status === 'active'}
-                              investigation={investigation}
-                              commentCount={commentCounts?.[block.id]}
-                              onComment={
-                                isArchived && commentCounts && !commentCounts[block.id]
-                                  ? undefined
-                                  : openBlockComments
-                              }
-                            />
-                          </Container>
-                        ))}
-                        {awaitingReportCell ? (
-                          <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
-                            <InvestigationCellPlaceholder />
-                          </Container>
-                        ) : null}
-                      </Stack>
-                    ) : null}
-                  </DetailsBody>
-                </Stack>
+            {/*
+             * The report keeps to the middle column, as wide as the header above
+             * it, which leaves the left one free for the outline.
+             */}
+            <Grid columns="minmax(0, 1fr) min(960px, 100%) minmax(0, 1fr)">
+              {outline.length > 0 ? (
+                <Container
+                  column="1"
+                  display={{zero: 'none', '5xl': 'block'}}
+                  justifySelf="end"
+                  width="100%"
+                  maxWidth="264px"
+                  paddingRight="2xl"
+                >
+                  <InvestigationOutline entries={outline} />
+                </Container>
               ) : null}
-              {showActivity ? (
-                <InvestigationActivity
-                  investigation={investigation}
-                  composerRef={composerRef}
-                  ref={activityRef}
+              <Stack column="2" minWidth={0} gap="3xl">
+                <InvestigationSummaryCard
+                  id={SUMMARY_ELEMENT_ID}
+                  summary={investigation.summary}
+                  summaryDescription={investigation.summaryDescription}
                 />
-              ) : null}
-              <Container height="128px" flexShrink={0} aria-hidden />
-            </Stack>
+
+                {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
+
+                {hasDetails ? (
+                  <Stack gap="lg">
+                    {showDetailsHeading ? (
+                      <Heading as="h2" size="lg">
+                        {t('Investigation details')}
+                      </Heading>
+                    ) : null}
+                    <DetailsBody gap="3xl">
+                      {/*
+                       * Only an agentic investigation has hypotheses, and `orchestration`
+                       * being present is the only thing that says one is: it is null for
+                       * manual and template investigations, whose orchestration endpoint
+                       * 404s.
+                       */}
+                      {investigation.orchestration ? (
+                        <InvestigationHypotheses
+                          id={HYPOTHESES_ELEMENT_ID}
+                          investigationId={investigation.id}
+                          phase={investigation.orchestration.phase}
+                          status={investigation.orchestration.status}
+                        />
+                      ) : null}
+                      {visibleBlocks.length > 0 || awaitingReportCell ? (
+                        <Stack>
+                          {visibleBlocks.map((block, index) => (
+                            <Container
+                              key={block.id}
+                              paddingTop={getCellSpacing(block, index)}
+                            >
+                              <InvestigationCell
+                                block={block}
+                                canRun={investigation.status === 'active'}
+                                investigation={investigation}
+                                commentCount={commentCounts?.[block.id]}
+                                onComment={
+                                  isArchived && commentCounts && !commentCounts[block.id]
+                                    ? undefined
+                                    : openBlockComments
+                                }
+                              />
+                            </Container>
+                          ))}
+                          {awaitingReportCell ? (
+                            <Container
+                              paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}
+                            >
+                              <InvestigationCellPlaceholder />
+                            </Container>
+                          ) : null}
+                        </Stack>
+                      ) : null}
+                    </DetailsBody>
+                  </Stack>
+                ) : null}
+                {showActivity ? (
+                  <InvestigationActivity
+                    id={ACTIVITY_ELEMENT_ID}
+                    investigation={investigation}
+                    composerRef={composerRef}
+                    ref={activityRef}
+                  />
+                ) : null}
+                <Container height="128px" flexShrink={0} aria-hidden />
+              </Stack>
+            </Grid>
           </Layout.Main>
         </Layout.Body>
       </Stack>

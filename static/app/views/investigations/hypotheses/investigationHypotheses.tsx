@@ -101,6 +101,8 @@ type InvestigationHypothesesProps = {
    * orchestration endpoint 404s for those, and there is nothing to poll.
    */
   enabled?: boolean;
+  /** Lets the page outline scroll to the hypotheses. */
+  id?: string;
   /**
    * The run's phase from the investigation summary. Only used before the
    * projection arrives, so a finished run opens collapsed instead of showing a
@@ -131,6 +133,7 @@ type InvestigationHypothesesProps = {
  */
 export function InvestigationHypotheses({
   enabled = true,
+  id,
   investigationId,
   phase: summaryPhase,
   status: summaryStatus,
@@ -292,7 +295,7 @@ export function InvestigationHypotheses({
     !SETTLED_PHASES.has(projection.phase);
 
   return (
-    <Stack gap="3xl">
+    <Stack id={id} gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
         <HypothesesPanel
