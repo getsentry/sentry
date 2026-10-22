@@ -19,6 +19,7 @@ from fixtures.bitbucket_server import (
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
+from sentry.integrations.bitbucket_server.webhook_config import build_webhook_update_data
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.repository import Repository
@@ -210,10 +211,44 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         hook = orjson.loads(responses.calls[0].request.body)
         secret = hook["configuration"]["secret"]
         assert len(secret) == 64
+        assert hook == {
+            "name": "sentry-bitbucket-server-repo-hook",
+            "url": f"http://testserver/extensions/bitbucket-server/organizations/{self.organization.id}/webhook/{self.integration.id}/",
+            "active": True,
+            "events": ["repo:refs_changed", "pr:merged"],
+            "configuration": {"secret": secret},
+        }
         repo.refresh_from_db()
         assert repo.config["webhook_id"] == 79
         assert repo.config["webhook_secret"] == secret
         assert rpc_repo.config["webhook_secret"] == secret
+
+    def test_build_webhook_update_data_preserves_existing_fields(self) -> None:
+        assert build_webhook_update_data(
+            {
+                "id": 79,
+                "name": "custom-hook-name",
+                "url": "https://sentry.example.com/custom-webhook",
+                "active": False,
+                "events": ["repo:refs_changed"],
+                "sslVerificationRequired": False,
+                "configuration": {
+                    "secret": "old-secret",
+                    "custom-setting": "preserved",
+                },
+            },
+            secret="new-secret",
+        ) == {
+            "name": "custom-hook-name",
+            "url": "https://sentry.example.com/custom-webhook",
+            "active": False,
+            "events": ["repo:refs_changed"],
+            "sslVerificationRequired": False,
+            "configuration": {
+                "secret": "new-secret",
+                "custom-setting": "preserved",
+            },
+        }
 
     @responses.activate
     def test_on_create_repository_keeps_existing_hook(self) -> None:

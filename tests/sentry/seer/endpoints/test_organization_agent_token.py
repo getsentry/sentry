@@ -1884,12 +1884,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("CustomInboundFilterDetailsEndpoint", "PUT"): {
                 "name": "Updated permission matrix filter",
                 "dataType": "error",
-                "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+                "conditions": [
+                    {"type": "error_message", "operator": "glob", "value": ["TypeError*"]}
+                ],
             },
             ("CustomInboundFiltersEndpoint", "POST"): {
                 "name": "Permission matrix new filter",
                 "dataType": "all",
-                "conditions": [{"type": "release", "value": ["2.*"]}],
+                "conditions": [{"type": "release", "operator": "glob", "value": ["2.*"]}],
             },
             ("DataForwardingDetailsEndpoint", "PUT"): {
                 "provider": "segment",
@@ -1942,6 +1944,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "title": "Permission matrix dashboard mutation"
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
+            ("OrganizationCodeMappingsBulkEndpoint", "POST"): {
+                "project": self.project.slug,
+                "repository": self._resource("scm_repository").name,
+                "defaultBranch": "main",
+                "mappings": [{"stackRoot": "/app/", "sourceRoot": "src/"}],
+            },
             ("OrganizationCodeMappingsEndpoint", "POST"): {
                 "integrationId": self._resource("scm_repository").integration_id,
                 "repositoryId": self._resource("scm_repository").id,

@@ -4,7 +4,7 @@ from unittest import TestCase
 from unittest.mock import ANY, MagicMock, patch
 
 import time_machine
-from django.conf import settings
+from django.test import override_settings
 from redis.client import Pipeline
 
 from sentry.ratelimits.sliding_windows import (
@@ -204,10 +204,10 @@ class CircuitBreakerTest(TestCase):
             (True, mock_logger.error),
             (False, mock_logger.warning),
         ]:
-            settings.DEBUG = settings_debug_value
-            breaker = MockCircuitBreaker(
-                "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
-            )
+            with override_settings(DEBUG=settings_debug_value):
+                breaker = MockCircuitBreaker(
+                    "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
+                )
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has a recovery error limit (%d) greater than or equal"
@@ -232,10 +232,10 @@ class CircuitBreakerTest(TestCase):
             (True, mock_logger.error),
             (False, mock_logger.warning),
         ]:
-            settings.DEBUG = settings_debug_value
-            breaker = MockCircuitBreaker(
-                "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
-            )
+            with override_settings(DEBUG=settings_debug_value):
+                breaker = MockCircuitBreaker(
+                    "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
+                )
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has BROKEN and RECOVERY state durations (%d and %d sec, respectively)"
