@@ -9,6 +9,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.investigations.models.orchestration import InvestigationOrchestrationStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
@@ -124,6 +125,22 @@ class SlackInvestigationCachePayload(TypedDict):
     slack_user_id: str
     last_sent_state: str | None
     final_sent: bool
+
+
+class SlackInvestigationThread(TypedDict):
+    integration_id: int
+    channel_id: str
+    thread_ts: str
+    show_status: bool
+    status_message_ts: str | None
+    last_sent_state: str | None
+    final_sent: bool
+
+
+class SlackInvestigationThreadsCachePayload(TypedDict):
+    organization_id: int
+    investigation_id: int | None
+    threads: list[SlackInvestigationThread]
 
 
 class SlackPendingMentionPayload(TypedDict):
@@ -1071,6 +1088,76 @@ def prepare_slack_thread_for_autofix_updates(
         "seer.entrypoint.slack.prepare_thread.cache_populated",
         tags={"cache_source": cache_result["source"]},
     )
+
+
+def record_slack_thread_for_metric_open_period(
+    *,
+    organization_id: int,
+    integration_id: int,
+    channel_id: str,
+    thread_ts: str,
+    group_id: int,
+    open_period_id: int,
+) -> None:
+    """
+    Add the Slack thread of a metric alert to the investigation cache for its open period.
+    An investigation of the open period can then send its conclusion to all of these threads.
+    """
+    logging_ctx = {
+        "group_id": group_id,
+        "open_period_id": open_period_id,
+        "organization_id": organization_id,
+        "integration_id": integration_id,
+        "channel_id": channel_id,
+        "thread_ts": thread_ts,
+    }
+    entrypoint_key = str(SlackInvestigationEntrypoint.key)
+    source_type = InvestigationSourceType.METRIC_OPEN_PERIOD.value
+    source_ids = [group_id, open_period_id]
+    cache_cls = SeerOperatorInvestigationCache[SlackInvestigationThreadsCachePayload]
+    lock = locks.get(
+        cache_cls.get_source_cache_key(
+            entrypoint_key=entrypoint_key, source_type=source_type, source_ids=source_ids
+        ),
+        duration=10,
+        name="investigation_entrypoint_slack",
+    )
+    try:
+        with lock.blocking_acquire(initial_delay=0.1, timeout=3):
+            payload = cache_cls.get_for_source(
+                entrypoint_key=entrypoint_key, source_type=source_type, source_ids=source_ids
+            ) or (
+                SlackInvestigationThreadsCachePayload(
+                    organization_id=organization_id, investigation_id=None, threads=[]
+                )
+            )
+            if not any(
+                thread["integration_id"] == integration_id
+                and thread["channel_id"] == channel_id
+                and thread["thread_ts"] == thread_ts
+                for thread in payload["threads"]
+            ):
+                payload["threads"].append(
+                    SlackInvestigationThread(
+                        integration_id=integration_id,
+                        channel_id=channel_id,
+                        thread_ts=thread_ts,
+                        show_status=False,
+                        status_message_ts=None,
+                        last_sent_state=None,
+                        final_sent=False,
+                    )
+                )
+            cache_cls.set_for_source(
+                entrypoint_key=entrypoint_key,
+                source_type=source_type,
+                source_ids=source_ids,
+                cache_payload=payload,
+            )
+    except UnableToAcquireLock:
+        logger.exception(
+            "seer.entrypoint.slack.record_open_period_thread.lock_failed", extra=logging_ctx
+        )
 
 
 # Register after class definition to avoid decorator type-narrowing when stacking two registries.
