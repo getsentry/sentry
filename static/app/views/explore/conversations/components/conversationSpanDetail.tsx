@@ -302,7 +302,10 @@ function SpanMetadata({
     op: node.op,
     spanId: node.id,
     attributes: attributes ?? node.attributes,
+    projectId: node.value.project_id,
+    description: node.description,
   });
+
   // Skip the row when no answer has a short label to show.
   if (evaluation?.answers?.some(answer => answer.kind !== 'invalid')) {
     rows.push({

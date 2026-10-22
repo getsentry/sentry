@@ -159,7 +159,8 @@ function getTextColor({
 const StyledInnerWrap = styled(Flex, {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
-    (isPropValid(prop) || ['padding', 'align', 'alignSelf'].includes(prop)) &&
+    (isPropValid(prop) ||
+      ['padding', 'paddingLeft', 'align', 'alignSelf'].includes(prop)) &&
     !['disabled', 'isFocused', 'priority'].includes(prop),
 })<{
   disabled: boolean;
@@ -352,6 +353,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   const itemRef = useRef<HTMLElement>(null);
   const labelId = useId();
   const detailId = useId();
+  const hasInlineDetails = Boolean(details && !showDetailsInOverlay);
 
   return (
     <MenuItemWrap
@@ -375,6 +377,10 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
         <StyledInnerWrap
           data-menu-item-content
           padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
+          // The leading slot is 2xl wide and centers its content, so a 16px icon
+          // gets 4px of space on each side. A `md` inset keeps leading items where
+          // they sat before the slot existed, at every size.
+          paddingLeft={leadingItems ? 'md' : undefined}
           isFocused={isFocused}
           disabled={disabled}
           priority={priority}
@@ -389,7 +395,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           {leadingItems && (
             <StyledLeadingItems
               disabled={disabled}
-              hasDetails={Boolean(details && !showDetailsInOverlay)}
+              hasDetails={hasInlineDetails}
               size={size}
             >
               {typeof leadingItems === 'function'
@@ -398,7 +404,17 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
             </StyledLeadingItems>
           )}
           <StyledContentWrap isFocused={isFocused} size={size}>
-            <Stack padding="xs 0" align="start" gap="2xs" flex="1 0 0" minWidth="0">
+            {/* Size the label box to match leading and trailing items, so labels that
+                already render at that height do not get extra space. */}
+            <Stack
+              padding={hasInlineDetails ? 'xs 0' : undefined}
+              minHeight={hasInlineDetails ? undefined : '24px'}
+              justify="center"
+              align="start"
+              gap="2xs"
+              flex="1 0 0"
+              minWidth="0"
+            >
               <Text
                 as="div"
                 size={LABEL_TEXT_SIZE_BY_SIZE[size ?? 'md']}
@@ -409,6 +425,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
                 bold={false}
                 tabular
                 ellipsis
+                trim={typeof label === 'string' || typeof label === 'number'}
                 id={labelId}
                 data-test-id="menu-list-item-label"
                 {...labelProps}

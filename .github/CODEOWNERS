@@ -65,6 +65,15 @@
 /static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
 ## End of Frontend Platform shared code
 
+## Taskbroker workers
+# The taskworker runtime is in the stack trace of every task error. Sentry assigns an
+# issue to the LAST matching line, so this must come before the teams that own the
+# tasks: their line then beats the runtime frame. No other pattern matches these paths,
+# so GitHub review routing does not change.
+/src/sentry/taskworker/                                       @getsentry/streaming-platform
+/tests/sentry/taskworker/                                     @getsentry/streaming-platform
+## End of Taskbroker workers
+
 ## Legal
 /LICENSE.md                                              @getsentry/owners-legal
 
@@ -129,7 +138,6 @@
 /src/sentry/web/frontend/auth_organization_login.py      @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/auth_provider_login.py          @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/oauth_token.py                  @getsentry/security @getsentry/foundations @getsentry/owners-auth
-/src/sentry/web/frontend/oauth_authorize.py              @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/openidtoken.py                  @getsentry/security
 /.agents/skills/sentry-security/                         @getsentry/security
 
@@ -843,10 +851,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/settings/organizationDeveloperSettings/               @getsentry/sentry-apps @getsentry/integration-platform
 ## End of Ecosystem
 
-
-# Taskbroker workers
-/src/sentry/taskworker/                                       @getsentry/streaming-platform
-/tests/sentry/taskworker/                                     @getsentry/streaming-platform
 
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx

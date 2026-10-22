@@ -71,7 +71,7 @@ def test_double_write_writes_the_option_and_one_row_with_every_line(default_proj
             "name": "Releases",
             "active": True,
             "data_type": "all",
-            "conditions": [{"type": "release", "value": lines}],
+            "conditions": [{"type": "release", "operator": "glob", "value": lines}],
             "legacy_filter": "release-version",
         }
     ]
@@ -111,7 +111,7 @@ def test_double_write_updates_the_lines_and_keeps_the_users_name_and_active_flag
     row.refresh_from_db()
     assert row.name == "My old builds"
     assert row.active is False
-    assert row.conditions == [{"type": "release", "value": ["2.*"]}]
+    assert row.conditions == [{"type": "release", "operator": "glob", "value": ["2.*"]}]
     user_filter.refresh_from_db()
     assert user_filter.conditions == [{"type": "release", "value": ["mine*"]}]
 
