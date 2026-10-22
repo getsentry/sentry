@@ -127,13 +127,13 @@ def test_checks_nested_models() -> None:
         (GroupActionType.COMMENT, {"comment_id": 42}, None),
         (
             GroupActionType.COMMENT_EDIT,
-            {"comment_id": 42, "comment_id_kind": "activity"},
-            "activity",
+            {"comment_id": 42, "comment_id_kind": "comment"},
+            "comment",
         ),
         (
             GroupActionType.COMMENT_DELETE,
-            {"comment_id": 42, "comment_id_kind": "activity"},
-            "activity",
+            {"comment_id": 42, "comment_id_kind": "comment"},
+            "comment",
         ),
     ],
 )

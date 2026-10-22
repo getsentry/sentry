@@ -375,15 +375,15 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert result["commentId"] == "123"
         assert result["type"] == "note"
 
-    def test_comment_mutations_distinguish_gal_and_activity_references(self) -> None:
+    def test_comment_mutations_distinguish_gal_and_comment_references(self) -> None:
         comment = self._comment(123, "original")
         edit = self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
         delete = self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
         direct_edit = self._comment_mutation(
-            GroupActionType.COMMENT_EDIT, comment, comment_id=123, comment_id_kind="activity"
+            GroupActionType.COMMENT_EDIT, comment, comment_id=123, comment_id_kind="comment"
         )
         direct_delete = self._comment_mutation(
-            GroupActionType.COMMENT_DELETE, comment, comment_id=123, comment_id_kind="activity"
+            GroupActionType.COMMENT_DELETE, comment, comment_id=123, comment_id_kind="comment"
         )
 
         entries = [edit, delete, direct_edit, direct_delete]
@@ -634,7 +634,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         )
         self.create_group_action_log_entry(
             type=GroupActionType.COMMENT_EDIT,
-            data={"comment_id": note.id, "comment_id_kind": "activity"},
+            data={"comment_id": note.id, "comment_id_kind": "comment"},
         )
         items = self._activity_items()
         assert [item["type"] for item in items] == ["note", "first_seen"]
@@ -644,6 +644,6 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         note.delete()
         self.create_group_action_log_entry(
             type=GroupActionType.COMMENT_DELETE,
-            data={"comment_id": note_id, "comment_id_kind": "activity"},
+            data={"comment_id": note_id, "comment_id_kind": "comment"},
         )
         assert [item["type"] for item in self._activity_items()] == ["first_seen"]

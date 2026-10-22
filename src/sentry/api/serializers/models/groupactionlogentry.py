@@ -112,17 +112,17 @@ def _serialized_comment_id(obj: GroupActionLogEntry) -> str | None:
     """
     The comment reference accepted by the notes endpoints.
 
-    Creation events always reference Activity. Historical edit/delete events instead
-    reference the original COMMENT GAL row; only explicit Activity references can be
-    used with the notes endpoints.
+    Creation events always reference the comment itself (currently an Activity NOTE).
+    Historical edit/delete events instead reference the original COMMENT GAL row;
+    only explicit comment references can be used with the notes endpoints.
     """
     if obj.type in COMMENT_ACTION_TYPES:
         match obj.action:
             case CommentAction(comment_id=comment_id):
                 return str(comment_id)
             case (
-                CommentEditAction(comment_id=comment_id, comment_id_kind="activity")
-                | CommentDeleteAction(comment_id=comment_id, comment_id_kind="activity")
+                CommentEditAction(comment_id=comment_id, comment_id_kind="comment")
+                | CommentDeleteAction(comment_id=comment_id, comment_id_kind="comment")
             ):
                 return str(comment_id)
     return None

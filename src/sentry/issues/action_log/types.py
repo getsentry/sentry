@@ -408,12 +408,12 @@ class CommentAction(GroupAction):
 
 
 class CommentEditAction(GroupAction):
-    """Comment edit. The ID kind distinguishes historical GAL references from notes."""
+    """Comment edit. The ID kind distinguishes historical GAL references from comments."""
 
     comment_id: int
     # Missing in historical payloads: comment_id refers to the original COMMENT GAL row.
-    # "activity" means the Activity NOTE ID, independent of any creation event.
-    comment_id_kind: Literal["group_action_log", "activity"] = "group_action_log"
+    # "comment" means the comment's own ID (currently Activity NOTE), independent of any creation event.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -423,11 +423,11 @@ class CommentEditAction(GroupAction):
 
 
 class CommentDeleteAction(GroupAction):
-    """Comment deletion. The referenced Activity NOTE may no longer exist."""
+    """Comment deletion. The referenced comment may no longer exist."""
 
     comment_id: int
     # Same reference semantics as CommentEditAction; omitted means the original GAL row.
-    comment_id_kind: Literal["group_action_log", "activity"] = "group_action_log"
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
 
     @classmethod
     def get_type(cls) -> GroupActionType:
