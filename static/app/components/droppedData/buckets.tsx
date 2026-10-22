@@ -8,6 +8,7 @@ import {defined} from 'sentry/utils/defined';
 const MIN_HIGHLIGHT_RATIO = 0.001;
 
 interface BucketDraft {
+  accepted: number;
   byOutcome: Map<string, OutcomeVolume>;
   dropped: number;
   end: number;
@@ -21,7 +22,7 @@ function getOrCreateDraft(
   let draft = drafts.get(start);
 
   if (!draft) {
-    draft = {start, end, byOutcome: new Map(), dropped: 0};
+    draft = {start, end, byOutcome: new Map(), dropped: 0, accepted: 0};
     drafts.set(start, draft);
   }
 
@@ -48,22 +49,8 @@ function addDroppedEvent(
   outcomeVolume.count += event.count;
 }
 
-function acceptedVolumeByStart(events: DroppedEventsBucket[]): Map<number, number> {
-  const volumes = new Map<number, number>();
-
-  for (const event of events) {
-    volumes.set(event.start, (volumes.get(event.start) ?? 0) + event.count);
-  }
-
-  return volumes;
-}
-
-function toBucket(
-  draft: BucketDraft,
-  acceptedByStart: Map<number, number>
-): DroppedDataBucket {
-  const accepted = acceptedByStart.get(draft.start) ?? 0;
-  const total = draft.dropped + accepted;
+function toBucket(draft: BucketDraft): DroppedDataBucket {
+  const total = draft.dropped + draft.accepted;
   const ratio = total > 0 ? draft.dropped / total : 0;
 
   return {
@@ -71,7 +58,7 @@ function toBucket(
     end: draft.end,
     byOutcome: Array.from(draft.byOutcome.values()).sort((a, b) => b.count - a.count),
     dropped: draft.dropped,
-    accepted,
+    accepted: draft.accepted,
     ratio,
   };
 }
@@ -87,15 +74,13 @@ export function groupIntoBuckets(
   const drafts = new Map<number, BucketDraft>();
 
   for (const event of acceptedEvents) {
-    getOrCreateDraft(drafts, event);
+    getOrCreateDraft(drafts, event).accepted += event.count;
   }
   for (const event of droppedEvents) {
     addDroppedEvent(drafts, event);
   }
 
-  const acceptedByStart = acceptedVolumeByStart(acceptedEvents);
-
-  return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
+  return Array.from(drafts.values()).map(toBucket);
 }
 
 export function isHighlighted(bucket: DroppedDataBucket): boolean {
