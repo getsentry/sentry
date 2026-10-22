@@ -157,7 +157,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
           sort: [sort],
           ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
-        staleTime: 0,
+        staleTime: 60_000,
       }
     ),
     enabled,
