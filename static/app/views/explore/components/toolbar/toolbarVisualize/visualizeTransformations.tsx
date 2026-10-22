@@ -10,7 +10,10 @@ import {Text} from '@sentry/scraps/text';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {exploreAnalyticsEventMap} from 'sentry/utils/analytics/exploreAnalyticsEvents';
+import {
+  exploreAnalyticsEventMap,
+  type ExploreAnalyticsEventParameters,
+} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
@@ -116,10 +119,6 @@ export function VisualizeTransformations({
   traceItemDataset,
 }: Props) {
   const organization = useOrganization();
-  if (!organization.features.includes('explore-interpolation-and-smoothing')) {
-    return null;
-  }
-
   const kindOptions = KIND_OPTIONS.map(option => ({
     ...option,
     disabled: transformations.some(raw => parseFunction(raw)?.name === option.value),
@@ -232,6 +231,13 @@ function TransformationRow({
 }: TransformationRowProps) {
   const organization = useOrganization();
   const analyticsParams = {traceItemDataset, transformation_index: index};
+  const removalAnalyticsParams = {
+    ...analyticsParams,
+    transformation_type: transformation?.kind ?? 'unsupported',
+  } satisfies Omit<
+    ExploreAnalyticsEventParameters['explore.visualize.transformation.removed'],
+    'organization'
+  >;
   return (
     <Stack
       role="group"
@@ -302,13 +308,9 @@ function TransformationRow({
           aria-label={t('Remove transformation')}
           analyticsEventKey="explore.visualize.transformation.removed"
           analyticsEventName={
-            exploreAnalyticsEventMap['explore.visualize.transformation.removed'] ??
-            undefined
+            exploreAnalyticsEventMap['explore.visualize.transformation.removed']
           }
-          analyticsParams={{
-            ...analyticsParams,
-            transformation_type: transformation?.kind ?? 'unsupported',
-          }}
+          analyticsParams={removalAnalyticsParams}
           onClick={onRemove}
         />
       </Flex>

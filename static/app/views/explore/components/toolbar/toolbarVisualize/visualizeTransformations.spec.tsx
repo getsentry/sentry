@@ -166,12 +166,4 @@ describe('VisualizeTransformations', () => {
     await userEvent.click(screen.getByRole('option', {name: '3'}));
     expect(screen.getByRole('status')).toHaveTextContent('["smooth(asap,3)"]');
   });
-
-  it('preserves stored transformations while the feature is disabled', () => {
-    render(<Example initial={['fill(zero)']} />);
-    expect(
-      screen.queryByRole('button', {name: 'Add Transformation'})
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('["fill(zero)"]');
-  });
 });

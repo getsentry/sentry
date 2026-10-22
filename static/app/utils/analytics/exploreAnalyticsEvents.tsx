@@ -72,7 +72,7 @@ export type ExploreAnalyticsEventParameters = {
 
 type ExploreAnalyticsEventKey = keyof ExploreAnalyticsEventParameters;
 
-export const exploreAnalyticsEventMap: Record<ExploreAnalyticsEventKey, string | null> = {
+export const exploreAnalyticsEventMap = {
   'explore.floating_trigger.clear_selection': 'Explore: Floating Trigger Clear Selection',
   'explore.floating_trigger.compare_attribute_breakdowns':
     'Explore: Floating Trigger Compare Attribute Breakdowns',
@@ -91,4 +91,4 @@ export const exploreAnalyticsEventMap: Record<ExploreAnalyticsEventKey, string |
     'Explore: Visualize Transformation Type Changed',
   'explore.visualize.transformation.window_changed':
     'Explore: Visualize Transformation Window Changed',
-};
+} satisfies Record<ExploreAnalyticsEventKey, string | null>;
