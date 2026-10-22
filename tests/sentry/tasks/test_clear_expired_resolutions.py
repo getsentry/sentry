@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from taskbroker_client.retry import RetryTaskError
 
@@ -425,6 +426,61 @@ def test_updates_only_the_latest_matching_activity(
     assert activities[2].data["preserve"] is True
 
 
+@django_db_all
+def test_page_with_distinct_successors_resolves_in_one_update(
+    factories: Factories, default_group: Group
+) -> None:
+    now = timezone.now()
+    project = default_group.project
+    pairs = [
+        (
+            factories.create_release(
+                project=project, version=f"anchor-{i}", date_added=now - timedelta(days=10 - 2 * i)
+            ),
+            factories.create_release(
+                project=project, version=f"next-{i}", date_added=now - timedelta(days=9 - 2 * i)
+            ),
+        )
+        for i in range(3)
+    ]
+    trigger = factories.create_release(project=project, version="trigger", date_added=now)
+    resolutions = [
+        factories.create_group_resolution(
+            group=factories.create_group(project=project),
+            release=anchor,
+            type=GroupResolution.Type.in_next_release,
+        )
+        for anchor, _ in pairs
+    ]
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        activities = [
+            Activity.objects.create_group_activity(
+                resolution.group,
+                ActivityType.SET_RESOLVED_IN_RELEASE,
+                ident=resolution.id,
+                data={"version": ""},
+                send_notification=False,
+            )
+            for resolution in resolutions
+        ]
+
+    connection = connections[router.db_for_write(GroupResolution)]
+    with (
+        Feature({"organizations:release-resolution-finalized-order": True}),
+        CaptureQueriesContext(connection) as queries,
+    ):
+        clear_expired_resolutions(trigger.id)
+
+    updates = [q["sql"] for q in queries if q["sql"].startswith('UPDATE "sentry_groupresolution"')]
+    assert len(updates) == 1
+    for resolution, activity, (_, successor) in zip(resolutions, activities, pairs):
+        resolution.refresh_from_db()
+        activity.refresh_from_db()
+        assert resolution.release_id == successor.id
+        assert resolution.status == GroupResolution.Status.resolved
+        assert activity.data == {"version": successor.version}
+
+
 @django_db_all(transaction=True)
 def test_slow_successor_retries_then_is_left_pending_without_blocking_later_pages(
     factories: Factories, default_group: Group
@@ -468,6 +524,7 @@ def test_slow_successor_retries_then_is_left_pending_without_blocking_later_page
             patch("sentry.tasks.clear_expired_resolutions.monotonic", return_value=0),
             patch.object(clear_expired_resolutions, "delay") as delay,
             patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
+            patch("sentry.tasks.clear_expired_resolutions.metrics.incr") as incr,
         ):
             with (
                 patch(
@@ -489,6 +546,13 @@ def test_slow_successor_retries_then_is_left_pending_without_blocking_later_page
                 clear_expired_resolutions(successor.id)
             assert logger.warning.call_args.kwargs["extra"]["resolution_ids"] == [slow.id]
             assert logger.warning.call_args.kwargs["extra"]["retrying"] is False
+            for outcome in ("retry", "exhausted"):
+                incr.assert_any_call(
+                    "releases.resolution_batch.unfinished",
+                    amount=1,
+                    tags={"outcome": outcome},
+                    sample_rate=1.0,
+                )
             delay.assert_called_once_with(release_id=successor.id, after_id=healthy[1].id)
             clear_expired_resolutions(successor.id, after_id=healthy[1].id)
             delay.assert_called_once()
@@ -568,7 +632,7 @@ def test_rows_changed_before_the_lock_are_retried_from_current_state(
 ) -> None:
     now = timezone.now()
     organization = default_group.project.organization
-    projects = [factories.create_project(organization=organization) for _ in range(3)]
+    projects = [factories.create_project(organization=organization) for _ in range(4)]
     anchors = [
         factories.create_release(
             project=p, version=f"anchor-{i}", date_added=now - timedelta(days=2)
@@ -589,6 +653,15 @@ def test_rows_changed_before_the_lock_are_retried_from_current_state(
     replacement = factories.create_release(
         project=projects[0], version="replacement", date_added=now - timedelta(days=1)
     )
+    reprocessed_group = factories.create_group(project=projects[3])
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        moved_activity = Activity.objects.create_group_activity(
+            resolutions[3].group,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            ident=resolutions[3].id,
+            data={"version": ""},
+            send_notification=False,
+        )
     get_next_release = Release.objects.get_next_release
 
     def change_after_last_lookup(project, current_release, **kwargs):
@@ -599,6 +672,11 @@ def test_rows_changed_before_the_lock_are_retried_from_current_state(
             resolutions[2].update(
                 status=GroupResolution.Status.resolved, type=GroupResolution.Type.in_release
             )
+            # Reprocessing moves group-related rows to the replacement issue.
+            for model in (GroupResolution, Activity):
+                model.objects.filter(group_id=resolutions[3].group_id).update(
+                    group_id=reprocessed_group.id
+                )
         return result
 
     with (
@@ -615,6 +693,7 @@ def test_rows_changed_before_the_lock_are_retried_from_current_state(
     assert logger.warning.call_args.kwargs["extra"]["resolution_ids"] == [
         resolutions[0].id,
         resolutions[1].id,
+        resolutions[3].id,
     ]
     for resolution in resolutions:
         resolution.refresh_from_db()
@@ -622,11 +701,16 @@ def test_rows_changed_before_the_lock_are_retried_from_current_state(
     assert resolutions[0].status == GroupResolution.Status.pending
     assert resolutions[1].status == GroupResolution.Status.pending
     assert resolutions[2].release_id == anchors[2].id
+    assert resolutions[3].status == GroupResolution.Status.pending
 
     # The retry evaluates the changed rows from their current state.
     with Feature({"organizations:release-resolution-finalized-order": True}):
         clear_expired_resolutions(successor.id)
-    resolutions[0].refresh_from_db()
-    resolutions[1].refresh_from_db()
+    for resolution in resolutions:
+        resolution.refresh_from_db()
+    moved_activity.refresh_from_db()
     assert resolutions[0].release_id == successor.id
     assert resolutions[1].status == GroupResolution.Status.pending
+    assert resolutions[3].release_id == successor.id
+    assert moved_activity.group_id == reprocessed_group.id
+    assert moved_activity.data == {"version": successor.version}

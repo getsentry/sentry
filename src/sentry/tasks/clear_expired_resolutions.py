@@ -1,11 +1,10 @@
 import logging
-from collections import defaultdict
 from collections.abc import Sequence
 from datetime import timedelta
 from time import monotonic
 
 from django.db import OperationalError, connections, router
-from django.db.models import Q, QuerySet
+from django.db.models import BigIntegerField, Case, Q, QuerySet, Value, When
 from django.db.models.functions import Coalesce
 from psycopg2.errors import LockNotAvailable, QueryCanceled
 from taskbroker_client.retry import Retry, RetryTaskError
@@ -139,25 +138,31 @@ def _clear_finalized_resolutions(release: Release, after_id: int) -> None:
             timed_out.add(key)
 
     unfinished: list[int] = []
-    by_successor: dict[Release, list[GroupResolution]] = defaultdict(list)
+    resolvable: dict[int, tuple[GroupResolution, Release]] = {}
     for candidate in examined:
         key = (candidate.group.project_id, candidate.release_id)
         if key in timed_out:
             unfinished.append(candidate.id)
         elif (successor := successors[key]) is not None:
-            by_successor[successor].append(candidate)
+            resolvable[candidate.id] = (candidate, successor)
 
-    if by_successor:
+    if resolvable:
         try:
-            unfinished.extend(_resolve_unchanged(using, pending, by_successor))
+            unfinished.extend(_resolve_unchanged(using, pending, resolvable))
         except OperationalError as exc:
             if not isinstance(exc.__cause__, (QueryCanceled, LockNotAvailable)):
                 raise
-            unfinished.extend(r.id for resolutions in by_successor.values() for r in resolutions)
+            unfinished.extend(resolvable)
 
     if unfinished:
         task = current_task()
         retrying = task is not None and task.retries_remaining
+        metrics.incr(
+            "releases.resolution_batch.unfinished",
+            amount=len(unfinished),
+            tags={"outcome": "retry" if retrying else "exhausted"},
+            sample_rate=1.0,
+        )
         # Retrying rereads this page; rows resolved above drop out of it. On the last
         # attempt, leave these rows pending so later pages still run. Replaying these
         # arguments reevaluates them.
@@ -181,42 +186,45 @@ def _clear_finalized_resolutions(release: Release, after_id: int) -> None:
 def _resolve_unchanged(
     using: str,
     pending: QuerySet[GroupResolution],
-    by_successor: dict[Release, list[GroupResolution]],
+    resolvable: dict[int, tuple[GroupResolution, Release]],
 ) -> list[int]:
     """Resolve rows that still match what the lookups examined; return the IDs that changed."""
-    examined = {r.id: r for resolutions in by_successor.values() for r in resolutions}
     with statement_timeout(using, timedelta(seconds=1)):
         with connections[using].cursor() as cursor:
             cursor.execute("SET LOCAL lock_timeout = '500ms'")
-        # A concurrent resolve can reuse the row, or the anchor's dates can change.
+        # A concurrent resolve can reuse the row, reprocessing can move it to another
+        # issue, or the anchor's dates can change.
         current = {
             row[0]: row[1:]
-            for row in pending.filter(id__in=list(examined))
+            for row in pending.filter(id__in=list(resolvable))
             .select_for_update(of=("self",))
             .order_by("id")
-            .values_list("id", "release_id", "release__date_added", "release__date_released")
+            .values_list(
+                "id", "group_id", "release_id", "release__date_added", "release__date_released"
+            )
         }
-        changed = [
-            r.id
-            for r in examined.values()
-            if r.id in current
-            and current[r.id] != (r.release_id, r.release.date_added, r.release.date_released)
-        ]
-        resolved: list[tuple[GroupResolution, str]] = []
-        for successor, resolutions in by_successor.items():
-            unchanged = [r.id for r in resolutions if r.id in current and r.id not in changed]
-            if not unchanged:
+        changed: list[int] = []
+        unchanged: list[tuple[GroupResolution, Release]] = []
+        for resolution_id, (r, successor) in resolvable.items():
+            if resolution_id not in current:
                 continue
-            GroupResolution.objects.filter(id__in=unchanged).update(
-                release=successor,
+            examined = (r.group_id, r.release_id, r.release.date_added, r.release.date_released)
+            if current[resolution_id] != examined:
+                changed.append(resolution_id)
+            else:
+                unchanged.append((r, successor))
+
+        # One statement regardless of how many successors the page has.
+        if unchanged:
+            GroupResolution.objects.filter(id__in=[r.id for r, _ in unchanged]).update(
+                release_id=Case(
+                    *(When(id=r.id, then=Value(successor.id)) for r, successor in unchanged),
+                    output_field=BigIntegerField(),
+                ),
                 type=GroupResolution.Type.in_release,
                 status=GroupResolution.Status.resolved,
             )
-            resolved.extend(
-                (examined[resolution_id], successor.version) for resolution_id in unchanged
-            )
-        if resolved:
-            _update_latest_activities(resolved)
+            _update_latest_activities([(r, successor.version) for r, successor in unchanged])
     return changed
 
 
