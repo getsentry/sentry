@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 from sentry import features
@@ -20,6 +21,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixError,
     SeerAutofixUpdate,
+    SeerInvestigationConclusion,
     SeerInvestigationError,
     SeerInvestigationStarted,
     SeerInvestigationStatus,
@@ -80,6 +82,7 @@ if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.requests.action import SlackActionRequest
     from sentry.models.group import Group
+    from sentry.notifications.platform.slack.provider import SlackRenderable
 
 
 class EntrypointSetupError(Exception):
@@ -120,6 +123,16 @@ class SlackInvestigationCachePayload(TypedDict):
     alert_message_ts: str
     status_message_ts: str | None
     slack_user_id: str
+    last_sent_state: str | None
+    final_sent: bool
+
+
+class SlackInvestigationThread(TypedDict):
+    integration_id: int
+    channel_id: str
+    thread_ts: str
+    show_status: bool
+    status_message_ts: str | None
     last_sent_state: str | None
     final_sent: bool
 
@@ -191,6 +204,7 @@ def _send_agent_write_approval(
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
+INVESTIGATION_LOCK_SECONDS = 30
 
 
 def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
@@ -785,22 +799,23 @@ class SlackInvestigationEntrypoint(
 
     @staticmethod
     def on_investigation_update(
-        cache_payload: SlackInvestigationCachePayload, run: InvestigationOrchestrationRun
+        cache_payload: SlackInvestigationCachePayload,
+        run: InvestigationOrchestrationRun,
     ) -> None:
         investigation_id = run.investigation_id
         with SlackEntrypointEventLifecycleMetric(
             interaction_type=SlackEntrypointInteractionType.UPDATE_INVESTIGATION_STATUS,
-            integration_id=cache_payload["integration_id"],
+            integration_id=None,
             organization_id=cache_payload["organization_id"],
         ).capture() as lifecycle:
             lifecycle.add_extras({"investigation_id": investigation_id})
             lock = locks.get(
                 f"seer:investigation:slack:{investigation_id}",
-                duration=10,
+                duration=INVESTIGATION_LOCK_SECONDS,
                 name="investigation_entrypoint_slack",
             )
             try:
-                with lock.blocking_acquire(initial_delay=0.1, timeout=10):
+                with lock.blocking_acquire(initial_delay=0.1, timeout=INVESTIGATION_LOCK_SECONDS):
                     SlackInvestigationEntrypoint._update_investigation_status(
                         run_id=run.id, lifecycle=lifecycle
                     )
@@ -811,8 +826,6 @@ class SlackInvestigationEntrypoint(
 
     @staticmethod
     def _update_investigation_status(*, run_id: int, lifecycle: EventLifecycle) -> None:
-        from sentry.integrations.slack.integration import SlackIntegration
-
         try:
             run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
                 id=run_id
@@ -820,12 +833,48 @@ class SlackInvestigationEntrypoint(
         except InvestigationOrchestrationRun.DoesNotExist:
             lifecycle.record_halt(halt_reason="run_not_found")
             return
+        entrypoint_key = str(SlackInvestigationEntrypoint.key)
         cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
-            entrypoint_key=str(SlackInvestigationEntrypoint.key),
+            entrypoint_key=entrypoint_key,
             investigation_id=run.investigation_id,
         )
         if cache_payload is None:
             return
+
+        thread = SlackInvestigationThread(
+            integration_id=cache_payload["integration_id"],
+            channel_id=cache_payload["channel_id"],
+            thread_ts=cache_payload["thread_ts"],
+            show_status=True,
+            status_message_ts=cache_payload["status_message_ts"],
+            last_sent_state=cache_payload["last_sent_state"],
+            final_sent=cache_payload["final_sent"],
+        )
+        [thread] = SlackInvestigationEntrypoint._send_investigation_updates(
+            run=run, organization_id=cache_payload["organization_id"], threads=[thread]
+        )
+        new_payload: SlackInvestigationCachePayload = {
+            **cache_payload,
+            "status_message_ts": thread["status_message_ts"],
+            "last_sent_state": thread["last_sent_state"],
+            "final_sent": thread["final_sent"],
+        }
+        if new_payload != cache_payload:
+            SeerOperatorInvestigationCache[SlackInvestigationCachePayload].set(
+                entrypoint_key=entrypoint_key,
+                investigation_id=run.investigation_id,
+                cache_payload=new_payload,
+            )
+
+    @staticmethod
+    def _send_investigation_updates(
+        *,
+        run: InvestigationOrchestrationRun,
+        organization_id: int,
+        threads: Sequence[SlackInvestigationThread],
+    ) -> list[SlackInvestigationThread]:
+        """Posts the status card and the conclusion where needed. Returns the updated threads."""
+        from sentry.integrations.slack.integration import SlackIntegration
 
         data, fingerprint = build_investigation_status(
             investigation=run.investigation,
@@ -834,90 +883,131 @@ class SlackInvestigationEntrypoint(
             status=run.status,
             updated_at=run.date_updated,
         )
-        send_conclusion = (
-            run.status == InvestigationOrchestrationStatus.COMPLETED
-            and not cache_payload["final_sent"]
-        )
-        if fingerprint == cache_payload["last_sent_state"] and not send_conclusion:
-            return
+        completed = run.status == InvestigationOrchestrationStatus.COMPLETED
+        status_indexes = {
+            i
+            for i, thread in enumerate(threads)
+            if thread["show_status"] and thread["last_sent_state"] != fingerprint
+        }
+        conclusion_indexes = {
+            i for i, thread in enumerate(threads) if completed and not thread["final_sent"]
+        }
+        if not status_indexes and not conclusion_indexes:
+            return list(threads)
 
-        organization_id = cache_payload["organization_id"]
-        integration = integration_service.get_integration(
-            integration_id=cache_payload["integration_id"],
-            organization_id=organization_id,
-            status=ObjectStatus.ACTIVE,
-        )
-        if integration is None:
-            lifecycle.record_halt(halt_reason="integration_not_found")
-            return
-
-        install = SlackIntegration(model=integration, organization_id=organization_id)
-        new_payload = cache_payload
-        if fingerprint != cache_payload["last_sent_state"]:
-            renderable, links = NotificationService.render_template(
-                data=data,
-                template=SeerInvestigationStatusTemplate(),
-                provider=provider_registry.get(NotificationProviderKey.SLACK),
+        installs: dict[int, SlackIntegration | None] = {}
+        for i in status_indexes | conclusion_indexes:
+            integration_id = threads[i]["integration_id"]
+            if integration_id in installs:
+                continue
+            integration = integration_service.get_integration(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                status=ObjectStatus.ACTIVE,
             )
-            status_message_ts = cache_payload["status_message_ts"]
+            installs[integration_id] = (
+                SlackIntegration(model=integration, organization_id=organization_id)
+                if integration is not None
+                else None
+            )
+
+        renderable, links = NotificationService.render_template(
+            data=data,
+            template=SeerInvestigationStatusTemplate(),
+            provider=provider_registry.get(NotificationProviderKey.SLACK),
+        )
+        conclusion = build_investigation_conclusion(run) if conclusion_indexes else None
+
+        updated_threads = []
+        for i, thread in enumerate(threads):
+            install = installs.get(thread["integration_id"])
+            if i in status_indexes:
+                status_thread = SlackInvestigationEntrypoint._send_investigation_status(
+                    install=install,
+                    thread=thread,
+                    organization_id=organization_id,
+                    renderable=renderable,
+                )
+                if status_thread is not None:
+                    _record_status_sent(data=data, links=links)
+                    thread = {**status_thread, "last_sent_state": fingerprint}
+            if (
+                i in conclusion_indexes
+                and SlackInvestigationEntrypoint._send_investigation_conclusion(
+                    data=conclusion,
+                    install=install,
+                    thread=thread,
+                    organization_id=organization_id,
+                    investigation_id=run.investigation_id,
+                )
+            ):
+                thread = {**thread, "final_sent": True}
+            updated_threads.append(thread)
+        return updated_threads
+
+    @staticmethod
+    def _send_investigation_status(
+        *,
+        install: SlackIntegration | None,
+        thread: SlackInvestigationThread,
+        organization_id: int,
+        renderable: SlackRenderable,
+    ) -> SlackInvestigationThread | None:
+        """Posts or edits the status card. Returns the thread with its ts, or None on an error."""
+        with SlackEntrypointEventLifecycleMetric(
+            interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STATUS,
+            integration_id=thread["integration_id"],
+            organization_id=organization_id,
+        ).capture() as lifecycle:
+            if install is None:
+                lifecycle.record_halt(halt_reason="integration_not_found")
+                return None
+            status_message_ts = thread["status_message_ts"]
             try:
                 if status_message_ts:
                     install.update_message(
-                        channel_id=cache_payload["channel_id"],
+                        channel_id=thread["channel_id"],
                         message_ts=status_message_ts,
                         renderable=renderable,
                     )
                 else:
                     response = install.send_threaded_message(
-                        channel_id=cache_payload["channel_id"],
+                        channel_id=thread["channel_id"],
                         renderable=renderable,
-                        thread_ts=cache_payload["thread_ts"],
+                        thread_ts=thread["thread_ts"],
                     )
                     status_message_ts = response.get("ts") if response is not None else None
             except (IntegrationError, IntegrationConfigurationError) as e:
                 lifecycle.record_halt(halt_reason=e)
-            else:
-                _record_status_sent(data=data, links=links)
-                new_payload = {
-                    **new_payload,
-                    "status_message_ts": status_message_ts,
-                    "last_sent_state": fingerprint,
-                }
-
-        if send_conclusion and SlackInvestigationEntrypoint._send_investigation_conclusion(
-            run=run, install=install, cache_payload=cache_payload
-        ):
-            new_payload = {**new_payload, "final_sent": True}
-
-        if new_payload != cache_payload:
-            SeerOperatorInvestigationCache[SlackInvestigationCachePayload].set(
-                entrypoint_key=str(SlackInvestigationEntrypoint.key),
-                investigation_id=run.investigation_id,
-                cache_payload=new_payload,
-            )
+                return None
+            return {**thread, "status_message_ts": status_message_ts}
 
     @staticmethod
     def _send_investigation_conclusion(
         *,
-        run: InvestigationOrchestrationRun,
-        install: SlackIntegration,
-        cache_payload: SlackInvestigationCachePayload,
+        data: SeerInvestigationConclusion | None,
+        install: SlackIntegration | None,
+        thread: SlackInvestigationThread,
+        organization_id: int,
+        investigation_id: int,
     ) -> bool:
         """Posts the report text in the thread. Returns False if Slack did not accept the message."""
         with SlackEntrypointEventLifecycleMetric(
             interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_CONCLUSION,
-            integration_id=cache_payload["integration_id"],
-            organization_id=cache_payload["organization_id"],
+            integration_id=thread["integration_id"],
+            organization_id=organization_id,
         ).capture() as lifecycle:
-            lifecycle.add_extras({"investigation_id": run.investigation_id})
-            data = build_investigation_conclusion(run)
+            lifecycle.add_extras({"investigation_id": investigation_id})
             if data is None:
                 return True
+            if install is None:
+                lifecycle.record_halt(halt_reason="integration_not_found")
+                return False
             try:
                 sent = send_thread_update(
                     install=install,
                     thread=SlackThreadDetails(
-                        thread_ts=cache_payload["thread_ts"], channel_id=cache_payload["channel_id"]
+                        thread_ts=thread["thread_ts"], channel_id=thread["channel_id"]
                     ),
                     data=data,
                 )
