@@ -32,6 +32,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
+# Repo sync reconciles hooks for a whole batch of repositories inside one task
+# deadline, so an unreachable self-hosted instance has to fail fast on connect.
+# The read timeout matches the IntegrationProxyClient default.
+PROJECT_WEBHOOK_TIMEOUT = (3, 10)
+
 
 class GitLabApiRequestType(StrEnum):
     CREATE_PROJECT_WEBHOOK = "create_project_webhook"
@@ -554,6 +559,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             path,
             data=self._project_webhook_data(),
             api_request_type=GitLabApiRequestType.CREATE_PROJECT_WEBHOOK,
+            timeout=PROJECT_WEBHOOK_TIMEOUT,
         )
 
         return resp["id"]
@@ -578,6 +584,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             path,
             data=self._project_webhook_data(),
             api_request_type=GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK,
+            timeout=PROJECT_WEBHOOK_TIMEOUT,
         )
 
     def ensure_project_webhook(self, project_id: int | str, hook_id: int | str | None) -> int | str:
@@ -624,7 +631,11 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.delete(path, api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK)
+        return self.delete(
+            path,
+            api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK,
+            timeout=PROJECT_WEBHOOK_TIMEOUT,
+        )
 
     def create_branch(self, project_id: str, branch: str, ref: str):
         """https://docs.gitlab.com/api/branches/#create-repository-branch"""
