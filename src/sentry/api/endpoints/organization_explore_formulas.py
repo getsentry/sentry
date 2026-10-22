@@ -631,7 +631,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
             on_results=lambda formula: serialize(
                 formula, request.user, serializer=ExploreSavedFormulaSerializer()
             ),
-            default_per_page=50,
+            default_per_page=100,
         )
 
     def post(
