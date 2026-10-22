@@ -881,6 +881,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=trace_id,
             tool_name="search_database",
             tool_result="found 3 rows",
+            tool_result_size=4096,
             tool_output="tool output payload",
         )
 
@@ -899,6 +900,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
         assert span["gen_ai.tool.call.result"] == "found 3 rows"
+        assert span["gen_ai.tool.call.result.size"] == 4096
         assert "gen_ai.tool.output" not in span
 
     def test_returns_embeddings_attributes(self) -> None:

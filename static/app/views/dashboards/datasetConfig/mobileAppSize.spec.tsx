@@ -1,139 +1,13 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {SizeUnit} from 'sentry/utils/discover/fields';
-import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {MobileAppSizeConfig} from './mobileAppSize';
 
 describe('MobileAppSizeConfig', () => {
-  const organization = OrganizationFixture();
-
-  describe('transformSeries', () => {
-    it('transforms API response to series data', () => {
-      const data = {
-        data: [
-          [1609459200, [{count: 1000000}]],
-          [1609545600, [{count: 1100000}]],
-          [1609632000, [{count: 1200000}]],
-        ],
-        start: 1609459200,
-        end: 1609632000,
-        meta: {fields: {}},
-      } as unknown as EventsStats;
-
-      const widgetQuery = {
-        conditions: 'app_id:com.example.app',
-        aggregates: ['max(install_size)'],
-        fields: ['max(install_size)'],
-        columns: [],
-        fieldAliases: [],
-        name: '',
-        orderby: '',
-      };
-
-      const result = MobileAppSizeConfig.transformSeries!(
-        data,
-        widgetQuery,
-        organization
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0]!.seriesName).toBe('max(install_size)');
-      expect(result[0]!.data).toHaveLength(3);
-      expect(result[0]!.data[0]).toEqual({
-        name: 1609459200000,
-        value: 1000000,
-      });
-    });
-
-    it('filters out null, undefined, and zero values', () => {
-      const data = {
-        data: [
-          [1609459200, [{count: 1000000}]],
-          [1609545600, [{count: null}]],
-          [1609632000, []],
-          [1609718400, [{count: 0}]],
-          [1609804800, [{count: 1200000}]],
-        ],
-        start: 1609459200,
-        end: 1609804800,
-        meta: {fields: {}},
-      } as unknown as EventsStats;
-
-      const widgetQuery = {
-        conditions: '',
-        aggregates: [],
-        fields: [],
-        columns: [],
-        fieldAliases: [],
-        name: '',
-        orderby: '',
-      };
-
-      const result = MobileAppSizeConfig.transformSeries!(
-        data,
-        widgetQuery,
-        organization
-      );
-
-      expect(result[0]!.data).toHaveLength(2);
-      expect(result[0]!.data[0]!.value).toBe(1000000);
-      expect(result[0]!.data[1]!.value).toBe(1200000);
-    });
-
-    it('transforms multi-series grouped response', () => {
-      // Multi-series response is keyed by group value
-      const data = {
-        ios: {
-          data: [
-            [1609459200, [{count: 1000000}]],
-            [1609545600, [{count: 1100000}]],
-          ],
-          start: 1609459200,
-          end: 1609545600,
-          meta: {fields: {}},
-          order: 0,
-        },
-        android: {
-          data: [
-            [1609459200, [{count: 2000000}]],
-            [1609545600, [{count: 2100000}]],
-          ],
-          start: 1609459200,
-          end: 1609545600,
-          meta: {fields: {}},
-          order: 1,
-        },
-      } as unknown as MultiSeriesEventsStats;
-
-      const widgetQuery = {
-        conditions: '',
-        aggregates: ['max(install_size)'],
-        fields: ['max(install_size)'],
-        columns: ['platform'],
-        fieldAliases: [],
-        name: '',
-        orderby: '',
-      };
-
-      const result = MobileAppSizeConfig.transformSeries!(
-        data,
-        widgetQuery,
-        organization
-      );
-
-      expect(result).toHaveLength(2);
-      // Should be sorted by order
-      expect(result[0]!.seriesName).toBe('ios');
-      expect(result[1]!.seriesName).toBe('android');
-      expect(result[0]!.data).toHaveLength(2);
-      expect(result[0]!.data[0]!.value).toBe(1000000);
-    });
-  });
-
   describe('getSeriesResultType and getSeriesResultUnit', () => {
     const singleSeriesData = {data: []} as EventsStats;
     const multiSeriesData = {
@@ -229,11 +103,9 @@ const timeSeriesWidgetQuery = {
 };
 
 describe('MobileAppSizeConfig with events-timeseries responses', () => {
-  const organization = OrganizationFixture();
-
-  describe('transformSeries', () => {
+  describe('transformTimeSeries', () => {
     it('names a single series by its alias and skips empty buckets', () => {
-      const result = MobileAppSizeConfig.transformSeries!(
+      const result = MobileAppSizeConfig.transformTimeSeries!(
         {
           timeSeries: [
             makeTimeSeries('max(install_size)', [
@@ -244,23 +116,22 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
             ]),
           ],
         },
-        {...timeSeriesWidgetQuery, name: 'Install Size'},
-        organization
+        WidgetFixture({queries: [{...timeSeriesWidgetQuery, name: 'Install Size'}]}),
+        0
       );
 
       expect(result).toHaveLength(1);
       expect(result[0]!.seriesName).toBe('Install Size');
-      expect(result[0]!.data).toEqual([
-        {name: 1000, value: 1000000},
-        {name: 4000, value: 1200000},
-      ]);
       expect(
-        (result[0] as WidgetSeries).timeSeries?.values.map(item => item.value)
-      ).toEqual([1000000, 1200000]);
+        result[0]!.timeSeries.values.map(({timestamp, value}) => [timestamp, value])
+      ).toEqual([
+        [1000, 1000000],
+        [4000, 1200000],
+      ]);
     });
 
     it('names grouped series by group value, in order', () => {
-      const result = MobileAppSizeConfig.transformSeries!(
+      const result = MobileAppSizeConfig.transformTimeSeries!(
         {
           timeSeries: [
             makeTimeSeries('max(install_size)', [[1000, 2000000]], {
@@ -273,8 +144,8 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
             }),
           ],
         },
-        {...timeSeriesWidgetQuery, columns: ['platform']},
-        organization
+        WidgetFixture({queries: [{...timeSeriesWidgetQuery, columns: ['platform']}]}),
+        0
       );
 
       expect(result.map(({seriesName}) => seriesName)).toEqual(['ios', 'android']);

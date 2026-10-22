@@ -6,7 +6,7 @@ import {
   InvestigationFixtureApi,
   investigationExecutionFixtureKey,
 } from 'sentry/views/investigations/__stories__/investigationFixtureApi';
-import {InvestigationCell} from 'sentry/views/investigations/detail/cell';
+import {InvestigationNotebookBlock} from 'sentry/views/investigations/detail/block';
 import {
   InvestigationBlockExecutionFixture,
   InvestigationBlockFixture,
@@ -24,14 +24,14 @@ const completedDependency = InvestigationBlockFixture({
   currentExecution: InvestigationBlockExecutionFixture({id: 'completed-dependency-run'}),
 });
 const notRunBlock = InvestigationBlockFixture({
-  id: 'not-run-cell',
+  id: 'not-run-block',
   position: 1,
   title: 'Not run',
   content: '',
   generationPrompt: 'Summarize the current evidence.',
 });
 const availableBlock = InvestigationBlockFixture({
-  id: 'available-cell',
+  id: 'available-block',
   position: 2,
   title: 'Available output',
   content: '',
@@ -42,14 +42,14 @@ const availableBlock = InvestigationBlockFixture({
   },
 });
 const restrictedBlock = InvestigationBlockFixture({
-  id: 'restricted-cell',
+  id: 'restricted-block',
   position: 3,
   title: 'Restricted output',
   content: '',
   outputStatus: 'restricted',
 });
 const waitingBlock = InvestigationBlockFixture({
-  id: 'waiting-cell',
+  id: 'waiting-block',
   position: 4,
   title: 'Waiting for dependencies',
   content: '',
@@ -57,7 +57,7 @@ const waitingBlock = InvestigationBlockFixture({
   dependencies: [completedDependency.id],
 });
 const completedBlock = InvestigationBlockFixture({
-  id: 'completed-cell',
+  id: 'completed-block',
   position: 5,
   title: 'Completed',
   content: '',
@@ -66,10 +66,10 @@ const completedBlock = InvestigationBlockFixture({
     schemaVersion: 1,
     markdown: 'Connection acquisition accounts for 71% of the added latency.',
   },
-  currentExecution: InvestigationBlockExecutionFixture({id: 'completed-cell-run'}),
+  currentExecution: InvestigationBlockExecutionFixture({id: 'completed-block-run'}),
 });
 const preRunInvestigation = InvestigationDetailFixture({
-  id: 'cell-pre-run-states',
+  id: 'block-pre-run-states',
   blocks: [
     completedDependency,
     notRunBlock,
@@ -80,11 +80,11 @@ const preRunInvestigation = InvestigationDetailFixture({
   ],
 });
 
-const pendingExecutionId = 'pending-cell-run';
-const runningExecutionId = 'running-cell-run';
-const stoppingExecutionId = 'stopping-cell-run';
+const pendingExecutionId = 'pending-block-run';
+const runningExecutionId = 'running-block-run';
+const stoppingExecutionId = 'stopping-block-run';
 const pendingBlock = InvestigationBlockFixture({
-  id: 'pending-cell',
+  id: 'pending-block',
   title: 'Pending execution',
   content: '',
   outputStatus: 'pending',
@@ -96,7 +96,7 @@ const pendingBlock = InvestigationBlockFixture({
   }),
 });
 const runningBlock = InvestigationBlockFixture({
-  id: 'running-cell',
+  id: 'running-block',
   position: 1,
   title: 'Running execution',
   content: '',
@@ -108,7 +108,7 @@ const runningBlock = InvestigationBlockFixture({
   }),
 });
 const stoppingBlock = InvestigationBlockFixture({
-  id: 'stopping-cell',
+  id: 'stopping-block',
   position: 2,
   title: 'Stopping execution',
   content: '',
@@ -120,7 +120,7 @@ const stoppingBlock = InvestigationBlockFixture({
   }),
 });
 const activeInvestigation = InvestigationDetailFixture({
-  id: 'cell-active-states',
+  id: 'block-active-states',
   blocks: [pendingBlock, runningBlock, stoppingBlock],
 });
 
@@ -128,7 +128,7 @@ const completedPanelExecutionId = 'completed-panel-run';
 const failedPanelExecutionId = 'failed-panel-run';
 const cancelledPanelExecutionId = 'cancelled-panel-run';
 const completedPanelBlock = InvestigationBlockFixture({
-  id: 'completed-panel-cell',
+  id: 'completed-panel-block',
   title: 'Completed agent activity',
   content: '',
   outputStatus: 'running',
@@ -139,7 +139,7 @@ const completedPanelBlock = InvestigationBlockFixture({
   }),
 });
 const failedPanelBlock = InvestigationBlockFixture({
-  id: 'failed-panel-cell',
+  id: 'failed-panel-block',
   position: 1,
   title: 'Failed agent activity',
   content: '',
@@ -151,7 +151,7 @@ const failedPanelBlock = InvestigationBlockFixture({
   }),
 });
 const cancelledPanelBlock = InvestigationBlockFixture({
-  id: 'cancelled-panel-cell',
+  id: 'cancelled-panel-block',
   position: 2,
   title: 'Cancelled agent activity',
   content: '',
@@ -163,7 +163,7 @@ const cancelledPanelBlock = InvestigationBlockFixture({
   }),
 });
 const terminalPanelInvestigation = InvestigationDetailFixture({
-  id: 'cell-terminal-panels',
+  id: 'block-terminal-panels',
   blocks: [completedPanelBlock, failedPanelBlock, cancelledPanelBlock],
 });
 
@@ -195,12 +195,12 @@ const queryResultBlocks = [
   })
 );
 const queryResultInvestigation = InvestigationDetailFixture({
-  id: 'cell-query-results',
+  id: 'block-query-results',
   blocks: queryResultBlocks,
 });
 
 const uncommentedTextBlock = InvestigationBlockFixture({
-  id: 'uncommented-text-cell',
+  id: 'uncommented-text-block',
   title: 'Working theory',
   content: '',
   outputStatus: 'completed',
@@ -213,26 +213,26 @@ const uncommentedTextBlock = InvestigationBlockFixture({
 });
 const commentedTextBlock = InvestigationBlockFixture({
   ...uncommentedTextBlock,
-  id: 'commented-text-cell',
+  id: 'commented-text-block',
   position: 1,
   currentExecution: InvestigationBlockExecutionFixture({id: 'commented-text-run'}),
 });
 const commentedQueryBlock = InvestigationBlockFixture({
   ...queryResultBlocks[0]!,
-  id: 'commented-query-cell',
+  id: 'commented-query-block',
   position: 2,
   title: 'Slowest checkout spans',
   currentExecution: InvestigationBlockExecutionFixture({id: 'commented-query-run'}),
 });
 const commentButtonInvestigation = InvestigationDetailFixture({
-  id: 'cell-comment-button',
+  id: 'block-comment-button',
   blocks: [uncommentedTextBlock, commentedTextBlock, commentedQueryBlock],
 });
 
-export default Storybook.story('Investigations — Cells', story => {
+export default Storybook.story('Investigations — Blocks', story => {
   story('Pre-run and terminal output states', () => (
     <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-cell-pre-run"
+      organizationSlug="storybook-investigation-block-pre-run"
       details={[preRunInvestigation]}
     >
       <Stack gap="2xl">
@@ -240,7 +240,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Not run
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={notRunBlock}
             canRun
             investigation={preRunInvestigation}
@@ -250,7 +250,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Available
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={availableBlock}
             canRun
             investigation={preRunInvestigation}
@@ -260,7 +260,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Restricted
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={restrictedBlock}
             canRun={false}
             investigation={preRunInvestigation}
@@ -270,7 +270,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Waiting for an auto-run dependency
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={waitingBlock}
             canRun
             investigation={preRunInvestigation}
@@ -280,7 +280,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Completed
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={completedBlock}
             canRun
             investigation={preRunInvestigation}
@@ -292,7 +292,7 @@ export default Storybook.story('Investigations — Cells', story => {
 
   story('Pending, running, and stopping executions', () => (
     <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-cell-active"
+      organizationSlug="storybook-investigation-block-active"
       details={[activeInvestigation]}
       executions={{
         [investigationExecutionFixtureKey(pendingBlock.id, pendingExecutionId)]:
@@ -309,7 +309,7 @@ export default Storybook.story('Investigations — Cells', story => {
               'The query is scanning checkout transactions from the breach window…',
             blocks: [
               InvestigationTranscriptBlockFixture({
-                id: 'running-cell-step',
+                id: 'running-block-step',
                 loading: true,
                 message: {
                   role: 'assistant',
@@ -325,7 +325,7 @@ export default Storybook.story('Investigations — Cells', story => {
             partialMarkdown: 'Preserving the evidence collected before the stop request.',
             blocks: [
               InvestigationTranscriptBlockFixture({
-                id: 'stopping-cell-step',
+                id: 'stopping-block-step',
                 message: {
                   role: 'assistant',
                   content: 'Stopping after the current query finishes…',
@@ -340,7 +340,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Pending
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={pendingBlock}
             canRun
             investigation={activeInvestigation}
@@ -350,7 +350,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Running
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={runningBlock}
             canRun
             investigation={activeInvestigation}
@@ -360,7 +360,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Stopping
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={stoppingBlock}
             canRun
             investigation={activeInvestigation}
@@ -372,7 +372,7 @@ export default Storybook.story('Investigations — Cells', story => {
 
   story('Completed, failed, and cancelled agent activity', () => (
     <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-cell-terminal-panels"
+      organizationSlug="storybook-investigation-block-terminal-panels"
       details={[terminalPanelInvestigation]}
       executions={{
         [investigationExecutionFixtureKey(
@@ -456,17 +456,17 @@ export default Storybook.story('Investigations — Cells', story => {
       }}
     >
       <Stack gap="2xl">
-        <InvestigationCell
+        <InvestigationNotebookBlock
           block={completedPanelBlock}
           canRun
           investigation={terminalPanelInvestigation}
         />
-        <InvestigationCell
+        <InvestigationNotebookBlock
           block={failedPanelBlock}
           canRun
           investigation={terminalPanelInvestigation}
         />
-        <InvestigationCell
+        <InvestigationNotebookBlock
           block={cancelledPanelBlock}
           canRun
           investigation={terminalPanelInvestigation}
@@ -477,7 +477,7 @@ export default Storybook.story('Investigations — Cells', story => {
 
   story('Comment button', () => (
     <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-cell-comment-button"
+      organizationSlug="storybook-investigation-block-comment-button"
       details={[commentButtonInvestigation]}
     >
       <Stack gap="2xl">
@@ -485,7 +485,7 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             No comments, shown on hover
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={uncommentedTextBlock}
             canRun
             investigation={commentButtonInvestigation}
@@ -496,14 +496,14 @@ export default Storybook.story('Investigations — Cells', story => {
           <Heading as="h3" size="md">
             Has comments, always shown
           </Heading>
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={commentedTextBlock}
             canRun
             commentCount={2}
             investigation={commentButtonInvestigation}
             onComment={() => {}}
           />
-          <InvestigationCell
+          <InvestigationNotebookBlock
             block={commentedQueryBlock}
             canRun
             commentCount={3}
@@ -517,12 +517,12 @@ export default Storybook.story('Investigations — Cells', story => {
 
   story('Query results', () => (
     <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-cell-query-results"
+      organizationSlug="storybook-investigation-block-query-results"
       details={[queryResultInvestigation]}
     >
       <Stack gap="2xl">
         {queryResultBlocks.map(block => (
-          <InvestigationCell
+          <InvestigationNotebookBlock
             key={block.id}
             block={block}
             canRun

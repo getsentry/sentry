@@ -11,16 +11,15 @@ __all__ = ["SentrySDKMetricsBackend"]
 class SentrySDKMetricsBackend(MetricsBackend):
     def __init__(self, **kwargs: Any) -> None:
         self._experimental_sample_rate = kwargs.pop("experimental_sample_rate", 0.0)
-        self._deny_list = tuple(kwargs.pop("deny_list", []))
+        # Ignored; still accepted until deployed configs stop passing it.
+        kwargs.pop("deny_list", None)
         allow_list = kwargs.pop("allow_list", None)
         self._allow_list = tuple(allow_list) if allow_list is not None else None
         super().__init__(**kwargs)
 
     def _is_permitted(self, key: str) -> bool:
-        """When an allow list is configured, only its prefixes are sent and the deny list is ignored."""
-        if self._allow_list is not None:
-            return key.startswith(self._allow_list)
-        return not key.startswith(self._deny_list)
+        """When an allow list is configured, only its prefixes are sent; otherwise everything is."""
+        return self._allow_list is None or key.startswith(self._allow_list)
 
     def _should_send(self, key: str) -> bool:
         if not self._is_permitted(key):

@@ -688,6 +688,12 @@ const FixedRowHeightGrid = styled('div')`
   tbody td {
     height: ${ROW_HEIGHT}px;
   }
+
+  /* Tighter padding fits two rows of tool tags; [role='cell'] skips the hover layer td. */
+  tbody td[role='cell'] {
+    padding-top: ${p => p.theme.space.md};
+    padding-bottom: ${p => p.theme.space.md};
+  }
 `;
 
 // Separator is full-height by default; pin it to a short fixed height so it

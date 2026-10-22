@@ -4,11 +4,14 @@ import ipaddress
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+import orjson
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_relay.exceptions import InvalidReleaseError
+from sentry_relay.processing import parse_release
 
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
@@ -25,9 +28,15 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
-from sentry.ingest.inbound_filters import get_supported_condition_types
+from sentry.constants import SEMVER_FAKE_PACKAGE
+from sentry.ingest.inbound_filters import (
+    get_supported_condition_types,
+    get_supported_operators,
+)
 from sentry.models.custominboundfilter import (
+    COMPARISON_OPERATORS,
     MAX_FILTERS_PER_PROJECT,
+    ConditionOperator,
     ConditionType,
     CustomInboundFilter,
     DataType,
@@ -51,6 +60,7 @@ _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
 
 class CustomInboundFilterCondition(TypedDict):
     type: str
+    operator: str
     value: list[str]
 
 
@@ -100,6 +110,21 @@ def _is_ip_address_or_range(value: str) -> bool:
     return True
 
 
+def _is_release_version(release: str) -> bool:
+    """
+    Whether Relay reads a version out of the release, so that it can compare it. A
+    release such as `1.2`, `1.2.3.4-rc.1` or `myapp@1.2.0` has one. A commit hash or a
+    glob pattern has none.
+    """
+    if "@" not in release:
+        release = f"{SEMVER_FAKE_PACKAGE}@{release}"
+    try:
+        parsed = parse_release(release, json_loads=orjson.loads)
+    except InvalidReleaseError:
+        return False
+    return parsed.get("version_parsed") is not None
+
+
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType],
@@ -110,25 +135,78 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "`metric_name`. `span` and `all` accept no other types."
         ),
     )
+    # A row stored before operators existed carries none, and DRF cannot read a required
+    # field that is missing. `validate` requires it on input instead, also on a partial
+    # update, where DRF skips the check.
+    operator = serializers.ChoiceField(
+        choices=[operator.value for operator in ConditionOperator],
+        required=False,
+        help_text=(
+            "How the field compares to `value`. `glob` matches the field against each value "
+            "as a glob pattern. `equals`, `starts_with`, `contains` and `ends_with` match the "
+            "field against each value case-insensitively, with every character read "
+            "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
+            "match when no value does. `cidr` matches `ip_address` against each value as an "
+            "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
+            "`lt` and `lte` compare one value as a version and only apply to `release`."
+        ),
+    )
     value = serializers.ListField(
         child=serializers.CharField(allow_blank=False, trim_whitespace=True),
         allow_empty=False,
         help_text=(
-            "Glob patterns the field is matched against. The condition matches when any "
-            "pattern matches, so multiple values act as OR."
+            "The values the field is compared to. The condition matches when any value "
+            "matches, so multiple values act as OR; a negated operator matches when none "
+            "does. A version comparison takes one release "
+            "with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a package "
+            "only applies to releases of that package."
         ),
     )
 
     def validate(self, attrs: CustomInboundFilterCondition) -> CustomInboundFilterCondition:
-        # Relay drops an entry it cannot parse as an address or range, so a typo would
-        # silently disable part of the filter.
-        if attrs["type"] == ConditionType.IP_ADDRESS:
+        if "operator" not in attrs:
+            raise serializers.ValidationError({"operator": "This field is required."})
+        condition_type = ConditionType(attrs["type"])
+        operator = ConditionOperator(attrs["operator"])
+
+        supported = get_supported_operators(condition_type)
+        if operator not in supported:
+            raise serializers.ValidationError(
+                {
+                    "operator": (
+                        f"The {condition_type} condition does not take the {operator} "
+                        f"operator. It accepts {', '.join(supported)}."
+                    )
+                }
+            )
+        if operator in COMPARISON_OPERATORS:
+            self._validate_comparison(attrs)
+        # Relay never matches an entry it cannot parse as an address or range, so a typo
+        # would silently disable part of the filter.
+        if condition_type is ConditionType.IP_ADDRESS:
             invalid = [value for value in attrs["value"] if not _is_ip_address_or_range(value)]
             if invalid:
                 raise serializers.ValidationError(
                     {"value": f"{', '.join(invalid)} is not an IP address or CIDR range."}
                 )
         return attrs
+
+    def _validate_comparison(self, attrs: CustomInboundFilterCondition) -> None:
+        if len(attrs["value"]) != 1:
+            raise serializers.ValidationError(
+                {"value": f"The {attrs['operator']} operator takes exactly one value."}
+            )
+        # Relay never matches a comparison against a release without a version, so the
+        # condition would silently match nothing.
+        if not _is_release_version(attrs["value"][0]):
+            raise serializers.ValidationError(
+                {
+                    "value": (
+                        f"{attrs['value'][0]} is not a release with a version such as 1.2.0 "
+                        "or myapp@1.2.0."
+                    )
+                }
+            )
 
 
 class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFilter]):
@@ -161,8 +239,8 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         help_text=(
             "Conditions are combined with AND: an event must match every condition to be "
             "filtered out. There is no OR between conditions, so e.g. two release conditions "
-            "can express a range (`>2 AND <4`). To broaden matching, widen a condition's values "
-            "or add separate filters."
+            "can express a range (`gte 2.0` and `lt 4.0`). To broaden matching, widen a "
+            "condition's values or add separate filters."
         ),
     )
     dateCreated = serializers.DateTimeField(

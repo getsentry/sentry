@@ -918,7 +918,7 @@ class SlackInvestigationEntrypoint(
             if data is None:
                 return True
             try:
-                sent = send_thread_update(
+                message_ts = send_thread_update(
                     install=install,
                     thread=SlackThreadDetails(
                         thread_ts=cache_payload["thread_ts"], channel_id=cache_payload["channel_id"]
@@ -928,9 +928,10 @@ class SlackInvestigationEntrypoint(
             except IntegrationError as e:
                 lifecycle.record_halt(halt_reason=e)
                 return False
-            if not sent:
+            if message_ts is None:
                 lifecycle.record_halt(halt_reason="conclusion_not_sent")
-            return sent
+                return False
+            return True
 
 
 def _record_status_sent(*, data: SeerInvestigationStatus, links: set[NotificationLink]) -> None:
