@@ -131,6 +131,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.tool.name",
     "gen_ai.tool.call.arguments",
     "gen_ai.tool.call.result",
+    "gen_ai.tool.call.result.size",
     "anthropic.tool_result.content",
     "gen_ai.embeddings.input",
     "gen_ai.usage.cache_creation.input_tokens",

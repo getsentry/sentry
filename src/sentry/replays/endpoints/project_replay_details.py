@@ -78,10 +78,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
 
         filter_params = self.get_filter_params(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
         with handle_query_errors():
             snuba_response = query_replay_instance(
