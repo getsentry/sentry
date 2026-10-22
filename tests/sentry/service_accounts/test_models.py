@@ -5,16 +5,21 @@ from django.core.exceptions import ValidationError
 from django.db import router, transaction
 
 from sentry import deletions
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProject,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
     validate_grantable_scopes,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 
 
 def test_validate_grantable_scopes_accepts_api_scopes() -> None:
@@ -30,8 +35,8 @@ def test_validate_grantable_scopes_rejects_non_grantable(scope: str) -> None:
 @control_silo_test
 class ServiceAccountOutboxTest(TestCase):
     """
-    Cells read service accounts through a cached RPC, and this outbox is what clears that cache,
-    so every create, update and delete has to write one for the org's cell.
+    Cells read service accounts from a replica that this outbox writes, so every create,
+    update and delete has to write one for the org's cell.
     """
 
     def unflushed_outboxes(self) -> AbstractContextManager[object]:
@@ -116,3 +121,94 @@ class ServiceAccountOutboxTest(TestCase):
 
         assert not ServiceAccountProject.objects.filter(id=link.id).exists()
         self.assert_outbox_written(service_account.id, organization.id)
+
+
+@all_silo_test
+class ServiceAccountReplicationTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.projects = [self.create_project(organization=self.organization) for _ in range(2)]
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account = ServiceAccount.objects.create(
+                organization_id=self.organization.id,
+                name="seer-autofix",
+                scope_list=["org:read", "project:read"],
+            )
+            for project in self.projects:
+                ServiceAccountProject.objects.create(
+                    service_account=self.service_account, project_id=project.id
+                )
+        # Deleting the account clears its `id`, so keep a copy for reads after the delete.
+        self.service_account_id = self.service_account.id
+
+    def get_replica(self) -> ServiceAccountReplica | None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            return ServiceAccountReplica.objects.filter(
+                service_account_id=self.service_account_id
+            ).first()
+
+    def get_replica_project_ids(self) -> set[int]:
+        with assume_test_silo_mode(SiloMode.CELL):
+            return set(
+                ServiceAccountProjectReplica.objects.filter(
+                    service_account__service_account_id=self.service_account_id
+                ).values_list("project_id", flat=True)
+            )
+
+    def test_create_replicates_account_and_projects(self) -> None:
+        replica = self.get_replica()
+        assert replica is not None
+        assert replica.organization_id == self.organization.id
+        assert replica.name == "seer-autofix"
+        assert replica.scope_list == ["org:read", "project:read"]
+        assert replica.is_active
+        assert self.get_replica_project_ids() == {project.id for project in self.projects}
+
+    def test_update_replicates(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(is_active=False, scope_list=["org:read"])
+
+        replica = self.get_replica()
+        assert replica is not None
+        assert not replica.is_active
+        assert replica.scope_list == ["org:read"]
+
+    def test_project_link_changes_replicate(self) -> None:
+        new_project = self.create_project(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountProject.objects.get(
+                service_account=self.service_account, project_id=self.projects[0].id
+            ).delete()
+            ServiceAccountProject.objects.create(
+                service_account=self.service_account, project_id=new_project.id
+            )
+
+        assert self.get_replica_project_ids() == {self.projects[1].id, new_project.id}
+
+    def test_skips_links_to_projects_outside_the_org(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountProject.objects.create(
+                service_account=self.service_account, project_id=other_project.id
+            )
+
+        assert self.get_replica_project_ids() == {project.id for project in self.projects}
+
+    def test_replication_is_idempotent(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(name="seer-autofix")
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ServiceAccountReplica.objects.count() == 1
+            assert ServiceAccountProjectReplica.objects.count() == len(self.projects)
+
+    def test_delete_removes_replica(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.delete()
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CELL):
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        assert self.get_replica() is None
+        assert self.get_replica_project_ids() == set()
