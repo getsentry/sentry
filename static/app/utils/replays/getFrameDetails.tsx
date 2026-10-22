@@ -342,7 +342,10 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
       case undefined:
         return {
           colorGraphicsToken: 'neutral',
-          description: t('No value recorded'),
+          description:
+            value === undefined
+              ? t('No value recorded')
+              : tct('[value][unit]', {value: value.toFixed(2), unit}),
           tabKey: TabKey.NETWORK,
           title: <WebVitalTitle frame={frame} />,
           icon: <IconInfo size="xs" />,

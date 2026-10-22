@@ -57,5 +57,12 @@ describe('getFrameDetails', () => {
         normalizeWhitespace: true,
       });
     });
+
+    it('shows the web-vital value when the rating is missing', () => {
+      const frame = {...webVital, data: {value: 1234.567}};
+      const {description} = getFrameDetails(frame as unknown as ReplayFrame);
+      render(<div data-test-id="description">{description}</div>);
+      expect(screen.getByTestId('description')).toHaveTextContent('1234.57ms');
+    });
   });
 });
