@@ -376,6 +376,23 @@ new file mode 100644
       expect(fenceContent(`${diff}\nDone.`)).toBe(`${fencedDiff(diff)}\nDone.`);
     });
 
+    it('keeps no-newline markers inside a context diff', () => {
+      const input = `*** a/x.txt
+--- b/x.txt
+***************
+*** 1,3 ****
+  a
+! b
+  c
+\\ No newline at end of file
+--- 1,3 ----
+  a
+! B
+  c
+\\ No newline at end of file`;
+      expect(fenceContent(input)).toBe(fencedDiff(input));
+    });
+
     it('fences an apply_patch block up to its end marker', () => {
       const diff = `*** Begin Patch
 *** Update File: src/app.py
@@ -439,6 +456,13 @@ ${FENCE}`;
       expect(fenceContent(`A stray \` tick.\n\n${diff}`)).toBe(
         `A stray \` tick.\n\n${fencedDiff(diff)}`
       );
+    });
+
+    it('fences a diff after an unpaired backtick and a CRLF blank line', () => {
+      const diff = '@@ -1 +1 @@\r\n-a\r\n+b';
+      expect(
+        fenceContent(`A stray \` tick.\r\n\r\n${diff}\r\n\r\nMore \` text`)
+      ).toContain(`${FENCE}diff\n${diff}\n${FENCE}`);
     });
 
     it('fences the diff, not JSON or HTML inside its hunks', () => {

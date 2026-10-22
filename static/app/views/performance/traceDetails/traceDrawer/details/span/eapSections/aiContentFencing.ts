@@ -337,6 +337,7 @@ function contextRangeLength(range: RegExpExecArray): number {
 /**
  * Consumes up to `maxLines` body lines of one side of a context hunk. A side
  * without changes is omitted entirely, so this stops early at the next header.
+ * `\ No newline at end of file` markers are consumed without counting as body.
  */
 function consumeContextSection(
   lines: Line[],
@@ -344,12 +345,17 @@ function consumeContextSection(
   maxLines: number
 ): ConsumedLines {
   let changed = false;
+  let bodyLines = 0;
   let i = start;
-  for (; i < lines.length && i - start < maxLines; i++) {
+  for (; i < lines.length; i++) {
     const line = lines[i]!.text;
-    if (line !== '' && !CONTEXT_BODY_LINE.test(line)) {
+    if (line.startsWith('\\')) {
+      continue;
+    }
+    if (bodyLines === maxLines || (line !== '' && !CONTEXT_BODY_LINE.test(line))) {
       break;
     }
+    bodyLines++;
     changed ||= /^[+\-!]/.test(line);
   }
   return {changed, end: i};
@@ -427,7 +433,7 @@ function getProtectedRanges(text: string): Array<{end: number; start: number}> {
   const patterns = [
     /```[\s\S]*?```/g,
     /~~~[\s\S]*?~~~/g,
-    /(`+)(?:[^`\n]|\n(?![ \t]*\n))*\1/g,
+    /(`+)(?:[^`\n]|\n(?![ \t\r]*\n))*\1/g,
   ];
   for (const pattern of patterns) {
     for (const match of text.matchAll(pattern)) {
