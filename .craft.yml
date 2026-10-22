@@ -1,4 +1,4 @@
-minVersion: '2.33.1'
+minVersion: '3.0.0'
 workspaces:
   sentry:
     preReleaseCommand: bash scripts/bump-version.sh
@@ -6,6 +6,9 @@ workspaces:
     changelog:
       filePath: CHANGES
       policy: auto
+      # Files outside every workspace (src/, tests/, root config) belong to
+      # this changelog only, not to the scraps or icons changelogs.
+      unownedPaths: own
       # Craft treats pnpm workspace directories as separately owned and drops
       # their commits from this changelog unless they are listed here.
       includePaths:
