@@ -86,8 +86,8 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         visible_runs = Q(pk__in=[])
         if triage_enabled:
             # Historical Agentic triage runs may not have a workflow config.
-            triage_runs = Q(workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE) | Q(
-                workflow_config__isnull=True
+            triage_runs = Q(workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE) | (
+                Q(workflow_config__isnull=True) & ~Q(extras__has_key="trigger")
             )
             if request.access.has_global_access:
                 visible_runs |= triage_runs

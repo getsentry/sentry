@@ -412,6 +412,26 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
         assert [run["id"] for run in response.data] == [str(legacy.id)]
 
+    def test_history_does_not_treat_orphaned_metric_runs_as_legacy_triage(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        run = Factories.create_seer_workflow_run(
+            self.organization,
+            workflow_config=config,
+            trigger_key="issue_created:123",
+            extras={"status": "complete", "trigger": {"invocation_source": "wfe"}},
+        )
+        config.delete()
+        run.refresh_from_db()
+        assert run.workflow_config_id is None
+        assert run.trigger_key == "issue_created:123"
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data == []
+
     def test_history_hides_runs_outside_user_access(self) -> None:
         project = self.project
         workflow = self.create_agent_workflow(

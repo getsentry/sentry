@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import assert_never
+from typing import Literal, assert_never
 
 from django.db import router, transaction
 
@@ -75,6 +75,18 @@ class SeerWorkflow:
     @property
     def filters(self) -> SeerWorkflowFilters:
         return SeerWorkflowFilters.parse_obj(self.config.filters)
+
+    def matches_scope(self, project_id: int, environment: str | None) -> bool:
+        """Check the automation's scope before recording an admission decision."""
+        return (
+            self.config.enabled
+            and project_id in self.get_project_ids()
+            and (not self.filters.environments or environment in self.filters.environments)
+        )
+
+    def admission_rejection_reason(self) -> Literal["quota_exceeded"] | None:
+        """Accept eligible invocations; quota reservation will be added here."""
+        return None
 
     def get_project_ids(self) -> list[int]:
         """Return active project IDs matching this workflow's filters, in ascending order."""

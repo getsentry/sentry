@@ -67,6 +67,25 @@ class SeerWorkflowEnsureDefaultsTest(TestCase):
         )
 
 
+class SeerWorkflowScopeTest(TestCase):
+    def test_scope_requires_enabled_config_and_matching_environment(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            enabled=True,
+            filters={"all_projects": True, "environments": ["production"]},
+        )
+
+        workflow = SeerWorkflow(config)
+        assert workflow.matches_scope(self.project.id, "production") is True
+        assert workflow.matches_scope(self.project.id, "staging") is False
+        assert workflow.matches_scope(self.project.id, None) is False
+
+        config.update(enabled=False)
+
+        assert workflow.matches_scope(self.project.id, "production") is False
+
+
 class SeerWorkflowProjectSelectionTest(TestCase):
     def test_selected_projects_exclude_inactive_and_deleted_projects(self) -> None:
         first, second = self.create_project(), self.create_project()
