@@ -154,7 +154,9 @@ describe('VisualizeTransformations', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Smoothing method'}));
     await userEvent.click(screen.getByRole('option', {name: 'ASAP'}));
-    expect(screen.getByRole('button', {name: 'Max Window Size'})).toHaveTextContent('5');
+    expect(screen.getByRole('button', {name: 'Max Window Size'})).toHaveTextContent(
+      'Auto'
+    );
     expect(
       screen.queryByRole('button', {name: 'Smoothing Factor'})
     ).not.toBeInTheDocument();
@@ -183,7 +185,7 @@ describe('VisualizeTransformations', () => {
     }
   );
 
-  it('restores an automatic ASAP window and allows an explicit value', async () => {
+  it('allows setting an ASAP maximum and returning to Auto', async () => {
     render(<Example initial={['smooth(asap)']} />, {organization});
     expect(screen.getByRole('button', {name: 'Max Window Size'})).toHaveTextContent(
       'Auto'
@@ -191,5 +193,9 @@ describe('VisualizeTransformations', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
     await userEvent.click(screen.getByRole('option', {name: '3'}));
     expect(screen.getByRole('status')).toHaveTextContent('["smooth(asap,3)"]');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+    expect(screen.getByRole('status')).toHaveTextContent('["smooth(asap)"]');
   });
 });

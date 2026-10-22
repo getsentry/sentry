@@ -66,7 +66,7 @@ export type ExploreAnalyticsEventParameters = {
   };
   'explore.visualize.transformation.window_changed': TransformationAnalyticsContext & {
     method: 'sma' | 'ema' | 'asap';
-    window: number;
+    window: number | null;
   };
 };
 

@@ -104,7 +104,7 @@ type SmoothTransformation = Extract<Transformation, {kind: 'smooth'}>;
 const SMOOTH_DEFAULTS: Record<SmoothMethod, SmoothTransformation> = {
   sma: {kind: 'smooth', method: 'sma', window: 3},
   ema: {kind: 'smooth', method: 'ema', window: 10},
-  asap: {kind: 'smooth', method: 'asap', window: 5},
+  asap: {kind: 'smooth', method: 'asap'},
 };
 
 interface Props {
@@ -354,6 +354,8 @@ function SmoothingSettings({
         <CompactSelect
           options={WINDOW_OPTIONS}
           value={transformation.window}
+          clearable={transformation.method === 'asap'}
+          multiple={false}
           disabled={
             transformation.method === 'ema' && transformation.factor !== undefined
           }
@@ -362,16 +364,21 @@ function SmoothingSettings({
               {transformation.window === undefined ? t('Auto') : props.children}
             </OverlayTrigger.Button>
           )}
-          onChange={({value}) => {
-            if (value !== transformation.window) {
+          onChange={(option: SelectOption<number> | undefined) => {
+            const window = option?.value;
+            if (window !== transformation.window) {
               trackAnalytics('explore.visualize.transformation.window_changed', {
                 organization,
                 ...analyticsParams,
                 method: transformation.method,
-                window: value,
+                window: window ?? null,
               });
             }
-            onChange({...transformation, window: value});
+            if (transformation.method === 'asap') {
+              onChange({...transformation, window});
+            } else if (window !== undefined) {
+              onChange({...transformation, window});
+            }
           }}
         />
       </Stack>
