@@ -139,7 +139,13 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         # Without a refresh token, the stored token is the only one there is.
         if self.identity.data.get("refresh_token") and _expires_soon(self.identity.data):
-            self._refresh_auth_once(_expires_soon)
+            try:
+                self._refresh_auth_once(_expires_soon)
+            except UnableToAcquireLock:
+                # Another request's refresh is taking long; use its token if it has stored one.
+                self._reload_identity()
+                if _expires_soon(self.identity.data):
+                    raise
 
         access_token = self.identity.data["access_token"]
         if not access_token:

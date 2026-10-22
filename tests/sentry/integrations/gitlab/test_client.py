@@ -166,6 +166,32 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
         assert len(responses.calls) == 0
 
     @responses.activate
+    @mock.patch.object(Lock, "blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_uses_a_token_stored_while_another_refresh_held_the_lock(
+        self, mock_acquire: mock.MagicMock
+    ) -> None:
+        self.gitlab_client.identity.data["expires"] = int(time()) + 60
+        self.store_identity_data(access_token="fresh-token", expires=int(time()) + 7200)
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result is not None
+        assert result["access_token"] == "fresh-token"
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @mock.patch.object(Lock, "blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_raises_when_another_refresh_holds_the_lock_and_stored_nothing(
+        self, mock_acquire: mock.MagicMock
+    ) -> None:
+        self.set_expires(int(time()) + 60)
+
+        with pytest.raises(UnableToAcquireLock):
+            self.gitlab_client.get_access_token()
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
     def test_raises_when_gitlab_refuses_the_refresh(self) -> None:
         self.set_expires(int(time()) + 60)
         responses.add(responses.POST, self.refresh_url, status=400, json={"error": "invalid_grant"})
