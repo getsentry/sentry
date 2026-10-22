@@ -128,6 +128,7 @@ interface PrimaryNavigationLinkProps
   label: string;
   to: string;
   children?: React.ReactNode;
+  navigateOnTouch?: boolean;
 }
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
@@ -148,7 +149,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       // On touch mobile devices, prevent navigation and let setActiveGroup handle the active state
-      if (isMobile && !features.hover) {
+      if (isMobile && !features.hover && !props.navigateOnTouch) {
         e.preventDefault();
       }
       trackAnalytics('navigation.primary_item_clicked', {

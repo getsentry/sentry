@@ -35,7 +35,7 @@ import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -283,6 +283,7 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 
 interface SecondaryNavigationHeaderProps {
   children?: ReactNode;
+  padding?: ContainerProps['padding'];
   showToggle?: boolean;
 }
 
@@ -299,7 +300,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : '0 md 0 xl'}
+      padding={props.padding ?? (isMobile ? 'md lg' : '0 md 0 xl')}
     >
       <Container whiteSpace={showToggle ? undefined : 'nowrap'}>
         <Text size="md" bold>
@@ -400,6 +401,7 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
+  collapsible?: boolean;
   title?: ReactNode;
 }
 
@@ -409,7 +411,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = layout === 'sidebar';
+  const canCollapse = layout === 'sidebar' && (props.collapsible ?? true);
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (

@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
@@ -98,6 +99,7 @@ function assertValidListHTML(list: HTMLElement) {
 }
 
 function setupMocks() {
+  ProjectsStore.reset();
   localStorage.clear();
   MockApiClient.clearMockResponses();
 
@@ -222,6 +224,83 @@ describe('desktop navigation', () => {
     );
   });
 
+  it.each([
+    {customerDomain: false, pathname: '/settings/org-slug/projects/'},
+    {customerDomain: true, pathname: '/settings/projects/'},
+  ])(
+    'isolates project settings navigation at $pathname',
+    async ({customerDomain, pathname}) => {
+      mockUsingCustomerDomain.mockReturnValue(customerDomain);
+      if (customerDomain) {
+        ConfigStore.set('customerDomain', {
+          subdomain: 'org-slug',
+          organizationUrl: 'https://org-slug.sentry.io',
+          sentryUrl: 'https://sentry.io',
+        });
+      }
+      ProjectsStore.loadInitialData([
+        ProjectFixture(),
+        ProjectFixture({id: '999', slug: 'second-project'}),
+      ]);
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/second-project/',
+        body: ProjectFixture({id: '999', slug: 'second-project'}),
+      });
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+          initialRouterConfig: {
+            location: {pathname},
+            route: `${pathname}:projectId?/`,
+          },
+        })
+      );
+
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(`${pathname}project-slug/`)
+      );
+      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Project'}));
+      assertInactiveNavLink(within(primaryNav).getByRole('link', {name: 'Org'}));
+      const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+      const links = within(secondaryNav).getAllByRole('link');
+      expect(links[0]).toHaveAccessibleName('General');
+      expect(links[0]).toHaveAttribute('href', `${pathname}project-slug/`);
+      assertActiveSecondaryNavLink(links[0]!);
+      await userEvent.click(links[0]!);
+      expect(router.location.pathname).toBe(`${pathname}project-slug/`);
+
+      await userEvent.click(
+        within(secondaryNav).getByRole('button', {name: 'Select a project'})
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'second-project'}));
+      expect(router.location.pathname).toBe(`${pathname}second-project/`);
+      expect(
+        within(secondaryNav).getByRole('link', {name: 'Project Teams'})
+      ).toBeInTheDocument();
+      expect(within(secondaryNav).getAllByRole('link')[0]).toHaveAccessibleName(
+        'General'
+      );
+
+      await userEvent.click(
+        within(secondaryNav).getByRole('button', {name: 'Select a project'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'All Projects'}));
+      expect(router.location.pathname).toBe(pathname);
+      expect(router.location.search).toBe('?view=all');
+      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Project'}));
+      expect(
+        within(secondaryNav).queryByRole('link', {name: 'Project Teams'})
+      ).not.toBeInTheDocument();
+      expect(
+        within(secondaryNav).getByRole('button', {name: 'Select a project'})
+      ).toHaveTextContent('All Projects');
+    }
+  );
+
   it('shows settings scope navigation with settings v3', async () => {
     const {router} = render(
       <PrimaryNavigationContextProvider>
@@ -238,6 +317,12 @@ describe('desktop navigation', () => {
       'aria-current',
       'location'
     );
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).queryByRole(
+        'link',
+        {name: 'Projects'}
+      )
+    ).not.toBeInTheDocument();
     expect(within(primaryNav).getByRole('link', {name: 'Project'})).toHaveAttribute(
       'href',
       '/settings/org-slug/projects/'
@@ -247,7 +332,7 @@ describe('desktop navigation', () => {
       '/settings/account/'
     );
     expect(
-      within(primaryNav).getByRole('button', {name: 'Back to main navigation'})
+      within(primaryNav).getByRole('button', {name: 'Back to app'})
     ).toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByText(
@@ -264,8 +349,9 @@ describe('desktop navigation', () => {
     await userEvent.click(within(primaryNav).getByRole('link', {name: 'Project'}));
     expect(router.location.pathname).toBe('/settings/org-slug/projects/');
     expect(
-      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByText(
-        'Project Settings'
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
+        'button',
+        {name: 'Select a project'}
       )
     ).toBeInTheDocument();
     expect(
@@ -285,7 +371,7 @@ describe('desktop navigation', () => {
     expect(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
         'link',
-        {name: 'Account Details'}
+        {name: 'General'}
       )
     ).toBeInTheDocument();
   });

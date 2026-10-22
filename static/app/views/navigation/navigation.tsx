@@ -36,7 +36,10 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {
+  isPrimaryNavigationLinkActive,
+  PrimaryNavigation,
+} from 'sentry/views/navigation/primary/components';
 import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
@@ -56,7 +59,6 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
   const location = useLocation();
-  const navigate = useNavigate();
   const settingsV3 = useSettingsV3();
   const isSettingsNavigation =
     settingsV3 && !!organization && location.pathname.startsWith('/settings/');
@@ -104,12 +106,7 @@ function NavigationImpl() {
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
           {isSettingsNavigation && organization ? (
-            <Button
-              size="sm"
-              icon={<IconArrow direction="left" />}
-              aria-label={t('Back to main navigation')}
-              onClick={() => navigate(`/organizations/${organization.slug}/issues/`)}
-            />
+            <SettingsNavigationBackButton organizationSlug={organization.slug} />
           ) : organization ? (
             <OrganizationDropdown />
           ) : (
@@ -173,7 +170,28 @@ function NavigationImpl() {
 
 export const Navigation = registerLLMContext('navigation', NavigationImpl);
 
-function SettingsPrimaryNavigationItems({organizationSlug}: {organizationSlug: string}) {
+export function SettingsNavigationBackButton({
+  organizationSlug,
+}: {
+  organizationSlug: string;
+}) {
+  const navigate = useNavigate();
+  return (
+    <Button
+      size="sm"
+      icon={<IconArrow direction="left" />}
+      aria-label={t('Back to app')}
+      tooltipProps={{title: t('Back to app')}}
+      onClick={() => navigate(`/organizations/${organizationSlug}/issues/`)}
+    />
+  );
+}
+
+export function SettingsPrimaryNavigationItems({
+  organizationSlug,
+}: {
+  organizationSlug: string;
+}) {
   const location = useLocation();
   const items = [
     {
@@ -190,6 +208,11 @@ function SettingsPrimaryNavigationItems({organizationSlug}: {organizationSlug: s
     },
     {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
   ];
+  const activeScope =
+    items.find(
+      item =>
+        item.key !== 'org' && isPrimaryNavigationLinkActive(item.to, location.pathname)
+    )?.key ?? 'org';
 
   return items.map(({key, label, to, icon}) => (
     <PrimaryNavigation.ListItem key={to}>
@@ -197,14 +220,8 @@ function SettingsPrimaryNavigationItems({organizationSlug}: {organizationSlug: s
         to={to}
         analyticsKey={`settings-${key}`}
         label={label}
-        aria-current={
-          location.pathname.startsWith(to) &&
-          (key !== 'org' ||
-            (!location.pathname.startsWith(`/settings/${organizationSlug}/projects/`) &&
-              !location.pathname.startsWith('/settings/account/')))
-            ? 'location'
-            : undefined
-        }
+        navigateOnTouch
+        aria-current={key === activeScope ? 'location' : undefined}
       >
         {icon}
       </PrimaryNavigation.Link>

@@ -34,5 +34,9 @@ export function SettingsSecondaryNavigation() {
     return <ProjectSettingsNavigation organization={organization} />;
   }
 
+  if (settingsV3 && /^\/settings\/(?:[^/]+\/)?projects\/?$/.test(location.pathname)) {
+    return <ProjectSettingsNavigation organization={organization} />;
+  }
+
   return <OrganizationSettingsNavigation />;
 }

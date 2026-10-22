@@ -10,6 +10,7 @@ import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -20,6 +21,8 @@ import {
   PrimaryNavigationFooterItems,
   PrimaryNavigationFooterItemsUserDropdown,
   PrimaryNavigationItems,
+  SettingsNavigationBackButton,
+  SettingsPrimaryNavigationItems,
 } from 'sentry/views/navigation/navigation';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {
@@ -31,6 +34,7 @@ import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function MobileNavigationHeader(props: FlexProps<'header'>) {
   const theme = useTheme();
@@ -66,16 +70,28 @@ function MobileHelpMenuFallback() {
 
 function MobilePrimaryNavigation() {
   const organization = useOrganization({allowNull: true});
+  const settingsV3 = useSettingsV3();
+  const location = useLocation();
+  const isSettingsNavigation = settingsV3 && location.pathname.startsWith('/settings/');
   const {view} = useSecondaryNavigation();
 
   return (
     <SizeProvider size="sm">
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          {organization && <OrganizationDropdown />}
+          {organization &&
+            (isSettingsNavigation ? (
+              <SettingsNavigationBackButton organizationSlug={organization.slug} />
+            ) : (
+              <OrganizationDropdown />
+            ))}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List>
-          <PrimaryNavigationItems />
+          {isSettingsNavigation && organization ? (
+            <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
+          ) : (
+            <PrimaryNavigationItems />
+          )}
         </PrimaryNavigation.List>
       </PrimaryNavigation.Sidebar>
       {view === 'expanded' && (
