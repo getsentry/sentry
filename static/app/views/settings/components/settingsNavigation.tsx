@@ -11,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
+import type {SentryRouteObject} from 'sentry/router/types';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -22,7 +23,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -100,9 +100,7 @@ function SettingsProjectSelector() {
   const matches = useMatches();
   const projectBreadcrumb = matches
     .flatMap(
-      match =>
-        (match.handle as {settingsBreadcrumb?: SettingsBreadcrumb} | undefined)
-          ?.settingsBreadcrumb ?? []
+      match => (match.handle as SentryRouteObject['handle'])?.settingsBreadcrumb ?? []
     )
     .findLast(item => item.type === 'project');
   const {projects, onSearch} = useProjects();
