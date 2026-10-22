@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 from django.db import IntegrityError, connections, router, transaction
+from django.test import override_settings
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
@@ -140,6 +141,24 @@ class ConcurrentSlugTest(TransactionTestCase):
         assert first.slug == "acme-concurrency"
         assert second.slug.startswith("acme-concurrency-")
         assert Organization.objects.filter(slug__in=[first.slug, second.slug]).count() == 2
+
+    # With snowflake IDs, save_with_snowflake_id catches the IntegrityError first, so
+    # get_or_create cannot recover.
+    @override_settings(SENTRY_USE_SNOWFLAKE=False)
+    def test_organization_get_or_create_with_explicit_slug_returns_existing(self) -> None:
+        def get_or_create_organization() -> Organization:
+            with outbox_context(flush=False):
+                organization, _ = Organization.objects.get_or_create(
+                    slug="acme-race", defaults={"name": "Acme"}
+                )
+                return organization
+
+        first, second = create_concurrently(
+            router.db_for_write(Organization), get_or_create_organization
+        )
+
+        assert first.id == second.id
+        assert Organization.objects.filter(slug__startswith="acme-race").count() == 1
 
     def test_monitors_get_different_slugs(self) -> None:
         organization = self.create_organization()

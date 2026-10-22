@@ -252,15 +252,16 @@ class Organization(ReplicatedCellModel):
             return
 
         target = slugify_target.lower().replace("_", "-").strip("-")
+        pick_slug = lambda: slugify_instance(self, target, reserved=RESERVED_ORGANIZATION_SLUGS)
+
+        if self.slug:
+            # Explicit slugs shouldn't be modified or retried if there's a conflict.
+            pick_slug()
+            self._save_organization(save_callback)
+            return
 
         self._save_organization(
-            lambda: save_with_unique_slug(
-                self,
-                pick_slug=lambda: slugify_instance(
-                    self, target, reserved=RESERVED_ORGANIZATION_SLUGS
-                ),
-                save_callback=save_callback,
-            )
+            lambda: save_with_unique_slug(self, pick_slug=pick_slug, save_callback=save_callback)
         )
 
     def _save_organization(self, save_callback: Callable[[], object]) -> None:
