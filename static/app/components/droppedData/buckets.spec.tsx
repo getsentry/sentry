@@ -57,7 +57,6 @@ describe('groupIntoBuckets', () => {
 
     expect(buckets).toHaveLength(1);
     expect(buckets[0]!.dropped.count).toBe(15);
-    expect(buckets[0]!.events).toHaveLength(2);
     expect(buckets[0]!.start).toBe(0);
     expect(buckets[0]!.end).toBe(60_000);
   });
@@ -74,7 +73,7 @@ describe('groupIntoBuckets', () => {
 
   it('excludes intentional drops', () => {
     expect(groupIntoBuckets([DroppedEventFixture({tags: ['intentional']})])).toEqual([
-      expect.objectContaining({dropped: {count: 0}, events: [], ratio: 0}),
+      expect.objectContaining({dropped: {count: 0}, ratio: 0}),
     ]);
   });
 
@@ -90,7 +89,6 @@ describe('groupIntoBuckets', () => {
     expect(buckets).toEqual([
       expect.objectContaining({
         dropped: {count: 10},
-        events: [expect.objectContaining({tags: ['unintentional']})],
         ratio: 0.1,
       }),
     ]);

@@ -33,7 +33,6 @@ export interface DroppedDataBucket {
   byOutcome: OutcomeVolume[];
   dropped: EventVolume;
   end: number;
-  events: DroppedEventsBucket[];
   ratio: number;
   start: number;
 }

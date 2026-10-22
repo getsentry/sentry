@@ -12,7 +12,6 @@ interface BucketDraft {
   byOutcome: Map<string, OutcomeVolume>;
   dropped: EventVolume;
   end: number;
-  events: DroppedEventsBucket[];
   start: number;
 }
 
@@ -31,7 +30,7 @@ function getOrCreateDraft(
   let draft = drafts.get(start);
 
   if (!draft) {
-    draft = {start, end, events: [], byOutcome: new Map(), dropped: emptyVolume()};
+    draft = {start, end, byOutcome: new Map(), dropped: emptyVolume()};
     drafts.set(start, draft);
   }
 
@@ -48,7 +47,6 @@ function addDroppedEvent(
     return;
   }
 
-  draft.events.push(event);
   addCount(draft.dropped, event);
 
   let outcomeVolume = draft.byOutcome.get(event.outcome);
@@ -85,7 +83,6 @@ function toBucket(
   return {
     start: draft.start,
     end: draft.end,
-    events: draft.events,
     byOutcome: Array.from(draft.byOutcome.values()).sort((a, b) => b.count - a.count),
     dropped: draft.dropped,
     accepted,
