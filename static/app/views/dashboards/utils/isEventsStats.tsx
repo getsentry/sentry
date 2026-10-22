@@ -53,8 +53,11 @@ function getValues(obj: unknown): unknown[] {
     return [];
   }
 
+  // Grouped responses put a numeric `order` next to each group's series. Only
+  // skip that numeric key: a top-events group can itself be named "order" (e.g.,
+  // a project slug), and its value is a series that still needs to be checked.
   return Object.entries(obj)
-    .filter(([key, _value]) => key !== 'order')
+    .filter(([key, value]) => !(key === 'order' && typeof value === 'number'))
     .map(([_key, value]) => {
       return value as unknown;
     });

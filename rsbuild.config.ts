@@ -6,7 +6,7 @@ import path from 'node:path';
 import {defineConfig} from '@rsbuild/core';
 import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
 import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
-import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/core';
 import type {
   Configuration,
   OptimizationSplitChunksCacheGroup,
