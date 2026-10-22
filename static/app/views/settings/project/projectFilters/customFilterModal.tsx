@@ -60,9 +60,10 @@ type ConditionType =
 
 // How a condition compares its values to the field, as the API names it. `glob`
 // matches each value as a glob pattern. The literal operators read every character
-// of a value as itself. `cidr` matches an IP address against addresses and ranges.
-// The ordered operators compare a release as a version. A condition matches when
-// any value does, except under a negated operator, which matches when none does.
+// of a value as itself. `cidr` matches an IP address against addresses and ranges,
+// `not_cidr` one that none covers. The ordered operators compare a release as a
+// version. A condition matches when any value does, except under a negated
+// operator, which matches when none does.
 export type ConditionOperator =
   | 'glob'
   | 'equals'
@@ -73,6 +74,7 @@ export type ConditionOperator =
   | 'does_not_contain'
   | 'does_not_end_with'
   | 'cidr'
+  | 'not_cidr'
   | 'gt'
   | 'gte'
   | 'lt'
@@ -163,8 +165,8 @@ type ConditionSpec = {
   // `ip_address`, which every data type carries, so they stay on offer whatever
   // the filter targets.
   dataType?: FilterDataType;
-  // Values are addresses and ranges, not text, so the only operator is "is", and
-  // the query builder offers no wildcard.
+  // Values are addresses and ranges, not text: the field "matches" them or "does
+  // not match" them, and the query builder offers no wildcard.
   exact?: boolean;
 };
 
@@ -224,7 +226,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     label: t('IP Address'),
     placeholder: t('IP address or CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'),
     description: t(
-      'Matches the IP address the data was sent from. Takes single addresses and CIDR ranges, not glob patterns.'
+      'Matches the IP address the data was sent from against single addresses and CIDR ranges, e.g. 203.0.113.7 or 10.0.0.0/8.'
     ),
   },
 };
@@ -279,6 +281,28 @@ function getFilterKeys(dataType: FilterDataType): TagCollection {
 
 const FIELD_DEFINITION_GETTERS = new Map<FilterDataType, FieldDefinitionGetter>();
 
+// An address field matches a value or does not; "is" would read as text equality.
+const EXACT_OPERATOR_LABELS: Partial<Record<TermOperator, string>> = {
+  [TermOperator.DEFAULT]: t('matches'),
+  [TermOperator.NOT_EQUAL]: t('does not match'),
+};
+
+// What the value dropdown says a value is under the operator. A wildcard operator
+// keeps the builder's own hint, which says how to get a wildcard back.
+function getValueHint(spec: ConditionSpec, operator: TermOperator): string | undefined {
+  if (spec.exact) {
+    return t('An IP address or a CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8');
+  }
+  const conditionOperator = TERM_OPERATORS[operator];
+  if (conditionOperator && COMPARISON_OPERATORS.has(conditionOperator)) {
+    return t('A release with a version, e.g. 1.2.0 or myapp@1.2.0');
+  }
+  if (operator === TermOperator.DEFAULT || operator === TermOperator.EQUAL) {
+    return t('The exact text, or a pattern with * as a wildcard');
+  }
+  return undefined;
+}
+
 // Tells the query builder which operators a condition takes and what it matches.
 // The description shows in the key menu.
 function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGetter {
@@ -294,8 +318,11 @@ function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGett
         valueType: FieldValueType.STRING,
         desc: getMatchDescription(key, dataType),
         allowComparisonOperators: spec.comparable,
+        comparisonOperatorsFirst: spec.comparable,
         allowWildcard: !spec.exact,
         disallowWildcardOperators: spec.exact,
+        operatorLabels: spec.exact ? EXACT_OPERATOR_LABELS : undefined,
+        valueHint: operator => getValueHint(spec, operator),
       };
     };
     FIELD_DEFINITION_GETTERS.set(dataType, getter);
@@ -325,6 +352,7 @@ const OPERATOR_PREFIXES: Record<ConditionOperator, string> = {
   glob: '',
   equals: '',
   cidr: '',
+  not_cidr: '',
   contains: TermOperator.CONTAINS,
   starts_with: TermOperator.STARTS_WITH,
   ends_with: TermOperator.ENDS_WITH,
@@ -343,13 +371,19 @@ export const NEGATED_OPERATORS = new Set<ConditionOperator>([
   'does_not_contain',
   'does_not_start_with',
   'does_not_end_with',
+  'not_cidr',
 ]);
 
-// How the table names an operator. The raw operators stay implicit, as before
-// operators existed: a glob pattern or an address speaks for itself.
+// The operators whose values go into the query as stored, since the builder reads
+// them as the user wrote them: a glob keeps its stars, an address its slash.
+const RAW_OPERATORS = new Set<ConditionOperator>(['glob', 'cidr', 'not_cidr']);
+
+// How the table names an operator. A glob stays implicit, as before operators
+// existed: the pattern speaks for itself.
 export const OPERATOR_LABELS: Record<ConditionOperator, string> = {
   glob: '',
-  cidr: '',
+  cidr: t('matches'),
+  not_cidr: t('does not match'),
   equals: t('is'),
   contains: t('contains'),
   starts_with: t('starts with'),
@@ -396,8 +430,7 @@ type TokenTranslation =
   | {problem: string; condition?: undefined};
 
 // Translates one filter token of the query into an API condition, or says why the
-// API would refuse it: the token's "is not" has no API operator, and a comparison
-// takes one value.
+// API would refuse it: "is not" on text has no API operator.
 function tokenToCondition(token: TokenResult<Token.FILTER>): TokenTranslation {
   const type = getKeyName(token.key);
   const spec = CONDITION_SPECS.get(type);
@@ -416,32 +449,32 @@ function tokenToCondition(token: TokenResult<Token.FILTER>): TokenTranslation {
     : token.operator;
   const literals = values.map(unescapeAsteriskSearchValue);
 
-  if (termOperator === TermOperator.DEFAULT || termOperator === TermOperator.EQUAL) {
-    if (spec.exact) {
+  if (spec.exact) {
+    if (termOperator === TermOperator.DEFAULT || termOperator === TermOperator.EQUAL) {
       return {condition: {type: type as ConditionType, operator: 'cidr', value: values}};
     }
+    if (termOperator === TermOperator.NOT_EQUAL) {
+      return {
+        condition: {type: type as ConditionType, operator: 'not_cidr', value: values},
+      };
+    }
+    return {problem: t('%s only takes "matches" and "does not match".', type)};
+  }
+
+  if (termOperator === TermOperator.DEFAULT || termOperator === TermOperator.EQUAL) {
     return values.some(isGlob)
       ? {condition: {type: type as ConditionType, operator: 'glob', value: values}}
       : {condition: {type: type as ConditionType, operator: 'equals', value: literals}};
   }
 
   const operator = TERM_OPERATORS[termOperator];
-  if (
-    !operator ||
-    spec.exact ||
-    (COMPARISON_OPERATORS.has(operator) && !spec.comparable)
-  ) {
+  if (!operator || (COMPARISON_OPERATORS.has(operator) && !spec.comparable)) {
     return {
-      problem: spec.exact
-        ? t('%s only takes "is".', type)
-        : t(
-            '%s does not take "is not". Use "does not contain", "does not start with" or "does not end with".',
-            type
-          ),
+      problem: t(
+        '%s does not take "is not". Use "does not contain", "does not start with" or "does not end with".',
+        type
+      ),
     };
-  }
-  if (COMPARISON_OPERATORS.has(operator) && literals.length !== 1) {
-    return {problem: t('A version comparison takes one value.')};
   }
   return {condition: {type: type as ConditionType, operator, value: literals}};
 }
@@ -492,8 +525,9 @@ function formatValue(value: string, raw: boolean): string {
 
 function conditionToToken(condition: CustomInboundFilterCondition): string {
   const operator = getConditionOperator(condition);
-  const raw = operator === 'glob' || operator === 'cidr';
-  const values = condition.value.map(value => formatValue(value, raw));
+  const values = condition.value.map(value =>
+    formatValue(value, RAW_OPERATORS.has(operator))
+  );
   const text = values.length === 1 ? values[0]! : `[${values.join(',')}]`;
   const negation = NEGATED_OPERATORS.has(operator) ? '!' : '';
   return `${negation}${condition.type}:${OPERATOR_PREFIXES[operator]}${text}`;
@@ -1009,6 +1043,7 @@ function CustomFilterModal({
                               disallowFreeText
                               disallowLogicalOperators
                               disallowUnsupportedFilters
+                              keepOperatorOnValueSelect
                               showSearchIcon={false}
                               portalTarget={document.body}
                               disableFullWidthFilterKeyMenu

@@ -1166,6 +1166,101 @@ describe('ProjectFilters', () => {
     ).toHaveAttribute('aria-invalid', 'false');
   });
 
+  it('negates an IP address condition as does not match', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Outside the office',
+        conditions: [{type: 'ip_address', operator: 'not_cidr', value: ['10.0.0.0/8']}],
+      }),
+    ]);
+
+    expect(await screen.findByText('Outside the office')).toBeInTheDocument();
+    expect(screen.getByText('does not match')).toBeInTheDocument();
+
+    const editMock = MockApiClient.addMockResponse({
+      url: `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+      method: 'PUT',
+      body: CustomInboundFilterFixture({id: '1', name: 'Outside the office'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByRole('row', {name: '!ip_address:10.0.0.0/8'})
+    ).toBeInTheDocument();
+    // The address field matches a range or does not; "is" would read as text.
+    const operatorButton = within(dialog).getByRole('button', {
+      name: 'Edit operator for filter: ip_address',
+    });
+    expect(operatorButton).toHaveTextContent('does not match');
+    await userEvent.click(operatorButton);
+    expect(await screen.findByRole('option', {name: 'matches'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'is not'})).not.toBeInTheDocument();
+    // Escape would close the modal, so the menu closes on a pick.
+    await userEvent.click(screen.getByRole('option', {name: 'does not match'}));
+
+    // The value dropdown says what the field takes.
+    await userEvent.click(
+      within(dialog).getByRole('button', {name: 'Edit value for filter: ip_address'})
+    );
+    expect(
+      await screen.findByText(
+        'An IP address or a CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'
+      )
+    ).toBeInTheDocument();
+    // Escape would close the modal, so Enter commits the value as it is.
+    await userEvent.keyboard('{Enter}');
+
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() =>
+      expect(editMock).toHaveBeenCalledWith(
+        `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            name: 'Outside the office',
+            dataType: 'error',
+            conditions: [
+              {type: 'ip_address', operator: 'not_cidr', value: ['10.0.0.0/8']},
+            ],
+          },
+        })
+      )
+    );
+  });
+
+  it('offers the version comparisons first on release and no second value', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
+    await userEvent.paste('Old releases');
+    await enterConditions('release:1.0');
+
+    await userEvent.click(
+      within(dialog).getByRole('button', {name: 'Edit operator for filter: release'})
+    );
+    const names = screen.getAllByRole('option').map(option => option.textContent);
+    expect(names.slice(0, 6)).toEqual(['is', 'is not', '>=', '<=', '>', '<']);
+    await userEvent.click(screen.getByRole('option', {name: '<'}));
+    expect(within(dialog).getByRole('row', {name: 'release:<1.0'})).toBeInTheDocument();
+
+    // A comparison takes one value: the builder offers no second one.
+    await userEvent.click(
+      within(dialog).getByRole('button', {name: 'Edit value for filter: release'})
+    );
+    expect(
+      await screen.findByText('A release with a version, e.g. 1.2.0 or myapp@1.2.0')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Use the checkboxes to select multiple')
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps a gated data type selectable when editing', async () => {
     renderInboundFilters([
       CustomInboundFilterFixture({
