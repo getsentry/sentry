@@ -27,11 +27,16 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="seerprojectrepository",
-            name="project_repository",
-            field=models.OneToOneField(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.projectrepository"
-            ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name="seerprojectrepository",
+                    name="project_repository",
+                    field=models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.projectrepository"
+                    ),
+                ),
+            ],
+            database_operations=[],
         ),
     ]
