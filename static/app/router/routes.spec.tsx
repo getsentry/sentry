@@ -229,26 +229,6 @@ describe('buildRoutes()', () => {
   });
 
   describe('explore route catch-all', () => {
-    it('matches investigation details before the catch-all', () => {
-      const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
-
-      spy.mockReturnValue(true);
-      let matchedPaths = getMatchedPaths(
-        buildRoutes(),
-        '/explore/investigations/investigation-1/'
-      );
-      expect(matchedPaths).toContain('investigations/:investigationId/');
-      expect(matchedPaths).not.toContain('*');
-
-      spy.mockReturnValue(false);
-      matchedPaths = getMatchedPaths(
-        buildRoutes(),
-        '/organizations/test-org/explore/investigations/investigation-1/'
-      );
-      expect(matchedPaths).toContain('investigations/:investigationId/');
-      expect(matchedPaths).not.toContain('*');
-    });
-
     it('catches unknown subpaths under /explore/', () => {
       const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
@@ -264,6 +244,33 @@ describe('buildRoutes()', () => {
         '/organizations/test-org/explore/nonexistent-page/also-nonexistent-page/'
       );
       expect(matchedPaths).toContain('*');
+    });
+  });
+
+  describe('seer routes', () => {
+    it.each([
+      ['/seer/investigations/', 'investigations/', true],
+      ['/seer/investigations/investigation-1/', 'investigations/:investigationId/', true],
+      ['/organizations/test-org/seer/investigations/', 'investigations/', false],
+      [
+        '/organizations/test-org/seer/investigations/investigation-1/',
+        'investigations/:investigationId/',
+        false,
+      ],
+    ])('matches %s', (url, routePath, customerDomain) => {
+      jest
+        .spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get')
+        .mockReturnValue(customerDomain);
+
+      expect(getMatchedPaths(buildRoutes(), url)).toContain(routePath);
+    });
+
+    it('redirects the index to investigations', () => {
+      jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get').mockReturnValue(false);
+
+      expect(getRedirectTarget(buildRoutes(), '/organizations/test-org/seer/')).toBe(
+        'investigations/'
+      );
     });
   });
 
