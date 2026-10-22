@@ -207,8 +207,6 @@ class ControlOutboxDrainTest(TransactionTestCase):
 
             mock_replication.side_effect = disconnect_once
             with transaction.atomic(using=self.connection.alias):
-                # Do the same writes as ApiToken.from_grant. We do not call it here, because
-                # it takes a Redis lock, and Redis calls must not run inside a transaction.
                 token = ApiToken.objects.create(
                     application=grant.application,
                     user=grant.user,
