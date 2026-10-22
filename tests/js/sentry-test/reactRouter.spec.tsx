@@ -1,11 +1,11 @@
 import {createRoot} from 'react-dom/client';
 import {createBrowserRouter} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {ThemeProvider} from '@emotion/react';
 import {parseAsString, useQueryState} from 'nuqs';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {TestRouterProvider} from 'sentry-test/reactRouter';
 import {act, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
@@ -47,7 +47,7 @@ describe('Nuqs browser router adapter', () => {
         act(() =>
           root.render(
             <ThemeProvider theme={ThemeFixture()}>
-              <TestRouterProvider router={router} />
+              <RouterProvider router={router} useTransitions={false} />
             </ThemeProvider>
           )
         );

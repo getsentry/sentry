@@ -38,7 +38,7 @@ import {
   useStopInvestigationExecutionMutation,
   useUpdateInvestigationBlockPromptMutation,
 } from 'sentry/views/investigations/api';
-import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
@@ -55,7 +55,7 @@ import {MessagePlaceholder} from 'sentry/views/seerExplorer/components/chat/shar
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
-type InvestigationCellProps = {
+type InvestigationNotebookBlockProps = {
   block: InvestigationBlock;
   canRun: boolean;
   investigation: InvestigationDetail;
@@ -63,21 +63,21 @@ type InvestigationCellProps = {
   onComment?: (blockId: string) => void;
 };
 
-export function InvestigationCell({
+export function InvestigationNotebookBlock({
   block,
   canRun,
   investigation,
   commentCount = 0,
   onComment,
-}: InvestigationCellProps) {
+}: InvestigationNotebookBlockProps) {
   const organizationSlug = useOrganization().slug;
   const activeExecutionId = isExecutionActive(block.currentExecution?.status)
     ? (block.currentExecution?.id ?? null)
     : null;
   const autoOpenedExecutionId = useRef(activeExecutionId);
   const awaitingInput = block.currentExecution?.status === 'awaiting_input';
-  // A cell that has nothing in it yet is showing a placeholder, so opening the
-  // Seer panel over it would bury that. A cell waiting on an answer is the
+  // A block that has nothing in it yet is showing a placeholder, so opening the
+  // Seer panel over it would bury that. A block waiting on an answer is the
   // exception — the question lives in the panel. Runs started from this page
   // still open it, through `openPanel` and the effects below.
   const [panelOpen, setPanelOpen] = useState(
@@ -91,7 +91,7 @@ export function InvestigationCell({
   const [prompt, setPrompt] = useState(() =>
     block.outputStatus === 'notRun' ? block.generationPrompt : ''
   );
-  const progressState = getCellProgressState(block, investigation.blocks ?? []);
+  const progressState = getBlockProgressState(block, investigation.blocks ?? []);
   const waitingForDependencies =
     progressState === 'waiting' ||
     progressState === 'blockedByFailure' ||
@@ -116,7 +116,7 @@ export function InvestigationCell({
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
     investigation.id,
-    {onError: () => addErrorMessage(t('Unable to delete this cell.'))}
+    {onError: () => addErrorMessage(t('Unable to delete this block.'))}
   );
 
   useEffect(() => {
@@ -131,7 +131,7 @@ export function InvestigationCell({
     // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [activeExecutionId]);
 
-  // A cell that was already on screen can stop for a question part way through
+  // A block that was already on screen can stop for a question part way through
   // its run. The execution is the same one, so the effect above stays quiet and
   // the question would sit unseen behind the placeholder. Opens once per
   // execution, so closing the panel keeps it closed.
@@ -184,7 +184,7 @@ export function InvestigationCell({
         isExecutionActive(block.currentExecution?.status),
       onAction: () =>
         openConfirmModal({
-          message: t('Are you sure you want to delete this cell?'),
+          message: t('Are you sure you want to delete this block?'),
           priority: 'danger',
           confirmText: t('Delete'),
           onConfirm: () =>
@@ -199,9 +199,9 @@ export function InvestigationCell({
   const hasComments = commentCount > 0;
   const actionSize = block.kind === 'query' ? 'zero' : 'xs';
 
-  const cellActions = (
+  const blockActions = (
     <Flex align="center" gap="2xs" flexShrink={0}>
-      <CellActions>
+      <BlockActions>
         <DropdownMenu
           position="bottom-end"
           usePortal
@@ -211,14 +211,14 @@ export function InvestigationCell({
               size={actionSize}
               variant="transparent"
               icon={<IconEllipsis size="xs" />}
-              aria-label={t('Cell actions for %s', displayTitle)}
+              aria-label={t('Block actions for %s', displayTitle)}
             />
           )}
           items={actionItems}
         />
-      </CellActions>
+      </BlockActions>
       {onComment ? (
-        <CellActions data-pinned={hasComments || undefined}>
+        <BlockActions data-pinned={hasComments || undefined}>
           <Button
             size={actionSize}
             variant="transparent"
@@ -234,7 +234,7 @@ export function InvestigationCell({
             }}
             onClick={() => onComment(block.id)}
           />
-        </CellActions>
+        </BlockActions>
       ) : null}
     </Flex>
   );
@@ -260,12 +260,12 @@ export function InvestigationCell({
       id={getBlockElementId(block.id)}
       width="100%"
       padding="0"
-      data-test-id={`investigation-cell-${block.id}`}
+      data-test-id={`investigation-block-${block.id}`}
     >
       {block.kind === 'query' ? (
         <Fragment>
           <QueryResult
-            actions={cellActions}
+            actions={blockActions}
             block={block}
             progressState={progressState}
           />
@@ -273,9 +273,9 @@ export function InvestigationCell({
         </Fragment>
       ) : (
         <Fragment>
-          <CellResult
+          <BlockResult
             block={block}
-            actions={cellActions}
+            actions={blockActions}
             progressState={progressState}
             streamedMarkdown={
               isExecutionActive(block.currentExecution?.status)
@@ -290,7 +290,7 @@ export function InvestigationCell({
   );
 }
 
-function CellResult({
+function BlockResult({
   actions,
   block,
   progressState,
@@ -298,29 +298,29 @@ function CellResult({
 }: {
   actions: React.ReactNode;
   block: InvestigationBlock;
-  progressState: CellProgressState;
+  progressState: BlockProgressState;
   streamedMarkdown?: string | null;
 }) {
   const markdown =
     streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
   return (
-    <CellHoverSurface
+    <BlockHoverSurface
       flex={1}
       minWidth={0}
-      data-test-id="text-cell-result"
-      data-cell-variant="unbordered"
+      data-test-id="text-block-result"
+      data-block-variant="unbordered"
     >
       <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
         <Stack minWidth={0} gap="sm">
-          <CellExecutionAlert block={block} />
+          <BlockExecutionAlert block={block} />
           {markdown ? (
             <SeerMarkdown raw={markdown} />
           ) : isBlockWorking(block) ? (
             <Container paddingBottom="xl">
-              <InvestigationCellPlaceholder title={block.title} />
+              <InvestigationBlockPlaceholder title={block.title} />
             </Container>
           ) : (
-            <CellProgress state={progressState} />
+            <BlockProgress state={progressState} />
           )}
         </Stack>
         {/* A hidden line of text, so the actions sit on the block's first line. */}
@@ -335,7 +335,7 @@ function CellResult({
           </Flex>
         </Grid>
       </Grid>
-    </CellHoverSurface>
+    </BlockHoverSurface>
   );
 }
 
@@ -346,7 +346,7 @@ function QueryResult({
 }: {
   actions: React.ReactNode;
   block: InvestigationBlock;
-  progressState: CellProgressState;
+  progressState: BlockProgressState;
 }) {
   const output = getQueryOutput(block.output);
   const chart =
@@ -365,7 +365,7 @@ function QueryResult({
 
   const header =
     (chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
-      <Stack gap="2xs" data-test-id="query-cell-header">
+      <Stack gap="2xs" data-test-id="query-block-header">
         {chartHeaderTitle && chartHeaderTitle !== title ? (
           <Heading as="h3" size="md">
             {chartHeaderTitle}
@@ -383,22 +383,22 @@ function QueryResult({
       <ChartContent data={chart} showHeader={false} />
     </Container>
   ) : tableMarkdown ? null : isBlockWorking(block) ? (
-    // The result's own header lands here, not the cell title the
+    // The result's own header lands here, not the block title the
     // card's header above already shows.
-    <InvestigationCellPlaceholder />
+    <InvestigationBlockPlaceholder />
   ) : (
-    <CellProgress state={progressState} />
+    <BlockProgress state={progressState} />
   );
 
   const hasInsetContent = Boolean(header || hasExecutionAlert(block) || body);
 
   return (
-    <CellHoverSurface width="100%">
+    <BlockHoverSurface width="100%">
       <SeerEmbedBlock
         actions={actions}
         gap="0"
         padding="0"
-        testId="query-cell"
+        testId="query-block"
         title={title}
       >
         {/* A table alone has nothing to inset above it; rendering the section
@@ -406,7 +406,7 @@ function QueryResult({
         {hasInsetContent ? (
           <Stack gap="md" padding="lg">
             {header}
-            <CellExecutionAlert block={block} />
+            <BlockExecutionAlert block={block} />
             {body}
           </Stack>
         ) : null}
@@ -416,11 +416,11 @@ function QueryResult({
           </QueryResultMarkdown>
         ) : null}
       </SeerEmbedBlock>
-    </CellHoverSurface>
+    </BlockHoverSurface>
   );
 }
 
-type CellProgressState =
+type BlockProgressState =
   | 'running'
   | 'waiting'
   | 'failed'
@@ -434,14 +434,14 @@ function hasExecutionAlert(block: InvestigationBlock): boolean {
   return status === 'failed' || status === 'cancelled';
 }
 
-function CellExecutionAlert({block}: {block: InvestigationBlock}) {
+function BlockExecutionAlert({block}: {block: InvestigationBlock}) {
   const execution = block.currentExecution;
   if (!execution || !hasExecutionAlert(block)) {
     return null;
   }
   const failed = execution.status === 'failed';
   return (
-    <Alert.Container data-test-id={`cell-execution-${execution.status}`}>
+    <Alert.Container data-test-id={`block-execution-${execution.status}`}>
       <Alert variant={failed ? 'danger' : 'warning'}>
         {execution.error?.message ||
           (failed ? t('This Seer run failed.') : t('This Seer run was cancelled.'))}
@@ -450,24 +450,24 @@ function CellExecutionAlert({block}: {block: InvestigationBlock}) {
   );
 }
 
-function CellProgress({state}: {state: CellProgressState}) {
+function BlockProgress({state}: {state: BlockProgressState}) {
   if (!state) {
-    return <Text variant="muted">{t('This cell has no output yet.')}</Text>;
+    return <Text variant="muted">{t('This block has no output yet.')}</Text>;
   }
-  let message = t('Cancelled because a previous cell failed.');
+  let message = t('Cancelled because a previous block failed.');
   if (state === 'running') {
-    message = t('Seer is working on this cell…');
+    message = t('Seer is working on this block…');
   } else if (state === 'waiting') {
-    message = t('Waiting for previous cells…');
+    message = t('Waiting for previous blocks…');
   } else if (state === 'failed') {
-    message = t('This cell failed to run.');
+    message = t('This block failed to run.');
   } else if (state === 'cancelled') {
-    message = t('This cell run was cancelled.');
+    message = t('This block run was cancelled.');
   } else if (state === 'blockedByCancellation') {
-    message = t('Waiting because a previous cell was cancelled.');
+    message = t('Waiting because a previous block was cancelled.');
   }
   return (
-    <Flex align="center" gap="xs" data-test-id={`cell-progress-${state}`}>
+    <Flex align="center" gap="xs" data-test-id={`block-progress-${state}`}>
       <IconSeer
         size="xs"
         animation={['running', 'waiting'].includes(state) ? 'idle' : undefined}
@@ -477,10 +477,10 @@ function CellProgress({state}: {state: CellProgressState}) {
   );
 }
 
-function getCellProgressState(
+function getBlockProgressState(
   block: InvestigationBlock,
   blocks: InvestigationBlock[]
-): CellProgressState {
+): BlockProgressState {
   if (isExecutionActive(block.currentExecution?.status)) {
     return 'running';
   }
@@ -507,8 +507,8 @@ function getCellProgressState(
 }
 
 export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
-  // Seer names a cell before it fills it, so a cell it has started can be shown
-  // right away. A cell that is only queued stays hidden — it may never produce
+  // Seer names a block before it fills it, so a block it has started can be shown
+  // right away. A block that is only queued stays hidden — it may never produce
   // anything.
   if (isBlockWorking(block) && block.title.trim()) {
     return true;
@@ -530,7 +530,7 @@ export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
   return blocks.some(
     block =>
       isExecutionActive(block.outputStatus) ||
-      getCellProgressState(block, blocks) === 'waiting'
+      getBlockProgressState(block, blocks) === 'waiting'
   );
 }
 
@@ -1170,11 +1170,11 @@ function hasRenderableContent(block: InvestigationBlock) {
 }
 
 /**
- * Whether Seer has a run going for this cell — queued, working, paused on a
+ * Whether Seer has a run going for this block — queued, working, paused on a
  * question, or stopping. These are the four the server itself treats as live.
  *
  * `notRun` is the one unfinished state left out: nothing has been dispatched
- * for the cell, and an auto-run cell whose dependency failed never will be.
+ * for the block, and an auto-run block whose dependency failed never will be.
  */
 export function isBlockWorking(block: InvestigationBlock) {
   return (
@@ -1215,7 +1215,7 @@ export function getBlockDisplayTitle(block: InvestigationBlock) {
   return (
     block.title ||
     chartTitle ||
-    (block.kind === 'query' ? t('Untitled query') : t('Untitled cell'))
+    (block.kind === 'query' ? t('Untitled query') : t('Untitled block'))
   );
 }
 
@@ -1301,7 +1301,7 @@ function getSeriesName(series: {label: string} | {name: string}) {
   return 'label' in series ? series.label : series.name;
 }
 
-const CellActions = styled(Flex)`
+const BlockActions = styled(Flex)`
   opacity: 0;
   pointer-events: none;
 
@@ -1311,15 +1311,15 @@ const CellActions = styled(Flex)`
   }
 `;
 
-const CellHoverSurface = styled(Stack)`
-  &:hover ${CellActions},
-  &:focus-within ${CellActions} {
+const BlockHoverSurface = styled(Stack)`
+  &:hover ${BlockActions},
+  &:focus-within ${BlockActions} {
     opacity: 1;
     pointer-events: auto;
   }
 
   @media (hover: none) {
-    ${CellActions} {
+    ${BlockActions} {
       opacity: 1;
       pointer-events: auto;
     }
