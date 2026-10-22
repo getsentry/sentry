@@ -36,16 +36,7 @@ describe('SentryAppDetailedView', () => {
   describe('Published Sentry App', () => {
     let createRequest: jest.Mock;
     let deleteRequest: jest.Mock;
-    let sentryAppInteractionRequest: jest.Mock;
-
     beforeEach(() => {
-      sentryAppInteractionRequest = MockApiClient.addMockResponse({
-        url: '/sentry-apps/clickup/interaction/',
-        method: 'POST',
-        statusCode: 200,
-        body: {},
-      });
-
       MockApiClient.addMockResponse({
         url: '/sentry-apps/clickup/',
         body: {
@@ -106,16 +97,6 @@ describe('SentryAppDetailedView', () => {
     it('renders a published sentry app', async () => {
       renderSentryAppDetailedView({integrationSlug: 'clickup'});
 
-      expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
-        '/sentry-apps/clickup/interaction/',
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            tsdbField: 'sentry_app_viewed',
-          },
-        })
-      );
-
       // Shows the Integration name and install status
       expect(
         await screen.findByRole('heading', {name: 'ClickUp', level: 1})
@@ -150,12 +131,6 @@ describe('SentryAppDetailedView', () => {
 
   describe('Internal Sentry App', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/sentry-apps/my-headband-washer-289499/interaction/',
-        method: 'POST',
-        statusCode: 200,
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: '/sentry-apps/my-headband-washer-289499/',
         body: {
@@ -221,12 +196,6 @@ describe('SentryAppDetailedView', () => {
     let createRequest: jest.Mock;
 
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/sentry-apps/la-croix-monitor/interaction/',
-        method: 'POST',
-        statusCode: 200,
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: '/sentry-apps/la-croix-monitor/',
         body: {
@@ -304,12 +273,6 @@ describe('SentryAppDetailedView', () => {
   describe('Unpublished Sentry App with Redirect Url', () => {
     let createRequest: jest.Mock;
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/sentry-apps/go-to-google/interaction/',
-        method: 'POST',
-        statusCode: 200,
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: '/sentry-apps/go-to-google/',
         body: {

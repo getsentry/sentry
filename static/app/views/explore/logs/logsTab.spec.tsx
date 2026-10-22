@@ -204,6 +204,35 @@ describe('LogsTabContent', () => {
     });
   });
 
+  it('disables saving when any log series has transformations', async () => {
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: {
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            aggregateField: [
+              JSON.stringify({yAxes: ['count(message)']}),
+              JSON.stringify({
+                yAxes: ['avg(severity_number)'],
+                visible: false,
+                transformations: ['fill(locf)'],
+              }),
+            ],
+          },
+        },
+      },
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(await screen.findByText('some log message1')).toBeInTheDocument();
+  });
+
   it('should call APIs as expected', async () => {
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
       initialRouterConfig,

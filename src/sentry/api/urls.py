@@ -580,9 +580,6 @@ from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupChe
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
 from sentry.seer.endpoints.organization_agent_approve import OrganizationAgentApproveEndpoint
 from sentry.seer.endpoints.organization_agent_token import OrganizationAgentTokenEndpoint
-from sentry.seer.endpoints.organization_autofix_automation_settings import (
-    OrganizationAutofixAutomationSettingsEndpoint,
-)
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatEndpoint,
@@ -2604,11 +2601,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",
         OrganizationSeerOnboardingCheck.as_view(),
         name="sentry-api-0-organization-seer-onboarding-check",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
-        OrganizationAutofixAutomationSettingsEndpoint.as_view(),
-        name="sentry-api-0-organization-autofix-automation-settings",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/projects/$",

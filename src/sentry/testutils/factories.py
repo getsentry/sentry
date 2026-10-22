@@ -93,6 +93,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.hostname import instance_hostname
 from sentry.investigations.models import (
     Investigation,
+    InvestigationActionRequest,
     InvestigationBlock,
     InvestigationBlockDependency,
     InvestigationBlockExecution,
@@ -487,6 +488,17 @@ class Factories:
             block=block,
             author_id=author.id if author else None,
             body=body,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_action_request(
+        investigation, report_revision=0, key="action-request", **kwargs
+    ):
+        kwargs.setdefault("title", "An action request")
+        kwargs.setdefault("rationale", "Because it helps.")
+        return InvestigationActionRequest.objects.create(
+            investigation=investigation, report_revision=report_revision, key=key, **kwargs
         )
 
     @staticmethod
