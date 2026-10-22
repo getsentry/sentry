@@ -267,11 +267,11 @@ describe('buildRoutes()', () => {
       expect(getMatchedPaths(buildRoutes(), url)).toContain(routePath);
     });
 
-    it('redirects the index to investigations', () => {
+    it('redirects the index to automations', () => {
       jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get').mockReturnValue(false);
 
       expect(getRedirectTarget(buildRoutes(), '/organizations/test-org/seer/')).toBe(
-        'investigations/'
+        'automations/'
       );
     });
   });

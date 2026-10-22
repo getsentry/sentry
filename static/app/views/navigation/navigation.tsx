@@ -224,18 +224,19 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
-      {(investigationsEnabled || automationsEnabled) && (
-        <PrimaryNavigation.ListItem>
-          <PrimaryNavigation.Link
-            to={seerPath}
-            analyticsKey="seer"
-            label={t('Seer')}
-            {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
-          >
-            <IconSeer />
-          </PrimaryNavigation.Link>
-        </PrimaryNavigation.ListItem>
-      )}
+      {organization.features.includes('seer-primary-nav') &&
+        (investigationsEnabled || automationsEnabled) && (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={seerPath}
+              analyticsKey="seer"
+              label={t('Seer')}
+              {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
+            >
+              <IconSeer />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
 
       <NavigationTourElement id={NavigationTour.EXPLORE} title={null} description={null}>
         {tourProps => (

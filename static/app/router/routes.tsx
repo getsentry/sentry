@@ -2733,7 +2733,7 @@ function buildRoutes(): RouteObject[] {
   const seerChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: 'investigations/',
+      redirectTo: 'automations/',
     },
     {
       path: 'investigations/',
