@@ -1,3 +1,5 @@
+import {matchPath} from 'react-router';
+
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -18,7 +20,7 @@ export function SettingsSecondaryNavigation() {
 
   if (
     !organization ||
-    (settingsV3 && location.pathname.startsWith('/settings/account/'))
+    (settingsV3 && matchPath({path: '/settings/account', end: false}, location.pathname))
   ) {
     return (
       <SettingsNavigation
@@ -34,7 +36,7 @@ export function SettingsSecondaryNavigation() {
     return <ProjectSettingsNavigation organization={organization} />;
   }
 
-  if (settingsV3 && /^\/settings\/(?:[^/]+\/)?projects\/?$/.test(location.pathname)) {
+  if (settingsV3 && matchPath('/settings/:orgId?/projects', location.pathname)) {
     return <ProjectSettingsNavigation organization={organization} />;
   }
 

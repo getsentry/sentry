@@ -1,4 +1,5 @@
 import {cloneElement, Fragment} from 'react';
+import {matchPath} from 'react-router';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
@@ -44,11 +45,15 @@ export function SettingsNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
   const location = useLocation();
   const settingsV3 = useSettingsV3();
-  const showProjectSelector = settingsV3 && /\/projects(?:\/|$)/.test(location.pathname);
+  const isProjectSettings = !!matchPath(
+    {path: '/settings/:orgId?/projects', end: false},
+    location.pathname
+  );
+  const showProjectSelector = settingsV3 && isProjectSettings;
   const title = settingsV3
-    ? location.pathname.startsWith('/settings/account/')
+    ? matchPath({path: '/settings/account', end: false}, location.pathname)
       ? t('Account Settings')
-      : /\/projects(?:\/|$)/.test(location.pathname)
+      : isProjectSettings
         ? t('Project Settings')
         : t('Organization Settings')
     : t('Settings');
