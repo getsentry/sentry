@@ -164,6 +164,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:jira-lazy-status-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use the paginated project endpoint in Jira org config to avoid timeouts on large instances.
     manager.add("organizations:jira-paginated-project-config", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable usage CSV downloads on the subscription invoices list.
+    manager.add("organizations:invoice-usage-downloads", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable inviting billing members to organizations at the member limit.
     manager.add("organizations:invite-billing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     # Enable inviting members to organizations.
