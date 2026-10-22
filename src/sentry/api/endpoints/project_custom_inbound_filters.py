@@ -146,9 +146,9 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "as a glob pattern. `equals`, `starts_with`, `contains` and `ends_with` match the "
             "field against each value case-insensitively, with every character read "
             "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
-            "match when no value does. `ip_address` only takes `equals`, where a value is an "
-            "address or a CIDR range. `gt`, `gte`, `lt` and `lte` compare one value as a "
-            "version and only apply to `release`."
+            "match when no value does. `cidr` matches `ip_address` against each value as an "
+            "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
+            "`lt` and `lte` compare one value as a version and only apply to `release`."
         ),
     )
     value = serializers.ListField(
