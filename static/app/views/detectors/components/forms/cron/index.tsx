@@ -88,7 +88,7 @@ function CronDetectorForm({
         style={showingPlatformGuide ? {display: 'none'} : undefined}
         gap="2xl"
       >
-        {dataSource?.queryObj.isUpserting && (
+        {dataSource?.queryObj?.isUpserting && (
           <Alert variant="warning">
             {t(
               'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'

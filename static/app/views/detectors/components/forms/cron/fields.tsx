@@ -124,7 +124,7 @@ export function cronSavedDetectorToFormData(
     projectId: detector.projectId,
   };
 
-  const config = dataSource.queryObj.config;
+  const config = dataSource.queryObj!.config;
 
   return {
     ...common,

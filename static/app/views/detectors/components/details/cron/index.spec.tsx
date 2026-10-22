@@ -30,7 +30,7 @@ describe('CronDetectorDetails - check-ins', () => {
   const project = ProjectFixture({environments: ['production']});
   const cronDataSource = CronMonitorDataSourceFixture({
     queryObj: {
-      ...CronMonitorDataSourceFixture().queryObj,
+      ...CronMonitorDataSourceFixture().queryObj!,
       // Ensure we have a lastCheckIn so the check-ins section is shown
       environments: [
         CronMonitorEnvironmentFixture({
@@ -78,7 +78,7 @@ describe('CronDetectorDetails - check-ins', () => {
       body: UserFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.slug}/monitors/${cronDataSource.queryObj.slug}/checkins/`,
+      url: `/projects/org-slug/${project.slug}/monitors/${cronDataSource.queryObj!.slug}/checkins/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -86,7 +86,7 @@ describe('CronDetectorDetails - check-ins', () => {
       body: GroupFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj.slug}/processing-errors/`,
+      url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj!.slug}/processing-errors/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -107,7 +107,7 @@ describe('CronDetectorDetails - check-ins', () => {
 
     const noCheckInDataSource = CronMonitorDataSourceFixture({
       queryObj: {
-        ...CronMonitorDataSourceFixture().queryObj,
+        ...CronMonitorDataSourceFixture().queryObj!,
         environments: [
           CronMonitorEnvironmentFixture({
             lastCheckIn: null,
@@ -124,7 +124,7 @@ describe('CronDetectorDetails - check-ins', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${project.id}/monitors/${noCheckInDataSource.queryObj.slug}/processing-errors/`,
+      url: `/projects/org-slug/${project.id}/monitors/${noCheckInDataSource.queryObj!.slug}/processing-errors/`,
       body: [],
     });
 
@@ -153,7 +153,7 @@ describe('CronDetectorDetails - check-ins', () => {
         'global-selection:org-slug',
         JSON.stringify({
           projects: [999],
-          environments: [cronDataSource.queryObj.environments[0]!.name],
+          environments: [cronDataSource.queryObj!.environments[0]!.name],
           period: '2d',
           pinnedFilters: ['projects', 'environments', 'datetime'],
         })
@@ -174,7 +174,7 @@ describe('CronDetectorDetails - check-ins', () => {
     it.each([false, true])(
       'uses the monitor project instead of a stale filter (in URL: %s)',
       async inUrl => {
-        const environment = cronDataSource.queryObj.environments[0]!.name;
+        const environment = cronDataSource.queryObj!.environments[0]!.name;
         const statsRequest = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/monitors-stats/',
           body: {},
@@ -203,7 +203,7 @@ describe('CronDetectorDetails - check-ins', () => {
               query: expect.objectContaining({
                 project: project.id,
                 environment,
-                monitor: [cronDataSource.queryObj.id],
+                monitor: [cronDataSource.queryObj!.id],
               }),
             })
           );
@@ -230,7 +230,7 @@ describe('CronDetectorDetails - check-ins', () => {
 
     it('shows recent check-ins with a table when they exist', async () => {
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.slug}/monitors/${cronDataSource.queryObj.slug}/checkins/`,
+        url: `/projects/org-slug/${project.slug}/monitors/${cronDataSource.queryObj!.slug}/checkins/`,
         body: [CheckInFixture()],
       });
 
@@ -262,8 +262,8 @@ describe('CronDetectorDetails - check-ins', () => {
       const defaultDataSource = CronMonitorDataSourceFixture();
       const dataSouce = CronMonitorDataSourceFixture({
         queryObj: {
-          ...defaultDataSource.queryObj,
-          config: {...defaultDataSource.queryObj.config, timezone: monitorTimezone},
+          ...defaultDataSource.queryObj!,
+          config: {...defaultDataSource.queryObj!.config, timezone: monitorTimezone},
           environments: [
             CronMonitorEnvironmentFixture({lastCheckIn: '2025-01-01T00:00:01Z'}),
           ],
@@ -273,12 +273,12 @@ describe('CronDetectorDetails - check-ins', () => {
       const detectorWithCheckIn = CronDetectorFixture({dataSources: [dataSouce]});
 
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/checkins/`,
+        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithCheckIn.dataSources[0].queryObj!.slug}/checkins/`,
         body: [CheckInFixture()],
       });
 
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.id}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/processing-errors/`,
+        url: `/projects/org-slug/${project.id}/monitors/${detectorWithCheckIn.dataSources[0].queryObj!.slug}/processing-errors/`,
         body: [],
       });
 
@@ -340,7 +340,7 @@ describe('CronDetectorDetails - check-ins', () => {
       const defaultDataSource = CronMonitorDataSourceFixture();
       const dataSouce = CronMonitorDataSourceFixture({
         queryObj: {
-          ...defaultDataSource.queryObj,
+          ...defaultDataSource.queryObj!,
           environments: [
             CronMonitorEnvironmentFixture({lastCheckIn: '2025-01-01T00:00:01Z'}),
           ],
@@ -350,12 +350,12 @@ describe('CronDetectorDetails - check-ins', () => {
       const detectorWithCheckIn = CronDetectorFixture({dataSources: [dataSouce]});
 
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/checkins/`,
+        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithCheckIn.dataSources[0].queryObj!.slug}/checkins/`,
         body: [CheckInFixture()],
       });
 
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.id}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/processing-errors/`,
+        url: `/projects/org-slug/${project.id}/monitors/${detectorWithCheckIn.dataSources[0].queryObj!.slug}/processing-errors/`,
         body: [],
       });
 
@@ -415,7 +415,7 @@ describe('CronDetectorDetails - check-ins', () => {
     it('does not show setup docs button when monitor has not checked in', async () => {
       const noCheckInDataSource = CronMonitorDataSourceFixture({
         queryObj: {
-          ...CronMonitorDataSourceFixture().queryObj,
+          ...CronMonitorDataSourceFixture().queryObj!,
           environments: [
             CronMonitorEnvironmentFixture({
               lastCheckIn: null,
@@ -437,7 +437,7 @@ describe('CronDetectorDetails - check-ins', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.id}/monitors/${noCheckInDataSource.queryObj.slug}/processing-errors/`,
+        url: `/projects/org-slug/${project.id}/monitors/${noCheckInDataSource.queryObj!.slug}/processing-errors/`,
         body: [],
       });
 
@@ -464,7 +464,7 @@ describe('CronDetectorDetails - check-ins', () => {
 
     it('displays processing errors when they exist', async () => {
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj.slug}/processing-errors/`,
+        url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj!.slug}/processing-errors/`,
         body: [CheckinProcessingErrorFixture()],
       });
 
@@ -507,7 +507,7 @@ describe('CronDetectorDetails - check-ins', () => {
         dataSources: [
           CronMonitorDataSourceFixture({
             queryObj: {
-              ...CronMonitorDataSourceFixture().queryObj,
+              ...CronMonitorDataSourceFixture().queryObj!,
               environments: [
                 CronMonitorEnvironmentFixture({
                   name: 'production',
@@ -526,7 +526,7 @@ describe('CronDetectorDetails - check-ins', () => {
       });
 
       const muteRequest = MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithMultipleEnvs.dataSources[0].queryObj.slug}/environments/production/`,
+        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithMultipleEnvs.dataSources[0].queryObj!.slug}/environments/production/`,
         method: 'PUT',
         body: {},
       });

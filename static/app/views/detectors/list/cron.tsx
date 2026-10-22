@@ -56,15 +56,19 @@ import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckIn
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
 function VisualizationCell({detector}: {detector: CronDetector}) {
-  const cronId = detector.dataSources[0].queryObj.id;
-  const cronEnvironments = detector.dataSources[0].queryObj.environments;
+  const queryObj = detector.dataSources[0].queryObj;
+  if (!queryObj) {
+    return null;
+  }
+  const cronId = queryObj.id;
+  const cronEnvironments = queryObj.environments;
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const {data: monitorStats, isPending} = useMonitorStats({
-    monitors: [detector.dataSources[0].queryObj.id],
+    monitors: [cronId],
     timeWindowConfig,
   });
 
@@ -104,10 +108,14 @@ const ADDITIONAL_COLUMNS: MonitorListAdditionalColumn[] = [
       if (detector.type !== 'monitor_check_in_failure') {
         return null;
       }
+      const envQueryObj = (detector as CronDetector).dataSources[0].queryObj;
+      if (!envQueryObj) {
+        return null;
+      }
       return (
         <SimpleTable.RowCell alignSelf="start">
           <Stack gap="sm" width="100%">
-            {detector.dataSources[0].queryObj.environments.map(environment => {
+            {envQueryObj.environments.map(environment => {
               return (
                 <Text density="compressed" key={environment.name}>
                   <MonitorEnvironmentLabel
