@@ -108,6 +108,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         organization_id: int,
         id: int,
         config_updates: dict[str, Any],
+        config_deletions: list[str] | None = None,
         expected_integration_id: int | None = None,
         expected_config: dict[str, Any] | None = None,
     ) -> bool:
@@ -128,7 +129,10 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 if repository.config.get(key) != value:
                     return False
 
-            repository.config = {**repository.config, **config_updates}
+            config = {**repository.config, **config_updates}
+            for key in config_deletions or ():
+                config.pop(key, None)
+            repository.config = config
             repository.save(update_fields=["config"])
         return True
 
