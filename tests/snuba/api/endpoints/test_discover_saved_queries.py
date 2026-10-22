@@ -792,7 +792,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert translated_query.dataset == ExploreSavedQueryDataset.SEGMENT_SPANS
         explore_query = translated_query.query
         assert explore_query["query"][0]["fields"] == ["id", "transaction"]
-        assert explore_query["range"] == "7d"
+        assert explore_query["statsPeriod"] == "7d"
         assert (
             explore_query["query"][0]["query"]
             == "(is_transaction:1 browser.name:Firefox) AND is_transaction:1"

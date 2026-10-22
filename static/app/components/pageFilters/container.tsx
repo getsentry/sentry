@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
 import {
-  getOldestPickableStart,
+  exceedsDatetimeLimits,
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
@@ -17,8 +17,6 @@ import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustme
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -141,36 +139,9 @@ export function PageFiltersContainer({
   const shouldResetDateTime = useMemo(() => {
     // Don't act until page filters are initialized - selection.datetime contains
     // default values until isReady, not the actual URL state
-    if (!isReady) {
-      return false;
-    }
-
-    const effectiveMaxDays = maxDateRange ?? maxPickableDays;
-    const {period, start, end} = selection.datetime;
-
-    // For relative periods (e.g., "14d"), check if the period exceeds the new max
-    if (period) {
-      return statsPeriodToDays(period) > effectiveMaxDays;
-    }
-
-    // For absolute date ranges, check if the start date is before the allowed window.
-    if (start && end) {
-      const periodStart = new Date(start);
-      const periodEnd = new Date(end);
-      const maxStart = getOldestPickableStart(maxPickableDays);
-
-      if (maxDateRange) {
-        const maxTimeRange = maxDateRange * DAY_IN_MS;
-        return (
-          periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||
-          periodStart.getTime() < maxStart.getTime()
-        );
-      }
-
-      return periodStart.getTime() < maxStart.getTime();
-    }
-
-    return false;
+    return (
+      isReady && exceedsDatetimeLimits(selection.datetime, maxPickableDays, maxDateRange)
+    );
   }, [isReady, maxDateRange, maxPickableDays, selection.datetime]);
 
   const resetPeriodDays = maxDateRange ?? maxPickableDays;

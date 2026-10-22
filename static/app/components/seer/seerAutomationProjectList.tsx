@@ -8,7 +8,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -257,6 +257,7 @@ export function SeerAutomationProjectList() {
       addSuccessMessage('Projects updated successfully');
     } catch {
       addErrorMessage('Failed to update some projects');
+      // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
@@ -305,6 +306,7 @@ export function SeerAutomationProjectList() {
       addSuccessMessage('Projects updated successfully');
     } catch {
       addErrorMessage('Failed to update some projects');
+      // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
@@ -342,14 +344,14 @@ export function SeerAutomationProjectList() {
 
   return (
     <Fragment>
-      <SearchWrapper>
-        <SearchBarWrapper>
+      <Flex align="center" gap="xl">
+        <Container flex="1">
           <SearchBar
             query={search}
             onChange={handleSearchChange}
             placeholder={t('Search projects')}
           />
-        </SearchBarWrapper>
+        </Container>
         <Button
           size="md"
           variant="primary"
@@ -357,7 +359,7 @@ export function SeerAutomationProjectList() {
         >
           {t('Open Setup Wizard')}
         </Button>
-      </SearchWrapper>
+      </Flex>
       <Panel>
         <PanelHeader hasButtons>
           <div>{t('Automation for Existing Projects')}</div>
@@ -428,16 +430,6 @@ export function SeerAutomationProjectList() {
     </Fragment>
   );
 }
-
-const SearchWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-`;
-
-const SearchBarWrapper = styled('div')`
-  flex: 1;
-`;
 
 const SeerValue = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};

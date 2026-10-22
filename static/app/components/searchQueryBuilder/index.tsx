@@ -8,6 +8,7 @@ import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -35,7 +36,6 @@ import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export interface GetTagValuesParams {
@@ -182,6 +182,12 @@ export interface SearchQueryBuilderProps {
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
+  /**
+   * When true, picking a value from the dropdown keeps the operator the user
+   * chose. By default a filter under "contains" with no value yet switches to
+   * "is" on a pick, since a suggestion is an exact value.
+   */
+  keepOperatorOnValueSelect?: boolean;
   label?: string;
   /**
    * Allows for key suggestions to be rendered when the value matches the pattern.

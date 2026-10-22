@@ -590,6 +590,7 @@ export function ResultGrid({
   columns,
   filters = {},
   defaultSort = '',
+  // oxlint-disable-next-line react/todo
   keyForRow = (row: any) => row.id,
   columnsForRow = () => [],
   defaultParams = {per_page: 50},

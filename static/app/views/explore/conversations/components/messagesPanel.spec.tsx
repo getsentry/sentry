@@ -392,6 +392,18 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('weather')).toBeInTheDocument();
   });
 
+  it('preserves Code Mode tool names', () => {
+    render(
+      <MessagesPanel
+        nodes={createNodesWithToolCalls(['sentry_api_execute']) as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('sentry_api_execute')).toBeInTheDocument();
+  });
+
   it('renders a short run of tool calls inline without a summary', () => {
     render(
       <MessagesPanel

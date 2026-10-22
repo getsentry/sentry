@@ -3,8 +3,24 @@ import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {groupIntoBuckets, hasDroppedData} from './buckets';
 
 describe('hasDroppedData', () => {
-  it('is true when there is at least one dropped event', () => {
-    expect(hasDroppedData([DroppedEventFixture()])).toBe(true);
+  function hasDrops(dropped: number, accepted: number) {
+    return hasDroppedData(
+      [DroppedEventFixture({start: 0, count: dropped})],
+      [DroppedEventFixture({start: 0, count: accepted})]
+    );
+  }
+
+  it('is true when any drop is unintentional', () => {
+    expect(
+      hasDroppedData([
+        DroppedEventFixture({tags: ['intentional']}),
+        DroppedEventFixture({tags: ['unintentional']}),
+      ])
+    ).toBe(true);
+  });
+
+  it('is false when every drop is intentional', () => {
+    expect(hasDroppedData([DroppedEventFixture({tags: ['intentional']})])).toBe(false);
   });
 
   it('is false for missing or empty events', () => {
@@ -12,25 +28,14 @@ describe('hasDroppedData', () => {
     expect(hasDroppedData([])).toBe(false);
   });
 
-  it('is false when every drop is configured', () => {
-    expect(
-      hasDroppedData([
-        DroppedEventFixture({outcome: 'client_discard', reason: 'sample_rate'}),
-        DroppedEventFixture({outcome: 'filtered', reason: 'web-crawlers'}),
-      ])
-    ).toBe(false);
-  });
-
   it('is true only when a bucket has dropped events', () => {
-    function hasDrops(dropped: number, accepted: number) {
-      return hasDroppedData(
-        [DroppedEventFixture({start: 0, count: dropped})],
-        [DroppedEventFixture({start: 0, count: accepted})]
-      );
-    }
-
     expect(hasDrops(0, 100)).toBe(false);
     expect(hasDrops(1, 99)).toBe(true);
+  });
+
+  it('ignores buckets whose drop ratio is below 0.1%', () => {
+    expect(hasDrops(1, 1999)).toBe(false);
+    expect(hasDrops(1, 999)).toBe(true);
   });
 });
 
@@ -67,79 +72,35 @@ describe('groupIntoBuckets', () => {
     expect(buckets.map(bucket => bucket.dropped.count)).toEqual([10, 20]);
   });
 
-  it('excludes configured drops', () => {
-    const buckets = groupIntoBuckets([
-      DroppedEventFixture({
-        outcome: 'client_discard',
-        reason: 'before_send',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'client_discard',
-        reason: 'sample_rate',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'filtered',
-        reason: 'web-crawlers',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'filtered',
-        reason: 'legacy-browsers',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'filtered',
-        reason: 'filtered-transaction',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'rate_limited',
-        reason: 'generic',
-        count: 10,
-      }),
+  it('excludes intentional drops', () => {
+    expect(groupIntoBuckets([DroppedEventFixture({tags: ['intentional']})])).toEqual([
+      expect.objectContaining({dropped: {count: 0}, events: [], ratio: 0}),
     ]);
-
-    expect(buckets).toHaveLength(1);
-    expect(buckets[0]!.dropped.count).toBe(10);
   });
 
-  it('keeps client discards the SDK did not choose', () => {
-    const buckets = groupIntoBuckets([
-      DroppedEventFixture({
-        outcome: 'client_discard',
-        reason: 'queue_overflow',
-        count: 7,
-      }),
-      DroppedEventFixture({
-        outcome: 'client_discard',
-        reason: 'network_error',
-        count: 3,
-      }),
-    ]);
+  it('counts only unintentional drops when a bucket has both', () => {
+    const buckets = groupIntoBuckets(
+      [
+        DroppedEventFixture({count: 10, tags: ['unintentional']}),
+        DroppedEventFixture({count: 30, tags: ['intentional']}),
+      ],
+      [DroppedEventFixture({count: 90, outcome: 'accepted', tags: []})]
+    );
 
-    expect(buckets).toHaveLength(1);
-    expect(buckets[0]!.dropped.count).toBe(10);
-  });
-
-  it('keeps an unrecognized reason under a server-side outcome', () => {
-    const buckets = groupIntoBuckets([
-      DroppedEventFixture({
-        outcome: 'invalid',
-        reason: 'some_new_reason',
-        count: 4,
+    expect(buckets).toEqual([
+      expect.objectContaining({
+        dropped: {count: 10},
+        events: [expect.objectContaining({tags: ['unintentional']})],
+        ratio: 0.1,
       }),
     ]);
-
-    expect(buckets[0]!.dropped.count).toBe(4);
   });
 
   it('subtotals dropped volume by outcome, largest first', () => {
     const buckets = groupIntoBuckets([
       DroppedEventFixture({outcome: 'invalid', count: 3}),
       DroppedEventFixture({outcome: 'rate_limited', count: 10}),
-      DroppedEventFixture({outcome: 'invalid', count: 4, reason: 'cors'}),
+      DroppedEventFixture({outcome: 'invalid', count: 4, reason: 'timestamp'}),
     ]);
 
     expect(buckets[0]!.byOutcome).toEqual([
@@ -162,7 +123,6 @@ describe('groupIntoBuckets', () => {
       ]
     );
 
-    expect(buckets).toHaveLength(1);
     expect(buckets[0]!.accepted.count).toBe(90);
     expect(buckets[0]!.ratio).toBe(0.1);
   });
@@ -174,5 +134,46 @@ describe('groupIntoBuckets', () => {
 
     expect(buckets[0]!.accepted.count).toBe(0);
     expect(buckets[0]!.ratio).toBe(1);
+  });
+
+  it('keeps time ranges without unintentional drops as zero-ratio buckets', () => {
+    const buckets = groupIntoBuckets(
+      [
+        DroppedEventFixture({start: 0, end: 60_000, count: 10}),
+        DroppedEventFixture({
+          start: 120_000,
+          end: 180_000,
+          tags: ['intentional'],
+        }),
+      ],
+      [
+        DroppedEventFixture({start: 0, end: 60_000, count: 90, outcome: 'accepted'}),
+        DroppedEventFixture({
+          start: 60_000,
+          end: 120_000,
+          count: 30,
+          outcome: 'accepted',
+        }),
+        DroppedEventFixture({
+          start: 60_000,
+          end: 120_000,
+          count: 20,
+          outcome: 'accepted',
+        }),
+      ]
+    );
+
+    expect(buckets).toEqual([
+      expect.objectContaining({start: 0, ratio: 0.1}),
+      expect.objectContaining({
+        start: 60_000,
+        end: 120_000,
+        ratio: 0,
+        accepted: {count: 50},
+        dropped: {count: 0},
+        byOutcome: [],
+      }),
+      expect.objectContaining({start: 120_000, end: 180_000, ratio: 0}),
+    ]);
   });
 });

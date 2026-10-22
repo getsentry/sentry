@@ -6,6 +6,7 @@ import {
   type DeprecatedLineProps,
 } from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {
   getHiddenFrameIndices,
   getLastFrameIndex,
@@ -50,6 +51,7 @@ export function Content({
   frameSourceMapDebuggerData,
   hideSourceMapDebugger = false,
 }: Props) {
+  const {collapseAll} = useStacktraceContext();
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
 
   const {frames = [], registers} = data;
@@ -127,6 +129,7 @@ export function Content({
       const isLastFrame = frameIndex === frames.length - 1;
 
       if (repeatedFrame) {
+        // oxlint-disable-next-line react/todo
         nRepeats++;
       }
 
@@ -137,7 +140,7 @@ export function Content({
         const frameProps: DeprecatedLineProps = {
           event,
           data: frame,
-          isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
+          isExpanded: !collapseAll && expandFirstFrame && lastFrameIndex === frameIndex,
           emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
           nextFrame,
           platform,

@@ -1,12 +1,17 @@
+import type * as React from 'react';
 import {createRef, Fragment} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {act, render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
 
 import type {Responsive} from '@sentry/scraps/layout';
 import {lightTheme as theme} from '@sentry/scraps/theme';
 
-import {act, render, screen} from '../../test/env';
-
 import {Stack, type StackProps, type StackPropsWithRenderFunction} from './stack';
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+}
 
 // A matchMedia mock that tracks listeners so tests can drive breakpoint changes.
 function setupTrackedMatchMedia(initialMatches: (query: string) => boolean) {
@@ -49,7 +54,7 @@ describe('Stack', () => {
   });
 
   it('renders children', () => {
-    render(<Stack>Hello</Stack>);
+    render(<Stack>Hello</Stack>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
@@ -57,7 +62,8 @@ describe('Stack', () => {
     render(
       <section>
         <Stack justify="between">{props => <p {...props}>Hello</p>}</Stack>
-      </section>
+      </section>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Hello')?.tagName).toBe('P');
@@ -70,7 +76,8 @@ describe('Stack', () => {
       <Stack justify="between" aria-activedescendant="what">
         {/* @ts-expect-error - this should be a React.ElementType */}
         {props => <p {...props}>Hello</p>}
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Hello')).not.toHaveAttribute('aria-activedescendant');
@@ -86,22 +93,23 @@ describe('Stack', () => {
       <Stack justify="between" padding="md">
         {/* @ts-expect-error - className is incompatible */}
         {props => <Child {...props} />}
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
   });
 
   it('passes attributes to the underlying element', () => {
-    render(<Stack data-test-id="container">Hello</Stack>);
+    render(<Stack data-test-id="container">Hello</Stack>, {wrapper: ThemeWrapper});
     expect(screen.getByTestId('container')).toBeInTheDocument();
   });
 
   it('renders as a different element if specified', () => {
-    render(<Stack as="section">Hello</Stack>);
+    render(<Stack as="section">Hello</Stack>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello').tagName).toBe('SECTION');
   });
 
   it('does not bleed attributes to the underlying element', () => {
-    render(<Stack radius="sm">Hello</Stack>);
+    render(<Stack radius="sm">Hello</Stack>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).not.toHaveAttribute('radius');
   });
 
@@ -109,7 +117,8 @@ describe('Stack', () => {
     render(
       <Stack align="center" justify="center" gap="md">
         Hello
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Hello')).not.toHaveAttribute('align');
@@ -119,7 +128,7 @@ describe('Stack', () => {
   });
 
   it('allows settings native html attributes', () => {
-    render(<Stack style={{color: 'red'}}>Hello</Stack>);
+    render(<Stack style={{color: 'red'}}>Hello</Stack>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).toHaveStyle({color: 'rgb(255, 0, 0)'});
   });
 
@@ -127,7 +136,8 @@ describe('Stack', () => {
     render(
       <Stack as="label" htmlFor="test-id">
         Hello World
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
     expectTypeOf<StackProps<'label'>>().toHaveProperty('htmlFor');
   });
@@ -137,7 +147,8 @@ describe('Stack', () => {
     render(
       <Stack ref={ref} as="ol">
         Hello
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
     expect(ref.current).toBeInTheDocument();
     expect(ref.current?.tagName).toBe('OL');
@@ -152,7 +163,8 @@ describe('Stack', () => {
         <Stack radius="sm" padding="md">
           Second Stack
         </Stack>
-      </Fragment>
+      </Fragment>,
+      {wrapper: ThemeWrapper}
     );
 
     const firstStack = screen.getByText('First Stack').className;
@@ -165,7 +177,8 @@ describe('Stack', () => {
       <Stack direction="row">
         <div>Item 1</div>
         <Stack.Separator />
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical');
@@ -176,7 +189,8 @@ describe('Stack', () => {
       <Stack direction="column">
         <div>Item 1</div>
         <Stack.Separator />
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByRole('separator')).toHaveAttribute(
@@ -190,6 +204,7 @@ describe('Stack', () => {
 
     let renderCount = 0;
     function Probe() {
+      // oxlint-disable-next-line react/todo
       renderCount++;
       return <span>probe</span>;
     }
@@ -197,7 +212,8 @@ describe('Stack', () => {
     render(
       <Stack>
         <Probe />
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
 
     const initialRenderCount = renderCount;
@@ -218,7 +234,8 @@ describe('Stack', () => {
       <Stack direction={{'screen:2xs': 'column', 'screen:lg': 'row'}}>
         <div>Item</div>
         <Stack.Separator />
-      </Stack>
+      </Stack>,
+      {wrapper: ThemeWrapper}
     );
 
     // 2xs (nothing matches) => column => horizontal separator
