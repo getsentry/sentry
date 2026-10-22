@@ -25,14 +25,18 @@ from sentry.utils.db import statement_timeout
 logger = logging.getLogger(__name__)
 
 RESOLUTION_BATCH_SIZE = 100
+# Successor lookups start only within this budget; each can then run up to its timeout.
 RESOLUTION_BATCH_SECONDS = 2
+RESOLUTION_RETRY_TIMES = 3
 
 
 @instrumented_task(
     name="sentry.tasks.clear_expired_resolutions",
     namespace=issues_tasks,
     processing_deadline_duration=15,
-    retry=Retry(times=3, delay=30, on=(ProcessingDeadlineExceeded, OperationalError)),
+    retry=Retry(
+        times=RESOLUTION_RETRY_TIMES, delay=30, on=(ProcessingDeadlineExceeded, OperationalError)
+    ),
     silenced_exceptions=(RetryTaskError,),
     silo_mode=SiloMode.CELL,
 )
@@ -56,6 +60,12 @@ def clear_expired_resolutions(release_id: int, *, after_id: int = 0) -> None:
     # A queued continuation must stop when the flag is disabled, rather than
     # falling through to the unbounded legacy operation.
     if after_id:
+        return
+
+    # The retry policy exists for the bounded finalized path; rerunning the unbounded
+    # legacy operation after a failure would only add database load.
+    task = current_task()
+    if task is not None and task.attempt > 0:
         return
 
     # The legacy path assigns the triggering release directly. The finalized
@@ -100,6 +110,8 @@ def _clear_finalized_resolutions(release: Release, after_id: int) -> None:
         .alias(anchor_order=Coalesce("release__date_released", "release__date_added"))
     )
     with statement_timeout(using, timedelta(seconds=1)):
+        # A date edit can make this release a successor, or move an existing
+        # resolution's anchor before a release that was already registered.
         page = list(
             pending.filter(
                 Q(release=release)
@@ -156,7 +168,9 @@ def _clear_finalized_resolutions(release: Release, after_id: int) -> None:
 
     if unfinished:
         task = current_task()
-        retrying = task is not None and task.retries_remaining
+        # Mirror the worker's own retry decision. `retries_remaining` can stay true on
+        # the last attempt, because a retry sends `times + 1` as `max_attempts`.
+        retrying = task is not None and task.attempt < RESOLUTION_RETRY_TIMES - 1
         metrics.incr(
             "releases.resolution_batch.unfinished",
             amount=len(unfinished),
@@ -193,7 +207,8 @@ def _resolve_unchanged(
         with connections[using].cursor() as cursor:
             cursor.execute("SET LOCAL lock_timeout = '500ms'")
         # A concurrent resolve can reuse the row, reprocessing can move it to another
-        # issue, or the anchor's dates can change.
+        # issue, or the anchor's dates can change. A release created or redated since
+        # the lookup is not rechecked; resolution row locks never prevented that race.
         current = {
             row[0]: row[1:]
             for row in pending.filter(id__in=list(resolvable))
