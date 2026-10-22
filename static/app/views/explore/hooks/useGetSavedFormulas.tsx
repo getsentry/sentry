@@ -54,11 +54,21 @@ function savedFormulasApiOptions(
   );
 }
 
-export function useGetSavedFormulas({cursor}: {cursor?: string}) {
+export function useGetSavedFormulas({
+  cursor,
+  sortBy,
+}: {
+  cursor?: string;
+  sortBy?: string;
+}) {
   const organization = useOrganization();
 
   const {data, isPending, isError, refetch} = useQuery({
-    ...savedFormulasApiOptions(organization, {cursor, per_page: FORMULAS_PER_PAGE}),
+    ...savedFormulasApiOptions(organization, {
+      cursor,
+      sortBy,
+      per_page: FORMULAS_PER_PAGE,
+    }),
     select: selectJsonWithHeaders,
     placeholderData: keepPreviousData,
   });
