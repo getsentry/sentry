@@ -1,4 +1,5 @@
 import io
+import logging
 from collections.abc import Generator
 
 from django.conf import settings
@@ -28,7 +29,15 @@ from sentry.scm.private.helpers import (
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.utils.http import request_body_stream
 
+logger = logging.getLogger(__name__)
+
 FAILED_METRIC = "sentry.scm.git.request.failed"
+
+
+def report_git_error(error: Exception, context: dict[str, str]) -> None:
+    code = error.code if isinstance(error, SCMCodedError) else type(error).__name__
+    detail = error.detail if isinstance(error, SCMCodedError) else str(error)
+    _log_failure(code, detail, context)
 
 
 def make_git_server() -> GitServer:
@@ -38,6 +47,7 @@ def make_git_server() -> GitServer:
         fetch_provider=fetch_service_provider,
         get_token=fetch_access_token,
         record_count=record_count_metric,
+        emit_error=report_git_error,
         # A GitHub Enterprise or self-managed GitLab host is whatever the customer configured, so
         # it may resolve to one of our own addresses.
         relay=GitRelay(adapter=BlacklistAdapter),
@@ -74,24 +84,33 @@ class ScmGitEndpoint(Endpoint):
         # The grant names the organization whose flag gates the endpoint, and it's verified before
         # the organization is looked up, so a request without a valid grant never reaches the
         # database. GitServer verifies it again, which costs one HMAC.
+        context = {"repository_id": str(repository_id)}
         try:
             grant = verify_grant(
                 settings.SCM_GIT_GRANT_SECRETS or [], request.headers.get(GRANT_HEADER, "")
             )
         except SCMCodedError as e:
-            return _refuse(e.code, 403, e.detail)
+            return _refuse(e.code, 403, e.detail, context, tags={})
 
+        context |= {"organization_id": str(grant.organization_id), "referrer": grant.referrer}
+        tags = {"referrer": grant.referrer}
         try:
             organization = Organization.objects.get_from_cache(id=grant.organization_id)
         except Organization.DoesNotExist:
             return _refuse(
-                "organization_not_found", 404, "The git grant's organization was not found."
+                "organization_not_found",
+                404,
+                "The git grant's organization was not found.",
+                context,
+                tags,
             )
         if not features.has("organizations:scm-git-endpoint", organization):
             return _refuse(
                 "git_endpoint_disabled",
                 404,
                 "The git endpoint is not enabled for this organization.",
+                context,
+                tags,
             )
 
         try:
@@ -125,11 +144,20 @@ def _request_body(request: HttpRequest) -> Readable | None:
     return body
 
 
-def _refuse(code: str, status: int, detail: str) -> HttpResponse:
-    # Counted like the refusals GitServer answers itself.
-    record_count_metric(FAILED_METRIC, 1, {"code": code})
+def _refuse(
+    code: str, status: int, detail: str, context: dict[str, str], tags: dict[str, str]
+) -> HttpResponse:
+    # Counted and logged like the refusals GitServer answers itself.
+    record_count_metric(FAILED_METRIC, 1, {"code": code} | tags)
+    _log_failure(code, detail, context)
     # Never a 401: on a 401 git asks for credentials, which a coding job doesn't have.
     return _plain_text(detail, status)
+
+
+def _log_failure(code: str, detail: str, context: dict[str, str]) -> None:
+    # git shows the client only the message, which leaves out the repository, organization and
+    # provider, so the log carries them.
+    logger.warning("scm.git.request_failed", extra={"code": code, "detail": detail, **context})
 
 
 def _plain_text(message: str, status: int) -> HttpResponse:
