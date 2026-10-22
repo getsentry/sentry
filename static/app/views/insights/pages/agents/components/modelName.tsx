@@ -9,11 +9,17 @@ import {t} from 'sentry/locale';
 interface ModelNameProps {
   modelId: string | null;
   gap?: SpaceSize;
+  /**
+   * The provider that served the model, e.g. `gen_ai.provider.name`. Picks the
+   * icon when the model ID alone doesn't name its vendor, e.g. `clairic` served
+   * by `cloudflare.workers_ai`.
+   */
+  provider?: string | null;
   size?: number;
 }
 
-export function ModelName({modelId, size = 16, gap = 'md'}: ModelNameProps) {
-  const platform = getModelPlatform(modelId);
+export function ModelName({modelId, provider, size = 16, gap = 'md'}: ModelNameProps) {
+  const platform = getModelPlatform(modelId) ?? getModelPlatform(provider ?? null);
 
   return (
     <Flex gap={gap}>
@@ -73,6 +79,9 @@ export function getModelPlatform(modelId: string | null) {
     {keywords: ['perplexity'], platform: 'perplexity'},
     {keywords: ['amazon.titan', 'amazon/titan'], platform: 'amazon'},
     {keywords: ['typesafe', 'jev-'], platform: 'typesafe-ai'},
+    // Workers AI hosts other vendors' models too (`@cf/mistral/...`), so this
+    // goes last and only claims models no vendor above matched.
+    {keywords: ['@cf/', 'cloudflare'], platform: 'cloudflare'},
   ];
 
   const matchedProvider = providerMap.find(({keywords}) =>

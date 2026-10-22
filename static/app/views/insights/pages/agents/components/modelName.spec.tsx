@@ -30,6 +30,9 @@ describe('getModelPlatform Function', () => {
     expect(getModelPlatform('typesafe/jev-1.13-20260917')).toBe('typesafe-ai');
     expect(getModelPlatform('typesafe-ai/jev')).toBe('typesafe-ai');
     expect(getModelPlatform('jev-latest')).toBe('typesafe-ai');
+    expect(getModelPlatform('@cf/cloudflare/clairic')).toBe('cloudflare');
+    // Vendor models hosted on Workers AI keep their vendor's icon.
+    expect(getModelPlatform('@cf/mistral/mistral-7b-instruct-v0.1')).toBe('mistral');
   });
 
   it('returns null for unknown modelId', () => {

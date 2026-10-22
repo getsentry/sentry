@@ -23,6 +23,7 @@ import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conv
 import {
   EvaluationInputTab,
   EvaluationOutputTab,
+  ExtractionTab,
 } from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
 import {
   MemoryInputTab,
@@ -39,6 +40,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
+import {ExtractionResultSummary} from 'sentry/views/insights/pages/agents/components/extractionContent';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
@@ -48,6 +50,10 @@ import {
   getNodeEvaluation,
   type Evaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {
+  getNodeExtraction,
+  type Extraction,
+} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getNodeMemory} from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
@@ -152,6 +158,11 @@ export function ConversationSpanDetail({
   );
   useInvalidEvaluationDetection(evaluation);
 
+  const extraction = useMemo(
+    () => (node && !isAttributesLoading ? getNodeExtraction(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
+
   const memory = useMemo(
     () => (node && !isAttributesLoading ? getNodeMemory(node, attributes) : null),
     [node, attributes, isAttributesLoading]
@@ -160,6 +171,13 @@ export function ConversationSpanDetail({
   if (isLoading || !node) {
     return <SpanDetailSkeleton embedded={embedded} />;
   }
+
+  // Extraction spans show their input and output as one view, under the input
+  // tab's key so the selected tab survives switching between spans and stays
+  // valid in the URL. The output tab is hidden and falls back to it.
+  const showExtractionTab = Boolean(extraction?.rawInput || extraction?.rawOutput);
+  const selectedTab: DetailTab =
+    showExtractionTab && activeTab === 'output' ? 'input' : activeTab;
 
   // Memory spans share a generic span op in the trace waterfall, so name the
   // heading after the operation to distinguish search, create, update, etc.
@@ -209,7 +227,12 @@ export function ConversationSpanDetail({
         {isAttributesLoading ? (
           <SpanMetadataSkeleton />
         ) : (
-          <SpanMetadata node={node} attributes={attributes} evaluation={evaluation} />
+          <SpanMetadata
+            node={node}
+            attributes={attributes}
+            evaluation={evaluation}
+            extraction={extraction}
+          />
         )}
       </Stack>
 
@@ -232,10 +255,14 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
+        <TabStateProvider<DetailTab> value={selectedTab} onChange={onTabChange}>
           <TabList>
-            <TabList.Item key="input">{t('Input')}</TabList.Item>
-            <TabList.Item key="output">{t('Output')}</TabList.Item>
+            <TabList.Item key="input">
+              {showExtractionTab ? t('Extraction') : t('Input')}
+            </TabList.Item>
+            <TabList.Item key="output" hidden={showExtractionTab}>
+              {t('Output')}
+            </TabList.Item>
             <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
           </TabList>
 
@@ -261,6 +288,8 @@ export function ConversationSpanDetail({
                     input={evaluation.input}
                     raw={evaluation.rawInput}
                   />
+                ) : extraction && showExtractionTab ? (
+                  <ExtractionTab extraction={extraction} />
                 ) : (
                   <InputTab node={node} attributes={attributes} />
                 )}
@@ -293,9 +322,11 @@ function SpanMetadata({
   node,
   attributes,
   evaluation,
+  extraction,
 }: {
   attributes: SpanAttributes;
   evaluation: Evaluation | null;
+  extraction: Extraction | null;
   node: AITraceSpanNode;
 }) {
   const rows = getHighlightedSpanAttributes({
@@ -313,6 +344,12 @@ function SpanMetadata({
           questions={evaluation.input?.questions}
         />
       ),
+    });
+  }
+  if (extraction?.answers?.some(answer => answer.kind !== 'invalid')) {
+    rows.push({
+      name: t('Result'),
+      value: <ExtractionResultSummary answers={extraction.answers} />,
     });
   }
 

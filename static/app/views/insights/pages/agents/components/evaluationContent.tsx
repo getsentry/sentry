@@ -202,11 +202,11 @@ export function EvaluationResultSummary({
  * Marks a question or answer that doesn't match the expected shape and is shown
  * as its raw value.
  */
-function UnrecognizedTag() {
+export function UnrecognizedTag() {
   return <Tag variant="muted">{t('Unrecognized')}</Tag>;
 }
 
-function TruncatedTag({
+export function TruncatedTag({
   children,
   variant = 'muted',
 }: {
@@ -471,6 +471,38 @@ function ProbabilityList({
         })}
       </Grid>
     </Container>
+  );
+}
+
+/**
+ * A single labelled probability bar, e.g. a confidence, styled like the bars of
+ * a score or choice answer.
+ */
+export function ProbabilityBar({
+  label,
+  value,
+  emphasized = true,
+}: {
+  label: React.ReactNode;
+  value: number;
+  /** Accent fill; off renders the neutral fill used for unselected options. */
+  emphasized?: boolean;
+}) {
+  return (
+    <Grid columns="max-content minmax(0, 1fr) 3em" gap="xs md" align="center">
+      <Text size="sm" variant="muted">
+        {label}
+      </Text>
+      <BarTrack>
+        <BarFill
+          isSelected={emphasized}
+          style={{width: `${Math.min(Math.max(value, 0), 1) * 100}%`}}
+        />
+      </BarTrack>
+      <Text size="sm" variant="muted" align="right">
+        {formatPercentage(value, 0)}
+      </Text>
+    </Grid>
   );
 }
 

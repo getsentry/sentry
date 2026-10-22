@@ -143,9 +143,12 @@ function getAISpanAttributes({
 
   const model = attributes['gen_ai.response.model'] || attributes['gen_ai.request.model'];
   if (model) {
+    const provider = attributes['gen_ai.provider.name'] || attributes['gen_ai.system'];
     highlightedAttributes.push({
       name: t('Model'),
-      value: <ModelName modelId={model.toString()} gap="xs" />,
+      value: (
+        <ModelName modelId={model.toString()} provider={provider?.toString()} gap="xs" />
+      ),
     });
   }
 

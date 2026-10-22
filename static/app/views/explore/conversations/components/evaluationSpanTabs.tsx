@@ -11,11 +11,19 @@ import {
   EvaluationAnswers,
   EvaluationQuestions,
 } from 'sentry/views/insights/pages/agents/components/evaluationContent';
+import {
+  ExtractionFieldList,
+  ExtractionSource,
+} from 'sentry/views/insights/pages/agents/components/extractionContent';
 import type {
   EvaluationAnswer,
   EvaluationInput,
   EvaluationQuestionEntry,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {
+  getExtractionRows,
+  type Extraction,
+} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 
 interface EvaluationInputTabProps {
@@ -68,6 +76,74 @@ function QuestionsSection({input}: {input: EvaluationInput}) {
     <Section title={t('Questions')}>
       <EvaluationQuestions questions={input.questions} />
     </Section>
+  );
+}
+
+/**
+ * Extraction spans in one view: the source text with each found value
+ * highlighted, above one row per field pairing what was asked for with what was
+ * extracted. Hovering a value or a row emphasizes its counterpart. Parts that
+ * can't be read are shown raw in place.
+ */
+export function ExtractionTab({extraction}: {extraction: Extraction}) {
+  const {input, answers, rawInput, rawOutput} = extraction;
+  const [showRaw, setShowRaw] = useState(false);
+  // The fields hovered in either the source or the field list, so the other
+  // side can highlight them.
+  const [hoveredKeys, setHoveredKeys] = useState<string[] | null>(null);
+
+  const hasPrettyView = Boolean(input || answers);
+  const toggle = hasPrettyView ? (
+    <PrettyRawToggle showRaw={showRaw} onChange={setShowRaw} />
+  ) : undefined;
+
+  if (!hasPrettyView || showRaw) {
+    return (
+      <Stack gap="lg">
+        {rawInput ? (
+          <RawMessage raw={rawInput} title={t('Raw Input')} toggle={toggle} />
+        ) : null}
+        {rawOutput ? (
+          <RawMessage
+            raw={rawOutput}
+            title={t('Raw Output')}
+            toggle={rawInput ? undefined : toggle}
+          />
+        ) : null}
+      </Stack>
+    );
+  }
+
+  const rows = getExtractionRows(input?.fields, answers);
+  const hasSourceSection = Boolean(input || rawInput);
+
+  return (
+    <Stack gap="lg">
+      {input ? (
+        <Section title={t('Source')} action={toggle}>
+          <ExtractionSource
+            source={input.source}
+            answers={answers}
+            activeKeys={hoveredKeys}
+            onHoverKeys={setHoveredKeys}
+          />
+        </Section>
+      ) : rawInput ? (
+        <RawMessage raw={rawInput} title={t('Raw Input')} toggle={toggle} />
+      ) : null}
+      {rows.length > 0 ? (
+        <Section title={t('Fields')} action={hasSourceSection ? undefined : toggle}>
+          <ExtractionFieldList
+            rows={rows}
+            activeKeys={hoveredKeys}
+            onHoverKeys={setHoveredKeys}
+          />
+        </Section>
+      ) : null}
+      {!answers && rawOutput ? (
+        <RawMessage raw={rawOutput} title={t('Raw Output')} />
+      ) : null}
+    </Stack>
   );
 }
 
@@ -144,9 +220,17 @@ function PrettyRawToggle({
  * by `useInvalidEvaluationDetection` rather than flagged here, since users
  * can't fix it.
  */
-function RawMessage({raw, toggle}: {raw: string; toggle?: React.ReactNode}) {
+function RawMessage({
+  raw,
+  toggle,
+  title = t('Raw Message'),
+}: {
+  raw: string;
+  title?: string;
+  toggle?: React.ReactNode;
+}) {
   return (
-    <Section title={t('Raw Message')} action={toggle}>
+    <Section title={title} action={toggle}>
       {isJson(raw) ? (
         <TraceDrawerComponents.MultilineJSON value={raw} mode="raw" />
       ) : (

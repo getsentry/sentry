@@ -295,6 +295,27 @@ describe('getHighlightedSpanAttributes', () => {
     expect(screen.getByText('Reasoning')).toBeInTheDocument();
   });
 
+  it('should pick the model icon from the provider when the model ID has no vendor', () => {
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes: {
+        'gen_ai.operation.type': 'ai_client',
+        'gen_ai.response.model': 'clairic',
+        'gen_ai.request.model': '@cf/cloudflare/clairic',
+        'gen_ai.provider.name': 'cloudflare.workers_ai',
+      },
+    });
+
+    const model = result.find(attr => attr.name === 'Model');
+    if (!isValidElement(model?.value)) {
+      throw new Error('Expected the model to be a React element');
+    }
+    render(model.value);
+
+    expect(screen.getByText('clairic')).toBeInTheDocument();
+    expect(screen.getByAltText('cloudflare')).toBeInTheDocument();
+  });
+
   it('should fall back to deprecated token attributes when replacements are unavailable', () => {
     const result = getHighlightedSpanAttributes({
       spanId: '123',
