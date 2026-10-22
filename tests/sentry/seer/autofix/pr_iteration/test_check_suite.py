@@ -59,6 +59,7 @@ from sentry.testutils.helpers.options import override_options
 CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
+PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 OWN_REPO_ID = 123
 
@@ -513,6 +514,29 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert autofix.run_state is not None
         mock_trigger_consume.assert_called_once()
         mock_assign.assert_not_called()
+
+    @patch(f"{PR_STATE_PATH}.iteration_prs_any_external_head", return_value=True)
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_a_pr_someone_else_pushed_to_is_not_queued(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_external_head: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        process_check_suite_event(self._event(raw))
+
+        mock_external_head.assert_called_once()
+        mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)

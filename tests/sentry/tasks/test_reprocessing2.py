@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 
 from sentry.attachments import get_attachments_for_event
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
@@ -56,10 +57,9 @@ def _create_user_report(evt):
 
 
 @pytest.fixture(autouse=True)
-def reprocessing_feature(settings):
-    settings.SENTRY_REPROCESSING_PAGE_SIZE = 1
-
-    yield
+def reprocessing_feature():
+    with override_settings(SENTRY_REPROCESSING_PAGE_SIZE=1):
+        yield
 
 
 @pytest.fixture(params=[False, True], ids=["redis", "inline"])

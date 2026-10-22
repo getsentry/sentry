@@ -24,6 +24,7 @@ class GetOrCreateTest(TestCase):
         assert grouprelease.project_id == project.id
         assert grouprelease.group_id == group.id
         assert grouprelease.release_id == release.id
+        assert GroupRelease.objects.get(id=grouprelease.id).new_release_id == release.id
         assert grouprelease.environment == "prod"
         assert grouprelease.first_seen == datetime
         assert grouprelease.last_seen == datetime

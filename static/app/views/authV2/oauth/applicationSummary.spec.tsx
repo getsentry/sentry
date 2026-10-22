@@ -6,6 +6,9 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {ApplicationSummary} from './applicationSummary';
 import {ConsentFooter} from './consentNotice';
 
+jest.mock('sentry-images/oauth/sentry-cli.png', () => 'sentry-cli.png');
+jest.mock('sentry-images/oauth/sentry-mcp.png', () => 'sentry-mcp.png');
+
 it('shows granted access and special capabilities in a permission table', async () => {
   render(
     <ApplicationSummary
@@ -124,4 +127,53 @@ it.each([
     '/settings/account/authorizations/',
     ...expected,
   ]);
+});
+
+it.each([
+  ['1d673b81d60ef84c951359c36296972ca6fd41bd8f45acd2d3a783a3b3c28e41', true],
+  ['32d744a577ea363284b996867923fa4eb0bfdfcfe6b46399f078f753b7bb84f1', true],
+  ['other-client', false],
+])('identifies Sentry applications by client ID %s', (clientId, isSentry) => {
+  const context = OAuthContextFixture();
+  render(
+    <ApplicationSummary
+      context={{
+        ...context,
+        application: {
+          ...context.application,
+          clientId,
+          name: 'Sentry MCP',
+          homepageUrl: 'https://sentry.io',
+        },
+      }}
+    />
+  );
+
+  if (isSentry) {
+    expect(screen.getByRole('img', {name: 'Sentry app'})).toBeInTheDocument();
+  } else {
+    expect(screen.queryByRole('img', {name: 'Sentry app'})).not.toBeInTheDocument();
+  }
+});
+
+it('explains Sentry ownership when the badge receives keyboard focus', async () => {
+  const context = OAuthContextFixture();
+  render(
+    <ApplicationSummary
+      context={{
+        ...context,
+        application: {
+          ...context.application,
+          clientId: '32d744a577ea363284b996867923fa4eb0bfdfcfe6b46399f078f753b7bb84f1',
+        },
+      }}
+    />
+  );
+
+  await userEvent.tab();
+
+  const badge = screen.getByRole('img', {name: 'Sentry app'});
+  expect(badge).toHaveFocus();
+  expect(await screen.findByText('This app is built by Sentry.')).toBeInTheDocument();
+  expect(badge).toHaveAccessibleDescription('This app is built by Sentry.');
 });

@@ -134,7 +134,9 @@ class ProjectTest(APITestCase, TestCase):
         # Ensure the mock starts clean before the save operation
         mock_lock.reset_mock()
         Project.objects.create(organization=self.organization)
-        assert mock_lock.call_count == 3  # 1 lock for cached org, 2 locks for default detectors
+        mock_lock.assert_called_once_with(
+            f"slug:project:{self.organization.id}", duration=5, name="project_slug"
+        )
 
     @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
@@ -1089,7 +1091,7 @@ class CopyProjectSettingsTest(TestCase):
         assert project.get_option("sentry:releases") == ["1.*"]
         row = CustomInboundFilter.objects.get(project_id=project.id)
         assert row.legacy_filter == "release-version"
-        assert row.conditions == [{"type": "release", "value": ["1.*"]}]
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
         self.assert_settings_copied(project)
 
 

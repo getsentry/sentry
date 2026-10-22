@@ -24,7 +24,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
   closeModal: () => void;
@@ -41,8 +40,6 @@ export function SentryAppDetailsModal(props: Props) {
 
   useEffect(() => {
     // if the user changes org, count this as a fresh event to track
-    recordInteraction(sentryApp.slug, 'sentry_app_viewed');
-
     trackIntegrationAnalytics(
       'integrations.install_modal_opened',
       {
