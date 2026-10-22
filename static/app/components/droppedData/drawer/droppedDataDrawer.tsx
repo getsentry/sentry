@@ -14,8 +14,8 @@ import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/dropp
 import {
   droppedEventsToOutcomeGroups,
   filterDroppedEventsByScope,
+  type AskSeerHandler,
   type DroppedDataScope,
-  type ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
   getOutcomeColors,
@@ -35,7 +35,7 @@ import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
   interval?: string;
-  onAskSeer?: (row: ReasonRow) => void;
+  onAskSeer?: AskSeerHandler;
 }
 
 export function DroppedDataDrawer({
