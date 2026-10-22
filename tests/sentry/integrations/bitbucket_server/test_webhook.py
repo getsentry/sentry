@@ -1,19 +1,28 @@
+import hashlib
+import hmac
 from time import time
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
+from django.urls import reverse
+from redis.exceptions import RedisError
 from requests.exceptions import ConnectionError
 
 from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
-from sentry.integrations.bitbucket_server.webhook import PROVIDER_NAME
+from sentry.integrations.bitbucket_server.webhook import (
+    PROVIDER_NAME,
+    REPAIR_DEBOUNCE_TTL,
+    REPAIR_TRIGGER_METRIC,
+)
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
+from sentry.utils.redis import redis_clusters
 
 PROVIDER = "bitbucket_server"
 
@@ -75,6 +84,7 @@ class WebhookTestBase(APITestCase):
                     external_id=self.external_id,
                     provider=PROVIDER_NAME,
                     name="maxbittker/newsdiffs",
+                    integration_id=self.integration.id,
                 ),
                 **kwargs,
             }
@@ -119,6 +129,29 @@ class WebhookPostTest(WebhookTestBase):
 
 class RefsChangedWebhookTest(WebhookTestBase):
     method = "post"
+
+    def test_missing_repository_in_payload(self) -> None:
+        self.get_error_response(
+            self.organization.id,
+            self.integration.id,
+            raw_data=b'{"changes": []}',
+            extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
+            status_code=400,
+        )
+
+    def test_repository_on_other_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
+            other = self.create_provider_integration(provider=PROVIDER, external_id="other")
+
+        self.create_repository(integration_id=other.id)
+        self.get_error_response(
+            self.organization.id,
+            self.integration.id,
+            raw_data=REFS_CHANGED_EXAMPLE,
+            extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
+            status_code=404,
+        )
 
     def test_missing_integration(self) -> None:
         self.create_repository()
@@ -277,3 +310,329 @@ class RefsChangedWebhookTest(WebhookTestBase):
             extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
             status_code=400,
         )
+
+
+ENFORCE_SIGNATURES = {"bitbucket_server.webhook.signature-enforcement.enabled": True}
+ENABLE_REPAIR = {"bitbucket_server.webhook.secret-repair.enabled": True}
+
+
+@patch("sentry.integrations.bitbucket_server.webhook.metrics")
+class WebhookRepairTriggerTest(WebhookTestBase):
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
+
+    def create_repair_repository(self, **kwargs: Any) -> Repository:
+        repository = self.create_repository(**kwargs)
+        redis = redis_clusters.get("default")
+        self.addCleanup(redis.delete, f"bitbucket-server:webhook-repair:{repository.id}")
+        return repository
+
+    def assert_trigger_outcome(self, mock_metrics: MagicMock, outcome: str) -> None:
+        mock_metrics.incr.assert_any_call(REPAIR_TRIGGER_METRIC, tags={"outcome": outcome})
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_missing_secret_enqueues_repair(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        repository = self.create_repair_repository()
+
+        with self.options(ENABLE_REPAIR):
+            self.send_webhook()
+
+        mock_delay.assert_called_once_with(
+            self.integration.id,
+            self.organization.id,
+            repository.id,
+        )
+        key = f"bitbucket-server:webhook-repair:{repository.id}"
+        assert 0 < redis_clusters.get("default").ttl(key) <= REPAIR_DEBOUNCE_TTL
+        self.assert_trigger_outcome(mock_metrics, "enqueued")
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_pending_repair_enqueues_with_existing_secret(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        repository = self.create_repair_repository(
+            config={
+                "webhook_secret": "existing-secret",
+                "webhook_repair_pending": True,
+            }
+        )
+
+        with self.options(ENABLE_REPAIR):
+            self.send_webhook()
+
+        mock_delay.assert_called_once_with(
+            self.integration.id,
+            self.organization.id,
+            repository.id,
+        )
+        self.assert_trigger_outcome(mock_metrics, "enqueued")
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_completed_repair_does_not_enter_trigger(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.create_repair_repository(config={"webhook_secret": "existing-secret"})
+
+        with self.options(ENABLE_REPAIR):
+            self.send_webhook()
+
+        mock_delay.assert_not_called()
+        assert all(
+            call.args[0] != REPAIR_TRIGGER_METRIC for call in mock_metrics.incr.call_args_list
+        )
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_disabled_repair_does_not_enqueue(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.create_repair_repository()
+
+        self.send_webhook()
+
+        mock_delay.assert_not_called()
+        self.assert_trigger_outcome(mock_metrics, "disabled")
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_repeated_delivery_is_debounced(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.create_repair_repository()
+
+        with self.options(ENABLE_REPAIR):
+            self.send_webhook()
+            self.send_webhook()
+
+        mock_delay.assert_called_once()
+        self.assert_trigger_outcome(mock_metrics, "enqueued")
+        self.assert_trigger_outcome(mock_metrics, "debounced")
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    @patch("sentry.integrations.bitbucket_server.webhook.redis_clusters.get")
+    def test_cache_failure_skips_enqueue(
+        self,
+        mock_redis_get: MagicMock,
+        mock_delay: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        self.create_repository()
+        mock_redis_get.side_effect = RedisError("unavailable")
+
+        with self.options(ENABLE_REPAIR):
+            self.send_webhook()
+
+        mock_delay.assert_not_called()
+        self.assert_trigger_outcome(mock_metrics, "cache_error")
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_enqueue_failure_releases_debounce(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        repository = self.create_repair_repository()
+        mock_delay.side_effect = [RuntimeError("broker unavailable"), None]
+
+        with self.options(ENABLE_REPAIR):
+            self.send_webhook()
+            self.send_webhook()
+
+        assert mock_delay.call_count == 2
+        self.assert_trigger_outcome(mock_metrics, "enqueue_error")
+        self.assert_trigger_outcome(mock_metrics, "enqueued")
+        key = f"bitbucket-server:webhook-repair:{repository.id}"
+        assert redis_clusters.get("default").exists(key)
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_enqueue_failure_does_not_release_new_owner(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        repository = self.create_repair_repository()
+        redis = redis_clusters.get("default")
+        key = f"bitbucket-server:webhook-repair:{repository.id}"
+
+        def replace_owner(*args: Any) -> None:
+            redis.set(key, "new-owner", ex=REPAIR_DEBOUNCE_TTL)
+            raise RuntimeError("broker unavailable")
+
+        mock_delay.side_effect = replace_owner
+
+        with self.options(ENABLE_REPAIR):
+            self.send_webhook()
+
+        assert redis.get(key) == "new-owner"
+        self.assert_trigger_outcome(mock_metrics, "enqueue_error")
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_signature_enforcement_is_independent(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        repository = self.create_repair_repository()
+
+        with self.options({**ENABLE_REPAIR, **ENFORCE_SIGNATURES}):
+            self.get_error_response(
+                self.organization.id,
+                self.integration.id,
+                raw_data=REFS_CHANGED_EXAMPLE,
+                extra_headers={"HTTP_X_EVENT_KEY": "repo:refs_changed"},
+                status_code=401,
+            )
+
+        mock_delay.assert_called_once_with(
+            self.integration.id,
+            self.organization.id,
+            repository.id,
+        )
+        self.assert_trigger_outcome(mock_metrics, "enqueued")
+        mock_metrics.incr.assert_any_call(
+            "bitbucket_server.webhook.signature",
+            tags={"result": "unsigned"},
+            sample_rate=1.0,
+        )
+
+    @patch("sentry.integrations.bitbucket_server.webhook.repair_repository_webhook.delay")
+    def test_unrecognized_delivery_does_not_trigger(
+        self, mock_delay: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.create_repair_repository()
+
+        with self.options(ENABLE_REPAIR):
+            self.get_success_response(
+                self.organization.id,
+                self.integration.id,
+                extra_headers={"HTTP_X_EVENT_KEY": "unrecognized"},
+                raw_data=REFS_CHANGED_EXAMPLE,
+                status_code=204,
+            )
+
+        mock_delay.assert_not_called()
+        assert all(
+            call.args[0] != REPAIR_TRIGGER_METRIC for call in mock_metrics.incr.call_args_list
+        )
+
+
+@patch("sentry.integrations.bitbucket_server.webhook.metrics")
+class WebhookSignatureTest(WebhookTestBase):
+    method = "post"
+    secret = "webhook-secret"
+
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
+
+    def sign(self, secret: str = secret, method: str = "sha256") -> str:
+        digest = hmac.new(secret.encode(), REFS_CHANGED_EXAMPLE, hashlib.sha256).hexdigest()
+        return f"{method}={digest}"
+
+    def post_webhook(self, status_code: int, signature: str | None = None) -> None:
+        headers: dict[str, Any] = {"HTTP_X_EVENT_KEY": "repo:refs_changed"}
+        if signature is not None:
+            headers["HTTP_X_HUB_SIGNATURE"] = signature
+        # posted directly so the body is sent byte-for-byte as signed
+        response = self.client.post(
+            reverse(self.endpoint, args=[self.organization.id, self.integration.id]),
+            data=REFS_CHANGED_EXAMPLE,
+            content_type="application/json",
+            **headers,
+        )
+        assert response.status_code == status_code
+
+    def assert_signature_result(self, mock_metrics: MagicMock, result: str) -> None:
+        mock_metrics.incr.assert_any_call(
+            "bitbucket_server.webhook.signature", tags={"result": result}, sample_rate=1.0
+        )
+
+    def test_valid_signature(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        self.post_webhook(204, signature=self.sign())
+
+        self.assert_signature_result(mock_metrics, "valid")
+
+    def test_valid_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(204, signature=self.sign())
+
+        self.assert_signature_result(mock_metrics, "valid")
+
+    def test_invalid_signature(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        self.post_webhook(204, signature=self.sign(secret="wrong-secret"))
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_invalid_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature=self.sign(secret="wrong-secret"))
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_unsupported_signature_method_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature=self.sign(method="sha1"))
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_non_ascii_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature="sha256=é")
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_missing_signature(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        self.post_webhook(204)
+
+        self.assert_signature_result(mock_metrics, "missing")
+
+    def test_missing_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401)
+
+        self.assert_signature_result(mock_metrics, "missing")
+
+    def test_unsigned(self, mock_metrics: MagicMock) -> None:
+        self.create_repository()
+
+        self.post_webhook(204)
+
+        self.assert_signature_result(mock_metrics, "unsigned")
+
+    def test_unsigned_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository()
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401)
+
+        self.assert_signature_result(mock_metrics, "unsigned")
+
+    def test_unverifiable(self, mock_metrics: MagicMock) -> None:
+        self.create_repository()
+
+        self.post_webhook(204, signature=self.sign())
+
+        self.assert_signature_result(mock_metrics, "unverifiable")
+
+    def test_unverifiable_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository()
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature=self.sign())
+
+        self.assert_signature_result(mock_metrics, "unverifiable")

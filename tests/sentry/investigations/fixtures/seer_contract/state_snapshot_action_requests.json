@@ -1,0 +1,39 @@
+[
+  {
+    "action": {
+      "kind": "connect_telemetry",
+      "provider": "datadog"
+    },
+    "anchor": {
+      "id": "hypothesis-0",
+      "type": "hypothesis"
+    },
+    "impact": null,
+    "key": "connect-telemetry-datadog-r2",
+    "primary": false,
+    "rationale": "Host metrics would show whether the pods were throttled.",
+    "reportRevision": 2,
+    "title": "Connect Datadog"
+  },
+  {
+    "action": {
+      "before": {
+        "query": "transaction:/checkout",
+        "timeWindowSeconds": 300
+      },
+      "changes": {
+        "query": "transaction:/checkout !error.handled:true",
+        "timeWindowSeconds": 900
+      },
+      "detectorId": "4821",
+      "kind": "update_detector"
+    },
+    "anchor": null,
+    "impact": "Alerts on 3 of the last 14 spikes instead of all 14.",
+    "key": "widen-time-window",
+    "primary": true,
+    "rationale": "Short spikes recover within a minute.",
+    "reportRevision": 2,
+    "title": "Widen the time window"
+  }
+]

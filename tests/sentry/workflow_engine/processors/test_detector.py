@@ -737,6 +737,7 @@ class TestKeyBuilders(unittest.TestCase):
         )
 
 
+@freeze_time()
 class TestGetStateData(BaseDetectorHandlerTest):
     def test_new(self) -> None:
         handler = self.build_handler()
@@ -763,6 +764,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.HIGH: 1,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(state_data.group_key, state_data.dedupe_value)
         handler.state_manager.enqueue_counter_update(
@@ -786,6 +788,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.OK: 5,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(key_1, state_data_1.dedupe_value)
         handler.state_manager.enqueue_counter_update(key_1, state_data_1.counter_updates)
@@ -803,6 +806,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.HIGH: 5,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(key_2, state_data_2.dedupe_value)
         handler.state_manager.enqueue_counter_update(key_2, state_data_2.counter_updates)
@@ -964,12 +968,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.handler_type.slug)
         handler = MockDetectorStateHandler(detector)
         with mock.patch(
-            "sentry.workflow_engine.handlers.detector.stateful.metrics"
+            "sentry.workflow_engine.handlers.detector.condition.metrics"
         ) as mock_metrics:
             assert (
                 handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}})) == {}
             )
-            mock_metrics.incr.assert_called_once_with(
+            mock_metrics.incr.assert_any_call(
                 "workflow_engine.detector.skipping_invalid_condition_group"
             )
             self.assert_updates(handler, "val1", 2, None, None, None)
@@ -1174,6 +1178,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                     **{level: None for level in handler._thresholds},
                     DetectorPriorityLevel.HIGH: 1,
                 },
+                date_updated=timezone.now(),
             )
         }
 
@@ -1692,7 +1697,8 @@ class TestEnsureAssociationWithDetector(TestCase):
     def test_feedback_group_returns_false(self) -> None:
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
 
-        assert not ensure_association_with_detector(group)
+        with self.assertNumQueries(0):
+            assert not ensure_association_with_detector(group)
         assert not DetectorGroup.objects.filter(group_id=group.id).exists()
 
     def test_deleted_detector_creates_null_association(self) -> None:

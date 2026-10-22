@@ -12,13 +12,13 @@ import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import type {TagVariant} from 'sentry/utils/theme';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {FirstIssueCard} from './firstIssueCard';
@@ -80,7 +80,7 @@ function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
   }
 
   if (status === 'active') {
-    return <ActiveLoadingIndicator mini />;
+    return <ActiveLoadingIndicator mini size={16} />;
   }
 
   return <IconCircleDashed size="md" variant="muted" />;
@@ -94,9 +94,7 @@ const ActiveLoadingIndicator = styled(LoadingIndicator)`
   }
 
   && .loading-indicator {
-    width: 16px;
-    height: 16px;
-    border-width: 2px;
+    border-width: 2px !important;
   }
 `;
 
@@ -406,6 +404,7 @@ function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
 
 export function AgenticProgress({
   run,
+  // oxlint-disable-next-line react/todo
   onboardingCode = run.onboardingCode,
   issueLinkReferrer = 'onboarding-agentic-first-issue',
 }: {

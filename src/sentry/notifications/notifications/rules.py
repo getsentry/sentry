@@ -264,10 +264,6 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        # We don't show the snooze alert because in the new UI/system a user can't individually disable a workflow
-        context["snooze_alert"] = False
-        context["snooze_alert_url"] = None
-
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
             context["subtitle"] = self.event.occurrence.subtitle
