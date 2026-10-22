@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -24,32 +25,39 @@ function mockTransportRequests() {
       fields: {'mcp.transport': 'string', 'count()': 'integer'},
       units: {},
     };
+    const data = grouped
+      ? [
+          {'mcp.transport': 'CustomHTTPTransport', 'count()': 30},
+          {'mcp.transport': 'custom', 'count()': 7},
+          {'mcp.transport': null, 'count()': 2},
+        ]
+      : [{'count()': count}];
     const match = [
       (_url: string, options: {query?: {query?: string}}) =>
         options.query?.query?.includes(query.conditions) ?? false,
     ];
     const seriesRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: '/organizations/org-slug/events-timeseries/',
       match,
-      body: grouped
-        ? {
-            CustomHTTPTransport: {data: [[1, [{count: 30}]]], meta},
-            custom: {data: [[1, [{count: 7}]]], meta},
-            None: {data: [[1, [{count: 2}]]], meta},
-          }
-        : {data: [[1, [{count}]]], meta},
+      body: {
+        timeSeries: data.map(row =>
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            meta: {valueType: 'integer', valueUnit: null, interval: 1000},
+            groupBy:
+              'mcp.transport' in row
+                ? [{key: 'mcp.transport', value: row['mcp.transport']}]
+                : undefined,
+            values: [{timestamp: 1000, value: row['count()']}],
+          })
+        ),
+      },
     });
     const tableRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       match,
       body: {
-        data: grouped
-          ? [
-              {'mcp.transport': 'CustomHTTPTransport', 'count()': 30},
-              {'mcp.transport': 'custom', 'count()': 7},
-              {'mcp.transport': null, 'count()': 2},
-            ]
-          : [{'count()': count}],
+        data,
         meta,
       },
     });
@@ -98,7 +106,7 @@ describe('MCP Transport Distribution', () => {
     const stdioFilter = 'span.op:mcp.server mcp.transport:[stdio,StdioServerTransport]';
     for (const [index, query] of [httpFilter, stdioFilter].entries()) {
       expect(requests[index]!.seriesRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({yAxis: ['count()'], query}),
         })
@@ -111,10 +119,11 @@ describe('MCP Transport Distribution', () => {
       );
     }
     expect(requests[2]!.seriesRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
-          field: ['mcp.transport', 'count()'],
+          yAxis: ['count()'],
+          groupBy: ['mcp.transport', 'count()'],
           query:
             'span.op:mcp.server (!has:mcp.transport OR !mcp.transport:[http,sse,StreamableHTTPServerTransport,NodeStreamableHTTPServerTransport,WebStandardStreamableHTTPServerTransport,PerRequestHTTPServerTransport,SSEServerTransport,SseServerTransport,stdio,StdioServerTransport])',
         }),
