@@ -16,6 +16,16 @@ describe('SeerWorkflows', () => {
     jest.useRealTimers();
   });
 
+  it('renders the Automations title with an alpha badge', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
+      body: [],
+    });
+    render(<SeerWorkflows />, {organization});
+    expect(await screen.findByRole('heading', {name: 'Automations'})).toBeInTheDocument();
+    expect(screen.getByLabelText('alpha')).toBeInTheDocument();
+  });
+
   it('hides the monitor scan trigger when its flag is disabled', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/runs/`,
