@@ -35,7 +35,6 @@ import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
@@ -383,6 +382,49 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
   );
 }
 
+interface SectionTitleProps {
+  canCollapse: boolean;
+  children: ReactNode;
+  isCollapsed: boolean;
+  setIsCollapsed: (isCollapsed: boolean) => void;
+}
+
+function SectionTitle(props: SectionTitleProps) {
+  if (props.canCollapse) {
+    return (
+      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+        {p => (
+          <Button
+            {...p}
+            size="sm"
+            variant="transparent"
+            onClick={() => props.setIsCollapsed(!props.isCollapsed)}
+          >
+            <Text bold ellipsis align="left">
+              {props.children}
+            </Text>
+            <Flex align="center" flexShrink={0} aria-hidden="true">
+              <IconChevron
+                direction={props.isCollapsed ? 'down' : 'up'}
+                size="xs"
+                variant="muted"
+              />
+            </Flex>
+          </Button>
+        )}
+      </Grid>
+    );
+  }
+
+  return (
+    <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+      <Text bold ellipsis align="left">
+        {props.children}
+      </Text>
+    </Grid>
+  );
+}
+
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
@@ -396,38 +438,23 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse =
-    layout === 'sidebar' && (props.collapsible ?? true) && !!props.title;
-
-  if (canCollapse) {
-    return (
-      <Disclosure
-        expanded={!isCollapsedState}
-        onExpandedChange={expanded => setIsCollapsedState(!expanded)}
-        size="sm"
-        padding="md sm"
-        data-nav-section
-      >
-        <Disclosure.Title data-nav-section-toggle>
-          <Text bold ellipsis align="left">
-            {props.title}
-          </Text>
-        </Disclosure.Title>
-        <Disclosure.Content>{props.children}</Disclosure.Content>
-      </Disclosure>
-    );
-  }
+  const canCollapse = layout === 'sidebar' && (props.collapsible ?? true);
+  const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
     <Container padding="md sm" data-nav-section>
       {props.title ? (
-        <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
-          <Text bold ellipsis align="left">
-            {props.title}
-          </Text>
-        </Grid>
+        <SectionTitle
+          canCollapse={canCollapse}
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsedState}
+        >
+          {props.title}
+        </SectionTitle>
       ) : null}
-      {props.children}
+      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+        {props.children}
+      </Collapsible>
     </Container>
   );
 }
@@ -529,6 +556,58 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
     </Stack>
   );
 }
+
+interface CollapsibleProps {
+  children: React.ReactNode;
+  collapsed: boolean;
+  disabled?: boolean;
+}
+
+function Collapsible(props: CollapsibleProps) {
+  if (props.disabled) {
+    return props.children;
+  }
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      {!props.collapsed && (
+        <MotionFlex
+          // This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
+          // when un-collapsed, and are "sucked in" to the header when collapsed, rather than a standard accordion effect.
+          direction="column-reverse"
+          key="collapsible-content"
+          variants={{
+            collapsed: {
+              height: 0,
+              overflow: 'hidden',
+            },
+            expanded: {
+              height: 'auto',
+            },
+          }}
+          initial="collapsed"
+          animate="expanded"
+          exit="collapsed"
+          transition={{
+            type: 'spring',
+            damping: 50,
+            stiffness: 600,
+            bounce: 0,
+            visualDuration: 0.4,
+          }}
+        >
+          {/*
+            We need to wrap the children in a div to prevent the parent's flex-direction: column-reverse
+            from applying to the children, which may cause the children's order to be reversed
+          */}
+          <div>{props.children}</div>
+        </MotionFlex>
+      )}
+    </AnimatePresence>
+  );
+}
+
+const MotionFlex = motion.create(Flex);
 
 /**
  * A custom PointerSensor that only activates for mouse and pen pointer events,
