@@ -27,8 +27,10 @@ import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 interface DroppedDataDrawerProps {
@@ -43,6 +45,7 @@ export function DroppedDataDrawer({
   onAskSeer,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
+  const organization = useOrganization();
   const [chartInterval] = useChartInterval();
   const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
@@ -80,7 +83,14 @@ export function DroppedDataDrawer({
             aria-label={t('Filter dropped events')}
             size="xs"
             value={scope}
-            onChange={setScope}
+            onChange={nextScope => {
+              setScope(nextScope);
+              trackAnalytics('explore.dropped_data.scope_toggled', {
+                organization,
+                dataset,
+                scope: nextScope,
+              });
+            }}
           >
             <SegmentedControl.Item key="contributing">
               {t('Unexpected')}
@@ -130,7 +140,19 @@ export function DroppedDataDrawer({
                 colors={outcomeColors}
                 hasAskSeer={onAskSeer !== undefined}
                 selection={outcomeSelection}
-                onSelectionChange={setOutcomeSelection}
+                onSelectionChange={nextSelection => {
+                  for (const [outcome, selected] of Object.entries(nextSelection)) {
+                    if (isOutcomeSelected(outcomeSelection, outcome) !== selected) {
+                      trackAnalytics('explore.dropped_data.legend_outcome_toggled', {
+                        organization,
+                        dataset,
+                        outcome,
+                        selected,
+                      });
+                    }
+                  }
+                  setOutcomeSelection(nextSelection);
+                }}
               />
             </Container>
             <Stack flex="1" gap="2xl" background="secondary" padding="2xl xl">

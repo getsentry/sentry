@@ -10,6 +10,7 @@ import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -22,6 +23,7 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -171,6 +173,7 @@ function ToolbarVisualizeItem({
   onReplace,
   visualize,
 }: VisualizeDropdownProps) {
+  const organization = useOrganization();
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
@@ -294,6 +297,16 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
+      transformationControls={
+        organization.features.includes('explore-interpolation-and-smoothing') &&
+        isVisualizeFunction(visualize) ? (
+          <VisualizeTransformations
+            traceItemDataset={TraceItemDataset.SPANS}
+            transformations={visualize.transformations}
+            onChange={transformations => onReplace(visualize.replace({transformations}))}
+          />
+        ) : undefined
+      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar

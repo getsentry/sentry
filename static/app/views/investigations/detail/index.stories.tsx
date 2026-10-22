@@ -362,7 +362,7 @@ const awaitingInputInvestigation = InvestigationDetailFixture({
   sourceType: 'manual',
   blocks: [
     InvestigationBlockFixture({
-      id: 'awaiting-input-cell',
+      id: 'awaiting-input-block',
       title: 'Compare the lag spike',
       content: '',
       outputStatus: 'awaiting_input',
@@ -576,7 +576,7 @@ export default Storybook.story('Investigations — Detail', story => {
     </InvestigationFixtureApi>
   ));
 
-  story('Cells Seer is still writing', () => (
+  story('Blocks Seer is still writing', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-skeleton"
       details={[skeletonInvestigation]}
@@ -659,7 +659,7 @@ export default Storybook.story('Investigations — Detail', story => {
       details={[awaitingInputInvestigation]}
       executions={{
         [investigationExecutionFixtureKey(
-          'awaiting-input-cell',
+          'awaiting-input-block',
           awaitingInputExecutionId
         )]: InvestigationAwaitingInputExecutionFixture({
           id: awaitingInputExecutionId,

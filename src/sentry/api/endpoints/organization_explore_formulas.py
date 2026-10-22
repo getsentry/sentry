@@ -65,6 +65,9 @@ DATASETS = {
     ExploreSavedQueryDataset.OURLOGS: OurLogs,
     ExploreSavedQueryDataset.METRICS: TraceMetrics,
 }
+MAX_INPUT_PARAMS = 2
+MAX_GENERIC_PARAMS = 7
+MAX_REFERENCES = 5
 FORMULA_PREFIX = "formula."
 
 
@@ -319,7 +322,7 @@ class ReferenceSerializer(RequestSerializer):
 
 class ParamSerializer(ReferenceSerializer):
     type = CharField(source="param_type")
-    order = IntegerField(min_value=0, max_value=3)
+    order = IntegerField(min_value=0, max_value=MAX_GENERIC_PARAMS)
 
     def validate_value(self, value: str) -> str:
         return value
@@ -359,6 +362,29 @@ class FormulaSerializer(RequestSerializer):
 
     def validate_formula(self, formula: str) -> str:
         return formula.lower()
+
+    def validate_params(self, params: list[FormulaParamData]) -> list[FormulaParamData]:
+        non_calculation_params = [
+            param
+            for param in params
+            if param["param_type"] != ParamItemTypes.get_id_for_type_name("calculation")
+        ]
+        if len(non_calculation_params) > MAX_INPUT_PARAMS:
+            raise ValidationError(
+                f"Cannot have more than {MAX_INPUT_PARAMS} number or column parameters per formula"
+            )
+        if len(params) > MAX_GENERIC_PARAMS:
+            raise ValidationError(
+                f"Cannot have more than {MAX_GENERIC_PARAMS} parameters per formula"
+            )
+        return params
+
+    def validate_references(
+        self, references: list[FormulaReferenceData]
+    ) -> list[FormulaReferenceData]:
+        if len(references) > MAX_REFERENCES:
+            raise ValidationError(f"Cannot have more than {MAX_REFERENCES} references per formula")
+        return references
 
     def validate_name(self, name: str) -> str:
         name = name.lower()
