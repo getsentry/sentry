@@ -292,7 +292,11 @@ function TransformationRow({
                       transformation_type: 'smooth',
                       method: value,
                     });
-                    onChange(SMOOTH_DEFAULTS[value]);
+                    onChange(
+                      value === 'asap' || transformation.method === 'asap'
+                        ? SMOOTH_DEFAULTS[value]
+                        : {...SMOOTH_DEFAULTS[value], window: transformation.window}
+                    );
                   }
                 }}
               />

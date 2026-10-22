@@ -129,7 +129,13 @@ describe('VisualizeTransformations', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Smoothing Factor'}));
     await userEvent.click(screen.getByRole('option', {name: '75%'}));
     expect(screen.getByRole('status')).toHaveTextContent(
-      '["fill(locf)","smooth(ema,10,0.75)"]'
+      '["fill(locf)","smooth(ema,1,0.75)"]'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Smoothing method'}));
+    await userEvent.click(screen.getByRole('option', {name: 'SMA'}));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '["fill(locf)","smooth(sma,1)"]'
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Smoothing method'}));
@@ -142,6 +148,12 @@ describe('VisualizeTransformations', () => {
     await userEvent.click(screen.getByRole('option', {name: '7'}));
     expect(screen.getByRole('status')).toHaveTextContent(
       '["fill(locf)","smooth(asap,7)"]'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Smoothing method'}));
+    await userEvent.click(screen.getByRole('option', {name: 'SMA'}));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '["fill(locf)","smooth(sma,3)"]'
     );
   });
 
