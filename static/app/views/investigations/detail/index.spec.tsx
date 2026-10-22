@@ -1495,7 +1495,7 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const outline = await screen.findByRole('navigation', {name: 'On this page'});
+    const outline = await screen.findByRole('navigation', {name: 'Investigation'});
     expect(
       within(outline)
         .getAllByRole('link')
@@ -1524,7 +1524,7 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const outline = await screen.findByRole('navigation', {name: 'On this page'});
+    const outline = await screen.findByRole('navigation', {name: 'Investigation'});
     // Nothing is laid out, so everything sits at the top of the viewport unless
     // placed: the reader is at the start of the page.
     await waitFor(() =>
@@ -1600,7 +1600,7 @@ describe('Investigation detail', () => {
       await screen.findByRole('heading', {level: 2, name: 'What happened'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('navigation', {name: 'On this page'})
+      screen.queryByRole('navigation', {name: 'Investigation'})
     ).not.toBeInTheDocument();
   });
 

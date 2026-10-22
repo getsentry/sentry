@@ -756,9 +756,21 @@ function InvestigationPageContentInner({
           <Layout.Main width="full">
             {/*
              * The report keeps to the middle column, as wide as the header above
-             * it, which leaves the right one free for the outline.
+             * it, which leaves the left one free for the outline.
              */}
             <Grid columns="minmax(0, 1fr) min(960px, 100%) minmax(0, 1fr)">
+              {outline.length > 0 ? (
+                <Container
+                  column="1"
+                  display={{zero: 'none', '5xl': 'block'}}
+                  justifySelf="end"
+                  width="100%"
+                  maxWidth="264px"
+                  paddingRight="2xl"
+                >
+                  <InvestigationOutline entries={outline} />
+                </Container>
+              ) : null}
               <Stack column="2" minWidth={0} gap="3xl">
                 <InvestigationSummaryCard
                   id={SUMMARY_ELEMENT_ID}
@@ -872,16 +884,6 @@ function InvestigationPageContentInner({
                 ) : null}
                 <Container height="128px" flexShrink={0} aria-hidden />
               </Stack>
-              {outline.length > 0 ? (
-                <Container
-                  column="3"
-                  display={{zero: 'none', '5xl': 'block'}}
-                  maxWidth="264px"
-                  paddingLeft="2xl"
-                >
-                  <InvestigationOutline entries={outline} />
-                </Container>
-              ) : null}
             </Grid>
           </Layout.Main>
         </Layout.Body>
