@@ -652,9 +652,7 @@ def test_custom_inbound_filter_condition_translation(
         default_project, data_type=data_type, conditions=conditions
     )
 
-    [generic_filter] = get_custom_inbound_filter_generic_filters(
-        default_project, release_comparisons=True
-    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
     assert generic_filter == {
         "id": f"custom-inbound-filter:{custom_filter.id}",
         "isEnabled": True,
@@ -751,9 +749,7 @@ def test_custom_inbound_filter_skips_inactive_filters(default_project, factories
         conditions=[{"type": "release", "value": ["1.*"]}],
     )
 
-    assert (
-        get_custom_inbound_filter_generic_filters(default_project, release_comparisons=True) == []
-    )
+    assert get_custom_inbound_filter_generic_filters(default_project) == []
 
 
 @django_db_all
@@ -830,37 +826,8 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
         conditions=[{"type": "release", "value": ["1.*"]}],
     )
 
-    [generic_filter] = get_custom_inbound_filter_generic_filters(
-        default_project, release_comparisons=True
-    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
     assert generic_filter["id"] == f"custom-inbound-filter:{valid_filter.id}"
-
-
-@django_db_all
-def test_release_comparisons_need_their_feature(default_project, factories) -> None:
-    # A comparison Relay must not apply yet disables the whole filter, as a dropped
-    # condition would.
-    factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[
-            {"type": "release", "operator": "starts_with", "value": ["1."]},
-            {"type": "release", "operator": "lt", "value": ["1.5"]},
-        ],
-    )
-    text_filter = factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[{"type": "release", "operator": "starts_with", "value": ["2."]}],
-    )
-
-    generic_filters = get_custom_inbound_filter_generic_filters(
-        default_project, release_comparisons=False
-    )
-
-    assert [f["id"] for f in generic_filters] == [f"custom-inbound-filter:{text_filter.id}"]
-    assert (
-        len(get_custom_inbound_filter_generic_filters(default_project, release_comparisons=True))
-        == 2
-    )
 
 
 @django_db_all
@@ -873,9 +840,7 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
         for version in (1, 2, 3)
     ]
 
-    generic_filters = get_custom_inbound_filter_generic_filters(
-        default_project, release_comparisons=True
-    )
+    generic_filters = get_custom_inbound_filter_generic_filters(default_project)
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
         f"custom-inbound-filter:{custom_filter.id}" for custom_filter in created
     ]
@@ -900,9 +865,7 @@ def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factori
         for version in (1, 2, 3)
     ]
 
-    generic_filters = get_custom_inbound_filter_generic_filters(
-        default_project, release_comparisons=True
-    )
+    generic_filters = get_custom_inbound_filter_generic_filters(default_project)
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
         f"custom-inbound-filter:{custom_filter.id}" for custom_filter in created[:2]
     ]
@@ -949,7 +912,7 @@ def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factori
             id="custom_inbound_filters_v2_need_plan_feature",
         ),
         pytest.param(
-            InboundFilterFeatures(True, True, True, True, True, True),
+            InboundFilterFeatures(True, True, True, True, True),
             ["ip-address", "log-message", "trace-metric-name", "cif"],
             id="every_feature",
         ),
@@ -986,9 +949,7 @@ def test_get_generic_filters_omits_gated_sources_without_configuration(default_p
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
 
     assert (
-        get_generic_filters(
-            default_project, InboundFilterFeatures(True, True, True, True, True, True)
-        )
+        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True, True))
         is None
     )
 

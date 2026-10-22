@@ -192,14 +192,6 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         return attrs
 
     def _validate_comparison(self, attrs: CustomInboundFilterCondition) -> None:
-        organization = self.context["project"].organization
-        request = self.context["request"]
-        if not features.has(
-            "organizations:inbound-filters-release-comparisons", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                {"operator": "Release version comparisons are not enabled for this organization."}
-            )
         if len(attrs["value"]) != 1:
             raise serializers.ValidationError(
                 {"value": f"The {attrs['operator']} operator takes exactly one value."}

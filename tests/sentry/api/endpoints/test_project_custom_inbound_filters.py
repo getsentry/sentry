@@ -19,10 +19,6 @@ from sentry.testutils.silo import assume_test_silo_mode
 class CustomInboundFiltersTest(APITestCase):
     endpoint = "sentry-api-0-project-custom-inbound-filters"
     features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
-    release_comparison_features = [
-        *features,
-        "organizations:inbound-filters-release-comparisons",
-    ]
 
     def setUp(self) -> None:
         super().setUp()
@@ -237,7 +233,7 @@ class CustomInboundFiltersTest(APITestCase):
             {"type": "release", "operator": "lt", "value": ["myapp@2.0"]},
         ]
 
-        with self.feature(self.release_comparison_features), outbox_runner():
+        with self.feature(self.features), outbox_runner():
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
@@ -251,24 +247,6 @@ class CustomInboundFiltersTest(APITestCase):
         custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
         assert response.data["conditions"] == conditions
         assert custom_filter.conditions == conditions
-
-    def test_rejects_release_comparison_without_its_feature(self) -> None:
-        with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                method="post",
-                dataType="error",
-                conditions=[
-                    {"type": "release", "operator": "starts_with", "value": ["1."]},
-                    {"type": "release", "operator": "gte", "value": ["1.2.0"]},
-                ],
-            )
-
-        assert response.data["conditions"][0] == {}
-        assert str(response.data["conditions"][1]["operator"][0]) == (
-            "Release version comparisons are not enabled for this organization."
-        )
 
     def test_rejects_unknown_operator(self) -> None:
         with self.feature(self.features):
@@ -285,7 +263,7 @@ class CustomInboundFiltersTest(APITestCase):
         )
 
     def test_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
-        with self.feature(self.release_comparison_features):
+        with self.feature(self.features):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
@@ -319,7 +297,7 @@ class CustomInboundFiltersTest(APITestCase):
         )
 
     def test_rejects_comparison_with_several_values(self) -> None:
-        with self.feature(self.release_comparison_features):
+        with self.feature(self.features):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
@@ -336,7 +314,7 @@ class CustomInboundFiltersTest(APITestCase):
         cases = ["2*", "a4b7e0f9c2d1", "1.0/beta", "x" * 300]
 
         for value in cases:
-            with self.feature(self.release_comparison_features):
+            with self.feature(self.features):
                 response = self.get_error_response(
                     self.organization.slug,
                     self.project.slug,
@@ -578,7 +556,7 @@ class CustomInboundFiltersTest(APITestCase):
             {"type": "release", "operator": "lt", "value": ["4.0"]},
         ]
 
-        with self.feature(self.release_comparison_features):
+        with self.feature(self.features):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,

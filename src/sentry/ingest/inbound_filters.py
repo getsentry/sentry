@@ -494,9 +494,6 @@ class InboundFilterFeatures:
 
     ``generic_ip_filter`` serves the legacy IP address list as a generic filter. The
     caller then leaves out the native ``clientIps`` setting.
-
-    ``release_comparisons`` serves the custom filters that compare a release as a
-    version. Without it such a filter is left out as a whole.
     """
 
     custom_inbound_filters: bool = False
@@ -504,7 +501,6 @@ class InboundFilterFeatures:
     metrics: bool = False
     custom_inbound_filters_v2: bool = False
     generic_ip_filter: bool = False
-    release_comparisons: bool = False
 
 
 def get_generic_filters(
@@ -529,9 +525,7 @@ def get_generic_filters(
         if filter_features.metrics:
             generic_filters += _trace_metric_names_generic_filters(project)
         if filter_features.custom_inbound_filters_v2:
-            generic_filters += get_custom_inbound_filter_generic_filters(
-                project, release_comparisons=filter_features.release_comparisons
-            )
+            generic_filters += get_custom_inbound_filter_generic_filters(project)
 
     # These filters are defined once in global config. Keep the project toggle
     # independent from the current condition so global conditions can change
@@ -728,13 +722,11 @@ def _operator_condition(
     matcher: _ConditionMatcher,
     operator: ConditionOperator | None,
     values: list[str],
-    release_comparisons: bool,
 ) -> RuleCondition | None:
     """
     The Relay condition for one filter condition. Without an operator the values are raw
-    glob patterns, as with ``glob``. None when the operator does not fit the condition,
-    a version comparison does not take exactly one value, or ``release_comparisons`` is
-    off and the operator is one.
+    glob patterns, as with ``glob``. None when the operator does not fit the condition
+    or a version comparison does not take exactly one value.
     """
     if operator is None:
         return matcher.match(values)
@@ -743,7 +735,7 @@ def _operator_condition(
     if operator is ConditionOperator.GLOB:
         return matcher.match(values)
     if operator in COMPARISON_OPERATORS:
-        if not release_comparisons or matcher.compare is None or len(values) != 1:
+        if matcher.compare is None or len(values) != 1:
             return None
         return matcher.compare(cast(ReleaseComparator, operator.value), values[0])
     if operator in _NEGATED_OPERATORS:
@@ -778,7 +770,7 @@ def get_supported_operators(condition_type: ConditionType) -> list[ConditionOper
 
 
 def _custom_filter_condition(
-    conditions: list[dict[str, Any]], data_type: str | None, release_comparisons: bool
+    conditions: list[dict[str, Any]], data_type: str | None
 ) -> RuleCondition | None:
     """
     Translates a custom inbound filter's conditions into a Relay rule condition.
@@ -786,9 +778,9 @@ def _custom_filter_condition(
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, operator, or value shape unknown
     to this revision, a condition type whose field the filter's data type does not
-    carry, an operator the condition type does not take, or a release comparison while
-    ``release_comparisons`` is off): since every condition narrows the match, dropping
-    only the broken condition would filter more data than configured.
+    carry, or an operator the condition type does not take): since every condition
+    narrows the match, dropping only the broken condition would filter more data than
+    configured.
 
     A condition without an operator holds raw glob patterns, see ``ConditionOperator``.
     """
@@ -815,7 +807,7 @@ def _custom_filter_condition(
         matcher = matchers.get(condition_type)
         if matcher is None:
             return None
-        rule_condition = _operator_condition(matcher, operator, values, release_comparisons)
+        rule_condition = _operator_condition(matcher, operator, values)
         if rule_condition is None:
             return None
         rule_conditions.append(rule_condition)
@@ -826,13 +818,7 @@ def _custom_filter_condition(
     return {"op": "and", "inner": rule_conditions}
 
 
-def get_custom_inbound_filter_generic_filters(
-    project: Project, *, release_comparisons: bool
-) -> list[GenericFilter]:
-    """
-    The project's custom filters as generic filters. ``release_comparisons`` is whether
-    Relay receives the filters that compare a release as a version.
-    """
+def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
     # A row with legacy_filter set is the double write of a legacy list that Relay still receives
     # through the legacy path, so serving it here would filter the same data twice.
@@ -840,9 +826,7 @@ def get_custom_inbound_filter_generic_filters(
         project_id=project.id, active=True, legacy_filter__isnull=True
     ).order_by("id")[:MAX_FILTERS_PER_PROJECT]
     for custom_filter in custom_filters:
-        condition = _custom_filter_condition(
-            custom_filter.conditions, custom_filter.data_type, release_comparisons
-        )
+        condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
         if condition is not None:
             generic_filters.append(
                 _generic_filter(f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}", condition)
