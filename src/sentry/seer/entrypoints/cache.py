@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from enum import StrEnum
 
 from sentry.seer.entrypoints.metrics import (
@@ -333,6 +334,50 @@ class SeerOperatorInvestigationCache[CachePayloadT]:
                 entrypoint_key=entrypoint_key, investigation_id=investigation_id
             )
             lifecycle.add_extras({"investigation_id": investigation_id, "cache_key": cache_key})
+            cache_payload = cache.get(cache_key)
+            if not cache_payload:
+                lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
+                return None
+            return cache_payload
+
+    @classmethod
+    def get_source_cache_key(
+        cls, *, entrypoint_key: str, source_type: str, source_ids: Sequence[int]
+    ) -> str:
+        ids = ":".join(str(source_id) for source_id in source_ids)
+        return f"seer:investigation:{entrypoint_key}:{source_type}:{ids}"
+
+    @classmethod
+    def set_for_source(
+        cls,
+        *,
+        entrypoint_key: str,
+        source_type: str,
+        source_ids: Sequence[int],
+        cache_payload: CachePayloadT,
+    ) -> None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_INVESTIGATION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls.get_source_cache_key(
+                entrypoint_key=entrypoint_key, source_type=source_type, source_ids=source_ids
+            )
+            lifecycle.add_extras({"cache_key": cache_key})
+            cache.set(cache_key, cache_payload, timeout=INVESTIGATION_CACHE_TIMEOUT_SECONDS)
+
+    @classmethod
+    def get_for_source(
+        cls, *, entrypoint_key: str, source_type: str, source_ids: Sequence[int]
+    ) -> CachePayloadT | None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_GET_INVESTIGATION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls.get_source_cache_key(
+                entrypoint_key=entrypoint_key, source_type=source_type, source_ids=source_ids
+            )
+            lifecycle.add_extras({"cache_key": cache_key})
             cache_payload = cache.get(cache_key)
             if not cache_payload:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)

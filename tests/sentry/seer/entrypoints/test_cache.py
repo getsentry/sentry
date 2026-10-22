@@ -375,3 +375,20 @@ class SeerOperatorInvestigationCacheTest(TestCase):
             )
             is None
         )
+
+    @patch("sentry.seer.entrypoints.cache.cache.set")
+    def test_set_for_source_uses_source_key_and_ttl(self, mock_cache_set):
+        payload = MockCachePayload(thread_id="thread")
+
+        SeerOperatorInvestigationCache.set_for_source(
+            entrypoint_key="slack",
+            source_type="metric_open_period",
+            source_ids=[1, 2],
+            cache_payload=payload,
+        )
+
+        mock_cache_set.assert_called_once_with(
+            "seer:investigation:slack:metric_open_period:1:2",
+            payload,
+            timeout=INVESTIGATION_CACHE_TIMEOUT_SECONDS,
+        )
