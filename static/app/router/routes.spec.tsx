@@ -247,6 +247,33 @@ describe('buildRoutes()', () => {
     });
   });
 
+  describe('seer routes', () => {
+    it.each([
+      ['/seer/investigations/', 'investigations/', true],
+      ['/seer/investigations/investigation-1/', 'investigations/:investigationId/', true],
+      ['/organizations/test-org/seer/investigations/', 'investigations/', false],
+      [
+        '/organizations/test-org/seer/investigations/investigation-1/',
+        'investigations/:investigationId/',
+        false,
+      ],
+    ])('matches %s', (url, routePath, customerDomain) => {
+      jest
+        .spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get')
+        .mockReturnValue(customerDomain);
+
+      expect(getMatchedPaths(buildRoutes(), url)).toContain(routePath);
+    });
+
+    it('redirects the index to investigations', () => {
+      jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get').mockReturnValue(false);
+
+      expect(getRedirectTarget(buildRoutes(), '/organizations/test-org/seer/')).toBe(
+        'investigations/'
+      );
+    });
+  });
+
   describe('legacy insights module redirects', () => {
     // Sub-paths collapse onto the module landing page rather than carrying
     // over, since a `redirectTo` string cannot interpolate a wildcard match.
