@@ -143,7 +143,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/events-facets-performance-histogram/'
   | '/organizations/$organizationIdOrSlug/events-facets-performance/'
   | '/organizations/$organizationIdOrSlug/events-facets/'
-  | '/organizations/$organizationIdOrSlug/events-has-measurements/'
   | '/organizations/$organizationIdOrSlug/events-heatmap/'
   | '/organizations/$organizationIdOrSlug/events-histogram/'
   | '/organizations/$organizationIdOrSlug/events-meta/'

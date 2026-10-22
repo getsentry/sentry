@@ -14,7 +14,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {ResultTable} from 'sentry/components/resultTable';
+import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 
 import type {Policy, PolicyRevision} from 'getsentry/types';
@@ -28,7 +28,7 @@ type RowProps = Props & {row: PolicyRevision};
 
 const getRow = ({row, policy, onUpdate}: RowProps) => {
   return [
-    <td key="version">
+    <ResultTableRowHeader key="version">
       <strong>{row.version}</strong>
       {row.version === policy.version && <CurrentTag variant="muted">current</CurrentTag>}
       {row.url ? (
@@ -41,7 +41,7 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
           {row.file.name} ({row.file.checksum})
         </FileName>
       ) : null}
-    </td>,
+    </ResultTableRowHeader>,
     <td key="date" style={{textAlign: 'right'}}>
       {moment(row.createdAt).format('MMMM YYYY')}
       <br />

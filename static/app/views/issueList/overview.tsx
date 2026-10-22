@@ -495,7 +495,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: data.length, // Can also use newQueryCount for total hits
           organization,
           runId: aiQueryRunId,
@@ -528,7 +527,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: 0,
           organization,
           runId: aiQueryRunId,
