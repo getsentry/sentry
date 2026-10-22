@@ -27,11 +27,6 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   const visibleItems = items
     .filter(item => isItemVisible(item, props))
     .map(item =>
-      settingsV3 && props.id === 'settings-organization' && item.id === 'projects'
-        ? {...item, path: `${item.path}?view=all`}
-        : item
-    )
-    .map(item =>
       settingsV3 &&
       ((item.index && ['settings-organization', 'settings-project'].includes(props.id)) ||
         (props.id === 'settings-account' && item.path === '/settings/account/details/'))

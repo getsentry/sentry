@@ -298,13 +298,13 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
 
   return (
     <Grid
-      columns={showToggle ? '1fr auto' : '1fr'}
+      columns={showToggle ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding={props.padding ?? (isMobile ? 'md lg' : '0 md 0 xl')}
     >
-      <Container whiteSpace={showToggle ? undefined : 'nowrap'}>
+      <Container minWidth="0" whiteSpace={showToggle ? undefined : 'nowrap'}>
         <Text size="md" bold>
           {props.children}
         </Text>

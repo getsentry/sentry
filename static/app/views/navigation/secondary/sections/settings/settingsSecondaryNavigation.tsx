@@ -36,9 +36,5 @@ export function SettingsSecondaryNavigation() {
     return <ProjectSettingsNavigation organization={organization} />;
   }
 
-  if (settingsV3 && matchPath('/settings/:orgId?/projects', location.pathname)) {
-    return <ProjectSettingsNavigation organization={organization} />;
-  }
-
   return <OrganizationSettingsNavigation />;
 }

@@ -1,4 +1,5 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
+import {matchPath} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconBuilding} from '@sentry/icons/building';
@@ -23,6 +24,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
@@ -191,6 +193,8 @@ export function SettingsPrimaryNavigationItems({
   organizationSlug: string;
 }) {
   const location = useLocation();
+  const {projects} = useProjects();
+  const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
   const items = [
     {
       key: 'org',
@@ -201,15 +205,22 @@ export function SettingsPrimaryNavigationItems({
     {
       key: 'project',
       label: t('Project'),
-      to: `/settings/${organizationSlug}/projects/`,
+      to: projects[0]
+        ? `${projectSettingsPath}${projects[0].slug}/`
+        : projectSettingsPath,
       icon: <IconProject />,
     },
     {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
   ];
   const activeScope =
-    items.find(
-      item =>
-        item.key !== 'org' && isPrimaryNavigationLinkActive(item.to, location.pathname)
+    items.find(item =>
+      item.key === 'project'
+        ? !!matchPath(
+            {path: '/settings/:orgId?/projects/:projectId', end: false},
+            location.pathname
+          )
+        : item.key === 'account' &&
+          isPrimaryNavigationLinkActive(item.to, location.pathname)
     )?.key ?? 'org';
 
   return items.map(({key, label, to, icon}) => (

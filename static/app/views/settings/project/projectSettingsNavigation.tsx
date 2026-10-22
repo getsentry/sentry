@@ -1,10 +1,7 @@
-import {useContext, useEffect} from 'react';
-import {useQueryState} from 'nuqs';
+import {useContext} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
@@ -22,28 +19,9 @@ export function ProjectSettingsNavigation({
   const projectFromContext = useContext(ProjectRouteContext);
   const {projectId} = useParams<{projectId?: string}>();
   const settingsV3 = useSettingsV3();
-  const navigate = useNavigate();
-  const [view] = useQueryState('view');
-  const showAllProjects = settingsV3 && !projectId && view === 'all';
   const {projects} = useProjects({
     slugs: projectId ? [projectId] : settingsV3 ? undefined : [],
   });
-  const firstProjectSlug = projects[0]?.slug;
-  useEffect(() => {
-    if (settingsV3 && !projectId && !showAllProjects && firstProjectSlug) {
-      navigate(
-        normalizeUrl(`/settings/${organization.slug}/projects/${firstProjectSlug}/`),
-        {replace: true}
-      );
-    }
-  }, [
-    settingsV3,
-    projectId,
-    showAllProjects,
-    firstProjectSlug,
-    navigate,
-    organization.slug,
-  ]);
   const summaryProject = projects.find(({slug}) => slug === projectId);
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: projectId ?? ''},

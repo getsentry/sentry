@@ -254,11 +254,13 @@ describe('desktop navigation', () => {
           organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
           initialRouterConfig: {
             location: {pathname},
-            route: `${pathname}:projectId?/`,
+            route: `${pathname}:projectId?/*`,
           },
         })
       );
 
+      expect(router.location.pathname).toBe(pathname);
+      await userEvent.click(screen.getByRole('link', {name: 'Project'}));
       await waitFor(() =>
         expect(router.location.pathname).toBe(`${pathname}project-slug/`)
       );
@@ -274,10 +276,14 @@ describe('desktop navigation', () => {
       expect(router.location.pathname).toBe(`${pathname}project-slug/`);
 
       await userEvent.click(
+        within(secondaryNav).getByRole('link', {name: 'Project Teams'})
+      );
+      expect(router.location.pathname).toBe(`${pathname}project-slug/teams/`);
+      await userEvent.click(
         within(secondaryNav).getByRole('button', {name: 'Select a project'})
       );
       await userEvent.click(await screen.findByRole('option', {name: 'second-project'}));
-      expect(router.location.pathname).toBe(`${pathname}second-project/`);
+      expect(router.location.pathname).toBe(`${pathname}second-project/teams/`);
       expect(
         within(secondaryNav).getByRole('link', {name: 'Project Teams'})
       ).toBeInTheDocument();
@@ -297,6 +303,7 @@ describe('desktop navigation', () => {
   );
 
   it('shows settings scope navigation with settings v3', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture()]);
     const {router} = render(
       <PrimaryNavigationContextProvider>
         <Navigation />
@@ -317,10 +324,12 @@ describe('desktop navigation', () => {
         'link',
         {name: 'Projects'}
       )
-    ).toHaveAttribute('href', '/settings/org-slug/projects/?view=all');
-    expect(within(primaryNav).getByRole('link', {name: 'Project'})).toHaveAttribute(
-      'href',
-      '/settings/org-slug/projects/'
+    ).toHaveAttribute('href', '/settings/org-slug/projects/');
+    await waitFor(() =>
+      expect(within(primaryNav).getByRole('link', {name: 'Project'})).toHaveAttribute(
+        'href',
+        '/settings/org-slug/projects/project-slug/'
+      )
     );
     expect(within(primaryNav).getByRole('link', {name: 'Account'})).toHaveAttribute(
       'href',
@@ -341,8 +350,19 @@ describe('desktop navigation', () => {
       )
     ).not.toBeInTheDocument();
 
-    await userEvent.click(within(primaryNav).getByRole('link', {name: 'Project'}));
+    await userEvent.click(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
+        'link',
+        {name: 'Projects'}
+      )
+    );
     expect(router.location.pathname).toBe('/settings/org-slug/projects/');
+    expect(within(primaryNav).getByRole('link', {name: 'Org'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+    await userEvent.click(within(primaryNav).getByRole('link', {name: 'Project'}));
+    expect(router.location.pathname).toBe('/settings/org-slug/projects/project-slug/');
     expect(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
         'button',

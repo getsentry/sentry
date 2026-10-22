@@ -1,11 +1,13 @@
 import {cloneElement, Fragment} from 'react';
 import {matchPath} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
+import {IconAdd} from '@sentry/icons/add';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -47,7 +49,7 @@ export function SettingsNavigation({
   const location = useLocation();
   const settingsV3 = useSettingsV3();
   const isProjectSettings = !!matchPath(
-    {path: '/settings/:orgId?/projects', end: false},
+    {path: '/settings/:orgId?/projects/:projectId', end: false},
     location.pathname
   );
   const showProjectSelector = settingsV3 && isProjectSettings;
@@ -82,6 +84,9 @@ export function SettingsNavigation({
 
 function SettingsProjectSelector() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const subpage = matchPath('/settings/:orgId?/projects/:projectId/*', location.pathname)
+    ?.params['*'];
   const {projectId} = useParams<{projectId?: string}>();
   const {projects, onSearch} = useProjects();
   const selectedProject = projects.find(project => project.slug === projectId);
@@ -110,7 +115,11 @@ function SettingsProjectSelector() {
                     ) : undefined
                   }
                 >
-                  {projectId ?? t('Select a project')}
+                  <Container flex="1" minWidth="0">
+                    <Text ellipsis align="left">
+                      {projectId ?? t('Select a project')}
+                    </Text>
+                  </Container>
                 </OverlayTrigger.Button>
               )}
             </Container>
@@ -118,6 +127,7 @@ function SettingsProjectSelector() {
           search={{onChange: onSearch}}
           menuFooter={
             <MenuComponents.CTALinkButton
+              icon={<IconAdd />}
               to={makeProjectsPathname({path: '/new/', organization})}
               disabled={!canCreateProject}
               tooltipProps={{
@@ -136,7 +146,9 @@ function SettingsProjectSelector() {
           }))}
           onChange={selection =>
             navigate(
-              normalizeUrl(`/settings/${organization.slug}/projects/${selection.value}/`)
+              normalizeUrl(
+                `/settings/${organization.slug}/projects/${selection.value}/${subpage ? `${subpage}/` : ''}`
+              )
             )
           }
         />
