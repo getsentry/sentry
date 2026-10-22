@@ -204,7 +204,6 @@ def _send_agent_write_approval(
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
-INVESTIGATION_LOCK_SECONDS = 30
 
 
 def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
@@ -811,11 +810,11 @@ class SlackInvestigationEntrypoint(
             lifecycle.add_extras({"investigation_id": investigation_id})
             lock = locks.get(
                 f"seer:investigation:slack:{investigation_id}",
-                duration=INVESTIGATION_LOCK_SECONDS,
+                duration=10,
                 name="investigation_entrypoint_slack",
             )
             try:
-                with lock.blocking_acquire(initial_delay=0.1, timeout=INVESTIGATION_LOCK_SECONDS):
+                with lock.blocking_acquire(initial_delay=0.1, timeout=10):
                     SlackInvestigationEntrypoint._update_investigation_status(
                         run_id=run.id, lifecycle=lifecycle
                     )
