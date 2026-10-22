@@ -1,14 +1,15 @@
-import uuid
 from typing import Any
 
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound, ParseError, PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.replays.permissions import has_replay_permission
+from sentry.search.utils import validate_event_id
 
 
 class ProjectReplayEndpoint(ProjectEndpoint):
@@ -41,9 +42,9 @@ class ProjectReplayEndpoint(ProjectEndpoint):
             #
             # Any normalization belongs next to the consumer that needs a specific format.
             try:
-                uuid.UUID(replay_id)
-            except ValueError:
-                raise NotFound()
+                validate_event_id(replay_id)
+            except InvalidSearchQuery as e:
+                raise ParseError(detail=str(e))
 
         return args, kwargs
 

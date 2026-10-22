@@ -72,8 +72,8 @@ class EnvironmentBase(APITestCase):
             assert response.get("Content-Type") == "application/json"
             assert self.segment_data == close_streaming_response(response)
 
-    def test_invalid_replay_id_returns_404(self) -> None:
-        """Assert a malformed replay id returns a 404 instead of a 500."""
+    def test_invalid_replay_id_returns_400(self) -> None:
+        """Assert a malformed replay id returns a 400 instead of a 500."""
         self.login_as(user=self.user)
         url = reverse(
             self.endpoint,
@@ -82,7 +82,7 @@ class EnvironmentBase(APITestCase):
 
         with self.feature("organizations:session-replay"):
             response = self.client.get(url)
-            assert response.status_code == 404
+            assert response.status_code == 400
 
 
 class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):

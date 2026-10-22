@@ -24,11 +24,11 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_invalid_uuid_404s(self) -> None:
+    def test_invalid_uuid_400s(self) -> None:
         with self.feature(REPLAYS_FEATURES):
             url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug, "abc"))
             response = self.client.get(url)
-            assert response.status_code == 404
+            assert response.status_code == 400
 
     def test_get_replay_multiple_selectors(self) -> None:
         """Test only one replay returned."""

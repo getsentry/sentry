@@ -161,13 +161,13 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.delete(self.url)
             assert response.status_code == 403
 
-    def test_delete_invalid_replay_id_returns_404(self) -> None:
-        """Assert a malformed replay id returns a 404 instead of a 500."""
+    def test_delete_invalid_replay_id_returns_400(self) -> None:
+        """Assert a malformed replay id returns a 400 instead of a 500."""
         url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug, "abc123"))
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.delete(url)
-            assert response.status_code == 404
+            assert response.status_code == 400
 
     def test_delete_replay_from_filestore(self) -> None:
         """Test deleting files uploaded through the filestore interface."""
