@@ -52,18 +52,12 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataBandHeight).toBe(BAND_HEIGHT);
   });
 
-  it('ignores configured drops', () => {
+  it('ignores intentional drops', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedEvents: [
-            DroppedEventFixture({
-              outcome: 'client_discard',
-              reason: 'before_send',
-              count: 10,
-            }),
-          ],
+          droppedEvents: [DroppedEventFixture({count: 10, tags: ['intentional']})],
         },
       })
     );
@@ -140,7 +134,7 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('inherits positioning from the chart tooltip', () => {
+  it('positions the tooltip below the band', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
@@ -150,7 +144,7 @@ describe('useDroppedDataBand', () => {
 
     const tooltip = result.current.droppedDataSeries?.tooltip;
     expect(tooltip?.trigger).toBe('item');
-    expect(tooltip).not.toHaveProperty('position');
+    expect(tooltip).toHaveProperty('position', 'bottom');
   });
 
   it('collapses buckets sharing a time range into a single series datum', () => {

@@ -24,11 +24,8 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services import eventstore
+from sentry.services.eventstore import processing
 from sentry.services.eventstore.models import Event
-from sentry.services.eventstore.processing import (
-    event_processing_store,
-    transaction_processing_store,
-)
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.usage_accountant import record
@@ -167,9 +164,9 @@ def process_event(
     # We also need to check "type" as transactions are also sent to ingest-attachments
     # along with other event types if they have attachments.
     if consumer_type == ConsumerType.Transactions or data.get("type") == "transaction":
-        processing_store = transaction_processing_store
+        processing_store = processing.transaction_processing_store
     else:
-        processing_store = event_processing_store
+        processing_store = processing.event_processing_store
 
     sentry_sdk.set_extra("event_type", data.get("type"))
     sentry_sdk.set_attribute("event_type", data.get("type"))

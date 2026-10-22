@@ -12,19 +12,25 @@ import {
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {encodeSort} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteFormula} from 'sentry/views/explore/hooks/useDeleteFormula';
 import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {useFormulaBuilderUrl} from 'sentry/views/explore/savedFormulas/formulaBuilderUrl';
 import {
   buildTokenMap,
   FormulaToken,
   FormulaTokens,
 } from 'sentry/views/explore/savedFormulas/formulaTokens';
+import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
 
 const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
   spans: t('Spans'),
@@ -46,9 +52,24 @@ type Props = {
   formulas: SavedFormula[] | undefined;
   isError: boolean;
   isPending: boolean;
+  sort: Sort;
 };
 
-export function SavedFormulasTable({formulas, isError, isPending}: Props) {
+export function SavedFormulasTable({formulas, isError, isPending, sort}: Props) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  function handleSort(field: string) {
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        sort: encodeSort(getNextSort(field, sort, 'asc')),
+        cursor: undefined,
+      },
+    });
+  }
+
   return (
     <SavedEntityTable
       columns={COLUMNS}
@@ -58,7 +79,11 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
       emptyMessage={t('No saved formulas found')}
       header={
         <SavedEntityTable.Header>
-          <SavedEntityTable.HeaderCell divider={false}>
+          <SavedEntityTable.HeaderCell
+            divider={false}
+            sort={sort.field === 'name' ? sort.kind : undefined}
+            handleSortClick={() => handleSort('name')}
+          >
             {t('Name')}
           </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Dataset')}</SavedEntityTable.HeaderCell>
@@ -78,7 +103,7 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
 }
 
 function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean}) {
-  const makeBuilderUrl = useFormulaBuilderUrl();
+  const organization = useOrganization();
   const {deleteFormula} = useDeleteFormula();
   const name = stripNamePrefix(formula.name);
 
@@ -103,7 +128,10 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
   return (
     <SavedEntityTable.Row isFirst={isFirst}>
       <SavedEntityTable.Cell>
-        <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={name}>
+        <SavedEntityTable.CellName
+          to={makeSavedFormulasPathname({organization, path: `/${formula.id}/`})}
+          title={name}
+        >
           {name}
         </SavedEntityTable.CellName>
       </SavedEntityTable.Cell>

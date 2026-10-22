@@ -11,16 +11,12 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetSavedFormulas} from 'sentry/views/explore/hooks/useGetSavedFormulas';
-import {FormulaBuilder} from 'sentry/views/explore/savedFormulas/formulaBuilder';
-import {
-  NEW_FORMULA,
-  useFormulaBuilderUrl,
-} from 'sentry/views/explore/savedFormulas/formulaBuilderUrl';
+import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
 import {SavedFormulasTable} from 'sentry/views/explore/savedFormulas/savedFormulasTable';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -28,12 +24,12 @@ export default function SavedFormulasView() {
   const organization = useOrganization();
   const location = useLocation();
 
-  const navigate = useNavigate();
-  const makeBuilderUrl = useFormulaBuilderUrl();
-
   const cursor = decodeScalar(location.query.cursor);
-  const editing = decodeScalar(location.query.formula);
-  const {formulas, pageLinks, isPending, isError} = useGetSavedFormulas({cursor});
+  const sort: Sort = decodeSorts(location.query.sort)[0] ?? {field: 'name', kind: 'asc'};
+  const {formulas, pageLinks, isPending, isError} = useGetSavedFormulas({
+    cursor,
+    sortBy: encodeSort(sort),
+  });
 
   return (
     <SentryDocumentTitle title={t('Saved Formulas')} orgSlug={organization.slug}>
@@ -63,7 +59,7 @@ export default function SavedFormulasView() {
                   <LinkButton
                     variant="primary"
                     icon={<IconAdd />}
-                    to={makeBuilderUrl(NEW_FORMULA)}
+                    to={makeSavedFormulasPathname({organization, path: '/new/'})}
                   >
                     {t('Create Formula')}
                   </LinkButton>
@@ -72,22 +68,11 @@ export default function SavedFormulasView() {
                   formulas={formulas}
                   isPending={isPending}
                   isError={isError}
+                  sort={sort}
                 />
                 <Pagination pageLinks={pageLinks} />
               </Layout.Main>
             </Layout.Body>
-            {editing ? (
-              <FormulaBuilder
-                key={editing}
-                formula={formulas?.find(formula => formula.id === editing)}
-                onClose={() =>
-                  navigate({
-                    pathname: location.pathname,
-                    query: {...location.query, formula: undefined},
-                  })
-                }
-              />
-            ) : null}
           </Stack>
         </ErrorBoundary>
       </Feature>

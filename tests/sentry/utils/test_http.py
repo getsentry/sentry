@@ -1,17 +1,24 @@
+import io
 import unittest
+from collections.abc import Generator
 from unittest import mock
 
 import pytest
+from django.core.handlers.wsgi import LimitedStream
 from django.http import HttpRequest
+from django.test import RequestFactory
 
 from sentry import options
 from sentry.testutils.cases import TestCase
 from sentry.utils.http import (
+    BodyWithLength,
+    ChunkedEncodingDecoder,
     absolute_uri,
     get_origins,
     is_valid_ip,
     is_valid_origin,
     origin_from_request,
+    request_body_stream,
 )
 
 
@@ -284,3 +291,87 @@ class TestIsValidIP:
     @pytest.mark.parametrize(("name", "input", "expected_result"), ip_test_cases)
     def test_is_valid_ip(self, name: str, input: str, expected_result: bool) -> None:
         assert is_valid_ip(input) == expected_result
+
+
+class TestChunkedEncodingDecoder:
+    def test_reads_all_chunks(self) -> None:
+        decoder = ChunkedEncodingDecoder(io.BytesIO(b"3\r\nabc\r\n2\r\nde\r\n0\r\n\r\n").read)
+
+        assert decoder.read() == b"abcde"
+        assert decoder.read() == b""
+
+    def test_reads_sizes_across_chunk_boundaries(self) -> None:
+        decoder = ChunkedEncodingDecoder(io.BytesIO(b"3\r\nabc\r\n2\r\nde\r\n0\r\n\r\n").read)
+
+        assert decoder.read(2) == b"ab"
+        assert decoder.read(2) == b"cd"
+        assert decoder.read(2) == b"e"
+        assert decoder.read(2) == b""
+
+    def test_rejects_missing_chunk_terminator(self) -> None:
+        decoder = ChunkedEncodingDecoder(io.BytesIO(b"3\r\nabcXX0\r\n\r\n").read)
+
+        with pytest.raises(ValueError, match="Malformed chunk encoded stream"):
+            decoder.read()
+
+    def test_rejects_stream_ending_mid_chunk(self) -> None:
+        decoder = ChunkedEncodingDecoder(io.BytesIO(b"5\r\nab").read)
+
+        with pytest.raises(ValueError, match="Unexpected end of stream"):
+            decoder.read()
+
+
+class TestRequestBodyStream:
+    def test_returns_content_length_body(self) -> None:
+        request = RequestFactory().put(
+            "/", data=b"payload", content_type="application/octet-stream"
+        )
+
+        assert request_body_stream(request) == b"payload"
+
+    def test_granian_returns_wsgi_input_for_chunked_body(self) -> None:
+        wsgi_input = io.BytesIO(b"payload")
+        request = RequestFactory().generic(
+            "PUT", "/", SERVER_SOFTWARE="granian", HTTP_TRANSFER_ENCODING="chunked"
+        )
+        request.META["wsgi.input"] = wsgi_input
+
+        assert request_body_stream(request) is wsgi_input
+
+    def test_dev_server_decodes_chunked_body(self) -> None:
+        request = RequestFactory().generic("POST", "/", HTTP_TRANSFER_ENCODING="chunked")
+        # The dev server bounds its socket by Content-Length, which a chunked request lacks.
+        request.META["wsgi.input"] = LimitedStream(io.BytesIO(b"7\r\npayload\r\n0\r\n\r\n"), 0)
+
+        stream = request_body_stream(request)
+
+        assert isinstance(stream, ChunkedEncodingDecoder)
+        assert stream.read() == b"payload"
+
+    def test_dev_server_returns_nothing_for_bodiless_methods(self) -> None:
+        request = RequestFactory().get("/")
+
+        assert request_body_stream(request) is None
+
+    def test_dev_server_wraps_empty_unchunked_body(self) -> None:
+        request = RequestFactory().generic("POST", "/")
+
+        assert isinstance(request_body_stream(request), BodyWithLength)
+
+    def test_uwsgi_streams_chunked_body(self) -> None:
+        request = RequestFactory().generic("POST", "/", HTTP_TRANSFER_ENCODING="chunked")
+
+        with mock.patch("sentry.utils.http.uwsgi") as uwsgi:
+            uwsgi.chunked_read.side_effect = [b"pay", b"load", b""]
+            stream = request_body_stream(request)
+
+            assert isinstance(stream, Generator)
+            assert b"".join(stream) == b"payload"
+
+    def test_uwsgi_returns_wsgi_input_for_unchunked_body(self) -> None:
+        wsgi_input = io.BytesIO(b"")
+        request = RequestFactory().generic("POST", "/")
+        request.META["wsgi.input"] = wsgi_input
+
+        with mock.patch("sentry.utils.http.uwsgi"):
+            assert request_body_stream(request) is wsgi_input

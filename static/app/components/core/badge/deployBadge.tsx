@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useTranslation} from '@sentry/scraps/translation';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {Deploy} from 'sentry/types/release';
-
-import {Tag} from './tag';
 
 interface DeployBadgeProps {
   deploy: Deploy;
