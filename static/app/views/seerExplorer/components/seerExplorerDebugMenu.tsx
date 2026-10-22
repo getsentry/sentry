@@ -13,21 +13,17 @@ import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type DebugOption = 'context-engine' | 'force-bash-mode' | 'show-thinking' | 'agent-trace';
+type DebugOption = 'force-bash-mode' | 'show-thinking' | 'agent-trace';
 
 interface SeerExplorerDebugMenuProps {
   onOverrideBashModeToggle: () => void;
-  onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
   overrideBashModeEnabled: boolean;
-  overrideCtxEngEnable: boolean;
   showThinking: boolean;
   conversationsUrl?: string;
 }
 
 export function SeerExplorerDebugMenu({
-  overrideCtxEngEnable,
-  onOverrideCtxEngEnableToggle,
   overrideBashModeEnabled,
   onOverrideBashModeToggle,
   showThinking,
@@ -36,9 +32,6 @@ export function SeerExplorerDebugMenu({
 }: SeerExplorerDebugMenuProps) {
   const organization = useOrganization({allowNull: true});
   const isSentryEmployee = useIsSentryEmployee();
-  const showContextEngineToggle = !!organization?.features.includes(
-    'seer-explorer-context-engine-fe-override-ui-flag'
-  );
   // Code mode always shows thinking with no opt-out, so keep the toggle off the
   // menu whenever that flag is on. The dedicated thinking-blocks flag still owns
   // the manual toggle for non-code-mode orgs.
@@ -50,9 +43,6 @@ export function SeerExplorerDebugMenu({
   );
 
   const toggleOptions: Array<SelectOption<DebugOption>> = [
-    ...(showContextEngineToggle
-      ? [{value: 'context-engine' as const, label: t('Context Engine')}]
-      : []),
     ...(showBashModeToggle
       ? [{value: 'force-bash-mode' as const, label: t('Force bash mode on')}]
       : []),
@@ -80,9 +70,6 @@ export function SeerExplorerDebugMenu({
       : []),
   ];
   const value: DebugOption[] = [
-    ...(showContextEngineToggle && overrideCtxEngEnable
-      ? (['context-engine'] as const)
-      : []),
     ...(showBashModeToggle && overrideBashModeEnabled
       ? (['force-bash-mode'] as const)
       : []),
@@ -103,12 +90,6 @@ export function SeerExplorerDebugMenu({
         if (selectedValues.has('agent-trace')) {
           window.open(conversationsUrl, '_blank', 'noopener,noreferrer');
           return;
-        }
-        if (
-          showContextEngineToggle &&
-          selectedValues.has('context-engine') !== overrideCtxEngEnable
-        ) {
-          onOverrideCtxEngEnableToggle();
         }
         if (
           showBashModeToggle &&

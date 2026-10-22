@@ -23,8 +23,6 @@ function defaultProps(overrides = {}) {
     onChangeSession: jest.fn(),
     onCopySessionClick: jest.fn(),
     onCopyLinkClick: jest.fn(),
-    overrideCtxEngEnable: false,
-    onOverrideCtxEngEnableToggle: jest.fn(),
     overrideBashModeEnabled: false,
     onOverrideBashModeToggle: jest.fn(),
     showThinking: false,
@@ -93,9 +91,6 @@ describe('SeerExplorerHeader', () => {
 
       expect(screen.getByRole('option', {name: /Show thinking/})).toBeInTheDocument();
       expect(
-        screen.queryByRole('option', {name: /Context Engine/})
-      ).not.toBeInTheDocument();
-      expect(
         screen.queryByRole('option', {name: /Force bash mode on/})
       ).not.toBeInTheDocument();
     });
@@ -130,46 +125,27 @@ describe('SeerExplorerHeader', () => {
       expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
 
-    it('reflects the toggle state and fires the handler', async () => {
-      const onOverrideCtxEngEnableToggle = jest.fn();
-      await renderHeader(
-        {overrideCtxEngEnable: true, onOverrideCtxEngEnableToggle},
-        orgWith('seer-explorer-context-engine-fe-override-ui-flag')
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
-
-      expect(screen.getByRole('option', {name: /Context Engine/})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
-
-      await userEvent.click(screen.getByRole('option', {name: /Context Engine/}));
-      expect(onOverrideCtxEngEnableToggle).toHaveBeenCalled();
-    });
-
     it('renders the agent trace link alongside the toggles', async () => {
       const conversationsUrl =
         'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
-      await renderHeader(
-        {conversationsUrl},
-        orgWith('seer-explorer-context-engine-fe-override-ui-flag')
-      );
+      await renderHeader({conversationsUrl}, orgWith('seer-explorer-allow-bash-mode'));
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
-      expect(screen.getByRole('option', {name: /Context Engine/})).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', {name: /Force bash mode on/})
+      ).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Open agent trace'})).toBeInTheDocument();
     });
 
     it('opens the agent trace in a new tab without toggling anything', async () => {
       const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
-      const onOverrideCtxEngEnableToggle = jest.fn();
+      const onOverrideBashModeToggle = jest.fn();
       const conversationsUrl =
         'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
       await renderHeader(
-        {conversationsUrl, onOverrideCtxEngEnableToggle},
-        orgWith('seer-explorer-context-engine-fe-override-ui-flag')
+        {conversationsUrl, onOverrideBashModeToggle},
+        orgWith('seer-explorer-allow-bash-mode')
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
@@ -180,7 +156,7 @@ describe('SeerExplorerHeader', () => {
         '_blank',
         'noopener,noreferrer'
       );
-      expect(onOverrideCtxEngEnableToggle).not.toHaveBeenCalled();
+      expect(onOverrideBashModeToggle).not.toHaveBeenCalled();
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
       openSpy.mockRestore();
     });

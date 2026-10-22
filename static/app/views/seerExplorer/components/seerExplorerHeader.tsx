@@ -38,11 +38,9 @@ interface SeerExplorerHeaderProps {
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
   onOverrideBashModeToggle: () => void;
-  onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
   onTogglePictureInPicture: () => void;
   overrideBashModeEnabled: boolean;
-  overrideCtxEngEnable: boolean;
   showThinking: boolean;
   conversationsUrl?: string;
   disableNewChatButton?: boolean;
@@ -55,8 +53,6 @@ export function SeerExplorerHeader({
   onChangeSession,
   onCopySessionClick,
   onCopyLinkClick,
-  overrideCtxEngEnable,
-  onOverrideCtxEngEnableToggle,
   overrideBashModeEnabled,
   onOverrideBashModeToggle,
   showThinking,
@@ -134,8 +130,6 @@ export function SeerExplorerHeader({
       <Flex flex="1" />
       <Flex gap="sm" align="center">
         <SeerExplorerDebugMenu
-          overrideCtxEngEnable={overrideCtxEngEnable}
-          onOverrideCtxEngEnableToggle={onOverrideCtxEngEnableToggle}
           overrideBashModeEnabled={overrideBashModeEnabled}
           onOverrideBashModeToggle={onOverrideBashModeToggle}
           showThinking={showThinking}
