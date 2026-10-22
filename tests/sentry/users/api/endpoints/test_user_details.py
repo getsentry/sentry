@@ -363,9 +363,13 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
 
 @control_silo_test
-@override_options({"staff.ga-rollout": False})
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
+
+    @fixture(autouse=True)
+    def _deactivate_staff_mode(self) -> Generator[None]:
+        with override_options({"staff.ga-rollout": False}):
+            yield
 
     def test_superuser_can_change_is_active(self) -> None:
         self.user.update(is_active=True)
@@ -466,14 +470,15 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
-        resp = self.get_success_response(
-            self.user.id,
-            isSuperuser="true",
-        )
-        assert resp.data["id"] == str(self.user.id)
+        with self.settings(SUPERUSER_ORG_ID=org.id):
+            resp = self.get_success_response(
+                self.user.id,
+                isSuperuser="true",
+            )
+            assert resp.data["id"] == str(self.user.id)
 
-        user = User.objects.get(id=self.user.id)
-        assert user.is_superuser
+            user = User.objects.get(id=self.user.id)
+            assert user.is_superuser
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_superuser_with_permission_cannot_add_superuser_without_org_1_membership(self) -> None:
@@ -768,7 +773,6 @@ class UserDetailsSuspensionTest(UserDetailsTest):
 
 
 @control_silo_test
-@override_options({"staff.ga-rollout": True})
 class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -868,14 +872,15 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
-        resp = self.get_success_response(
-            self.user.id,
-            isSuperuser="true",
-        )
-        assert resp.data["id"] == str(self.user.id)
+        with self.settings(SUPERUSER_ORG_ID=org.id):
+            resp = self.get_success_response(
+                self.user.id,
+                isSuperuser="true",
+            )
+            assert resp.data["id"] == str(self.user.id)
 
-        user = User.objects.get(id=self.user.id)
-        assert user.is_superuser
+            user = User.objects.get(id=self.user.id)
+            assert user.is_superuser
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_staff_with_permission_cannot_add_superuser_without_default_organization_membership(

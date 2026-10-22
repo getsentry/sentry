@@ -5,11 +5,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   getQueryMode,
   useReadQueriesFromLocation,

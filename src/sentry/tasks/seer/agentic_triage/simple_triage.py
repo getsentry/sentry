@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 import sentry_sdk
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from snuba_sdk import Request
@@ -23,6 +24,7 @@ from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.autofix.utils import is_issue_category_eligible
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.agentic_triage.models import TriageAction, TriageResult
@@ -228,6 +230,15 @@ def _fetch_and_score_agentic(
             last_seen__gte=occurrence_cutoff,
         )
         .exclude(seer_explorer_autofix_last_triggered__gte=seer_recency_cutoff)
+        # Any prior Seer PR blocks triage, regardless of the PR's age or state.
+        .filter(
+            ~Exists(
+                SeerRunPullRequest.objects.filter(
+                    seer_run__agent__project_id=OuterRef("project_id"),
+                    seer_run__agent__group_id=OuterRef("id"),
+                )
+            )
+        )
         .order_by("-last_seen")
     )
 

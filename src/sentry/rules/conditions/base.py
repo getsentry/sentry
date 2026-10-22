@@ -1,8 +1,6 @@
-import abc
 from typing import TypedDict
 
-from sentry.rules.base import EventState, RuleBase
-from sentry.services.eventstore.models import GroupEvent
+from sentry.rules.base import RuleBase
 
 
 class GenericCondition(TypedDict):
@@ -11,9 +9,5 @@ class GenericCondition(TypedDict):
     id: str
 
 
-class EventCondition(RuleBase, abc.ABC):
+class EventCondition(RuleBase):
     rule_type = "condition/event"
-
-    @abc.abstractmethod
-    def passes(self, event: GroupEvent, state: EventState) -> bool:
-        pass

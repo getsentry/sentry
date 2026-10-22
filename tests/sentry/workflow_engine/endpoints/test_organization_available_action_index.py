@@ -357,6 +357,39 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             }
         ]
 
+    @with_feature({"organizations:integrations-alert-rule": False})
+    def test_flags_alert_rule_actions_without_feature(self) -> None:
+        self.setup_integrations()
+        self.create_integration(
+            organization=self.organization,
+            external_id="2",
+            name="My MS Teams Integration",
+            provider="msteams",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: "plan",
+            Action.Type.GITHUB: None,
+            Action.Type.MSTEAMS: "plan",
+        }
+
+    @with_feature({"organizations:integrations-issue-basic": False})
+    def test_flags_ticket_actions_without_feature(self) -> None:
+        self.setup_integrations()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: None,
+            Action.Type.GITHUB: "plan",
+        }
+
     def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()
         response = self.get_success_response(

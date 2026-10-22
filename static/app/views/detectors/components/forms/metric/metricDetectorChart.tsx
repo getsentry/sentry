@@ -2,10 +2,11 @@ import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import type {YAXisComponentOption} from 'echarts';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -14,13 +15,13 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {
   MetricCondition,
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -76,12 +77,12 @@ function anomalyMarklineTooltip(ctx: AnomalyTooltipContext) {
   ].join('');
 }
 
-function ChartError() {
+function ChartMessage({message}: {message: string}) {
   return (
     <Flex justify="center" align="center" height={`${CHART_HEIGHT}px`}>
       <ErrorPanel>
         <IconWarning variant="muted" size="lg" />
-        <div>{t('Error loading chart data')}</div>
+        <div>{message}</div>
       </ErrorPanel>
     </Flex>
   );
@@ -182,6 +183,8 @@ export function MetricDetectorChart({
     ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
     : extrapolationMode;
 
+  const isEmptyEquation = isEquation(aggregate) && !stripEquationPrefix(aggregate).trim();
+
   const {
     series,
     comparisonSeries,
@@ -201,6 +204,7 @@ export function MetricDetectorChart({
     comparisonDelta,
     eventTypes,
     extrapolationMode: adjustedExtrapolationMode,
+    options: {enabled: !isEmptyEquation},
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
@@ -213,7 +217,7 @@ export function MetricDetectorChart({
 
   const isAnomalyDetection = detectionType === 'dynamic';
   const shouldFetchAnomalies =
-    isAnomalyDetection && !isLoading && !error && series.length > 0;
+    isAnomalyDetection && !isEmptyEquation && !isLoading && !error && series.length > 0;
 
   // Fetch anomaly data when detection type is dynamic and series data is ready
   const {
@@ -234,7 +238,7 @@ export function MetricDetectorChart({
     interval,
     thresholdType,
     sensitivity,
-    enabled: isAnomalyDetection,
+    enabled: isAnomalyDetection && !isEmptyEquation,
   });
 
   // Create anomaly marker rendering from pre-grouped anomaly periods
@@ -367,11 +371,13 @@ export function MetricDetectorChart({
   }, [isAnomalyDetection, anomalyMarkerResult.incidentMarkerGrid, theme.space]);
 
   return (
-    <ChartContainer>
-      {isLoading ? (
+    <Container maxWidth="1440px">
+      {isEmptyEquation ? (
+        <ChartMessage message={t('Enter an equation to preview results')} />
+      ) : isLoading ? (
         <ChartLoading />
       ) : error ? (
-        <ChartError />
+        <ChartMessage message={t('Error loading chart data')} />
       ) : (
         <AreaChart
           isGroupedByDate
@@ -430,13 +436,9 @@ export function MetricDetectorChart({
           )}
         />
       </ChartFooter>
-    </ChartContainer>
+    </Container>
   );
 }
-
-const ChartContainer = styled('div')`
-  max-width: 1440px;
-`;
 
 const ChartFooter = styled('div')`
   display: flex;

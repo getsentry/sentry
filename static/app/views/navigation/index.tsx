@@ -5,12 +5,12 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {HoverOverlayGroupProvider} from '@sentry/scraps/useHoverOverlay';
 
 import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {t} from 'sentry/locale';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
@@ -18,8 +18,6 @@ import {
   NavigationTourProvider,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {
   MobileSecondaryNavigationContextProvider,
@@ -52,6 +50,7 @@ function CommandPaletteSlotOutlets() {
 }
 
 function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
+  const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
@@ -71,7 +70,7 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
     <NavigationLayout pageBannerHeight={pageBannerHeight}>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
-      <GlobalCommandPaletteActions />
+      {organization && <GlobalCommandPaletteActions />}
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
           <MobileNavigation />
@@ -80,14 +79,6 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
         <DesktopNavigation />
       )}
     </NavigationLayout>
-  );
-}
-
-function UserOnlyNavigation() {
-  return (
-    <PrimaryNavigation.Sidebar data-test-id="no-organization-sidebar">
-      <UserDropdown />
-    </PrimaryNavigation.Sidebar>
   );
 }
 
@@ -132,17 +123,6 @@ function NavigationLayout({
 }
 
 export function Navigation({pageBannerHeight = 0}: NavigationProps) {
-  const organization = useOrganization({allowNull: true});
-
-  if (!organization) {
-    // @TODO(JonasBadalic): When this page gets any content, we should add the skip link back in.
-    return (
-      <HoverOverlayGroupProvider>
-        <UserOnlyNavigation />
-      </HoverOverlayGroupProvider>
-    );
-  }
-
   return (
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>

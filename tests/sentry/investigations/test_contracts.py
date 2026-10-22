@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import orjson
 import pytest
@@ -13,16 +14,24 @@ from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     MAX_ARTIFACT_BYTES,
     MAX_PROJECTION_BYTES,
+    ActionPayloadSerializer,
+    ActionRequestedPayloadSerializer,
+    ActionWithdrawnPayloadSerializer,
     OrchestrationProjectionSerializer,
     RelaxedContractSerializer,
     ReportBlockStartedPayloadSerializer,
     ReportBlockUpsertedPayloadSerializer,
     ReportClearPayloadSerializer,
     ReportTextDeltaPayloadSerializer,
+    StrictCharField,
     json_byte_size,
+    valid_action_request,
+    valid_action_requests,
     validate_query_result,
     validate_text_result,
 )
+from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.investigations.services.action_kinds.base import ActionKind
 from sentry.utils import json
 
 FIXTURE = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v1.json"
@@ -225,13 +234,73 @@ def test_relaxed_serializer_passes_unknown_fields_through() -> None:
     assert result["seerAddedThisLater"] == {"nested": [1, 2, 3]}
 
 
-def test_relaxed_serializer_passes_unknown_nested_fields_through() -> None:
-    result = validated(
-        OrchestrationProjectionSerializer,
-        projection(broadScan={"status": "running", "seerAddedThisLater": "kept"}),
+def test_projection_preserves_nested_fields_and_adaptive_checks() -> None:
+    completed_step = {
+        "id": "step-1",
+        "order": 0,
+        "title": "Compare releases",
+        "objective": "Identify the affected release",
+        "method": "Compare errors by release",
+        "status": "completed",
+        "result": "Errors are concentrated in the latest release.",
+        "evidence": [
+            {
+                "id": "evidence-1",
+                "title": "Error in the latest release",
+                "kind": "event",
+                "projectIds": [1],
+            }
+        ],
+    }
+    pending_step = {
+        "id": "step-2",
+        "order": 1,
+        "title": "Compare regions",
+        "objective": "Identify regional differences",
+        "method": "Compare errors by region",
+        "status": "not_started",
+    }
+    payload = projection(
+        phase="investigating",
+        broadScan={"status": "completed", "seerAddedThisLater": "kept"},
+        hypotheses=[
+            hypothesis_with(
+                status="running",
+                effectiveStatus="investigating",
+                decisionSource="none",
+                verificationSteps=[completed_step, pending_step],
+            )
+        ],
     )
+    result = validated(OrchestrationProjectionSerializer, payload)
 
+    assert result["hypotheses"][0]["verificationSteps"] == [completed_step, pending_step]
     assert result["broadScan"]["seerAddedThisLater"] == "kept"
+
+    follow_up = {
+        "id": "step-3",
+        "order": 1,
+        "title": "Inspect the new errors",
+        "objective": "Identify the failure introduced by the release",
+        "method": "Inspect events from the affected release",
+        "status": "queued",
+        "parentStepId": "step-1",
+    }
+    skipped_step = {
+        **pending_step,
+        "order": 2,
+        "status": "skipped",
+        "skipReason": "Follow the release-specific evidence first.",
+    }
+    payload["hypotheses"][0]["verificationSteps"] = [completed_step, follow_up, skipped_step]
+
+    result = validated(OrchestrationProjectionSerializer, payload)
+
+    assert result["hypotheses"][0]["verificationSteps"] == [
+        completed_step,
+        follow_up,
+        skipped_step,
+    ]
 
 
 def test_projection_is_bounded_by_its_serialized_size() -> None:
@@ -561,3 +630,184 @@ def test_block_upsert_rejects_a_bad_display_beside_the_collapsed_flag() -> None:
         ReportBlockUpsertedPayloadSerializer,
         block_payload(collapsed=True, display="not-an-object"),
     )
+
+
+class _Payload(ActionPayloadSerializer):
+    target = StrictCharField(max_length=8)
+
+    @classmethod
+    def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
+        return None if action.get("target") == "advice" else action
+
+
+class _Kind(ActionKind):
+    kind = "test_kind"
+    payload_serializer = _Payload
+
+
+def fake_action(target: str = "a") -> dict[str, Any]:
+    return {"kind": "test_kind", "target": target}
+
+
+def fake_action_kind() -> Any:
+    """Register the test-only kind, for tests of the shared action request code."""
+    return patch.dict(ACTION_KINDS, {"test_kind": _Kind()})
+
+
+@pytest.fixture(autouse=True)
+def test_kind() -> Generator[None]:
+    with patch.dict(ACTION_KINDS, {"test_kind": _Kind()}):
+        yield
+
+
+def action_request(**overrides: Any) -> dict[str, Any]:
+    return {
+        "key": "widen-time-window",
+        "reportRevision": 2,
+        "title": "Widen the time window",
+        "rationale": "The window fires on short spikes.",
+        "impact": None,
+        "primary": True,
+        "anchor": None,
+        "action": {"kind": "test_kind", "target": "a"},
+        **overrides,
+    }
+
+
+def requested(item: Any) -> dict[str, Any] | None:
+    return validated(ActionRequestedPayloadSerializer, {"request": item})["request"]
+
+
+def test_action_requested_accepts_the_wire_shape() -> None:
+    result = requested(action_request(seerAddedThisLater=True))
+
+    assert result is not None
+    assert result["seerAddedThisLater"] is True
+    assert result["primary"] is True
+    assert result["action"] == {"kind": "test_kind", "target": "a"}
+
+
+def test_action_requests_default_to_unanchored_advice() -> None:
+    item = action_request(action=None)
+    del item["primary"], item["anchor"], item["action"]
+
+    result = requested(item)
+
+    assert result is not None
+    assert (result["primary"], result["anchor"], result["action"]) == (False, None, None)
+
+
+def test_action_requests_accept_anchors() -> None:
+    result = requested(action_request(primary=False, anchor={"type": "hypothesis", "id": "h-2"}))
+
+    assert result is not None
+    assert result["anchor"] == {"type": "hypothesis", "id": "h-2"}
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"key": "Widen"},
+        {"key": "-widen"},
+        {"key": "a" * 65},
+        {"reportRevision": "2"},
+        {"title": ""},
+        {"title": "x" * 201},
+        {"rationale": "x" * 1_001},
+        {"impact": "x" * 1_001},
+        {"primary": "true"},
+        {"anchor": {"type": "chart", "id": "b-1"}},
+        {"anchor": {"type": "block", "id": "x" * 129}},
+        {"anchor": {"type": "block", "id": "b-1", "extra": True}},
+        {"action": {"kind": "seer_task", "prompt": "Add retry spans"}},
+        {"action": {"kind": "test_kind", "target": "x" * 9}},
+        {"action": "test_kind"},
+    ],
+)
+def test_malformed_action_requests_are_dropped(overrides: dict[str, Any]) -> None:
+    assert requested(action_request(**overrides)) is None
+    assert requested("not an object") is None
+
+
+def test_a_trimmed_away_action_keeps_the_request_as_advice() -> None:
+    result = requested(action_request(action={"kind": "test_kind", "target": "advice"}))
+
+    assert result is not None
+    assert result["action"] is None
+    assert result["title"] == "Widen the time window"
+
+
+def test_snapshot_action_requests_keep_the_first_valid_unique_keys() -> None:
+    result = valid_action_requests(
+        [
+            "not an object",
+            action_request(key="r0"),
+            action_request(key="r0", title="Duplicate"),
+            action_request(key="r1", action={"kind": "unknown"}),
+            action_request(key="r2"),
+        ]
+    )
+
+    assert [(item["key"], item["title"]) for item in result] == [
+        ("r0", "Widen the time window"),
+        ("r2", "Widen the time window"),
+    ]
+
+
+def test_action_withdrawn_payload() -> None:
+    assert validated(
+        ActionWithdrawnPayloadSerializer, {"key": "widen", "reason": "Spikes are real."}
+    ) == {"key": "widen", "reason": "Spikes are real."}
+    rejects(ActionWithdrawnPayloadSerializer, {"key": "widen"})
+    rejects(ActionWithdrawnPayloadSerializer, {"key": "widen", "reason": "x" * 1_001})
+
+
+def test_projection_passes_the_next_step_through() -> None:
+    report = {**projection()["report"], "nextStep": {"status": "unknown"}}
+
+    result = validated(OrchestrationProjectionSerializer, projection(report=report))
+
+    assert result["report"]["nextStep"] == {"status": "unknown"}
+
+
+def test_dropped_requests_are_logged_only_when_asked() -> None:
+    bad = action_request(key="Bad")
+
+    with patch("sentry.investigations.contracts.logger") as logger:
+        assert valid_action_request(bad) is None
+        logger.warning.assert_not_called()
+
+        assert valid_action_request(bad, log=True) is None
+        logger.warning.assert_called_once()
+        assert logger.warning.call_args.args == ("investigations.action_requests.dropped",)
+
+
+def test_trimmed_actions_are_logged_only_when_asked() -> None:
+    advice = action_request(action={"kind": "test_kind", "target": "advice"})
+
+    with patch("sentry.investigations.contracts.logger") as logger:
+        assert valid_action_request(advice) is not None
+        logger.warning.assert_not_called()
+
+        assert valid_action_request(advice, log=True) is not None
+        logger.warning.assert_called_once()
+        assert logger.warning.call_args.args == ("investigations.action_requests.action_trimmed",)
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        {
+            "kind": "update_detector",
+            "detectorId": "4821",
+            "before": {"timeWindowSeconds": 300},
+            "changes": {"timeWindowSeconds": 900},
+        },
+        {"kind": "connect_telemetry", "provider": "datadog"},
+    ],
+)
+def test_registered_kinds_validate_their_actions(action: dict[str, Any]) -> None:
+    result = requested(action_request(action=action))
+
+    assert result is not None
+    assert result["action"] == action

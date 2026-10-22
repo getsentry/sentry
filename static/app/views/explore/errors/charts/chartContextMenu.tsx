@@ -1,9 +1,10 @@
 import {useMemo} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DisabledText} from 'sentry/views/explore/components/chartContextMenu';
@@ -73,13 +74,15 @@ export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
 
   return (
     <DropdownMenu
-      triggerProps={{
-        size: 'xs',
-        variant: 'transparent',
-        showChevron: false,
-        'aria-label': t('Context Menu'),
-        icon: <IconEllipsis />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="xs"
+          variant="transparent"
+          aria-label={t('Context Menu')}
+          icon={<IconEllipsis />}
+        />
+      )}
       position="bottom-end"
       items={items}
     />

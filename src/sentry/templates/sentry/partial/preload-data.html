@@ -20,35 +20,38 @@
     }
 
     async function promiseRequest(url) {
-      try {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json; charset=utf-8',
-            'Content-Type': 'application/json',
-            'sentry-trace': window.__initialData.initialTrace.sentry_trace,
-            'baggage': window.__initialData.initialTrace.baggage,
-          },
-          credentials: 'include',
-          priority: 'high',
-        });
-        if (response.status >= 200 && response.status < 300) {
-          const text = await response.text();
-          const json = JSON.parse(text);
-          // Matching ResponseMeta from api
-          const responseMeta = {
-            status: response.status,
-            statusText: response.statusText,
-            responseJSON: json,
-            responseText: text,
-            getResponseHeader: (header) => response.headers.get(header),
-          };
-          return [json, response.statusText, responseMeta];
-        }
-        throw [response.status, response.statusText];
-      } catch (error) {
-        throw [error.status, error.statusText];
+      // Network and JSON parse failures reject with their original errors
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json; charset=utf-8',
+          'Content-Type': 'application/json',
+          'sentry-trace': window.__initialData.initialTrace.sentry_trace,
+          'baggage': window.__initialData.initialTrace.baggage,
+        },
+        credentials: 'include',
+        priority: 'high',
+      });
+      if (response.status >= 200 && response.status < 300) {
+        const text = await response.text();
+        const json = JSON.parse(text);
+        // Matching ResponseMeta from api
+        const responseMeta = {
+          status: response.status,
+          statusText: response.statusText,
+          responseJSON: json,
+          responseText: text,
+          getResponseHeader: (header) => response.headers.get(header),
+        };
+        return [json, response.statusText, responseMeta];
       }
+      const error = new Error(
+        'Preload request failed with status ' + response.status + ' ' + response.statusText
+      );
+      error.name = 'PreloadRequestError';
+      error.status = response.status;
+      error.statusText = response.statusText;
+      throw error;
     }
 
     function makeUrl(suffix) {
@@ -58,15 +61,46 @@
     var preloadPromises = {orgSlug: slug};
     window.__sentry_preload = preloadPromises;
 
+    // The SDK is not loaded yet, so record each request's outcome for the app
+    // to report as metrics once it initializes. Handling the rejection here
+    // also keeps failed requests from surfacing as unhandled rejections; the
+    // bootstrap queries still receive the rejected request promise.
+    var preloadResults = {};
+    window.__sentry_preload_results = preloadResults;
+
+    function trackRequest(name, url) {
+      var startTime = performance.now();
+      var promise = promiseRequest(url);
+      preloadResults[name] = promise.then(
+        (result) => ({
+          outcome: 'success',
+          status: result[2].status,
+          durationMs: performance.now() - startTime,
+        }),
+        (error) => ({
+          outcome: 'error',
+          status: error.status,
+          error: error,
+          errorName: error.name,
+          durationMs: performance.now() - startTime,
+        })
+      );
+      return promise;
+    }
+
     if (!slug) {
       return;
     }
 
-    preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0&include_feature_flags=1'));
-    preloadPromises.projects = promiseRequest(
+    preloadPromises.organization = trackRequest(
+      'organization',
+      makeUrl('/?detailed=0&include_feature_flags=1')
+    );
+    preloadPromises.projects = trackRequest(
+      'projects',
       makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
     );
-    preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+    preloadPromises.teams = trackRequest('teams', makeUrl('/teams/'));
   }
 
   try {

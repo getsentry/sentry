@@ -15,6 +15,7 @@ from sentry.notifications.platform.templates.activity.base import (
     build_activity_notification_data,
     build_footer,
     build_issue_link,
+    build_subject_prefix,
     create_activity_notification_example,
     get_issue_description,
 )
@@ -38,6 +39,13 @@ from sentry.utils.http import absolute_uri
 
 
 class ActivityAlertBaseTest(TestCase):
+    def setUp(self) -> None:
+        self.target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.EMAIL,
+            resource_type=NotificationTargetResourceType.EMAIL,
+            resource_id=str(self.user.id),
+        )
+
     def test_all_seer_activity_types_mapped(self) -> None:
         seer_types = [
             ActivityType.SEER_RCA_STARTED,
@@ -128,7 +136,9 @@ class ActivityAlertBaseTest(TestCase):
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
         )
-        data = build_activity_notification_data(activity, workflow_id=workflow.id)
+        data = build_activity_notification_data(
+            activity=activity, target=self.target, workflow_id=workflow.id
+        )
 
         assert isinstance(data, ActivityNotificationData)
         assert data.source == NotificationSource.ACTIVITY_SEER_RCA_STARTED
@@ -150,9 +160,45 @@ class ActivityAlertBaseTest(TestCase):
             query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
         )
         assert data.activity_data == activity.data
-        assert data.user_settings_url is None
+        assert data.user_settings_url == self.organization.absolute_url(
+            "settings/account/notifications/alerts/",
+            query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
+        )
+        assert data.email_headers is None
+        assert data.email_subject_prefix == "[Sentry] "
+        assert data.enhanced_privacy is False
 
-    def test_build_activity_notification_data_user_settings_url_email_with_workflow(self) -> None:
+    def test_build_activity_notification_data_enhanced_privacy(self) -> None:
+        self.organization.flags.enhanced_privacy = True
+        self.organization.save()
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+
+        data = build_activity_notification_data(activity=activity, target=self.target)
+
+        assert data.enhanced_privacy is True
+
+    def test_build_subject_prefix(self) -> None:
+        data = create_activity_notification_example(ActivityType.SET_RESOLVED)
+
+        subject_prefix = build_subject_prefix(data)
+
+        assert subject_prefix.type == NotificationTextBlockType.PLAIN_TEXT
+        assert subject_prefix.text == "JAVASCRIPT-1 - ExampleError: something went wrong"
+
+    def test_build_subject_prefix_enhanced_privacy(self) -> None:
+        data = create_activity_notification_example(ActivityType.SET_RESOLVED).copy(
+            update={"enhanced_privacy": True}
+        )
+
+        subject_prefix = build_subject_prefix(data)
+
+        assert subject_prefix.type == NotificationTextBlockType.PLAIN_TEXT
+        assert subject_prefix.text == "JAVASCRIPT-1"
+
+    def test_build_activity_notification_data_user_settings_url_to_alerts(self) -> None:
         workflow = self.create_workflow(
             name="my_workflow",
             when_condition_group=self.create_data_condition_group(),
@@ -161,30 +207,20 @@ class ActivityAlertBaseTest(TestCase):
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
         )
-        target = GenericNotificationTarget(
-            provider_key=NotificationProviderKey.EMAIL,
-            resource_type=NotificationTargetResourceType.EMAIL,
-            resource_id=str(self.user.id),
+        data = build_activity_notification_data(
+            activity=activity, target=self.target, workflow_id=workflow.id
         )
-        data = build_activity_notification_data(activity, workflow_id=workflow.id, target=target)
 
         assert data.user_settings_url is not None
         assert "notifications/alerts/" in data.user_settings_url
         assert f"referrer={ACTIVITY_NOTIFICATION_REFERRER}" in data.user_settings_url
 
-    def test_build_activity_notification_data_user_settings_url_email_without_workflow(
-        self,
-    ) -> None:
+    def test_build_activity_notification_data_user_settings_url_to_workflow(self) -> None:
         activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
         )
-        target = GenericNotificationTarget(
-            provider_key=NotificationProviderKey.EMAIL,
-            resource_type=NotificationTargetResourceType.EMAIL,
-            resource_id=str(self.user.id),
-        )
-        data = build_activity_notification_data(activity, target=target)
+        data = build_activity_notification_data(activity=activity, target=self.target)
 
         assert data.user_settings_url is not None
         assert "notifications/workflow/" in data.user_settings_url
@@ -200,7 +236,7 @@ class ActivityAlertBaseTest(TestCase):
             resource_type=NotificationTargetResourceType.DIRECT_MESSAGE,
             resource_id="U12345",
         )
-        data = build_activity_notification_data(activity, target=target)
+        data = build_activity_notification_data(activity=activity, target=target)
 
         assert data.user_settings_url is not None
         assert "notifications/workflow/" in data.user_settings_url
@@ -216,7 +252,7 @@ class ActivityAlertBaseTest(TestCase):
             resource_type=NotificationTargetResourceType.CHANNEL,
             resource_id="C12345",
         )
-        data = build_activity_notification_data(activity, target=target)
+        data = build_activity_notification_data(activity=activity, target=target)
 
         assert data.user_settings_url is None
 
@@ -225,7 +261,7 @@ class ActivityAlertBaseTest(TestCase):
         activity = self.create_group_activity(
             group=self.group, type=ActivityType.SEER_RCA_STARTED.value
         )
-        data = build_activity_notification_data(activity)
+        data = build_activity_notification_data(activity=activity, target=self.target)
 
         expected_inbox_url = self.organization.absolute_url(
             f"organizations/{self.organization.slug}/issues/inbox/",
@@ -244,7 +280,7 @@ class ActivityAlertBaseTest(TestCase):
         activity = self.create_group_activity(
             group=self.group, type=ActivityType.SET_RESOLVED.value
         )
-        data = build_activity_notification_data(activity)
+        data = build_activity_notification_data(activity=activity, target=self.target)
 
         expected_issue_url = self.group.get_absolute_url(
             params={"referrer": ACTIVITY_NOTIFICATION_REFERRER}
@@ -257,7 +293,7 @@ class ActivityAlertBaseTest(TestCase):
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             data={"version": "1.2.3"},
         )
-        data = build_activity_notification_data(activity)
+        data = build_activity_notification_data(activity=activity, target=self.target)
 
         assert isinstance(data, SetResolvedInReleaseNotificationData)
         assert data.release_url == self.organization.absolute_url(
@@ -290,8 +326,8 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
     def test_get_status_change_subject_with_short_id(self) -> None:
         data = create_activity_notification_example(ActivityType.SET_RESOLVED)
         subject = get_status_change_subject(data)
-        assert subject[0].type == NotificationTextBlockType.CODE
-        assert subject[0].text == "JAVASCRIPT-1"
+        assert subject[0].type == NotificationTextBlockType.PLAIN_TEXT
+        assert subject[0].text == "JAVASCRIPT-1 - ExampleError: something went wrong"
         assert "was resolved" in subject[1].text
 
     def test_get_status_change_subject_without_short_id(self) -> None:
@@ -299,8 +335,9 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
             update={"issue_short_id": None, "activity_user_name": None}
         )
         subject = get_status_change_subject(data)
-        assert len(subject) == 1
-        assert "A Sentry Issue was resolved" in subject[0].text
+        assert len(subject) == 2
+        assert subject[0].text == "An Issue"
+        assert subject[1].text == "was resolved"
 
     def test_get_status_change_subject_with_user(self) -> None:
         data = create_activity_notification_example(ActivityType.SET_RESOLVED)

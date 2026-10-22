@@ -4,8 +4,7 @@ import {ListBox} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-import type {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from '@sentry/scraps/theme';
 
 // Emotion retains Input's ref type after changing the rendered element.
 const InputDiv = Input.withComponent('div') as React.ComponentType<
@@ -20,6 +19,13 @@ export const ComposerEditor = styled(InputDiv)`
   line-height: ${p => p.theme.font.lineHeight.comfortable};
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+
+  /* iOS Safari zooms the page when focusing an editable element with text
+     smaller than 16px, which can push adjacent controls such as a send button
+     off-screen. */
+  @media (hover: none) and (pointer: coarse) {
+    font-size: ${p => p.theme.font.size.lg};
+  }
 
   & [data-mention] {
     font-weight: ${p => p.theme.font.weight.sans.medium};

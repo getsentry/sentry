@@ -16,7 +16,7 @@ import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofi
 
 export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Project}) => {
   const {openDrawer} = useDrawer();
-  const [{seerDrawer, seerDrawerAction}, setDrawerQuery] = useQueryStates(
+  const [{seerDrawer}, setDrawerQuery] = useQueryStates(
     {
       seerDrawer: parseAsBoolean.withDefault(false),
       seerDrawerAction: parseAsString,
@@ -33,17 +33,11 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
     }
 
     // Autofix has its own tab behind the flag, so every entry point that used
-    // to open the drawer navigates there instead — including legacy
-    // `?seerDrawer=true` URLs, which land here and get forwarded.
+    // to open the drawer navigates there instead. Legacy `?seerDrawer=true` URLs
+    // are redirected by the issue details page and never reach here.
     if (hasAutofixPage(organization)) {
       navigate(
-        makeSeerLocation({
-          organization,
-          groupId: group.id,
-          action: seerDrawerAction ?? undefined,
-          query: location.query,
-        }),
-        {replace: seerDrawer}
+        makeSeerLocation({organization, groupId: group.id, query: location.query})
       );
       return;
     }
@@ -80,7 +74,6 @@ export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Proj
     group,
     project,
     seerDrawer,
-    seerDrawerAction,
     setDrawerQuery,
     organization,
     navigate,

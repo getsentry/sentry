@@ -29,7 +29,7 @@ def format_pull_requests_payload(state: SeerRunState) -> list[dict]:
                 "pr_url": pull_request.pr_url,
             },
         }
-        for pull_request in state.repo_pr_states.values()
+        for pull_request in state.get_created_pull_request_states()
     ]
 
 
@@ -53,6 +53,8 @@ def emit_pr_ready_for_review(
     pull_requests = format_pull_requests_payload(state)
     if filtered_repos:
         pull_requests = [pr for pr in pull_requests if pr["repo_name"] in filtered_repos]
+    if not pull_requests:
+        return
 
     payload = {
         "run_id": state.run_id,

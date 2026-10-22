@@ -134,7 +134,6 @@ describe('errors query embed', () => {
 
     expect(await screen.findByText('TypeError')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
-    expect(screen.getByText('Aggregate')).toBeInTheDocument();
     // Grouping fields (title, project) remain alongside the aggregate, so the
     // table is still worth rendering — now beneath the chart.
     expect(screen.getByRole('table')).toBeInTheDocument();

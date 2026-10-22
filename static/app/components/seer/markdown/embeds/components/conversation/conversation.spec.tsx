@@ -79,6 +79,20 @@ describe('conversation embed', () => {
       body: {
         conversationId: CONVERSATION_ID,
         title: 'Out of memory investigation',
+        stats: {
+          endTimestamp: 1_000_500,
+          generationDuration: 2500,
+          inputTokens: 0,
+          llmCalls: 3,
+          outputTokens: 0,
+          startTimestamp: 1_000_000,
+          toolCalls: 0,
+          toolErrors: 0,
+          toolNames: [],
+          totalCost: 0.42,
+          totalTokens: 1200,
+          usageByModel: [],
+        },
         spans: [
           spanFixture({
             span_id: 'span-a',
@@ -122,8 +136,10 @@ describe('conversation embed', () => {
     expect(screen.queryByText('LLM Calls')).not.toBeInTheDocument();
     expect(screen.queryByText('Tokens')).not.toBeInTheDocument();
 
-    // Summed generation-span duration: the one span runs 1000 -> 1000.5s.
-    expect(screen.getByText('500.00ms')).toBeInTheDocument();
+    // Conversation-level values come from API stats, not loaded span page.
+    expect(screen.getByText('2.50s')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('$0.42')).toBeInTheDocument();
 
     // The embed renders inside an agent conversation, so it deliberately shows
     // the totals only -- a nested transcript reads as part of the answer.

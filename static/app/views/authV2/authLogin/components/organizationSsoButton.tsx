@@ -9,14 +9,24 @@ import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuth
 
 interface OrganizationSsoButtonProps {
   authOrganization: AuthOrganization;
+  hideWhenUnavailable?: boolean;
+  ssoFormAction?: string;
 }
 
-export function OrganizationSsoButton({authOrganization}: OrganizationSsoButtonProps) {
+export function OrganizationSsoButton({
+  authOrganization,
+  hideWhenUnavailable = false,
+  ssoFormAction,
+}: OrganizationSsoButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {provider} = authOrganization;
 
+  if (!provider && hideWhenUnavailable) {
+    return null;
+  }
+
   return (
-    <form method="POST" onSubmit={() => setIsSubmitting(true)}>
+    <form action={ssoFormAction} method="POST" onSubmit={() => setIsSubmitting(true)}>
       <input type="hidden" name="csrfmiddlewaretoken" value={getCsrfToken()} />
       <input type="hidden" name="init" value="1" />
       <Tooltip

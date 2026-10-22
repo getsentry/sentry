@@ -37,6 +37,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 
+pytestmark = pytest.mark.usefixtures("skip_group_attributes_snapshots")
+
 GOOD_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 MAX_USER_PATH = get_fixture_path("backup", "user-with-maximum-privileges.json")
 MIN_USER_PATH = get_fixture_path("backup", "user-with-minimum-privileges.json")

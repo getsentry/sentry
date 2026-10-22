@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/close';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {HighlightText, type SelectOptionWithKey} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DeviceName} from 'sentry/components/deviceName';
@@ -29,7 +30,9 @@ import {
   type CustomComboboxMenu,
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
+import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
@@ -75,7 +78,6 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -586,7 +588,10 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
   const selected = selectedValueMap.get(value) ?? false;
 
   return (
-    <TrailingWrap
+    <Grid
+      align="center"
+      gap="md"
+      flow="column"
       onPointerUp={e => e.stopPropagation()}
       onMouseUp={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
@@ -619,7 +624,7 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
           tabIndex={-1}
         />
       </CheckWrap>
-    </TrailingWrap>
+    </Grid>
   );
 }
 
@@ -869,9 +874,14 @@ export function SearchQueryBuilderValueCombobox({
     // a long neighbouring chip can't keep it off-screen.
     const containerRect = container.getBoundingClientRect();
     const inputRect = input.getBoundingClientRect();
+    // An input wider than the row can't be brought fully into view.
+    const isWiderThanRow = inputRect.width > containerRect.width;
+    if (isWiderThanRow && input.selectionStart !== input.value.length) {
+      return;
+    }
     if (inputRect.right > containerRect.right) {
       container.scrollLeft += inputRect.right - containerRect.right;
-    } else if (inputRect.left < containerRect.left) {
+    } else if (inputRect.left < containerRect.left && !isWiderThanRow) {
       container.scrollLeft -= containerRect.left - inputRect.left;
     }
   }, []);
@@ -1312,6 +1322,11 @@ export function SearchQueryBuilderValueCombobox({
     [dispatch, fieldDefinition, selectedValues, token]
   );
 
+  const focusInputFromDelimiter = (e: React.MouseEvent) => {
+    e.preventDefault();
+    inputRef.current?.focus();
+  };
+
   const editValue = (index: number) => {
     const target = selectedValues[index];
     if (!target) {
@@ -1424,6 +1439,7 @@ export function SearchQueryBuilderValueCombobox({
         inputValue={inputValue}
         filterValue={filterValue}
         placeholder={placeholder}
+        renderInputValue={isRegexValue ? renderRegexPattern : undefined}
         token={token}
         inputLabel={t('Edit filter value')}
         keepVisibleRef={ref}
@@ -1463,18 +1479,29 @@ export function SearchQueryBuilderValueCombobox({
   const inputSlot = editingChip
     ? committedValues.filter(v => v.index < editingChip.index).length
     : chips.length;
-  const chipRow = [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const chipRow = isRegexValue
+    ? [
+        <RegexDelimiter
+          key="regex-start"
+          onMouseDown={focusInputFromDelimiter}
+          paddingRight="2xs"
+        />,
+        valueInput,
+        <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
+      ]
+    : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const rowScrolls = canSelectMultipleValues || isRegexValue;
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
         <ValueEditingChips
           align="center"
-          gap="2xs"
+          gap={isRegexValue ? undefined : '2xs'}
           minWidth="0"
           height="100%"
-          overflowX={canSelectMultipleValues ? 'auto' : undefined}
-          overflowY={canSelectMultipleValues ? 'hidden' : undefined}
+          overflowX={rowScrolls ? 'auto' : undefined}
+          overflowY={rowScrolls ? 'hidden' : undefined}
           ref={ref}
           data-test-id="filter-value-editing"
         >
@@ -1551,13 +1578,6 @@ const ValueChipRemove = styled('button')`
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   ${chipButton}
-`;
-
-const TrailingWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
 `;
 
 const ValueCount = styled('span')`

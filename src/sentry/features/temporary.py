@@ -40,22 +40,18 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Kill switch for the agentic triage free cohort — enabling this flag shuts off agentic triage for all free cohort orgs
     manager.add("organizations:agentic-triage-free-cohort-killswitch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables alert creation on indexed events in UI (use for PoC/testing only)
-    manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-based issue detection for an organization
     manager.add("organizations:ai-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable anomaly detection feature for EAP spans
-    manager.add("organizations:anomaly-detection-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable array fields in trace item details endpoint
     manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable array query support for trace items (array attributes in querying/autocomplete)
     manager.add("organizations:trace-item-array-query-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Allow querying the EAP occurrences dataset via the events endpoint (testing / perf validation)
+    manager.add("organizations:test-occurrences-dataset", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the Settings > Attributes browser & editor page
+    manager.add("organizations:attribute-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Auth V2 toggle
     manager.add("organizations:authv2-enable-toggle", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Roll out Auth V2 to members of enabled organizations
-    manager.add("organizations:authv2-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Auto-link repos to projects by matching repo name suffix to project slug
-    manager.add("organizations:auto-link-repos-by-name", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose the per-project toggle for auto-creating releases from ingested telemetry
     manager.add("organizations:auto-release-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:azure-symbol-sources", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -67,6 +63,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable storing and downloading attachments (e.g. Perfetto traces) on profile chunks
     manager.add("organizations:continuous-profiling-perfetto", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Disable alertRule requests and responses on cron monitor endpoints
+    manager.add("organizations:crons-disable-alert-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the ingestion of profile functions metrics into EAP
     manager.add("projects:profile-functions-metrics-eap-ingestion", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables read only dashboards
@@ -88,8 +86,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-user-last-visited", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the use of the events timeseries endpoint for dashboard widgets
     manager.add("organizations:dashboards-widgets-use-events-timeseries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the events timeseries spot check for dashboard widgets
-    manager.add("organizations:dashboards-widgets-events-timeseries-spot-check", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -98,16 +94,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:default-anomaly-detector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the discover saved queries deprecation warnings
     manager.add("organizations:discover-saved-queries-deprecation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable discover queries migration to all queries features
-    manager.add("organizations:discover-queries-in-all-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable migration of transaction widgets and queries to spans
     manager.add("organizations:migrate-transaction-queries-to-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable migration of transaction alerts and queries to spans
     manager.add("organizations:migrate-transaction-alerts-to-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable migration of AM1 metrics alerts to transactions
     manager.add("organizations:migrate-am1-metrics-alerts-to-transactions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable deprecation of Discover as a product
-    manager.add("organizations:deprecate-discover", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable custom dynamic sampling rates
     manager.add("organizations:dynamic-sampling-custom", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dynamic sampling minimum sample rate
@@ -116,12 +108,14 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:explore-data-fidelity-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable explore -> errors ui
     manager.add("organizations:explore-errors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable interpolation and smoothing for Explore charts
+    manager.add("organizations:explore-interpolation-and-smoothing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable returning the migrated discover queries in explore saved queries
     manager.add("organizations:expose-migrated-discover-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable organization investigation notebooks.
     manager.add("organizations:investigations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the 'translate' functionality for GenAI on the explore > traces page
-    manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable starting investigations from Slack metric alerts. Needs investigations too.
+    manager.add("organizations:investigations-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable AI search bar on the issues page
     manager.add("organizations:gen-ai-issues-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable LLM-generated title and description for external issue details
@@ -129,6 +123,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:inbound-filters-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the custom inbound filters table in project settings. Needs inbound-filters-v2 too.
     manager.add("organizations:inbound-filters-v2-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Suggest a name for a custom inbound filter draft with Seer. Needs inbound-filters-v2 too.
+    manager.add("organizations:inbound-filters-name-suggestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Offer custom inbound filter entry points outside of project settings, e.g. in the issue actions menu. Needs inbound-filters-v2 and inbound-filters-v2-ui too.
+    manager.add("organizations:inbound-filters-in-product-flows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Double write the legacy inbound filter lists into custom filter rows for this org, ahead of the per-list stage option.
+    manager.add("organizations:inbound-filters-legacy-double-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Serve the legacy IP address list to Relay as a generic filter instead of the native clientIps setting.
     manager.add("organizations:inbound-filters-generic-ip-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GPU crash dump symbolication via teapot
@@ -141,6 +141,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:measured-ingestion-delay-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gcp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Lets Vercel builds call the API with Vercel's OIDC token instead of SENTRY_AUTH_TOKEN
+    manager.add("organizations:integrations-vercel-oidc-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:integrations-vercel-upsert-env-var", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:integrations-datadog", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-cursor-origin", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -171,8 +173,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable higher limit for workflows
     manager.add("organizations:more-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Extract variables from native crash debug info (DWARF/PDB)
-    manager.add("organizations:native-variable-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:native-variable-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mcp-issue-view-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Use Seer search agent translation for natural-language queries in the MCP search_events tool. Read by the MCP server, so it must be exposed.
+    manager.add("organizations:mcp-search-events-seer-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
@@ -188,28 +192,20 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-agentic-setup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SCM-first onboarding flow with provider connection, platform detection, and feature selection steps
     manager.add("organizations:onboarding-scm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Experiment: SCM onboarding A/B test measuring conversion impact
-    manager.add("organizations:onboarding-scm-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding messaging step A/B test (treatment adds a messaging/alerting step before SDK setup)
     manager.add("organizations:onboarding-scm-messaging-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SCM-first project creation flow
     manager.add("organizations:onboarding-scm-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Experiment: SCM-first project creation wizard A/B test (project creation flow, not new-org onboarding)
-    manager.add("organizations:onboarding-scm-project-creation-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Write newly created debug files exclusively to Objectstore without creating a File.
     manager.add("organizations:objectstore-debugfiles-exclusive-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Double-write newly created debug files to Objectstore.
     manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Read debug files from Objectstore when an Objectstore copy is available.
     manager.add("organizations:objectstore-debugfiles-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
-    # Redirect debug file download requests to read directly from Objectstore, instead of proxying file contents through Sentry.
-    manager.add("organizations:objectstore-debugfiles-direct-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
     manager.add("organizations:ownership-size-limit-xlarge", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enables setting the fetch all custom measurements request time range to match the user selected time range instead of 90 days
-    manager.add("organizations:performance-discover-get-custom-measurements-reduced-range", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Detect performance issues in the new standalone spans pipeline instead of on transactions
     manager.add("organizations:performance-issues-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Load slow-query issue evidence from the spans dataset.
@@ -220,10 +216,14 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the warning banner to inform users of pending deprecation of the transactions dataset
     manager.add("organizations:performance-transaction-deprecation-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the cache lifecycle section in trace view span details
+    manager.add("organizations:performance-trace-cache-lifecycle", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Create issue activities for pull request lifecycle events
     manager.add("organizations:pr-lifecycle-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable enforcement of preprod distribution quota checks (when disabled, distribution quota checks always return True)
     manager.add("organizations:preprod-enforce-distribution-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable billing outcome emission for snapshot images
+    manager.add("organizations:preprod-snapshot-billing-outcomes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod PR comments for size analysis
     manager.add("organizations:preprod-size-analysis-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod size monitors frontend
@@ -232,10 +232,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:monitor-duplication", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable derivation of the `client_kind` API-usage attribute.
-    manager.add("organizations:api-client-kind-check", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable granular permission scopes (e.g. dashboard:read/write/delete) on API endpoints.
     manager.add("organizations:granular-permission-scopes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
+    # Enable the granular permission scope UX when creating and editing tokens.
+    manager.add("organizations:granular-permission-scopes-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     manager.add("organizations:sourcemap-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -265,6 +265,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the Seer Automations UI and APIs
+    manager.add("organizations:seer-automations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Agent Index job
     manager.add("organizations:seer-explorer-index", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer agentic triage scheduled autofix
@@ -279,8 +281,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-smart-assignment-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display the Seer agentic triage UI
     manager.add("organizations:seer-night-shift-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Route autofix code changes through the Seer autofix feature
-    manager.add("organizations:autofix-code-changes-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Run Seer Autofix with only the code mode tools
+    manager.add("organizations:seer-autofix-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     # Enable context engine experimental contexts
     manager.add("organizations:context-engine-experiments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -290,12 +292,20 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-context-engine-allow-fe-override", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable frontend override UI component for context engine (only for AI/ML/Reasoning platform team)
     manager.add("organizations:seer-explorer-context-engine-fe-override-ui-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Agent-created PRs in Ask Seer chat; overrides seer-explorer-chat-coding
+    manager.add("organizations:ask-seer-create-pr", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable code editing tools in Seer Agent chat
     manager.add("organizations:seer-explorer-chat-coding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Accept a chat prompt ("Ask Seer" question) and its context alongside a Seer Agent chat message
+    manager.add("organizations:seer-explorer-chat-prompts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable sentry source code search tool
     manager.add("organizations:seer-agent-source-code-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable code mode tools (sentry_api_search/execute) in Seer Agent
     manager.add("organizations:seer-explorer-code-mode-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable LLM-generated suggestions in the Seer Agent chat empty state
+    manager.add("organizations:seer-chat-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable action suggestions (create or edit items) alongside questions in Seer Agent chat suggestions
+    manager.add("organizations:seer-chat-suggestions-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Gate Seer agent writes behind short-lived, scope-bound capability tokens + user-approved grants
     manager.add("organizations:seer-agent-token-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable code mode tools for Slack-initiated Explorer sessions
@@ -314,8 +324,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-browser-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
     manager.add("organizations:autofix-seer-agent-debug", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable autofix introspection for early stopping of autofix runs
-    manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the PR iteration feedback flow in the explorer autofix drawer
     manager.add("organizations:autofix-pr-iteration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable human-triggered PR iteration: the drawer feedback form, `@sentry` PR
@@ -347,10 +355,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-cursor-origin-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer XRay Mode, the overlay that highlights LLM-context-registered DOM nodes
     manager.add("organizations:seer-xray", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Append a "text" summary to SentryApp webhooks sent to Claude Code routine fire URLs
-    manager.add("organizations:sentry-apps-claude-routine-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable prefill templates on the internal integration creation page
     manager.add("organizations:sentry-apps-creation-templates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the service account APIs (currently mocked)
+    manager.add("organizations:service-accounts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Disable select orgs from ingesting mobile replay events.
     # Enable double-read from EAP for session health data validation
     manager.add("organizations:session-health-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -359,35 +367,31 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable core Session Replay link in the sidebar
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
-    # Enable new stack trace component for issue details
-    manager.add("organizations:issue-details-new-stack-trace", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use a data-driven Problem section for low-value span issues
     manager.add("organizations:issue-details-generic-problem-section", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable double-reading from EAP for issue feed search queries
     manager.add("organizations:issue-feed.eap-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Fetch CI check status from the provider for pull requests linked to an issue
     manager.add("organizations:issue-pr-checks-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Merge issue platform category searches into a single Snuba query
-    manager.add("organizations:issue-search-merged-generic-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Enables the shared issue/event formatter module (markdown/xml output for LLMs)
     manager.add("organizations:issue-standardized-markdown-for-llm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Same formatter, rolled out separately for API clients (the MCP) -- they share the
     # endpoints with the UI but not its content needs, so the two ramp independently
     manager.add("organizations:issue-standardized-markdown-for-llm-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Batch latest-event attachment lookups in the issue stream
-    manager.add("organizations:issue-stream-batched-latest-event-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Skip the control-silo integration fetch when annotating groups with no linked issues
     manager.add("organizations:issue-annotations-skip-integration-fetch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Show the "recommended" sort as an option in the issue stream sort dropdown
-    manager.add("organizations:issue-stream-recommended-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Generate an issue summary when an issue is assigned for the first time
+    manager.add("organizations:issue-summary-on-first-assignment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Make the "recommended" sort the default sort in the issue stream
     manager.add("organizations:issue-stream-recommended-sort-default", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve the recommended_v2 scorer behind the issue stream's "recommended" sort
     manager.add("organizations:issue-stream-recommended-sort-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Enable settings v3 - new experience
+    manager.add("organizations:settings-v3", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SAML2 Single-logout
     manager.add("organizations:sso-saml2-slo", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable visibility and access to insight modules
@@ -426,17 +430,19 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seat-based-seer-entitlement-service", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Organizations with usage-based Seer enabled through billing platform.
     manager.add("organizations:token-billed-seer-enabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Render Sentry App schema-backed forms using the backend JSON form adapter.
-    manager.add("organizations:sentry-app-schema-form-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enable new SentryApp webhook request endpoint
     # Enable static ClickHouse sampling for `OrganizationTagsEndpoint`
     manager.add("organizations:tag-key-sample-n", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Select the most frequent tag values before applying the query limit in Tag Details
+    manager.add("organizations:tag-values-sort-before-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable dynamic grouping UI (top issues)
     manager.add("organizations:top-issues-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
     manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Normalize URL transaction names during ingestion.
     manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
+    # Enable unified table controls
+    manager.add("organizations:unified-table-controls", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables view hierarchy attachment scrubbing
     manager.add("organizations:view-hierarchy-scrubbing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable AI-powered assertion suggestions for uptime monitors
@@ -449,22 +455,29 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
-    # Enable per-series `_if` filters on Explore / compare / dashboard visualize aggregates
-    manager.add("organizations:explore-conditional-aggregates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable saving reusable formulas in Explore and referencing them in visualizations
     manager.add("organizations:explore-saved-formulas", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Disable the deprecated if functions in EAP
+    manager.add("organizations:explore-disable-deprecated-if-functions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
-    # Show combined resolved "past issues" section instead of separate key errors / performance issues
-    manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show top spans chart in weekly email reports
     manager.add("organizations:weekly-report-spans-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
+    # Skip legacy alert-rule lookups and send those URLs to the automations or monitors list.
+    manager.add("organizations:workflow-engine-disable-legacy-alert-rule-redirects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Gate sending evaluation artifacts from workflow_engine to EAP
+    manager.add("organizations:workflow-engine-evaluation-artifacts-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show historical examples of when an alert would have fired while building a workflow.
     manager.add("organizations:workflow-alert-previews", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disable issue stream detector notifications for metric issues
     manager.add("organizations:workflow-engine-metric-issue-disable-issue-detector-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Rotate detector state's activation_id to the current epoch time in ms when a detector is leaving the OK state
+    # and it has been in the OK state for a certain amount of time
+    # This is used to logically group metric detector triggers into issues while preventing noise. The activation_id is used to create a unique fingerprint,
+    # creating a new issue in the issue platform
+    manager.add("organizations:workflow-engine-rotate-activation-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metric detector limits by plan type
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product (known internally as ourlogs) in UI and backend
@@ -479,12 +492,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable Relay to expand incoming JSON strings on EAP items into KVList attributes
-    manager.add("organizations:relay-automatic-json-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing expansion config (and expanded variables) in the UI
     manager.add("organizations:explore-automatic-json-expansion-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable trace metrics multi-metric selection in dashboards
-    manager.add("organizations:tracemetrics-multi-metric-selection-in-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics units in trace view UI
     manager.add("organizations:tracemetrics-units-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics showing stats bytes
@@ -497,12 +506,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-waterfall-time-compression", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the informational message re: moving the trace waterfall data source from transaction events to EAP spans
     manager.add("organizations:trace-waterfall-version-message", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the unified Agents overview in Explore
-    manager.add("organizations:gen-ai-agents-overview", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Conversation focused views in AI Insights
     manager.add("organizations:gen-ai-conversations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable query enhancements for AI conversation lists
-    manager.add("organizations:gen-ai-conversations-querying-enhancements", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable backend-built transcripts in AI conversations
+    manager.add("organizations:gen-ai-conversations-backend-transcript", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI conversation title generation from gen_ai spans
     manager.add("organizations:gen-ai-conversation-title-generation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables Conduit demo endpoint and UI
@@ -557,17 +564,21 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enables uploading streams to objectstore via multipart uploads.
     # See <https://getsentry.github.io/objectstore/rust/objectstore_service/multipart/>.
     manager.add("projects:relay-upload-multipart", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables resumable TUS uploads on the /upload endpoint.
+    manager.add("projects:resumable-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
 
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
-    manager.add("projects:defer-attachment-storage", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-
     manager.add("organizations:relay-generate-billing-outcome", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     manager.add("organizations:claude-code-vault-reuse", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
+    # Run LLM prompt-cache issue detection in shadow mode
+    manager.add("organizations:llm-cache-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # Assisted query agent feature flags — forwarded to Seer
     # Enable cross-event queries for the Traces strategy

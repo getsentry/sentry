@@ -1,15 +1,6 @@
-from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
-from sentry.services.eventstore.models import GroupEvent
 
 
 class FirstSeenEventCondition(EventCondition):
     id = "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
     label = "A new issue is created"
-
-    def passes(self, event: GroupEvent, state: EventState) -> bool:
-        # TODO(mgaeta): Bug: Rule is optional.
-        if self.rule.environment_id is None:  # type: ignore[union-attr]
-            return state.is_new
-        else:
-            return state.is_new_group_environment

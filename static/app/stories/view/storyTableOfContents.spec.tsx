@@ -78,4 +78,30 @@ describe('StoryTableOfContents', () => {
     act(() => router.navigate('/scraps/core/badge/#featurebadge'));
     await waitFor(() => expect(scroll).toHaveBeenCalledTimes(2));
   });
+  it('scrolls when navigating to the same fragment on a different page', async () => {
+    const scroll = jest.fn();
+    const {router} = render(
+      <StoryContextProvider story={{exports: {}, filename: 'test.mdx'}}>
+        <main>
+          <StoryHeading
+            as="h3"
+            id="usage"
+            ref={element => {
+              if (element) {
+                element.scrollIntoView = scroll;
+              }
+            }}
+          >
+            Usage
+          </StoryHeading>
+        </main>
+        <StoryTableOfContents />
+      </StoryContextProvider>,
+      {initialRouterConfig: {location: {pathname: '/scraps/core/badge/#usage'}}}
+    );
+
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1));
+    act(() => router.navigate('/scraps/core/tag/#usage'));
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(2));
+  });
 });

@@ -3,7 +3,6 @@ from __future__ import annotations
 import collections
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
-from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -32,7 +31,6 @@ from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -131,41 +129,6 @@ class GetSendToMemberTest(_ParticipantsTest):
             self.get_send_to_member(project_2, user_2.id), email=[user_2.id], slack=[user_2.id]
         )
         assert self.get_send_to_member(self.project, user_3.id) == {}
-
-    @mock.patch("sentry.notifications.utils.participants.metrics.incr")
-    def test_rule_snooze_filters_recipient_and_records_delta(self, mock_incr: mock.Mock) -> None:
-        rule = self.create_project_rule()
-        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
-        mock_incr.reset_mock()
-
-        recipients = get_send_to(
-            project=self.project,
-            target_type=ActionTargetType.MEMBER,
-            target_identifier=self.user.id,
-            rules=[rule],
-        )
-
-        assert recipients == {}
-        mock_incr.assert_any_call(
-            "notifications.issue_alerts.rule_snooze.recipient_delta", amount=1
-        )
-
-    @override_options({"notifications.issue-alerts.disable-rule-snooze": True})
-    @mock.patch("sentry.notifications.utils.participants.RuleSnooze.objects.filter")
-    def test_rule_snooze_can_be_disabled(self, mock_filter: mock.Mock) -> None:
-        rule = self.create_project_rule()
-        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
-        mock_filter.reset_mock()
-
-        recipients = get_send_to(
-            project=self.project,
-            target_type=ActionTargetType.MEMBER,
-            target_identifier=self.user.id,
-            rules=[rule],
-        )
-
-        self.assert_recipients_are(recipients, email=[self.user.id], slack=[self.user.id])
-        mock_filter.assert_not_called()
 
 
 class GetSendToTeamTest(_ParticipantsTest):

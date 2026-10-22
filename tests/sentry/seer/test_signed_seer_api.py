@@ -2,6 +2,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
+from urllib3 import HTTPConnectionPool, HTTPResponse
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.signed_seer_api import (
@@ -10,6 +12,7 @@ from sentry.seer.signed_seer_api import (
     make_delete_grouping_records_by_project_request,
     make_signed_seer_api_request,
 )
+from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
@@ -31,6 +34,7 @@ def run_test_case(
     mock.host = "localhost"
     mock.port = None
     mock.scheme = "http"
+    mock.urlopen.return_value = HTTPResponse(status=200)
     with override_settings(SEER_API_SHARED_SECRET=shared_secret):
         make_signed_seer_api_request(
             mock,
@@ -167,6 +171,38 @@ def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> N
     )
 
 
+@pytest.mark.parametrize(
+    ("status", "expected_status_class"),
+    [(200, "2xx"), (404, "4xx"), (503, "5xx")],
+)
+@patch("sentry.utils.metrics.timing")
+def test_times_request_with_status_class(
+    mock_timing: MagicMock, status: int, expected_status_class: str
+) -> None:
+    pool = Mock(host="localhost", port=None, scheme="http")
+    pool.urlopen.return_value = HTTPResponse(status=status)
+
+    response = make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
+
+    assert response.status == status
+    tags = mock_timing.call_args.args[3]
+    assert tags["status_class"] == expected_status_class
+    assert tags["result"] == "success"
+
+
+@patch("sentry.utils.metrics.timing")
+def test_times_failed_request_with_error_status_class(mock_timing: MagicMock) -> None:
+    pool = Mock(host="localhost", port=None, scheme="http")
+    pool.urlopen.side_effect = ReadTimeoutError(HTTPConnectionPool("localhost"), PATH, "timed out")
+
+    with pytest.raises(ReadTimeoutError):
+        make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
+
+    tags = mock_timing.call_args.args[3]
+    assert tags["status_class"] == "error"
+    assert tags["result"] == "failure"
+
+
 @patch("sentry.seer.signed_seer_api.make_signed_seer_api_request")
 def test_delete_grouping_records_uses_generic_metrics_endpoint(
     mock_seer_request: MagicMock,
@@ -181,6 +217,17 @@ def test_delete_grouping_records_uses_generic_metrics_endpoint(
 
 
 class TestResolveViewerContext:
+    def test_changing_viewer_strips_elevation(self) -> None:
+        ctx = ViewerContext(
+            organization_id=42,
+            user_id=7,
+            superuser=SuperuserAccess(expires_at=1234567890),
+        )
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=43, user_id=7))
+        assert result is not None
+        assert result.superuser is None
+
     def test_both_none(self) -> None:
         assert _resolve_viewer_context(None) is None
 

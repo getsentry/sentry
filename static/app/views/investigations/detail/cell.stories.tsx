@@ -12,6 +12,7 @@ import {
   InvestigationBlockFixture,
   InvestigationDetailFixture,
   InvestigationExecutionDetailFixture,
+  InvestigationQueryOutputFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
 
@@ -164,6 +165,68 @@ const cancelledPanelBlock = InvestigationBlockFixture({
 const terminalPanelInvestigation = InvestigationDetailFixture({
   id: 'cell-terminal-panels',
   blocks: [completedPanelBlock, failedPanelBlock, cancelledPanelBlock],
+});
+
+const QUERY_TABLE =
+  '| Span id | Duration (ms) |\n| --- | ---: |\n| 8e8dfa084777de00 | 1490.45 |\n| be478bc8e2a904ae | 1414.67 |';
+const queryResultBlocks = [
+  {id: 'bare-table-query', title: 'Bare table', tableMarkdown: QUERY_TABLE},
+  {
+    id: 'prose-table-query',
+    title: 'Prose above the table',
+    tableMarkdown: `Slowest **checkout** transactions in the breach window, sorted by duration.\n\n${QUERY_TABLE}`,
+  },
+  {
+    id: 'surrounded-table-query',
+    title: 'Prose around the table',
+    tableMarkdown: `Top spans by duration.\n\n${QUERY_TABLE}\n\nNo sampled row has a profile attached.`,
+  },
+].map(({id, title, tableMarkdown}, position) =>
+  InvestigationBlockFixture({
+    id,
+    position,
+    kind: 'query',
+    title,
+    content: '',
+    display: {type: 'table'},
+    outputStatus: 'completed',
+    output: InvestigationQueryOutputFixture({tableMarkdown}),
+    currentExecution: InvestigationBlockExecutionFixture({id: `${id}-run`}),
+  })
+);
+const queryResultInvestigation = InvestigationDetailFixture({
+  id: 'cell-query-results',
+  blocks: queryResultBlocks,
+});
+
+const uncommentedTextBlock = InvestigationBlockFixture({
+  id: 'uncommented-text-cell',
+  title: 'Working theory',
+  content: '',
+  outputStatus: 'completed',
+  output: {
+    schemaVersion: 1,
+    markdown:
+      'The eu-west-1 PDF workers scaled down at 13:38, so exports queue behind the remaining workers until they time out.',
+  },
+  currentExecution: InvestigationBlockExecutionFixture({id: 'uncommented-text-run'}),
+});
+const commentedTextBlock = InvestigationBlockFixture({
+  ...uncommentedTextBlock,
+  id: 'commented-text-cell',
+  position: 1,
+  currentExecution: InvestigationBlockExecutionFixture({id: 'commented-text-run'}),
+});
+const commentedQueryBlock = InvestigationBlockFixture({
+  ...queryResultBlocks[0]!,
+  id: 'commented-query-cell',
+  position: 2,
+  title: 'Slowest checkout spans',
+  currentExecution: InvestigationBlockExecutionFixture({id: 'commented-query-run'}),
+});
+const commentButtonInvestigation = InvestigationDetailFixture({
+  id: 'cell-comment-button',
+  blocks: [uncommentedTextBlock, commentedTextBlock, commentedQueryBlock],
 });
 
 export default Storybook.story('Investigations — Cells', story => {
@@ -408,6 +471,64 @@ export default Storybook.story('Investigations — Cells', story => {
           canRun
           investigation={terminalPanelInvestigation}
         />
+      </Stack>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Comment button', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-cell-comment-button"
+      details={[commentButtonInvestigation]}
+    >
+      <Stack gap="2xl">
+        <Stack gap="sm" padding="lg" border="primary" radius="md">
+          <Heading as="h3" size="md">
+            No comments, shown on hover
+          </Heading>
+          <InvestigationCell
+            block={uncommentedTextBlock}
+            canRun
+            investigation={commentButtonInvestigation}
+            onComment={() => {}}
+          />
+        </Stack>
+        <Stack gap="sm" padding="lg" border="primary" radius="md">
+          <Heading as="h3" size="md">
+            Has comments, always shown
+          </Heading>
+          <InvestigationCell
+            block={commentedTextBlock}
+            canRun
+            commentCount={2}
+            investigation={commentButtonInvestigation}
+            onComment={() => {}}
+          />
+          <InvestigationCell
+            block={commentedQueryBlock}
+            canRun
+            commentCount={3}
+            investigation={commentButtonInvestigation}
+            onComment={() => {}}
+          />
+        </Stack>
+      </Stack>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Query results', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-cell-query-results"
+      details={[queryResultInvestigation]}
+    >
+      <Stack gap="2xl">
+        {queryResultBlocks.map(block => (
+          <InvestigationCell
+            key={block.id}
+            block={block}
+            canRun
+            investigation={queryResultInvestigation}
+          />
+        ))}
       </Stack>
     </InvestigationFixtureApi>
   ));

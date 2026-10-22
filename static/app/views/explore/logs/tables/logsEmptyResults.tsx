@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {FileSize} from 'sentry/components/fileSize';
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -37,7 +37,7 @@ export function LogsEmptyResults({
     );
 
     return (
-      <DataTable.Status>
+      <SimpleTable.Empty>
         <EmptyStateWarning variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
@@ -74,12 +74,12 @@ export function LogsEmptyResults({
             </Button>
           </Container>
         </EmptyStateWarning>
-      </DataTable.Status>
+      </SimpleTable.Empty>
     );
   }
 
   return (
-    <DataTable.Status>
+    <SimpleTable.Empty>
       <EmptyStateWarning variant="accent">
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
@@ -95,6 +95,6 @@ export function LogsEmptyResults({
           )}
         </EmptyStateText>
       </EmptyStateWarning>
-    </DataTable.Status>
+    </SimpleTable.Empty>
   );
 }

@@ -132,6 +132,37 @@ class EventAttachmentBase(Model):
         """The end of the retention window for this entry"""
         raise NotImplementedError
 
+    def getfile(self) -> IO[bytes]:
+        if not self.blob_path:
+            return BytesIO(b"")
+
+        if self.blob_path.startswith(":"):
+            return BytesIO(self.blob_path[1:].encode())
+
+        elif self.blob_path.startswith(V1_PREFIX):
+            storage = get_storage()
+            with measure_storage_operation("get", "attachments", self.size) as metric_emitter:
+                compressed_blob = storage.open(self.blob_path)
+                # We want to log the compressed size here but we want to stream the payload.
+                # Accessing `.size` does additional metadata requests, for which we
+                # just swallow the costs.
+                metric_emitter.record_compressed_size(compressed_blob.size, "zstd")
+
+            dctx = zstandard.ZstdDecompressor()
+            return dctx.stream_reader(compressed_blob, read_across_frames=True)
+
+        elif self.blob_path.startswith(V2_PREFIX):
+            key = self.blob_path.removeprefix(V2_PREFIX)
+            organization_id = _get_organization(self.project_id)
+            response = get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).get(
+                key
+            )
+            if response is None:
+                raise FileNotFoundError("Attachment does not exist in objectstore")
+            return response.payload
+
+        raise NotImplementedError()
+
     def delete_blob(self) -> None:
         """
         Delete this attachment's payload from its backing store.
@@ -230,37 +261,6 @@ class EventAttachment(EventAttachmentBase):
         return get_download_redirect_url(
             request, session, organization_id, self.blob_path.removeprefix(V2_PREFIX)
         )
-
-    def getfile(self) -> IO[bytes]:
-        if not self.blob_path:
-            return BytesIO(b"")
-
-        if self.blob_path.startswith(":"):
-            return BytesIO(self.blob_path[1:].encode())
-
-        elif self.blob_path.startswith(V1_PREFIX):
-            storage = get_storage()
-            with measure_storage_operation("get", "attachments", self.size) as metric_emitter:
-                compressed_blob = storage.open(self.blob_path)
-                # We want to log the compressed size here but we want to stream the payload.
-                # Accessing `.size` does additional metadata requests, for which we
-                # just swallow the costs.
-                metric_emitter.record_compressed_size(compressed_blob.size, "zstd")
-
-            dctx = zstandard.ZstdDecompressor()
-            return dctx.stream_reader(compressed_blob, read_across_frames=True)
-
-        elif self.blob_path.startswith(V2_PREFIX):
-            key = self.blob_path.removeprefix(V2_PREFIX)
-            organization_id = _get_organization(self.project_id)
-            response = get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).get(
-                key
-            )
-            if response is None:
-                raise FileNotFoundError("Attachment does not exist in objectstore")
-            return response.payload
-
-        raise NotImplementedError()
 
     def get_blob_stream(self, accept_encoding: list[str]) -> BlobStream:
         """Return a streamable blob, negotiating content-encoding for V2 blobs.

@@ -239,7 +239,9 @@ export function useDeleteAutomationsMutation() {
   });
 }
 
-export function useUpdateAutomation() {
+export function useUpdateAutomation({
+  suppressErrorMessage = false,
+}: {suppressErrorMessage?: boolean} = {}) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -276,6 +278,9 @@ export function useUpdateAutomation() {
       });
     },
     onError: error => {
+      if (suppressErrorMessage) {
+        return;
+      }
       addErrorMessage(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
           t('Unable to update alert')

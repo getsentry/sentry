@@ -62,7 +62,7 @@ function renderToHTML(
   ${styleTags}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
-    body { font-family: 'Rubik', sans-serif; background: transparent; }
+    body { font-family: 'Rubik', sans-serif; background: transparent; container-type: inline-size; }
     #root { display: ${rootDisplay}; }
   </style>
 </head>

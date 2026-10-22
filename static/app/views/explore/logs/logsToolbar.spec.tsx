@@ -90,6 +90,17 @@ describe('LogsToolbar', () => {
       url: `/organizations/${organization.slug}/events/validate/`,
       body: makeValidationBody([]),
     });
+    // Series filter bars always mount and fetch recent searches.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
   });
 
   describe('visualize section', () => {
@@ -213,7 +224,9 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      const searchInput = screen.getByRole('textbox');
+      const listbox = await screen.findByRole('listbox');
+      const menu = listbox.closest<HTMLElement>('[data-overlay]')!;
+      const searchInput = within(menu).getByRole('textbox');
       await userEvent.type(searchInput, 'searched');
       await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
@@ -254,6 +267,80 @@ describe('LogsToolbar', () => {
           JSON.stringify(aggregateField)
         )
       );
+    });
+
+    describe('conditional aggregates', () => {
+      const SERIES_FILTER_PLACEHOLDER = 'Filter logs for this series';
+
+      function visualizeYAxesFromRouter(router: {
+        location: {query: Record<string, unknown>};
+      }) {
+        const aggregateField = router.location.query.aggregateField;
+        const fields = Array.isArray(aggregateField)
+          ? aggregateField
+          : aggregateField
+            ? [aggregateField]
+            : [];
+        return fields.flatMap(field => {
+          const parsed = JSON.parse(String(field));
+          return parsed.yAxes ?? [];
+        });
+      }
+
+      it('turns a series filter into an _if aggregate', async () => {
+        const {router} = render(<LogsToolbar />, {
+          organization,
+          additionalWrapper: Wrapper,
+        });
+
+        const section = screen.getByTestId('section-visualizes');
+        const filterInput = await within(section).findByPlaceholderText(
+          SERIES_FILTER_PLACEHOLDER
+        );
+
+        await userEvent.click(filterInput);
+        await userEvent.paste('severity:error');
+        await userEvent.keyboard('{Enter}');
+
+        await waitFor(() => {
+          expect(visualizeYAxesFromRouter(router)).toEqual([
+            'count_if(`severity:error`,message)',
+          ]);
+        });
+      });
+
+      it('keeps an existing filter when switching between filterable aggregates', async () => {
+        const {router} = render(<LogsToolbar />, {
+          organization,
+          additionalWrapper: Wrapper,
+          initialRouterConfig: {
+            location: {
+              pathname: '/explore/logs/',
+              query: {
+                aggregateField: [
+                  JSON.stringify({groupBy: ''}),
+                  JSON.stringify({
+                    yAxes: ['count_if(`severity:error`,message)'],
+                  }),
+                ],
+              },
+            },
+          },
+        });
+
+        const section = screen.getByTestId('section-visualizes');
+
+        await userEvent.click(
+          await within(section).findByRole('button', {name: 'count'})
+        );
+        await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+        await waitFor(() => {
+          expect(visualizeYAxesFromRouter(router)).toEqual([
+            'avg_if(`severity:error`,bar)',
+          ]);
+        });
+      });
     });
   });
 
@@ -622,7 +709,9 @@ describe('LogsToolbar', () => {
       screen.queryByRole('option', {name: 'custom.searched_tag'})
     ).not.toBeInTheDocument();
 
-    const searchInput = screen.getByRole('textbox');
+    const listbox = await screen.findByRole('listbox');
+    const menu = listbox.closest<HTMLElement>('[data-overlay]')!;
+    const searchInput = within(menu).getByRole('textbox');
     await userEvent.type(searchInput, 'searched');
 
     await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());

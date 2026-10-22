@@ -249,7 +249,11 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """whether multiple installations of this integration are allowed per organization"""
 
     overwrite_existing_integration = True
-    """whether installation refreshes an existing Integration's global fields"""
+    """
+    whether installation refreshes an existing Integration's global fields. When
+    False, fields are still refreshed if no organization has the integration
+    installed, e.g. when reinstalling after an uninstall.
+    """
 
     can_disable = False
     """
@@ -262,6 +266,11 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """
     if the integration has no application-style access token, associate
     the installer's identity to the organization integration
+    """
+
+    reject_pending_deletion_reinstall = False
+    """
+    Reject an installation when its existing organization link is pending deletion.
     """
 
     features: frozenset[IntegrationFeatures] = frozenset()

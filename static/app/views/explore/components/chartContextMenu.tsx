@@ -1,17 +1,19 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {useQueryParamsHasTransformations} from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
   type Visualize,
@@ -36,6 +38,7 @@ export function ChartContextMenu({
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
+  const hasTransformations = useQueryParamsHasTransformations();
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -154,12 +157,21 @@ export function ChartContextMenu({
 
   return (
     <DropdownMenu
-      triggerProps={{
-        size: 'xs',
-        variant: 'transparent',
-        showChevron: false,
-        icon: <IconEllipsis />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('Chart actions')}
+          disabled={hasTransformations}
+          tooltipProps={
+            hasTransformations
+              ? {title: t('Queries with transformations cannot be saved yet.')}
+              : undefined
+          }
+        />
+      )}
       position="bottom-end"
       items={items}
     />

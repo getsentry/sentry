@@ -20,6 +20,7 @@ const WATCH_DEBOUNCE_MS = 25;
 interface StoryFrontmatter {
   category?: string;
   figma?: string;
+  keywords?: string[];
   title?: string;
 }
 
@@ -42,6 +43,9 @@ function parseStoryFrontmatter(
       data.resources && typeof data.resources === 'object'
         ? data.resources.figma
         : undefined,
+    keywords: Array.isArray(data.keywords)
+      ? data.keywords.filter((keyword: unknown) => typeof keyword === 'string')
+      : undefined,
     title: typeof data.title === 'string' ? data.title : undefined,
   };
 }
@@ -107,7 +111,7 @@ export class StoryManifestPlugin implements RspackPluginInstance {
   apply(compiler: Compiler) {
     this.virtualModules.apply(compiler);
     compiler.hooks.watchRun.tap(PLUGIN_NAME, () => {
-      // rspack.config.ts excludes Story files from Rspack's watcher so the
+      // rsbuild.config.ts excludes Story files from Rspack's watcher so the
       // manifest can update first. Debounce the duplicate events emitted by
       // editors that save by replacing a file.
       // https://rspack.rs/config/watch#watchoptionsignored

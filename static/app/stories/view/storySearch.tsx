@@ -1,25 +1,22 @@
 import type {Key} from 'react';
-import {useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState, useDeferredValue} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
+import {IconSearch} from '@sentry/icons/search';
 
 import {HighlightText, ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  storyFrontmatterIndex,
-  storyHeadingIndex,
-} from 'sentry/stories/storyManifest.generated';
+import {storyFrontmatterIndex, storyHeadingIndex} from 'sentry/stories/storyManifest';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
@@ -40,6 +37,8 @@ interface SearchItem {
   /** Visible breadcrumb before the title, with `…` standing in for hidden parents. */
   crumbs?: string[];
   hash?: string;
+  keywords?: string[];
+  match?: {rank: number; score: number};
   parents?: string[];
 }
 
@@ -49,6 +48,12 @@ interface SearchSection {
   options: SearchItem[];
 }
 
+function matchScore(item: SearchItem, term: string) {
+  return Math.max(
+    ...[item.label, ...(item.keywords ?? [])].map(text => fzf(text, term, false).score)
+  );
+}
+
 function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
   const items = nodes.flatMap(node => {
     const page: SearchItem = {
@@ -56,6 +61,7 @@ function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
       label: node.label,
       title: node.label,
       node,
+      keywords: storyFrontmatterIndex[node.filesystemPath]?.keywords,
     };
     // Keep the empty-query menu compact. Sections are discovery results, not
     // additional pages in the navigation tree.
@@ -64,7 +70,7 @@ function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
     }
     return [
       page,
-      ...(storyHeadingIndex[node.filesystemPath] ?? []).map(heading => ({
+      ...(storyHeadingIndex[node.filesystemPath] ?? []).map((heading): SearchItem => ({
         key: `${node.filesystemPath}#${heading.id}`,
         label: [node.label, ...heading.parents, heading.title].join(' › '),
         title: heading.title,
@@ -80,22 +86,26 @@ function searchItems(nodes: StoryTreeNode[], query: string): SearchItem[] {
   }
   return items
     .map(item => {
-      const title = item.title.toLowerCase();
-      const match = fzf(item.label, term, false);
-      return {
-        item,
-        score: match.score,
-        rank: title === term ? 2 : title.startsWith(term) ? 1 : 0,
-      };
+      const names = [item.title, ...(item.keywords ?? [])].map(name =>
+        name.toLowerCase()
+      );
+      const rank = names.includes(term)
+        ? 2
+        : names.some(name => name.startsWith(term))
+          ? 1
+          : 0;
+      return {...item, match: {rank, score: matchScore(item, term)}};
     })
-    .filter(({score}) => score > 0)
-    .sort(
-      (a, b) =>
-        b.rank - a.rank ||
-        Number(!!a.item.hash) - Number(!!b.item.hash) ||
-        b.score - a.score
-    )
-    .map(({item}) => item);
+    .filter(item => item.match.score > 0)
+    .sort(compareMatches);
+}
+
+function compareMatches(a: SearchItem, b: SearchItem) {
+  return (
+    (b.match?.rank ?? 0) - (a.match?.rank ?? 0) ||
+    Number(!!a.hash) - Number(!!b.hash) ||
+    (b.match?.score ?? 0) - (a.match?.score ?? 0)
+  );
 }
 
 function visibleCrumbs(item: SearchItem, shownParents: number) {
@@ -168,6 +178,8 @@ export function StorySearch() {
   const [inputValue, setInputValue] = useState('');
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
+  const deferredInputValue = useDeferredValue(inputValue);
+
   const sectionedItems = useMemo(() => {
     const sections: SearchSection[] = [];
 
@@ -187,7 +199,7 @@ export function StorySearch() {
           sections.push({
             key: section,
             label: SECTION_CONFIG[section].label,
-            options: searchItems(allCoreNodes, inputValue),
+            options: searchItems(allCoreNodes, deferredInputValue),
           });
         }
       } else if (section === 'product' && data.stories.length > 0) {
@@ -195,24 +207,31 @@ export function StorySearch() {
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: searchItems(flattenedStories, inputValue),
+          options: searchItems(flattenedStories, deferredInputValue),
         });
       } else if (data.stories.length > 0) {
         // Other sections (principles, patterns) don't need flattening
         sections.push({
           key: section,
           label: SECTION_CONFIG[section].label,
-          options: searchItems(data.stories, inputValue),
+          options: searchItems(data.stories, deferredInputValue),
         });
       }
     }
 
     // A page's results always share a section, so look-alike results can only
     // collide within one.
-    return sections
+    const results = sections
       .filter(section => section.options.length > 0)
       .map(section => ({...section, options: collapseBreadcrumbs(section.options)}));
-  }, [hierarchy, inputValue]);
+    // Section headings make weak matches common in the sections
+    // listed first, so lead with the section that holds the best match.
+    return deferredInputValue.trim()
+      ? results.sort(({options: [a]}, {options: [b]}) =>
+          a && b ? compareMatches(a, b) : 0
+        )
+      : results;
+  }, [hierarchy, deferredInputValue]);
 
   return (
     <SearchComboBox

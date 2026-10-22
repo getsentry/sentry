@@ -52,7 +52,6 @@ import {
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   type TraceRowProps,
 } from './traceRow/traceRow';
-import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from './traceState/tracePreferences';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
@@ -168,9 +167,6 @@ export function Trace({
 
   const traceStart = trace.root.space[0];
   const traceDuration = trace.root.space[1];
-  const hasCompressedTimelineFeature = organization.features.includes(
-    TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
-  );
 
   const visibleTraceItems = useMemo(
     () => snapshotVisibleTraceItems(trace.list, forceRerender),
@@ -180,10 +176,7 @@ export function Trace({
   const timeCompressionOptions = useMemo((): TraceTimeCompressionManagerOptions => {
     const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
     return {
-      enabled:
-        hasCompressedTimelineFeature &&
-        traceState.preferences.compressed_timeline &&
-        trace.type === 'trace',
+      enabled: traceState.preferences.compressed_timeline && trace.type === 'trace',
       traceSpace,
       nodes: visibleTraceItems,
       indicators: trace.indicators,
@@ -193,7 +186,6 @@ export function Trace({
     traceDuration,
     traceStart,
     trace.type,
-    hasCompressedTimelineFeature,
     traceState.preferences.compressed_timeline,
     visibleTraceItems,
   ]);
@@ -746,7 +738,7 @@ const TraceViewport = styled('div')`
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.neutral.muted};
   position: absolute;
   left: 0;
@@ -899,7 +891,7 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
@@ -925,7 +917,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
@@ -1379,22 +1371,26 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceIconGroupStart {
       transform-origin: left center;
-      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale))
+        translateX(${p => p.theme.space['2xs']}) translateZ(0);
     }
 
     .TraceIconGroupEnd {
       transform-origin: right center;
-      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale))
+        translateX(calc(-1 * ${p => p.theme.space['2xs']})) translateZ(0);
     }
 
     .TraceIconStart {
       transform-origin: left center;
-      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale))
+        translateX(${p => p.theme.space['2xs']}) translateZ(0);
     }
 
     .TraceIconEnd {
       transform-origin: right center;
-      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale))
+        translateX(calc(-1 * ${p => p.theme.space['2xs']})) translateZ(0);
     }
 
     .TraceIconCount {
@@ -1764,7 +1760,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.neutral.muted};
       border-radius: 50%;
       height: 6px;

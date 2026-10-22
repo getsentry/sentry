@@ -13,8 +13,10 @@ from collections.abc import MutableMapping
 from typing import Any
 
 import sentry_sdk
+from taskbroker_client.constants import CompressionType
 
 from sentry import options
+from sentry.ingest.event_payload import load_event_payload
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.gpu import apply_gpu_crash_symbolication
 from sentry.lang.native.teapot import TeapotUnavailable, submit_to_teapot
@@ -50,9 +52,10 @@ def _teapot_circuit_breaker() -> CircuitBreaker:
     namespace=gpu_crash_dump_tasks,
     processing_deadline_duration=120,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def symbolicate_gpu_crash_event(
-    cache_key: str,
+    cache_key: str | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     data: MutableMapping[str, Any] | None = None,
@@ -61,8 +64,7 @@ def symbolicate_gpu_crash_event(
     **kwargs: Any,
 ) -> None:
     """Run teapot over the event's ``.nv-gpudmp`` and apply the decode, pre-save."""
-    if data is None:
-        data = processing.event_processing_store.get(cache_key)
+    data = load_event_payload(data, cache_key, processing.event_processing_store)
     if data is None:
         metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "cache"})
         return
@@ -75,8 +77,6 @@ def symbolicate_gpu_crash_event(
 
     if not isinstance(data, dict):
         data = dict(data.items())
-    if has_changed:
-        cache_key = processing.event_processing_store.store(data)
 
     # Always continue to save — the event was ingested (and billed) by Relay.
     store.submit_process(
@@ -87,6 +87,7 @@ def symbolicate_gpu_crash_event(
         data_has_changed=has_changed,
         from_symbolicate=True,
         has_attachments=has_attachments,
+        data=data,
     )
 
 

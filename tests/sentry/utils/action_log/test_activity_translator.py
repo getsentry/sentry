@@ -1,7 +1,10 @@
 from sentry.issues.action_log.types import (
+    GroupAction,
+    GroupActionType,
     PullRequestClosedAction,
     SetRegressedAction,
     SetResolvedInReleaseAction,
+    SmartAssignmentCompletedAction,
 )
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
@@ -43,6 +46,26 @@ class ActivityToActionTest(TestCase):
 
         assert activity_to_action(first_seen_act) is None
         assert activity_to_action(release_act) is None
+
+    def test_internal_group_activity(self) -> None:
+        act = Factories.create_group_activity(
+            group=self.group,
+            type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+            data={
+                "run_id": 123,
+                "run_uuid": "00000000-0000-0000-0000-000000000001",
+                "predicted_assignee_user_ids": [456, None],
+            },
+        )
+
+        assert activity_to_action(act) == SmartAssignmentCompletedAction(
+            run_id=123,
+            run_uuid="00000000-0000-0000-0000-000000000001",
+            predicted_assignee_user_ids=[456, None],
+        )
+        assert (
+            GroupActionType.SMART_ASSIGNMENT_COMPLETED not in GroupAction.get_user_visible_types()
+        )
 
     def test_empty_data(self) -> None:
         for activity_type in [

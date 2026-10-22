@@ -8,7 +8,7 @@ import {
   UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
 
-import {screen} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   getEmbedLinkHref,
@@ -100,17 +100,20 @@ describe('Seer monitor embed', () => {
 
     renderMonitor(detector);
 
-    expect(await screen.findByText('Project')).toBeInTheDocument();
+    expect(await screen.findByRole('img', {name: 'Enabled'})).toBeInTheDocument();
     expect(screen.queryByText('Rules')).not.toBeInTheDocument();
   });
 
-  it('shows a disabled tag separately from the neutral type tag', async () => {
+  it('shows a status indicator next to the title with the status as its tooltip', async () => {
     const detector = ErrorDetectorFixture({id: '9', latestGroup: null, enabled: false});
 
     renderMonitor(detector);
 
-    expect(await screen.findByText('Error')).toBeInTheDocument();
-    expect(screen.getByText('Disabled')).toBeInTheDocument();
+    const indicator = await screen.findByRole('img', {name: 'Disabled'});
+    expect(screen.getByRole('button', {name: /Disabled/})).toContainElement(indicator);
+
+    await userEvent.hover(indicator);
+    expect(await screen.findByText('Disabled')).toBeInTheDocument();
   });
 
   it('reports and shows an error for an unrecognized detector type', async () => {

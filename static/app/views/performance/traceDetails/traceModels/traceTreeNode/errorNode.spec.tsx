@@ -274,6 +274,18 @@ describe('ErrorNode', () => {
       expect(node.drawerTabsTitle).toBe('Test Error');
     });
 
+    it('should strip ANSI escape codes from drawerTabsTitle', () => {
+      const extra = createMockExtra();
+      const value = makeTraceError({
+        title: '\x1B[31mTest\x1B[0m Error',
+        level: 'error',
+      });
+
+      const node = new ErrorNode(null, value, extra);
+
+      expect(node.drawerTabsTitle).toBe('Test Error');
+    });
+
     it('should return fallback drawerTabsTitle without description', () => {
       const extra = createMockExtra();
       const value = makeTraceError({

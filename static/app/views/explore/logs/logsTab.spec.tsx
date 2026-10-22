@@ -1,9 +1,11 @@
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -82,8 +84,6 @@ describe('LogsTabContent', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  setupPageFilters();
-
   const eventTableResponseBody = {
     data: [
       {
@@ -142,6 +142,7 @@ describe('LogsTabContent', () => {
   };
 
   beforeEach(() => {
+    setupPageFilters();
     MockApiClient.clearMockResponses();
 
     // Default API mocks
@@ -203,6 +204,35 @@ describe('LogsTabContent', () => {
     });
   });
 
+  it('disables saving when any log series has transformations', async () => {
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: {
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            aggregateField: [
+              JSON.stringify({yAxes: ['count(message)']}),
+              JSON.stringify({
+                yAxes: ['avg(severity_number)'],
+                visible: false,
+                transformations: ['fill(locf)'],
+              }),
+            ],
+          },
+        },
+      },
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(await screen.findByText('some log message1')).toBeInTheDocument();
+  });
+
   it('should call APIs as expected', async () => {
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
       initialRouterConfig,
@@ -250,6 +280,43 @@ describe('LogsTabContent', () => {
     await screen.findByText('some log message1');
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('restores saved sorts when the selected columns are already in the URL', async () => {
+    localStorageWrapper.setItem(
+      'logs-params-v2',
+      JSON.stringify({
+        fields: ['timestamp', 'message'],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
+      })
+    );
+    const {[LOGS_SORT_BYS_KEY]: _sortBys, ...query} = initialRouterConfig.location.query;
+    const savedColumnsRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {...query, [LOGS_FIELDS_KEY]: ['timestamp', 'message']},
+      },
+    };
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: savedColumnsRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_SORT_BYS_KEY]).toBe('timestamp');
+    });
+    expect(eventTableMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({sort: 'timestamp'}),
+      })
+    );
   });
 
   it('removes invalid selected columns after validation', async () => {
@@ -684,6 +751,43 @@ describe('LogsTabContent', () => {
     expect(refreshButton).toBeDisabled();
   });
 
+  it('refetches the chart and its dropped data annotations when the refresh button is clicked', async () => {
+    PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: null});
+    const droppedDataMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      method: 'GET',
+      body: {
+        meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
+        droppedEvents: [],
+        acceptedEvents: [],
+      },
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+      ],
+    });
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-data-fidelity-annotations'],
+      },
+      additionalWrapper: ProviderWrapper,
+    });
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalled();
+      expect(droppedDataMock).toHaveBeenCalled();
+    });
+    eventsTimeSeriesMock.mockClear();
+    droppedDataMock.mockClear();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Refresh'}));
+
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalledTimes(1);
+      expect(droppedDataMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('warns that results may be incomplete when no logs are found and the sort is not timestamp descending', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -755,5 +859,60 @@ describe('LogsTabContent', () => {
         /we only scan your full log volume when sorting by timestamp in descending order/
       )
     ).toBeInTheDocument();
+  });
+
+  describe('dropped data layer', () => {
+    function mockDroppedData() {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-dropped/`,
+        method: 'GET',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+        ],
+        body: {
+          meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
+          droppedEvents: [DroppedEventFixture()],
+          acceptedEvents: [],
+        },
+      });
+    }
+
+    it('shows the Layers control when logs were dropped', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-data-fidelity-annotations'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+      expect(droppedDataMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-dropped/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'ourlogs',
+            referrer: 'api.explore.dropped-data-annotations',
+          }),
+        })
+      );
+    });
+
+    it('hides the Layers control without the feature flag', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await screen.findByText('some log message1');
+      expect(droppedDataMock).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
   });
 });

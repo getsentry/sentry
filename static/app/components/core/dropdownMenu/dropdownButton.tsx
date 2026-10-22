@@ -1,16 +1,14 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {useResponsivePropValue} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 
-import {IconChevron} from 'sentry/icons';
-
-export type DropdownButtonProps = DistributedOmit<
-  ButtonProps,
-  'type' | 'prefix' | 'onClick'
-> & {
+export type DropdownButtonProps = DistributedOmit<ButtonProps, 'type' | 'prefix'> & {
   /**
    * Whether or not the button should render as open
    */
@@ -28,13 +26,17 @@ export type DropdownButtonProps = DistributedOmit<
 export function DropdownButton({
   children,
   prefix,
-  size,
+  size: explicitSize,
   isOpen = false,
   showChevron = true,
   disabled = false,
   ref,
+  onClick,
   ...props
 }: DropdownButtonProps) {
+  const contextSize = useSizeContext();
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
+
   return (
     <StyledButton
       aria-haspopup="true"
@@ -45,6 +47,11 @@ export function DropdownButton({
       size={size}
       ref={ref}
       {...props}
+      onClick={event => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClick?.(event);
+      }}
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}

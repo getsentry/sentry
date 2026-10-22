@@ -8,7 +8,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
+from sentry.utils.snuba import QueryExecutionError
 
 # The metrics sample rate is overridden only so emitting a metric does not read the
 # option from the database; none of these tests assert on the emitted metrics.
@@ -26,26 +26,6 @@ def test_reraises_exception() -> None:
         raise ValueError("nope")
 
     with pytest.raises(ValueError):
-        boom()
-
-
-@override_options(_GATE_OPTIONS)
-def test_reraises_snuba_timeout() -> None:
-    @track_dynamic_sampling
-    def boom() -> None:
-        raise SnubaRPCTimeout("timed out")
-
-    with pytest.raises(SnubaRPCTimeout):
-        boom()
-
-
-@override_options(_GATE_OPTIONS)
-def test_reraises_snuba_error() -> None:
-    @track_dynamic_sampling
-    def boom() -> None:
-        raise SnubaRPCError("snuba failed")
-
-    with pytest.raises(SnubaRPCError):
         boom()
 
 
@@ -74,6 +54,15 @@ def test_terminal_status_exception_becomes_return_value() -> None:
         raise DynamicSamplingException(DynamicSamplingStatus.NO_SUBSCRIPTION)
 
     assert skipped() == DynamicSamplingStatus.NO_SUBSCRIPTION
+
+
+@override_options(_GATE_OPTIONS)
+def test_snuba_query_error_becomes_status() -> None:
+    @track_dynamic_sampling
+    def cancelled() -> None:
+        raise QueryExecutionError("Query was cancelled")
+
+    assert cancelled() == DynamicSamplingStatus.SNUBA_ERROR
 
 
 @override_options({**_GATE_OPTIONS, "dynamic-sampling.per_org.killswitch": True})

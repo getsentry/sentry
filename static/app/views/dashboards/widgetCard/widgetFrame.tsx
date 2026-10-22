@@ -1,13 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCopy, IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -132,16 +136,20 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 <DropdownMenu
                   items={actions}
                   isDisabled={props.actionsDisabled}
-                  triggerProps={{
-                    'aria-label': t('Widget actions'),
-                    size: 'xs',
-                    variant: 'transparent',
-                    showChevron: false,
-                    icon: <IconEllipsis direction="down" size="sm" />,
-                    tooltipProps: {
-                      title: hasDisabledActionsMessage ? undefined : t('Widget actions'),
-                    },
-                  }}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.IconButton
+                      {...triggerProps}
+                      aria-label={t('Widget actions')}
+                      size="xs"
+                      variant="transparent"
+                      icon={<IconEllipsis direction="down" size="sm" />}
+                      tooltipProps={{
+                        title: hasDisabledActionsMessage
+                          ? undefined
+                          : t('Widget actions'),
+                      }}
+                    />
+                  )}
                   position="bottom-end"
                 />
               ) : null}

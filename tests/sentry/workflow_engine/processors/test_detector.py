@@ -29,9 +29,10 @@ from sentry.utils.cache import cache
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
+from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.processors import ProcessDetectorsResult
+from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
 from sentry.workflow_engine.processors.detector import (
     EventDetectors,
     associate_new_group_with_detector,
@@ -57,6 +58,7 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     BaseDetectorHandlerTest,
     MockDetectorStateHandler,
+    build_mock_group_evaluation,
     build_mock_occurrence_and_event,
 )
 
@@ -365,9 +367,12 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             },
         )
 
-    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+    )
     def test_state_results(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        assert detector.detector_handler is not None
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
 
@@ -404,7 +409,60 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             event_data=expected_event_data,
         )
 
-    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+    )
+    def test_no_result_does_not_send_to_issue_platform(
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        evaluation = DetectorEvaluation(
+            result=None,
+            data={
+                "group_key": None,
+                "trigger_group_evaluation": build_mock_group_evaluation(),
+                "event_data": None,
+            },
+            triggered=False,
+            priority=DetectorPriorityLevel.OK,
+        )
+
+        DetectorOutcome.ISSUE_PLATFORM.dispatch(detector, evaluation)
+        mock_produce_occurrence_to_kafka.assert_not_called()
+
+    @mock.patch(
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+    )
+    def test_on_complete_override_calls_handler(
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
+
+        callback = MagicMock()
+
+        def on_complete(
+            handler: MockDetectorStateHandler,
+            completed_detector: Detector,
+            evaluation: DetectorEvaluation,
+        ) -> None:
+            callback(handler, completed_detector, evaluation)
+
+        with mock.patch.object(MockDetectorStateHandler, "on_complete", on_complete):
+            results = process_detectors(data_packet, [detector])
+
+        assert len(results) == 1
+        callback.assert_called_once()
+        callback_handler, callback_detector, callback_evaluation = callback.call_args.args
+        assert isinstance(callback_handler, MockDetectorStateHandler)
+        assert callback_handler.detector == detector
+        assert callback_detector == detector
+        assert callback_evaluation == results[0][1][None]
+        mock_produce_occurrence_to_kafka.assert_not_called()
+
+    @mock.patch(
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+    )
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
@@ -506,7 +564,9 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 sample_rate=1.0,
             )
 
-    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+    )
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     def test_metrics_triggered(
         self,
@@ -558,7 +618,9 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             ],
         )
 
-    @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+    )
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     def test_metrics_resolved(
         self,
@@ -591,6 +653,12 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             triggered=False,
             priority=DetectorPriorityLevel.OK,
             result=expected_status_change,
+            event_data=None,
+        )
+        assert mock_produce_occurrence_to_kafka.call_args == call(
+            payload_type=PayloadType.STATUS_CHANGE,
+            occurrence=None,
+            status_change=expected_status_change,
             event_data=None,
         )
         mock_metrics.incr.assert_has_calls(
@@ -669,6 +737,7 @@ class TestKeyBuilders(unittest.TestCase):
         )
 
 
+@freeze_time()
 class TestGetStateData(BaseDetectorHandlerTest):
     def test_new(self) -> None:
         handler = self.build_handler()
@@ -695,6 +764,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.HIGH: 1,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(state_data.group_key, state_data.dedupe_value)
         handler.state_manager.enqueue_counter_update(
@@ -718,6 +788,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.OK: 5,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(key_1, state_data_1.dedupe_value)
         handler.state_manager.enqueue_counter_update(key_1, state_data_1.counter_updates)
@@ -735,6 +806,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
                 **{level: None for level in handler._thresholds},
                 DetectorPriorityLevel.HIGH: 5,
             },
+            date_updated=timezone.now(),
         )
         handler.state_manager.enqueue_dedupe_update(key_2, state_data_2.dedupe_value)
         handler.state_manager.enqueue_counter_update(key_2, state_data_2.counter_updates)
@@ -896,12 +968,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.handler_type.slug)
         handler = MockDetectorStateHandler(detector)
         with mock.patch(
-            "sentry.workflow_engine.handlers.detector.stateful.metrics"
+            "sentry.workflow_engine.handlers.detector.condition.metrics"
         ) as mock_metrics:
             assert (
                 handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}})) == {}
             )
-            mock_metrics.incr.assert_called_once_with(
+            mock_metrics.incr.assert_any_call(
                 "workflow_engine.detector.skipping_invalid_condition_group"
             )
             self.assert_updates(handler, "val1", 2, None, None, None)
@@ -1106,6 +1178,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                     **{level: None for level in handler._thresholds},
                     DetectorPriorityLevel.HIGH: 1,
                 },
+                date_updated=timezone.now(),
             )
         }
 
@@ -1624,7 +1697,8 @@ class TestEnsureAssociationWithDetector(TestCase):
     def test_feedback_group_returns_false(self) -> None:
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
 
-        assert not ensure_association_with_detector(group)
+        with self.assertNumQueries(0):
+            assert not ensure_association_with_detector(group)
         assert not DetectorGroup.objects.filter(group_id=group.id).exists()
 
     def test_deleted_detector_creates_null_association(self) -> None:

@@ -22,6 +22,7 @@ from sentry.issues.action_log.types import (
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIRST_ASSIGNMENT_ACTION_ID,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     NO_CHANGE_RECONCILE_IDS,
@@ -144,6 +145,38 @@ def test_view_ignores_non_view() -> None:
             ],
         )
         == 0
+    )
+
+
+# ---------------------------------------------------------------------------
+# track_first_assignment
+# ---------------------------------------------------------------------------
+
+
+def test_first_assignment_records_first_action_id_and_never_changes() -> None:
+    assert (
+        _run_for_feature(
+            FIRST_ASSIGNMENT_ACTION_ID,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN, id=10),
+                FakeEntry(type=GroupActionType.UNASSIGN, id=11),
+                FakeEntry(type=GroupActionType.ASSIGN, id=12),
+            ],
+        )
+        == 10
+    )
+
+
+def test_first_assignment_includes_migrated_actions() -> None:
+    assert (
+        _run_for_feature(
+            FIRST_ASSIGNMENT_ACTION_ID,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN, id=10, original_group_id=123),
+                FakeEntry(type=GroupActionType.ASSIGN, id=12),
+            ],
+        )
+        == 10
     )
 
 

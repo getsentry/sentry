@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import bisect
-from collections.abc import Collection
 from datetime import datetime, timedelta
 from re import Match
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
@@ -20,15 +18,11 @@ from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedE
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentActivity,
-    IncidentActivityType,
-    IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentType,
 )
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
@@ -41,7 +35,6 @@ from sentry.snuba.subscriptions import (
     bulk_disable_snuba_subscriptions,
     bulk_enable_snuba_subscriptions,
 )
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.snuba import is_measurement
 from sentry.workflow_engine.models.detector import Detector
@@ -54,7 +47,6 @@ def create_incident(
     date_started: datetime,
     date_detected: datetime | None = None,
     detection_uuid: UUID | None = None,  # TODO: Probably remove detection_uuid?
-    projects: Collection[Project] = (),
     user: RpcUser | None = None,
     alert_rule: AlertRule | None = None,
     subscription: QuerySubscription | None = None,
@@ -74,23 +66,6 @@ def create_incident(
             alert_rule=alert_rule,
             subscription=subscription,
         )
-        if projects:
-            incident_projects = [
-                IncidentProject(incident=incident, project=project) for project in projects
-            ]
-            IncidentProject.objects.bulk_create(incident_projects)
-            # `bulk_create` doesn't send `post_save` signals, so we manually fire them here.
-            for incident_project in incident_projects:
-                post_save.send_robust(
-                    sender=type(incident_project),
-                    instance=incident_project,
-                    created=True,
-                )
-
-        create_incident_activity(
-            incident, IncidentActivityType.DETECTED, user=user, date_added=date_started
-        )
-        create_incident_activity(incident, IncidentActivityType.CREATED, user=user)
         try:
             analytics.record(
                 IncidentCreatedEvent(
@@ -112,21 +87,13 @@ def update_incident_status(
     date_closed: datetime | None = None,
 ) -> Incident:
     """
-    Updates the status of an Incident and write an IncidentActivity row to log
-    the change. When the status is CLOSED we also set the date closed to the
-    current time and take a snapshot of the current incident state.
+    Updates the status of an Incident and records the status change in analytics.
+    Closing sets the date closed; reopening clears it.
     """
     if incident.status == status.value:
         # If the status isn't actually changing just no-op.
         return incident
     with transaction.atomic(router.db_for_write(Incident)):
-        create_incident_activity(
-            incident,
-            IncidentActivityType.STATUS_CHANGE,
-            value=status.value,
-            previous_value=incident.status,
-        )
-
         prev_status = incident.status
         kwargs: dict[str, Any] = {
             "status": status.value,
@@ -155,32 +122,6 @@ def update_incident_status(
             sentry_sdk.capture_exception(e)
 
         return incident
-
-
-@transaction.atomic(router.db_for_write(Incident))
-def create_incident_activity(
-    incident: Incident,
-    activity_type: IncidentActivityType,
-    user: RpcUser | User | None = None,
-    value: str | int | None = None,
-    previous_value: str | int | None = None,
-    date_added: datetime | None = None,
-) -> IncidentActivity:
-    value = str(value) if value is not None else None
-    previous_value = str(previous_value) if previous_value is not None else None
-    kwargs = {}
-    if date_added:
-        kwargs["date_added"] = date_added
-    activity = IncidentActivity.objects.create(
-        incident=incident,
-        type=activity_type.value,
-        user_id=user.id if user else None,
-        value=value,
-        previous_value=previous_value,
-        notification_uuid=uuid4(),
-        **kwargs,
-    )
-    return activity
 
 
 # Default values for `SnubaQuery.resolution`, in minutes.

@@ -1,28 +1,29 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  IssuesConfig,
-  type IssuesSeriesResponse,
-} from 'sentry/views/dashboards/datasetConfig/issues';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {
+  type IssuesSeriesResponse,
+  transformIssuesResponseToSeries,
+} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToSeries';
+import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToTable';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
-import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -47,7 +48,6 @@ export function useIssuesSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<IssuesSeriesResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -55,7 +55,7 @@ export function useIssuesSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
@@ -124,6 +124,7 @@ export function useIssuesSeriesQuery(
         placeholderData: keepPreviousData,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const transformedData = (() => {
@@ -140,8 +141,7 @@ export function useIssuesSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
-    const rawData: IssuesSeriesResponse[] = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data?.json) {
@@ -149,48 +149,23 @@ export function useIssuesSeriesQuery(
       }
 
       const responseData = q.data.json;
-      rawData[requestIndex] = responseData;
 
-      const transformedResult = IssuesConfig.transformSeries!(
-        responseData,
-        filteredWidget.queries[requestIndex]!,
-        organization
-      );
-      const seriesQueryPrefix = getSeriesQueryPrefix(
-        filteredWidget.queries[requestIndex]!,
-        filteredWidget
+      const transformedResult = transformMultipleWidgetSeriesToTimeSeries(
+        transformIssuesResponseToSeries(responseData),
+        filteredWidget,
+        requestIndex
       );
 
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
+      transformedResult.forEach((result, resultIndex) => {
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
     });
-
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -212,7 +187,6 @@ export function useIssuesTableQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<IssuesTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -220,7 +194,7 @@ export function useIssuesTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       const queryParams: Record<string, unknown> = {
         project: pageFilters.projects ?? [],
@@ -272,6 +246,7 @@ export function useIssuesTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const isFetching = queryResults.some(q => q?.isFetching);
@@ -288,7 +263,6 @@ export function useIssuesTableQuery(
   }
 
   const tableResults: any[] = [];
-  const rawData: IssuesTableResponse[] = [];
   let responsePageLinks: string | undefined;
 
   queryResults.forEach((q, i) => {
@@ -296,17 +270,21 @@ export function useIssuesTableQuery(
       return;
     }
 
+    const widgetQuery = filteredWidget.queries[i];
+    if (!widgetQuery) {
+      return;
+    }
+
     const responseData = q.data.json;
-    rawData[i] = responseData;
 
     const transformedDataItem = {
-      ...IssuesConfig.transformTable(
+      ...transformIssuesResponseToTable(
         responseData,
-        filteredWidget.queries[i]!,
+        widgetQuery,
         organization,
         pageFilters
       ),
-      title: filteredWidget.queries[i]?.name ?? '',
+      title: widgetQuery.name ?? '',
     };
 
     tableResults.push(transformedDataItem);
@@ -314,28 +292,11 @@ export function useIssuesTableQuery(
     responsePageLinks = q.data.headers.Link;
   });
 
-  let finalRawData = rawData;
-  // oxlint-disable-next-line react/refs
-  if (prevRawDataRef.current?.length === rawData.length) {
-    // oxlint-disable-next-line react/refs
-    const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-    if (allSame) {
-      // oxlint-disable-next-line react/refs
-      finalRawData = prevRawDataRef.current;
-    }
-  }
-
-  // oxlint-disable-next-line react/refs
-  if (finalRawData !== prevRawDataRef.current) {
-    // oxlint-disable-next-line react/refs
-    prevRawDataRef.current = finalRawData;
-  }
-
   return {
     loading: false,
     errorMessage: undefined,
     tableResults,
     pageLinks: responsePageLinks,
-    rawData: finalRawData,
+    rawData,
   };
 }

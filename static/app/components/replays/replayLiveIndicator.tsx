@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
@@ -94,37 +94,52 @@ interface UseLiveBadgeParams {
 /**
  * Hook to determine if a replay is considered live
  */
+/**
+ * We check for getLiveDurationMs to avoid a flicker.
+ * There can exist a time where the replay hasn't expired
+ * (Date.now() < started_at + 1 hour), in which case the isLive would show
+ * True, but the liveDuration is 0 (Date.now() > finished_at + 5 minutes),
+ * so the setTimeout, having a live duration of 0, would immediately set
+ * isLive to false and cause this flicker.
+ */
+function getIsLive(
+  startedAt: ReplayRecord['started_at'],
+  finishedAt: ReplayRecord['finished_at']
+) {
+  return (
+    Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
+  );
+}
+
 export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
-  const [isLive, setIsLive] = useState(
-    // We check for getLiveDurationMs to avoid a flicker.
-    // There can exist a time where the replay hasn't expired
-    // (Date.now() < started_at + 1 hour), in which case the isLive would show
-    // True, but the liveDuration is 0 (Date.now() > finished_at + 5 minutes),
-    // so the setTimeout, having a live duration of 0, would immediately set
-    // isLive to false and cause this flicker.
-    //
-    // `Date.now()` is impure and can't be read while rendering
-    // (pure-render-functions), so we use a lazy initializer here.
-    () =>
-      Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
+  // Whether a replay is live is not this component's state: it is the wall
+  // clock read against the replay's times, and it changes on its own at a
+  // moment nothing renders. Subscribing schedules that moment, and the
+  // snapshot reads `Date.now()` outside render, where it is allowed
+  // (pure-render-functions).
+  //
+  // Holding it in `useState` instead meant the answer was fixed when the hook
+  // mounted, so a caller that rendered before its replay record loaded passed
+  // empty times once and never went live.
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const remainingMs = getLiveDurationMs(finishedAt);
+      if (remainingMs <= 0) {
+        return () => {};
+      }
+      const timeout = setTimeout(onStoreChange, remainingMs);
+      return () => clearTimeout(timeout);
+    },
+    [finishedAt]
   );
 
-  const {start: startTimeout} = useTimeout({
-    timeMs: 0,
-    onTimeout: () => {
-      setIsLive(false);
-    },
-  });
-
-  // `getLiveDurationMs` calls `Date.now()` internally, so it must not be
-  // called during render (pure-render-functions). Compute it inside the
-  // effect and pass the result to `startTimeout`.
-  useEffect(() => {
-    startTimeout(getLiveDurationMs(finishedAt));
-  }, [startTimeout, finishedAt]);
+  const getSnapshot = useCallback(
+    () => getIsLive(startedAt, finishedAt),
+    [startedAt, finishedAt]
+  );
 
   return {
-    isLive,
+    isLive: useSyncExternalStore(subscribe, getSnapshot, getSnapshot),
   };
 }
 

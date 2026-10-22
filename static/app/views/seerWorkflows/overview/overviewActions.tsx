@@ -1,10 +1,12 @@
 import {useCallback, useState} from 'react';
+import {IconCode} from '@sentry/icons/code';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconSearch} from '@sentry/icons/search';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {IconCode, IconCommit, IconSearch} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

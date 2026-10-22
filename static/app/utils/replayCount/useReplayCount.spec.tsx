@@ -1,7 +1,9 @@
+import {useQueryClient} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
 
 describe('useReplayCount', () => {
@@ -18,6 +20,33 @@ describe('useReplayCount', () => {
       url: `/organizations/${organization.slug}/replay-count/`,
       body,
     });
+
+  it('ignores cached responses that return replay IDs', async () => {
+    getMockRequest({'1111': 2});
+    const {result} = renderHookWithProviders(() => ({
+      count: useReplayCount(initialProps),
+      queryClient: useQueryClient(),
+    }));
+
+    result.current.count.getOne('1111');
+    await waitFor(() => expect(result.current.count.getOne('1111')).toBe(2));
+
+    act(() => {
+      result.current.queryClient.setQueryData(
+        apiOptions.as<Record<string, string[]>>()(
+          '/organizations/$organizationIdOrSlug/replay-count/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            query: {returnIds: true, query: 'issue.id:[1111]'},
+            staleTime: 0,
+          }
+        ).queryKey,
+        {json: {'1111': ['replay-a', 'replay-b']}, headers: {}}
+      );
+    });
+
+    expect(result.current.count.getOne('1111')).toBe(2);
+  });
 
   describe('getOne & hasOne', () => {
     it('should return undefined to start, then the count after data is loaded', async () => {

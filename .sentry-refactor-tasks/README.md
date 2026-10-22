@@ -12,27 +12,32 @@ see the [upstream README](https://github.com/getsentry/sentry-refactor-tasks/blo
 └── conventions/
     ├── <name>.yaml           # one rule each
     ├── <name>.detect.sh      # optional sidecar detector for a rule
-    └── eslint-json-runner.ts # shared helper for eslint-backed detectors
+    └── oxlint-json-runner.ts # shared helper for oxlint-backed detectors
 ```
 
-Run `pnpm dlx @sentry/refactor-tasks list` to see the rules currently
-configured. They mostly use the LLM path (`detect` + `prefilter`); a couple use
-the lint path (`detect_command`). `no-derived-state` is the worked example for
-the lint path: its `.detect.sh` runs the `react-you-might-not-need-an-effect`
-eslint plugin through `eslint-json-runner.ts`, restoring
-`package.json`/`pnpm-lock.yaml` afterward so the working tree stays clean — copy
-it when adding another `detect_command`-based rule.
+Run `pnpm dlx '@sentry/refactor-tasks@>=0.3.0' list` to see the rules currently
+configured. They mostly use the LLM path (`detect` + `search`); a couple use
+the lint path (`detect_command`). `no-deprecated-callsite` is the worked example
+for the lint path: its `.detect.sh` writes a temporary single-rule oxlint config
+and runs it through `oxlint-json-runner.ts` — copy it when adding another
+`detect_command`-based rule. A lint-path rule only earns its place while the
+repo's own `oxlint.config.ts` does not enforce it; once lint blocks new
+violations, the scanner has nothing left to find.
 
 All rules target the frontend (`static/`). To add a Python rule, point a new
-convention's `include`/`prefilter` at `src/sentry/**/*.py` instead — the scanner
+convention's `search.include` at `src/sentry/**/*.py` instead — the scanner
 is language-agnostic, so each file sets its own scope.
+
+LLM rules set `search.excerpt` so the model sees only the lines around each
+`search.match` hit rather than whole files, which cuts the scan's token cost
+several-fold. Leave it out for a rule that needs the whole file to judge.
 
 ## Running it
 
 Against this repo, from the root:
 
 ```bash
-pnpm dlx @sentry/refactor-tasks scan-and-report
+pnpm dlx '@sentry/refactor-tasks@>=0.3.0' scan-and-report
 ```
 
 Reporting needs `SENTRY_DSN` (and an inference backend — an `OPENROUTER_API_KEY`,

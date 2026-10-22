@@ -1,10 +1,11 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconLightning} from '@sentry/icons/lightning';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock, IconLightning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 

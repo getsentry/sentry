@@ -1166,6 +1166,93 @@ class AuthLoginEndpointTest(APITestCase):
 
 @control_silo_test
 class AuthRecoveryEndpointTest(APITestCase):
+    def test_validate_recovery_token(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        previous_password = self.user.password
+
+        response = self.client.get(
+            reverse("sentry-api-0-auth-recovery-confirm"),
+            data={"userId": self.user.id, "token": password_hash.hash},
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"valid": True}
+        assert LostPasswordHash.objects.filter(user=self.user, hash=password_hash.hash).exists()
+        self.user.refresh_from_db()
+        assert self.user.password == previous_password
+        assert "_auth_user_id" not in self.client.session
+
+    def test_validate_recovery_rejects_invalid_token(self) -> None:
+        response = self.client.get(
+            reverse("sentry-api-0-auth-recovery-confirm"),
+            data={"userId": self.user.id, "token": "invalid-token"},
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"valid": False}
+
+    def test_validate_recovery_rejects_expired_token(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        LostPasswordHash.objects.filter(user=self.user).update(
+            date_added=timezone.now() - timedelta(hours=2)
+        )
+
+        response = self.client.get(
+            reverse("sentry-api-0-auth-recovery-confirm"),
+            data={"userId": self.user.id, "token": password_hash.hash},
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"valid": False}
+        assert LostPasswordHash.objects.filter(user=self.user).exists()
+
+    def test_validate_recovery_rejects_another_users_token(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.create_user())
+
+        response = self.client.get(
+            reverse("sentry-api-0-auth-recovery-confirm"),
+            data={"userId": self.user.id, "token": password_hash.hash},
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"valid": False}
+
+    def test_validate_recovery_rejects_managed_user(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        self.user.update(is_managed=True)
+
+        response = self.client.get(
+            reverse("sentry-api-0-auth-recovery-confirm"),
+            data={"userId": self.user.id, "token": password_hash.hash},
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"valid": False}
+
+    def test_validate_recovery_rejects_suspended_user(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        self.user.update(is_suspended=True)
+
+        response = self.client.get(
+            reverse("sentry-api-0-auth-recovery-confirm"),
+            data={"userId": self.user.id, "token": password_hash.hash},
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"valid": False}
+
+    def test_validate_recovery_requires_user_and_token(self) -> None:
+        response = self.client.get(reverse("sentry-api-0-auth-recovery-confirm"))
+
+        assert response.status_code == 400
+        assert set(response.data) == {"userId", "token"}
+
+    @patch("sentry.api.endpoints.auth_recovery.ratelimiter.backend.is_limited", return_value=True)
+    def test_validate_recovery_rate_limited(self, is_limited: MagicMock) -> None:
+        response = self.client.get(reverse("sentry-api-0-auth-recovery-confirm"))
+
+        assert response.status_code == 429
+
     def request_recovery(
         self, user: str | None = None, client: APIClient | None = None
     ) -> Response:

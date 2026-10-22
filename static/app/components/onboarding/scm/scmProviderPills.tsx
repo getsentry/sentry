@@ -2,6 +2,7 @@ import {motion} from 'framer-motion';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
@@ -93,8 +94,11 @@ function ScmProviderPillRow({
       {moreProviders.length > 0 && (
         <MotionContainer {...ONBOARDING_ENTER}>
           <DropdownMenu
-            triggerLabel={t('More')}
-            triggerProps={{'aria-label': t('More providers')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} aria-label={t('More providers')}>
+                {t('More')}
+              </OverlayTrigger.Button>
+            )}
             position="bottom-end"
             size={buttonSize}
             items={moreProviders.map(provider => ({

@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
@@ -17,7 +18,6 @@ import {
 import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 
 export type {ComboBoxMenuPresentation};
 
@@ -34,7 +34,6 @@ interface ArithmeticBuilderProps {
   disabled?: boolean;
   /**
    * Fetches tag values for `_if` combinator filter arguments in equations.
-   * Only used when `hasConditionalAggregates` is on.
    */
   getFilterTagValues?: GetTagValues;
   /**
@@ -44,11 +43,6 @@ interface ArithmeticBuilderProps {
    * to a known column.
    */
   getSuggestedKey?: (key: string) => string | null;
-  /**
-   * Enables the EAP filter-first `_if` argument editor. Should follow
-   * `explore-conditional-aggregates`.
-   */
-  hasConditionalAggregates?: boolean;
   /**
    * Render the equation input and suggestions together in one panel,
    * matching SearchQueryBuilder's `menuPresentation="panel"`.
@@ -60,9 +54,14 @@ interface ArithmeticBuilderProps {
    */
   references?: Set<string>;
   setExpression?: (expression: Expression) => void;
+  /**
+   * Caps function argument inputs to a narrow width with an ellipsis, for
+   * builders rendered in constrained spaces like sidebars.
+   */
+  truncateArguments?: boolean;
 }
 
-const VALID_REFERENCE_PATTERN = /^[A-Z]$/;
+export const VALID_REFERENCE_PATTERN = /^[\w.]+$/;
 
 export function ArithmeticBuilder({
   'data-test-id': dataTestId,
@@ -73,11 +72,11 @@ export function ArithmeticBuilder({
   getFieldDefinition,
   getFilterTagValues,
   getSuggestedKey,
-  hasConditionalAggregates = false,
   menuPresentation = 'floating',
   className,
   disabled,
   references,
+  truncateArguments = true,
 }: ArithmeticBuilderProps) {
   if (references) {
     for (const reference of references) {
@@ -105,9 +104,8 @@ export function ArithmeticBuilder({
       }),
       functionArguments,
       getFieldDefinition,
-      getFilterTagValues: hasConditionalAggregates ? getFilterTagValues : undefined,
+      getFilterTagValues,
       getSuggestedKey,
-      hasConditionalAggregates,
       references,
     };
   }, [
@@ -118,7 +116,6 @@ export function ArithmeticBuilder({
     getFieldDefinition,
     getFilterTagValues,
     getSuggestedKey,
-    hasConditionalAggregates,
     references,
   ]);
 
@@ -139,6 +136,7 @@ export function ArithmeticBuilder({
             className={className}
             aria-disabled={disabled}
             data-test-id={dataTestId ?? 'arithmetic-builder'}
+            data-truncate-arguments={truncateArguments}
             state={state.expression.isValid ? 'valid' : 'invalid'}
             disabled={disabled}
           >

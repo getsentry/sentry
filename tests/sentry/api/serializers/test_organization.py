@@ -29,7 +29,7 @@ from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-granular_scopes = ["dashboard:read", "dashboard:write", "dashboard:delete"]
+granular_scopes = ["dashboard:read", "dashboard:create", "dashboard:write", "dashboard:delete"]
 non_default_owner_scopes = [
     "org:ci",
     "openid",
@@ -79,7 +79,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "invite-members",
             "open-membership",
             "relay",
-            "sentry-app-schema-form-migration",
             "session-replay-ui",
             "shared-issues",
             "sso-basic",

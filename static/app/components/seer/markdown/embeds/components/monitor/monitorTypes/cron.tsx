@@ -4,7 +4,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
-import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
+import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 export function CronMonitor({detector}: {detector: CronDetector}) {

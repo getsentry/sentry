@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, NamedTuple
 from sentry.utils.dates import to_datetime
 
 if TYPE_CHECKING:
-    from sentry.models.rule import Rule
+    from sentry.notifications.types import NotificationOrigin
     from sentry.services.eventstore.models import Event, GroupEvent
 
 
@@ -19,11 +19,14 @@ class IdentifierKey(StrEnum):
 
 class Notification(NamedTuple):
     event: Event | GroupEvent
+    # Despite its legacy name, this contains workflow IDs.
     rules: Sequence[int] = ()
     notification_uuid: str | None = None
-    identifier_key: IdentifierKey = IdentifierKey.RULE
+    # Retain this unused field while old and new workers exchange pickled records. Changing the
+    # tuple length is not safe during a rolling deploy; a follow-up can reuse this slot.
+    identifier_key: IdentifierKey = IdentifierKey.WORKFLOW
 
-    def with_rules(self, rules: list[Rule]) -> NotificationWithRuleObjects:
+    def with_rules(self, rules: list[NotificationOrigin]) -> NotificationWithRuleObjects:
         return NotificationWithRuleObjects(
             event=self.event,
             rules=rules,
@@ -41,7 +44,7 @@ class Record(NamedTuple):
     def datetime(self) -> datetime_mod.datetime:
         return to_datetime(self.timestamp)
 
-    def with_rules(self, rules: list[Rule]) -> RecordWithRuleObjects:
+    def with_rules(self, rules: list[NotificationOrigin]) -> RecordWithRuleObjects:
         return RecordWithRuleObjects(
             key=self.key,
             value=self.value.with_rules(rules),
@@ -51,7 +54,7 @@ class Record(NamedTuple):
 
 class NotificationWithRuleObjects(NamedTuple):
     event: Event | GroupEvent
-    rules: list[Rule]
+    rules: list[NotificationOrigin]
     notification_uuid: str | None
 
 

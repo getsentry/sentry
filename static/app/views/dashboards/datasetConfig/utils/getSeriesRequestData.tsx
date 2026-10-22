@@ -150,10 +150,7 @@ export function getSeriesRequestData(
 // Converts `getSeriesRequestData` output, which is shaped for
 // `/events-stats/` into `/events-timeseries/` query params
 export function convertEventStatsRequestDataToEventTimeseriesQueryParams(
-  requestData: EventsStatsOptions<true>,
-  {
-    includeMeasuredIngestionDelayMetadata,
-  }: {includeMeasuredIngestionDelayMetadata?: boolean} = {}
+  requestData: EventsStatsOptions<true>
 ) {
   const {
     interval,
@@ -191,9 +188,6 @@ export function convertEventStatsRequestDataToEventTimeseriesQueryParams(
     referrer,
     dataset,
     sampling,
-    includeMeasuredIngestionDelayMetadata: includeMeasuredIngestionDelayMetadata
-      ? '1'
-      : undefined,
     ...queryExtras,
   };
 }

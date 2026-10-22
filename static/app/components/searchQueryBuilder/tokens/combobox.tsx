@@ -1,8 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useEffectEvent,
-  useLayoutEffect,
   useMemo,
   useRef,
   type FocusEvent,
@@ -10,8 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import {createPortal} from 'react-dom';
-import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
+import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
@@ -27,11 +25,13 @@ import {
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay} from 'sentry/components/overlay';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -51,7 +51,6 @@ import {
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -122,6 +121,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   placeholder?: string;
   ref?: React.Ref<HTMLInputElement>;
   /**
+   * Renders the input's value in an overlay drawn on top of the input, whose own
+   * text is hidden. Use to style the value beyond what an input can render.
+   */
+  renderInputValue?: (value: string) => ReactNode;
+  /**
    * Function to determine whether the menu should close when interacting with
    * other elements.
    */
@@ -154,18 +158,11 @@ export type CustomComboboxMenu<T> = (
   props: CustomComboboxMenuProps<T>
 ) => React.ReactNode;
 
-const DESCRIPTION_POPPER_OPTIONS = {
-  placement: 'top-start' as const,
-  strategy: 'fixed' as const,
-  modifiers: [
-    {
-      name: 'offset',
-      options: {
-        offset: [-12, 8],
-      },
-    },
-  ],
-};
+const DESCRIPTION_MIDDLEWARE = [
+  offset({crossAxis: -12, mainAxis: 8}),
+  flipOverlay(),
+  shiftOverlay(),
+];
 
 const MENU_OFFSET: [number, number] = [-12, 12];
 const MENU_FLIP_OPTIONS = {
@@ -236,58 +233,6 @@ function useHiddenItems({
   };
 }
 
-// The menu size can change from things like loading states, long options,
-// or custom menus like a date picker. This hook ensures that the overlay
-// is updated in response to these changes.
-function useUpdateOverlayPositionOnContentChange({
-  contentRef,
-  updateOverlayPosition,
-  isOpen,
-}: {
-  contentRef: React.RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
-  updateOverlayPosition: (() => void) | null;
-}) {
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const updatePosition = useEffectEvent(() => updateOverlayPosition?.());
-
-  useLayoutEffect(() => {
-    resizeObserverRef.current = new ResizeObserver(() => {
-      // Firefox can invoke ResizeObserver callbacks during rendering, when
-      // calling an Effect Event is not allowed.
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        updatePosition();
-      });
-    });
-
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
-      return () => {};
-    }
-
-    resizeObserverRef.current?.observe(contentRef.current);
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [contentRef, isOpen, updateOverlayPosition]);
-}
-
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   askSeerButtonRef,
   customMenu,
@@ -353,7 +298,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : (
-          <ListBoxPane>
+          <Container flex="1 1 auto" minHeight="0" overflowY="auto">
             <ListBox
               {...listBoxProps}
               ref={listBoxRef}
@@ -363,7 +308,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
               overlayIsOpen={isOpen}
               size="sm"
             />
-          </ListBoxPane>
+          </Container>
         )}
         {isLoading && anyItemsShowing ? (
           <Flex justify="center" align="center" height="32px" width="100%">
@@ -421,6 +366,7 @@ export function SearchQueryBuilderCombobox<
   keepVisibleRef,
   'data-test-id': dataTestId,
   ref,
+  renderInputValue,
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
@@ -429,7 +375,6 @@ export function SearchQueryBuilderCombobox<
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const descriptionRef = useRef<HTMLDivElement>(null);
   const askSeerButtonRef = useRef<HTMLButtonElement>(null);
   const preventOverflowOptions = useMemo(() => ({boundary: document.body}), []);
 
@@ -579,11 +524,7 @@ export function SearchQueryBuilderCombobox<
     onOpenChange?.(isOpen);
   }, [onOpenChange, isOpen]);
 
-  const {
-    overlayProps,
-    triggerProps,
-    update: updateOverlayPosition,
-  } = useOverlay({
+  const {overlayProps, triggerProps} = useOverlay({
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
@@ -615,13 +556,19 @@ export function SearchQueryBuilderCombobox<
     flipOptions: MENU_FLIP_OPTIONS,
   });
 
-  const descriptionPopper = usePopper(
-    // oxlint-disable-next-line react/refs
-    inputRef.current,
-    // oxlint-disable-next-line react/refs
-    descriptionRef.current,
-    DESCRIPTION_POPPER_OPTIONS
-  );
+  const {
+    refs: {
+      floating: descriptionRef,
+      setFloating: setDescriptionElement,
+      setReference: setDescriptionReference,
+    },
+    floatingStyles: descriptionStyles,
+  } = useFloating<HTMLInputElement>({
+    placement: 'top-start',
+    strategy: 'fixed',
+    middleware: DESCRIPTION_MIDDLEWARE,
+    whileElementsMounted: autoUpdate,
+  });
 
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
     e => {
@@ -636,12 +583,6 @@ export function SearchQueryBuilderCombobox<
     },
     [inputProps, menuPresentation, state, onClick]
   );
-
-  useUpdateOverlayPositionOnContentChange({
-    contentRef: popoverRef,
-    updateOverlayPosition,
-    isOpen,
-  });
 
   // useCombobox will hide outside elements with aria-hidden="true" when it is open [1].
   // Because we switch elements when a custom menu is displayed, we need to manually
@@ -662,64 +603,76 @@ export function SearchQueryBuilderCombobox<
 
     return () => {};
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [inputRef, popoverRef, isOpen, customMenu, keepVisibleRef]);
+  }, [inputRef, popoverRef, descriptionRef, isOpen, customMenu, keepVisibleRef]);
 
-  const autosizeInput = useAutosizeInput({value: inputValue});
+  const autosizeInput = useAutosizeInput({value: inputValue, placeholder});
+
+  const InputComponent = renderInputValue ? HighlightedInput : UnstyledInput;
+  const input = (
+    <InputComponent
+      {...inputProps}
+      size="md"
+      ref={mergeRefs(
+        ref,
+        inputRef,
+        autosizeInput,
+        triggerProps.ref as React.Ref<HTMLInputElement>,
+        setDescriptionReference
+      )}
+      type="text"
+      placeholder={placeholder}
+      onClick={handleInputClick}
+      value={inputValue}
+      onChange={handleInputChange}
+      tabIndex={tabIndex}
+      onPaste={onPaste}
+      disabled={disabled}
+      onKeyDownCapture={e => {
+        if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
+          if (token.type === Token.FREE_TEXT) {
+            e.preventDefault();
+            e.stopPropagation();
+            state.close();
+            dispatch({
+              type: 'DELETE_TO_CURSOR',
+              token,
+              cursorPosition: e.currentTarget.selectionStart ?? 0,
+              inputValue,
+              direction: e.key === 'Backspace' ? 'before' : 'after',
+            });
+            return;
+          }
+
+          if (!inputValue) {
+            e.preventDefault();
+            e.stopPropagation();
+            onSearchQueryClear?.();
+            state.close();
+            clearSearchQuery({reopenDropdown: true});
+            return;
+          }
+        }
+
+        onKeyDownCapture?.(e, {state});
+      }}
+      data-test-id={dataTestId}
+    />
+  );
 
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
-      <UnstyledInput
-        {...inputProps}
-        size="md"
-        ref={mergeRefs(
-          ref,
-          inputRef,
-          autosizeInput,
-          triggerProps.ref as React.Ref<HTMLInputElement>
-        )}
-        type="text"
-        placeholder={placeholder}
-        onClick={handleInputClick}
-        value={inputValue}
-        onChange={handleInputChange}
-        tabIndex={tabIndex}
-        onPaste={onPaste}
-        disabled={disabled}
-        onKeyDownCapture={e => {
-          if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
-            if (token.type === Token.FREE_TEXT) {
-              e.preventDefault();
-              e.stopPropagation();
-              state.close();
-              dispatch({
-                type: 'DELETE_TO_CURSOR',
-                token,
-                cursorPosition: e.currentTarget.selectionStart ?? 0,
-                inputValue,
-                direction: e.key === 'Backspace' ? 'before' : 'after',
-              });
-              return;
-            }
-
-            if (!inputValue) {
-              e.preventDefault();
-              e.stopPropagation();
-              onSearchQueryClear?.();
-              state.close();
-              clearSearchQuery({reopenDropdown: true});
-              return;
-            }
-          }
-
-          onKeyDownCapture?.(e, {state});
-        }}
-        data-test-id={dataTestId}
-      />
+      {renderInputValue ? (
+        <HighlightStack>
+          {input}
+          <HighlightedValue aria-hidden>{renderInputValue(inputValue)}</HighlightedValue>
+        </HighlightStack>
+      ) : (
+        input
+      )}
       {description ? (
         <StyledPositionWrapper
-          {...descriptionPopper.attributes.popper}
-          ref={descriptionRef}
-          style={descriptionPopper.styles.popper}
+          ref={setDescriptionElement}
+          style={descriptionStyles}
           visible
           role="tooltip"
         >
@@ -769,6 +722,37 @@ const UnstyledInput = styled(Input)`
   }
 `;
 
+// The input and its highlighted value share one grid cell at least as wide as the value's
+// text, so the input never scrolls its own text out from under the highlighting.
+const HighlightStack = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr);
+  flex-grow: 1;
+`;
+
+// WebKit doesn't kern across the highlighted value's token spans, so neither side kerns.
+const HighlightedInput = styled(UnstyledInput)`
+  grid-area: 1 / 1;
+  min-width: 100%;
+  color: transparent;
+  caret-color: ${p => p.theme.tokens.content.primary};
+  font-kerning: none;
+  font-variant-ligatures: none;
+`;
+
+const HighlightedValue = styled('div')`
+  grid-area: 1 / 1;
+  align-self: center;
+  padding-right: ${p => p.theme.space['2xs']};
+  white-space: pre;
+  pointer-events: none;
+  font-family: ${p => p.theme.font.family.sans};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.form.md.fontSize};
+  font-kerning: none;
+  font-variant-ligatures: none;
+`;
+
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -782,12 +766,6 @@ const ListBoxOverlay = styled(Overlay)`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-`;
-
-const ListBoxPane = styled('div')`
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
 `;
 
 const DescriptionOverlay = styled(Overlay)`

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import StrEnum
 from typing import Any, Literal, TypedDict
 
@@ -35,7 +36,6 @@ from sentry.workflow_engine.processors import DataConditionGroupEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorException,
-    DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
 )
@@ -187,6 +187,8 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    regression_timeout = timedelta(hours=24)
+
     def build_detector_evidence_data(
         self,
         group_evaluation: DataConditionGroupEvaluation,
@@ -264,14 +266,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     def extract_dedupe_value(self, data_packet: DataPacket[MetricUpdate]) -> int:
         return int(data_packet.packet.timestamp.timestamp())
 
-    def extract_value(
-        self, data_packet: DataPacket[MetricUpdate]
-    ) -> MetricResult | dict[DetectorGroupKey, MetricResult]:
+    def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
-            # A bare AnomalyDetectionValues dict would be interpreted as a grouped
-            # result dict, so wrap it with an explicit group key.
-            grouped: dict[DetectorGroupKey, MetricResult] = {None: data_packet.packet.values}
-            return grouped
+            return data_packet.packet.values
         return data_packet.packet.values["value"]
 
     def construct_title(
@@ -353,7 +350,7 @@ class MetricIssue(GroupType):
     slug = "metric_issue"
     description = "Metric issue triggered"
     category = GroupCategory.METRIC.value
-    creation_quota = Quota(3600, 60, 100)
+    creation_quota = Quota(3600, 60, 1000)
     default_priority = PriorityLevel.HIGH
     released = True
     enable_auto_resolve = False

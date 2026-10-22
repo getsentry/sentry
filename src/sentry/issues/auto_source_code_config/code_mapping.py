@@ -10,7 +10,7 @@ from django.db import IntegrityError, router, transaction
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.path import (
     is_absolute_scm_path,
-    is_windows_absolute_scm_path,
+    normalize_repository_source_root,
     normalize_scm_path,
 )
 from sentry.integrations.source_code_management.repo_trees import (
@@ -333,14 +333,8 @@ def _map_frame_path_to_source_path(
         return None
 
     is_directory_mapping = not stack_root or stack_root.endswith(("/", "\\"))
-    normalized_source_root = normalize_scm_path(source_root)
+    normalized_source_root = normalize_repository_source_root(source_root)
     if normalized_source_root is None:
-        return None
-
-    if is_windows_absolute_scm_path(normalized_source_root):
-        return None
-    normalized_source_root = normalized_source_root.lstrip("/")
-    if normalized_source_root == ".." or normalized_source_root.startswith("../"):
         return None
 
     mapped_path = frame_path.replace(stack_root, source_root, 1).replace("\\", "/").lstrip("/")

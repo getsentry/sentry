@@ -309,9 +309,9 @@ describe('utils/tokenizeSearch', () => {
       },
       {
         name: 'should keep an array membership typed key whole when it contains a space',
-        string: 'tags[foo, array][*]:x',
+        string: 'tags[foo[*], array]:x',
         object: {
-          tokens: [{type: TokenType.FILTER, key: 'tags[foo, array][*]', value: 'x'}],
+          tokens: [{type: TokenType.FILTER, key: 'tags[foo[*], array]', value: 'x'}],
         },
       },
       {
@@ -543,6 +543,16 @@ describe('utils/tokenizeSearch', () => {
 
       results.addFilterValue('e', 'e1*e2\\e3');
       expect(results.formatString()).toBe('e:"e1\\*e2\\e3"');
+    });
+
+    it('adds a list filter and quotes values that contain spaces', () => {
+      const results = new MutableSearch([]);
+
+      results.addFilterValueList('browser.name', ['Chrome', 'Chrome Mobile']);
+      results.addFilterValueList('user.geo.subregion', ['21', '154']);
+      expect(results.formatString()).toBe(
+        'browser.name:[Chrome,"Chrome Mobile"] user.geo.subregion:[21,154]'
+      );
     });
 
     it('quotes filter keys containing colons', () => {

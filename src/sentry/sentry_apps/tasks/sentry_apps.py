@@ -10,6 +10,7 @@ import sentry_sdk
 from django.urls import reverse
 from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
+from sentry_sdk import traces
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry, retry_task
 
@@ -45,7 +46,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.notifications.types import RuleFuture
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
@@ -80,7 +81,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.timeout import InnerTimeoutError
-from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
@@ -90,7 +90,6 @@ from sentry.utils.sentry_apps import send_and_save_webhook_request
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
@@ -508,7 +507,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     silo_mode=SiloMode.CELL,
     silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@trace(name="process_resource_change_bound")
+@traces.trace(name="process_resource_change_bound")
 def process_resource_change_bound(
     action: str, sender: str, instance_id: str, **kwargs: Any
 ) -> None:
@@ -808,19 +807,16 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
         # TODO(ecosystem): We need to change this payload format after alerts create issues
-        id = f.rule.id
-
-        # if we are using the new workflow engine, we need to use the legacy rule id
-        # Ignore test notifications
-        if int(id) != -1:
-            _, id = get_rule_or_workflow_id(f.rule)
+        origin = f.context.origin
+        id = origin.legacy_rule_id or origin.workflow_id
+        assert id is not None
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:
             extra_kwargs["additional_payload_key"] = "issue_alert"
             extra_kwargs["additional_payload"] = {
                 "id": int(id),
-                "title": f.rule.label,
+                "title": origin.label,
                 "sentry_app_id": f.kwargs["sentry_app"].id,
                 "settings": settings,
             }
@@ -829,7 +825,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             instance_id=event.event_id,
             group_id=event.group_id,
             occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
-            rule_label=f.rule.label,
+            rule_label=origin.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,
         )

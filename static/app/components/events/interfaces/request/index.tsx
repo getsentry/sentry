@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {IconOpen} from '@sentry/icons/open';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,13 +15,9 @@ import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {
   KeyValueTableCard,
-  KeyValueTableCardPanel,
-  KeyValueTableCardTitle,
-  KeyValueTableDataList,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
 import {Truncate} from 'sentry/components/truncate';
-import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -61,32 +58,6 @@ function getBodyContent({
           showCopyButton
         />
       );
-    case 'application/x-www-form-urlencoded':
-    case 'multipart/form-data': {
-      const transformedData = getTransformedData(data, meta).map(d => {
-        const [key, value] = d.data;
-        return {
-          key,
-          subject: key,
-          value,
-          meta: d.meta,
-        };
-      });
-
-      if (!transformedData.length) {
-        return null;
-      }
-
-      return (
-        <KeyValueTableDataList
-          margin
-          data-test-id="rich-http-content-body-key-value-list"
-          data={transformedData}
-          isContextData
-        />
-      );
-    }
-
     default:
       return (
         <pre data-test-id="rich-http-content-body-section-pre">
@@ -103,10 +74,25 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
 
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
     return (
-      <KeyValueTableCardPanel block>
-        <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
+      <KeyValueTableCard title={t('Body')}>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
-      </KeyValueTableCardPanel>
+      </KeyValueTableCard>
+    );
+  }
+
+  if (
+    data.inferredContentType === 'application/x-www-form-urlencoded' ||
+    data.inferredContentType === 'multipart/form-data'
+  ) {
+    return (
+      <KeyValueTableCard
+        title={t('Body')}
+        contentItems={getTransformedData(data.data, meta?.data).map(d => {
+          const [key, value] = d.data;
+          return {item: {key, subject: key, value}, meta: d.meta};
+        })}
+        sortAlphabetically
+      />
     );
   }
 
@@ -115,12 +101,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
     meta: meta?.data,
     inferredContentType: data.inferredContentType,
   });
-  return (
-    <KeyValueTableCardPanel block>
-      <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
-      {contentBody}
-    </KeyValueTableCardPanel>
-  );
+  return <KeyValueTableCard title={t('Body')}>{contentBody}</KeyValueTableCard>;
 }
 
 export function Request({data, event}: RequestProps) {

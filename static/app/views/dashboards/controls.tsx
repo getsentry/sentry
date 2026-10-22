@@ -1,11 +1,14 @@
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
+
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -212,15 +215,17 @@ function AddWidgetDropdown({
     <DropdownMenu
       items={items}
       isDisabled={widgetLimitReached || !hasEditAccess}
-      triggerLabel={t('Add Widget')}
-      triggerProps={{
-        'aria-label': t('Add Widget'),
-        size: 'sm',
-        showChevron: true,
-        icon: <IconAdd size="sm" />,
-        tooltipProps: {title: tooltip},
-        variant: 'primary',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          size="sm"
+          icon={<IconAdd />}
+          tooltipProps={{title: tooltip}}
+          variant="primary"
+        >
+          {t('Add Widget')}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

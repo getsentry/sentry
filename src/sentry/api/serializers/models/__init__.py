@@ -23,7 +23,6 @@ from .groupactionlogentry import *  # noqa: F401,F403
 from .grouprelease import GroupReleaseSerializer, GroupReleaseWithStatsSerializer  # noqa: F401,F403
 from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
-from .incidentactivity import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organization_access_request import *  # noqa: F401,F403
 from .organization_member.base import *  # noqa: F401,F403
@@ -49,7 +48,6 @@ from .release_file import *  # noqa: F401,F403
 from .release_threshold import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
-from .rule import *  # noqa: F401,F403
 from .tagvalue import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403
 from .user_social_auth import *  # noqa: F401,F403

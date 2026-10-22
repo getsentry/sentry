@@ -680,29 +680,28 @@ class GroupManager(BaseManager["Group"]):
         organizations: Iterable[Organization],
         external_issue_key: str | None,
     ) -> QuerySet[Group]:
+        """
+        `organizations` must already be limited to those with `integration` installed;
+        this does not re-check the installs.
+        """
         from sentry.integrations.models.external_issue import ExternalIssue
-        from sentry.integrations.services.integration import integration_service
         from sentry.models.grouplink import GroupLink
 
-        external_issue_subquery = ExternalIssue.objects.get_for_integration(
-            integration, external_issue_key
-        ).values_list("id", flat=True)
+        organization_ids = [o.id for o in organizations]
+
+        external_issues = ExternalIssue.objects.filter(
+            integration_id=integration.id, organization_id__in=organization_ids
+        )
+        if external_issue_key is not None:
+            external_issues = external_issues.filter(key=external_issue_key)
 
         group_link_subquery = GroupLink.objects.filter(
-            linked_id__in=external_issue_subquery
+            linked_id__in=external_issues.values_list("id", flat=True)
         ).values_list("group_id", flat=True)
-
-        org_ids_with_integration = list(
-            i.organization_id
-            for i in integration_service.get_organization_integrations(
-                organization_ids=[o.id for o in organizations],
-                integration_id=integration.id,
-            )
-        )
 
         return self.filter(
             id__in=group_link_subquery,
-            project__organization_id__in=org_ids_with_integration,
+            project__organization_id__in=organization_ids,
         ).select_related("project")
 
     def update_group_status(
@@ -865,14 +864,11 @@ class Group(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(
-        max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME), db_index=True
-    )
+    logger = models.CharField(max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME))
     level = BoundedPositiveIntegerField(
         choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
         blank=True,
-        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
@@ -899,7 +895,7 @@ class Group(Model):
             (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
-    times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
+    times_seen = BoundedPositiveIntegerField(default=1)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_release = FlexibleForeignKey("sentry.Release", null=True, on_delete=models.PROTECT)

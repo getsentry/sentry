@@ -31,7 +31,7 @@ from sentry.investigations.services.executions import (
     mark_block_execution_dispatched,
 )
 from sentry.investigations.services.investigations import (
-    DEFAULT_INVESTIGATION_TITLE,
+    has_default_investigation_title,
     investigation_source,
     mark_downstream_blocks_stale,
 )
@@ -1007,7 +1007,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         .order_by("position")
     )
     auto_run_blocks = [block for block in blocks if block.config.get("autoRun")]
-    if not auto_run_blocks and investigation.title != DEFAULT_INVESTIGATION_TITLE:
+    if not auto_run_blocks and not has_default_investigation_title(investigation):
         return
     if auto_run_blocks and not all(_block_has_current_result(block) for block in auto_run_blocks):
         return
@@ -1112,7 +1112,7 @@ def synchronize_title(investigation: Investigation, state: SeerRunState) -> None
         )
     }
     if metadata:
-        if investigation.title == DEFAULT_INVESTIGATION_TITLE:
+        if has_default_investigation_title(investigation):
             updates["title"] = metadata["title"]
         updates["summary"] = metadata["summary"]
         updates["summary_description"] = metadata["summary_description"]

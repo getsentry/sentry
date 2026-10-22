@@ -2,11 +2,12 @@ from collections import defaultdict
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, UnknownEnvironments
@@ -19,10 +20,11 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.eap.utils import check_attribute_names_exist, serialize_search_type
 from sentry.search.events import fields
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
 
 
@@ -148,7 +150,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.END,
             VisibilityParams.DATASET,
             VisibilityParams.FIELD,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.SORT,
         ],
         responses={
@@ -197,6 +199,10 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                 Validation(valid=False, error="At least one valid project is required to query")
             )
             return self.serialize_response(response)
+        except PermissionDenied:
+            response["valid"] = False
+            response["projects"].append(Validation(valid=False, error="Invalid project"))
+            return self.serialize_response(response)
         except UnknownEnvironments as error:
             response["valid"] = False
             response["environment"].append(Validation(valid=False, error=str(error)))
@@ -224,7 +230,19 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             # Can't continue if this isn't a RPC dataset
             return self.serialize_response(response)
 
-        resolver = dataset.get_resolver(snuba_params, SearchResolverConfig())
+        config = (
+            SearchResolverConfig(
+                fields_acl=FieldsACL(attributes={"sentry.links"}),
+                disable_deprecated_functions=features.has(
+                    "organizations:explore-disable-deprecated-if-functions",
+                    organization,
+                    actor=request.user,
+                ),
+            )
+            if dataset == Spans
+            else SearchResolverConfig()
+        )
+        resolver = dataset.get_resolver(snuba_params, config)
 
         # Validate selected_columns
         selected_columns = self.get_field_list(organization, request)

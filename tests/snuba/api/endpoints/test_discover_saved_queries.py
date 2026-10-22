@@ -42,7 +42,6 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
 @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover-query"
-    migrate_feature_name = "organizations:discover-queries-in-all-queries"
 
     def setUp(self) -> None:
         super().setUp()
@@ -212,12 +211,12 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             last_visited=before_now(minutes=5),
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
         assert response.status_code == 200
         assert [row["name"] for row in response.data] == ["My query", "Test query"]
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url, data={"sortBy": "-recentlyViewed"})
         assert response.status_code == 200
         assert [row["name"] for row in response.data] == ["Test query", "My query"]
@@ -255,7 +254,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             last_visited=before_now(minutes=1),
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
 
         assert response.status_code == 200
@@ -285,7 +284,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         )
 
         for sorting in ["recentlyViewed", "-recentlyViewed"]:
-            with self.feature([self.feature_name, self.migrate_feature_name]):
+            with self.feature([self.feature_name]):
                 response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
@@ -304,14 +303,14 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             last_visited=last_visited,
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert response.data[0]["lastVisited"] == last_visited
 
         self.login_as(user=other_user)
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -328,7 +327,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             last_visited=before_now(minutes=5),
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -345,7 +344,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             starred=True,
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -353,7 +352,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["position"] == 3
 
     def test_get_unstarred_query_serializes_false_and_null_position(self) -> None:
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -370,7 +369,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             starred=True,
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -581,7 +580,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     def test_post_duplicated_query_keeps_starred_status(self) -> None:
         """Duplicating a starred query re-posts the serialized row, starred flag and all,
         so the copy has to come back starred for the user who duplicated it."""
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.post(
                 self.url,
                 {

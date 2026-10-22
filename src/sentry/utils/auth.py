@@ -17,6 +17,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.auth.email import filter_matching_emails
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
@@ -38,7 +39,6 @@ _LOGIN_URL: str | None = None
 _STATIC_LOGIN_REDIRECT_SUFFIXES = frozenset({".js", ".css", ".map"})
 
 MFA_SESSION_KEY = "mfa"
-REACT_AUTH_COOKIE = "sentry_react_auth"
 
 SUSPENDED_USER_REJECTED_METRIC = "auth.suspended_user.rejected"
 
@@ -135,13 +135,6 @@ def has_pending_2fa(request: HttpRequest) -> bool:
     return request.session.get("_pending_2fa") is not None
 
 
-def is_react_auth_enabled(request: HttpRequest) -> bool:
-    cookie_value = request.COOKIES.get(REACT_AUTH_COOKIE)
-    if cookie_value is not None:
-        return cookie_value == "1"
-    return options.get("auth.v2.enabled")
-
-
 def get_login_url(reset: bool = False) -> str:
     global _LOGIN_URL
 
@@ -200,9 +193,7 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
     if has_pending_2fa(request):
-        if is_react_auth_enabled(request):
-            return reverse("sentry-login")
-        return reverse("sentry-2fa-dialog")
+        return reverse("sentry-login")
 
     # If we have a different URL to go after the 2fa flow we want to go to
     # that now here.
@@ -338,7 +329,7 @@ def find_users(
         # If not, we can take a stab at guessing it's an email address
         if "@" in username:
             # email isn't guaranteed unique
-            return list(queryset.filter(email__iexact=username))
+            return filter_matching_emails(queryset, username)
         return []
 
 

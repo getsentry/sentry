@@ -8,6 +8,7 @@ import hashlib
 import logging
 import time
 from collections.abc import Generator, Mapping
+from random import random
 from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
@@ -15,6 +16,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry.silo.base import SiloMode
+from sentry.types.superuser import SUPERUSER_ACCESS_TTL, SuperuserAccess
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +65,8 @@ class ViewerContext:
     project_id: int | None = None
     user_id: int | None = None
     actor_type: ActorType = ActorType.UNKNOWN
+    # Elevation for this user/organization pair, including non-member access.
+    superuser: SuperuserAccess | None = dataclasses.field(default=None, repr=False)
 
     # Carries scopes/kind for in-process permission checks.
     # NOT propagated across process/service boundaries.
@@ -77,11 +81,14 @@ class ViewerContext:
             result["project_id"] = self.project_id
         if self.user_id is not None:
             result["user_id"] = self.user_id
+        if self.superuser is not None:
+            result["superuser"] = self.superuser.dict()
         return result
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> ViewerContext:
         """Reconstruct from a serialized dict. Token is not deserialized."""
+        superuser = data.get("superuser")
         try:
             actor_type = ActorType(data.get("actor_type", "unknown"))
         except ValueError:
@@ -91,6 +98,7 @@ class ViewerContext:
             project_id=data.get("project_id"),
             user_id=data.get("user_id"),
             actor_type=actor_type,
+            superuser=SuperuserAccess.parse_obj(superuser) if superuser is not None else None,
         )
 
 
@@ -164,16 +172,34 @@ def observe_viewer_context_propagation(
     )
 
     # testing internal sampling on high volume metrics, not yet public api
-    attributes_with_sampling: dict[str, str | float] = {
-        **attributes,
-        "sentry.client_sample_rate": 0.001,
-    }
-    sentry_sdk.metrics.count("viewer_context.observation", 1, attributes=attributes_with_sampling)
+    if random() < 0.001:
+        attributes_with_sampling: dict[str, str | float] = {
+            **attributes,
+            "sentry.client_sample_rate": 0.001,
+        }
+        sentry_sdk.metrics.count(
+            "viewer_context.observation", 1, attributes=attributes_with_sampling
+        )
 
     if expected and ctx is None:
         log_extra: dict[str, Any] = dict(extra_attributes) if extra_attributes else {}
         log_extra["point"] = point
         logger.warning("viewer_context.missing", extra=log_extra)
+
+
+def set_viewer_context_superuser(
+    *, user_id: int, organization_id: int, superuser: SuperuserAccess
+) -> None:
+    """Attach elevation produced by the normal organization access checks."""
+    ctx = get_viewer_context()
+    if ctx is not None and ctx.user_id == user_id:
+        _viewer_context_var.set(
+            dataclasses.replace(
+                ctx,
+                organization_id=organization_id,
+                superuser=superuser,
+            )
+        )
 
 
 def set_viewer_context_organization(organization_id: int) -> None:
@@ -182,7 +208,9 @@ def set_viewer_context_organization(organization_id: int) -> None:
     if ctx is None or ctx.organization_id == organization_id:
         return
 
-    _viewer_context_var.set(dataclasses.replace(ctx, organization_id=organization_id))
+    _viewer_context_var.set(
+        dataclasses.replace(ctx, organization_id=organization_id, superuser=None)
+    )
 
 
 def set_viewer_context_project(project_id: int) -> None:
@@ -261,10 +289,17 @@ def encode_viewer_context(
         ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
 
     now = time.time()
+    expires_at = now + ttl
+    if viewer_context.superuser is not None:
+        expires_at = min(
+            expires_at,
+            now + SUPERUSER_ACCESS_TTL.total_seconds(),
+            viewer_context.superuser.expires_at,
+        )
     payload: dict[str, Any] = {
         **viewer_context.serialize(),
         "iat": now,
-        "exp": now + ttl,
+        "exp": expires_at,
         "iss": "sentry",
     }
     if viewer_context.organization_id is not None and _organization_is_early_adopter(

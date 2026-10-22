@@ -1,11 +1,13 @@
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useBulkEditFeedbacks} from 'sentry/components/feedback/list/useBulkEditFeedbacks';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
@@ -77,12 +79,14 @@ export function FeedbackListBulkSelection({
         <ErrorBoundary mini>
           <DropdownMenu
             position="bottom-end"
-            triggerProps={{
-              'aria-label': t('Read Menu'),
-              icon: <IconEllipsis />,
-              showChevron: false,
-              size: 'xs',
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                aria-label={t('Read Menu')}
+                icon={<IconEllipsis />}
+                size="xs"
+              />
+            )}
             items={[
               {
                 key: 'mark read',

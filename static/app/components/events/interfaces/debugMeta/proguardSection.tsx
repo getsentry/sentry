@@ -1,10 +1,8 @@
-import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
-import {IconOpen} from 'sentry/icons';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {EntryDebugMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
@@ -33,15 +31,16 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
       sectionKey={SectionKey.PROGUARD}
       initialCollapse
     >
-      <KeyValueTableDataList
-        margin
-        data={[
+      <KeyValueTableCard
+        variant="label"
+        contentItems={[
           {
-            key: 'uuid',
-            subject: t('UUID'),
-            value: (
-              <Flex align="center" gap="md">
-                <UuidValue className="val-string">{uuid}</UuidValue>
+            item: {
+              key: 'uuid',
+              subject: t('UUID'),
+              value: uuid,
+              actionButtonAlwaysVisible: true,
+              actionButton: (
                 <LinkButton
                   size="xs"
                   icon={<IconOpen />}
@@ -57,15 +56,11 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
                     query: {query: uuid},
                   }}
                 />
-              </Flex>
-            ),
+              ),
+            },
           },
         ]}
       />
     </FoldSection>
   );
 }
-
-const UuidValue = styled('pre')`
-  flex-grow: 1;
-`;

@@ -1,10 +1,17 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {expectTypeOf} from 'expect-type';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {
+  OverlayTrigger,
+  type OverlayTriggerButtonProps,
+  type OverlayTriggerIconButtonProps,
+} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect, getEscapedKey, type SelectOption} from './';
 
@@ -109,35 +116,92 @@ describe('CompactSelect', () => {
       );
     });
 
-    it('should only allow SelectTrigger as trigger', () => {
-      const value: 'opt_one' | 'opt_two' = 'opt_one';
+    it('rejects trigger refs on native elements and regular buttons', () => {
       void (
         <CompactSelect
-          value={value}
+          value="opt_one"
+          onChange={() => {}}
+          trigger={triggerProps => {
+            return (
+              <Fragment>
+                {/* @ts-expect-error not allowed */}
+                <button {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <Button {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <div {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <span {...triggerProps} />
+              </Fragment>
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts trigger props on OverlayTrigger.Button and OverlayTrigger.IconButton', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            // @ts-expect-error should only allow SelectTrigger components
-            return <DropdownButton {...props}>Trigger</DropdownButton>;
+            expectTypeOf(props).toExtend<OverlayTriggerButtonProps>();
+            return <OverlayTrigger.Button {...props} />;
           }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
+          options={[{value: 'opt_one', label: 'Option One'}]}
         />
       );
 
       void (
         <CompactSelect
-          value={value}
+          value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            // no type error here
-            return <OverlayTrigger.Button {...props}>Trigger</OverlayTrigger.Button>;
+            const iconButtonProps = {
+              ...props,
+              icon: <IconEllipsis />,
+              'aria-label': 'Select option',
+            };
+            expectTypeOf(iconButtonProps).toExtend<OverlayTriggerIconButtonProps>();
+            return <OverlayTrigger.IconButton {...iconButtonProps} />;
           }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts merging trigger refs', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={() => {}}
+          trigger={({ref, ...triggerProps}) => {
+            return (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                ref={mergeRefs(ref, useRef<HTMLButtonElement>(null))}
+              />
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts merging trigger props', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={() => {}}
+          trigger={triggerProps => {
+            return (
+              <OverlayTrigger.Button
+                {...mergeProps(triggerProps, {ref: useRef<HTMLButtonElement>(null)})}
+              />
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
         />
       );
     });
@@ -217,6 +281,59 @@ describe('CompactSelect', () => {
 
     expect(screen.getByText('Menu title')).toBeInTheDocument();
   });
+
+  it.each([
+    {search: true, usePortal: true},
+    {search: false, usePortal: true},
+    {search: true, usePortal: false},
+    {search: false, usePortal: false},
+  ])(
+    'preserves nested menu focus when opening autofocus runs (search=$search, portal=$usePortal)',
+    async ({search, usePortal}) => {
+      const onAction = jest.fn();
+      render(
+        <CompactSelect
+          search={search}
+          value="opt_one"
+          onChange={jest.fn()}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+          menuTitle={
+            <DropdownMenu
+              usePortal={usePortal}
+              triggerLabel="Operator"
+              items={[{key: 'is', label: 'is', onAction}]}
+            />
+          }
+        />
+      );
+
+      const openingFrames: FrameRequestCallback[] = [];
+      const frameMock = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          openingFrames.push(callback);
+          return 0;
+        });
+
+      try {
+        await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+        frameMock.mockRestore();
+        await userEvent.click(screen.getByRole('button', {name: 'Operator'}));
+        const menuItem = screen.getByRole('menuitemradio', {name: 'is'});
+        expect(menuItem).toHaveFocus();
+
+        act(() => {
+          openingFrames.forEach(callback => callback(0));
+        });
+
+        expect(menuItem).toHaveFocus();
+        await userEvent.keyboard('{Enter}');
+        expect(onAction).toHaveBeenCalledTimes(1);
+      } finally {
+        frameMock.mockRestore();
+      }
+    }
+  );
 
   it('can be dismissed', async () => {
     render(
@@ -302,6 +419,40 @@ describe('CompactSelect', () => {
     await waitFor(() => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
+  });
+
+  it('keeps a hidden clear button in a titled header without a selection', async () => {
+    render(
+      <CompactSelect
+        clearable
+        menuTitle="Options"
+        value={undefined}
+        onChange={jest.fn()}
+        options={[{value: 'opt_one', label: 'Option One'}]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    expect(screen.getByText('Options')).toBeInTheDocument();
+    expect(screen.getByText('Clear').closest('button')).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
+  });
+
+  it('omits the header in an untitled menu without a selection', async () => {
+    render(
+      <CompactSelect
+        clearable
+        value={undefined}
+        onChange={jest.fn()}
+        options={[{value: 'opt_one', label: 'Option One'}]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
   });
 
   describe('ListBox', () => {

@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -32,7 +31,7 @@ import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-import QueryList from './queryList';
+import {QueryList} from './queryList';
 import {getPrebuiltQueries} from './utils';
 
 const SORT_OPTIONS = [
@@ -188,22 +187,17 @@ function DiscoverLanding() {
     >
       <SentryDocumentTitle title={t('Errors')} orgSlug={organization.slug}>
         <Stack flex={1}>
-          <TopBar.Slot name="breadcrumbs">
-            <BreadcrumbList
-              items={[
-                {
-                  type: 'link',
-                  label: t('Errors'),
-                  to: getDiscoverLandingUrl(organization),
-                },
-              ]}
-            />
-          </TopBar.Slot>
-          <TopBar.Slot name="title">
-            <BreadcrumbList.Title
-              item={{type: 'page-title', label: t('Saved Queries')}}
-            />
-          </TopBar.Slot>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: t('Saved Queries')}}
+            items={[
+              {
+                type: 'link',
+                label: t('Errors'),
+                to: getDiscoverLandingUrl(organization),
+              },
+            ]}
+          />
           <Layout.Body>
             <Layout.Main width="full">
               <Grid
@@ -257,7 +251,7 @@ function DiscoverLanding() {
               ) : status === 'error' ? (
                 <LoadingError message={error.message} />
               ) : (
-                <QueriesContainer>
+                <Stack gap="xl">
                   {organization.features.includes('expose-migrated-discover-queries') && (
                     <Alert variant="info">
                       {tct(
@@ -281,7 +275,7 @@ function DiscoverLanding() {
                     organization={organization}
                     refetchSavedQueries={refreshSavedQueries}
                   />
-                </QueriesContainer>
+                </Stack>
               )}
             </Layout.Main>
           </Layout.Body>
@@ -301,12 +295,6 @@ const PrebuiltSwitch = styled('label')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-const QueriesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
 `;
 
 export default DiscoverLanding;

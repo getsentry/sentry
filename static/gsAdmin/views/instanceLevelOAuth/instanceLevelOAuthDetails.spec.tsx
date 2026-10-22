@@ -92,6 +92,34 @@ describe('instance level OAuth client details', () => {
     expect(mockGetDetailsCall).toHaveBeenCalledTimes(1);
   });
 
+  it('shows an error when client details cannot be loaded', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+
+    expect(await screen.findByText('Unable to load client data.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Save Client Settings'})
+    ).not.toBeInTheDocument();
+
+    const retryGetCall = MockApiClient.addMockResponse({
+      url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
+      method: 'GET',
+      body: mockClientDetails,
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(
+      await screen.findByText('Details For Instance Level OAuth Client: CodeCov')
+    ).toBeInTheDocument();
+    expect(retryGetCall).toHaveBeenCalledTimes(1);
+  });
+
   it('allows a client to be updated', async () => {
     render(<InstanceLevelOAuthDetails />, {
       initialRouterConfig,
@@ -132,10 +160,140 @@ describe('instance level OAuth client details', () => {
       newClientDetails.privacyUrl
     );
 
+    const refreshedGetCall = MockApiClient.addMockResponse({
+      url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
+      method: 'GET',
+      body: {...mockClientDetails, name: newClientDetails.name},
+    });
+
     await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
     expect(mockPutCall).toHaveBeenCalledTimes(1);
     const submittedPutRequestBody = mockPutCall.mock.calls[0][1].data;
     expect(submittedPutRequestBody).toEqual(newClientDetails);
+    expect(
+      await screen.findByText('Details For Instance Level OAuth Client: New Name')
+    ).toBeInTheDocument();
+    expect(refreshedGetCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('trims client details before updating', async () => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByRole('button', {name: 'Save Client Settings'});
+
+    const name = screen.getByRole('textbox', {name: 'Client Name'});
+    await userEvent.clear(name);
+    await userEvent.type(name, '  New Name  ');
+
+    const redirectUris = screen.getByRole('textbox', {
+      name: 'Redirect URIs (space separated)',
+    });
+    await userEvent.clear(redirectUris);
+    await userEvent.type(redirectUris, '  https://new-redirect.com  ');
+
+    const allowedOrigins = screen.getByRole('textbox', {
+      name: 'Allowed Origins (space separated)',
+    });
+    await userEvent.clear(allowedOrigins);
+    await userEvent.type(allowedOrigins, '  https://new-origin.com  ');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(mockPutCall).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'New Name',
+          redirectUris: 'https://new-redirect.com',
+          allowedOrigins: 'https://new-origin.com',
+        }),
+      })
+    );
+  });
+
+  it('rejects invalid URLs', async () => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByText('Details For Instance Level OAuth Client: CodeCov');
+
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Homepage URL'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Homepage URL'}), 'invalid');
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(await screen.findByText('Enter a valid URL')).toBeInTheDocument();
+    expect(mockPutCall).not.toHaveBeenCalled();
+  });
+
+  it('shows a required error for empty redirect URIs', async () => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByRole('button', {name: 'Save Client Settings'});
+
+    await userEvent.clear(
+      screen.getByRole('textbox', {name: 'Redirect URIs (space separated)'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(await screen.findByText('Redirect URIs are required')).toBeInTheDocument();
+    expect(mockPutCall).not.toHaveBeenCalled();
+  });
+
+  it.each(['', '   '])('rejects an empty client name (%j)', async nameValue => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByRole('button', {name: 'Save Client Settings'});
+
+    const name = screen.getByRole('textbox', {name: 'Client Name'});
+    await userEvent.clear(name);
+    if (nameValue) {
+      await userEvent.type(name, nameValue);
+    }
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(await screen.findByText('Client name is required')).toBeInTheDocument();
+    expect(mockPutCall).not.toHaveBeenCalled();
+  });
+
+  it('shows server validation errors on the affected fields', async () => {
+    MockApiClient.addMockResponse({
+      url: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {name: ['This client name is already in use.']},
+    });
+
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByRole('button', {name: 'Save Client Settings'});
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(
+      await screen.findByText('This client name is already in use.')
+    ).toBeInTheDocument();
+  });
+
+  it('rejects comma-separated URLs', async () => {
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
+    await screen.findByText('Details For Instance Level OAuth Client: CodeCov');
+
+    await userEvent.clear(
+      screen.getByRole('textbox', {name: 'Redirect URIs (space separated)'})
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Redirect URIs (space separated)'}),
+      'https://example.com/one,https://example.com/two'
+    );
+    await userEvent.clear(
+      screen.getByRole('textbox', {name: 'Allowed Origins (space separated)'})
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Allowed Origins (space separated)'}),
+      'https://example.com/one, https://example.com/two'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save Client Settings'}));
+
+    expect(
+      await screen.findByText('Enter valid redirect URLs separated by spaces')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Enter valid allowed origins separated by spaces')
+    ).toBeInTheDocument();
+    expect(mockPutCall).not.toHaveBeenCalled();
   });
 
   it('deletes a client correctly', async () => {
@@ -144,12 +302,14 @@ describe('instance level OAuth client details', () => {
     });
     await userEvent.click(await screen.findByRole('button', {name: 'Delete client'}));
     renderGlobalModal();
-    expect(await screen.findByText('Delete client')).toBeVisible();
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Permanently and Irreversibly Delete Client',
-      })
-    );
+    expect(
+      await screen.findByRole('heading', {name: /Delete client:/})
+    ).toBeInTheDocument();
+    const deleteButton = await screen.findByRole('button', {
+      name: 'Permanently and Irreversibly Delete Client',
+    });
+    expect(deleteButton.closest('footer')).toBeInTheDocument();
+    await userEvent.click(deleteButton);
     expect(mockDeleteCall).toHaveBeenCalledTimes(1);
   });
 });

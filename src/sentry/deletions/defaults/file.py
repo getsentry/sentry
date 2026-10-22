@@ -16,7 +16,10 @@ class FileDeletionTask(ModelDeletionTask[File]):
             2. Have no corresponding ReleaseFile entry
             3. Are older than 90 days
         - artifact.bundle Files older than 90 days with no corresponding ArtifactBundle entry
-        - project.dif Files older than 90 days with no corresponding ProjectDebugFile entry
+        - Debug Files, that:
+            1. Are of type `project.dif`, or the legacy types `global.dsym` and `project.dsym`
+            2. Have no corresponding ProjectDebugFile entry
+            3. Are older than 90 days
         - Other obsolete file types such as:
             - `project.cficache` and `project.symcache` which were pre-Symbolicator
               cache files used in symbolication within the monolith.
@@ -42,7 +45,10 @@ class FileDeletionTask(ModelDeletionTask[File]):
             & ~releasefile_exists
         )
         artifact_bundles = Q(type="artifact.bundle", timestamp__lt=cutoff) & ~artifact_bundle_exists
-        debugfiles = Q(type="project.dif", timestamp__lt=cutoff) & ~project_debug_file_exists
+        debugfiles = (
+            Q(type__in=["project.dif", "global.dsym", "project.dsym"], timestamp__lt=cutoff)
+            & ~project_debug_file_exists
+        )
         cachefiles = Q(type__in=["project.cficache", "project.symcache"])
 
         return Q(releasefiles | artifact_bundles | debugfiles | cachefiles)

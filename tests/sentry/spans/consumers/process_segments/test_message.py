@@ -7,6 +7,7 @@ import pytest
 from django.utils import timezone
 
 from sentry import nodestore
+from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
 from sentry.issue_detection.detectors.span_first.span_first_utils import (
@@ -32,12 +33,14 @@ from sentry.spans.consumers.process_segments.message import (
     EVIDENCE_SPAN_DATA_KEYS,
     MAX_EVIDENCE_LIST_ITEMS,
     MAX_EVIDENCE_VALUE_LENGTH,
+    MAX_OCCURRENCE_TAGS_BYTES,
     MAX_SPAN_DATA_VALUE_LENGTH,
     MAX_SPAN_DESCRIPTION_LENGTH,
     OVERALL_MAX_EVIDENCE_SPANS,
     _bump_release_last_seen,
     _get_evidence_data_for_occurrence,
     _get_evidence_span_for_occurrence,
+    _trim_event_data_for_occurrence,
     _truncate_value_for_occurrence,
     _verify_compatibility,
     process_segment,
@@ -50,6 +53,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.safe import get_json_bytes, strict_trim
 from tests.sentry.spans.consumers.process import build_mock_span
 
 DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
@@ -644,6 +648,79 @@ def test_truncate_value_for_occurrence_recurses_and_leaves_scalars_alone() -> No
     assert bounded["num_repeating_spans"] == "500"
     assert bounded["pattern_size"] == 3
     assert bounded["detector_id"] is None
+
+
+def test_trim_oversize_event_data() -> None:
+    event_data = {
+        "tags": [[f"dog_{i}", "very good"] for i in range(3000)],
+    }
+
+    original_tag_bytes = get_json_bytes(event_data["tags"])
+
+    _trim_event_data_for_occurrence(event_data)
+
+    trimmed_tag_bytes = get_json_bytes(event_data["tags"])
+
+    assert original_tag_bytes > MAX_OCCURRENCE_TAGS_BYTES
+
+    assert trimmed_tag_bytes <= MAX_OCCURRENCE_TAGS_BYTES
+
+
+def test_trim_event_data_caps_tag_values_by_character_count() -> None:
+    # Tag values are capped the way `set_tag` caps them, so that a value which survives here is
+    # identical to what the transaction pipeline would have stored. Measuring bytes instead would
+    # cut a non-ASCII value roughly six times shorter than an ASCII one.
+    event_data = {"tags": [["ascii", "x" * 5000], ["cyrillic", "ж" * 5000]]}
+
+    _trim_event_data_for_occurrence(event_data)
+
+    assert [len(value) for _, value in event_data["tags"]] == [
+        MAX_TAG_VALUE_LENGTH,
+        MAX_TAG_VALUE_LENGTH,
+    ]
+
+
+def test_trim_event_data_keeps_each_tag_whole() -> None:
+    tags1 = [[f"{'co_best_dogs'}_{i}", "maisey_charlie" * 4] for i in range(250)]
+    tags2 = [[f"{'co_best_dogs'}_{i}", "maisey_charlie" * 7] for i in range(250)]
+
+    for tag_set in [tags1, tags2]:
+        event_data = {"tags": tag_set}
+        orig_keys = dict(event_data["tags"]).keys()
+
+        _trim_event_data_for_occurrence(event_data)
+        trimmed_tags = event_data["tags"]
+
+        # The full set of tags is within the limit, and every tag which survived did so as a pair,
+        # with its key intact (values may still have been trimmed, but never all the way down to
+        # nothing)
+        assert get_json_bytes(trimmed_tags) <= MAX_OCCURRENCE_TAGS_BYTES
+        for tag in trimmed_tags:
+            assert len(tag) == 2
+            key, value = tag
+
+            assert key in orig_keys
+            assert value != ""
+
+        # The reason this is guaranteed is because we trim with the `treat_as_dict_entries` option
+        # set to True
+        assert trimmed_tags == strict_trim(
+            tag_set, MAX_OCCURRENCE_TAGS_BYTES, treat_as_dict_entries=True
+        )
+        # To see why this matters, consider what would happen if we didn't
+        naively_trimmed_tags = strict_trim(tag_set, MAX_OCCURRENCE_TAGS_BYTES)
+        # Without the opton set, we get a tag list with an extra, invalid tag at the end
+        assert len(naively_trimmed_tags) == len(trimmed_tags) + 1
+        assert trimmed_tags == naively_trimmed_tags[:-1]
+        # In both cases, that tag would be a bare key (not good)
+        extra_naively_trimmed_tag = naively_trimmed_tags[-1]
+        assert len(extra_naively_trimmed_tag) == 1
+        # With the first set of tags, we'd also end up with an invented key, because the key's value
+        # would be trimmed
+        if tag_set == tags1:
+            bare_extra_key = extra_naively_trimmed_tag[0]
+            assert bare_extra_key.endswith("...")
+            assert bare_extra_key not in orig_keys
 
 
 def test_evidence_stays_under_the_producer_message_limit() -> None:

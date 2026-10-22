@@ -92,6 +92,13 @@ function UpdateRetentionSettingsModal({
     subscription.categories.logBytes?.retention?.downsampled ?? null
   );
 
+  const [traceMetricBytesStandard, setTraceMetricBytesStandard] = useState<number | null>(
+    subscription.categories.traceMetricBytes?.retention?.standard ?? null
+  );
+  const [traceMetricBytesDownsampled, setTraceMetricBytesDownsampled] = useState<
+    number | null
+  >(subscription.categories.traceMetricBytes?.retention?.downsampled ?? null);
+
   const [transactionsStandard, setTransactionsStandard] = useState<number | null>(
     subscription.categories.transactions?.retention?.standard ?? null
   );
@@ -115,6 +122,13 @@ function UpdateRetentionSettingsModal({
       retentions.logBytes = {
         standard: logBytesStandard,
         downsampled: logBytesDownsampled,
+      };
+    }
+
+    if (subscription.planDetails.categories.includes(DataCategory.TRACE_METRIC_BYTE)) {
+      retentions.traceMetricBytes = {
+        standard: traceMetricBytesStandard,
+        downsampled: traceMetricBytesDownsampled,
       };
     }
 
@@ -196,6 +210,25 @@ function UpdateRetentionSettingsModal({
                 label="Logs Downsampled"
                 value={logBytesDownsampled}
                 onChange={setLogBytesDownsampled}
+              />
+            </Fragment>
+          )}
+
+          {subscription.planDetails.categories.includes(
+            DataCategory.TRACE_METRIC_BYTE
+          ) && (
+            <Fragment>
+              <RetentionField
+                name="traceMetricBytesStandard"
+                label="Metrics Standard"
+                value={traceMetricBytesStandard}
+                onChange={setTraceMetricBytesStandard}
+              />
+              <RetentionField
+                name="traceMetricBytesDownsampled"
+                label="Metrics Downsampled"
+                value={traceMetricBytesDownsampled}
+                onChange={setTraceMetricBytesDownsampled}
               />
             </Fragment>
           )}

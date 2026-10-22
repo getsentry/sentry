@@ -6,7 +6,11 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
-import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {
+  SeerExplorerChatStateProvider,
+  useSeerExplorerChatDispatch,
+  useSeerExplorerChatState,
+} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
@@ -791,6 +795,48 @@ describe('useSeerExplorer', () => {
         result.current.switchToRun(runId);
       });
       expect(result.current.requestError).toBeNull();
+    });
+  });
+
+  describe('chat prompts', () => {
+    it('clears a pending question only when a retry answers that same question', async () => {
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/1/`,
+        method: 'GET',
+        body: {session: {run_id: 1, blocks: [], status: 'completed', updated_at: ''}},
+      });
+      const {result} = renderHookWithProviders(
+        () => ({
+          explorer: useSeerExplorer(),
+          chatState: useSeerExplorerChatState(),
+          dispatch: useSeerExplorerChatDispatch(),
+        }),
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
+      );
+      const pending = {text: 'What about this widget?'};
+
+      act(() => {
+        result.current.dispatch({type: 'set chat prompt', payload: pending});
+      });
+      act(() => {
+        result.current.explorer.sendMessage('older reply', 0, undefined, {
+          text: 'Something else?',
+        });
+      });
+      expect(result.current.chatState.chatPrompt).toBe(pending);
+
+      act(() => {
+        result.current.explorer.sendMessage('reply', 0, undefined, {
+          text: 'What about this widget?',
+        });
+      });
+      expect(result.current.chatState.chatPrompt).toBeNull();
+      await waitFor(() => expect(postMock).toHaveBeenCalledTimes(2));
     });
   });
 

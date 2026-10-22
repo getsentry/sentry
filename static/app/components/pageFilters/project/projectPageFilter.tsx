@@ -1,6 +1,11 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {isAppleDevice} from '@react-aria/utils';
+import {IconAdd} from '@sentry/icons/add';
+import {IconAllProjects} from '@sentry/icons/allProjects';
+import {IconMyProjects} from '@sentry/icons/myProjects';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSettings} from '@sentry/icons/settings';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 
@@ -8,7 +13,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps, SelectOption} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
@@ -20,17 +25,11 @@ import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/pr
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
-import {
-  IconAdd,
-  IconAllProjects,
-  IconMyProjects,
-  IconOpen,
-  IconSettings,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -158,7 +157,7 @@ export function ProjectPageFilter({
         ),
         trailingItems: (props: {isFocused: boolean}) => {
           return (
-            // This is nasty, but because CompactSelect's menuListItem has a padding around the entire item and a height
+            // This is nasty, but because CompactSelect's Menu.ListItem has padding around the entire item and a height
             // that is smaller than the height of an xs button, they end up being misaligned and we need to manually adjust them.
             <Flex align="center" style={{marginTop: '-4px'}}>
               {props.isFocused ? (
@@ -225,48 +224,29 @@ export function ProjectPageFilter({
             {
               value: ALL_ACCESS_PROJECTS,
               label: (
-                <Flex align="center" justify="between" width="100%">
-                  <Text>{t('All Projects')}</Text>
-                  <Text size="xs" variant="muted">
-                    ({projects.length})
-                  </Text>
-                  {/* Show separator if we are not displaying My Projects */}
-                  {memberProjectList.length > 0 ? null : (
-                    <Separator
-                      orientation="horizontal"
-                      aria-hidden
-                      style={{
-                        position: 'absolute',
-                        bottom: '-8px',
-                        left: '-48px',
-                        right: 0,
-                        width: 'calc(100% + 48px)',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
-                </Flex>
+                <QuickSelectLabel
+                  icon={<IconAllProjects size="md" variant="muted" />}
+                  label={t('All Projects')}
+                  count={projects.length}
+                  // Divide from the project list if My Projects isn't shown below
+                  showDivider={memberProjectList.length === 0}
+                />
               ),
               textValue: t('All Projects'),
               leadingItems: () => (
-                <Fragment>
-                  <MenuComponents.Checkbox
-                    checked={optionSelectionIntent.kind === 'all'}
-                    onChange={() => {
-                      dispatchRef.current?.({
-                        type: 'set staged',
-                        value:
-                          // The inverse of All Projects is an empty array
-                          optionSelectionIntent.kind === 'all'
-                            ? []
-                            : [ALL_ACCESS_PROJECTS],
-                      });
-                    }}
-                    aria-label={t('Select All Projects')}
-                    tabIndex={-1}
-                  />
-                  <IconAllProjects size="sm" variant="muted" />
-                </Fragment>
+                <MenuComponents.Checkbox
+                  checked={optionSelectionIntent.kind === 'all'}
+                  onChange={() => {
+                    dispatchRef.current?.({
+                      type: 'set staged',
+                      value:
+                        // The inverse of All Projects is an empty array
+                        optionSelectionIntent.kind === 'all' ? [] : [ALL_ACCESS_PROJECTS],
+                    });
+                  }}
+                  aria-label={t('Select All Projects')}
+                  tabIndex={-1}
+                />
               ),
             } satisfies SelectOption<number>,
           ]
@@ -276,61 +256,46 @@ export function ProjectPageFilter({
             {
               value: MY_PROJECTS_VALUE,
               label: (
-                <Flex align="center" justify="between" width="100%">
-                  <Text>{t('My Projects')}</Text>
-                  <Text size="xs" variant="muted">
-                    ({memberProjectList.length})
-                  </Text>
-                  <Separator
-                    orientation="horizontal"
-                    aria-hidden
-                    style={{
-                      position: 'absolute',
-                      bottom: '-8px',
-                      left: '-48px',
-                      right: 0,
-                      width: 'calc(100% + 48px)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                </Flex>
+                <QuickSelectLabel
+                  icon={<IconMyProjects size="md" variant="muted" />}
+                  label={t('My Projects')}
+                  count={memberProjectList.length}
+                  showDivider
+                />
               ),
               textValue: t('My Projects'),
               leadingItems: () => (
-                <Fragment>
-                  <MenuComponents.Checkbox
-                    checked={
-                      optionSelectionIntent.kind === 'all' ||
-                      optionSelectionIntent.kind === 'my'
-                    }
-                    onChange={() => {
-                      if (optionSelectionIntent.kind === 'all') {
-                        // Remove member projects from the "all" selection
-                        dispatchRef.current?.({
-                          type: 'set staged',
-                          value: nonMemberProjectIds(projects),
-                        });
-                        return;
-                      }
-                      if (optionSelectionIntent.kind === 'my') {
-                        // Deselect My Projects
-                        dispatchRef.current?.({
-                          type: 'set staged',
-                          value: [],
-                        });
-                        return;
-                      }
-                      // For 'custom' or 'none': select My Projects
+                <MenuComponents.Checkbox
+                  checked={
+                    optionSelectionIntent.kind === 'all' ||
+                    optionSelectionIntent.kind === 'my'
+                  }
+                  onChange={() => {
+                    if (optionSelectionIntent.kind === 'all') {
+                      // Remove member projects from the "all" selection
                       dispatchRef.current?.({
                         type: 'set staged',
-                        value: [MY_PROJECTS_VALUE],
+                        value: nonMemberProjectIds(projects),
                       });
-                    }}
-                    aria-label={t('Select My Projects')}
-                    tabIndex={-1}
-                  />
-                  <IconMyProjects size="sm" variant="muted" />
-                </Fragment>
+                      return;
+                    }
+                    if (optionSelectionIntent.kind === 'my') {
+                      // Deselect My Projects
+                      dispatchRef.current?.({
+                        type: 'set staged',
+                        value: [],
+                      });
+                      return;
+                    }
+                    // For 'custom' or 'none': select My Projects
+                    dispatchRef.current?.({
+                      type: 'set staged',
+                      value: [MY_PROJECTS_VALUE],
+                    });
+                  }}
+                  aria-label={t('Select My Projects')}
+                  tabIndex={-1}
+                />
               ),
             } satisfies SelectOption<number>,
           ]
@@ -534,47 +499,50 @@ export function ProjectPageFilter({
   // oxlint-disable-next-line react/preserve-manual-memoization
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
-  const canWrite = organization.access.includes('project:write');
+  const canCreateProject = useCanCreateProject();
 
   const hasUnstaggedChanges =
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
 
-  const menuFooterContent =
-    selectionLimitExceeded || canWrite || hasUnstaggedChanges ? (
-      <Stack gap="md" direction="column">
-        {selectionLimitExceeded && (
-          <MenuComponents.Alert variant="warning">
-            {tct(
-              "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
-              {
-                limit: SELECTION_COUNT_LIMIT,
-                count: stagedSelect.value.length,
-              }
-            )}
-          </MenuComponents.Alert>
-        )}
-        <Flex gap="md" align="center" justify={canWrite ? 'between' : 'end'}>
-          {canWrite ? (
-            <MenuComponents.CTALinkButton
-              icon={<IconAdd />}
-              to={makeProjectsPathname({path: '/new/', organization})}
+  const menuFooterContent = (
+    <Stack gap="md" direction="column">
+      {selectionLimitExceeded && (
+        <MenuComponents.Alert variant="warning">
+          {tct(
+            "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
+            {
+              limit: SELECTION_COUNT_LIMIT,
+              count: stagedSelect.value.length,
+            }
+          )}
+        </MenuComponents.Alert>
+      )}
+      <Flex gap="md" align="center" justify="between">
+        <MenuComponents.CTALinkButton
+          icon={<IconAdd />}
+          to={makeProjectsPathname({path: '/new/', organization})}
+          onClick={handleApply}
+          disabled={!canCreateProject}
+          tooltipProps={{
+            title: canCreateProject
+              ? undefined
+              : t('Only project or team admins can create projects'),
+          }}
+        >
+          {t('Create Project')}
+        </MenuComponents.CTALinkButton>
+        {hasUnstaggedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <MenuComponents.CancelButton onClick={handleCancel} />
+            <MenuComponents.ApplyButton
+              disabled={selectionLimitExceeded}
               onClick={handleApply}
-            >
-              {t('Create Project')}
-            </MenuComponents.CTALinkButton>
-          ) : undefined}
-          {hasUnstaggedChanges ? (
-            <Flex gap="md" align="center" justify="end">
-              <MenuComponents.CancelButton onClick={handleCancel} />
-              <MenuComponents.ApplyButton
-                disabled={selectionLimitExceeded}
-                onClick={handleApply}
-              />
-            </Flex>
-          ) : null}
-        </Flex>
-      </Stack>
-    ) : null;
+            />
+          </Flex>
+        ) : null}
+      </Flex>
+    </Stack>
+  );
 
   return (
     <CompactSelect
@@ -632,6 +600,50 @@ export function ProjectPageFilter({
         return !powerHovercard && !disabledFeatureHovercard;
       }}
     />
+  );
+}
+
+/**
+ * Label for the "All Projects" / "My Projects" quick-select options. Mirrors the
+ * project option layout (checkbox in leadingItems, icon + text in the label) so
+ * the checkboxes, icons, and text line up with the project rows below.
+ */
+function QuickSelectLabel({
+  icon,
+  label,
+  count,
+  showDivider,
+}: {
+  count: number;
+  icon: React.ReactNode;
+  label: string;
+  showDivider: boolean;
+}) {
+  return (
+    <Flex align="center" justify="between" gap="sm" flex="1 1 100%">
+      <Flex align="center" gap="sm" minWidth="0">
+        <Flex flexShrink={0}>{icon}</Flex>
+        <Text ellipsis>{label}</Text>
+      </Flex>
+      <Text size="xs" variant="muted">
+        ({count})
+      </Text>
+      {showDivider ? (
+        // The options list stays flat (sections would disable virtualization), so
+        // draw the section divider on the row boundary, positioned against the
+        // item's content box. Insets match the CompactSelect section separator.
+        <Container
+          aria-hidden
+          position="absolute"
+          bottom="-4px"
+          left="-20px"
+          right="0"
+          pointerEvents="none"
+        >
+          <Separator orientation="horizontal" border="muted" />
+        </Container>
+      ) : null}
+    </Flex>
   );
 }
 

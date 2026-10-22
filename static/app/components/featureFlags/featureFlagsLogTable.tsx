@@ -5,7 +5,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import {GridEditable, type GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
@@ -25,7 +25,6 @@ interface FeatureFlagsLogTableProps {
   onResizeColumn?: (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => void;
   onRowMouseOut?: (dataRow: RawFlag, key: number) => void;
   onRowMouseOver?: (dataRow: RawFlag, key: number) => void;
-  scrollable?: boolean;
 }
 
 export function FeatureFlagsLogTable({
@@ -39,7 +38,6 @@ export function FeatureFlagsLogTable({
   onRowMouseOver,
   onRowMouseOut,
   highlightedRowKey,
-  scrollable = false,
 }: FeatureFlagsLogTableProps) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
@@ -62,7 +60,7 @@ export function FeatureFlagsLogTable({
 
   return (
     <div>
-      <GridEditable
+      <DataGrid
         error={error}
         isLoading={isPending}
         data={flags ?? []}
@@ -75,7 +73,6 @@ export function FeatureFlagsLogTable({
         onRowMouseOver={onRowMouseOver}
         onRowMouseOut={onRowMouseOut}
         highlightedRowKey={highlightedRowKey}
-        scrollable={scrollable}
         data-test-id="audit-log-table"
       />
 

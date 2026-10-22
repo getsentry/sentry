@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -204,6 +206,26 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                 response = self.client.get(url, {"query": "region:us OR handled:yes"})
                 assert response.status_code == 200, response.content
                 assert response.data[adjacent_key] == expected_id
+
+    @with_feature(BOOLEAN_SEARCH_FEATURE)
+    def test_boolean_query_oldest_navigation_respects_retention(self) -> None:
+        self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "timestamp": before_now(days=14).isoformat(),
+                "tags": {"region": "us"},
+            },
+            project_id=self.group.project_id,
+        )
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/oldest/"
+        with mock.patch("sentry.quotas.backend.get_event_retention", return_value=7):
+            for params in [{}, {"statsPeriod": "90d"}]:
+                response = self.client.get(url, {"query": "region:us OR handled:yes", **params})
+
+                assert response.status_code == 200, response.content
+                assert response.data["id"] == self.event1.event_id
+                assert response.data["previousEventID"] is None
+                assert response.data["nextEventID"] == self.event2.event_id
 
     @with_feature(BOOLEAN_SEARCH_FEATURE)
     def test_boolean_query_respects_environment_and_dates(self) -> None:

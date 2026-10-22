@@ -15,6 +15,7 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
+from sentry.api.utils import to_valid_int_id
 from sentry.demo_mode.utils import is_demo_user
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
@@ -69,7 +70,7 @@ class AcceptOrganizationInvite(Endpoint):
             user_id = None
 
         invite_context = get_invite_state(
-            member_id=int(member_id),
+            member_id=to_valid_int_id("member_id", member_id),
             organization_id_or_slug=organization_id_or_slug,
             user_id=user_id,
         )
@@ -162,7 +163,9 @@ class AcceptOrganizationInvite(Endpoint):
                 if not auth_provider
                 else "/"
             )
-            auth.initiate_login(self.request, next_url=url)
+            # Reloading the composed page must preserve an in-progress MFA challenge.
+            if auth.get_pending_2fa_user(request) is None:
+                auth.initiate_login(self.request, next_url=url)
 
         # If the org has SSO setup, we'll store the invite cookie to later
         # associate the org member after authentication. We can avoid needing

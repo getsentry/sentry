@@ -29,13 +29,13 @@ describe('useLogAttributesTreeActions', () => {
     );
 
     const content: AttributesTreeContent = {
-      originalAttribute: {
+      original: {
         attribute_key: 'message',
         attribute_value: 'hello',
         original_attribute_key: 'message',
         type: 'str',
       },
-      subtree: {},
+      subtree: new Map(),
       value: 'hello',
     };
 
@@ -62,13 +62,13 @@ describe('useLogAttributesTreeActions', () => {
     );
 
     const content: AttributesTreeContent = {
-      originalAttribute: {
+      original: {
         attribute_key: 'severity_number',
         attribute_value: 17,
         original_attribute_key: 'severity_number',
         type: 'int',
       },
-      subtree: {},
+      subtree: new Map(),
       value: 17,
     };
 
@@ -101,13 +101,13 @@ describe('useLogAttributesTreeActions', () => {
     );
 
     const content: AttributesTreeContent = {
-      originalAttribute: {
+      original: {
         attribute_key: 'message',
         attribute_value: 'hello',
         original_attribute_key: 'message',
         type: 'str',
       },
-      subtree: {},
+      subtree: new Map(),
       value: 'hello',
     };
 
@@ -116,12 +116,12 @@ describe('useLogAttributesTreeActions', () => {
     expect(actions.find(action => action.key === 'add-group-by')?.hidden).toBe(true);
   });
 
-  it('returns no actions when originalAttribute is missing', () => {
+  it('returns no actions when the original attribute is missing', () => {
     const {result} = renderHookWithProviders(
       () => useLogAttributesTreeActions({embedded: false}),
       {additionalWrapper: Wrapper}
     );
 
-    expect(result.current({subtree: {}, value: ''})).toEqual([]);
+    expect(result.current({subtree: new Map(), value: ''})).toEqual([]);
   });
 });

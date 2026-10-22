@@ -44,6 +44,9 @@ def timezone_context(tz: str):
         time.tzset()
 
 
+# Snowflake org and project ids repeat when two tests start in the same second, so reset Snuba
+# rather than read back a previous test's rows for "our" project.
+@pytest.mark.usefixtures("reset_snuba")
 class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self) -> None:
         event = self.store_event(
@@ -664,10 +667,9 @@ def test_renormalization(factories, task_runner, default_project) -> None:
             data={"event_id": "a" * 32, "environment": "production"}, project_id=default_project.id
         )
 
-    # Assert we only renormalize this once. If this assertion fails it's likely
-    # that you will encounter severe performance issues during event processing
-    # or postprocessing.
-    assert len(normalize_mock_calls) == 1
+    # Normalize during ingestion and when workflow processing reads the event.
+    # Post-processing reads the already normalized payload without normalizing it again.
+    assert len(normalize_mock_calls) == 2
 
 
 class EventNodeStoreTest(TestCase):

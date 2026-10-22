@@ -5,6 +5,7 @@ interface UseVirtualRowsOptions {
   count: number;
   estimateSize: (index: number) => number;
   getScrollElement: () => HTMLElement | null;
+  enabled?: boolean;
   estimateKey?: unknown;
   gap?: number;
   getItemKey?: (index: number) => string | number | bigint;
@@ -22,6 +23,7 @@ export function useVirtualRows({
   overscan = 5,
   ...options
 }: UseVirtualRowsOptions) {
+  // oxlint-disable-next-line react/incompatible-library
   const virtualizer = useVirtualizer<HTMLElement, Element>({...options, overscan});
 
   // @tanstack/react-virtual does not rebuild its measurements cache when

@@ -2,7 +2,6 @@ import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
@@ -189,14 +188,7 @@ describe('useActiveReplayTab', () => {
         location: {pathname: '/mock-pathname/', query: {}},
       },
       organization: OrganizationFixture({features: []}),
-      additionalWrapper: ({children}) => (
-        <SentryNuqsTestingAdapter
-          defaultOptions={{shallow: false}}
-          onUrlUpdate={onUrlUpdate}
-        >
-          {children}
-        </SentryNuqsTestingAdapter>
-      ),
+      onNuqsUrlUpdate: onUrlUpdate,
     });
 
     act(() => result.current.setActiveTab('network'));

@@ -1,23 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
-from django import forms
-
-from sentry.constants import LOG_LEVELS, parse_log_level
-from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
-from sentry.rules import EventState, MatchType
+from sentry.constants import LOG_LEVELS
 from sentry.rules.conditions.base import EventCondition
-from sentry.services.eventstore.models import GroupEvent
+from sentry.workflow_engine.handlers.condition.utils.match import (
+    LEVEL_MATCH_CHOICES as MATCH_CHOICES,
+)
 
 key: Callable[[tuple[int, str]], int] = lambda x: x[0]
 LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
-
-
-class LevelEventForm(forms.Form):
-    level = forms.ChoiceField(choices=list(LEVEL_CHOICES.items()))
-    match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()))
 
 
 class LevelCondition(EventCondition):
@@ -28,38 +20,9 @@ class LevelCondition(EventCondition):
         "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
     }
 
-    def _passes(self, level_name: str) -> bool:
-        desired_level_raw = self.get_option("level")
-        desired_match = self.get_option("match")
-
-        if not (desired_level_raw and desired_match):
-            return False
-
-        desired_level = int(desired_level_raw)
-        # Fetch the event level from the tags since event.level is
-        # event.group.level which may have changed
-        level = parse_log_level(level_name)
-        if level is None:
-            return False
-
-        if desired_match == MatchType.EQUAL:
-            return level == desired_level
-        elif desired_match == MatchType.GREATER_OR_EQUAL:
-            return level >= desired_level
-        elif desired_match == MatchType.LESS_OR_EQUAL:
-            return level <= desired_level
-        return False
-
-    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        tag = event.get_tag("level")
-        return tag is not None and self._passes(tag)
-
     def render_label(self) -> str:
         data = {
             "level": LEVEL_CHOICES[self.data["level"]],
             "match": MATCH_CHOICES[self.data["match"]],
         }
         return self.label.format(**data)
-
-    def get_form_instance(self) -> LevelEventForm:
-        return LevelEventForm(self.data)

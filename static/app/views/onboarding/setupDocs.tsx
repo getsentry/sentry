@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useExperiment} from 'sentry/utils/useExperiment';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -26,10 +25,6 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
   const location = useLocation();
   const navigate = useNavigate();
   const {setSelectedFeatures} = useOnboardingContext();
-  const {inExperiment: hasScmOnboarding} = useExperiment({
-    feature: 'onboarding-scm-experiment',
-    reportExposure: false,
-  });
   const products = useMemo<ProductSolution[]>(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]
@@ -63,10 +58,8 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
                 organization={organization}
                 project={project}
                 activeProductSelection={products}
-                onProductSelectionSync={
-                  hasScmOnboarding ? setSelectedFeatures : undefined
-                }
-                docsFlow={hasScmOnboarding ? 'onboarding-scm' : 'onboarding'}
+                onProductSelectionSync={setSelectedFeatures}
+                docsFlow="onboarding-scm"
               />
             )}
           </Fragment>
@@ -78,19 +71,12 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
         isLast
         leading={genBackButton?.()}
         onClickSetupLater={() => {
-          if (hasScmOnboarding) {
-            trackAnalytics('onboarding.scm_setup_platform_later_clicked', {
-              organization,
-              platform: currentPlatformKey,
-              project_id: project.id,
-            });
-          } else {
-            trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
-              organization,
-              platform: currentPlatformKey,
-              project_id: project.id,
-            });
-          }
+          trackAnalytics('onboarding.scm_setup_platform_later_clicked', {
+            organization,
+            platform: currentPlatformKey,
+            project_id: project.id,
+          });
+
           navigate(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/issues/`,
