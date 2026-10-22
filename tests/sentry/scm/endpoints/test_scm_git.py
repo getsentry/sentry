@@ -18,7 +18,6 @@ from scm.types import RepositoryId
 from sentry_sdk.data_collection import _apply_key_value_collection_filtering
 
 from sentry.constants import ObjectStatus
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
@@ -309,20 +308,17 @@ class ScmGitEndpointTest(TestCase):
         self.assert_refused(response, 404, b"A repository could not be found.")
 
     @responses.activate
-    @mock.patch("sentry.scm.private.helpers.sentry_sdk.capture_exception")
     @mock.patch(
-        "sentry.scm.private.helpers.integration_service.refresh_github_access_token",
-        side_effect=ApiError("Forbidden", code=403),
+        "sentry.scm.private.helpers.integration_service.get_access_token", return_value=None
     )
-    def test_answers_a_token_github_refuses_to_mint_with_a_bad_gateway(
-        self, mock_refresh: mock.MagicMock, mock_capture_exception: mock.MagicMock
+    def test_answers_a_token_control_cannot_get_with_a_bad_gateway(
+        self, mock_get_access_token: mock.MagicMock
     ) -> None:
         response = self.fetch_refs(self.fetch_grant())
 
         self.assert_refused(
             response, 502, b"Sentry could not get a github token for this repository."
         )
-        mock_capture_exception.assert_called_once_with()
 
     @responses.activate
     def test_refuses_a_route_with_a_trailing_slash(self) -> None:

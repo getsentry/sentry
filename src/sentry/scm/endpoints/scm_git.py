@@ -20,12 +20,7 @@ from sentry.api.negotiation import PassthroughContentNegotiation
 from sentry.exceptions import RestrictedIPAddress
 from sentry.models.organization import Organization
 from sentry.net.http import BlacklistAdapter
-from sentry.scm.private.helpers import (
-    fetch_access_token,
-    fetch_repository,
-    fetch_service_provider,
-    record_count_metric,
-)
+from sentry.scm.private.helpers import fetch_access_token, make_fetchers, record_count_metric
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.utils.http import request_body_stream
 
@@ -41,10 +36,11 @@ def report_git_error(error: Exception, context: dict[str, str]) -> None:
 
 
 def make_git_server() -> GitServer:
+    fetchers = make_fetchers()
     return GitServer(
         secrets=settings.SCM_GIT_GRANT_SECRETS or [],
-        fetch_repository=fetch_repository,
-        fetch_provider=fetch_service_provider,
+        fetch_repository=fetchers.fetch_repository,
+        fetch_provider=fetchers.fetch_provider,
         get_token=fetch_access_token,
         record_count=record_count_metric,
         emit_error=report_git_error,
