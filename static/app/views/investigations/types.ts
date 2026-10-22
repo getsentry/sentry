@@ -274,7 +274,7 @@ export type InvestigationUpdateDetectorAction = {
   kind: 'update_detector';
 };
 
-export type InvestigationAction =
+type InvestigationAction =
   | InvestigationUpdateDetectorAction
   | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
 

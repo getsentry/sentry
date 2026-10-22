@@ -4,7 +4,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
-import {getActionKind} from 'sentry/views/investigations/actionRequests/actionKinds';
+import {ActionRequestDetails} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
 import type {
   InvestigationActionRequest,
@@ -53,8 +53,6 @@ export function ActionRequestCard({
     );
   }
 
-  const Details = getActionKind(actionRequest.action)?.Details;
-
   return (
     <Stack as="section" gap="lg" {...labelProps}>
       {headingElement}
@@ -64,13 +62,7 @@ export function ActionRequestCard({
           rationale: actionRequest.rationale,
         })}
       </Text>
-      {Details ? (
-        <Details actionRequest={actionRequest} source={source} />
-      ) : actionRequest.impact ? (
-        <Text as="p" size="md" density="comfortable">
-          {actionRequest.impact}
-        </Text>
-      ) : null}
+      <ActionRequestDetails actionRequest={actionRequest} source={source} />
     </Stack>
   );
 }
