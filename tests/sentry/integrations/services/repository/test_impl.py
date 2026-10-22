@@ -3,8 +3,14 @@ from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.repository.model import RpcRepointIntegrationResult
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.types import ExternalProviders
+from sentry.models.grouplink import GroupLink
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, cell_silo_test
@@ -332,6 +338,234 @@ class TransferRepositoryToIntegrationTest(TestCase):
         self.code_mapping.refresh_from_db()
         assert self.code_mapping.integration_id == self.old_integration.id
         assert self.code_mapping.organization_integration_id == self.old_org_integration.id
+
+
+@cell_silo_test
+class RepointOrganizationIntegrationDataTest(TestCase):
+    def setUp(self) -> None:
+        self.old_integration = self.create_integration(
+            organization=self.organization,
+            external_id="gitlab.example.com:1",
+            provider="gitlab",
+        )
+        self.organization_integration = self.old_integration.organizationintegration_set.get()
+        self.new_integration = self.create_integration(
+            organization=self.organization,
+            external_id=f"gitlab.example.com:1-{self.organization.id}",
+            provider="gitlab",
+        )
+
+    def _repoint(self) -> RpcRepointIntegrationResult:
+        return repository_service.repoint_organization_integration_data(
+            organization_id=self.organization.id,
+            old_integration_id=self.old_integration.id,
+            new_integration_id=self.new_integration.id,
+        )
+
+    def test_repoints_all_cell_data(self) -> None:
+        repository = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            integration_id=self.old_integration.id,
+        )
+        code_mapping = self.create_code_mapping(
+            project=self.project,
+            repo=repository,
+            organization_integration=self.organization_integration,
+        )
+        external_issue = ExternalIssue.objects.create(
+            organization=self.organization,
+            integration_id=self.old_integration.id,
+            key="issue-1",
+        )
+        external_actor = ExternalActor.objects.create(
+            organization=self.organization,
+            integration_id=self.old_integration.id,
+            provider=ExternalProviders.GITLAB.value,
+            external_name="@user",
+            external_id="user-1",
+            team=self.team,
+        )
+        self.project.update_option(
+            "sentry:seer_automation_handoff_integration_id",
+            self.old_integration.id,
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            result = self._repoint()
+
+        assert result.repositories == 1
+        assert result.code_mappings == 1
+        assert result.external_issues == 1
+        assert result.external_actors == 1
+        assert result.project_options == 1
+
+        repository.refresh_from_db()
+        assert repository.integration_id == self.new_integration.id
+        code_mapping.refresh_from_db()
+        assert code_mapping.integration_id == self.new_integration.id
+        assert code_mapping.organization_integration_id == self.organization_integration.id
+        external_issue.refresh_from_db()
+        assert external_issue.integration_id == self.new_integration.id
+        external_actor.refresh_from_db()
+        assert external_actor.integration_id == self.new_integration.id
+        assert (
+            self.project.get_option("sentry:seer_automation_handoff_integration_id")
+            == self.new_integration.id
+        )
+
+    def test_does_not_repoint_another_organization(self) -> None:
+        other_organization = self.create_organization()
+        repository = self.create_repo(
+            project=self.create_project(organization=other_organization),
+            provider="integrations:gitlab",
+            integration_id=self.old_integration.id,
+        )
+        repository_on_another_integration = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            integration_id=self.new_integration.id,
+        )
+        external_issue = ExternalIssue.objects.create(
+            organization=other_organization,
+            integration_id=self.old_integration.id,
+            key="issue-1",
+        )
+
+        result = self._repoint()
+
+        assert result.repositories == 0
+        assert result.external_issues == 0
+        repository.refresh_from_db()
+        assert repository.integration_id == self.old_integration.id
+        repository_on_another_integration.refresh_from_db()
+        assert repository_on_another_integration.integration_id == self.new_integration.id
+        external_issue.refresh_from_db()
+        assert external_issue.integration_id == self.old_integration.id
+
+    def test_retry_is_noop(self) -> None:
+        repository = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            integration_id=self.old_integration.id,
+        )
+
+        first_result = self._repoint()
+        second_result = self._repoint()
+
+        assert first_result.repositories == 1
+        assert second_result.repositories == 0
+        assert second_result.code_mappings == 0
+        assert second_result.external_issues == 0
+        assert second_result.external_actors == 0
+        assert second_result.project_options == 0
+        repository.refresh_from_db()
+        assert repository.integration_id == self.new_integration.id
+
+    def test_merges_external_issue_conflict(self) -> None:
+        repository = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            integration_id=self.old_integration.id,
+        )
+        stale_issue = ExternalIssue.objects.create(
+            organization=self.organization,
+            integration_id=self.old_integration.id,
+            key="issue-1",
+        )
+        survivor = ExternalIssue.objects.create(
+            organization=self.organization,
+            integration_id=self.new_integration.id,
+            key="issue-1",
+        )
+        second_stale_issue = ExternalIssue.objects.create(
+            organization=self.organization,
+            integration_id=self.old_integration.id,
+            key="issue-2",
+        )
+        second_survivor = ExternalIssue.objects.create(
+            organization=self.organization,
+            integration_id=self.new_integration.id,
+            key="issue-2",
+        )
+        first_group = self.create_group(project=self.project)
+        second_group = self.create_group(project=self.project)
+        third_group = self.create_group(project=self.project)
+        self.create_group_link(
+            group=first_group,
+            linked_id=stale_issue.id,
+            linked_type=GroupLink.LinkedType.issue,
+        )
+        self.create_group_link(
+            group=second_group,
+            linked_id=stale_issue.id,
+            linked_type=GroupLink.LinkedType.issue,
+        )
+        self.create_group_link(
+            group=second_group,
+            linked_id=survivor.id,
+            linked_type=GroupLink.LinkedType.issue,
+        )
+        self.create_group_link(
+            group=third_group,
+            linked_id=second_stale_issue.id,
+            linked_type=GroupLink.LinkedType.issue,
+        )
+
+        result = self._repoint()
+
+        assert result.external_issues == 2
+        repository.refresh_from_db()
+        assert repository.integration_id == self.new_integration.id
+        assert not ExternalIssue.objects.filter(id=stale_issue.id).exists()
+        assert not ExternalIssue.objects.filter(id=second_stale_issue.id).exists()
+        assert set(
+            GroupLink.objects.filter(
+                linked_type=GroupLink.LinkedType.issue,
+                linked_id=survivor.id,
+            ).values_list("group_id", flat=True)
+        ) == {first_group.id, second_group.id}
+        assert GroupLink.objects.filter(
+            group_id=third_group.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=second_survivor.id,
+        ).exists()
+
+    def test_retry_invalidates_project_option_cache(self) -> None:
+        option_key = "sentry:seer_automation_handoff_integration_id"
+        self.project.update_option(option_key, self.new_integration.id)
+
+        with (
+            patch.object(ProjectOption.objects, "reload_cache") as reload_cache,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            result = self._repoint()
+
+        assert result.project_options == 0
+        reload_cache.assert_called_once_with(
+            self.project.id,
+            "repository_service.repoint_organization_integration_data",
+            option_key,
+        )
+
+    def test_result_survives_rpc_serialization(self) -> None:
+        response = dispatch_to_local_service(
+            "repository",
+            "repoint_organization_integration_data",
+            {
+                "organization_id": self.organization.id,
+                "old_integration_id": self.old_integration.id,
+                "new_integration_id": self.new_integration.id,
+            },
+        )
+
+        assert response["value"] == {
+            "repositories": 0,
+            "code_mappings": 0,
+            "external_issues": 0,
+            "external_actors": 0,
+            "project_options": 0,
+        }
 
 
 @cell_silo_test
