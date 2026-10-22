@@ -26,6 +26,7 @@ from sentry.testutils.silo import cell_silo_test
 SECRET = "a-long-value-that-is-hard-to-guess"
 TOKEN = "ghs_installation_token"
 FEATURE = "organizations:scm-git-endpoint"
+REFERRER = "seer.coding_job"
 # Far enough ahead that the GitHub client never refreshes the token over the network.
 TOKEN_EXPIRES_AT = "3000-01-01T00:00:00"
 
@@ -41,8 +42,9 @@ def sign(
     grant = Grant(
         organization_id=organization_id,
         operation=operation,
-        repositories=tuple(repositories),
+        repositories=list(repositories),
         expires_at=int(time.time()) + expires_in,
+        referrer=REFERRER,
     )
     return sign_grant(secret, grant)
 
@@ -137,13 +139,24 @@ class ScmGitEndpointTest(TestCase):
         assert b"".join(responses.calls[0].request.body) == b"0000PACK-bytes"
 
     @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.logger")
     @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
-    def test_refuses_a_request_without_a_grant(self, mock_record_count: mock.MagicMock) -> None:
+    def test_refuses_a_request_without_a_grant(
+        self, mock_record_count: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
         response = self.fetch_refs("")
 
         self.assert_refused(response, 403, b"The git grant is missing.")
         mock_record_count.assert_called_once_with(
             "sentry.scm.git.request.failed", 1, {"code": "git_invalid_grant"}
+        )
+        mock_logger.warning.assert_called_once_with(
+            "scm.git.request_failed",
+            extra={
+                "code": "git_invalid_grant",
+                "detail": "The git grant is missing.",
+                "repository_id": str(self.repo.id),
+            },
         )
 
     @responses.activate
@@ -170,16 +183,29 @@ class ScmGitEndpointTest(TestCase):
         self.assert_refused(response, 403, b"The git grant has expired.")
 
     @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.logger")
     @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
     def test_refuses_an_organization_without_the_feature(
-        self, mock_record_count: mock.MagicMock
+        self, mock_record_count: mock.MagicMock, mock_logger: mock.MagicMock
     ) -> None:
         with self.feature({FEATURE: False}):
             response = self.fetch_refs(self.fetch_grant())
 
         self.assert_refused(response, 404, b"not enabled for this organization")
         mock_record_count.assert_called_once_with(
-            "sentry.scm.git.request.failed", 1, {"code": "git_endpoint_disabled"}
+            "sentry.scm.git.request.failed",
+            1,
+            {"code": "git_endpoint_disabled", "referrer": REFERRER},
+        )
+        mock_logger.warning.assert_called_once_with(
+            "scm.git.request_failed",
+            extra={
+                "code": "git_endpoint_disabled",
+                "detail": "The git endpoint is not enabled for this organization.",
+                "repository_id": str(self.repo.id),
+                "organization_id": str(self.organization.id),
+                "referrer": REFERRER,
+            },
         )
 
     @responses.activate
@@ -195,6 +221,25 @@ class ScmGitEndpointTest(TestCase):
         response = self.git("GET", "info/refs", "service=git-receive-pack", self.fetch_grant())
 
         self.assert_refused(response, 403, b"The git grant allows fetch, not push.")
+
+    @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.logger")
+    def test_logs_a_refusal_with_what_the_request_resolved(
+        self, mock_logger: mock.MagicMock
+    ) -> None:
+        response = self.git("GET", "info/refs", "service=git-receive-pack", self.fetch_grant())
+
+        self.assert_refused(response, 403, b"The git grant allows fetch, not push.")
+        mock_logger.warning.assert_called_once_with(
+            "scm.git.request_failed",
+            extra={
+                "code": "git_operation_not_granted",
+                "detail": "The git grant allows fetch, not push.",
+                "repository_id": str(self.repo.id),
+                "organization_id": str(self.organization.id),
+                "referrer": REFERRER,
+            },
+        )
 
     @responses.activate
     def test_refuses_a_fetch_with_a_push_grant(self) -> None:
