@@ -536,7 +536,7 @@ class Project(Model):
         # Wrap the org update and ProjectTeam cleanup in a single transaction so
         # that a crash between the two doesn't leave the project with team
         # associations from the old organization.
-        with transaction.atomic(router.db_for_write(Project)):
+        with outbox_context(transaction.atomic(router.db_for_write(Project))):
             try:
                 with transaction.atomic(router.db_for_write(Project)):
                     self.update(organization=organization)
@@ -546,11 +546,13 @@ class Project(Model):
 
             if org_changed:
                 ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
-                # The control link stays behind, and the old org's account replicas drop
-                # it on their next update. Don't leave the access in place until then.
+                # Control holds the service account links, so its outbox receiver deletes
+                # the old org's links there. Drop the replicas now so access ends with
+                # the transfer, not when the outbox is processed.
                 ServiceAccountProjectReplica.objects.filter(project_id=self.id).exclude(
                     service_account__organization_id=organization.id
                 ).delete()
+                Project.outbox_for_update(self.id, organization.id).save()
 
         # Both environments and releases are bound at an organization level.
         # Due to this, when you transfer a project into another org, we have to

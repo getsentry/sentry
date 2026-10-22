@@ -196,18 +196,59 @@ class ServiceAccountReplicationTest(TestCase):
 
         assert self.get_replica_project_ids() == {project.id for project in self.projects}
 
+    def get_control_project_ids(self) -> set[int]:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return set(
+                ServiceAccountProject.objects.filter(
+                    service_account_id=self.service_account_id
+                ).values_list("project_id", flat=True)
+            )
+
     def test_project_transfer_removes_link(self) -> None:
         other_org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CELL):
             self.projects[0].transfer_to(organization=other_org)
 
+        # The replica link goes with the transfer, before any outbox runs.
         assert self.get_replica_project_ids() == {self.projects[1].id}
 
-        # The control link survives the transfer, so a later update must not restore it.
+        with outbox_runner():
+            pass
+
+        assert self.get_control_project_ids() == {self.projects[1].id}
+        assert self.get_replica_project_ids() == {self.projects[1].id}
+
+    def test_project_transferred_back_does_not_regain_link(self) -> None:
+        other_org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CELL), outbox_runner():
+            self.projects[0].transfer_to(organization=other_org)
+        with assume_test_silo_mode(SiloMode.CELL), outbox_runner():
+            self.projects[0].transfer_to(organization=self.organization)
+
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.service_account.update(name="seer-autofix-2")
 
+        assert self.get_control_project_ids() == {self.projects[1].id}
         assert self.get_replica_project_ids() == {self.projects[1].id}
+
+    def test_project_transfer_keeps_links_from_the_new_org(self) -> None:
+        other_org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            other_account = ServiceAccount.objects.create(
+                organization_id=other_org.id, name="other-account"
+            )
+            # A stale link, like one left behind by an earlier transfer out of `other_org`.
+            ServiceAccountProject.objects.create(
+                service_account=other_account, project_id=self.projects[0].id
+            )
+
+        with assume_test_silo_mode(SiloMode.CELL), outbox_runner():
+            self.projects[0].transfer_to(organization=other_org)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccountProject.objects.filter(
+                service_account=other_account, project_id=self.projects[0].id
+            ).exists()
 
     def test_update_drops_existing_link_to_project_outside_the_org(self) -> None:
         other_org = self.create_organization()

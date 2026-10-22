@@ -49,6 +49,7 @@ from sentry.seer.agent.monitoring_providers import get_monitoring_provider_conne
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
+from sentry.service_accounts.services.service_account import service_account_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import (
@@ -203,7 +204,10 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 def process_project_updates(object_identifier: int, **kwds: Any):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
-    proj
+    # Written by a transfer. Links from the old org's service accounts live in control.
+    service_account_service.remove_project_links_outside_org(
+        project_id=proj.id, organization_id=proj.organization_id
+    )
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
