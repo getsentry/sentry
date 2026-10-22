@@ -11,6 +11,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   issues: ['issues'],
   explore: ['explore', 'preprod'],
+  seer: ['seer'],
   dashboards: ['dashboards', 'dashboard'],
   insights: ['insights'],
   projects: ['projects'], // No primary nav button — accessed via logo nav. Needed for secondary nav routing.

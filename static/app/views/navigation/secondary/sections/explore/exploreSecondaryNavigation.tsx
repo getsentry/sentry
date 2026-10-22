@@ -68,13 +68,6 @@ function ExploreSecondaryNavigationImpl() {
       to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
     });
   }
-  if (organization.openMembership && organization.features.includes('investigations')) {
-    navItems.push({
-      label: 'Investigations',
-      badge: 'alpha',
-      to: `${baseUrl}/investigations/`,
-    });
-  }
   if (organization.features.includes('explore-saved-formulas')) {
     navItems.push({
       label: 'Saved Formulas',
@@ -216,20 +209,6 @@ function ExploreSecondaryNavigationImpl() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
-            {organization.openMembership && (
-              <Feature features="organizations:investigations">
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/investigations/`}
-                    activeTo={`${baseUrl}/investigations/`}
-                    analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="alpha" />}
-                  >
-                    {t('Investigations')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
-            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>

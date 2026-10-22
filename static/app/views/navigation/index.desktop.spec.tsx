@@ -575,6 +575,69 @@ describe('desktop navigation', () => {
     });
   });
 
+  describe('seer', () => {
+    function renderSeerNavigation(
+      organization: Parameters<typeof OrganizationFixture>[0],
+      pathname = '/organizations/org-slug/issues/'
+    ) {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization, initialRouterConfig: {location: {pathname}}})
+      );
+      return screen.getByRole('navigation', {name: 'Primary Navigation'});
+    }
+
+    it('shows Seer between Issues and Explore with investigations and open membership', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'investigations'],
+        openMembership: true,
+      });
+
+      const links = within(primaryNav).getAllByRole('link');
+      expect(links[0]).toHaveAccessibleName('Issues');
+      expect(links[1]).toHaveAccessibleName('Seer');
+      expect(links[2]).toHaveAccessibleName('Explore');
+      expect(links[1]).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/investigations/'
+      );
+    });
+
+    it('hides Seer with investigations and closed membership', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'investigations'],
+        openMembership: false,
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides Seer without investigations', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-automations'],
+        openMembership: true,
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('marks Seer as active on seer routes', () => {
+      const primaryNav = renderSeerNavigation(
+        {features: [...ALL_AVAILABLE_FEATURES, 'investigations'], openMembership: true},
+        '/organizations/org-slug/seer/investigations/investigation-1/'
+      );
+
+      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Seer'}));
+      assertInactiveNavLink(within(primaryNav).getByRole('link', {name: 'Explore'}));
+    });
+  });
+
   describe('interactions', () => {
     describe('secondary Navigation', () => {
       it('shows content for the active primary group', () => {

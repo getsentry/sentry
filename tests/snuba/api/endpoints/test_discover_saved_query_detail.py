@@ -55,6 +55,15 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         with pytest.raises(NoReverseMatch):
             reverse("sentry-api-0-discover-saved-query-detail", args=[self.org.slug, "not-an-id"])
 
+    def test_out_of_range_id(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, "99999999999999999999"],
+            )
+            response = self.client.get(url)
+        assert response.status_code == 404
+
     def test_get(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
@@ -172,7 +181,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             {"yAxes": ["count(span.duration)"], "chartType": 2}
         ]
         assert set(response.data["exploreQuery"]["projects"]) == set(self.project_ids)
-        assert response.data["exploreQuery"]["range"] == "24h"
+        assert "range" not in response.data["exploreQuery"]
         assert response.data["exploreQuery"]["statsPeriod"] == "24h"
 
     def test_get_org_without_access(self) -> None:

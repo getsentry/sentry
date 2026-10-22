@@ -30,3 +30,11 @@ class RpcCreateRepository(RpcModel):
     provider: str
     status: int
     url: str
+
+
+class RpcRepointIntegrationResult(RpcModel):
+    repositories: int
+    code_mappings: int
+    external_issues: int
+    external_actors: int
+    project_options: int
