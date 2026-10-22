@@ -25,7 +25,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
-import type {MenuItemProps} from './item';
+import type {DropdownMenuSearchOptions, MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
 import {useSafetyTriangle} from './useSafetyTriangle';
@@ -65,10 +65,10 @@ export interface DropdownMenuListProps
    */
   menuTitle?: React.ReactNode;
   menuWidth?: string | number;
-  search?: {
+  /** Controlled input state supplied by DropdownMenuContent. */
+  searchState?: DropdownMenuSearchOptions & {
     onChange: (value: string) => void;
     value: string;
-    placeholder?: string;
   };
   size?: MenuItemProps['size'];
   /**
@@ -205,7 +205,7 @@ function DropdownMenuList({
   menuHeight,
   menuWidth,
   menuFooter,
-  search,
+  searchState,
   disableTextSelection,
   overlayState,
   overlayPositionProps,
@@ -303,14 +303,14 @@ function DropdownMenuList({
     }),
     [rootOverlayState, overlayState, state, safetyTriangle]
   );
-  const searchInput = search && (
+  const searchInput = searchState && (
     <Search
       ref={searchRef}
       padding={menuTitle ? '0' : undefined}
-      aria-label={search.placeholder ?? 'Search'}
-      placeholder={search.placeholder ?? 'Search…'}
-      value={search.value}
-      onChange={event => search.onChange(event.target.value)}
+      aria-label={searchState.placeholder ?? 'Search'}
+      placeholder={searchState.placeholder ?? 'Search…'}
+      value={searchState.value}
+      onChange={event => searchState.onChange(event.target.value)}
       onKeyDown={event => {
         // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
@@ -320,7 +320,9 @@ function DropdownMenuList({
       }}
     />
   );
-  const showEmptyMessage = Boolean(search?.value.trim() && stateCollection.length === 0);
+  const showEmptyMessage = Boolean(
+    searchState?.value.trim() && stateCollection.length === 0
+  );
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper
@@ -341,8 +343,8 @@ function DropdownMenuList({
                 }}
               >
                 {menuTitle && (
-                  <Header padding={search ? 'xs' : 'sm lg'}>
-                    <Title padding={search ? 'sm lg' : undefined}>{menuTitle}</Title>
+                  <Header padding={searchState ? 'xs' : 'sm lg'}>
+                    <Title padding={searchState ? 'sm lg' : undefined}>{menuTitle}</Title>
                     {searchInput}
                   </Header>
                 )}
@@ -458,9 +460,9 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   }, []);
 }
 
-export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'search'> & {
+export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
   items: MenuItemProps[];
-  search?: {placeholder?: string};
+  search?: DropdownMenuSearchOptions;
 };
 
 export function DropdownMenuContent({
@@ -488,7 +490,7 @@ export function DropdownMenuContent({
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      search={
+      searchState={
         search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
       }
     >
