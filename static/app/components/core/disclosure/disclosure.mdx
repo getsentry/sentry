@@ -35,6 +35,9 @@ The disclosure component supports a controlled and uncontrolled state via the `d
 `Disclosure.Content` controls the panel layout. It does not apply typography to its
 children. Wrap prose in `Text` and set its size explicitly when needed.
 
+Use `padding="0"` on `Disclosure.Content` when its children provide their own
+spacing, such as navigation links. This also removes the default title indentation.
+
 <Storybook.Demo>
   <Flex width="100%">
     <Disclosure flex={1}>

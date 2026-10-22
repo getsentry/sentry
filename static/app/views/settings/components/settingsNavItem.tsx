@@ -1,13 +1,15 @@
-import type {ReactElement} from 'react';
+import type {ReactElement, ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 type Props = {
   label: React.ReactNode;
@@ -15,6 +17,7 @@ type Props = {
   badge?: string | number | null | ReactElement;
   id?: string;
   index?: boolean;
+  leadingItems?: ReactNode;
   onClick?: (e: React.MouseEvent) => void;
 };
 
@@ -41,13 +44,43 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
   return badge;
 }
 
-export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
+export function SettingsNavItem({
+  badge,
+  label,
+  id,
+  to,
+  index,
+  leadingItems,
+  ...props
+}: Props) {
+  const settingsV3 = useSettingsV3();
+  const badgeElement = badge ? <SettingsNavBadge badge={badge} /> : null;
+  const hasLeadingBadge =
+    settingsV3 &&
+    !leadingItems &&
+    (badge === 'new' || badge === 'beta' || badge === 'alpha');
+
   return (
     <SecondaryNavigation.ListItem>
       <SecondaryNavigation.Link
         to={to}
         end={index}
-        trailingItems={badge ? <SettingsNavBadge badge={badge} /> : null}
+        leadingItems={
+          settingsV3 ? (
+            <Flex
+              align="center"
+              justify="center"
+              width="24px"
+              height="24px"
+              flexShrink={0}
+            >
+              {leadingItems ?? (hasLeadingBadge ? badgeElement : null)}
+            </Flex>
+          ) : (
+            leadingItems
+          )
+        }
+        trailingItems={hasLeadingBadge ? null : badgeElement}
         analyticsItemName={id ? `settings_${id}` : undefined}
         {...props}
       >
