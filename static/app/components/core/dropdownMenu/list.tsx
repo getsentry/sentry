@@ -64,12 +64,10 @@ export interface DropdownMenuListProps
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
-  menuHeight?: string | number;
   /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
-  menuWidth?: string | number;
   /** Controlled input state supplied by DropdownMenuContent. */
   searchState?: DropdownMenuSearchOptions & {
     onChange: (value: string) => void;
@@ -207,10 +205,8 @@ function DropdownMenuList({
   size,
   menuTitle,
   emptyMessage,
-  menuHeight,
   maxHeight,
   maxWidth,
-  menuWidth,
   menuFooter,
   searchState,
   disableTextSelection,
@@ -342,8 +338,6 @@ function DropdownMenuList({
               <Overlay
                 {...stackProps}
                 style={{
-                  width: menuWidth,
-                  height: menuHeight,
                   // Cap the requested height by the space available to the overlay.
                   maxHeight: minHeight(maxHeight, overlayPositionProps.style?.maxHeight),
                   maxWidth:

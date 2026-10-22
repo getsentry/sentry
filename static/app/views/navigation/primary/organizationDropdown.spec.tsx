@@ -109,7 +109,7 @@ describe('OrganizationDropdown', () => {
     expect(
       screen.getByRole('menuitemradio', {name: slug}).closest('[data-overlay]')
     ).toHaveStyle({
-      width: '258px',
+      maxWidth: 'min(258px, 100%)',
     });
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
     const projectItems = screen.getAllByRole('menuitemradio', {name: slug});

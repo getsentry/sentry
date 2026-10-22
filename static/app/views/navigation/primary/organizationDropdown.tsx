@@ -98,7 +98,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         portalContainerRef={portalContainerRef}
         zIndex={theme.zIndex.modal}
         trigger={trigger}
-        menuWidth={258}
+        maxWidth={258}
         menuTitle={
           <NavigationMenuHeader
             organization={organization}
