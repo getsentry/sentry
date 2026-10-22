@@ -632,6 +632,52 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         result = head_artifact.get_base_artifact_for_commit().first()
         assert result == matching_repo_base_artifact
 
+    def test_get_base_artifact_multiple_commit_comparisons_falls_through_to_match(self) -> None:
+        """Test that a newer commit_comparison is used when the oldest has no matching artifact."""
+        snapshot_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            head_repo_name="owner/repo",
+            head_ref="main",
+        )
+        snapshot_base_commit_comparison.update(base_sha=None)
+        self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=None,
+            commit_comparison=snapshot_base_commit_comparison,
+        )
+
+        size_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            head_repo_name="owner/repo",
+            head_ref="main",
+        )
+        size_base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=size_base_commit_comparison,
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            head_repo_name="owner/repo",
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        result = head_artifact.get_base_artifact_for_commit().first()
+        assert result == size_base_artifact
+
     def test_get_head_artifacts_for_commit_single_artifact(self) -> None:
         """Test getting head artifacts when there's only one head artifact."""
         # Create base commit comparison
@@ -1681,6 +1727,149 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
         assert len(result) == 1
         assert result[head_artifact.id] == base_artifact_with_config
+
+    def test_get_base_artifacts_for_commit_multiple_commit_comparisons_uses_oldest(self) -> None:
+        """Test that the oldest commit_comparison wins when more than one has a match."""
+        old_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            head_repo_name="owner/repo",
+        )
+        old_base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=old_base_commit_comparison,
+        )
+
+        new_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="d" * 40,
+            head_repo_name="owner/repo",
+        )
+        self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=new_base_commit_comparison,
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            head_repo_name="owner/repo",
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert len(result) == 1
+        assert result[head_artifact.id] == old_base_artifact
+
+    def test_get_base_artifacts_for_commit_multiple_commit_comparisons_falls_through_to_match(
+        self,
+    ) -> None:
+        """Test that a newer commit_comparison is used when the oldest has no matching artifact."""
+        snapshot_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            head_repo_name="owner/repo",
+        )
+        snapshot_base_commit_comparison.update(base_sha=None)
+        self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=None,
+            commit_comparison=snapshot_base_commit_comparison,
+        )
+
+        size_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            head_repo_name="owner/repo",
+        )
+        size_base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=size_base_commit_comparison,
+        )
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            head_repo_name="owner/repo",
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=head_commit_comparison,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert len(result) == 1
+        assert result[head_artifact.id] == size_base_artifact
+
+    def test_get_base_artifacts_for_commit_snapshot_metrics_falls_through_to_match(self) -> None:
+        """Test that snapshot lookups skip an older commit_comparison with only size artifacts."""
+        size_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            base_sha="c" * 40,
+            head_repo_name="owner/repo",
+        )
+        self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            commit_comparison=size_base_commit_comparison,
+        )
+
+        snapshot_base_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="b" * 40,
+            head_repo_name="owner/repo",
+        )
+        snapshot_base_commit_comparison.update(base_sha=None)
+        snapshot_base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=None,
+            commit_comparison=snapshot_base_commit_comparison,
+        )
+        self.create_preprod_snapshot_metrics(preprod_artifact=snapshot_base_artifact)
+
+        head_commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            head_repo_name="owner/repo",
+        )
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=None,
+            commit_comparison=head_commit_comparison,
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit(
+            [head_artifact], require_snapshot_metrics=True
+        )
+
+        assert len(result) == 1
+        assert result[head_artifact.id] == snapshot_base_artifact
 
 
 @cell_silo_test
