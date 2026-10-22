@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Never
 from unittest.mock import patch
@@ -16,9 +17,13 @@ from sentry.workflow_engine.processors import DataConditionGroupEvaluation, Dete
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
+    APIGate,
+    DetectorAPIOperation,
     DetectorPriorityLevel,
     DetectorSettings,
+    FeatureGate,
 )
+from tests.sentry.workflow_engine.endpoints.test_helpers import GATE_FEATURE
 
 
 @cell_silo_test
@@ -139,3 +144,33 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == self.expected_type_slugs
+
+    def gate_first_type(self, availability: Mapping[DetectorAPIOperation, APIGate]) -> None:
+        # The fixture types share one settings class, so give the gated type its own subclass.
+        # setUp's patch.dict restores the registrations afterwards.
+        gated_slug = self.expected_type_slugs[0]
+
+        class GatedDetectorSettings(DetectorSettings):
+            handler = detector_settings_registry.get(gated_slug).handler
+            api_availability = availability
+
+        detector_settings_registry.registrations[gated_slug] = GatedDetectorSettings
+
+    def test_get_excluded_type_is_not_returned(self) -> None:
+        self.gate_first_type({DetectorAPIOperation.GET: False})
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs[1:]
+
+    def test_list_exclusion_does_not_affect_type_discovery(self) -> None:
+        self.gate_first_type({DetectorAPIOperation.LIST: False})
+        response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs
+
+    def test_get_feature_gate_is_scoped_to_each_organization_request(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        self.gate_first_type({DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)})
+        with self.feature({GATE_FEATURE: [self.organization.slug]}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs
+            response = self.get_success_response(other_org.slug)
+            assert response.data == self.expected_type_slugs[1:]
