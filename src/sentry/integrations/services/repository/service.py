@@ -78,13 +78,16 @@ class RepositoryService(RpcService):
         organization_id: int,
         id: int,
         config_updates: dict[str, Any],
+        config_deletions: list[str] | None = None,
         expected_integration_id: int | None = None,
         expected_config: dict[str, Any] | None = None,
     ) -> bool:
         """
-        Merges ``config_updates`` into the repository's current config, leaving every other
-        field and config key untouched. Use this instead of ``update_repository`` when a
-        snapshot may have gone stale, e.g. across an external API call.
+        Merges ``config_updates`` into the repository's current config and removes
+        ``config_deletions``, leaving every other field and config key untouched. Deletion
+        wins when a key appears in both arguments. Use this instead of
+        ``update_repository`` when a snapshot may have gone stale, e.g. across an external
+        API call.
 
         Returns False without changing anything unless the repository is still active,
         still belongs to ``expected_integration_id`` (when given), and its config still

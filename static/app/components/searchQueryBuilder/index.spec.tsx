@@ -2031,6 +2031,21 @@ describe('SearchQueryBuilder', () => {
       expect(browserNameFilter).toBeInTheDocument();
     });
 
+    it.each([
+      ['!has:', '!has:""'],
+      ['!timesSeen:', '!timesSeen:100'],
+    ])('uses the filter key definition when typing %s', async (typed, filter) => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        typed
+      );
+
+      expect(await screen.findByRole('row', {name: filter})).toBeInTheDocument();
+    });
+
     it('selects [Filtered] from dropdown', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
