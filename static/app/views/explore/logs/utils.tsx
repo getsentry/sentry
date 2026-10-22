@@ -54,6 +54,7 @@ import {
   type OurLogFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import type {ExploreCaseSensitivity} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   type BaseVisualize,
@@ -400,7 +401,7 @@ type BaseGetLogsUrlParams = {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
-  caseInsensitive?: '1' | null;
+  caseInsensitive?: ExploreCaseSensitivity;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -513,7 +514,7 @@ export function getLogsUrlFromSavedQueryUrl({
       environments: savedQuery.environment ? [...savedQuery.environment] : [],
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
-    caseInsensitive: firstQuery.caseInsensitive ? '1' : null,
+    caseInsensitive: firstQuery.caseInsensitive ? '1' : '0',
   });
 }
 
