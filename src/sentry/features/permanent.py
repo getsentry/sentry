@@ -116,6 +116,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:session-replay": FlagpoleFeature(default=False, api_expose=True),
         # Enable profiling view
         "organizations:profiling-view": FlagpoleFeature(default=False, api_expose=True),
+        # Enable Conversation focused views in AI Insights
+        "organizations:gen-ai-conversations": FlagpoleFeature(default=True, api_expose=True),
         # Enable advanced search features, like negation and wildcard matching.
         "organizations:advanced-search": FlagpoleFeature(default=True, api_expose=True),
         # Enable discover 2 basic functions
