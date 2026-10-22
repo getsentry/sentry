@@ -87,7 +87,7 @@ describe('useColumnResize', () => {
     dragHandle(resizer(), {from: 100, to: 160});
 
     // Writes are batched into an animation frame.
-    await waitFor(() => expect(getResizeTemplate).toHaveBeenCalledWith(0, 60));
+    await waitFor(() => expect(getResizeTemplate).toHaveBeenCalledWith(0, 60, new Map()));
   });
 
   it('commits the final width when the drag ends', () => {
@@ -96,7 +96,7 @@ describe('useColumnResize', () => {
 
     dragHandle(resizer(), {from: 100, to: 250});
 
-    expect(onColumnResizeEnd).toHaveBeenCalledWith(0, 150);
+    expect(onColumnResizeEnd).toHaveBeenCalledWith(0, 150, new Map());
   });
 
   it('stops resizing when the drag has ended', async () => {
@@ -135,7 +135,7 @@ describe('useColumnResize', () => {
     await userEvent.tab();
     await userEvent.keyboard(keys);
 
-    expect(onColumnResizeEnd).toHaveBeenCalledWith(0, expected);
+    expect(onColumnResizeEnd).toHaveBeenCalledWith(0, expected, new Map());
   });
 
   it('does not resize when a key other than an arrow is pressed', async () => {

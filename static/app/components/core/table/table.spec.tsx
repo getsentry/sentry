@@ -152,6 +152,165 @@ describe('Table', () => {
     expect(onColumnResize).toHaveBeenCalledWith(1, 250);
   });
 
+  describe('with a flexible column before the dragged one', () => {
+    const flexibleFirstColumns: TableColumnConfig[] = [
+      {key: 'name'},
+      {key: 'count', width: 150},
+      {key: 'age'},
+    ];
+
+    beforeEach(() => {
+      const getComputedStyle = window.getComputedStyle;
+
+      jest.spyOn(window, 'getComputedStyle').mockImplementation(element => {
+        if (element.getAttribute('role') !== 'table') {
+          return getComputedStyle(element);
+        }
+
+        const style = document.createElement('div').style;
+        style.gridTemplateColumns = '500px 150px 300px';
+        return style;
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('keeps the flexible column at its rendered width when a later column is resized', async () => {
+      render(<TestTable columns={flexibleFirstColumns} />);
+
+      dragHandle(resizers()[1]!, {from: 100, to: 350});
+
+      await waitFor(() => expect(gridTemplate()).toBe('500px 250px minmax(90px, auto)'));
+    });
+
+    it('reports the pinned width before the dragged width when the drag ends', () => {
+      const onColumnResize = jest.fn();
+      render(
+        <TestTable columns={flexibleFirstColumns} onColumnResize={onColumnResize} />
+      );
+
+      dragHandle(resizers()[1]!, {from: 100, to: 350});
+
+      expect(onColumnResize.mock.calls).toEqual([
+        [0, 500],
+        [1, 250],
+      ]);
+    });
+
+    it('keeps the flexible column flexible when the last column is not flexible', () => {
+      const onColumnResize = jest.fn();
+      render(
+        <TestTable
+          columns={flexibleFirstColumns}
+          flexibleLastColumn={false}
+          onColumnResize={onColumnResize}
+        />
+      );
+
+      dragHandle(resizers()[1]!, {from: 100, to: 350});
+
+      expect(onColumnResize.mock.calls).toEqual([[1, 250]]);
+    });
+
+    it('pins the flexible column when a later handle is arrowed', async () => {
+      const onColumnResize = jest.fn();
+      render(
+        <TestTable columns={flexibleFirstColumns} onColumnResize={onColumnResize} />
+      );
+
+      await userEvent.tab();
+      await userEvent.tab();
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(onColumnResize.mock.calls).toEqual([
+        [0, 500],
+        [1, 90],
+      ]);
+    });
+
+    it.each(['max-content', 'minmax(max-content, auto)'])(
+      'does not pin a %s column when a later column is resized',
+      width => {
+        const onColumnResize = jest.fn();
+        render(
+          <TestTable
+            columns={[{key: 'star', width}, ...flexibleFirstColumns.slice(1)]}
+            onColumnResize={onColumnResize}
+          />
+        );
+
+        dragHandle(resizers()[1]!, {from: 100, to: 350});
+
+        expect(onColumnResize.mock.calls).toEqual([[1, 250]]);
+      }
+    );
+
+    it('does not pin a flexible column narrower than the minimum width', () => {
+      const onColumnResize = jest.fn();
+      render(
+        <TestTable
+          columns={flexibleFirstColumns}
+          minimumColumnWidth={600}
+          onColumnResize={onColumnResize}
+        />
+      );
+
+      dragHandle(resizers()[1]!, {from: 100, to: 350});
+
+      expect(onColumnResize.mock.calls).toEqual([[1, 600]]);
+    });
+
+    it('does not pin a column that cannot be resized', () => {
+      const onColumnResize = jest.fn();
+      render(
+        <TestTable
+          columns={[{key: 'name', resizable: false}, ...flexibleFirstColumns.slice(1)]}
+          onColumnResize={onColumnResize}
+        />
+      );
+
+      dragHandle(resizers()[0]!, {from: 100, to: 350});
+
+      expect(onColumnResize.mock.calls).toEqual([[1, 250]]);
+    });
+
+    it('does not pin anything when a handle is pressed without moving', () => {
+      const onColumnResize = jest.fn();
+      render(
+        <TestTable columns={flexibleFirstColumns} onColumnResize={onColumnResize} />
+      );
+
+      dragHandle(resizers()[1]!, {from: 100, to: 100});
+
+      expect(onColumnResize).not.toHaveBeenCalled();
+    });
+
+    it('maps pinned widths past prepended and hidden columns', () => {
+      const onColumnResize = jest.fn();
+      render(
+        <TestTable
+          columns={[
+            {key: 'hidden', visible: false},
+            {key: 'name'},
+            {key: 'count', width: 150},
+            {key: 'age'},
+          ]}
+          onColumnResize={onColumnResize}
+          prependColumnWidths={['40px']}
+        />
+      );
+
+      dragHandle(resizers()[1]!, {from: 100, to: 350});
+
+      expect(onColumnResize.mock.calls).toEqual([
+        [1, 150],
+        [2, 250],
+      ]);
+    });
+  });
+
   it('retains the resized width when no onColumnResize is provided', async () => {
     render(<TestTable />);
 
