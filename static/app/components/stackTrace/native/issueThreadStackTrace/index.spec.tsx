@@ -162,11 +162,15 @@ function makeMixedThreadExceptionEvent(platform: PlatformKey) {
   return event;
 }
 
-function renderThreadStackTrace(event: Event) {
+function renderThreadStackTrace(
+  event: Event,
+  {collapseAll}: {collapseAll?: boolean} = {}
+) {
   const threadsEntry = event.entries.find(entry => entry.type === EntryType.THREADS)!;
 
   return render(
     <IssueThreadStackTrace
+      collapseAll={collapseAll}
       data={threadsEntry.data}
       event={event}
       projectSlug={project.slug}
@@ -430,6 +434,34 @@ describe('IssueThreadStackTrace', () => {
       expect(
         within(secondHeader).getByRole('button', {name: 'Collapse frame details'})
       ).toHaveAttribute('aria-expanded', 'true');
+    }
+  );
+
+  it.each([true, false])(
+    'keeps frames collapsed with collapseAll (exception-backed: %s)',
+    async hasException => {
+      const stacktrace = makeStacktrace('ViewController.causeCrash');
+      stacktrace.frames![1] = EventStacktraceFrameFixture({
+        ...stacktrace.frames![1],
+        context: [[42, 'crashing source']],
+        lineNo: 42,
+      });
+      const event = makeEvent([makeThread({crashed: true, id: 7, stacktrace})]);
+      if (!hasException) {
+        event.entries = event.entries.filter(entry => entry.type !== EntryType.EXCEPTION);
+      }
+
+      renderThreadStackTrace(event, {collapseAll: true});
+
+      const header = (
+        await screen.findByText('ViewController.causeCrash')
+      ).closest<HTMLElement>('[data-test-id="native-stack-trace-frame-title"]')!;
+      expect(
+        within(header).getByRole('button', {name: 'Expand frame details'})
+      ).toHaveAttribute('aria-expanded', 'false');
+      expect(
+        screen.queryByTestId('core-stacktrace-frame-context')
+      ).not.toBeInTheDocument();
     }
   );
 

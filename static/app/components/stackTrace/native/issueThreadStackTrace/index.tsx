@@ -23,9 +23,11 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
+  collapseAll?: boolean;
 };
 
 export function IssueThreadStackTrace({
+  collapseAll,
   data,
   event,
   projectSlug,
@@ -60,7 +62,7 @@ export function IssueThreadStackTrace({
       >
         <Stack gap="lg">
           <ThreadSummary />
-          <ActiveThreadStackTrace />
+          <ActiveThreadStackTrace collapseAll={collapseAll} />
           <IssueThreadStackTraceSuspectCommits />
         </Stack>
       </FoldSection>

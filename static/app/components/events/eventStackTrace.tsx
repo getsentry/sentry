@@ -153,6 +153,7 @@ export function EventStackTrace({
         <EntryErrorBoundary type={EntryType.THREADS}>
           {shouldUseNewNativeThreadStackTrace ? (
             <IssueThreadStackTrace
+              collapseAll={collapseAll}
               event={event}
               data={threads.data}
               projectSlug={projectSlug}

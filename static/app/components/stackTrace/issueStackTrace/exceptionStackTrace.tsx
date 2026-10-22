@@ -32,6 +32,7 @@ import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
 import {
   formatExceptionsAsText,
   getExceptionEntryMeta,
+  getFirstVisibleStacktraceIndex,
   getOrderedExceptions,
   resolveExceptionFields,
 } from './utils';
@@ -40,6 +41,7 @@ export interface IssueStackTraceFrameListProps {
   event: Event;
   hasScmSourceContext: boolean;
   stacktrace: StacktraceType | null;
+  collapseAll?: boolean;
   exceptionIndex?: number;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: StackTraceMeta;
@@ -49,12 +51,14 @@ export interface IssueStackTraceFrameListProps {
 interface IssueExceptionStackTraceProps {
   event: Event;
   values: ExceptionValue[];
+  collapseAll?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hasScmSourceContext?: boolean;
   isStandalone?: boolean;
 }
 
 export function IssueExceptionStackTrace({
+  collapseAll,
   event,
   groupingCurrentLevel,
   hasScmSourceContext = false,
@@ -70,6 +74,11 @@ export function IssueExceptionStackTrace({
     exception =>
       exception.mechanism?.parent_id === undefined ||
       !hiddenExceptions[exception.mechanism.parent_id]
+  );
+  const firstStacktraceIndex = getFirstVisibleStacktraceIndex(
+    exceptions,
+    isMinified,
+    hiddenExceptions
   );
 
   if (exceptions.length === 0) {
@@ -117,6 +126,7 @@ export function IssueExceptionStackTrace({
           </ErrorBoundary>
         )}
         <IssueStackTraceFrameList
+          collapseAll={collapseAll}
           event={event}
           exceptionIndex={isStandalone ? undefined : exception.exceptionIndex}
           groupingCurrentLevel={groupingCurrentLevel}
@@ -153,7 +163,9 @@ export function IssueExceptionStackTrace({
         return (
           <Disclosure
             key={exceptionId ?? exception.exceptionIndex}
-            defaultExpanded={index === firstVisibleExceptionIndex}
+            defaultExpanded={
+              index === firstVisibleExceptionIndex || index === firstStacktraceIndex
+            }
             id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
           >
             <Disclosure.Title
@@ -188,6 +200,7 @@ export function IssueExceptionStackTrace({
                   </ErrorBoundary>
                 ) : null}
                 <IssueStackTraceFrameList
+                  collapseAll={collapseAll}
                   event={event}
                   exceptionIndex={exception.exceptionIndex}
                   groupingCurrentLevel={groupingCurrentLevel}

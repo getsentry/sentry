@@ -49,7 +49,7 @@ interface StandaloneStackTraceProps extends IssueStackTraceBaseProps {
 type IssueStackTraceProps = ExceptionStackTraceProps | StandaloneStackTraceProps;
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {event, group, projectSlug} = props;
+  const {event, group, projectSlug, collapseAll} = props;
   const groupingCurrentLevel =
     props.groupingCurrentLevel ?? group?.metadata.current_level;
   const organization = useOrganization();
@@ -111,6 +111,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
       }
     >
       <IssueStackTraceContent
+        collapseAll={collapseAll}
         event={event}
         values={values}
         group={group}
@@ -124,6 +125,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
 }
 
 function IssueStackTraceContent({
+  collapseAll,
   event,
   values,
   group,
@@ -190,6 +192,7 @@ function IssueStackTraceContent({
           <NativeAppleCrashReportContent eventId={event.id} projectSlug={projectSlug} />
         ) : (
           <IssueExceptionStackTrace
+            collapseAll={collapseAll}
             groupingCurrentLevel={groupingCurrentLevel}
             event={event}
             hasScmSourceContext={hasScmSourceContext}
