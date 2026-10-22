@@ -310,29 +310,42 @@ class PreprodArtifact(DefaultFieldsModel):
         selected_artifacts.sort(key=lambda a: a.app_id or "")
         return selected_artifacts
 
+    @staticmethod
+    def _base_commit_artifacts(
+        organization_id: int, head_repo_name: str, base_sha: str
+    ) -> models.QuerySet[PreprodArtifact]:
+        """
+        Artifacts for `base_sha` across every commit comparison with that head SHA. A
+        commit can have several (e.g. uploads with and without a base_sha). Ordered so
+        the oldest comparison comes first, then the newest artifact within it: a later
+        upload of the same commit never replaces an existing baseline.
+        """
+        return PreprodArtifact.objects.filter(
+            commit_comparison__organization_id=organization_id,
+            commit_comparison__head_sha=base_sha,
+            commit_comparison__head_repo_name=head_repo_name,
+            project__organization_id=organization_id,
+        ).order_by("commit_comparison__date_added", "commit_comparison_id", "-date_added")
+
     def get_base_artifact_for_commit(
         self, artifact_type: ArtifactType | None = None
     ) -> models.QuerySet[PreprodArtifact]:
         """
         Get the base artifacts for this artifact's base commit, matching on
-        (app_id, artifact_type, build_configuration).
-
-        A base commit can have multiple commit comparisons (e.g. uploads with and
-        without a base_sha). Results are ordered so that the oldest commit comparison
-        with a matching artifact wins, and within it the newest artifact.
+        (app_id, artifact_type, build_configuration), best match first.
         """
-        if not self.commit_comparison:
+        if not self.commit_comparison or not self.commit_comparison.base_sha:
             return PreprodArtifact.objects.none()
 
-        return PreprodArtifact.objects.filter(
-            commit_comparison__organization_id=self.project.organization_id,
-            commit_comparison__head_sha=self.commit_comparison.base_sha,
-            commit_comparison__head_repo_name=self.commit_comparison.head_repo_name,
-            project__organization_id=self.project.organization_id,
+        return PreprodArtifact._base_commit_artifacts(
+            self.project.organization_id,
+            self.commit_comparison.head_repo_name,
+            self.commit_comparison.base_sha,
+        ).filter(
             app_id=self.app_id,
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
             build_configuration=self.build_configuration,
-        ).order_by("commit_comparison__date_added", "commit_comparison_id", "-date_added")
+        )
 
     @classmethod
     def get_base_artifacts_for_commit(
@@ -346,10 +359,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
         Finds base artifacts by matching (app_id, artifact_type, build_configuration_id).
         All artifacts must share the same commit_comparison (same base_sha).
-
-        A base commit can have multiple commit comparisons (e.g. uploads with and
-        without a base_sha). When multiple base artifacts match the same key, the oldest
-        commit comparison with a match wins, and within it the newest artifact.
+        See `_base_commit_artifacts` for which base artifact wins.
 
         Args:
             artifacts: List of head artifacts. All must share the same commit_comparison.
@@ -372,16 +382,11 @@ class PreprodArtifact(DefaultFieldsModel):
         if any(a.commit_comparison_id != commit_comparison_id for a in artifacts[1:]):
             raise ValueError("All artifacts must share the same commit_comparison.")
 
-        base_sha = first_artifact.commit_comparison.base_sha
-        head_repo_name = first_artifact.commit_comparison.head_repo_name
-        organization_id = first_artifact.project.organization_id
-
-        base_artifacts_qs = PreprodArtifact.objects.filter(
-            commit_comparison__organization_id=organization_id,
-            commit_comparison__head_sha=base_sha,
-            commit_comparison__head_repo_name=head_repo_name,
-            project__organization_id=organization_id,
-        ).order_by("commit_comparison__date_added", "commit_comparison_id", "-date_added")
+        base_artifacts_qs = cls._base_commit_artifacts(
+            first_artifact.project.organization_id,
+            first_artifact.commit_comparison.head_repo_name,
+            first_artifact.commit_comparison.base_sha,
+        )
         if require_snapshot_metrics:
             base_artifacts_qs = base_artifacts_qs.filter(preprodsnapshotmetrics__isnull=False)
 
