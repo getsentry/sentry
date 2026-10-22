@@ -118,9 +118,7 @@ export function useErrorsSeriesQuery(
         requestIndex
       );
 
-      transformedResult.forEach((result, resultIndex) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
 
       const resultTypes = eventsResponseTransforms.getSeriesResultType?.(
         responseData,
