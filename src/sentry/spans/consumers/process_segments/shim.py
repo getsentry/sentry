@@ -20,7 +20,9 @@ from sentry.spans.consumers.process_segments.types import (
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
-EMPTY_ATTRIBUTE_VALUES = frozenset({"", None})
+FALSY_ATTRIBUTE_VALUE_ALLOWLIST = (False, 0)
+# Catch-all prefix for request headers which don't have their own dedicated attribute
+REQUEST_HEADER_ATTRIBUTE_PREFIX = ATTRIBUTE_NAMES.HTTP_REQUEST_HEADER_KEY.removesuffix("<key>")
 
 TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
@@ -30,13 +32,19 @@ TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
 }
 
+# A few of these have multiple entries per field, because which one of these attributes we get is
+# SDK-dependent. (The `resource`-prefixed ones are from OTel, while the ones without it are us.)
+# They're listed in reverse priority order, with successively-higher-priority attributes overwriting
+# lower-priority ones if they have a value.
 CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
     "browser": {
         ATTRIBUTE_NAMES.BROWSER_NAME: "name",
         ATTRIBUTE_NAMES.BROWSER_VERSION: "version",
     },
     "os": {
+        f"resource.{ATTRIBUTE_NAMES.OS_NAME}": "name",
         ATTRIBUTE_NAMES.OS_NAME: "name",
+        f"resource.{ATTRIBUTE_NAMES.OS_VERSION}": "version",
         ATTRIBUTE_NAMES.OS_VERSION: "version",
         ATTRIBUTE_NAMES.OS_ROOTED: "rooted",
     },
@@ -47,7 +55,9 @@ CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
         ATTRIBUTE_NAMES.DEVICE_NAME: "name",
     },
     "runtime": {
+        f"resource.{ATTRIBUTE_NAMES.PROCESS_RUNTIME_NAME}": "name",
         ATTRIBUTE_NAMES.PROCESS_RUNTIME_NAME: "name",
+        f"resource.{ATTRIBUTE_NAMES.PROCESS_RUNTIME_VERSION}": "version",
         ATTRIBUTE_NAMES.PROCESS_RUNTIME_VERSION: "version",
     },
     "profile": {
@@ -73,18 +83,29 @@ SDK_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SDK_VERSION: "version",
 }
 
-# There are multiple entries per field here, because which one of these attributes we get is
-# SDK-dependent. They're listed in reverse priority order, with successively-higher-priority
-# attributes overwriting lower-priority ones if they have a value.
+# As with the `contexts` map above, there are multiple entries per field/header here because SDKs
+# send request data in multiple formats. As before, entries are listed in reverse priority order so
+# the highest-priority one that has a value wins.
 REQUEST_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.URL_TEMPLATE: "url",
     ATTRIBUTE_NAMES.HTTP_ROUTE: "url",
     ATTRIBUTE_NAMES.URL_PATH: "url",
-    ATTRIBUTE_NAMES.URL_FULL: "url",
     "sentry.transaction.method": "method",
     ATTRIBUTE_NAMES.HTTP_REQUEST_METHOD: "method",
     ATTRIBUTE_NAMES.URL_QUERY: "query_string",
     ATTRIBUTE_NAMES.HTTP_REQUEST_BODY_DATA: "data",
+}
+REQUEST_HEADERS_BY_ATTRIBUTE_NAME = {
+    "http.user_agent": "user-agent",
+    ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL: "user-agent",
+}
+REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.URL_SCHEME: "scheme",
+    ATTRIBUTE_NAMES.URL_DOMAIN: "host",
+    ATTRIBUTE_NAMES.SERVER_ADDRESS: "host",
+    ATTRIBUTE_NAMES.URL_PATH: "path",
+    ATTRIBUTE_NAMES.URL_PORT: "port",
+    ATTRIBUTE_NAMES.SERVER_PORT: "port",
 }
 
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
@@ -96,13 +117,17 @@ SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     "sentry.system": "system",
 }
 
-KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset({"sentry.", "user.", "browser.web_vital."})
+KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset(
+    {"sentry.", "user.", "browser.web_vital.", REQUEST_HEADER_ATTRIBUTE_PREFIX}
+)
 KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     USER_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     GEO_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     SDK_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     REQUEST_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_HEADERS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
 )
@@ -140,7 +165,7 @@ def _extract_attribute_values(
 
     for attribute_name, field_name in attribute_to_field_map.items():
         value = attribute_value(segment_span, attribute_name)
-        if value not in EMPTY_ATTRIBUTE_VALUES:
+        if value or value in FALSY_ATTRIBUTE_VALUE_ALLOWLIST:
             values_by_field_name[field_name] = value
 
     return values_by_field_name
@@ -229,8 +254,95 @@ def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
     return user_data
 
 
+def _reconstruct_url(segment_span: CompatibleSpan) -> str | None:
+    """
+    Rebuild the request URL from parts, if possible. Useful for spans like those sent by OTel SDKs,
+    which send URL parts but no full URL.
+    """
+    url_data = _extract_attribute_values(segment_span, REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME)
+
+    scheme = url_data.get("scheme", "http")
+    host = url_data.get("host")
+    port = url_data.get("port")
+    path = url_data.get("path", "/")
+
+    if not host or not isinstance(host, str):
+        return None
+
+    # Add brackets to unbracketed IPv6-like values
+    if host.count(":") > 1 and not host.startswith("["):
+        host = f"[{host}]"
+
+    # Include the port if it's something other than the default for the scheme. Wrapped in a
+    # `try-except` in case the port value is something bogus and un-int-able.
+    try:
+        if port and int(port) != (443 if scheme == "https" else 80):
+            host = f"{host}:{port}"
+    except Exception:
+        pass
+
+    # Ensure path has a leading slash
+    if path and not str(path).startswith("/"):
+        path = f"/{path}"
+
+    return f"{scheme}://{host}{path}"
+
+
+def _get_request_headers(segment_span: CompatibleSpan) -> list[list[str]]:
+    """
+    Build the request's `headers` value from the segment span's `http.request.header.<name>`
+    attributes, plus any headers which have their own dedicated attributes.
+    """
+    attributes = segment_span.get("attributes") or {}
+    headers = []
+
+    # Handle headers which have their own, dedicated attribute names
+    header_data = _extract_attribute_values(segment_span, REQUEST_HEADERS_BY_ATTRIBUTE_NAME)
+
+    # Handle headers from `http.request.header.<key>` attributes
+    for attribute_name in filter(
+        lambda attribute_name: attribute_name.startswith(REQUEST_HEADER_ATTRIBUTE_PREFIX),
+        attributes.keys(),
+    ):
+        header_value = attribute_value(segment_span, attribute_name)
+
+        if not header_value:
+            continue
+
+        header_name = attribute_name.removeprefix(REQUEST_HEADER_ATTRIBUTE_PREFIX)
+
+        # Handle cases where the SDK hasn't already joined multi-valued headers into a single string
+        if isinstance(header_value, list):
+            header_value = ", ".join(str(element) for element in header_value)
+
+        header_data[header_name] = header_value
+
+    # Convert header data from a dict to the list of key-value pairs expected by ingest, and header
+    # names from lowercase to the more familiar titlecase format
+    for lowercase_header_name, header_value in header_data.items():
+        titlecase_header_name = "-".join(
+            word.capitalize() for word in lowercase_header_name.split("-")
+        )
+        headers.append([titlecase_header_name, str(header_value)])
+
+    return headers
+
+
 def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
     request_data = _extract_attribute_values(segment_span, REQUEST_FIELDS_BY_ATTRIBUTE_NAME)
+
+    # The `_extract_attribute_values` call above may have already set a `url` value, but a full URL
+    # is better if we either have it or can reconstruct it. (This is handled outside of
+    # `_extract_attribute_values` to allow for the reconstructed fallback.)
+    full_url = attribute_value(segment_span, ATTRIBUTE_NAMES.URL_FULL) or _reconstruct_url(
+        segment_span
+    )
+    if full_url:
+        request_data["url"] = full_url
+
+    headers = _get_request_headers(segment_span)
+    if headers:
+        request_data["headers"] = headers
 
     if "query_string" in request_data:
         # Convert from a single string to a list of key-value pairs

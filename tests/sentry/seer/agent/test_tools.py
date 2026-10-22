@@ -3595,15 +3595,22 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             mock_replay(datetime.now(UTC) - timedelta(seconds=5), self.project.id, replay1_id)
         )
 
-        # Store a replay at the very start of the retention period.
+        # Store a replay at the very start of the retention period. mock_replay defaults to
+        # 30-day retention, which ClickHouse's TTL would already have expired.
         self.store_replays(
             mock_replay(
-                datetime.now(UTC) - timedelta(days=89, seconds=10), self.project.id, replay2_id
+                datetime.now(UTC) - timedelta(days=89, seconds=10),
+                self.project.id,
+                replay2_id,
+                retention_days=90,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.now(UTC) - timedelta(days=89, seconds=5), self.project.id, replay2_id
+                datetime.now(UTC) - timedelta(days=89, seconds=5),
+                self.project.id,
+                replay2_id,
+                retention_days=90,
             )
         )
 

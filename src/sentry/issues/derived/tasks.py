@@ -11,7 +11,9 @@ from django.db import router
 from django.db.models import Exists, OuterRef
 from django.db.utils import OperationalError
 
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.heal_state import HealSchedulerState, load_state, save_state
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
@@ -76,10 +78,14 @@ def _record_batch_metrics(
     processed: dict[PromotionResult, int],
     *,
     metric_name: str,
+    errors: int = 0,
     tag_extra: dict[str, str] | None = None,
 ) -> None:
-    for result, count in processed.items():
-        tags = {"result": result.value}
+    counts = {result.value: count for result, count in processed.items()}
+    if errors:
+        counts["error"] = errors
+    for result, count in counts.items():
+        tags = {"result": result}
         if tag_extra:
             tags.update(tag_extra)
         metrics.incr(metric_name, amount=count, sample_rate=1.0, tags=tags)
@@ -128,6 +134,9 @@ def process_group_log_task(group_id: int, incremental: bool = False, **kwargs: o
     derived_metrics = DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=incremental)
     try:
         process_group_log(group_id, derived_metrics=derived_metrics)
+    except DerivedDataError:
+        # _process_batch reported the failure. Leave the cursor for an explicit retry.
+        return
     except Group.DoesNotExist:
         logger.info("process_group_log_task.group_not_found", extra={"group_id": group_id})
 
@@ -177,6 +186,9 @@ def generate_group_derived_data(
         )
     except Group.DoesNotExist:
         logger.info("generate_group_derived_data.group_not_found", extra={"group_id": group_id})
+        return
+    except DerivedDataError:
+        # Failed replay was reported by _process_batch; do not self-reschedule it.
         return
     except PromotionFailed:
         logger.exception("generate_group_derived_data.promotion_failed")
@@ -420,6 +432,7 @@ def generate_project_derived_data_batch(
 
     _record_batch_metrics(
         result.processed,
+        errors=result.errors,
         metric_name="issues.derived.generate_project_groups_processed",
     )
     logger.info(
@@ -429,6 +442,7 @@ def generate_project_derived_data_batch(
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
             "processed": {r.value: c for r, c in result.processed.items()},
+            "errors": result.errors,
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,
@@ -865,7 +879,13 @@ def check_fresh_derived_data_batch(
                 mark_spawned(_CHECK_FRESH_BATCH_TASK_KEY, activation_id)
             return
 
-        _record_check_result(result)
+        except DerivedDataError as error:
+            report_derived_data_error(
+                error, derived=derived, operation="check", pipeline_hash=PIPELINE.pipeline_hash
+            )
+            _record_check_result(error)
+        else:
+            _record_check_result(result)
         if time.monotonic() - start >= timeout_seconds:
             check_fresh_derived_data_batch.delay(
                 group_id_start=derived.group_id + 1,
@@ -1013,6 +1033,7 @@ def regenerate_stale_derived_data_batch(
 
     _record_batch_metrics(
         result.processed,
+        errors=result.errors,
         metric_name="issues.derived.regenerate_stale_groups_processed",
     )
     logger.info(
@@ -1022,6 +1043,7 @@ def regenerate_stale_derived_data_batch(
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
             "processed": {r.value: c for r, c in result.processed.items()},
+            "errors": result.errors,
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,

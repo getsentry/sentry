@@ -248,7 +248,7 @@ describe('Investigation detail', () => {
     expect(screen.queryByRole('link', {name: 'View issue'})).not.toBeInTheDocument();
   });
 
-  it('renders completed investigation metadata above the first block', async () => {
+  it('renders the summary as one paragraph above the investigation details', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationDetailFixture({
@@ -261,13 +261,38 @@ describe('Investigation detail', () => {
     renderView();
 
     const summary = await screen.findByTestId('investigation-summary');
-    expect(within(summary).getByText('Errors rose across releases')).toBeInTheDocument();
     expect(
-      within(summary).getByText(/All active releases increased together/)
+      within(summary).getByRole('heading', {level: 2, name: 'Summary'})
     ).toBeInTheDocument();
     expect(
-      summary.compareDocumentPosition(screen.getByTestId('investigation-cell-block-1'))
+      within(summary).getByText(
+        'Errors rose across releases. All active releases increased together. Check shared infrastructure and dependencies.'
+      )
+    ).toBeInTheDocument();
+    const details = screen.getByRole('heading', {
+      level: 2,
+      name: 'Investigation details',
+    });
+    expect(summary.compareDocumentPosition(details)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(
+      details.compareDocumentPosition(screen.getByTestId('investigation-cell-block-1'))
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('leaves out the investigation details heading without a summary', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+
+    renderView();
+
+    expect(await screen.findByTestId('investigation-cell-block-1')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {name: 'Investigation details'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders partial text while an agent-written text cell is running', async () => {
@@ -573,6 +598,50 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
   });
 
+  it('holds back the activity feed until the run has stopped', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.orchestration = {
+      phase: 'investigating',
+      status: 'processing',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView();
+
+    expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Activity'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Comment'})).not.toBeInTheDocument();
+  });
+
+  it.each(['completed', 'failed', 'cancelled'] as const)(
+    'shows the activity feed once the run has %s',
+    async status => {
+      const investigation = investigationWithQueryResult();
+      investigation.orchestration = {
+        phase: status,
+        status,
+        heartbeatAt: '2026-08-27T11:06:30Z',
+        notebookRevision: 5,
+      };
+      MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({status}),
+      });
+
+      renderView();
+
+      expect(await screen.findByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Comment'})).toBeInTheDocument();
+    }
+  );
+
   it.each(['failed', 'cancelled'] as const)(
     'still awaits the report when a cell has %s',
     async status => {
@@ -809,7 +878,7 @@ describe('Investigation detail', () => {
       );
       // Completion must refresh metadata before the independent 2s detail poll.
       expect(Date.now() - startedAt).toBeLessThan(2000);
-      expect(screen.getByText('Comparison logic triggered breach')).toBeInTheDocument();
+      expect(screen.getByText(/Comparison logic triggered breach/)).toBeInTheDocument();
     });
   });
 

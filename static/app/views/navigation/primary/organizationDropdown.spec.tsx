@@ -107,18 +107,19 @@ describe('OrganizationDropdown', () => {
     const separator = await screen.findByRole('separator');
     expect(separator).toBeInTheDocument();
 
-    const inactiveGroup = separator.nextElementSibling?.firstElementChild;
+    const inactiveGroup = screen
+      .getByRole('menuitemradio', {name: /Disabled org/})
+      .closest('[role="group"]');
     if (!(inactiveGroup instanceof HTMLElement)) {
       throw new Error('Expected group of inactive organizations');
     }
 
-    expect(inactiveGroup).toHaveRole('group');
-    expect(
-      within(inactiveGroup).getByRole('menuitemradio', {name: /Disabled org/})
-    ).toBeInTheDocument();
     expect(
       within(inactiveGroup).getByRole('menuitemradio', {name: /Deleting org/})
     ).toBeInTheDocument();
+    expect(inactiveGroup).not.toContainElement(
+      screen.getByRole('menuitemradio', {name: /Org 1/})
+    );
   });
 
   it('clicking project sets referrer in session storage', async () => {

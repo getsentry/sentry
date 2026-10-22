@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from rest_framework import serializers
@@ -11,6 +12,8 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 MAX_CROSS_EVENT_QUERIES = 2
 MAX_CROSS_EVENT_RANGE = timedelta(days=7)
+
+logger = logging.getLogger(__name__)
 
 
 class VisualizeSerializer(serializers.Serializer):
@@ -204,6 +207,11 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
     range = serializers.CharField(
         required=False,
         allow_null=True,
+        help_text="The saved time range period for this saved query. Prefer `statsPeriod`.",
+    )
+    statsPeriod = serializers.CharField(
+        required=False,
+        allow_null=True,
         help_text="The saved time range period for this saved query.",
     )
     environment = ListField(
@@ -271,6 +279,20 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "metric",
             "caseInsensitive",
         ]
+
+        # Persist the relative period as `range`. Accept `statsPeriod` on write
+        # and keep `range` for older clients. `statsPeriod` wins when both are sent.
+        if data.get("range") is not None:
+            organization = self.context.get("organization")
+            logger.warning(
+                "explore.saved_query.deprecated_range",
+                extra={
+                    "organization_id": getattr(organization, "id", None),
+                    "has_stats_period": data.get("statsPeriod") is not None,
+                },
+            )
+        if data.get("statsPeriod") is not None:
+            data["range"] = data["statsPeriod"]
 
         for key in query_keys:
             if data.get(key) is not None:
