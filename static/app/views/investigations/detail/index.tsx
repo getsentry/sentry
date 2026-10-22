@@ -33,6 +33,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
@@ -489,6 +490,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
+              <NextStepCard investigation={investigation} />
 
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 

@@ -1,4 +1,5 @@
 import type {
+  InvestigationActionRequest,
   InvestigationBlock,
   InvestigationComment,
   InvestigationDetail,
@@ -216,6 +217,38 @@ export function InvestigationTitleGenerationFixture(
   return {
     status: 'completed',
     preview: null,
+    ...overrides,
+  };
+}
+
+export function InvestigationActionRequestFixture(
+  overrides: Partial<InvestigationActionRequest> = {}
+): InvestigationActionRequest {
+  return {
+    id: '312',
+    key: 'widen-time-window',
+    reportRevision: 2,
+    primary: true,
+    anchor: null,
+    reason: null,
+    title: 'Widen the interval',
+    rationale:
+      'The 5 minute window fires on single deploy spikes that recover within a minute.',
+    impact: 'Would have suppressed 4 of the last 5 alerts.',
+    state: 'suggested',
+    action: {
+      kind: 'update_detector',
+      detectorId: '789',
+      before: {timeWindowSeconds: 300},
+      changes: {timeWindowSeconds: 900},
+      canApply: true,
+      cannotApplyReason: null,
+    },
+    appliedBy: null,
+    appliedDetails: null,
+    dateApplied: null,
+    error: null,
+    dateCreated: '2026-08-27T11:10:00Z',
     ...overrides,
   };
 }

@@ -163,6 +163,7 @@ export type InvestigationQueryOutput = {
 };
 
 export type InvestigationDetail = InvestigationListItem & {
+  actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
   filters?: Record<string, unknown>;
   parameters?: unknown[];
@@ -252,6 +253,86 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'failed'
   | 'cancelled'
 >;
+
+type InvestigationDetectorChangeKey =
+  | 'query'
+  | 'aggregate'
+  | 'environment'
+  | 'timeWindowSeconds'
+  | 'highThreshold'
+  | 'mediumThreshold'
+  | 'resolutionThreshold';
+
+type InvestigationDetectorChangeValue = number | string | null;
+
+type InvestigationActionCannotApplyReason = InvestigationOrchestrationOpenString<
+  | 'permission_denied'
+  | 'detector_not_found'
+  | 'not_target_detector'
+  | 'investigation_archived'
+  | 'not_suggested'
+  | 'unsupported_action'
+  | 'invalid_change'
+>;
+
+type InvestigationDetectorValues = Partial<
+  Record<InvestigationDetectorChangeKey, InvestigationDetectorChangeValue>
+>;
+
+type InvestigationUpdateDetectorAction = {
+  before: InvestigationDetectorValues;
+  canApply: boolean;
+  cannotApplyReason: InvestigationActionCannotApplyReason | null;
+  changes: InvestigationDetectorValues;
+  detectorId: string;
+  kind: 'update_detector';
+};
+
+type InvestigationAction =
+  | InvestigationUpdateDetectorAction
+  | {
+      canApply: false;
+      cannotApplyReason: InvestigationActionCannotApplyReason | null;
+      kind: InvestigationOrchestrationOpenString<string>;
+    };
+
+type InvestigationActionRequestAnchor = {
+  blockId: string | null;
+  id: string;
+  type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
+};
+
+type InvestigationActionRequestUser = Pick<
+  AvatarUser,
+  'avatar' | 'avatarUrl' | 'email' | 'id' | 'name' | 'username'
+>;
+
+export type InvestigationActionRequest = {
+  action: InvestigationAction | null;
+  anchor: InvestigationActionRequestAnchor | null;
+  appliedBy: InvestigationActionRequestUser | null;
+  appliedDetails: InvestigationUpdateDetectorAppliedDetails | null;
+  dateApplied: string | null;
+  dateCreated: string;
+  error: {code: string; detail: unknown} | null;
+  id: string;
+  impact: string | null;
+  key: string;
+  primary: boolean;
+  rationale: string;
+  reason: string | null;
+  reportRevision: number;
+  state: InvestigationOrchestrationOpenString<
+    'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
+  >;
+  title: string;
+};
+
+type InvestigationUpdateDetectorAppliedDetails = {
+  detectorId: string;
+  detectorName: string;
+  fields: string[];
+};
 
 type InvestigationOrchestrationError = {
   code: string;

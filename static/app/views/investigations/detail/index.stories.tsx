@@ -18,6 +18,7 @@ import {
   InvestigationAwaitingInputExecutionFixture,
   InvestigationExecutionDetailFixture,
   InvestigationQueryOutputFixture,
+  InvestigationActionRequestFixture,
   InvestigationRunningDetailFixture,
   InvestigationTitleGenerationFixture,
   InvestigationTranscriptBlockFixture,
@@ -43,6 +44,18 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
     revision: 1,
     snapshot: {monitor: {id: '42', name: 'Checkout p95 latency'}},
   },
+  actionRequests: [
+    InvestigationActionRequestFixture({
+      action: {
+        kind: 'update_detector',
+        detectorId: '42',
+        before: {timeWindowSeconds: 300},
+        changes: {timeWindowSeconds: 900},
+        canApply: true,
+        cannotApplyReason: null,
+      },
+    }),
+  ],
   blocks: [
     InvestigationBlockFixture({
       id: 'completed-summary',

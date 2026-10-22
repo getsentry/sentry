@@ -35,6 +35,7 @@ import {
   InvestigationDetailFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
+  InvestigationActionRequestFixture,
 } from 'sentry/views/investigations/fixtures';
 
 jest.unmock('@tanstack/react-pacer');
@@ -278,6 +279,35 @@ describe('Investigation detail', () => {
     );
     expect(
       details.compareDocumentPosition(screen.getByTestId('investigation-block-block-1'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('renders the suggested next step between the summary and the details', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        summary: 'Errors rose across releases',
+        summaryDescription: 'All active releases increased together.',
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+
+    renderView();
+
+    const nextStep = await screen.findByRole('region', {
+      name: 'Recommended action',
+    });
+    expect(
+      screen.getByTestId('investigation-summary').compareDocumentPosition(nextStep)
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      nextStep.compareDocumentPosition(
+        screen.getByRole('heading', {level: 2, name: 'Investigation details'})
+      )
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
