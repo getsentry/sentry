@@ -7,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {CodeModeInput} from 'sentry/components/ai/toolDetails/codeModeInput';
+import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -109,7 +109,7 @@ export function AIInputSection({
         />
       ) : null}
       {codeInput ? (
-        <CodeModeInput key={node.id} {...codeInput} />
+        <CodeModeDetails key={node.id} projectId={node.value.project_id} {...codeInput} />
       ) : toolArgs ? (
         <TraceDrawerComponents.MultilineJSON
           key={node.id}

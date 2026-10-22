@@ -834,7 +834,7 @@ Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
 Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 
 With the `logs` dataset, a string attribute can also be matched against a regular expression written as `key://pattern//`, and excluded with `!key://pattern//`.
-Patterns use [RE2 syntax](https://github.com/google/re2/wiki/Syntax), match anywhere in the value unless anchored with `^` or `$`, are case sensitive unless they start with `(?i)`, and are limited to 64 characters.
+Patterns use [RE2 syntax](https://github.com/google/re2/wiki/Syntax), match anywhere in the value unless anchored with `^` or `$`, are case sensitive unless they start with `(?i)`, and are limited to 64 characters. A query can contain up to 16 regular expressions.
 To search for a literal value that starts with `//`, quote it: `key:"//value"`.
 See [regular expressions](/concepts/search/#regular-expressions-logs-only) for more details.
 

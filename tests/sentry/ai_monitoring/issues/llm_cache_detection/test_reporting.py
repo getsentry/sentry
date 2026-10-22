@@ -48,7 +48,16 @@ def test_candidate_fields_include_evidence_and_enrichment() -> None:
     assert fields["repeated_sampled_call_share"] == 0.5
     assert fields["spans_with_cache_attributes"] == 400
     assert fields["estimated_savings_usd"] == 12.5
-    assert fields["sample_calls"][0]["trace_id"] == "trace-id"
+    assert fields["sample_calls"] == [
+        {
+            "trace_id": "trace-id",
+            "span_id": "span-id",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "input": 4_000,
+            "cache_read": 100,
+            "cache_write": 200,
+        }
+    ]
     assert fields["min_cacheable_prefix_tokens"] == 4_096
 
 
