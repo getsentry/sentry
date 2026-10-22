@@ -13,8 +13,11 @@ import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
-import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {
@@ -22,6 +25,7 @@ import {
   useOpenPeriodCount,
   useOpenPeriods,
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 
 interface MetricIssueChartProps {
@@ -115,6 +119,9 @@ function MetricIssueChartContent({
   group: Group;
   openPeriods: GroupOpenPeriod[];
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const {data: openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
     groupId: group.id,
@@ -127,7 +134,6 @@ function MetricIssueChartContent({
       ...dateTimeParams,
       intervalSeconds,
     });
-  const zoomToOpenPeriodRange = useZoomToOpenPeriodRange(intervalSeconds);
 
   const {
     chartProps,
@@ -138,10 +144,15 @@ function MetricIssueChartContent({
     openPeriods,
     highlightedOpenPeriodId: openPeriod?.id,
     onOpenPeriodClick: clickedOpenPeriod =>
-      zoomToOpenPeriodRange(
-        new Date(clickedOpenPeriod.start),
-        clickedOpenPeriod.end ? new Date(clickedOpenPeriod.end) : undefined
-      ),
+      navigate({
+        pathname: normalizeUrl(
+          getOpenPeriodIssuePath({
+            organizationSlug: organization.slug,
+            openPeriod: clickedOpenPeriod,
+          })
+        ),
+        query: location.query,
+      }),
     height: CHART_HEIGHT,
     enabled: !isOpenPeriodPending,
     ...cappedDateTimeParams,
