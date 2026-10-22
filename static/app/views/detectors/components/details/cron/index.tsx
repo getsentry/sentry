@@ -123,9 +123,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
     ...queryObj,
     environments:
       selectedEnvironments.length > 0
-        ? queryObj.environments.filter(env =>
-            selectedEnvironments.includes(env.name)
-          )
+        ? queryObj.environments.filter(env => selectedEnvironments.includes(env.name))
         : queryObj.environments,
   };
 
@@ -228,10 +226,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 <DetectorDetailsAutomations detector={detector} />
               </Fragment>
             ) : (
-              <MonitorOnboarding
-                monitorSlug={queryObj.slug}
-                project={project}
-              />
+              <MonitorOnboarding monitorSlug={queryObj.slug} project={project} />
             )}
           </DetailLayout.Main>
           <DetailLayout.Sidebar>
