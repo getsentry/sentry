@@ -16,6 +16,26 @@ function isItemVisible(item: NavigationItem, props: NavigationGroupProps): boole
   return item.show ?? true;
 }
 
+function getItemTitle(
+  item: NavigationItem,
+  groupId: string,
+  settingsV3: boolean
+): NavigationItem['title'] {
+  if (!settingsV3) {
+    return item.title;
+  }
+
+  switch (groupId) {
+    case 'settings-organization':
+    case 'settings-project':
+      return item.index ? t('General') : item.title;
+    case 'settings-account':
+      return item.path === '/settings/account/details/' ? t('General') : item.title;
+    default:
+      return item.title;
+  }
+}
+
 function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
   const params = useParams();
@@ -26,13 +46,7 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
 
   const visibleItems = items
     .filter(item => isItemVisible(item, props))
-    .map(item =>
-      settingsV3 &&
-      ((item.index && ['settings-organization', 'settings-project'].includes(props.id)) ||
-        (props.id === 'settings-account' && item.path === '/settings/account/details/'))
-        ? {...item, title: t('General')}
-        : item
-    );
+    .map(item => ({...item, title: getItemTitle(item, props.id, settingsV3)}));
 
   // A settings category and the links inside it that are actually visible to
   // this user (post access/feature/hook filtering) — the same list rendered
