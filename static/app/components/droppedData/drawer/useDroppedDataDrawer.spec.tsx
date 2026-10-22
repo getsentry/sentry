@@ -344,7 +344,7 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
       expect(screen.getByText('10%')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filters'}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'explore.dropped_data.legend_outcome_toggled',
@@ -354,7 +354,7 @@ describe('useDroppedDataDrawer', () => {
           selected: false,
         })
       );
-      expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Inbound Filters'})).not.toBeChecked();
       expect(screen.getByText('10 dropped and filtered events')).toBeInTheDocument();
       expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
@@ -385,7 +385,7 @@ describe('useDroppedDataDrawer', () => {
       expect(isAfter(expectedHeading, 'Dropped by before send')).toBe(false);
       expect(isAfter(expectedHeading, 'Dropped by ignored spans')).toBe(true);
 
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filters'}));
 
       expect(screen.getByRole('heading', {name: 'Unexpected Drops'})).toBeInTheDocument();
       expect(
@@ -408,7 +408,7 @@ describe('useDroppedDataDrawer', () => {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Client Discard'}));
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filters'}));
 
       expect(screen.getByText('0 dropped and filtered events')).toBeInTheDocument();
       expect(screen.getByText('No outcomes selected.')).toBeInTheDocument();
@@ -447,7 +447,7 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByRole('radio', {name: 'Unexpected'})).toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'Client Discard'})).toBeInTheDocument();
       expect(
-        screen.queryByRole('checkbox', {name: 'Inbound Filter'})
+        screen.queryByRole('checkbox', {name: 'Inbound Filters'})
       ).not.toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
       expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
@@ -473,7 +473,7 @@ describe('useDroppedDataDrawer', () => {
       await userEvent.click(screen.getByRole('radio', {name: 'All'}));
 
       expect(screen.getByText('40 dropped and filtered events')).toBeInTheDocument();
-      expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', {name: 'Inbound Filters'})).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Expected Drops'})).toBeInTheDocument();
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
       // 10 unintentional drops out of 60 accepted + 40 dropped.
