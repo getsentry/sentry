@@ -120,12 +120,15 @@ def _convert_single_filter(sf: SearchFilter) -> str | None:
     if key not in OCCURRENCE_ATTRIBUTE_DEFINITIONS and not TAG_KEY_RE.match(key):
         key = f"tags[{key}]"
 
-    # has / !has filters: empty string value with = or !=
-    if raw_value == "" and op in ("=", "!="):
+    # has / !has filters: empty string or None value with = or !=
+    if (raw_value is None or raw_value == "") and op in ("=", "!="):
         if op == "!=":
             return f"has:{key}"
         else:
             return f"!has:{key}"
+
+    if raw_value is None:
+        return None
 
     formatted_value = _format_value(raw_value)
 
@@ -149,7 +152,10 @@ def _convert_single_filter(sf: SearchFilter) -> str | None:
 
 def _convert_aggregation_filter(sf: SearchFilter) -> str | None:
     eap_function = AGGREGATION_FIELD_TO_EAP_FUNCTION[sf.key.name]
-    formatted_value = _format_value(sf.value.raw_value)
+    raw_value = sf.value.raw_value
+    if raw_value is None:
+        return None
+    formatted_value = _format_value(raw_value)
 
     if sf.operator in (">", ">=", "<", "<="):
         return f"{eap_function}:{sf.operator}{formatted_value}"
