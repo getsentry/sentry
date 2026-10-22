@@ -121,7 +121,19 @@ export type TraceItemResponseAttribute =
   | {name: string; type: 'str'; value: string}
   | {name: string; type: 'int'; value: number}
   | {name: string; type: 'float'; value: number}
-  | {name: string; type: 'bool'; value: boolean};
+  | {name: string; type: 'bool'; value: boolean}
+  | {name: string; type: 'array'; value: Array<string | number | boolean>};
+
+/**
+ * Flattens an attribute to a scalar for the string-keyed maps field renderers
+ * consume. Arrays are JSON-encoded so the representation matches the attribute
+ * tree rather than a lossy comma-join.
+ */
+export function getScalarAttributeValue(
+  attribute: TraceItemResponseAttribute
+): string | number | boolean {
+  return attribute.type === 'array' ? JSON.stringify(attribute.value) : attribute.value;
+}
 
 /**
  * Query hook fetching trace item details in EAP.

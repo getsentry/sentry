@@ -35,6 +35,7 @@ import {
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  getScalarAttributeValue,
   useTraceItemDetails,
   type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -248,7 +249,7 @@ function EAPSpanNodeDetailsContent({
   const attributesMap = useMemo(
     () =>
       attributes.reduce<Record<string, string | number | boolean>>((acc, attribute) => {
-        acc[attribute.name] = attribute.value;
+        acc[attribute.name] = getScalarAttributeValue(attribute);
         return acc;
       }, {}),
     [attributes]
