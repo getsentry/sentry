@@ -1,5 +1,6 @@
 import {cloneElement, Fragment} from 'react';
 import {matchPath} from 'react-router';
+import {mergeProps} from '@react-aria/utils';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
@@ -95,14 +96,13 @@ function SettingsProjectSelector() {
           size="sm"
           position="bottom-start"
           menuWidth="100%"
-          preventOverflowOptions={{boundary: 'clippingAncestors', padding: 8}}
+          preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId ?? ''}
           trigger={triggerProps => (
             <Container width="100%">
               {buttonProps => (
                 <OverlayTrigger.Button
-                  {...buttonProps}
-                  {...triggerProps}
+                  {...mergeProps(buttonProps, triggerProps)}
                   aria-label={t('Select a project')}
                   icon={
                     selectedProject ? (

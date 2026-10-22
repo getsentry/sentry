@@ -313,11 +313,11 @@ describe('desktop navigation', () => {
       'location'
     );
     expect(
-      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).queryByRole(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
         'link',
         {name: 'Projects'}
       )
-    ).not.toBeInTheDocument();
+    ).toHaveAttribute('href', '/settings/org-slug/projects/?view=all');
     expect(within(primaryNav).getByRole('link', {name: 'Project'})).toHaveAttribute(
       'href',
       '/settings/org-slug/projects/'

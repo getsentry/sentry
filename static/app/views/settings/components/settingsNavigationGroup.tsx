@@ -26,9 +26,10 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
 
   const visibleItems = items
     .filter(item => isItemVisible(item, props))
-    .filter(
-      item =>
-        !settingsV3 || props.id !== 'settings-organization' || item.id !== 'projects'
+    .map(item =>
+      settingsV3 && props.id === 'settings-organization' && item.id === 'projects'
+        ? {...item, path: `${item.path}?view=all`}
+        : item
     )
     .map(item =>
       settingsV3 &&
