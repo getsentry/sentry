@@ -71,7 +71,9 @@ export function SettingsNavigation({
         ) : (
           <SecondaryNavigation.HeaderTitle>{title}</SecondaryNavigation.HeaderTitle>
         )}
-        <SecondaryNavigation.Toggle />
+        {/* Hide the Settings V3 toggle until header spacing and navigation controls
+            have been reviewed with design. */}
+        {!settingsV3 && <SecondaryNavigation.Toggle />}
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (

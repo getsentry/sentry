@@ -302,25 +302,6 @@ describe('desktop navigation', () => {
     }
   );
 
-  it('expands previously collapsed settings navigation with settings v3', async () => {
-    localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-    render(
-      <PrimaryNavigationContextProvider>
-        <Navigation />
-      </PrimaryNavigationContextProvider>,
-      navigationContext({
-        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
-        initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
-      })
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-    expect(screen.getByRole('button', {name: 'Collapse'})).toBeInTheDocument();
-    expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
-      'false'
-    );
-  });
-
   it('switches from project key details to the new project key list', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/second-project/',
@@ -408,11 +389,11 @@ describe('desktop navigation', () => {
       )
     ).toBeInTheDocument();
     expect(
-      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).queryByRole(
         'button',
         {name: 'Collapse'}
       )
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
