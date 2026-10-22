@@ -71,8 +71,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             status=IncidentStatus.CLOSED.value,
             date_started=date_started,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         metric_value = 123
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
@@ -139,8 +137,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             status=IncidentStatus.CLOSED.value,
             date_started=date_started,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         metric_value = 123
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
