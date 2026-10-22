@@ -73,9 +73,18 @@ import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
 export function useAvgSpanDuration(
-  span: TraceTree.EAPSpan | undefined,
-  location: Location
+  span: TraceTree.EAPSpan | undefined
 ): number | undefined {
+  return useSpanAverages(span).avgDuration;
+}
+
+export const AVG_TOOL_OUTPUT_SIZE =
+  'avg_if(`has:gen_ai.tool.call.result.size`, gen_ai.tool.call.result.size)';
+
+export function useSpanAverages(
+  span: TraceTree.EAPSpan | undefined,
+  includeToolOutputSize = false
+): {avgDuration: number | undefined; avgToolOutputSize: number | undefined} {
   const dataset = useSpansDataset();
 
   const eventView = useMemo(() => {
@@ -87,7 +96,10 @@ export function useAvgSpanDuration(
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Trace View - Span Avg Duration',
-      fields: ['avg(span.duration)'],
+      fields: [
+        'avg(span.duration)',
+        ...(includeToolOutputSize ? [AVG_TOOL_OUTPUT_SIZE] : []),
+      ],
       query: search.formatString(),
       projects: span ? [span.project_id] : [],
       version: 2,
@@ -95,8 +107,8 @@ export function useAvgSpanDuration(
       dataset,
     };
 
-    return EventView.fromNewQueryWithLocation(discoverQuery, location);
-  }, [span, location, dataset]);
+    return EventView.fromSavedQuery(discoverQuery);
+  }, [span, dataset, includeToolOutputSize]);
 
   const result = useSpansQueryWithoutPageFilters({
     enabled: !!span?.description && !!span?.op,
@@ -106,7 +118,12 @@ export function useAvgSpanDuration(
     trackResponseAnalytics: false,
   });
 
-  return result.data?.[0]?.['avg(span.duration)'];
+  return {
+    avgDuration: result.data?.[0]?.['avg(span.duration)'],
+    avgToolOutputSize: includeToolOutputSize
+      ? result.data?.[0]?.[AVG_TOOL_OUTPUT_SIZE]
+      : undefined,
+  };
 }
 
 type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<EapSpanNode>;
@@ -164,7 +181,7 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     organization,
   });
 
-  const avgSpanDuration = useAvgSpanDuration(node.value, location);
+  const avgSpanDuration = useAvgSpanDuration(node.value);
 
   if (isTraceItemPending || isEventTransactionLoading) {
     return <LoadingIndicator />;

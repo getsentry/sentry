@@ -37,17 +37,33 @@ export function makeDurationComparisonStatusColors(theme: Theme): {
   };
 }
 
+export function getPercentageDifference(
+  baseline: number | undefined,
+  value: number
+): number | null {
+  if (
+    baseline === undefined ||
+    !Number.isFinite(baseline) ||
+    baseline <= 0 ||
+    !Number.isFinite(value) ||
+    value < 0
+  ) {
+    return null;
+  }
+  return Math.round(Math.abs(((value - baseline) / baseline) * 100));
+}
+
 export const getDurationComparison = (
   baseline: number | undefined,
   duration: number,
   baseDescription?: string
 ): DurationComparison => {
-  if (!baseline) {
+  const deltaPct = getPercentageDifference(baseline, duration);
+  if (deltaPct === null || baseline === undefined) {
     return null;
   }
 
   const delta = duration - baseline;
-  const deltaPct = Math.round(Math.abs((delta / baseline) * 100));
   const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
   const variant =
     status === 'faster' ? 'success' : status === 'slower' ? 'danger' : 'muted';
