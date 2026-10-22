@@ -283,7 +283,9 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 
 interface SecondaryNavigationHeaderProps {
   children?: ReactNode;
+  /** Overrides the header padding, which otherwise depends on the navigation layout. */
   padding?: ContainerProps['padding'];
+  /** Shows the expand/collapse button on desktop or close button on mobile. Defaults to true. */
   showToggle?: boolean;
 }
 
