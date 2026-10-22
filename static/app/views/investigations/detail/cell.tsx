@@ -594,9 +594,7 @@ function hasCancelledDependency(
 /**
  * A query's results arrive as a Markdown table but render through
  * `SimpleTable`, the same table the query embeds use, so the two can't drift
- * apart. The Markdown renderer hands over the table's parsed columns, header,
- * and rows rather than only its `<thead>`/`<tbody>`, which is what lets a grid
- * table size its columns before any row renders.
+ * apart.
  */
 function QueryResultTable({
   columns,

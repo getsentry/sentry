@@ -46,6 +46,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         response_text=None,
         tool_name=None,
         tool_result=None,
+        tool_result_size=None,
         tool_output=None,
         embeddings_input=None,
         memory_store_id=None,
@@ -95,6 +96,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             response_text: The gen_ai.response.text attribute
             tool_name: The gen_ai.tool.name attribute
             tool_result: The gen_ai.tool.call.result attribute
+            tool_result_size: The gen_ai.tool.call.result.size attribute
             tool_output: The gen_ai.tool.output attribute
             embeddings_input: The gen_ai.embeddings.input attribute
             user_id: User ID (sentry.user.id)
@@ -157,6 +159,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.tool.name"] = tool_name
         if tool_result is not None:
             span_data["gen_ai.tool.call.result"] = tool_result
+        if tool_result_size is not None:
+            span_data["gen_ai.tool.call.result.size"] = tool_result_size
         if tool_output is not None:
             span_data["gen_ai.tool.output"] = tool_output
         if embeddings_input is not None:

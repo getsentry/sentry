@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from rest_framework import serializers
@@ -11,6 +12,8 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 MAX_CROSS_EVENT_QUERIES = 2
 MAX_CROSS_EVENT_RANGE = timedelta(days=7)
+
+logger = logging.getLogger(__name__)
 
 
 class VisualizeSerializer(serializers.Serializer):

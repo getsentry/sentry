@@ -3,8 +3,10 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 import responses
-from django.test import override_settings
+from django.conf import settings
+from django.test import Client, override_settings
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
@@ -61,7 +63,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
@@ -152,6 +154,124 @@ class WebhookTest(APITestCase):
         )
 
         assert response.status_code == 400
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestWebhookCredentialSources:
+    @no_silo_test
+    @pytest.mark.parametrize(
+        "database_options,deployment_options,setting_secret,effective_secret,rejected_secret",
+        [
+            (
+                {"github-app.webhook-secret": "database-secret"},
+                {},
+                "",
+                "database-secret",
+                "incorrect-secret",
+            ),
+            (
+                {},
+                {"github-app.webhook-secret": "deployment-secret"},
+                "",
+                "deployment-secret",
+                "incorrect-secret",
+            ),
+            (
+                {"github-app.webhook-secret": "shared-secret"},
+                {"github-app.webhook-secret": "shared-secret"},
+                "shared-secret",
+                "shared-secret",
+                "incorrect-secret",
+            ),
+            (
+                {"github-app.webhook-secret": "database-secret"},
+                {"github-app.webhook-secret": "deployment-secret"},
+                "deployment-secret",
+                "database-secret",
+                "deployment-secret",
+            ),
+        ],
+        ids=["database-only", "legacy-deployment-only", "matching-dual", "database-wins"],
+    )
+    @pytest.mark.parametrize(
+        "method,signature_header",
+        [("sha1", "X-Hub-Signature"), ("sha256", "X-Hub-Signature-256")],
+    )
+    def test_legacy_effective_secret_authenticates(
+        self,
+        client: Client,
+        database_options: dict[str, str],
+        deployment_options: dict[str, str],
+        setting_secret: str,
+        effective_secret: str,
+        rejected_secret: str,
+        method: str,
+        signature_header: str,
+    ) -> None:
+        options.delete("github-app.webhook-secret")
+        for key, value in database_options.items():
+            options.set(key, value)
+        deployment = {
+            key: value
+            for key, value in settings.SENTRY_OPTIONS.items()
+            if key != "github-app.webhook-secret"
+        }
+        deployment.update(deployment_options)
+        body = b"invalid-json"
+        valid_signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            method, body, effective_secret
+        )
+        invalid_signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            method, body, rejected_secret
+        )
+
+        with override_settings(
+            SENTRY_OPTIONS=deployment,  # noqa: S011
+            SENTRY_GITHUB_APP_WEBHOOK_SECRET=setting_secret,
+        ):
+            accepted = client.post(
+                "/extensions/github/webhook/",
+                data=body,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="push",
+                headers={signature_header: f"{method}={valid_signature}"},
+            )
+            rejected = client.post(
+                "/extensions/github/webhook/",
+                data=body,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="push",
+                headers={signature_header: f"{method}={invalid_signature}"},
+            )
+
+        assert accepted.status_code == 400
+        assert rejected.status_code == 401
+
+    @no_silo_test
+    @pytest.mark.parametrize(
+        "method,signature_header",
+        [("sha1", "X-Hub-Signature"), ("sha256", "X-Hub-Signature-256")],
+    )
+    def test_missing_legacy_secret_rejects_empty_key_signature(
+        self, client: Client, method: str, signature_header: str
+    ) -> None:
+        options.delete("github-app.webhook-secret")
+        body = b"invalid-json"
+        signature = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, "")
+
+        with override_settings(
+            SENTRY_OPTIONS={**settings.SENTRY_OPTIONS, "github-app.webhook-secret": ""},  # noqa: S011
+            SENTRY_GITHUB_APP_WEBHOOK_SECRET="",
+        ):
+            response = client.post(
+                "/extensions/github/webhook/",
+                data=body,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="push",
+                headers={signature_header: f"{method}={signature}"},
+            )
+
+        assert response.status_code == 401
 
 
 class SCMOnlyWebhookTest(APITestCase):
