@@ -173,6 +173,27 @@ class ScopingTests(ExportTestCase):
     Ensures that only models with the allowed relocation scopes are actually exported.
     """
 
+    def test_historical_trigger_mapping_export_without_native_trigger(self) -> None:
+        condition_group = self.create_data_condition_group(organization=self.organization)
+        condition = self.create_data_condition(condition_group=condition_group)
+        mapping = self.create_data_condition_alert_rule_trigger(
+            data_condition=condition, alert_rule_trigger_id=987654321
+        )
+
+        with TemporaryDirectory() as tmp_dir:
+            exported = self.export(
+                tmp_dir, scope=ExportScope.Organization, filter_by={self.organization.slug}
+            )
+
+        exported_mapping = next(
+            entry
+            for entry in exported
+            if entry["model"] == "workflow_engine.dataconditionalertruletrigger"
+            and entry["pk"] == mapping.id
+        )
+        assert exported_mapping["fields"]["alert_rule_trigger_id"] == 987654321
+        assert exported_mapping["fields"]["data_condition"] == condition.id
+
     @staticmethod
     def verify_model_inclusion(data: Any, scope: ExportScope) -> None:
         """
