@@ -955,6 +955,33 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     return has_seat_based_seer
 
 
+def get_seer_token_billed_cache_key(organization_id: int) -> str:
+    """Get the cache key for token-based Seer billing check."""
+    return f"seer:token-billed:{organization_id}"
+
+
+def is_seer_token_billed_enabled(organization: Organization) -> bool:
+    """
+    Check if organization has token-based Seer billing via billing.
+    """
+    cache_key = get_seer_token_billed_cache_key(organization.id)
+    cached_value = cache.get(cache_key)
+    if cached_value is not None:
+        return cached_value
+
+    try:
+        has_token_billed_seer = features.has(
+            "organizations:token-billed-seer-enabled", organization
+        )
+    except Exception:
+        # This flag will throw an error for self hosted Sentry since it lives in getsentry.
+        has_token_billed_seer = False
+
+    cache.set(cache_key, has_token_billed_seer, timeout=60 * 60 * 4)  # 4 hours TTL
+
+    return has_token_billed_seer
+
+
 def is_free_cohort_org(organization: Organization) -> bool:
     """Check if org is in the agentic triage free cohort — selected non-paying
     orgs that receive agentic triage and autofix without a Seer subscription.
