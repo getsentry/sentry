@@ -18,6 +18,7 @@ describe('DroppedDataChart', () => {
       <DroppedDataChart
         droppedEvents={[DroppedEventFixture({outcome: 'filtered', count: 5})]}
         colors={{filtered: '#000'}}
+        hasAskSeer={false}
         selection={{}}
         onSelectionChange={jest.fn()}
       />,

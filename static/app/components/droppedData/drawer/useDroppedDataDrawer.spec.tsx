@@ -128,6 +128,57 @@ describe('useDroppedDataDrawer', () => {
     ).toBeInTheDocument();
   });
 
+  it('points to the docs instead of Seer when Seer Explorer is disabled', async () => {
+    mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByText(
+        /Each reason links to docs with explanations and common fixes/
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Use Seer/)).not.toBeInTheDocument();
+  });
+
+  it('mentions Seer when Seer Explorer is enabled', async () => {
+    const seerOrganization = OrganizationFixture({
+      openMembership: true,
+      hideAiFeatures: false,
+      features: ['explore-data-fidelity-annotations', 'seer-explorer'],
+    });
+    mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization: seerOrganization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByText(/Use Seer to understand what each category means/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Each reason links to docs/)).not.toBeInTheDocument();
+  });
+
+  it('uses the singular heading for one dropped event', async () => {
+    mockDroppedData(1, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByRole('heading', {name: '1 dropped and filtered event'})
+    ).toBeInTheDocument();
+  });
+
   it('shows an error with retry when the request fails', async () => {
     const failedRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,
@@ -491,6 +542,74 @@ describe('useDroppedDataDrawer', () => {
       expect(
         screen.queryByRole('heading', {name: 'Expected Drops'})
       ).not.toBeInTheDocument();
+    });
+
+    it('explains when every drop is expected and offers to show them', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-dropped/`,
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents: [
+            DroppedEventFixture({
+              outcome: 'filtered',
+              reason: 'ignore_spans',
+              count: 30,
+              tags: ['intentional'],
+            }),
+          ],
+          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+        },
+      });
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(
+        await screen.findByRole('heading', {name: 'No unexpected drops.'})
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show all drops'}));
+
+      expect(screen.getByRole('radio', {name: 'All'})).toBeChecked();
+      expect(screen.getByText('30 dropped and filtered events')).toBeInTheDocument();
+      expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'No unexpected drops.'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows a plain empty state when nothing was dropped', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-dropped/`,
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents: [],
+          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+        },
+      });
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(
+        await screen.findByRole('heading', {name: 'No dropped or filtered events.'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Show all drops'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', {name: 'All'}));
+
+      expect(
+        screen.getByRole('heading', {name: 'No dropped or filtered events.'})
+      ).toBeInTheDocument();
     });
 
     it('keeps contributing shares when a legend outcome is deselected', async () => {
