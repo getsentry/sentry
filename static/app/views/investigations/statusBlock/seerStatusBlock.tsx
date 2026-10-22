@@ -5,12 +5,6 @@ import {IconFatal} from '@sentry/icons/fatal';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconWarning} from '@sentry/icons/warning';
 
-import {
-  getToolCallStatusLabel,
-  ToolCall,
-  ToolCallIndicator,
-  type ToolCallStatus,
-} from '@sentry/scraps/chat';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -76,67 +70,65 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
   }
 }
 
-/**
- * An investigation call's status in the chat's tool-call vocabulary, so it gets
- * the same glyph and label as a call in the Seer agent. The agent works its
- * statuses out from its own blocks and call records, so this projection's
- * statuses have no other mapping to reuse. A queued call, or a status Seer adds
- * before this code knows the name, is shown as waiting: the call exists but
- * nothing has come of it yet.
- */
-function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCallStatus {
-  switch (status) {
-    case 'running':
-      return 'loading';
-    case 'completed':
-      return 'success';
-    case 'failed':
-      return 'failure';
-    default:
-      return 'pending';
-  }
+function ToolCallTitle({activity}: {activity: InvestigationToolActivity}) {
+  return (
+    <Flex as="span" align="baseline" gap="sm" minWidth="0">
+      <Text size="sm" variant="secondary" density="fixed" monospace ellipsis>
+        {activity.title}
+      </Text>
+      {activity.status === 'failed' ? (
+        <Text size="sm" variant="danger" density="fixed" wrap="nowrap">
+          {t('Failed')}
+        </Text>
+      ) : null}
+    </Flex>
+  );
 }
 
 /**
- * The calls behind the current phase, drawn the way the Seer agent draws them.
+ * The calls behind the current phase.
  *
  * Only the latest is shown: it says what the agent is doing right now, and the
  * block's title is still the sentence to read. When there is history behind it,
- * the latest call becomes the toggle, and opening it lists the earlier calls
- * newest first, so the list reads back in time from what is happening now.
+ * the latest call becomes the `Disclosure` toggle, and opening it lists the
+ * earlier calls newest first, so the list reads back in time from what is
+ * happening now.
+ *
+ * The calls carry no running or done glyph. The block's own icon already says
+ * the run is working, and a second spinner beside it would show two loading
+ * states in one place.
+ *
+ * Each call sits in a row as tall as an `xs` disclosure title (a 16px line with
+ * 6px above and below), whether or not it can be expanded. The block's lines
+ * are spaced to match that row, so the gaps between title, description and
+ * tool call read the same.
  */
 function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivity[]}) {
   const latest = toolActivity[toolActivity.length - 1];
   if (!latest) {
     return null;
   }
-  const latestStatus = getToolCallStatus(latest.status);
   const earlier = toolActivity.slice(0, -1).reverse();
 
   if (!earlier.length) {
     return (
-      <Container data-test-id="seer-status-block-tool-activity">
-        <ToolCall title={latest.title} status={latestStatus} />
-      </Container>
+      <Flex
+        data-test-id="seer-status-block-tool-activity"
+        minWidth="0"
+        paddingTop="sm"
+        paddingBottom="sm"
+        paddingLeft="lg"
+      >
+        <ToolCallTitle activity={latest} />
+      </Flex>
     );
   }
 
   return (
-    <Container data-test-id="seer-status-block-tool-activity">
+    <Container data-test-id="seer-status-block-tool-activity" minWidth="0">
       <Disclosure size="xs">
-        <Disclosure.Title
-          leadingItems={
-            // A bare glyph, so it borrows `ToolCall`'s label: the indicator's
-            // default would announce a waiting call as awaiting approval.
-            <ToolCallIndicator
-              status={latestStatus}
-              aria-label={getToolCallStatusLabel(latestStatus, t)}
-            />
-          }
-        >
-          <Text size="sm" variant="secondary" monospace ellipsis>
-            {latest.title}
-          </Text>
+        <Disclosure.Title>
+          <ToolCallTitle activity={latest} />
         </Disclosure.Title>
         <Disclosure.Content>
           <Stack
@@ -148,10 +140,7 @@ function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivi
           >
             {earlier.map(activity => (
               <Flex as="li" key={activity.id} minWidth="0">
-                <ToolCall
-                  title={activity.title}
-                  status={getToolCallStatus(activity.status)}
-                />
+                <ToolCallTitle activity={activity} />
               </Flex>
             ))}
           </Stack>
@@ -255,32 +244,41 @@ export function SeerStatusBlock({
           </Flex>
 
           <Stack gap="xs" flex="1 1 auto" minWidth="0">
-            <Flex justify="between" align="center" gap="md">
-              <Text size="md" bold variant={TITLE_VARIANT[variant]}>
-                {title}
-              </Text>
-              {elapsed ? (
-                <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
-                  {elapsed}
-                </Text>
+            {/*
+             * A tool call row carries 6px of its own above its text, so it sits
+             * `2xs` below the description and the text lines sit `md` apart:
+             * either way, 8px between one line of text and the next.
+             */}
+            <Stack gap="2xs" minWidth="0">
+              <Stack gap="md" minWidth="0">
+                <Flex justify="between" align="center" gap="md">
+                  <Text size="md" bold variant={TITLE_VARIANT[variant]}>
+                    {title}
+                  </Text>
+                  {elapsed ? (
+                    <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
+                      {elapsed}
+                    </Text>
+                  ) : null}
+                </Flex>
+
+                {meta ? (
+                  <Text size="sm" variant="muted">
+                    {meta}
+                  </Text>
+                ) : null}
+
+                {description ? (
+                  <Text size="sm" density="comfortable">
+                    {description}
+                  </Text>
+                ) : null}
+              </Stack>
+
+              {toolActivity?.length ? (
+                <ToolActivityList toolActivity={toolActivity} />
               ) : null}
-            </Flex>
-
-            {meta ? (
-              <Text size="sm" variant="muted">
-                {meta}
-              </Text>
-            ) : null}
-
-            {description ? (
-              <Text size="sm" density="comfortable">
-                {description}
-              </Text>
-            ) : null}
-
-            {toolActivity?.length ? (
-              <ToolActivityList toolActivity={toolActivity} />
-            ) : null}
+            </Stack>
 
             {children}
 

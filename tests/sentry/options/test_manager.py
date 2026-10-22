@@ -42,13 +42,11 @@ class OptionsManagerTest(TestCase):
 
     @pytest.fixture(autouse=True)
     def register(self) -> Generator[None]:
-        default_options = settings.SENTRY_DEFAULT_OPTIONS.copy()
-        settings.SENTRY_DEFAULT_OPTIONS = {}
-        self.store.flush_local_cache()
-        self.manager.register("foo")
-        yield
-        self.manager.unregister("foo")
-        settings.SENTRY_DEFAULT_OPTIONS = default_options
+        with override_settings(SENTRY_DEFAULT_OPTIONS={}):
+            self.store.flush_local_cache()
+            self.manager.register("foo")
+            yield
+            self.manager.unregister("foo")
 
     def test_simple(self) -> None:
         assert self.manager.get("foo") == ""

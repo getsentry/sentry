@@ -103,14 +103,15 @@ repos:
         name: oxlint
         language: system
         files: \.(ts|js|tsx|jsx|mjs|cjs|mts|cts)$
-        entry: node scripts/custom-oxlint.ts --quiet --fix --no-error-on-unmatched-pattern
+        entry: node scripts/lint.ts js --quiet --fix --no-error-on-unmatched-pattern
         require_serial: true
 
       - id: stylelint
         name: stylelint
         language: system
         files: \.[jt]sx?$
-        entry: ./node_modules/.bin/stylelint --quiet
+        entry: node scripts/lint.ts css --quiet
+        require_serial: true
 
       - id: format
         name: format

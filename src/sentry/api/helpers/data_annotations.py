@@ -80,9 +80,9 @@ def classify_drop(outcome: str, reason: str) -> str:
     Every ``filtered`` drop is intentional because inbound filters are project
     settings. Unrecognized drops default to unintentional so they stay visible.
     """
-    if outcome == Outcome.FILTERED.api_name():
-        return INTENTIONAL
-    if reason in _INTENTIONAL_REASONS_BY_OUTCOME.get(outcome, frozenset()):
+    if outcome == Outcome.FILTERED.api_name() or reason in _INTENTIONAL_REASONS_BY_OUTCOME.get(
+        outcome, frozenset()
+    ):
         return INTENTIONAL
     return UNINTENTIONAL
 
