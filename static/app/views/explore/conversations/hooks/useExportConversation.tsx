@@ -21,10 +21,7 @@ import {
   getConversationQueryOptions,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
-import {
-  getConversationTranscriptQueryOptions,
-  useConversationTranscriptSource,
-} from 'sentry/views/explore/conversations/hooks/useConversationTranscript';
+import {getConversationTranscriptQueryOptions} from 'sentry/views/explore/conversations/hooks/useConversationTranscript';
 import {
   extractMessagesFromNodes,
   messagesToMarkdown,
@@ -33,6 +30,7 @@ import {
   buildExportFilename,
   downloadTextFile,
 } from 'sentry/views/explore/conversations/utils/exportConversation';
+import {hasBackendConversationTranscriptFeature} from 'sentry/views/explore/conversations/utils/features';
 
 const MAX_EXPORT_SPANS = 50_000;
 
@@ -59,11 +57,11 @@ export function useExportConversation(
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [isExporting, setIsExporting] = useState(false);
-  const {source} = useConversationTranscriptSource();
+  const useBackendTranscript = hasBackendConversationTranscriptFeature(organization);
 
   const runExport = useCallback(
     async (deliver: (result: ConversationExport) => void | Promise<void>) => {
-      if (source === 'backend') {
+      if (useBackendTranscript) {
         const backendOptions = getConversationTranscriptQueryOptions(
           organization,
           conversation,
@@ -131,6 +129,7 @@ export function useExportConversation(
         return;
       }
 
+      // SAFETY: keep the API key tuple intact; the extra marker isolates export pagination.
       const exportQueryKey = [
         options.queryKey[0],
         options.queryKey[1],
@@ -176,7 +175,7 @@ export function useExportConversation(
         addErrorMessage(t('Failed to export transcript'));
       }
     },
-    [queryClient, organization, conversation, selection, source]
+    [queryClient, organization, conversation, selection, useBackendTranscript]
   );
 
   const copyConversation = useCallback(

@@ -126,7 +126,7 @@ describe('ConversationViewContent', () => {
     window.IntersectionObserver = originalIntersectionObserver;
   });
 
-  it('switches between backend and unchanged frontend transcripts', async () => {
+  it('renders backend messages in the existing panel when the feature is enabled', async () => {
     const backend = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
       match: [MockApiClient.matchQuery({view: 'transcript'})],
@@ -159,16 +159,9 @@ describe('ConversationViewContent', () => {
     );
     expect(await screen.findByText('Backend answer')).toBeInTheDocument();
     expect(screen.queryByText('First answer')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Backend transcript'})).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Frontend transcript'}));
-    expect(await screen.findByText('First answer')).toBeInTheDocument();
-    expect(screen.queryByText('Backend answer')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Backend transcript'}));
-    expect(await screen.findByText('Backend answer')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', {name: 'Transcript source'})
+    ).not.toBeInTheDocument();
     expect(backend).toHaveBeenCalledTimes(1);
     expect(detailPane()).not.toBeInTheDocument();
   });
@@ -187,17 +180,44 @@ describe('ConversationViewContent', () => {
     expect(backend).not.toHaveBeenCalled();
   });
 
-  it('shows backend failures without silently rendering the frontend transcript', async () => {
-    MockApiClient.addMockResponse({
+  it.each([
+    {statusCode: 503, body: {detail: 'Unable to read transcript parent context'}},
+    {statusCode: 200, body: {complete: false, transcript: []}},
+  ])(
+    'shows conversation errors without falling back to frontend messages ($statusCode)',
+    async ({statusCode, body}) => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        match: [MockApiClient.matchQuery({view: 'transcript'})],
+        statusCode,
+        body,
+      });
+      render(
+        <ConversationViewContent
+          conversation={{conversationId: CONVERSATION_ID}}
+          activeTab="transcript"
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['gen-ai-conversations-backend-transcript'],
+          }),
+        }
+      );
+      expect(await screen.findByText('Failed to load conversation')).toBeInTheDocument();
+      expect(screen.queryByText('First answer')).not.toBeInTheDocument();
+    }
+  );
+
+  it('does not fetch a backend transcript on the timeline tab', async () => {
+    const backend = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
       match: [MockApiClient.matchQuery({view: 'transcript'})],
-      statusCode: 400,
-      body: {detail: 'Conversation exceeds the transcript limit'},
+      body: {complete: true, transcript: []},
     });
     render(
       <ConversationViewContent
         conversation={{conversationId: CONVERSATION_ID}}
-        activeTab="transcript"
+        activeTab="timeline"
       />,
       {
         organization: OrganizationFixture({
@@ -205,14 +225,8 @@ describe('ConversationViewContent', () => {
         }),
       }
     );
-    expect(
-      await screen.findByText(
-        'Could not load the backend transcript. Retry or switch to the frontend transcript.'
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByText('First answer')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Frontend transcript'}));
-    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+    expect(backend).not.toHaveBeenCalled();
   });
 
   it('opens no span by default on the transcript', async () => {

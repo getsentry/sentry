@@ -1,5 +1,4 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
-import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
@@ -12,6 +11,7 @@ import {
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import type {ConversationMessage} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {hasBackendConversationTranscriptFeature} from 'sentry/views/explore/conversations/utils/features';
 
 export interface ConversationTranscriptResponse {
   complete: boolean;
@@ -19,22 +19,6 @@ export interface ConversationTranscriptResponse {
   sourceSpanCount: number;
   title: string | null;
   transcript: ConversationMessage[];
-}
-
-export function useConversationTranscriptSource() {
-  const organization = useOrganization();
-  const available = organization.features.includes(
-    'gen-ai-conversations-backend-transcript'
-  );
-  const [preferredSource, setSource] = useQueryState(
-    'transcriptSource',
-    parseAsStringLiteral(['frontend', 'backend'] as const).withDefault('backend')
-  );
-  return {
-    available,
-    source: available ? preferredSource : ('frontend' as const),
-    setSource,
-  };
 }
 
 export function getConversationTranscriptQueryOptions(
@@ -65,23 +49,18 @@ export function getConversationTranscriptQueryOptions(
   );
 }
 
-export function useConversationTranscript(conversation: UseConversationsOptions) {
+export function useConversationTranscript(
+  conversation: UseConversationsOptions,
+  enabled = true
+) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const source = useConversationTranscriptSource();
-  const query = useQuery(
+  return useQuery(
     getConversationTranscriptQueryOptions(
       organization,
       conversation,
       selection,
-      source.source === 'backend'
+      enabled && hasBackendConversationTranscriptFeature(organization)
     )
   );
-  return {
-    ...source,
-    data: query.data,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    refetch: query.refetch,
-  };
 }
