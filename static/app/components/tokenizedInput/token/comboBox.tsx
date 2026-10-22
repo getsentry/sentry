@@ -376,7 +376,7 @@ export function ComboBox({
     [inputProps, onInputKeyUp]
   );
 
-  const autosizeInputRef = useAutosizeInput({value: inputValue});
+  const autosizeInputRef = useAutosizeInput({value: inputValue, placeholder});
 
   const overlayProps = withPanelOverlayProps(positionedOverlayProps, menuPresentation);
 

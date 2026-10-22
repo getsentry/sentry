@@ -104,6 +104,11 @@
       "count": 4
     }
   },
+  "components/checkInTimeline/checkInTooltip.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 3
+    }
+  },
   "components/clippedBox.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -427,6 +432,11 @@
   },
   "components/events/interfaces/threads/threadSelector/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/events/ourlogs/ourlogsSection.tsx": {
+    "@sentry/scraps/no-manual-table": {
       "count": 1
     }
   },
@@ -1188,11 +1198,17 @@
     }
   },
   "components/resultGrid.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 8
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "components/resultTable.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
     }
@@ -1347,6 +1363,11 @@
   },
   "components/seer/markdown/embeds/components/traceWaterfall.spec.tsx": {
     "@sentry/prefer-fake-timers": {
+      "count": 2
+    }
+  },
+  "components/seer/repoTable/seerRepoTableHeader.tsx": {
+    "@sentry/scraps/no-manual-table": {
       "count": 2
     }
   },
@@ -1711,6 +1732,11 @@
       "count": 2
     }
   },
+  "views/admin/adminRelays.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 5
+    }
+  },
   "views/admin/adminWarnings.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -1754,11 +1780,6 @@
   "views/authV2/useBrandedArtworkLoading.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
-    }
-  },
-  "views/authV2/useBrandedAuthLoading.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "views/automations/components/actionFilters/subfiltersList.tsx": {
@@ -2146,6 +2167,9 @@
     }
   },
   "views/explore/logs/styles.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 5
     }
@@ -3190,6 +3214,9 @@
     }
   },
   "views/settings/account/notifications/notificationSettingsByEntity.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -3241,6 +3268,11 @@
   },
   "views/settings/components/settingsLayout.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/settings/components/teamSelect/teamSelectForMember.tsx": {
+    "@sentry/scraps/no-manual-table": {
       "count": 1
     }
   },
@@ -3386,6 +3418,11 @@
   },
   "views/settings/organizationTeams/teamDetails.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/settings/organizationTeams/teamMembers.tsx": {
+    "@sentry/scraps/no-manual-table": {
       "count": 1
     }
   },

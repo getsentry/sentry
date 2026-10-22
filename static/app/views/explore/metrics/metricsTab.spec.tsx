@@ -198,6 +198,44 @@ describe('MetricsTabContent', () => {
     });
   });
 
+  it('disables saving when a later metric row has transformations', async () => {
+    render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+      additionalWrapper: ProviderWrapper,
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialLocation,
+          query: {
+            ...initialLocation.query,
+            metric: [
+              encodedBarMetric,
+              JSON.stringify({
+                metric: {name: 'bar', type: 'distribution'},
+                aggregateFields: [
+                  {
+                    yAxes: ['p50(value,bar,distribution,none)'],
+                    transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  },
+                ],
+              }),
+            ],
+          },
+        },
+      },
+    });
+
+    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(
+      await within(screen.getAllByTestId('metric-toolbar')[1]!).findByRole('button', {
+        name: 'bar',
+      })
+    ).toBeInTheDocument();
+  });
+
   it('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>

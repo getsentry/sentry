@@ -61,6 +61,8 @@ export function getInvestigationDetailQueryOptions(
   );
 }
 
+export const INVESTIGATION_COMMENTS_PAGE_SIZE = 100;
+
 /** Newest first. Without `blockId`, page-level and block comments together. */
 export function investigationCommentsQueryOptions({
   organizationSlug,
@@ -75,7 +77,7 @@ export function investigationCommentsQueryOptions({
     '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/',
     {
       path: {organizationIdOrSlug: organizationSlug, investigationId},
-      query: {blockId, per_page: 100},
+      query: {blockId, per_page: INVESTIGATION_COMMENTS_PAGE_SIZE},
       staleTime: 0,
     }
   );

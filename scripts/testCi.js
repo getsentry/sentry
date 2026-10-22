@@ -15,7 +15,6 @@ function runTests(command, args, env = process.env) {
 }
 
 // A child process lets the package tests run even when Jest uses --forceExit.
-// Once production and previews use V8, remove the version selection and run app tests once.
 const selectedVersion = process.env.SENTRY_REACT_ROUTER_VERSION;
 if (selectedVersion !== undefined && !['6', '8'].includes(selectedVersion)) {
   throw new Error(`Unsupported SENTRY_REACT_ROUTER_VERSION: ${selectedVersion}`);

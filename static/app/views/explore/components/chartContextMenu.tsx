@@ -13,6 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {useQueryParamsHasTransformations} from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
   type Visualize,
@@ -37,6 +38,7 @@ export function ChartContextMenu({
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
+  const hasTransformations = useQueryParamsHasTransformations();
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -162,6 +164,12 @@ export function ChartContextMenu({
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
+          disabled={hasTransformations}
+          tooltipProps={
+            hasTransformations
+              ? {title: t('Queries with transformations cannot be saved yet.')}
+              : undefined
+          }
         />
       )}
       position="bottom-end"
