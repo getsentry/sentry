@@ -286,3 +286,11 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url + "?query=abc:123")
             assert response.status_code == 400
+
+    def test_get_replays_dangling_boolean_operator(self) -> None:
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?query=AND click.tag:div")
+            assert response.status_code == 400
+            assert response.json() == {
+                "detail": "Condition is missing on the left side of 'AND' operator"
+            }
