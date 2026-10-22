@@ -1061,6 +1061,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 True,
             ),
             (
+                "https://github.com/Test-Organization-Mobile/sentry/blob/master/src/app.py",
+                False,
+            ),
+            (
                 "https://notgithub.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
                 False,
             ),

@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -53,7 +53,7 @@ function constrainAndAlignListBox({
   } else {
     popoverRef.current.style.left = 'auto';
 
-    // Defer horizontal position to the popper, then pull the menu back inside
+    // Defer horizontal position to Floating UI, then pull the menu back inside
     // the viewport if a far-right anchor (e.g. a long, scrolled list of chips)
     // pushed it off the right edge.
     const viewportMargin = 8;

@@ -354,17 +354,21 @@ class SearchResolver:
             return self._resolve_terms(parsed_terms)
 
     def _resolve_boolean_conditions(
-        self, terms: event_filter.ParsedTerms
+        self, terms: event_filter.ParsedTerms, depth: int = 0
     ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
     ]:
+        if depth >= constants.MAX_BOOLEAN_DEPTH:
+            raise InvalidSearchQuery(
+                "Maximum number of boolean conditions reached, try reworking your to avoid this, for example multiple OR conditions to the same field can be replaced by field:[a,b,c]"
+            )
         if len(terms) == 0:
             return None, None, []
         elif len(terms) == 1:
             if isinstance(terms[0], event_search.ParenExpression):
-                return self._resolve_boolean_conditions(terms[0].children)
+                return self._resolve_boolean_conditions(terms[0].children, depth=depth + 1)
             elif isinstance(terms[0], event_search.SearchFilter):
                 return self._resolve_terms([terms[0]])
             elif isinstance(terms[0], event_search.AggregateFilter):
@@ -416,8 +420,8 @@ class SearchResolver:
             lhs, rhs = terms[:1], terms[1:]
             operator = "and"
 
-        where_lhs, having_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs)
-        where_rhs, having_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs)
+        where_lhs, having_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs, depth=depth + 1)
+        where_rhs, having_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs, depth=depth + 1)
         contexts = contexts_lhs + contexts_rhs
 
         where = None
