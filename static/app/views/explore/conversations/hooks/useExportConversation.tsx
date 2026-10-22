@@ -22,6 +22,10 @@ import {
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {
+  getConversationTranscriptQueryOptions,
+  useConversationTranscriptSource,
+} from 'sentry/views/explore/conversations/hooks/useConversationTranscript';
+import {
   extractMessagesFromNodes,
   messagesToMarkdown,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -55,9 +59,45 @@ export function useExportConversation(
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [isExporting, setIsExporting] = useState(false);
+  const {source} = useConversationTranscriptSource();
 
   const runExport = useCallback(
     async (deliver: (result: ConversationExport) => void | Promise<void>) => {
+      if (source === 'backend') {
+        const backendOptions = getConversationTranscriptQueryOptions(
+          organization,
+          conversation,
+          selection
+        );
+        const cachedTranscript = queryClient.getQueryData(backendOptions.queryKey);
+        if (cachedTranscript?.json.complete) {
+          await deliver({
+            markdown: messagesToMarkdown(cachedTranscript.json.transcript),
+            title: cachedTranscript.json.title,
+          });
+          return;
+        }
+        setIsExporting(true);
+        try {
+          const result = await queryClient.fetchQuery(backendOptions);
+          if (!result.json.complete) {
+            setIsExporting(false);
+            addErrorMessage(t('Failed to export transcript'));
+            return;
+          }
+          await deliver({
+            markdown: messagesToMarkdown(result.json.transcript),
+            title: result.json.title,
+          });
+        } catch (error) {
+          if (!(error instanceof CancelledError)) {
+            Sentry.captureException(error);
+            addErrorMessage(t('Failed to export transcript'));
+          }
+        }
+        setIsExporting(false);
+        return;
+      }
       const options = getConversationQueryOptions(organization, conversation, selection);
 
       const toExport = (
@@ -136,7 +176,7 @@ export function useExportConversation(
         addErrorMessage(t('Failed to export transcript'));
       }
     },
-    [queryClient, organization, conversation, selection]
+    [queryClient, organization, conversation, selection, source]
   );
 
   const copyConversation = useCallback(

@@ -49,6 +49,7 @@ interface MessagesPanelProps {
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
   isLoading?: boolean;
+  messages?: ConversationMessage[];
   /**
    * Switches the conversation view to the Timeline tab. Surfaced from the
    * empty transcript state when a conversation has no inference spans.
@@ -65,8 +66,12 @@ export function MessagesPanel({
   onSelectNode,
   onViewTimeline,
   isLoading,
+  messages: suppliedMessages,
 }: MessagesPanelProps) {
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const messages = useMemo(
+    () => suppliedMessages ?? extractMessagesFromNodes(nodes),
+    [nodes, suppliedMessages]
+  );
 
   // Detect XML once per list so selection re-renders don't re-parse every message.
   const hasXmlByMessageId = useMemo(() => {

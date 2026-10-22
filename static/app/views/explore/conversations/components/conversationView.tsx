@@ -8,12 +8,13 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
+import {ConversationTranscriptPanel} from 'sentry/views/explore/conversations/components/conversationTranscriptPanel';
 import {
   useConversation,
   type UseConversationsOptions,
@@ -53,6 +54,9 @@ export function ConversationViewContent({
   focusedTool,
 }: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
+  const compareTranscripts = useOrganization().features.includes(
+    'gen-ai-conversations-backend-transcript'
+  );
 
   const {
     nodes,
@@ -64,7 +68,7 @@ export function ConversationViewContent({
     error,
     loadNextPage,
     isNextPageError,
-  } = useConversation({...conversation, autoFetchAll: false});
+  } = useConversation({...conversation, autoFetchAll: compareTranscripts && !isTimeline});
 
   const [detailState, setDetailState] = useQueryStates(
     {
@@ -185,7 +189,9 @@ export function ConversationViewContent({
         left={
           <Fragment>
             {isTranscript ? (
-              <MessagesPanel
+              <ConversationTranscriptPanel
+                conversation={conversation}
+                hasNextPage={hasNextPage}
                 isLoading={isLoading}
                 nodes={nodes}
                 selectedNodeId={displayedNode?.id ?? null}
