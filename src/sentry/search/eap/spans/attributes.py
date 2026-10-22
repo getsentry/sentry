@@ -247,6 +247,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.tool.call.result.size",
+            internal_name="gen_ai.tool.call.result.size",
+            search_type="byte",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.input_tokens",
             internal_name="gen_ai.usage.input_tokens",
             search_type="integer",

@@ -306,7 +306,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 data.update({"owners": owners})
 
             if "forecast" in expand:
-                fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
+                fetched_forecast = EscalatingGroupForecast.fetch(group)
                 if fetched_forecast:
                     fetched_forecast_dict = fetched_forecast.to_dict()
                     data.update(

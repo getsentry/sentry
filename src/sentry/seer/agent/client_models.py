@@ -4,10 +4,11 @@ Pydantic models for Seer Agent client.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, TypeVar
+from typing import Annotated, Any, Literal, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError, parse_obj_as, validator
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -121,6 +122,45 @@ class RepoPRState(BaseModel):
         extra = "ignore"
 
 
+class PushRequest(BaseModel):
+    """What a push was asked to do, fixed when Seer queues it."""
+
+    repo_name: str
+    # typing the following fields as strings makes it easy to add more values later
+    action: str
+    source: str = "api"
+    idempotency_key: str | None = None
+    # Set for an update: the PR the push lands on.
+    target_pr_number: int | None = None
+    target_pr_url: str | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class PushOutcome(BaseModel):
+    """How a finished push ended: "completed", "no_changes" or "error"."""
+
+    status: str
+    pr_number: int | None = None
+    pr_url: str | None = None
+    error: str | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class PushLogEntry(BaseModel):
+    """One push Seer attempted to a repo's PR."""
+
+    request: PushRequest
+    # None while the push is still running.
+    outcome: PushOutcome | None = None
+
+    class Config:
+        extra = "ignore"
+
+
 class TodoItem(BaseModel):
     """A todo item tracked by the agent."""
 
@@ -141,6 +181,45 @@ class ToolLink(BaseModel):
         extra = "ignore"
 
 
+class LibCallRecord(BaseModel):
+    """One library call made inside a code-mode execute, e.g. write_pull_request."""
+
+    kind: Literal["lib"]
+    name: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+    class Config:
+        extra = "ignore"
+
+    @validator("params", pre=True)
+    def _params_or_empty(cls, value: Any) -> Any:
+        # Seer's CallRecord allows `params: null`.
+        return {} if value is None else value
+
+
+class ApiCallRecord(BaseModel):
+    """One HTTP request made inside a code-mode execute."""
+
+    kind: Literal["api"]
+
+    class Config:
+        extra = "ignore"
+
+
+class NoteCallRecord(BaseModel):
+    """A line the agent wrote itself inside a code-mode execute."""
+
+    kind: Literal["note"]
+
+    class Config:
+        extra = "ignore"
+
+
+# One record in a code-mode execute's `structuredContent.calls`, mirroring Seer's CallRecord.
+AnyCallRecord = LibCallRecord | ApiCallRecord | NoteCallRecord
+CallRecord = Annotated[AnyCallRecord, Field(discriminator="kind")]
+
+
 class ToolResult(BaseModel):
     """The result of a tool call execution."""
 
@@ -155,6 +234,21 @@ class ToolResult(BaseModel):
 
     class Config:
         extra = "ignore"
+
+    def get_code_mode_calls(self) -> list[LibCallRecord]:
+        """The library calls a code-mode execute made, in order."""
+        lib_calls: list[LibCallRecord] = []
+        for raw in (self.structuredContent or {}).get("calls") or []:
+            try:
+                # pydantic v1 only types parse_obj_as for classes, not unions.
+                record: AnyCallRecord = parse_obj_as(CallRecord, raw)  # type: ignore[arg-type]
+            except ValidationError:
+                # A kind added by a newer Seer, or a record that doesn't fit its kind. Neither
+                # tells us which library call ran, so it shouldn't stop the rest from matching.
+                continue
+            if isinstance(record, LibCallRecord):
+                lib_calls.append(record)
+        return lib_calls
 
 
 class MemoryBlock(BaseModel):
@@ -180,6 +274,30 @@ class MemoryBlock(BaseModel):
 
     class Config:
         extra = "ignore"
+
+
+@dataclass
+class AgentTurn:
+    """A user message and every block the agent added in reply."""
+
+    blocks: list[MemoryBlock]
+
+    @property
+    def answer(self) -> MemoryBlock | None:
+        """The agent's last message in the turn."""
+        for block in reversed(self.blocks):
+            if block.message.role == "assistant" and block.message.content:
+                return block
+        return None
+
+    def get_code_mode_calls(self) -> list[LibCallRecord]:
+        """Every library call the agent made in the turn, in order."""
+        calls: list[LibCallRecord] = []
+        for block in self.blocks:
+            for result in block.tool_results or []:
+                if result:
+                    calls.extend(result.get_code_mode_calls())
+        return calls
 
 
 class PendingUserInput(BaseModel):
@@ -280,9 +398,27 @@ class SeerRunState(BaseModel):
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
+    pr_push_log: list[PushLogEntry] | None = Field(default=None, exclude=True)
 
     class Config:
         extra = "ignore"
+
+    def get_turns(self) -> list[AgentTurn]:
+        """The run's blocks, split into turns at each user message."""
+        turns: list[AgentTurn] = []
+        for block in self.blocks:
+            if block.message.role == "user" or not turns:
+                turns.append(AgentTurn(blocks=[]))
+            turns[-1].blocks.append(block)
+        return turns
+
+    def get_push_log_index(self) -> dict[str, PushLogEntry]:
+        """Pushes keyed by idempotency key, or an empty index when the log is unavailable."""
+        return {
+            push.request.idempotency_key: push
+            for push in self.pr_push_log or []
+            if push.request.idempotency_key
+        }
 
     def get_created_pull_request_states(self) -> list[RepoPRState]:
         """

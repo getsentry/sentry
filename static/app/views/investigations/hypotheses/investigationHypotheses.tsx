@@ -318,7 +318,7 @@ export function InvestigationHypotheses({
 /**
  * Shared by the row and its placeholder so the panel keeps its shape when the
  * first hypothesis lands — only its contents change. Uses the same card as the
- * report's query cells.
+ * report's query blocks.
  */
 function HypothesesPanel({
   children,

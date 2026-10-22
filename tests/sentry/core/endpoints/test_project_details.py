@@ -633,7 +633,11 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option("sentry:releases") == ["1.*"]
         rows = list(CustomInboundFilter.objects.filter(project_id=project.id))
         assert [(row.legacy_filter, row.data_type, row.conditions) for row in rows] == [
-            ("error-message", "error", [{"type": "error_message", "value": lines}])
+            (
+                "error-message",
+                "error",
+                [{"type": "error_message", "operator": "glob", "value": lines}],
+            )
         ]
 
         with self.feature("projects:custom-inbound-filters"):
@@ -1676,9 +1680,10 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=204
             )
 
-        assert CellScheduledDeletion.objects.filter(
+        deletion = CellScheduledDeletion.objects.get(
             model_name="Project", object_id=self.project.id
-        ).exists()
+        )
+        assert deletion.actor_id is not None
 
         project = Project.objects.get(id=self.project.id)
         assert project.status == ObjectStatus.PENDING_DELETION
