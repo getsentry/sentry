@@ -334,7 +334,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_has_in_filter_multi_key(self) -> None:
-        """Multi-key has:[key1,key2] (event_search has_in_filter) resolves to OR of (exists + != '')."""
+        """Multi-key has:[key1,key2] resolves to an OR of existence checks."""
         where, having, _ = self.resolver.resolve_query("has:[span.description,span.op]")
         desc_key = AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING)
         op_key = AttributeKey(name="sentry.op", type=AttributeKey.Type.TYPE_STRING)
@@ -342,36 +342,10 @@ class SearchResolverQueryTest(TestCase):
             or_filter=OrFilter(
                 filters=[
                     TraceItemFilter(
-                        and_filter=AndFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    exists_filter=ExistsFilter(key=desc_key),
-                                ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=desc_key,
-                                        op=ComparisonFilter.OP_NOT_EQUALS,
-                                        value=AttributeValue(val_str=""),
-                                    )
-                                ),
-                            ]
-                        )
+                        exists_filter=ExistsFilter(key=desc_key),
                     ),
                     TraceItemFilter(
-                        and_filter=AndFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    exists_filter=ExistsFilter(key=op_key),
-                                ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=op_key,
-                                        op=ComparisonFilter.OP_NOT_EQUALS,
-                                        value=AttributeValue(val_str=""),
-                                    )
-                                ),
-                            ]
-                        )
+                        exists_filter=ExistsFilter(key=op_key),
                     ),
                 ]
             )
@@ -379,7 +353,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_not_has_in_filter_multi_key(self) -> None:
-        """Negated multi-key !has:[key1,key2] resolves to AND of (not-exists OR = '')."""
+        """Negated multi-key !has:[key1,key2] resolves to an AND of missing checks."""
         where, having, _ = self.resolver.resolve_query("!has:[span.description,span.op]")
         desc_key = AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING)
         op_key = AttributeKey(name="sentry.op", type=AttributeKey.Type.TYPE_STRING)
@@ -387,46 +361,20 @@ class SearchResolverQueryTest(TestCase):
             and_filter=AndFilter(
                 filters=[
                     TraceItemFilter(
-                        or_filter=OrFilter(
+                        not_filter=NotFilter(
                             filters=[
                                 TraceItemFilter(
-                                    not_filter=NotFilter(
-                                        filters=[
-                                            TraceItemFilter(
-                                                exists_filter=ExistsFilter(key=desc_key),
-                                            )
-                                        ]
-                                    )
-                                ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=desc_key,
-                                        op=ComparisonFilter.OP_EQUALS,
-                                        value=AttributeValue(val_str=""),
-                                    )
-                                ),
+                                    exists_filter=ExistsFilter(key=desc_key),
+                                )
                             ]
                         )
                     ),
                     TraceItemFilter(
-                        or_filter=OrFilter(
+                        not_filter=NotFilter(
                             filters=[
                                 TraceItemFilter(
-                                    not_filter=NotFilter(
-                                        filters=[
-                                            TraceItemFilter(
-                                                exists_filter=ExistsFilter(key=op_key),
-                                            )
-                                        ]
-                                    )
-                                ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=op_key,
-                                        op=ComparisonFilter.OP_EQUALS,
-                                        value=AttributeValue(val_str=""),
-                                    )
-                                ),
+                                    exists_filter=ExistsFilter(key=op_key),
+                                )
                             ]
                         )
                     ),
@@ -874,13 +822,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
         assert where == TraceItemFilter(
-            and_filter=AndFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=trace_key),
-                    ),
-                ]
-            )
+            exists_filter=ExistsFilter(key=trace_key),
         )
         assert having is None
 
@@ -888,17 +830,11 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("!has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
         assert where == TraceItemFilter(
-            or_filter=OrFilter(
+            not_filter=NotFilter(
                 filters=[
                     TraceItemFilter(
-                        not_filter=NotFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    exists_filter=ExistsFilter(key=trace_key),
-                                )
-                            ]
-                        )
-                    ),
+                        exists_filter=ExistsFilter(key=trace_key),
+                    )
                 ]
             )
         )
@@ -910,20 +846,7 @@ class SearchResolverQueryTest(TestCase):
             name="sentry.parent_span_id", type=AttributeKey.Type.TYPE_STRING
         )
         assert where == TraceItemFilter(
-            and_filter=AndFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=parent_span_key),
-                    ),
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=parent_span_key,
-                            op=ComparisonFilter.OP_NOT_EQUALS,
-                            value=AttributeValue(val_str=""),
-                        )
-                    ),
-                ]
-            )
+            exists_filter=ExistsFilter(key=parent_span_key),
         )
         assert having is None
 
