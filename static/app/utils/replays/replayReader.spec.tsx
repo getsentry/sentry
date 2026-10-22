@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {
   ReplayClickEventFixture,
@@ -54,6 +55,30 @@ describe('ReplayReader', () => {
       replayRecord: undefined,
     });
     expect(missingRecord).toBeNull();
+  });
+
+  it('should log dropped pointer moves without positions once fetching is done', () => {
+    const warnSpy = jest.spyOn(Sentry.logger, 'warn').mockImplementation(() => {});
+    const timestamp = new Date();
+    const attachments = [
+      ...RRWebInitFrameEventsFixture({timestamp}),
+      RRWebIncrementalSnapshotFrameEventFixture({
+        timestamp,
+        data: {source: IncrementalSource.MouseMove, positions: []},
+      }),
+    ];
+
+    ReplayReader.factory({attachments, errors: [], fetching: true, replayRecord});
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    ReplayReader.factory({attachments, errors: [], fetching: false, replayRecord});
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Replay: dropped pointer moves without positions',
+      expect.objectContaining({replay_id: replayRecord.id, dropped_count: 1})
+    );
+
+    warnSpy.mockRestore();
   });
 
   it('should calculate started_at/finished_at/duration based on first/last events', () => {

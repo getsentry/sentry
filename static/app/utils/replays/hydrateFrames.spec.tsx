@@ -65,9 +65,10 @@ describe('hydrateFrames', () => {
       }),
     ];
 
-    const {rrwebFrames} = hydrateFrames(attachments);
+    const {emptyPointerMoveCount, rrwebFrames} = hydrateFrames(attachments);
 
     expect(rrwebFrames).toHaveLength(4);
     expect(rrwebFrames).toContain(mouseMove);
+    expect(emptyPointerMoveCount).toBe(2);
   });
 });
