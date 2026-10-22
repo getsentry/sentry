@@ -63,9 +63,12 @@ function DashboardsSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.HeaderWithSidebarToggle>
-        {t('Dashboards')}
-      </SecondaryNavigation.HeaderWithSidebarToggle>
+      <SecondaryNavigation.Header>
+        <SecondaryNavigation.HeaderTitle>
+          {t('Dashboards')}
+        </SecondaryNavigation.HeaderTitle>
+        <SecondaryNavigation.Toggle />
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="dashboards-all">
           <SecondaryNavigation.List>

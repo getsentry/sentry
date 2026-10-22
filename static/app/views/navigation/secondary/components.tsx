@@ -287,7 +287,7 @@ interface SecondaryNavigationHeaderProps {
   padding?: ContainerProps['padding'];
 }
 
-function SecondaryNavigationHeaderLayout(props: SecondaryNavigationHeaderProps) {
+function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
 
@@ -304,32 +304,13 @@ function SecondaryNavigationHeaderLayout(props: SecondaryNavigationHeaderProps) 
   );
 }
 
-function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
+function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   return (
-    <SecondaryNavigationHeaderLayout padding={props.padding}>
-      <Container minWidth="0" whiteSpace="nowrap">
-        <Text size="md" bold>
-          {props.children}
-        </Text>
-      </Container>
-    </SecondaryNavigationHeaderLayout>
-  );
-}
-
-function SecondaryNavigationHeaderWithSidebarToggle(
-  props: SecondaryNavigationHeaderProps
-) {
-  return (
-    <SecondaryNavigationHeaderLayout padding={props.padding}>
-      <Container minWidth="0">
-        <Text size="md" bold>
-          {props.children}
-        </Text>
-      </Container>
-      <Container>
-        <SecondaryNavigationToggle />
-      </Container>
-    </SecondaryNavigationHeaderLayout>
+    <Container minWidth="0">
+      <Text size="md" bold>
+        {children}
+      </Text>
+    </Container>
   );
 }
 
@@ -1027,7 +1008,8 @@ const SidebarNavigationLink = styled(Link)`
 
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
-  HeaderWithSidebarToggle: SecondaryNavigationHeaderWithSidebarToggle,
+  HeaderTitle: SecondaryNavigationHeaderTitle,
+  Toggle: SecondaryNavigationToggle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,
