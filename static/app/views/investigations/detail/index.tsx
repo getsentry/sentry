@@ -47,12 +47,12 @@ import {
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
-  InvestigationCell,
+  InvestigationNotebookBlock,
   isBlockWorking,
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
-} from 'sentry/views/investigations/detail/cell';
-import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+} from 'sentry/views/investigations/detail/block';
+import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
@@ -312,12 +312,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleBlocks = (investigation.blocks ?? []).filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
-  const awaitingReportCell = isAwaitingReportCell(investigation);
+  const awaitingReportBlock = isAwaitingReportBlock(investigation);
   const source = getInvestigationSource(investigation);
   const hasDetails =
     Boolean(investigation.orchestration) ||
     visibleBlocks.length > 0 ||
-    awaitingReportCell;
+    awaitingReportBlock;
   // The "Investigation details" heading only appears below a summary.
   const showDetailsHeading =
     hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
@@ -513,14 +513,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                         status={investigation.orchestration.status}
                       />
                     ) : null}
-                    {visibleBlocks.length > 0 || awaitingReportCell ? (
+                    {visibleBlocks.length > 0 || awaitingReportBlock ? (
                       <Stack>
                         {visibleBlocks.map((block, index) => (
                           <Container
                             key={block.id}
-                            paddingTop={getCellSpacing(block, index)}
+                            paddingTop={getBlockSpacing(block, index)}
                           >
-                            <InvestigationCell
+                            <InvestigationNotebookBlock
                               block={block}
                               canRun={investigation.status === 'active'}
                               investigation={investigation}
@@ -533,9 +533,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                             />
                           </Container>
                         ))}
-                        {awaitingReportCell ? (
+                        {awaitingReportBlock ? (
                           <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
-                            <InvestigationCellPlaceholder />
+                            <InvestigationBlockPlaceholder />
                           </Container>
                         ) : null}
                       </Stack>
@@ -560,10 +560,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 }
 
 /**
- * Text cells start a new section with a large gap. Query cells sit close to the
- * text cell above them.
+ * Text blocks start a new section with a large gap. Query blocks sit close to the
+ * text block above them.
  */
-function getCellSpacing(block: InvestigationBlock, index: number) {
+function getBlockSpacing(block: InvestigationBlock, index: number) {
   if (index === 0) {
     return '0';
   }
@@ -571,15 +571,15 @@ function getCellSpacing(block: InvestigationBlock, index: number) {
 }
 
 // Seer reaches the reporting phase once it is done with the hypotheses, but the
-// report arrives as cells on a later poll. Until then the notebook stands in a
-// placeholder cell, unless a cell is already running — that one shows its own.
-function isAwaitingReportCell(investigation: InvestigationDetail) {
+// report arrives as blocks on a later poll. Until then the notebook stands in a
+// placeholder block, unless a block is already running — that one shows its own.
+function isAwaitingReportBlock(investigation: InvestigationDetail) {
   const {orchestration} = investigation;
   if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
     return false;
   }
-  // Only a cell Seer is working on rules this out, because that cell is already
-  // showing a placeholder of its own. A cell that finished, failed or was
+  // Only a block Seer is working on rules this out, because that block is already
+  // showing a placeholder of its own. A block that finished, failed or was
   // cancelled is done, and more are still coming.
   return !(investigation.blocks ?? []).some(isBlockWorking);
 }
@@ -664,7 +664,7 @@ const NotebookTitleInput = styled(Input)`
 `;
 
 /**
- * Hidden when empty (e.g. no hypotheses and no cells), so it doesn't add a gap
+ * Hidden when empty (e.g. no hypotheses and no blocks), so it doesn't add a gap
  * below the heading.
  */
 const DetailsBody = styled(Stack)`
