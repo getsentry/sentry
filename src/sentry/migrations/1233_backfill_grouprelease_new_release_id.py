@@ -7,7 +7,7 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
-BATCH_SIZE = 5000
+BATCH_SIZE = 1000
 
 
 def backfill_new_release_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
