@@ -29,7 +29,7 @@ function ExploreSecondaryNavigationImpl() {
   const organization = useOrganization();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
-  // Seer tabs live here until Seer gets its own primary nav item.
+  // Seer tabs live here until Seer primary nav release.
   const showSeerTabs = !organization.features.includes('seer-primary-nav');
   const automationsEnabled = useAutomationsEnabled() && showSeerTabs;
   const investigationsEnabled = useInvestigationsEnabled() && showSeerTabs;
