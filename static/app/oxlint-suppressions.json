@@ -3426,11 +3426,6 @@
       "count": 1
     }
   },
-  "views/settings/organizationTeams/teamMembersRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "views/settings/organizationTeams/teamNotifications.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2

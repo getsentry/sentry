@@ -6,16 +6,16 @@ import {Heading} from '@sentry/scraps/text';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 
-type InvestigationCellPlaceholderProps = {
+type InvestigationBlockPlaceholderProps = {
   className?: string;
   title?: string | null;
 };
 
-/** What a notebook cell looks like while Seer is still writing it. */
-export function InvestigationCellPlaceholder({
+/** What a notebook block looks like while Seer is still writing it. */
+export function InvestigationBlockPlaceholder({
   className,
   title,
-}: InvestigationCellPlaceholderProps) {
+}: InvestigationBlockPlaceholderProps) {
   return (
     <Stack
       className={className}
@@ -23,8 +23,8 @@ export function InvestigationCellPlaceholder({
       width="100%"
       minWidth={0}
       role="status"
-      aria-label={title ? t('Loading %s', title) : t('Loading cell')}
-      data-test-id="investigation-cell-placeholder"
+      aria-label={title ? t('Loading %s', title) : t('Loading block')}
+      data-test-id="investigation-block-placeholder"
     >
       {title ? (
         <Heading as="h3" size="lg">
@@ -34,7 +34,7 @@ export function InvestigationCellPlaceholder({
         <PlaceholderLine
           height="20px"
           width="40%"
-          testId="investigation-cell-placeholder-title"
+          testId="investigation-block-placeholder-title"
         />
       )}
       <Stack gap="sm" width="100%">

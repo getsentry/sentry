@@ -88,6 +88,11 @@ class OrganizationSummarySerializerTest(TestCase):
             "uptime",
         ]
 
+    @with_feature("organizations:flamegraph-attachments")
+    def test_flamegraph_feature_is_exposed(self) -> None:
+        result = serialize(self.organization, self.user)
+        assert "flamegraph-attachments" in result["features"]
+
     @mock.patch("sentry.features.batch_has")
     def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:
         user = self.create_user()

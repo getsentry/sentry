@@ -17,11 +17,14 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+
+jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -98,6 +101,10 @@ describe('useDroppedDataDrawer', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
     expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
     expect(router.location.query.droppedData).toBe('true');
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'explore.dropped_data.drawer_opened',
+      expect.objectContaining({dataset: DiscoverDatasets.SPANS})
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
     await waitForDrawerToHide('Dropped and Filtered Events');
@@ -339,6 +346,14 @@ describe('useDroppedDataDrawer', () => {
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filters'}));
 
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'explore.dropped_data.legend_outcome_toggled',
+        expect.objectContaining({
+          dataset: DiscoverDatasets.SPANS,
+          outcome: 'filtered',
+          selected: false,
+        })
+      );
       expect(screen.getByRole('checkbox', {name: 'Inbound Filters'})).not.toBeChecked();
       expect(screen.getByText('10 dropped and filtered events')).toBeInTheDocument();
       expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
@@ -464,6 +479,10 @@ describe('useDroppedDataDrawer', () => {
       // 10 unintentional drops out of 60 accepted + 40 dropped.
       expect(screen.getByText('10%')).toBeInTheDocument();
       expect(screen.queryByText('14.29%')).not.toBeInTheDocument();
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'explore.dropped_data.scope_toggled',
+        expect.objectContaining({dataset: DiscoverDatasets.SPANS, scope: 'all'})
+      );
 
       await userEvent.click(screen.getByRole('radio', {name: 'Unexpected'}));
 
@@ -572,5 +591,9 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
     expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'explore.dropped_data.ask_seer_clicked',
+      expect.objectContaining({dataset: DiscoverDatasets.SPANS, outcome: 'rate_limited'})
+    );
   });
 });
