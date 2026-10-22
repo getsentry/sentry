@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
+from datetime import datetime
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.silo.base import SiloMode
@@ -23,10 +24,19 @@ class ServiceAccountService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def remove_project_links_outside_org(self, *, project_id: int, organization_id: int) -> None:
+    def remove_project_links_after_transfer(
+        self,
+        *,
+        project_id: int,
+        organization_id: int,
+        previous_organization_id: int,
+        transferred_at: datetime,
+    ) -> None:
         """
-        Deletes links to `project_id` from service accounts that don't belong to
-        `organization_id`, the project's current org. Called after a project transfer.
+        Called after `project_id` moves out of `previous_organization_id`. Deletes its links
+        from accounts outside `organization_id`, the project's current org, and from
+        `previous_organization_id` accounts linked before `transferred_at`. The second case
+        covers a project that came back to that org before this ran.
         """
 
 

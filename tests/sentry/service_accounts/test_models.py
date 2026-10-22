@@ -1,12 +1,15 @@
 from contextlib import AbstractContextManager
+from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry import deletions
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
@@ -17,8 +20,10 @@ from sentry.service_accounts.models import (
     ServiceAccountReplica,
     validate_grantable_scopes,
 )
+from sentry.service_accounts.services.service_account import service_account_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 
@@ -230,6 +235,55 @@ class ServiceAccountReplicationTest(TestCase):
 
         assert self.get_control_project_ids() == {self.projects[1].id}
         assert self.get_replica_project_ids() == {self.projects[1].id}
+
+    def test_project_transferred_back_before_cleanup_does_not_regain_link(self) -> None:
+        other_org = self.create_organization()
+        now = timezone.now()
+        with assume_test_silo_mode(SiloMode.CELL), freeze_time(now + timedelta(minutes=1)):
+            self.projects[0].transfer_to(organization=other_org)
+        with assume_test_silo_mode(SiloMode.CELL), freeze_time(now + timedelta(minutes=2)):
+            self.projects[0].transfer_to(organization=self.organization)
+        # Linked after the project came back, so the delayed cleanup must keep it.
+        with assume_test_silo_mode(SiloMode.CONTROL), freeze_time(now + timedelta(minutes=3)):
+            relinked_account = ServiceAccount.objects.create(
+                organization_id=self.organization.id, name="relinked"
+            )
+            ServiceAccountProject.objects.create(
+                service_account=relinked_account, project_id=self.projects[0].id
+            )
+
+        with outbox_runner():
+            pass
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(name="seer-autofix-2")
+
+        assert self.get_control_project_ids() == {self.projects[1].id}
+        assert self.get_replica_project_ids() == {self.projects[1].id}
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccountProject.objects.filter(
+                service_account=relinked_account, project_id=self.projects[0].id
+            ).exists()
+
+    def test_project_transfer_completes_when_link_cleanup_fails(self) -> None:
+        other_org = self.create_organization()
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            mock.patch.object(
+                service_account_service,
+                "remove_project_links_after_transfer",
+                side_effect=Exception("control unavailable"),
+            ),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            self.projects[0].transfer_to(organization=other_org)
+
+            # The outbox waits for the async drain instead of flushing on commit.
+            assert CellOutbox.objects.filter(
+                category=OutboxCategory.PROJECT_UPDATE,
+                shard_identifier=self.organization.id,
+                object_identifier=self.projects[0].id,
+            ).exists()
+            assert Project.objects.get(id=self.projects[0].id).organization_id == other_org.id
 
     def test_project_transfer_keeps_links_from_the_new_org(self) -> None:
         other_org = self.create_organization()

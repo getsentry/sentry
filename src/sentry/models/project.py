@@ -536,7 +536,9 @@ class Project(Model):
         # Wrap the org update and ProjectTeam cleanup in a single transaction so
         # that a crash between the two doesn't leave the project with team
         # associations from the old organization.
-        with outbox_context(transaction.atomic(router.db_for_write(Project))):
+        # Don't flush the transfer outbox on commit: a synchronous drain that fails would
+        # abort the rest of the transfer after the org change has already committed.
+        with outbox_context(transaction.atomic(router.db_for_write(Project)), flush=False):
             try:
                 with transaction.atomic(router.db_for_write(Project)):
                     self.update(organization=organization)
@@ -552,7 +554,7 @@ class Project(Model):
                 ServiceAccountProjectReplica.objects.filter(project_id=self.id).exclude(
                     service_account__organization_id=organization.id
                 ).delete()
-                Project.outbox_for_update(self.id, organization.id).save()
+                Project.outbox_for_transfer(self.id, old_org_id).save()
 
         # Both environments and releases are bound at an organization level.
         # Due to this, when you transfer a project into another org, we have to
@@ -888,6 +890,18 @@ class Project(Model):
     @staticmethod
     def is_valid_platform(value):
         return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
+
+    @staticmethod
+    def outbox_for_transfer(project_identifier: int, previous_organization_id: int) -> CellOutbox:
+        # Sharded on the org the project left. Repeat departures from that org coalesce,
+        # and the latest `transferred_at` covers every link the earlier ones would delete.
+        return CellOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=previous_organization_id,
+            category=OutboxCategory.PROJECT_UPDATE,
+            object_identifier=project_identifier,
+            payload={"transferred_at": timezone.now().isoformat()},
+        )
 
     @staticmethod
     def outbox_for_update(project_identifier: int, organization_identifier: int) -> CellOutbox:
