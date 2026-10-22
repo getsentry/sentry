@@ -106,20 +106,29 @@ const MAX_DECODED_METRIC_QUERIES = 100;
 
 function decodeMetricQueryParamsCached(
   value: string,
-  index: number
+  occurrence: number
 ): BaseMetricQuery | null {
-  const key = `${index}:${value}`;
-  if (!decodedMetricQueries.has(key)) {
-    if (decodedMetricQueries.size >= MAX_DECODED_METRIC_QUERIES) {
-      decodedMetricQueries.clear();
-    }
-    decodedMetricQueries.set(key, decodeMetricsQueryParams(value));
+  const key = `${occurrence}:${value}`;
+  const cached = decodedMetricQueries.get(key);
+  const decoded = cached === undefined ? decodeMetricsQueryParams(value) : cached;
+  decodedMetricQueries.delete(key);
+  decodedMetricQueries.set(key, decoded);
+  if (decodedMetricQueries.size > MAX_DECODED_METRIC_QUERIES) {
+    decodedMetricQueries.delete(decodedMetricQueries.keys().next().value!);
   }
-  return decodedMetricQueries.get(key) ?? null;
+
+  return decoded;
 }
 
 function decodeMetricQueries(rawQueries: string[]): BaseMetricQuery[] {
-  const metricQueries = rawQueries.map(decodeMetricQueryParamsCached).filter(defined);
+  const occurrences = new Map<string, number>();
+  const metricQueries = rawQueries
+    .map(value => {
+      const occurrence = occurrences.get(value) ?? 0;
+      occurrences.set(value, occurrence + 1);
+      return decodeMetricQueryParamsCached(value, occurrence);
+    })
+    .filter(defined);
 
   return metricQueries.length ? metricQueries : [defaultMetricQuery()];
 }

@@ -10,6 +10,7 @@ import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBu
 import {getMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {
   getNextLabel,
+  moveItem,
   useStableLabels,
 } from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {
@@ -82,11 +83,7 @@ function withTraceMetric(
 export interface MetricQueriesControllerValue {
   addMetricQuery: (options?: {type?: 'aggregate' | 'equation'}) => string;
   metricQueries: MetricQuery[];
-  reorderMetricQueries: (
-    reorderedQueries: BaseMetricQuery[],
-    oldIndex: number,
-    newIndex: number
-  ) => void;
+  reorderMetricQueries: (oldIndex: number, newIndex: number) => void;
 }
 
 type RowMutators = Pick<
@@ -162,7 +159,17 @@ export function useMetricQueriesController({
       };
     }
 
-    return createRowMutators;
+    const mutatorsByRowId = new Map<string, RowMutators>();
+
+    return (rowId: string) => {
+      let mutators = mutatorsByRowId.get(rowId);
+      if (!mutators) {
+        mutators = createRowMutators(rowId);
+        // oxlint-disable-next-line react/immutability
+        mutatorsByRowId.set(rowId, mutators);
+      }
+      return mutators;
+    };
   }, [setQueries, labels]);
 
   const rowIdsKey = labels.getRowIds().join(',');
@@ -189,26 +196,23 @@ export function useMetricQueriesController({
         equationStart !== -1 && type === 'aggregate'
           ? equationStart
           : labeledQueries.length;
-      const lastAggregate = labeledQueries.at(insertAt - 1) ?? defaultMetricQuery();
-      const canDuplicate =
-        type === 'aggregate' &&
-        lastAggregate?.queryParams.visualizes.some(isVisualizeFunction);
-      const newQuery = canDuplicate
-        ? {...lastAggregate, label: nextLabel}
-        : defaultMetricQuery({type});
-
       labels.insert(insertAt, nextLabel);
-      setQueries(labeledQueries.toSpliced(insertAt, 0, newQuery));
+      setQueries(previousQueries => {
+        const lastAggregate = previousQueries.at(insertAt - 1) ?? defaultMetricQuery();
+        const canDuplicate =
+          type === 'aggregate' &&
+          lastAggregate.queryParams.visualizes.some(isVisualizeFunction);
+        const newQuery = canDuplicate
+          ? {...lastAggregate, label: nextLabel}
+          : defaultMetricQuery({type});
+        return previousQueries.toSpliced(insertAt, 0, newQuery);
+      });
       return nextLabel;
     }
 
-    function reorderMetricQueries(
-      reorderedQueries: BaseMetricQuery[],
-      oldIndex: number,
-      newIndex: number
-    ) {
+    function reorderMetricQueries(oldIndex: number, newIndex: number) {
       labels.move(oldIndex, newIndex);
-      setQueries(reorderedQueries);
+      setQueries(previousQueries => moveItem(previousQueries, oldIndex, newIndex));
     }
 
     return {

@@ -14,6 +14,7 @@ import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
   encodeMetricQueryParams,
+  type MetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {
   LocalMultiMetricsQueryParamsProvider,
@@ -755,6 +756,133 @@ describe('MultiMetricsQueryParamsProvider', () => {
     ]);
   });
 
+  it('keeps other queries referentially stable after many edits to one query', () => {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {metric: ['foo', 'bar'].map(canonicalMetricQueryParam)},
+        },
+      },
+    });
+    const unchanged = result.current[1]!;
+
+    for (let i = 0; i < 150; i++) {
+      act(() =>
+        result.current[0]!.setQueryParams(
+          result.current[0]!.queryParams.replace({query: `span.op:${i}`})
+        )
+      );
+    }
+
+    expect(result.current[0]!.queryParams.query).toBe('span.op:149');
+    expect(result.current[1]!.queryParams).toBe(unchanged.queryParams);
+  });
+
+  describe.each([
+    ['URL', Wrapper],
+    ['local', LocalWrapper],
+  ])('with %s state', (_, additionalWrapper) => {
+    function expectSameQueries(actual: MetricQuery[], expected: MetricQuery[]) {
+      expect(actual).toHaveLength(expected.length);
+      actual.forEach((metricQuery, i) => {
+        expect(metricQuery.queryParams).toBe(expected[i]!.queryParams);
+        expect(metricQuery.setQueryParams).toBe(expected[i]!.setQueryParams);
+        expect(metricQuery.setTraceMetric).toBe(expected[i]!.setTraceMetric);
+        expect(metricQuery.removeMetric).toBe(expected[i]!.removeMetric);
+      });
+    }
+
+    function renderMetricQueries() {
+      return renderHookWithProviders(
+        () => ({
+          addMetricQuery: useAddMetricQuery(),
+          metricQueries: useMultiMetricsQueryParams(),
+          reorderMetricQueries: useReorderMetricQueries(),
+        }),
+        {
+          additionalWrapper,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/explore/metrics/',
+              query: {metric: ['foo', 'bar', 'baz'].map(canonicalMetricQueryParam)},
+            },
+          },
+        }
+      );
+    }
+
+    it('keeps an earlier update when a query is added', () => {
+      const {result} = renderMetricQueries();
+      const third = result.current.metricQueries[2]!;
+
+      act(() => {
+        third.setQueryParams(third.queryParams.replace({query: 'span.op:db'}));
+        result.current.addMetricQuery();
+      });
+
+      expect(
+        result.current.metricQueries.map(metricQuery => metricQuery.queryParams.query)
+      ).toEqual(['', '', 'span.op:db', 'span.op:db']);
+      expect(result.current.metricQueries.map(metricQuery => metricQuery.label)).toEqual([
+        'A',
+        'B',
+        'C',
+        'D',
+      ]);
+    });
+
+    it('keeps an earlier update when queries are reordered', () => {
+      const {result} = renderMetricQueries();
+      const first = result.current.metricQueries[0]!;
+
+      act(() => {
+        first.setQueryParams(first.queryParams.replace({query: 'span.op:db'}));
+        result.current.reorderMetricQueries(0, 2);
+      });
+
+      expect(
+        result.current.metricQueries.map(metricQuery => metricQuery.metric.name)
+      ).toEqual(['bar', 'baz', 'foo']);
+      expect(
+        result.current.metricQueries.map(metricQuery => metricQuery.queryParams.query)
+      ).toEqual(['', '', 'span.op:db']);
+      expect(result.current.metricQueries.map(metricQuery => metricQuery.label)).toEqual([
+        'B',
+        'C',
+        'A',
+      ]);
+    });
+
+    it('keeps the remaining queries referentially stable when one is removed', () => {
+      const {result} = renderMetricQueries();
+      const [first, second, third] = result.current.metricQueries;
+
+      act(() => first!.removeMetric());
+
+      expectSameQueries(result.current.metricQueries, [second!, third!]);
+    });
+
+    it('keeps every query referentially stable when queries are reordered', () => {
+      const {result} = renderMetricQueries();
+      const [first, second, third] = result.current.metricQueries;
+
+      act(() => result.current.reorderMetricQueries(0, 2));
+
+      expectSameQueries(result.current.metricQueries, [second!, third!, first!]);
+    });
+
+    it('keeps existing queries referentially stable when one is added', () => {
+      const {result} = renderMetricQueries();
+      const existing = result.current.metricQueries;
+
+      act(() => result.current.addMetricQuery());
+
+      expectSameQueries(result.current.metricQueries.slice(0, 3), existing);
+    });
+  });
+
   describe('URL writes', () => {
     beforeEach(() => {
       jest.useFakeTimers();
@@ -940,11 +1068,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       );
 
       act(() => {
-        result.current.reorder(
-          [result.current.metricQueries[1]!, result.current.metricQueries[0]!],
-          0,
-          1
-        );
+        result.current.reorder(0, 1);
       });
 
       expect(result.current.metricQueries[0]).toEqual(
