@@ -16,6 +16,7 @@ import {
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
@@ -305,6 +306,50 @@ describe('desktop navigation', () => {
       );
     }
   );
+
+  it('persists settings v3 disclosure state and supports keyboard expansion', async () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {
+          location: {pathname: '/settings/org-slug/projects/project-slug/'},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      })
+    );
+
+    const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+    const processing = within(secondaryNav).getByRole('button', {name: 'Processing'});
+    expect(processing).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(secondaryNav).getByRole('link', {name: 'Inbound Filters'})
+    ).toBeVisible();
+
+    await userEvent.click(processing);
+    expect(processing).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      within(secondaryNav).queryByRole('link', {name: 'Inbound Filters'})
+    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        localStorageWrapper.getItem('secondary-nav-section-settings-processing-collapsed')
+      ).toBe('true')
+    );
+
+    await userEvent.keyboard('{Enter}');
+    expect(processing).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(secondaryNav).getByRole('link', {name: 'Inbound Filters'})
+    ).toBeVisible();
+    await waitFor(() =>
+      expect(
+        localStorageWrapper.getItem('secondary-nav-section-settings-processing-collapsed')
+      ).toBe('false')
+    );
+  });
 
   it('switches from project key details to the new project key list', async () => {
     MockApiClient.addMockResponse({

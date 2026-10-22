@@ -35,6 +35,7 @@ import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
@@ -412,6 +413,7 @@ interface SecondaryNavigationSectionProps {
   id: string;
   collapsible?: boolean;
   title?: ReactNode;
+  variant?: 'default' | 'disclosure';
 }
 
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
@@ -422,6 +424,22 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   );
   const canCollapse = layout === 'sidebar' && (props.collapsible ?? true);
   const isCollapsed = canCollapse ? isCollapsedState : false;
+
+  if (props.variant === 'disclosure' && props.title && canCollapse) {
+    return (
+      <Container padding="md sm" data-nav-section>
+        <Disclosure
+          size="sm"
+          width="100%"
+          expanded={!isCollapsed}
+          onExpandedChange={expanded => setIsCollapsedState(!expanded)}
+        >
+          <Disclosure.Title>{props.title}</Disclosure.Title>
+          <Disclosure.Content padding="0">{props.children}</Disclosure.Content>
+        </Disclosure>
+      </Container>
+    );
+  }
 
   return (
     <Container padding="md sm" data-nav-section>
