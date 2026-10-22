@@ -38,11 +38,19 @@ SNUBA_ENV = {
     "DEFAULT_BROKERS": "kafka:9093",
     "REDIS_HOST": "redis",
     "REDIS_PORT": "6379",
-    "REDIS_DB": "1",
     "SNUBA_SETTINGS": "docker",
 }
 
 ENV_ARGS = [flag for k, v in SNUBA_ENV.items() for flag in ("-e", f"{k}={v}")]
+
+
+def redis_db_args(worker_id: int) -> list[str]:
+    # Each test's Snuba reset (/tests/<dataset>/drop) flushes Snuba's Redis DB. On a
+    # shared DB that wipes other workers' replacement state (exclude-groups /
+    # needs-final flags, query cache) mid-test. DBs 1-7 stay below the Sentry
+    # per-worker DBs (9+, see src/sentry/testutils/pytest/xdist.py).
+    return ["-e", f"REDIS_DB={1 + worker_id}"]
+
 
 # What `snuba bootstrap` talks to. In early mode phase 1 only waits for these.
 BOOTSTRAP_DEPENDENCIES = ("snuba-clickhouse-1", "kafka-kafka-1", "redis-redis-1")
@@ -217,6 +225,7 @@ def bootstrap_worker(worker_id: int, *, image: str, network: str) -> None:
             "-e",
             f"CLICKHOUSE_DATABASE={db}",
             *ENV_ARGS,
+            *redis_db_args(worker_id),
             image,
             "bootstrap",
             "--force",
@@ -249,6 +258,7 @@ def start_worker_container(worker_id: int, *, image: str, network: str) -> None:
         "-e",
         f"CLICKHOUSE_DATABASE={db}",
         *ENV_ARGS,
+        *redis_db_args(worker_id),
         "-e",
         "DEBUG=1",
         image,

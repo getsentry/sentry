@@ -65,7 +65,6 @@ jobs:
       - name: jest balancer (shard ${{ matrix.index }}/${{ matrix.total }})
         continue-on-error: true
         env:
-          # Keep timings on the production router until the migration is complete.
           SENTRY_REACT_ROUTER_VERSION: '6'
           SENTRY_DSN: ${{ secrets.SENTRY_JEST_DSN }}
 

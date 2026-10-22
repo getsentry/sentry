@@ -784,7 +784,7 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(screen.queryByLabelText('Add a search term')).not.toBeInTheDocument();
 
-    // Wait for any pending popper updates to complete
+    // Wait for any pending overlay updates to complete
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Issues'})).toBeInTheDocument();
     });
@@ -1046,7 +1046,7 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(screen.queryByText('Group by')).not.toBeInTheDocument();
 
-    // Wait for any pending popper updates to complete
+    // Wait for any pending overlay updates to complete
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Issues'})).toBeInTheDocument();
     });

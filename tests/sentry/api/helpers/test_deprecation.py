@@ -157,6 +157,8 @@ class TestDeprecationDecorator(APITestCase):
 
             register("override-cron", default=custom_cron)
             register("override-duration", default=custom_duration)
+            self.addCleanup(options.unregister, "override-cron")
+            self.addCleanup(options.unregister, "override-duration")
             custom_time_iter = CronSim(custom_cron, test_date)
             custom_duration_timedelta = timedelta(seconds=custom_duration)
 
