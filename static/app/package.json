@@ -106,7 +106,7 @@
     "moment-timezone": "0.6.2",
     "nuqs": "2.10.2",
     "papaparse": "^5.3.2",
-    "peggy": "5.0.6",
+    "peggy": "5.1.1",
     "platformicons": "^9.10.0",
     "prismjs": "^1.30.0",
     "qrcode.react": "^3.1.0",
@@ -127,7 +127,7 @@
     "sentry": "workspace:@sentry-internal/app@*",
     "sonner": "2.0.8",
     "sprintf-js": "1.0.3",
-    "type-fest": "^5.8.0",
+    "type-fest": "^5.10.0",
     "zod": "4.3.5",
     "zxcvbn": "^4.4.2"
   },

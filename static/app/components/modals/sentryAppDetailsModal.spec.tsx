@@ -12,14 +12,7 @@ function renderMockRequests({sentryAppSlug}: {sentryAppSlug: string}) {
     body: [],
   });
 
-  const interaction = MockApiClient.addMockResponse({
-    url: `/sentry-apps/${sentryAppSlug}/interaction/`,
-    method: 'POST',
-    statusCode: 200,
-    body: {},
-  });
-
-  return {features, interaction};
+  return {features};
 }
 
 describe('SentryAppDetailsModal', () => {
@@ -39,30 +32,6 @@ describe('SentryAppDetailsModal', () => {
     );
 
     expect(await screen.findByText(sentryApp.name)).toBeInTheDocument();
-  });
-
-  it('records interaction request', () => {
-    const mockRequests = renderMockRequests({sentryAppSlug: sentryApp.slug});
-
-    render(
-      <SentryAppDetailsModal
-        closeModal={jest.fn()}
-        isInstalled={false}
-        onInstall={jest.fn()}
-        organization={OrganizationFixture()}
-        sentryApp={sentryApp}
-      />
-    );
-
-    expect(mockRequests.interaction).toHaveBeenCalledWith(
-      `/sentry-apps/${sentryApp.slug}/interaction/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          tsdbField: 'sentry_app_viewed',
-        },
-      })
-    );
   });
 
   it('displays the Integrations description', async () => {

@@ -129,7 +129,6 @@
 /src/sentry/web/frontend/auth_organization_login.py      @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/auth_provider_login.py          @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/oauth_token.py                  @getsentry/security @getsentry/foundations @getsentry/owners-auth
-/src/sentry/web/frontend/oauth_authorize.py              @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/openidtoken.py                  @getsentry/security
 /.agents/skills/sentry-security/                         @getsentry/security
 

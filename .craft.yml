@@ -38,7 +38,7 @@ workspaces:
       name: github
       config:
         contexts:
-          - scraps-package-verify
+          - scraps-package-pack
     artifactProvider:
       name: github
       config:
@@ -48,6 +48,30 @@ workspaces:
     targets:
       - name: github
         tagPrefix: scraps@
+      - name: npm
+        access: public
+    versioning:
+      policy: auto
+  static/packages/icons:
+    preReleaseCommand: >-
+      sh -c 'npm --prefix static/packages/icons --no-git-tag-version --package-lock=false --allow-same-version version "$CRAFT_NEW_VERSION"'
+    releaseBranchPrefix: icons/release
+    changelog:
+      policy: auto
+    statusProvider:
+      name: github
+      config:
+        contexts:
+          - icons-package-pack
+    artifactProvider:
+      name: github
+      config:
+        artifacts:
+          Icons package:
+            - icons-tarball
+    targets:
+      - name: github
+        tagPrefix: icons@
       - name: npm
         access: public
     versioning:

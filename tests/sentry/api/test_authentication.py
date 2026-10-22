@@ -578,7 +578,7 @@ def test_registered_relay(internal) -> None:
 
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
-def test_statically_configured_relay(settings, internal) -> None:
+def test_statically_configured_relay(internal) -> None:
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 
@@ -593,9 +593,9 @@ def test_statically_configured_relay(settings, internal) -> None:
 
     relay_options = {relay_id: {"internal": internal, "public_key": str(pk)}}
 
-    settings.SENTRY_RELAY_STATIC_AUTH = relay_options
     authenticator = RelayAuthentication()
-    authenticator.authenticate(request)
+    with override_settings(SENTRY_RELAY_STATIC_AUTH=relay_options):
+        authenticator.authenticate(request)
 
     # now the request should contain a relay
     relay = request.relay

@@ -21,10 +21,16 @@ const coreComponentFiles = [
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
 
+const tableComponentFiles = [
+  'static/app/components/core/table/**/*.{ts,tsx}',
+  'static/app/components/tables/**/*.{ts,tsx}',
+];
+
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
     '@sentry/scraps/prefer-container-responsive-props': 'error',
   },
@@ -32,6 +38,15 @@ export const incubator = defineConfig({
     {
       files: coreComponentFiles,
       rules: {'@sentry/scraps/prefer-primitives': 'off'},
+    },
+    {
+      files: [
+        ...tableComponentFiles,
+        ...testFiles,
+        '**/*.stories.{ts,tsx}',
+        'static/app/stories/**/*.{ts,tsx}',
+      ],
+      rules: {'@sentry/scraps/no-manual-table': 'off'},
     },
     {
       files: testFiles,
@@ -711,18 +726,6 @@ const config = defineConfig({
         'boundaries/no-unknown-files': 'off',
         'import/no-relative-parent-imports': 'off',
         'import-js/no-relative-packages': 'off',
-      },
-    },
-    {
-      files: ['static/packages/scraps/scripts/*.mjs'],
-      rules: {
-        'boundaries/no-unknown-files': 'off',
-        'import-js/no-extraneous-dependencies': 'off',
-        'import/no-nodejs-modules': 'off',
-        'no-console': 'off',
-      },
-      env: {
-        node: true,
       },
     },
     {
