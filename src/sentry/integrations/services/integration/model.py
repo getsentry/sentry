@@ -57,7 +57,7 @@ class RpcAccessToken(RpcModel):
 
     token: str = Field(repr=False)
     expires_at: datetime | None
-    """None when the expiry isn't known, or the token doesn't expire."""
+    """None when the token doesn't expire."""
 
 
 class RpcOrganizationIntegration(RpcModel):
