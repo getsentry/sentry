@@ -22,7 +22,6 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   getInvestigationsPath,
-  isAutomationsEnabled,
   isInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
 import {
@@ -238,7 +237,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
-      {(isInvestigationsEnabled(organization) || isAutomationsEnabled(organization)) && (
+      {isInvestigationsEnabled(organization) && (
         <PrimaryNavigation.ListItem>
           <PrimaryNavigation.Link
             to={getInvestigationsPath(organization.slug)}

@@ -589,42 +589,36 @@ describe('desktop navigation', () => {
       return screen.getByRole('navigation', {name: 'Primary Navigation'});
     }
 
-    it.each(['investigations', 'seer-automations'])(
-      'shows Seer below Explore with %s and open membership',
-      feature => {
-        const primaryNav = renderSeerNavigation({
-          features: [...ALL_AVAILABLE_FEATURES, feature],
-          openMembership: true,
-        });
-
-        const links = within(primaryNav).getAllByRole('link');
-        expect(links[1]).toHaveAccessibleName('Explore');
-        expect(links[2]).toHaveAccessibleName(/Seer/);
-        expect(links[2]).toHaveAttribute(
-          'href',
-          '/organizations/org-slug/seer/investigations/'
-        );
-        expect(within(links[2]!).getByLabelText('alpha')).toBeInTheDocument();
-      }
-    );
-
-    it.each(['investigations', 'seer-automations'])(
-      'hides Seer with %s and closed membership',
-      feature => {
-        const primaryNav = renderSeerNavigation({
-          features: [...ALL_AVAILABLE_FEATURES, feature],
-          openMembership: false,
-        });
-
-        expect(
-          within(primaryNav).queryByRole('link', {name: /Seer/})
-        ).not.toBeInTheDocument();
-      }
-    );
-
-    it('hides Seer without investigations or seer-automations', () => {
+    it('shows Seer below Explore with investigations and open membership', () => {
       const primaryNav = renderSeerNavigation({
-        features: ALL_AVAILABLE_FEATURES,
+        features: [...ALL_AVAILABLE_FEATURES, 'investigations'],
+        openMembership: true,
+      });
+
+      const links = within(primaryNav).getAllByRole('link');
+      expect(links[1]).toHaveAccessibleName('Explore');
+      expect(links[2]).toHaveAccessibleName(/Seer/);
+      expect(links[2]).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/investigations/'
+      );
+      expect(within(links[2]!).getByLabelText('alpha')).toBeInTheDocument();
+    });
+
+    it('hides Seer with investigations and closed membership', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'investigations'],
+        openMembership: false,
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: /Seer/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides Seer without investigations', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-automations'],
         openMembership: true,
       });
 

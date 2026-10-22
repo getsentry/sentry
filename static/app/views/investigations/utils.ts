@@ -14,9 +14,3 @@ export function getInvestigationPath(organizationSlug: string, investigationId: 
 export function isInvestigationsEnabled(organization: Organization) {
   return organization.openMembership && organization.features.includes('investigations');
 }
-
-export function isAutomationsEnabled(organization: Organization) {
-  return (
-    organization.openMembership && organization.features.includes('seer-automations')
-  );
-}
