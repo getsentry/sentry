@@ -34,11 +34,9 @@ const VALUE_TYPE_OPTIONS: Array<{label: string; value: FormulaParamType}> = [
 export function ParametersSection({
   params,
   onChange,
-  disabled,
 }: {
   onChange: (params: DraftParam[]) => void;
   params: DraftParam[];
-  disabled?: boolean;
 }) {
   // A calculation is derived from the other params, so there has to be one first.
   const valueParams = params.filter(param => param.type !== 'calculation');
@@ -62,7 +60,6 @@ export function ParametersSection({
               value={param.name}
               placeholder={t('Name')}
               aria-label={t('Parameter name')}
-              disabled={disabled}
               onChange={event => update(param.key, {name: event.target.value})}
             />
             {param.type === 'calculation' ? (
@@ -70,7 +67,6 @@ export function ParametersSection({
                 <CalculationEquationInput
                   value={param.value}
                   names={valueParams.map(valueParam => valueParam.name)}
-                  disabled={disabled}
                   onChange={value => update(param.key, {value})}
                 />
                 <CalculationTab align="center" justify="center">
@@ -84,7 +80,6 @@ export function ParametersSection({
                 <CompactSelect
                   value={param.type}
                   options={VALUE_TYPE_OPTIONS}
-                  disabled={disabled}
                   trigger={({children, ...triggerProps}) => (
                     <OverlayTrigger.Button {...triggerProps} prefix={t('Type')}>
                       <OptionSizedLabel options={VALUE_TYPE_OPTIONS}>
@@ -101,7 +96,6 @@ export function ParametersSection({
               size="sm"
               icon={<IconDelete size="sm" />}
               aria-label={t('Remove parameter')}
-              disabled={disabled}
               onClick={() => onChange(params.filter(other => other.key !== param.key))}
             />
           </Flex>
@@ -114,7 +108,7 @@ export function ParametersSection({
             <Button
               size="sm"
               icon={<IconAdd />}
-              disabled={disabled || isFull}
+              disabled={isFull}
               onClick={() => onChange([...params, newParam('number')])}
             >
               {t('Add Parameter')}
@@ -131,7 +125,7 @@ export function ParametersSection({
             <Button
               size="sm"
               icon={<IconAdd />}
-              disabled={disabled || isFull || valueParams.length === 0}
+              disabled={isFull || valueParams.length === 0}
               onClick={() => onChange([...params, newParam('calculation')])}
             >
               {t('Add Calculated Parameter')}

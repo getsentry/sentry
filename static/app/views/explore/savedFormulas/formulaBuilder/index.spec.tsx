@@ -16,6 +16,8 @@ function SavedFormulaFixture(params: Partial<SavedFormula> = {}): SavedFormula {
     type: 'number',
     unit: null,
     prebuilt: false,
+    createdBy: null,
+    updatedBy: null,
     ...params,
   };
 }
@@ -48,32 +50,12 @@ describe('FormulaBuilderPage', () => {
     });
   });
 
-  it('allows editing a user formula', async () => {
-    renderEditPage(SavedFormulaFixture());
-
-    expect(await screen.findByRole('textbox', {name: 'Formula name'})).toBeEnabled();
-    expect(
-      screen.queryByText('Formulas built by Sentry cannot be edited.')
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
-  });
-
-  it('disables editing a prebuilt formula', async () => {
+  it('allows editing a prebuilt formula', async () => {
     renderEditPage(SavedFormulaFixture({prebuilt: true}));
 
-    expect(
-      await screen.findByText('Formulas built by Sentry cannot be edited.')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Formula name'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Parameter name'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Reference name'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Dataset'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Unit'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Add Parameter'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Add Reference'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Remove parameter'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Remove reference'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Cancel'})).toBeEnabled();
+    expect(await screen.findByRole('textbox', {name: 'Formula name'})).toBeEnabled();
+    expect(screen.getByRole('textbox', {name: 'Parameter name'})).toBeEnabled();
+    expect(screen.getByRole('textbox', {name: 'Reference name'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
   });
 });
