@@ -136,6 +136,19 @@ export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
   [DeploymentTarget.BUN]: 'bun',
 };
 
+/**
+ * The Sentry SDK package each runtime installs.
+ */
+export const DEPLOYMENT_TARGET_PACKAGE_NAMES: Record<
+  DeploymentTarget,
+  `@sentry/${string}`
+> = {
+  [DeploymentTarget.NODE]: '@sentry/node',
+  [DeploymentTarget.CLOUDFLARE]: '@sentry/cloudflare',
+  [DeploymentTarget.DENO]: '@sentry/deno',
+  [DeploymentTarget.BUN]: '@sentry/bun',
+};
+
 const DEFAULT_DEPLOYMENT_TARGETS = [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE];
 
 /**

@@ -32,6 +32,7 @@ import {AgentSetupTabs} from 'sentry/views/insights/pages/agents/components/agen
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AgentIntegration,
+  DEPLOYMENT_TARGET_PACKAGE_NAMES,
   DeploymentTarget,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {
@@ -327,14 +328,25 @@ $response = (new MyAgent)
 }
 
 /**
- * The Sentry SDK the conversation snippets import from on each runtime.
+ * The module specifier the conversation snippets import the Sentry SDK from.
+ * Deno and Bun projects have no runtime selector, so their platform decides
+ * the runtime.
  */
-const JS_PACKAGE_NAMES: Record<DeploymentTarget, string> = {
-  [DeploymentTarget.NODE]: '@sentry/node',
-  [DeploymentTarget.CLOUDFLARE]: '@sentry/cloudflare',
-  [DeploymentTarget.DENO]: 'npm:@sentry/deno',
-  [DeploymentTarget.BUN]: '@sentry/bun',
-};
+function getJsImportSpecifier(
+  platform: Project['platform'],
+  deploymentTarget: DeploymentTarget | undefined
+): string {
+  const runtime =
+    deploymentTarget ??
+    (platform === 'deno'
+      ? DeploymentTarget.DENO
+      : platform === 'bun'
+        ? DeploymentTarget.BUN
+        : DeploymentTarget.NODE);
+  const packageName = DEPLOYMENT_TARGET_PACKAGE_NAMES[runtime];
+  // Deno resolves npm packages through the `npm:` specifier.
+  return runtime === DeploymentTarget.DENO ? `npm:${packageName}` : packageName;
+}
 
 const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
   AgentIntegration.EVE,
@@ -378,8 +390,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
 
   const selectedIntegration =
     setup.selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
-  const jsPackageName =
-    (deploymentTarget && JS_PACKAGE_NAMES[deploymentTarget]) ?? '@sentry/node';
+  const jsPackageName = getJsImportSpecifier(project.platform, deploymentTarget);
 
   const setsConversationIdAutomatically =
     INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS.has(selectedIntegration);

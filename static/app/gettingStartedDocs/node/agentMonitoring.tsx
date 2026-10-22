@@ -18,6 +18,7 @@ import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmO
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
+  DEPLOYMENT_TARGET_PACKAGE_NAMES,
   DeploymentTarget,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
@@ -65,16 +66,10 @@ function getRuntimePackageName(
   params: DocsParams,
   packageName: `@sentry/${string}`
 ): `@sentry/${string}` {
-  switch (getDeploymentTarget(params)) {
-    case DeploymentTarget.CLOUDFLARE:
-      return '@sentry/cloudflare';
-    case DeploymentTarget.BUN:
-      return '@sentry/bun';
-    case DeploymentTarget.DENO:
-      return '@sentry/deno';
-    default:
-      return packageName;
-  }
+  const deploymentTarget = getDeploymentTarget(params);
+  return deploymentTarget === DeploymentTarget.NODE
+    ? packageName
+    : DEPLOYMENT_TARGET_PACKAGE_NAMES[deploymentTarget];
 }
 
 /**

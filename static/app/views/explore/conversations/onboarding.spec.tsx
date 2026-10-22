@@ -300,6 +300,28 @@ describe('ConversationOnboarding', () => {
     );
   });
 
+  it.each([
+    {platform: 'deno', specifier: 'npm:@sentry/deno'},
+    {platform: 'bun', specifier: '@sentry/bun'},
+  ] as const)(
+    'imports the $platform SDK in the user step of a $platform project',
+    async ({platform, specifier}) => {
+      const {organization} = setupProject(platform);
+
+      render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+      await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Copy instructions'})
+      );
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `import * as Sentry from "${specifier}";\n\n// Call this once per request`
+        )
+      );
+    }
+  );
+
   it('does not track setup instructions as an AI prompt copy', async () => {
     const {organization} = setupProject('node');
 
