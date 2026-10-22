@@ -1231,7 +1231,7 @@ describe('ProjectFilters', () => {
     );
   });
 
-  it('offers the version comparisons first on release and no second value', async () => {
+  it('offers the version comparisons first on release', async () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
@@ -1249,16 +1249,12 @@ describe('ProjectFilters', () => {
     await userEvent.click(screen.getByRole('option', {name: '<'}));
     expect(within(dialog).getByRole('row', {name: 'release:<1.0'})).toBeInTheDocument();
 
-    // A comparison takes one value: the builder offers no second one.
     await userEvent.click(
       within(dialog).getByRole('button', {name: 'Edit value for filter: release'})
     );
     expect(
       await screen.findByText('A release with a version, e.g. 1.2.0 or myapp@1.2.0')
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText('Use the checkboxes to select multiple')
-    ).not.toBeInTheDocument();
   });
 
   it('keeps a gated data type selectable when editing', async () => {

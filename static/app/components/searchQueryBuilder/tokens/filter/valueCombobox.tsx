@@ -71,7 +71,6 @@ import {
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
-  comparisonOperators,
   FilterType,
   TermOperator,
   Token,
@@ -308,10 +307,6 @@ export function tokenSupportsMultipleValues(
 
   switch (token.filter) {
     case FilterType.TEXT: {
-      // The search syntax has no list form for a comparison on text.
-      if ((comparisonOperators as readonly TermOperator[]).includes(token.operator)) {
-        return false;
-      }
       // The search parser defaults to the text type, so we need to do further
       // checks to ensure that the filter actually supports multiple values
       const keyName = getKeyName(token.key);
