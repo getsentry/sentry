@@ -145,6 +145,28 @@ describe('Onboarding deployment target', () => {
     );
   });
 
+  it('checks the SDK version of the selected Pi Durable runtime', async () => {
+    const {organization, project} = setupProject('node-pi-durable');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [
+        {projectId: project.id, sdkName: 'sentry.javascript.bun', sdkVersion: '10.0.0'},
+      ],
+    });
+
+    await renderInstructions({organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Bun'}));
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your @sentry/bun version is below the minimum required for agent monitoring. Update to 11.6.0 or later.'
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
   it('only offers the coding agent prompt for a browser project', async () => {
     const {organization} = setupProject('javascript');
 

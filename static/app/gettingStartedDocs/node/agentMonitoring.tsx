@@ -58,6 +58,26 @@ export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
 }
 
 /**
+ * The Sentry SDK package for the selected runtime. The Node runtime keeps the
+ * platform's own package.
+ */
+function getRuntimePackageName(
+  params: DocsParams,
+  packageName: `@sentry/${string}`
+): `@sentry/${string}` {
+  switch (getDeploymentTarget(params)) {
+    case DeploymentTarget.CLOUDFLARE:
+      return '@sentry/cloudflare';
+    case DeploymentTarget.BUN:
+      return '@sentry/bun';
+    case DeploymentTarget.DENO:
+      return '@sentry/deno';
+    default:
+      return packageName;
+  }
+}
+
+/**
  * The minimum SDK version required for the selected integration. Integrations
  * without a specific requirement use the caller's platform default.
  */
@@ -752,10 +772,7 @@ export function getInstallStep(
     return piFrameworkOnboarding.install(params);
   }
 
-  const resolvedPackageName =
-    getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE
-      ? '@sentry/cloudflare'
-      : packageName;
+  const resolvedPackageName = getRuntimePackageName(params, packageName);
   const resolvedMinVersion = getMinRequiredVersion(params, minVersion);
 
   return [
@@ -1213,7 +1230,7 @@ export const agentMonitoring = ({
     <SdkUpdateAlert
       projectId={params.project.id}
       minVersion={getMinRequiredVersion(params, MIN_REQUIRED_VERSION)}
-      packageName={packageName}
+      packageName={getRuntimePackageName(params, packageName)}
     />
   ),
   install: params =>
