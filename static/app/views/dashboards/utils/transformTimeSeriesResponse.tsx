@@ -84,7 +84,7 @@ export function combineIngestionMeta(
 /**
  * Mirrors how series names are constructed in `/events-stats/`
  */
-export function getLegacySeriesName(
+function getLegacySeriesName(
   timeSeries: TimeSeries,
   alias: string | undefined,
   hasMultipleYAxes: boolean,

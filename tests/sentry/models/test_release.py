@@ -351,6 +351,8 @@ class MergeReleasesTest(TestCase):
         assert GroupRelease.objects.get(id=group_release.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release2.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release3.id).release_id == release.id
+        assert GroupRelease.objects.get(id=group_release2.id).new_release_id == release.id
+        assert GroupRelease.objects.get(id=group_release3.id).new_release_id == release.id
 
         # GroupResolution.release
         assert GroupResolution.objects.get(id=group_resolution.id).release == release

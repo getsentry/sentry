@@ -75,6 +75,7 @@ interface SearchQueryBuilderConfigContextData {
    */
   invalidFilterKeyMessage: string | undefined;
   invalidFilterKeys: string[];
+  keepOperatorOnValueSelect: boolean;
   matchKeySuggestions: Array<{key: string; valuePattern: RegExp}> | undefined;
   namespace: string | undefined;
   onCaseInsensitiveClick: ((value: CaseInsensitive) => void) | undefined;
@@ -211,6 +212,7 @@ export function SearchQueryBuilderProvider({
   caseInsensitive,
   onCaseInsensitiveClick,
   invalidFilterKeys,
+  keepOperatorOnValueSelect,
   disableFullWidthFilterKeyMenu = false,
   asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
@@ -438,6 +440,7 @@ export function SearchQueryBuilderProvider({
       getTagValues,
       invalidFilterKeyMessage,
       invalidFilterKeys: stableInvalidFilterKeys,
+      keepOperatorOnValueSelect: Boolean(keepOperatorOnValueSelect),
       matchKeySuggestions,
       namespace,
       onCaseInsensitiveClick,
@@ -463,6 +466,7 @@ export function SearchQueryBuilderProvider({
     getTagValues,
     invalidFilterKeyMessage,
     stableInvalidFilterKeys,
+    keepOperatorOnValueSelect,
     matchKeySuggestions,
     namespace,
     onCaseInsensitiveClick,

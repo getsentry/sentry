@@ -10,23 +10,18 @@ import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
 import {type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
+  getTimeSeriesResultTypes,
+  getTimeSeriesResultUnits,
+} from 'sentry/views/dashboards/utils/getTimeSeriesResultMeta';
+import {
   isEventsStats,
   isEventsTimeSeriesResponse,
   isGroupedMultiSeriesEventsStats,
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
-import {
-  getTimeSeriesResultTypes,
-  getTimeSeriesResultUnits,
-  transformTimeSeriesResponseToSeries,
-} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
-import {
-  transformPerformanceScoreBreakdownSeries,
-  transformPerformanceScoreBreakdownTimeSeries,
-} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
+import {transformPerformanceScoreBreakdownTimeSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 
 /**
  * Generic helper to extract metadata (units or types) from events-stats series data.
@@ -109,34 +104,6 @@ function extractSeriesMetadata<T>({
   return result;
 }
 
-function transformSeries(
-  data:
-    | EventsStats
-    | MultiSeriesEventsStats
-    | GroupedMultiSeriesEventsStats
-    | EventsTimeSeriesResponse,
-  widgetQuery: WidgetQuery
-) {
-  if (isEventsTimeSeriesResponse(data)) {
-    return transformTimeSeriesResponseToSeries(
-      isPerformanceScoreBreakdownChart(widgetQuery)
-        ? transformPerformanceScoreBreakdownTimeSeries(data)
-        : data,
-      widgetQuery
-    );
-  }
-
-  let eventsStats = data;
-  // Kind of a hack, but performance score breakdown charts need a special transformation to display correctly.
-  if (
-    isMultiSeriesEventsStats(eventsStats) &&
-    isPerformanceScoreBreakdownChart(widgetQuery)
-  ) {
-    eventsStats = transformPerformanceScoreBreakdownSeries(eventsStats);
-  }
-  return transformEventsResponseToSeries(eventsStats, widgetQuery);
-}
-
 export const spansResponseTransforms: Pick<
   DatasetConfig<
     | EventsStats
@@ -145,14 +112,9 @@ export const spansResponseTransforms: Pick<
     | EventsTimeSeriesResponse,
     TableData | EventsTableData
   >,
-  | 'transformTable'
-  | 'transformSeries'
-  | 'transformTimeSeries'
-  | 'getSeriesResultUnit'
-  | 'getSeriesResultType'
+  'transformTable' | 'transformTimeSeries' | 'getSeriesResultUnit' | 'getSeriesResultType'
 > = {
   transformTable: transformEventsResponseToTable,
-  transformSeries,
   transformTimeSeries: (data, widget, queryIndex) =>
     transformTimeSeriesResponse(
       isPerformanceScoreBreakdownChart(widget.queries[queryIndex]!)

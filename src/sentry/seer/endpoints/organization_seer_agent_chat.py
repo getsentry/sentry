@@ -397,6 +397,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_coding=enable_coding,
                 enable_write_pull_request=has_create_pr,
                 enable_code_mode_tools=enable_code_mode_tools,
+                enable_investigation_tools=True,
                 reasoning_effort="medium",
             )
             if resolved is not None:
