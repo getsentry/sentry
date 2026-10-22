@@ -2,43 +2,9 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
 from sentry.api.helpers.projects import ProjectIdOrSlugField
+from sentry.replays.post_process import ReplayDetailsResponse
 
-VALID_FIELD_SET = (
-    "activity",
-    "browser",
-    "count_dead_clicks",
-    "count_errors",
-    "count_rage_clicks",
-    "count_segments",
-    "count_urls",
-    "device",
-    "dist",
-    "duration",
-    "environment",
-    "error_ids",
-    "finished_at",
-    "id",
-    "is_archived",
-    "os",
-    "ota_updates",
-    "platform",
-    "project_id",
-    "releases",
-    "replay_type",
-    "sdk",
-    "started_at",
-    "tags",
-    "trace_ids",
-    "segment_names",
-    "urls",
-    "user",
-    "clicks",
-    "info_ids",
-    "warning_ids",
-    "count_warnings",
-    "count_infos",
-    "has_viewed",
-)
+VALID_FIELD_SET = tuple(sorted(ReplayDetailsResponse.__annotations__))
 
 
 def validate_fields(fields: list[str]) -> list[str]:
