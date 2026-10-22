@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
@@ -15,10 +15,11 @@ import {
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
 import {Container} from '@sentry/scraps/layout';
+import type {ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {ListBoxOption} from './option';
+import {ListBoxDetailsHoverContext, ListBoxOption} from './option';
 import {ListBoxSection} from './section';
 
 interface ListBoxProps<T extends ListItemBase>
@@ -105,6 +106,7 @@ interface ListBoxProps<T extends ListItemBase>
 }
 
 const EMPTY_SET = new Set<never>();
+const DETAILS_CLOSE_DELAY = 150;
 const DEFAULT_KEY_DOWN_HANDLER = () => true;
 
 /**
@@ -185,9 +187,56 @@ export function ListBox<T extends ListItemBase>({
 
   const mergedProps = mergeProps(listBoxProps, props);
 
+  const clearFocusTimeoutRef = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(clearFocusTimeoutRef.current), []);
+
+  const cancelFocusClear = useCallback(() => {
+    window.clearTimeout(clearFocusTimeoutRef.current);
+  }, []);
+
+  const scheduleFocusClear = useCallback(() => {
+    window.clearTimeout(clearFocusTimeoutRef.current);
+    clearFocusTimeoutRef.current = window.setTimeout(
+      () => listState.selectionManager.setFocusedKey(null),
+      DETAILS_CLOSE_DELAY
+    );
+  }, [listState.selectionManager]);
+
+  const onDetailsHoverChange = useCallback(
+    (isHovered: boolean, e: React.PointerEvent) => {
+      if (isHovered) {
+        cancelFocusClear();
+      } else if (
+        !(e.relatedTarget instanceof Node) ||
+        !listElementRef.current?.contains(e.relatedTarget)
+      ) {
+        scheduleFocusClear();
+      }
+    },
+    [cancelFocusClear, scheduleFocusClear]
+  );
+
   const onMouseLeave = (e: React.MouseEvent<HTMLUListElement>) => {
     mergedProps.onMouseLeave?.(e);
+    const {focusedKey} = listState.selectionManager;
+    const focusedItemProps:
+      | Pick<ListItemProps, 'details' | 'showDetailsInOverlay'>
+      | undefined =
+      focusedKey === null ? undefined : listState.collection.getItem(focusedKey)?.props;
+    if (
+      showDetails &&
+      focusedItemProps?.showDetailsInOverlay &&
+      focusedItemProps.details
+    ) {
+      scheduleFocusClear();
+      return;
+    }
     listState.selectionManager.setFocusedKey(null);
+  };
+
+  const onMouseEnter = (e: React.MouseEvent<HTMLUListElement>) => {
+    mergedProps.onMouseEnter?.(e);
+    cancelFocusClear();
   };
 
   const virtualizer = useVirtualizedItems({
@@ -232,7 +281,7 @@ export function ListBox<T extends ListItemBase>({
   }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
 
   return (
-    <Fragment>
+    <ListBoxDetailsHoverContext value={onDetailsHoverChange}>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <Container
@@ -250,6 +299,7 @@ export function ListBox<T extends ListItemBase>({
               ...virtualizer.listWrapStyle,
             }}
             onKeyDown={onKeyDown}
+            onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             ref={mergeRefs(listElementRef, ref)}
           >
@@ -294,6 +344,6 @@ export function ListBox<T extends ListItemBase>({
           </ListWrap>
         </Container>
       </Container>
-    </Fragment>
+    </ListBoxDetailsHoverContext>
   );
 }

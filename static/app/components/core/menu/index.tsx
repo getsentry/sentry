@@ -10,6 +10,7 @@ export {
   MenuListItem as ListItem,
   MenuSectionSeparator as SectionSeparator,
   SearchInput as Search,
+  focusMenuItemDetails,
 } from './menu';
 
 export type {ListItemProps} from './menu';

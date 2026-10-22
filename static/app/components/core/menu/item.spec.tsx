@@ -11,11 +11,8 @@ jest.mock('@floating-ui/react-dom', () => ({
   useFloating: jest.fn(),
 }));
 
-const setReference = jest.fn();
-
 describe('ListItem', () => {
   beforeEach(() => {
-    setReference.mockReset();
     jest
       .mocked(useFloating)
       .mockImplementation(({placement = 'bottom', strategy = 'absolute'} = {}) => ({
@@ -29,7 +26,7 @@ describe('ListItem', () => {
         refs: {
           reference: {current: null},
           floating: {current: null},
-          setReference,
+          setReference: jest.fn(),
           setFloating: jest.fn(),
         },
         elements: {reference: null, floating: null},
@@ -90,7 +87,9 @@ describe('ListItem', () => {
     );
 
     expect(screen.getByRole('tooltip')).toHaveTextContent('More');
-    expect(setReference).toHaveBeenLastCalledWith(ref.current);
+    expect(useFloating).toHaveBeenLastCalledWith(
+      expect.objectContaining({elements: {reference: ref.current}})
+    );
   });
 
   it('positions the details overlay against an item focused after mounting', () => {
@@ -104,6 +103,8 @@ describe('ListItem', () => {
     );
 
     expect(screen.getByRole('tooltip')).toHaveTextContent('More');
-    expect(setReference).toHaveBeenLastCalledWith(ref.current);
+    expect(useFloating).toHaveBeenLastCalledWith(
+      expect.objectContaining({elements: {reference: ref.current}})
+    );
   });
 });
