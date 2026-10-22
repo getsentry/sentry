@@ -172,6 +172,7 @@ describe('useSeerExplorer', () => {
       '/issues/:groupId/attachments/',
       '/issues/:groupId/distributions/',
       '/issues/:groupId/distributions/:tagKey/',
+      '/explore/investigations/:investigationId/',
       '/explore/logs/trace/:traceSlug/',
       '/explore/replays/',
       '/explore/replays/:replaySlug/',
