@@ -35,7 +35,7 @@ import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack, type ContainerProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -283,8 +283,6 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 
 interface SecondaryNavigationHeaderProps {
   children?: ReactNode;
-  /** Overrides the header padding, which otherwise depends on the navigation layout. */
-  padding?: ContainerProps['padding'];
 }
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
@@ -297,7 +295,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={props.padding ?? (isMobile ? 'md lg' : '0 md 0 xl')}
+      padding={isMobile ? 'md lg' : '0 sm 0 sm'}
     >
       {props.children}
       <SecondaryNavigationToggle />
@@ -306,8 +304,10 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
 }
 
 function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
+  const {layout} = usePrimaryNavigation();
+
   return (
-    <Container minWidth="0">
+    <Container minWidth="0" paddingLeft={layout === 'mobile' ? undefined : 'lg'}>
       <Text size="md" bold>
         {children}
       </Text>

@@ -65,7 +65,7 @@ export function SettingsNavigation({
 
   return (
     <ErrorBoundary customComponent={null}>
-      <SecondaryNavigation.Header padding={showProjectSelector ? '0 sm' : undefined}>
+      <SecondaryNavigation.Header>
         {showProjectSelector ? (
           <SettingsProjectSelector />
         ) : (
