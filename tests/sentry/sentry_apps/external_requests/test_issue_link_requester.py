@@ -198,6 +198,33 @@ class TestIssueLinkRequester(TestCase):
         )
 
     @responses.activate
+    def test_rejects_non_http_web_url(self) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issue",
+            json={
+                "project": "ProjectName",
+                "webUrl": "javascript:alert(document.domain)",
+                "identifier": "issue-1",
+            },
+            status=200,
+            content_type="application/json",
+        )
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
+            IssueLinkRequester(
+                install=self.install,
+                group=self.group,
+                uri="/link-issue",
+                fields={},
+                user=self.rpc_user,
+                action=IssueRequestActionType("link"),
+            ).run()
+
+        assert exception_info.value.webhook_context["error_type"] == FAILURE_REASON_BASE.format(
+            SentryAppExternalRequestHaltReason.BAD_RESPONSE
+        )
+
+    @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_500_response(self, mock_record: MagicMock) -> None:
         responses.add(
