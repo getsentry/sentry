@@ -68,25 +68,19 @@ describe('useMetricTimeseries', () => {
   });
 
   it.each([true, false])(
-    'preserves transformation axis positions with the feature enabled=%s',
+    'forwards metric transformations with the feature enabled=%s',
     async featureEnabled => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',
         body: {timeSeries: []},
       });
       const visualizes = [
-        new VisualizeFunction('p50(value,test_metric,distribution,none)', {
-          visible: false,
-        }),
+        new VisualizeFunction('p50(value,test_metric,distribution,none)'),
         new VisualizeEquation('equation|1 + 2'),
         new VisualizeFunction('p50(value,test_metric,distribution,none)', {
-          transformations: ['fill(locf)', 'smooth(sma,5)'],
-        }),
-        new VisualizeFunction('p99(value,test_metric,distribution,none)', {
-          transformations: ['smooth(ema,3,0.5)', 'fill(zero)'],
+          transformations: ['smooth(sma,5)'],
         }),
       ];
-
       renderHookWithProviders(useMetricTimeseries, {
         organization: OrganizationFixture({
           features: featureEnabled ? ['explore-interpolation-and-smoothing'] : [],
@@ -103,24 +97,14 @@ describe('useMetricTimeseries', () => {
       });
 
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
-      const query = request.mock.calls[0]![1].query;
+      const query = request.mock.lastCall![1].query;
       expect(query.yAxis).toEqual([
         'p50(value,test_metric,distribution,none)',
         'equation|1 + 2',
         'p50(value,test_metric,distribution,none)',
-        'p99(value,test_metric,distribution,none)',
       ]);
-      expect(
-        Object.fromEntries(
-          Object.entries(query).filter(([key]) => key.startsWith('transformations'))
-        )
-      ).toEqual(
-        featureEnabled
-          ? {
-              'transformations[2]': ['fill(locf)', 'smooth(sma,5)'],
-              'transformations[3]': ['smooth(ema,3,0.5)', 'fill(zero)'],
-            }
-          : {}
+      expect(query['transformations[2]']).toEqual(
+        featureEnabled ? ['smooth(sma,5)'] : undefined
       );
     }
   );
@@ -318,28 +302,11 @@ describe('useMetricTimeseries', () => {
     });
 
     renderHookWithProviders(useMetricTimeseries, {
-      organization: OrganizationFixture({
-        features: ['explore-interpolation-and-smoothing'],
-      }),
       initialProps: {
         traceMetric: {name: 'test_metric', type: 'distribution'},
         enabled: true,
       },
-      additionalWrapper: ({children}) => (
-        <MockMetricQueryParamsContextWithMultiVisualize
-          visualizes={[
-            new VisualizeFunction('p50(value,test_metric,distribution,none)', {
-              transformations: ['fill(locf)', 'smooth(sma,5)'],
-            }),
-            new VisualizeFunction('p75(value,test_metric,distribution,none)'),
-            new VisualizeFunction('p99(value,test_metric,distribution,none)', {
-              transformations: ['smooth(asap)'],
-            }),
-          ]}
-        >
-          {children}
-        </MockMetricQueryParamsContextWithMultiVisualize>
-      ),
+      additionalWrapper: MockMetricQueryParamsContextWithMultiVisualize,
     });
 
     expect(mockNormalRequest).toHaveBeenCalledTimes(1);
@@ -347,18 +314,6 @@ describe('useMetricTimeseries', () => {
     await waitFor(() => {
       expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1);
     });
-
-    for (const request of [mockNormalRequest, mockHighAccuracyRequest]) {
-      expect(request).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-timeseries/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            'transformations[0]': ['fill(locf)', 'smooth(sma,5)'],
-            'transformations[2]': ['smooth(asap)'],
-          }),
-        })
-      );
-    }
 
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',

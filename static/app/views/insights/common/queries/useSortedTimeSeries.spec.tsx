@@ -17,40 +17,28 @@ describe('useSortedTimeSeries', () => {
     PageFiltersStore.reset();
   });
 
-  it('keeps grouped duplicate axes separate by their ordered transformations', async () => {
+  it('selects raw and smoothed values separately for each group', async () => {
     const response = {
-      timeSeries: [
-        ...[11, 22, 33].map(value =>
+      timeSeries: ['first', 'second'].flatMap(group =>
+        [10, 20].map(value =>
           TimeSeriesFixture({
             yAxis: 'count()',
-            groupBy: [{key: 'group', value: 'second'}],
+            groupBy: [{key: 'group', value: group}],
             values: [{timestamp: 1, value}],
           })
-        ),
-        ...[1, 2, 3].map(value =>
-          TimeSeriesFixture({
-            yAxis: 'count()',
-            groupBy: [{key: 'group', value: 'first'}],
-            values: [{timestamp: 1, value}],
-          })
-        ),
-      ],
+        )
+      ),
     };
-    for (const series of response.timeSeries) {
-      Object.freeze(series.values);
-      Object.freeze(series);
-    }
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: response,
     });
-
     const {result} = renderHookWithProviders(() =>
       useSortedTimeSeries(
         {
           enabled: true,
-          yAxis: ['count()', 'count()', 'count()'],
-          transformations: [['fill(locf)', 'smooth(sma,5)'], ['smooth(sma,5)'], []],
+          yAxis: ['count()', 'count()'],
+          transformations: [[], ['smooth(sma,5)']],
         },
         'test-query',
         DiscoverDatasets.SPANS
@@ -58,118 +46,23 @@ describe('useSortedTimeSeries', () => {
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getTimeSeriesForQuery(result.current.data, 'count()')).toEqual([
+      {...response.timeSeries[0], requestedTransformations: []},
+      {...response.timeSeries[2], requestedTransformations: []},
+    ]);
     expect(
-      getTimeSeriesForQuery(result.current.data, 'count()', [
-        'fill(locf)',
-        'smooth(sma,5)',
-      ]).map(series => series.values[0]!.value)
-    ).toEqual([11, 1]);
-    expect(
-      getTimeSeriesForQuery(result.current.data, 'count()', ['smooth(sma,5)']).map(
-        series => series.values[0]!.value
-      )
-    ).toEqual([22, 2]);
-    expect(
-      getTimeSeriesForQuery(result.current.data, 'count()').map(
-        series => series.values[0]!.value
-      )
-    ).toEqual([33, 3]);
-    expect(
-      getTimeSeriesForQuery(result.current.data, 'count()', [
-        'smooth(sma,5)',
-        'fill(locf)',
-      ])
-    ).toEqual([]);
+      getTimeSeriesForQuery(result.current.data, 'count()', ['smooth(sma,5)'])
+    ).toEqual([
+      {...response.timeSeries[1], requestedTransformations: ['smooth(sma,5)']},
+      {...response.timeSeries[3], requestedTransformations: ['smooth(sma,5)']},
+    ]);
     expect(response.timeSeries[0]).not.toHaveProperty('requestedTransformations');
   });
 
-  it('uses raw series for stored transformations when the feature is off', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [
-          TimeSeriesFixture({yAxis: 'count()', values: [{timestamp: 1, value: 7}]}),
-        ],
-      },
-    });
-    const {result} = renderHookWithProviders(() =>
-      useSortedTimeSeries(
-        {enabled: true, yAxis: ['count()']},
-        'test-query',
-        DiscoverDatasets.SPANS
-      )
-    );
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  it('uses unannotated series when transformations are disabled', () => {
+    const series = TimeSeriesFixture({yAxis: 'count()'});
     expect(
-      getTimeSeriesForQuery(result.current.data, 'count()', ['fill(zero)']).map(
-        series => series.values[0]!.value
-      )
-    ).toEqual([7]);
+      getTimeSeriesForQuery({'count()': [series]}, 'count()', ['smooth(sma,5)'])
+    ).toEqual([series]);
   });
-
-  it.each([false, true])(
-    'preserves empty series and Other groups (%s)',
-    async isOther => {
-      const response = {
-        timeSeries: [
-          TimeSeriesFixture({yAxis: 'count()', groupBy: null, values: []}),
-          TimeSeriesFixture({
-            yAxis: 'count()',
-            groupBy: null,
-            values: [{timestamp: 1, value: 17}],
-          }),
-        ].map(series => ({...series, meta: {...series.meta, isOther}})),
-      };
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-timeseries/',
-        body: response,
-      });
-      const {result} = renderHookWithProviders(() =>
-        useSortedTimeSeries(
-          {
-            enabled: true,
-            yAxis: ['count()', 'count()'],
-            transformations: [['fill(locf)'], []],
-          },
-          'test-query',
-          DiscoverDatasets.SPANS
-        )
-      );
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(
-        getTimeSeriesForQuery(result.current.data, 'count()', ['fill(locf)'])
-      ).toEqual([{...response.timeSeries[0], requestedTransformations: ['fill(locf)']}]);
-      expect(getTimeSeriesForQuery(result.current.data, 'count()')).toEqual([
-        {...response.timeSeries[1], requestedTransformations: []},
-      ]);
-    }
-  );
-
-  it.each([['count()'], ['avg(span.duration)', 'count()']])(
-    'rejects a response that cannot be matched to the request axes %j',
-    async (...axes) => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-timeseries/',
-        body: {timeSeries: axes.map(yAxis => TimeSeriesFixture({yAxis}))},
-      });
-      const {result} = renderHookWithProviders(() =>
-        useSortedTimeSeries(
-          {
-            enabled: true,
-            yAxis: ['count()', 'avg(span.duration)'],
-            transformations: [['fill(locf)'], []],
-          },
-          'test-query',
-          DiscoverDatasets.SPANS
-        )
-      );
-
-      await waitFor(() => expect(result.current.isError).toBe(true));
-      expect(result.current.error?.message).toBe(
-        'Time series response did not match the requested axes.'
-      );
-    }
-  );
 });

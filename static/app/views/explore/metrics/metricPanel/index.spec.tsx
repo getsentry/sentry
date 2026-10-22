@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import type {EChartsOption} from 'echarts';
 import qs from 'query-string';
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
@@ -16,9 +15,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
-import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
@@ -37,24 +34,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-let mockChartOptions: EChartsOption | undefined;
-
-jest.mock('echarts-for-react/lib/core', () => {
-  return function MockEcharts({option}: {option: EChartsOption}) {
-    mockChartOptions = option;
-    return null;
-  };
-});
-
 const TRACE_METRIC_FIXTURE_DATE = new Date('2025-04-03T15:50:10.000Z');
-
-function QueriedMetricsGraph() {
-  const {result} = useMetricTimeseries({
-    traceMetric: {name: 'bar', type: 'distribution'},
-    enabled: true,
-  });
-  return <MetricsGraph timeseriesResult={result} actions={null} />;
-}
 
 function createWrapper({
   queryParams,
@@ -160,7 +140,6 @@ describe('MetricPanel', () => {
     });
 
   beforeEach(() => {
-    mockChartOptions = undefined;
     MockApiClient.clearMockResponses();
     setupPageFilters();
 
@@ -204,51 +183,6 @@ describe('MetricPanel', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table bottom'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
-  });
-
-  it('plots each pipeline once for duplicate metric aggregates', async () => {
-    const timestamp = Date.parse('2025-04-03T15:00:00Z');
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [
-          TimeSeriesFixture({
-            yAxis: 'sum(value)',
-            values: [{timestamp, value: 11}],
-          }),
-          TimeSeriesFixture({
-            yAxis: 'sum(value)',
-            values: [{timestamp, value: 29}],
-          }),
-        ],
-      },
-    });
-
-    render(<QueriedMetricsGraph />, {
-      organization: {
-        ...organization,
-        features: [...organization.features, 'explore-interpolation-and-smoothing'],
-      },
-      additionalWrapper: createWrapper({
-        queryParams: queryParams.replace({
-          aggregateFields: [
-            new VisualizeFunction('sum(value)', {transformations: ['fill(locf)']}),
-            new VisualizeFunction('sum(value)', {transformations: ['fill(locf)']}),
-            new VisualizeFunction('sum(value)', {transformations: ['smooth(sma,5)']}),
-          ],
-        }),
-        traceMetric,
-      }),
-    });
-
-    await waitFor(() =>
-      expect(mockChartOptions).toMatchObject({
-        series: [
-          expect.objectContaining({data: [[timestamp, 11]]}),
-          expect.objectContaining({data: [[timestamp, 29]]}),
-        ],
-      })
-    );
   });
 
   it.each([

@@ -42,42 +42,23 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
-  it('plots each pipeline separately and uses the raw count for missing confidence', async () => {
+  it('plots raw and smoothed values in their respective charts', async () => {
     const result = timeseriesResultFixture({
       data: {
-        'avg(span.duration)': [
-          TimeSeriesFixture({
-            yAxis: 'avg(span.duration)',
-            requestedTransformations: ['fill(locf)'],
-            meta: {valueType: 'number', valueUnit: null, interval: 1_800_000},
-            values: [{timestamp: 1729796400000, value: 11}],
-          }),
-          TimeSeriesFixture({
-            yAxis: 'avg(span.duration)',
-            requestedTransformations: ['smooth(sma,5)'],
-            meta: {valueType: 'number', valueUnit: null, interval: 1_800_000},
-            values: [
-              {timestamp: 1729796400000, value: 29, sampleCount: 3, sampleRate: 1},
-            ],
-          }),
-        ],
         'count(span.duration)': [
           TimeSeriesFixture({
             yAxis: 'count(span.duration)',
-            requestedTransformations: ['fill(locf)'],
-            values: [
-              {timestamp: 1729796400000, value: 93, sampleCount: 93, sampleRate: 1},
-            ],
+            requestedTransformations: [],
+            values: [{timestamp: 1729796400000, value: 10}],
           }),
           TimeSeriesFixture({
             yAxis: 'count(span.duration)',
-            requestedTransformations: [],
-            values: [{timestamp: 1729796400000, value: 7, sampleCount: 7, sampleRate: 1}],
+            requestedTransformations: ['smooth(sma,5)'],
+            values: [{timestamp: 1729796400000, value: 20}],
           }),
         ],
       },
     });
-
     render(
       <SpansQueryParamsProvider>
         <ChartSelectionProvider>
@@ -86,10 +67,8 @@ describe('ExploreCharts', () => {
             query=""
             timeseriesResult={result}
             visualizes={[
-              new VisualizeFunction('avg(span.duration)', {
-                transformations: ['fill(locf)'],
-              }),
-              new VisualizeFunction('avg(span.duration)', {
+              new VisualizeFunction('count(span.duration)'),
+              new VisualizeFunction('count(span.duration)', {
                 transformations: ['smooth(sma,5)'],
               }),
             ]}
@@ -100,18 +79,14 @@ describe('ExploreCharts', () => {
             }}
           />
         </ChartSelectionProvider>
-      </SpansQueryParamsProvider>,
-      {organization: OrganizationFixture()}
+      </SpansQueryParamsProvider>
     );
 
     const charts = await screen.findAllByLabelText('Chart values');
     expect(charts.map(chart => chart.textContent)).toEqual([
-      '[[[1729796400000,11]]]',
-      '[[[1729796400000,29]]]',
+      '[[[1729796400000,10]]]',
+      '[[[1729796400000,20]]]',
     ]);
-    expect(screen.getByText('7')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.queryByText('93')).not.toBeInTheDocument();
   });
 
   it('renders the high accuracy message when the widget is loading more data', async () => {

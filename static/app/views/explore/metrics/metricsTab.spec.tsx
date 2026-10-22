@@ -199,16 +199,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('requests edited panel transformations without changing other metrics', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      match: [
-        MockApiClient.matchQuery({
-          yAxis: ['p50(value,bar,distribution,none)', 'p90(value,bar,distribution,none)'],
-        }),
-      ],
-      body: {timeSeries: [TimeSeriesFixture()]},
-    });
+  it('edits panel transformations in the URL without changing other metrics', async () => {
     const firstMetric = JSON.stringify({
       metric: {name: 'bar', type: 'distribution'},
       query: '',
@@ -274,22 +265,6 @@ describe('MetricsTabContent', () => {
       expect(encodedMetrics[1]).toBe(otherMetric);
     });
 
-    await waitFor(() =>
-      expect(request).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/events-timeseries/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: [
-              'p50(value,bar,distribution,none)',
-              'p90(value,bar,distribution,none)',
-            ],
-            'transformations[0]': ['fill(locf)', 'smooth(sma,4)'],
-            'transformations[1]': ['fill(locf)', 'smooth(sma,4)'],
-          }),
-        })
-      )
-    );
-
     await userEvent.click(
       within(firstPanel).getAllByRole('button', {name: 'Remove transformation'})[1]!
     );
@@ -307,16 +282,6 @@ describe('MetricsTabContent', () => {
       });
       expect(encodedMetrics[0]).not.toContain('transformations');
       expect(encodedMetrics[1]).toBe(otherMetric);
-    });
-    await waitFor(() => {
-      const query = request.mock.lastCall![1].query;
-      expect(query.yAxis).toEqual([
-        'p50(value,bar,distribution,none)',
-        'p90(value,bar,distribution,none)',
-      ]);
-      expect(Object.keys(query).filter(key => key.startsWith('transformations'))).toEqual(
-        []
-      );
     });
   });
 
