@@ -26,10 +26,6 @@ from sentry.web.frontend.debug.debug_missing_member_nudge_email import DebugMiss
 from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
 from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
-from sentry.web.frontend.debug.debug_oauth_authorize import (
-    DebugOAuthAuthorizeErrorView,
-    DebugOAuthAuthorizeView,
-)
 from sentry.web.frontend.debug.debug_onboarding_continuation_email import (
     DebugOrganizationOnboardingContinuationEmail,
 )
@@ -142,8 +138,6 @@ urlpatterns = [
     re_path(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),
     re_path(r"^debug/auth-confirm-identity/$", debug_auth_views.DebugAuthConfirmIdentity.as_view()),
     re_path(r"^debug/auth-confirm-link/$", debug_auth_views.DebugAuthConfirmLink.as_view()),
-    re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
-    re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
     re_path(r"^debug/charts/chart-renderer/$", DebugChartRendererView.as_view()),
     re_path(r"^debug/charts/metric-alert-charts/$", DebugMetricAlertChartRendererView.as_view()),
     re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),

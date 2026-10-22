@@ -47,12 +47,12 @@ import {
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
-  InvestigationCell,
+  InvestigationNotebookBlock,
   isBlockWorking,
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
-} from 'sentry/views/investigations/detail/cell';
-import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+} from 'sentry/views/investigations/detail/block';
+import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
@@ -155,7 +155,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const {copy} = useCopyToClipboard();
   const composerRef = useRef<HTMLDivElement>(null);
   const activityRef = useRef<HTMLElement>(null);
-  const {data: comments} = useInvestigationComments(investigation.id);
+  const {data: comments} = useInvestigationComments(investigation.id, {
+    shouldPoll: investigation.status !== 'archived',
+  });
   const commentCount = comments?.json.length ?? 0;
   const hasMoreComments =
     parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
@@ -310,15 +312,16 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleBlocks = (investigation.blocks ?? []).filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
-  const awaitingReportCell = isAwaitingReportCell(investigation);
+  const awaitingReportBlock = isAwaitingReportBlock(investigation);
   const source = getInvestigationSource(investigation);
   const hasDetails =
     Boolean(investigation.orchestration) ||
     visibleBlocks.length > 0 ||
-    awaitingReportCell;
+    awaitingReportBlock;
   // The "Investigation details" heading only appears below a summary.
   const showDetailsHeading =
     hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
+  const showActivity = isInvestigationRunDone(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -374,7 +377,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             },
           ]}
         />
-        <Container as="header" width="100%" padding="xl xl 3xl">
+        <Container as="header" width="100%" padding="xl xl 2xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
               columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
@@ -400,8 +403,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 </Flex>
               ) : null}
             </Grid>
-            <Flex align="center" justify="between" gap="md" wrap="wrap">
-              <Flex align="center" gap="sm" wrap="wrap">
+            <Flex align="center" justify="between" gap="md">
+              <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
                 {source.groupId ? (
                   <Link
                     to={normalizeUrl(
@@ -424,11 +427,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     date: <DateTime date={investigation.dateUpdated} year />,
                   })}
                 </Text>
-                {investigation.status === 'archived' && commentCount === 0 ? null : (
+                {!showActivity ||
+                (investigation.status === 'archived' && commentCount === 0) ? null : (
                   <Fragment>
                     <MetaDivider />
                     <Button
-                      size="zero"
+                      size="sm"
                       variant="link"
                       icon={<IconChat size="xs" />}
                       onClick={() => {
@@ -456,23 +460,25 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   separator={<MetaDivider />}
                 />
               </Flex>
-              <FeedbackButton
-                feedbackOptions={{
-                  formTitle: t('Give feedback on this investigation'),
-                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                  tags: {
-                    'feedback.source': 'investigation',
-                    'feedback.owner': 'ml-ai',
-                    'investigation.id': investigation.id,
-                    'investigation.source_type': investigation.sourceType,
-                    ...(investigation.template
-                      ? {'investigation.template': investigation.template.key}
-                      : {}),
-                  },
-                }}
-              >
-                {t('Give feedback')}
-              </FeedbackButton>
+              <Container flexShrink={0}>
+                <FeedbackButton
+                  feedbackOptions={{
+                    formTitle: t('Give feedback on this investigation'),
+                    messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                    tags: {
+                      'feedback.source': 'investigation',
+                      'feedback.owner': 'ml-ai',
+                      'investigation.id': investigation.id,
+                      'investigation.source_type': investigation.sourceType,
+                      ...(investigation.template
+                        ? {'investigation.template': investigation.template.key}
+                        : {}),
+                    },
+                  }}
+                >
+                  {t('Give feedback')}
+                </FeedbackButton>
+              </Container>
             </Flex>
           </Stack>
         </Container>
@@ -507,14 +513,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                         status={investigation.orchestration.status}
                       />
                     ) : null}
-                    {visibleBlocks.length > 0 || awaitingReportCell ? (
+                    {visibleBlocks.length > 0 || awaitingReportBlock ? (
                       <Stack>
                         {visibleBlocks.map((block, index) => (
                           <Container
                             key={block.id}
-                            paddingTop={getCellSpacing(block, index)}
+                            paddingTop={getBlockSpacing(block, index)}
                           >
-                            <InvestigationCell
+                            <InvestigationNotebookBlock
                               block={block}
                               canRun={investigation.status === 'active'}
                               investigation={investigation}
@@ -527,9 +533,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                             />
                           </Container>
                         ))}
-                        {awaitingReportCell ? (
+                        {awaitingReportBlock ? (
                           <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
-                            <InvestigationCellPlaceholder />
+                            <InvestigationBlockPlaceholder />
                           </Container>
                         ) : null}
                       </Stack>
@@ -537,11 +543,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   </DetailsBody>
                 </Stack>
               ) : null}
-              <InvestigationActivity
-                investigation={investigation}
-                composerRef={composerRef}
-                ref={activityRef}
-              />
+              {showActivity ? (
+                <InvestigationActivity
+                  investigation={investigation}
+                  composerRef={composerRef}
+                  ref={activityRef}
+                />
+              ) : null}
               <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
@@ -552,10 +560,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 }
 
 /**
- * Text cells start a new section with a large gap. Query cells sit close to the
- * text cell above them.
+ * Text blocks start a new section with a large gap. Query blocks sit close to the
+ * text block above them.
  */
-function getCellSpacing(block: InvestigationBlock, index: number) {
+function getBlockSpacing(block: InvestigationBlock, index: number) {
   if (index === 0) {
     return '0';
   }
@@ -563,18 +571,28 @@ function getCellSpacing(block: InvestigationBlock, index: number) {
 }
 
 // Seer reaches the reporting phase once it is done with the hypotheses, but the
-// report arrives as cells on a later poll. Until then the notebook stands in a
-// placeholder cell, unless a cell is already running — that one shows its own.
-function isAwaitingReportCell(investigation: InvestigationDetail) {
+// report arrives as blocks on a later poll. Until then the notebook stands in a
+// placeholder block, unless a block is already running — that one shows its own.
+function isAwaitingReportBlock(investigation: InvestigationDetail) {
   const {orchestration} = investigation;
   if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
     return false;
   }
-  // Only a cell Seer is working on rules this out, because that cell is already
-  // showing a placeholder of its own. A cell that finished, failed or was
+  // Only a block Seer is working on rules this out, because that block is already
+  // showing a placeholder of its own. A block that finished, failed or was
   // cancelled is done, and more are still coming.
   return !(investigation.blocks ?? []).some(isBlockWorking);
 }
+
+// The activity feed waits for an agentic run to stop, so it doesn't compete with
+// the run for attention while Seer is still working. Manual and template
+// investigations have no run, so their feed always shows.
+function isInvestigationRunDone(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  return !orchestration || RUN_DONE_STATUSES.has(orchestration.status);
+}
+
+const RUN_DONE_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
 
 function isTitleGenerationActive(status: string | null | undefined) {
   return status === 'pending' || status === 'running';
@@ -632,7 +650,9 @@ const NotebookTitleInput = styled(Input)`
   border-color: transparent;
   border-radius: ${p => p.theme.radius.sm};
   box-shadow: none;
-  font-size: ${p => p.theme.font.size['2xl']};
+  /* The base input's form min-height would pad the title out below its text. */
+  min-height: 0;
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.25;
 
@@ -644,7 +664,7 @@ const NotebookTitleInput = styled(Input)`
 `;
 
 /**
- * Hidden when empty (e.g. no hypotheses and no cells), so it doesn't add a gap
+ * Hidden when empty (e.g. no hypotheses and no blocks), so it doesn't add a gap
  * below the heading.
  */
 const DetailsBody = styled(Stack)`

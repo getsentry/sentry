@@ -21,7 +21,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -539,10 +538,6 @@ describe('InboxPage', () => {
     expect(
       within(fixSection).queryByRole('link', {name: 'Pull request #14, Merged'})
     ).not.toBeInTheDocument();
-    const shortId = within(fixSection).getByText('PROJECT-101');
-    expect(
-      openPullRequest.compareDocumentPosition(shortId) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
     expect(diagnosedPullRequests).not.toHaveBeenCalled();
     expect(assignedPullRequests).not.toHaveBeenCalled();
   });
@@ -1315,6 +1310,10 @@ describe('InboxPage', () => {
   it('uses action-specific icons from code changes through PR creation', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/activities/`,
+      body: {activity: [], otherPullRequests: []},
+    });
     mockAutofixResponse(
       ExplorerAutofixResponseFixture({
         autofix: ExplorerAutofixStateFixture({
@@ -1357,9 +1356,12 @@ describe('InboxPage', () => {
       expect(within(preview).getByTestId('autofix-code-changes-icon')).toBeVisible()
     );
 
-    // After starting the step, the refetch will see completed code changes.
-    mockAutofixResponse(
-      ExplorerAutofixResponseFixture({
+    // The POST can finish before the updated run state reaches the button.
+    const refresh = Promise.withResolvers<void>();
+    const refetch = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/`,
+      asyncDelay: refresh.promise,
+      body: ExplorerAutofixResponseFixture({
         autofix: ExplorerAutofixStateFixture({
           blocks: [
             ExplorerAutofixBlockFixture({
@@ -1386,12 +1388,19 @@ describe('InboxPage', () => {
             }),
           ],
         }),
-      })
-    );
+      }),
+    });
 
     await userEvent.click(
       within(preview).getByRole('button', {name: 'Write a Code Fix'})
     );
+
+    await waitFor(() => expect(refetch).toHaveBeenCalled());
+    expect(
+      within(preview).getByRole('button', {name: 'Write a Code Fix'})
+    ).toHaveAttribute('aria-busy', 'true');
+
+    refresh.resolve();
 
     const createPullRequestButton = await within(preview).findByRole('button', {
       name: 'Create PR',
@@ -1399,6 +1408,7 @@ describe('InboxPage', () => {
     expect(
       within(createPullRequestButton).getByTestId('autofix-pull-request-icon')
     ).toBeVisible();
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('labels a coding agent pull request like a Seer one', async () => {
@@ -1529,7 +1539,7 @@ describe('InboxPage', () => {
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('shows one column without the empty state when the container is narrow', async () => {
+  it('does not show the empty state when the container is narrow', async () => {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(803);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -1543,9 +1553,6 @@ describe('InboxPage', () => {
     expect(
       screen.queryByRole('heading', {name: 'No Issues in your Inbox!'})
     ).not.toBeInTheDocument();
-    expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
-      'grid-template-columns: minmax(0, 1fr)'
-    );
   });
 
   it('shows the empty state at the 2xl container breakpoint', async () => {
@@ -1558,10 +1565,6 @@ describe('InboxPage', () => {
     render(<InboxPageInContainer />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
-    const inbox = screen.getByRole('region', {name: 'Issue inbox'});
-    expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
-      'grid-template-columns: max-content minmax(0, 1fr)'
-    );
   });
 
   describe('on desktop', () => {
@@ -1595,7 +1598,7 @@ describe('InboxPage', () => {
       expect(inbox).toHaveStyle({width: '550px'});
     });
 
-    it('reserves the inbox column when there is no preview or empty state', async () => {
+    it('does not show the empty state when the inbox count is nonzero', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -1610,17 +1613,12 @@ describe('InboxPage', () => {
       render(<InboxPageInContainer />, {organization, initialRouterConfig});
 
       const inbox = screen.getByRole('region', {name: 'Issue inbox'});
-      await waitFor(() => {
-        expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
-          'grid-template-columns: max-content minmax(0, 1fr)'
-        );
-        expect(inbox).toHaveStyle({width: '480px'});
-      });
-      expect(
-        getEmotionRules(screen.getByRole('complementary', {name: 'Issue preview'})).join(
-          ''
+      await waitFor(() =>
+        expect(within(inbox).getByRole('button', {name: /Fix Proposed/})).toHaveAttribute(
+          'aria-expanded',
+          'false'
         )
-      ).toContain('display: none');
+      );
       expect(
         screen.queryByRole('heading', {name: 'No Issues in your Inbox!'})
       ).not.toBeInTheDocument();

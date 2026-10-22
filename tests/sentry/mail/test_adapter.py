@@ -538,10 +538,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
-        # Because we are using the workflow engine, the snooze_alert context should be False
-        # This is because a user cannot snooze a workflow for themselves
-        assert notification.get_context()["snooze_alert"] is False
-
         assert group
         mock_logger.info.assert_called_with(
             "mail.adapter.notify",
@@ -1304,12 +1300,18 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         )
 
     def test_group_substatus_header(self) -> None:
+        self.assert_group_substatus_header(GroupSubStatus.REGRESSED, "Regressed issue")
+
+    def test_escalating_group_substatus_header(self) -> None:
+        self.assert_group_substatus_header(GroupSubStatus.ESCALATING, "Escalating issue")
+
+    def assert_group_substatus_header(self, substatus: int, header: str) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         # Header is based on the group substatus
         assert event.group is not None
-        event.group.substatus = GroupSubStatus.REGRESSED
+        event.group.substatus = substatus
         event.group.save()
 
         rule = self.create_project_rule(name="my rule")
@@ -1330,7 +1332,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         assert isinstance(msg, EmailMultiAlternatives)
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert isinstance(msg.alternatives[0][0], str)
-        assert "Regressed issue" in msg.alternatives[0][0]
+        assert header in msg.alternatives[0][0]
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):

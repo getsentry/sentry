@@ -119,7 +119,9 @@ class WorkflowGroupsPaginatedTest(TestCase):
         per_page: int = 25,
         sort: Sequence[str] = (),
     ) -> CursorResult[WorkflowGroupHistory]:
-        result = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page, sort)
+        result = fetch_workflow_groups_paginated(
+            workflow, start, end, cursor, per_page, sort, project_ids=[self.project.id]
+        )
         assert result.results == expected_results, (result.results, expected_results)
         return result
 

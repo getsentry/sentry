@@ -3528,6 +3528,7 @@ class PostProcessGroupErrorTest(
         )
         now = time.time()
         event.data["received"] = now - 1200
+        event.data["save_event_start"] = now - 90
         event.data["nodestore_insert"] = now - 60
         event.data["contexts"]["reprocessing"] = reprocessing_context
 
@@ -3561,8 +3562,8 @@ class PostProcessGroupErrorTest(
             },
         )
         mock_timing.assert_any_call(
-            "events.nodestore_to_post_process",
-            60,
+            "events.save_to_post_process",
+            90,
             instance="python",
             tags={
                 "occurrence_type": "error",
@@ -3574,7 +3575,7 @@ class PostProcessGroupErrorTest(
     @freeze_time()
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.tasks.post_process.metrics.timing")
-    def test_latency_metrics_without_nodestore_timestamp(
+    def test_latency_metrics_without_save_event_start(
         self, mock_timing: MagicMock, mock_run_job: MagicMock
     ) -> None:
         event = self.create_event(
@@ -3585,7 +3586,7 @@ class PostProcessGroupErrorTest(
             project_id=self.project.id,
         )
         event.data["received"] = time.time() - 1200
-        event.data.pop("nodestore_insert")
+        assert "save_event_start" not in event.data
 
         self.call_post_process_group(
             is_new=True,
@@ -3607,8 +3608,7 @@ class PostProcessGroupErrorTest(
             },
         )
         assert all(
-            call.args[0] != "events.nodestore_to_post_process"
-            for call in mock_timing.call_args_list
+            call.args[0] != "events.save_to_post_process" for call in mock_timing.call_args_list
         )
 
     @patch("sentry.tasks.post_process.run_post_process_job")

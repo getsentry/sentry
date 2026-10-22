@@ -30,6 +30,7 @@ export type SavedFormula = {
   /** Null for prebuilt formulas, which are created by Sentry. */
   createdBy: User | null;
   dataset: FormulaDataset;
+  description: string | null;
   formula: string;
   id: string;
   /** Prefixed with `formula.` so it cannot collide with a built in function. */

@@ -5,7 +5,6 @@ import trimStart from 'lodash/trimStart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -23,6 +22,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -50,7 +50,7 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
+  timeseriesResults?: WidgetTimeSeries[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
@@ -69,7 +69,7 @@ export type GenericWidgetQueriesResult = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
-  timeseriesResults?: Series[];
+  timeseriesResults?: WidgetTimeSeries[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;

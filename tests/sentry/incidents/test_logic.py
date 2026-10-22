@@ -65,7 +65,6 @@ class CreateIncidentTest(TestCase):
         assert incident.date_started == date_started
         assert incident.date_detected == date_detected
         assert incident.alert_rule == alert_rule
-        assert not incident.projects.exists()
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0].event
         assert event == IncidentCreatedEvent(

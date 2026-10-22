@@ -21,7 +21,7 @@ from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.viewer_context import ActorType, decode_viewer_context
+from sentry.viewer_context import ActorType, decode_viewer_context, get_viewer_context
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
 
@@ -454,6 +454,17 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         The seer API can return grouphashes that do not exist if their groups have been deleted/merged.
         Test info about these groups is not returned.
         """
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == self.project.organization_id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.user_id == self.user.id
+            assert viewer_context.actor_type == ActorType.USER
+
+        mock_seer_deletion_request.delay.side_effect = assert_viewer_context
+
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             # Two suggested groups, one with valid data, one pointing to a group that doesn't exist.
             # We should log the second and return the first.
