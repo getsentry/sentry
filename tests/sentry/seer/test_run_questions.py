@@ -2,10 +2,12 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import Mock, patch
 
+import pytest
 from django.test import override_settings
 from urllib3.response import HTTPResponse
 
 from sentry.models.organization import Organization
+from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.seer.oneshot import call_seer_oneshot, run_oneshot
 from sentry.seer.run_questions import QUESTIONS, get_run_questions
 from sentry.testutils.cases import TestCase
@@ -95,6 +97,42 @@ class CallSeerOneShotTest(TestCase):
             )
 
         assert observed_contexts == [existing_context]
+
+    def test_error_metric_includes_oneshot_id(self) -> None:
+        organization = self.organization
+
+        with (
+            patch(
+                "sentry.seer.oneshot.make_oneshot_request",
+                return_value=Mock(status=503, data=b"unavailable"),
+            ),
+            patch("sentry.seer.oneshot.metrics.incr") as mock_metrics_incr,
+            pytest.raises(SeerApiError),
+        ):
+            run_oneshot("autofix_issue_data_judge", {}, organization)
+
+        mock_metrics_incr.assert_called_once_with(
+            "seer.oneshot.error",
+            tags={"oneshot_id": "autofix_issue_data_judge", "status": 503},
+        )
+
+    def test_invalid_json_metric_includes_oneshot_id(self) -> None:
+        organization = self.organization
+
+        with (
+            patch(
+                "sentry.seer.oneshot.make_oneshot_request",
+                return_value=Mock(status=200, data=b"not-json"),
+            ),
+            patch("sentry.seer.oneshot.metrics.incr") as mock_metrics_incr,
+            pytest.raises(SeerApiError),
+        ):
+            run_oneshot("autofix_issue_data_judge", {}, organization)
+
+        mock_metrics_incr.assert_called_once_with(
+            "seer.oneshot.error",
+            tags={"oneshot_id": "autofix_issue_data_judge", "status": "invalid_json"},
+        )
 
 
 class GetRunQuestionsTest(TestCase):
