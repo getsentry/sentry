@@ -389,15 +389,15 @@ describe('desktop navigation', () => {
     ).toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByText(
-        'Organization Settings'
+        'Org Settings'
       )
     ).toBeInTheDocument();
     expect(
-      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).queryByRole(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
         'button',
         {name: 'Collapse'}
       )
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(

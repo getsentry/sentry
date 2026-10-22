@@ -20,7 +20,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
@@ -51,7 +50,6 @@ export function SettingsNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
   const location = useLocation();
   const settingsV3 = useSettingsV3();
-  const {layout} = usePrimaryNavigation();
   const isProjectSettings = !!matchPath(
     {path: '/settings/:orgId?/projects/:projectId', end: false},
     location.pathname
@@ -62,7 +60,7 @@ export function SettingsNavigation({
       ? t('Account Settings')
       : isProjectSettings
         ? t('Project Settings')
-        : t('Organization Settings')
+        : t('Org Settings')
     : t('Settings');
 
   return (
@@ -73,9 +71,7 @@ export function SettingsNavigation({
         ) : (
           <SecondaryNavigation.HeaderTitle>{title}</SecondaryNavigation.HeaderTitle>
         )}
-        {/* Hide the desktop Settings V3 toggle pending design review of header
-            spacing. Mobile still needs this control to close the menu. */}
-        {(!settingsV3 || layout === 'mobile') && <SecondaryNavigation.Toggle />}
+        <SecondaryNavigation.Toggle />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
@@ -95,7 +91,7 @@ function SettingsProjectSelector() {
   const location = useLocation();
   const subpage = matchPath('/settings/:orgId?/projects/:projectId/*', location.pathname)
     ?.params['*'];
-  const params = useParams<{orgId?: string; projectId?: string}>();
+  const params = useParams<{projectId: string; orgId?: string}>();
   const {projectId} = params;
   const matches = useMatches();
   const projectBreadcrumb = matches
@@ -117,7 +113,7 @@ function SettingsProjectSelector() {
           position="bottom-start"
           menuWidth="100%"
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
-          value={projectId ?? ''}
+          value={projectId}
           trigger={triggerProps => (
             <Container width="100%">
               {buttonProps => (
@@ -132,7 +128,7 @@ function SettingsProjectSelector() {
                 >
                   <Container flex="1" minWidth="0">
                     <Text ellipsis align="left">
-                      {projectId ?? t('Select a project')}
+                      {projectId}
                     </Text>
                   </Container>
                 </OverlayTrigger.Button>

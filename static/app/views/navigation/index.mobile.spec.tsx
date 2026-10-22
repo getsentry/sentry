@@ -165,9 +165,7 @@ describe('mobile navigation', () => {
     expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
     const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
     expect(within(secondaryNav).getByRole('link', {name: /^Feed$/})).toBeInTheDocument();
-    expect(
-      within(secondaryNav).queryByText('Organization Settings')
-    ).not.toBeInTheDocument();
+    expect(within(secondaryNav).queryByText('Org Settings')).not.toBeInTheDocument();
   });
 
   it('navigates account settings without an organization', async () => {
