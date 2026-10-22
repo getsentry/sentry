@@ -9,7 +9,7 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
-import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
+import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
@@ -116,6 +116,12 @@ export function ListBoxOption({
       priority={priority ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
+      innerWrapProps={{
+        paddingLeft: getOptionPaddingLeft({
+          hasCheck: !hideCheck,
+          hasLeadingItems: Boolean(leadingItems),
+        }),
+      }}
       trailingItems={trailingItems}
       showDetailsInOverlay={showDetailsInOverlay}
       tooltip={tooltip}

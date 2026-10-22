@@ -9,6 +9,20 @@ import {Outcome} from 'sentry/types/core';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
+// Customer-facing names for datasets, keyed by the raw DiscoverDatasets values
+// (`ourlogs`, `tracemetrics`, …) which are internal and must never reach a user.
+// Keyed by literal rather than the enum to keep this a type-only import.
+const DATASET_LABELS: Partial<Record<DiscoverDatasets, string>> = {
+  errors: t('error'),
+  ourlogs: t('log'),
+  spans: t('span'),
+  tracemetrics: t('application metric'),
+};
+
+function datasetLabel(dataset: DiscoverDatasets): string {
+  return DATASET_LABELS[dataset] ?? dataset;
+}
+
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
   [Outcome.CLIENT_DISCARD]: t('Client Discard'),
   [Outcome.FILTERED]: t('Inbound Filter'),
@@ -56,7 +70,7 @@ export function buildAskSeerPrompt(args: {
   return t(
     'My %(dataset)s data is being dropped as "%(outcome)s" (%(reason)s). Why is this happening and how do I fix it?',
     {
-      dataset: args.dataset,
+      dataset: datasetLabel(args.dataset),
       outcome: outcomeLabel(args.outcome),
       reason: reasonTitle(args.reason),
     }

@@ -41,7 +41,13 @@ export const ButtonBar = styled(
   & > button,
   & > input,
   & > a {
-    position: relative;
+    /* Dropdown menu wrappers use display: contents, so they never form a
+       containing block. Positioning them anyway makes Floating UI clamp the
+       menu's max-height to clipping ancestors it can actually escape, such as
+       table header cells. */
+    &:not([role='presentation']) {
+      position: relative;
+    }
 
     ${p =>
       p.orientation === 'vertical'
