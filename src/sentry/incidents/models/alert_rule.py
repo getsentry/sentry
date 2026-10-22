@@ -200,7 +200,7 @@ class AlertRuleTrigger(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
     label = models.TextField()
     threshold_type = models.SmallIntegerField(null=True)
     alert_threshold = models.FloatField()
