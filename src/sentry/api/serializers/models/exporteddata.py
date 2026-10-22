@@ -1,7 +1,34 @@
+from datetime import datetime
+from typing import Any, TypedDict
+
 from sentry.api.serializers import Serializer, register
-from sentry.data_export.base import ExportQueryType
+from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
 from sentry.users.services.user.service import user_service
+
+
+class ExportedDataUserResponse(TypedDict):
+    id: str
+    email: str
+    username: str
+
+
+class ExportedDataQueryResponse(TypedDict):
+    type: str
+    info: dict[str, Any]
+
+
+class ExportedDataResponse(TypedDict):
+    id: int
+    user: ExportedDataUserResponse | None
+    dateCreated: datetime
+    dateFinished: datetime | None
+    dateExpired: datetime | None
+    query: ExportedDataQueryResponse
+    status: ExportStatus
+    checksum: str | None
+    fileName: str | None
+    export_format: str | None
 
 
 @register(ExportedData)
@@ -28,7 +55,7 @@ class ExportedDataSerializer(Serializer):
                 attrs[item] = {}
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> ExportedDataResponse:
         file = obj._get_file()
         if file is None:
             checksum = None

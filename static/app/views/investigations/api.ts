@@ -61,6 +61,8 @@ export function getInvestigationDetailQueryOptions(
   );
 }
 
+export const INVESTIGATION_COMMENTS_PAGE_SIZE = 100;
+
 /** Newest first. Without `blockId`, page-level and block comments together. */
 export function investigationCommentsQueryOptions({
   organizationSlug,
@@ -75,7 +77,7 @@ export function investigationCommentsQueryOptions({
     '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/',
     {
       path: {organizationIdOrSlug: organizationSlug, investigationId},
-      query: {blockId, per_page: 100},
+      query: {blockId, per_page: INVESTIGATION_COMMENTS_PAGE_SIZE},
       staleTime: 0,
     }
   );
@@ -87,11 +89,14 @@ export function useCreateInvestigationCommentMutation(
   investigationId: string,
   options?: MutationOptions<InvestigationComment, {body: string; blockId?: string}>
 ) {
-  const queryClient = useQueryClient();
   const [commentsUrl] = investigationCommentsQueryOptions({
     organizationSlug,
     investigationId,
   }).queryKey;
+  const invalidateComments = useInvalidateInvestigationComments(
+    organizationSlug,
+    investigationId
+  );
 
   return useMutation({
     ...options,
@@ -102,7 +107,7 @@ export function useCreateInvestigationCommentMutation(
         data: blockId === undefined ? {body} : {body, blockId},
       }),
     onSuccess: async (comment, variables, onMutateResult, context) => {
-      await queryClient.invalidateQueries({queryKey: [commentsUrl]});
+      await invalidateComments();
       await options?.onSuccess?.(comment, variables, onMutateResult, context);
     },
   });
@@ -128,7 +133,16 @@ function useInvalidateInvestigationComments(
     organizationSlug,
     investigationId,
   }).queryKey;
-  return () => queryClient.invalidateQueries({queryKey: [commentsUrl]});
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({queryKey: [commentsUrl]}),
+      queryClient.invalidateQueries({
+        queryKey: investigationCommentCountsQueryOptions(
+          organizationSlug,
+          investigationId
+        ).queryKey,
+      }),
+    ]);
 }
 
 export function useUpdateInvestigationCommentMutation(
@@ -197,6 +211,20 @@ export function useDeleteInvestigationCommentMutation(
     },
     onSettled: invalidateComments,
   });
+}
+
+/** Comment count per block, for blocks that have comments. */
+export function investigationCommentCountsQueryOptions(
+  organizationSlug: string,
+  investigationId: string
+) {
+  return apiOptions.as<Record<string, number>>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/comment-counts/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, investigationId},
+      staleTime: 0,
+    }
+  );
 }
 
 export function investigationExecutionDetailQueryOptions({

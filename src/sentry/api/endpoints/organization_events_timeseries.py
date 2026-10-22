@@ -1,5 +1,5 @@
 import logging
-import re
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -31,13 +31,14 @@ from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
 )
-from sentry.api.helpers.timeseries_processing import Transformation, parse_transformation
+from sentry.api.helpers.timeseries_transformations import Transformation, get_transformations
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.status import IngestionDelayStatus
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -82,6 +83,11 @@ TOP_EVENTS_DATASETS = {
     TraceMetrics,
     errors,
     transactions,
+}
+DATASET_TO_FORMULA_DATASET = {
+    Spans: ExploreSavedQueryDataset.SPANS,
+    OurLogs: ExploreSavedQueryDataset.OURLOGS,
+    TraceMetrics: ExploreSavedQueryDataset.METRICS,
 }
 
 logger = logging.getLogger(__name__)
@@ -155,26 +161,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         else:
             return None
 
-    def get_transformations(self, request: Request) -> dict[int, list[Transformation]]:
-        """Parse ordered transformations by zero-based request yAxis position."""
-        transformations: dict[int, list[Transformation]] = {}
-        axis_count = len(request.GET.getlist("yAxis", ["count()"]))
-        for key, values in request.GET.lists():
-            if key != "transformations" and not key.startswith("transformations["):
-                continue
-            match = re.fullmatch(r"transformations\[(0|[1-9][0-9]*)\]", key)
-            if match is None:
-                raise ParseError(detail="Invalid transformations index")
-            try:
-                index = int(match.group(1))
-            except ValueError:
-                raise ParseError(detail="Invalid transformations index")
-            if index >= axis_count:
-                raise ParseError(detail="transformations index must match a yAxis position")
-            with handle_query_errors():
-                transformations[index] = [parse_transformation(value) for value in values]
-        return transformations
-
     @extend_schema(
         operation_id="listOrganizationEventsTimeseries",
         summary="Query Explore Events in Timeseries Format",
@@ -227,12 +213,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
+            transformations = {}
             if features.has(
                 "organizations:explore-interpolation-and-smoothing",
                 organization,
                 actor=request.user,
             ):
-                self.get_transformations(request)
+                transformations = get_transformations(request)
 
             dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
@@ -288,6 +275,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     comparison_delta,
                     additional_queries,
+                    transformations,
                 )
                 ingestion_delay_status = None
                 if ingestion_delay_future is not None:
@@ -329,6 +317,20 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             actor=request.user,
         )
 
+        if dataset in DATASET_TO_FORMULA_DATASET and features.has(
+            "organizations:explore-saved-formulas", organization, actor=request.user
+        ):
+            saved_formulas = {
+                formula.name: formula
+                for formula in ExploreSavedFormula.objects.filter(
+                    organization=organization,
+                    dataset=DATASET_TO_FORMULA_DATASET[dataset],
+                    prebuilt_deleted=False,
+                ).prefetch_related("variables")
+            }
+        else:
+            saved_formulas = None
+
         if dataset == TraceMetrics:
             # tracemetrics uses aggregate conditions
             return TraceMetricsSearchResolverConfig(
@@ -338,6 +340,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                saved_formulas=saved_formulas,
             )
         elif dataset == PreprodSize:
             return PreprodSizeSearchResolverConfig(
@@ -362,6 +365,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         actor=request.user,
                     )
                 ),
+                saved_formulas=saved_formulas if dataset in [Spans, OurLogs] else None,
             )
 
     def get_event_stats(
@@ -376,6 +380,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         comparison_delta: timedelta | None,
         additional_queries: AdditionalQueries,
+        transformations: Mapping[int, Sequence[Transformation]] | None = None,
     ) -> SnubaTSResult | dict[str, SnubaTSResult]:
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
@@ -444,6 +449,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                     additional_queries=additional_queries,
+                    transformations=transformations,
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
@@ -474,6 +480,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,
+                transformations=transformations,
             )
 
         return dataset.timeseries_query(
@@ -549,20 +556,25 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     ) -> list[TimeSeries]:
         serialized_result = []
         if isinstance(result, SnubaTSResult):
-            for axis in axes:
+            for axis_index, axis in enumerate(axes):
                 serialized_result.append(
-                    self.serialize_timeseries(result, axis, rollup, boundaries)
+                    self.serialize_timeseries(result, axis, rollup, boundaries, axis_index)
                 )
         else:
             for key, value in result.items():
-                for axis in axes:
+                for axis_index, axis in enumerate(axes):
                     serialized_result.append(
-                        self.serialize_timeseries(value, axis, rollup, boundaries)
+                        self.serialize_timeseries(value, axis, rollup, boundaries, axis_index)
                     )
         return serialized_result
 
     def serialize_timeseries(
-        self, result: SnubaTSResult, axis: str, rollup: int, boundaries: BucketBoundaries
+        self,
+        result: SnubaTSResult,
+        axis: str,
+        rollup: int,
+        boundaries: BucketBoundaries,
+        axis_index: int = 0,
     ) -> TimeSeries:
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
@@ -584,14 +596,32 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         )
 
         timeseries_values = []
-        for row in result.data["data"]:
-            value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0), incomplete=False)
+        value_column = axis
+        transformation_flags = None
+        comparison_transformation_flags = None
+        if "processed_timeseries" in result.data:
+            processed_timeseries = result.data["processed_timeseries"]
+            value_column = processed_timeseries.transformation_aliases.get(axis_index, axis)
+            transformation_flags = processed_timeseries.transformation_flags.get(axis_index)
+            comparison_transformation_flags = processed_timeseries.comparison_transformation_flags
+        for index, row in enumerate(result.data["data"]):
+            value_row = Row(
+                timestamp=row["time"] * 1000, value=row.get(value_column, 0), incomplete=False
+            )
 
             if reason := boundaries.incomplete_reason(row["time"], rollup):
                 value_row["incomplete"] = True
                 value_row["incompleteReason"] = reason
             if "comparisonCount" in row:
                 value_row["comparisonValue"] = row["comparisonCount"]
+                if comparison_transformation_flags is not None:
+                    value_row["comparisonFilled"] = comparison_transformation_flags.filled[index]
+                    value_row["comparisonSmoothed"] = comparison_transformation_flags.smoothed[
+                        index
+                    ]
+            if transformation_flags is not None:
+                value_row["filled"] = transformation_flags.filled[index]
+                value_row["smoothed"] = transformation_flags.smoothed[index]
             timeseries_values.append(value_row)
 
         if "groupby" in result.data:
@@ -605,10 +635,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 processed_timeseries.sampling_rate,
                 processed_timeseries.confidence,
             ):
-                value["sampleCount"] = count[axis]
+                value["sampleCount"] = count.get(axis)
                 # We want to null sample rates that are 0 since that means we received no data during this bucket
-                value["sampleRate"] = null_zero(rate[axis])
-                value["confidence"] = confidence[axis]
+                value["sampleRate"] = null_zero(rate.get(axis))
+                value["confidence"] = confidence.get(axis)
 
         timeseries["values"] = timeseries_values
 

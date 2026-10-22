@@ -111,7 +111,7 @@ def _set_row(project: Project, row: _Row, lines: list[str]) -> None:
             existing.delete()
         return
 
-    conditions = [{"type": row.condition_type.value, "value": lines}]
+    conditions = [{"type": row.condition_type.value, "operator": "glob", "value": lines}]
     if existing is None:
         CustomInboundFilter.objects.create(
             project_id=project.id,

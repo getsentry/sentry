@@ -102,6 +102,7 @@ function SaveQueryModal({
         addErrorMessage(t('Failed to save query'));
       }
       Sentry.captureException(error);
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsSaving(false);
     }

@@ -9,7 +9,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import partition from 'lodash/partition';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -360,9 +360,9 @@ function FunctionTrendsEntry({
         </Tooltip>
       </AccordionItem>
       {isExpanded && (
-        <FunctionTrendsChartContainer>
+        <Container flex="1 1 auto">
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
-        </FunctionTrendsChartContainer>
+        </Container>
       )}
     </Fragment>
   );
@@ -546,10 +546,6 @@ const StyledPagination = styled(Pagination)`
 `;
 
 const FunctionName = styled(TextOverflow)`
-  flex: 1 1 auto;
-`;
-
-const FunctionTrendsChartContainer = styled('div')`
   flex: 1 1 auto;
 `;
 

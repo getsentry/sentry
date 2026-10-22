@@ -178,6 +178,18 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert mock_client_class.call_args.kwargs["enable_write_pull_request"] is True
         assert mock_client_class.call_args.kwargs["enable_bash_mode"] is True
 
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_requests_investigation_tools(self, mock_client_class: MagicMock):
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(self.url, {"query": "hi"}, format="json")
+
+        assert response.status_code == 200
+        # The client applies the investigations feature and open-membership gate.
+        assert mock_client_class.call_args.kwargs["enable_investigation_tools"] is True
+
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_create_pr_flag_respects_seer_coding_option(self, mock_client_class: MagicMock):
@@ -211,6 +223,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_coding=False,
             enable_write_pull_request=False,
             enable_code_mode_tools="off",
+            enable_investigation_tools=True,
             reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
@@ -369,6 +382,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 enable_coding=feature_enabled and option_enabled,
                 enable_write_pull_request=False,
                 enable_code_mode_tools="off",
+                enable_investigation_tools=True,
                 reasoning_effort="medium",
             )
 
@@ -397,6 +411,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_coding=False,
             enable_write_pull_request=False,
             enable_code_mode_tools="off",
+            enable_investigation_tools=True,
             reasoning_effort="medium",
         )
         mock_client.continue_run.assert_called_once_with(
@@ -596,6 +611,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 enable_coding=feature_enabled and option_enabled,
                 enable_write_pull_request=False,
                 enable_code_mode_tools="off",
+                enable_investigation_tools=True,
                 reasoning_effort="medium",
             )
 
