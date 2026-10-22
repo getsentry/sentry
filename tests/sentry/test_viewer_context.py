@@ -7,10 +7,10 @@ from unittest import mock
 
 import pytest
 
-from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import (
     Actor,
     ActorType,
+    SuperuserAccess,
     ViewerContext,
     get_acting_user_id,
     get_viewer_context,
