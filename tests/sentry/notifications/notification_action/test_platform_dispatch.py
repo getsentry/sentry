@@ -9,6 +9,7 @@ from slack_sdk.web import SlackResponse
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
+from sentry.notifications.platform.provider import SendSuccessResult
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.silo.base import SiloMode
@@ -140,13 +141,13 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
 
         assert "thread_ts" not in client.chat_postMessage.call_args_list[1].kwargs
 
-    @mock.patch.object(NotificationService, "notify_sync", return_value={})
+    @mock.patch.object(NotificationService, "notify_target", return_value=SendSuccessResult())
     def test_slack_staging_targets_staging_provider(self, mock_notify: mock.MagicMock) -> None:
         action = self.create_slack_action(Action.Type.SLACK_STAGING)
 
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(action))
 
-        [target] = mock_notify.call_args.kwargs["targets"]
+        target = mock_notify.call_args.kwargs["target"]
         assert target.provider_key == NotificationProviderKey.SLACK_STAGING
 
     @override_options({"notifications.platform.alert-providers": {"metric-alert": []}})
