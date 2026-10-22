@@ -9,6 +9,7 @@ from django.http.response import HttpResponseBase
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.agent_token import is_agent_auth
+from sentry.utils.auth import is_user_from_viewer_context
 from sentry.viewer_context import (
     Actor,
     ActorType,
@@ -47,7 +48,7 @@ def ViewerContextMiddleware(
         request_ctx = _viewer_context_from_request(request)
         jwt_ctx = _viewer_context_from_jwt_header(request)
 
-        if jwt_ctx is not None and getattr(request, "user_from_viewer_context", False):
+        if jwt_ctx is not None and is_user_from_viewer_context(request):
             ctx = jwt_ctx
         elif jwt_ctx is not None and (
             request_ctx.actor.type == ActorType.USER

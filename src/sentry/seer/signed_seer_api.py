@@ -96,15 +96,6 @@ def _resolve_viewer_context(
             organization_id=explicit_org_id,
         )
 
-    if vc.actor.type in (ActorType.SERVICE_ACCOUNT, ActorType.AGENT):
-        human_id = vc.actor.delegated_user_id
-        if explicit_user_id not in (None, human_id) or explicit_org_id not in (
-            None,
-            vc.organization_id,
-        ):
-            raise ValueError("Cannot override a typed actor with a legacy viewer context")
-        return vc
-
     has_mismatch = False
     org_id = vc.organization_id
     user_id = vc.actor.actor_id if vc.actor.type == ActorType.USER else vc.actor.delegated_user_id
@@ -138,6 +129,8 @@ def _resolve_viewer_context(
             has_mismatch = True
         if actor.type == ActorType.USER:
             actor = replace(actor, actor_id=explicit_user_id)
+        elif actor.type == ActorType.AGENT:
+            actor = replace(actor, delegated_user_id=explicit_user_id)
         else:
             actor = Actor(type=ActorType.USER, actor_id=explicit_user_id)
 
