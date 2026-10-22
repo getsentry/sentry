@@ -16,6 +16,7 @@ import {Button} from '@sentry/scraps/button';
 import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -35,7 +36,10 @@ import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  useLogsAutoRefreshEnabled,
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -163,6 +167,9 @@ export function LogsInfiniteTable({
     canResumeAutoFetch,
     resumeAutoFetch,
     totalPayloadBytes,
+    anchor,
+    anchorToLog,
+    clearAnchor,
   } = useLogsPageDataQueryResult();
   const meta = useMemo(
     () =>
@@ -506,6 +513,44 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const scrollToAnchor = useEffectEvent((anchorId: string) => {
+    const index = data.findIndex(row => row[OurLogKnownFieldKey.ID] === anchorId);
+    if (index === -1) {
+      addErrorMessage(t('This log is not in the current results'));
+      clearAnchor();
+      return;
+    }
+    virtualizer.scrollToIndex(index, {align: 'center'});
+  });
+
+  useEffect(() => {
+    if (anchor && !isPending && !isError) {
+      scrollToAnchor(anchor.id);
+    }
+  }, [anchor, isPending, isError]);
+
+  const setAutoRefresh = useSetLogsAutoRefresh();
+
+  const handleViewInTable = useCallback(
+    (dataRow: OurLogsResponseItem) => {
+      if (autoRefresh) {
+        setAutoRefresh('paused');
+        anchorToLog(dataRow);
+        return;
+      }
+
+      const index = data.findIndex(
+        row => row[OurLogKnownFieldKey.ID] === dataRow[OurLogKnownFieldKey.ID]
+      );
+      if (index === -1) {
+        anchorToLog(dataRow);
+      } else {
+        handleScrollToRow(index);
+      }
+    },
+    [anchorToLog, autoRefresh, data, handleScrollToRow, setAutoRefresh]
+  );
+
   const logsPinning = useLogsPinning();
   const pinnedLogsQuery = usePinnedLogsQuery({allRows: data, logsPinning});
 
@@ -546,6 +591,7 @@ export function LogsInfiniteTable({
           isHoverLinked={hoveredRowId === rowId}
           setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
+          onViewInTable={handleViewInTable}
         />
       );
     },
@@ -555,6 +601,7 @@ export function LogsInfiniteTable({
       handleExpand,
       handleExpandHeight,
       handleTogglePinnedRow,
+      handleViewInTable,
       highlightTerms,
       hoveredRowId,
       logEnd,
