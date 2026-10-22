@@ -1,8 +1,7 @@
 __all__ = (
     "AlertRule",
-    "AlertRuleTrigger",
     "Incident",
 )
 
-from .alert_rule import AlertRule, AlertRuleTrigger
+from .alert_rule import AlertRule
 from .incident import Incident
