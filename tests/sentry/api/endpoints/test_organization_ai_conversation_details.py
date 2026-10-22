@@ -11,7 +11,10 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import 
     PARENT_SPAN_ATTRIBUTES,
     OrganizationAIConversationDetailsEndpoint,
 )
-from sentry.ai_monitoring.transcript.builder import TranscriptContextError
+from sentry.ai_monitoring.transcript.builder import (
+    TranscriptContextError,
+    TranscriptContextReadError,
+)
 from sentry.ai_monitoring.transcript.pagination import TranscriptWorkLimitError
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
@@ -214,6 +217,27 @@ def test_parent_repair_is_best_effort() -> None:
         endpoint._repair_parent_links([child], MagicMock(), conversation_id)
 
     assert child["parent_span"] == "missing-parent"
+
+
+def test_transcript_parent_repair_propagates_storage_failures() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    child = {
+        "trace": "trace-a",
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "ai_client",
+    }
+    storage_error = Exception("unavailable")
+    with (
+        patch.object(endpoint, "_fetch_parent_spans", side_effect=storage_error),
+        pytest.raises(
+            TranscriptContextReadError, match="Unable to read transcript parent context"
+        ) as error,
+    ):
+        endpoint._repair_parent_links([child], MagicMock(), "conversation", strict=True)
+    assert error.value.__cause__ is storage_error
+    assert child["parent_span"] == "bridge"
 
 
 def test_parent_repair_skips_gen_ai_ancestors_from_other_conversations() -> None:
@@ -1886,6 +1910,59 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == status
         assert response.data["detail"] == str(error)
         assert "transcript" not in response.data
+
+    def test_failed_parent_repair_aborts_transcript_but_not_timeline(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id, trace_id = uuid4().hex, uuid4().hex
+        agent = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            trace_id=trace_id,
+            op="gen_ai.invoke_agent",
+            operation_type="agent",
+            input_messages=[{"role": "user", "content": "question"}],
+            output_messages=[{"role": "assistant", "content": "answer"}],
+            store=False,
+        )
+        agent["parent_span_id"] = None
+        bridge = self.create_span(
+            {
+                "trace_id": trace_id,
+                "parent_span_id": agent["span_id"],
+                "sentry_tags": {"op": "http.client"},
+            },
+            start_ts=now + timedelta(seconds=1),
+        )
+        generation = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now + timedelta(seconds=2),
+            trace_id=trace_id,
+            operation_type="ai_client",
+            store=False,
+        )
+        generation["parent_span_id"] = bridge["span_id"]
+        self.store_spans([agent, bridge, generation])
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with (
+            self.feature("organizations:gen-ai-conversations-backend-transcript"),
+            patch.object(
+                OrganizationAIConversationDetailsEndpoint,
+                "_fetch_parent_spans",
+                side_effect=Exception("unavailable"),
+            ),
+        ):
+            transcript_response = self.do_request(conversation_id, {**query, "view": "transcript"})
+            timeline_response = self.do_request(conversation_id, query)
+        assert transcript_response.status_code == 503, transcript_response.data
+        assert transcript_response.data == {"detail": "Unable to read transcript parent context"}
+        assert "Link" not in transcript_response.headers
+        assert "transcript" not in transcript_response.data
+        assert timeline_response.status_code == 200, timeline_response.data
+        assert len(timeline_response.data["spans"]) == 2
 
     def test_transcript_annotates_only_emitted_rows_once(self) -> None:
         now = before_now(days=1).replace(microsecond=0)

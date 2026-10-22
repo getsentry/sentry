@@ -65,13 +65,17 @@ def _capture(raw: object, default_role: str) -> tuple[CapturedMessage, ...] | No
     for message in parsed:
         if not isinstance(message, dict) or not isinstance(role := message.get("role"), str):
             return None
-        if role not in ("user", "assistant", "tool", "system", "developer") or not _is_json(
-            message
-        ):
+        if role not in ("user", "assistant", "tool", "system", "developer"):
             return None
         if not any(key in message for key in ("content", "parts", "tool_calls")):
             return None
-        encoded = json.dumps(message, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        try:
+            if not _is_json(message):
+                return None
+            encoded = json.dumps(message, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        except RecursionError:
+            # Replay evidence is optional; deeply nested metadata must not hide readable content.
+            return None
         identifier = message.get("id")
         result.append(
             CapturedMessage(

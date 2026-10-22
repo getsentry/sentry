@@ -1,8 +1,10 @@
 from dataclasses import FrozenInstanceError, replace
+from unittest.mock import patch
 
 import pytest
 
 from sentry.ai_monitoring.transcript import builder as transcript
+from sentry.ai_monitoring.transcript.deduplication import capture_generation
 from sentry.ai_monitoring.transcript.models import ToolCall, TranscriptMessage, TranscriptSpan
 
 
@@ -94,3 +96,31 @@ def test_internal_spans_and_events_are_typed_records() -> None:
     assert isinstance(events[0], transcript.TranscriptEvent)
     assert events[0].message["content"] == "answer"
     assert transcript.build_transcript([row]) == [event.message for event in events]
+
+
+def test_replay_serialization_recursion_disables_evidence() -> None:
+    span = TranscriptSpan(
+        "span-1", {"gen_ai.input.messages": "question", "gen_ai.output.messages": "answer"}
+    )
+    with patch(
+        "sentry.ai_monitoring.transcript.deduplication.json.dumps", side_effect=RecursionError
+    ):
+        capture = capture_generation(span)
+    assert capture.inputs is None
+    assert capture.outputs is None
+
+
+def test_assistant_text_takes_precedence_over_structured_output() -> None:
+    span = TranscriptSpan(
+        "span-1",
+        {
+            "gen_ai.output.messages": '[{"role":"assistant","parts":['
+            '{"type":"text","text":"answer"},'
+            '{"type":"object","data":{"answer":42}},'
+            '{"type":"reasoning","text":"considering"}]}]',
+            "gen_ai.response.object": '{"fallback":true}',
+        },
+    )
+    result = transcript.parse_assistant_content(span)
+    assert result.content == "answer"
+    assert result.reasoning == "considering"

@@ -85,8 +85,10 @@ def parse_assistant_content(span: TranscriptSpan) -> AssistantContent:
         if raw == FILTERED:
             return AssistantContent(FILTERED)
         output = extract_assistant_output(raw, "assistant")
-        if output["response_text"]:
-            return AssistantContent(output["response_text"], output["reasoning_text"])
+        if output["response_text"] or output["response_object"]:
+            return AssistantContent(
+                output["response_text"] or output["response_object"], output["reasoning_text"]
+            )
         if output["tool_calls"] or output["reasoning_text"]:
             return AssistantContent(reasoning=output["reasoning_text"])
     text = string_attr(span, "gen_ai.response.text")
@@ -262,6 +264,10 @@ Stream = Literal["start", "end"]
 
 
 class TranscriptContextError(ValueError):
+    pass
+
+
+class TranscriptContextReadError(TranscriptContextError):
     pass
 
 

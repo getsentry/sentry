@@ -703,3 +703,74 @@ def test_storage_reads_do_not_prepare_duplicate_stream_rows() -> None:
     prepare.assert_called_once()
     assert len(prepare.call_args.args[0]) == 1
     assert len(page.items) == 2
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+@pytest.mark.parametrize(
+    ("output", "expected_content", "expected_reasoning"),
+    [
+        ([{"role": "assistant", "content": {"answer": 42}}], {"answer": 42}, None),
+        (
+            [{"role": "assistant", "parts": [{"type": "object", "data": {"answer": 42}}]}],
+            {"type": "object", "data": {"answer": 42}},
+            None,
+        ),
+        (
+            [
+                {
+                    "role": "assistant",
+                    "parts": [
+                        {"type": "reasoning", "text": "considering"},
+                        {"type": "object", "data": {"answer": 42}},
+                    ],
+                }
+            ],
+            {"type": "object", "data": {"answer": 42}},
+            "considering",
+        ),
+    ],
+)
+def test_structured_assistant_output_survives_pagination(
+    per_page: int,
+    output: list[dict[str, object]],
+    expected_content: dict[str, object],
+    expected_reasoning: str | None,
+) -> None:
+    messages = collect(
+        [span("one", 1, 2, **{"gen_ai.output.messages": json.dumps(output)})], per_page
+    )
+    assert len(messages) == 2
+    assert messages[1]["role"] == "assistant"
+    assert json.loads(messages[1]["content"]) == expected_content
+    assert messages[1].get("reasoning") == expected_reasoning
+
+
+@pytest.mark.parametrize("per_page", [1, 2, 3])
+@pytest.mark.parametrize(
+    ("field", "role", "content"),
+    [
+        ("gen_ai.input.messages", "user", "question"),
+        ("gen_ai.output.messages", "assistant", "answer"),
+    ],
+)
+def test_deep_metadata_disables_replay_without_losing_messages(
+    per_page: int, field: str, role: str, content: str
+) -> None:
+    raw = (
+        f'[{{"role":{json.dumps(role)},"id":"message",'
+        f'"content":{json.dumps(content)},"metadata":' + "[" * 600 + "0" + "]" * 600 + "}]"
+    )
+    assert json.loads(raw)[0]["content"] == content
+    messages = collect(
+        [
+            span("one", 1, 2, **{field: raw}),
+            span("two", 3, 4, **{field: raw}),
+        ],
+        per_page,
+    )
+    assert [(message["role"], message["content"]) for message in messages] == [
+        ("user", "question"),
+        ("assistant", "answer"),
+        ("user", "question"),
+        ("assistant", "answer"),
+    ]

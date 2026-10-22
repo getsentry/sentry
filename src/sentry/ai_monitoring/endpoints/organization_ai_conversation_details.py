@@ -21,7 +21,10 @@ from sentry.ai_monitoring.conversation_aggregates import (
     parse_conversation_aggregates,
 )
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
-from sentry.ai_monitoring.transcript.builder import TranscriptContextError
+from sentry.ai_monitoring.transcript.builder import (
+    TranscriptContextError,
+    TranscriptContextReadError,
+)
 from sentry.ai_monitoring.transcript.cursor import decode_cursor, encode_cursor
 from sentry.ai_monitoring.transcript.models import TranscriptMessageResponse
 from sentry.ai_monitoring.transcript.pagination import (
@@ -494,6 +497,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                         conversation_id,
                         parent_cache=parent_cache,
                         fetched_parent_keys=fetched_parent_keys,
+                        strict=True,
                     )
 
                 def annotate(spans: list[SpanRow]) -> None:
@@ -510,7 +514,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     page = paginate_transcript(
                         source, position, self.get_per_page(request, 100, 1000), annotate=annotate
                     )
-                except TranscriptWorkLimitError as error:
+                except (TranscriptWorkLimitError, TranscriptContextReadError) as error:
                     return Response(DetailResponse(detail=str(error)), status=503)
                 except TranscriptContextError as error:
                     return Response(DetailResponse(detail=str(error)), status=400)
@@ -746,6 +750,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         *,
         parent_cache: dict[SpanKey, SpanRow] | None = None,
         fetched_parent_keys: set[SpanKey] | None = None,
+        strict: bool = False,
     ) -> None:
         anchors: set[SpanKey] = set()
         for span in spans:
@@ -783,8 +788,12 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             fetched_keys.update(missing_keys)
             try:
                 cache.update(self._fetch_parent_spans(snuba_params, missing_keys))
-            except Exception:
+            except Exception as error:
                 logger.exception("Failed to repair AI conversation span parents")
+                if strict:
+                    raise TranscriptContextReadError(
+                        "Unable to read transcript parent context"
+                    ) from error
                 return
             next_pending: dict[SpanKey, tuple[SpanRow, SpanKey, set[SpanKey]]] = {}
 
