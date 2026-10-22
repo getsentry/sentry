@@ -10,8 +10,6 @@ export function AttributeDescription({description}: {description: string}) {
 }
 
 function AttributeDescriptionParagraph({children}: {children: ReactNode}) {
-  // Unlike overflow-wrap, break-word shrinks the min-content width, so a long
-  // unbroken token wraps instead of widening its grid track and the overlay.
   return (
     <Text as="p" wordBreak="break-word">
       {children}
