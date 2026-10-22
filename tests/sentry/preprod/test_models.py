@@ -1334,23 +1334,9 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
     def test_get_base_artifacts_for_commit_no_base_sha(self) -> None:
         """Test that artifacts with commit_comparison but no base_sha return empty dict."""
-        commit_comparison = self.create_commit_comparison(
-            organization=self.organization,
-            head_sha="a" * 40,
-            base_sha=None,
-            provider="github",
-            head_repo_name="owner/repo",
-        )
+        artifact = self._create_artifact_on_commit("a" * 40, base_sha=None)
 
-        artifact = self.create_preprod_artifact(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            commit_comparison=commit_comparison,
-        )
-
-        result = PreprodArtifact.get_base_artifacts_for_commit([artifact])
-        assert result == {}
+        assert PreprodArtifact.get_base_artifacts_for_commit([artifact]) == {}
 
     def test_get_base_artifacts_for_commit_single_artifact(self) -> None:
         """Test batch lookup with a single artifact."""
@@ -1729,8 +1715,8 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
         assert result == {head_artifact.id: size_base_artifact}
 
     def test_get_base_artifacts_for_commit_snapshot_metrics_falls_through_to_match(self) -> None:
-        """Test that snapshot lookups skip an older commit_comparison with only size artifacts."""
-        self._create_artifact_on_commit("b" * 40, base_sha="c" * 40)
+        """Test that snapshot lookups skip an older commit_comparison without snapshot metrics."""
+        self._create_artifact_on_commit("b" * 40, base_sha="c" * 40, artifact_type=None)
         snapshot_base_artifact = self._create_artifact_on_commit(
             "b" * 40, base_sha=None, artifact_type=None
         )
