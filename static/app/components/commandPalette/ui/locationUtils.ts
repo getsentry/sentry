@@ -1,9 +1,9 @@
 import type {LocationDescriptor} from 'history';
 
-import {locationDescriptorToTo} from 'sentry/router/legacyLocation';
+import {legacyLocationDescriptorToTo} from 'sentry/router/legacy/location';
 
 export function getLocationHref(to: LocationDescriptor): string {
-  const resolved = locationDescriptorToTo(to);
+  const resolved = legacyLocationDescriptorToTo(to);
 
   if (typeof resolved === 'string') {
     return resolved;

@@ -8,7 +8,7 @@ import * as qs from 'query-string';
  * exposes parsed `location.query` to callers. These adapters preserve those
  * contracts across router upgrades until callers use native search parameters.
  */
-export function locationDescriptorToTo(path: LocationDescriptor): To {
+export function legacyLocationDescriptorToTo(path: LocationDescriptor): To {
   if (typeof path === 'string') {
     return path;
   }

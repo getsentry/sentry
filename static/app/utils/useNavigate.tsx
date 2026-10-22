@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {useNavigate as useReactRouterNavigate, type DataRouter} from 'react-router';
 import type {LocationDescriptor} from 'history';
 
-import {locationDescriptorToTo} from 'sentry/router/legacyLocation';
+import {legacyLocationDescriptorToTo} from 'sentry/router/legacy/location';
 
 type NavigateOptions = {
   preventScrollReset?: boolean;
@@ -30,7 +30,7 @@ export function useNavigate(): ReactRouter3Navigate {
         return routerNavigate(to);
       }
 
-      return routerNavigate(locationDescriptorToTo(to), options);
+      return routerNavigate(legacyLocationDescriptorToTo(to), options);
     },
     [routerNavigate]
   );
@@ -52,6 +52,6 @@ export function createReactRouter3Navigate(router: DataRouter): ReactRouter3Navi
       router.navigate(to);
       return;
     }
-    router.navigate(locationDescriptorToTo(to), options);
+    router.navigate(legacyLocationDescriptorToTo(to), options);
   };
 }

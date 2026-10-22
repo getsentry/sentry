@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {OnRouteLeave} from 'sentry/router/onRouteLeave';
+import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
 import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
@@ -73,7 +73,7 @@ export function OrganizationSampling() {
       <form.Subscribe selector={s => ({isDirty: s.isDirty})}>
         {({isDirty}) => (
           <Fragment>
-            <OnRouteLeave
+            <LegacyOnRouteLeave
               message={UNSAVED_CHANGES_MESSAGE}
               when={locationChange =>
                 locationChange.currentLocation.pathname !==

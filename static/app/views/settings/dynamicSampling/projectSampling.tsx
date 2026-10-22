@@ -11,7 +11,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {OnRouteLeave} from 'sentry/router/onRouteLeave';
+import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
@@ -142,7 +142,7 @@ export function ProjectSampling() {
 
           return (
             <Fragment>
-              <OnRouteLeave
+              <LegacyOnRouteLeave
                 message={UNSAVED_CHANGES_MESSAGE}
                 when={locationChange =>
                   locationChange.currentLocation.pathname !==

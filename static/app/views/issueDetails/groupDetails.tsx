@@ -20,7 +20,7 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {locationDescriptorToTo} from 'sentry/router/legacyLocation';
+import {legacyLocationDescriptorToTo} from 'sentry/router/legacy/location';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -741,7 +741,7 @@ function GroupDetailsContentInner({
     return (
       <Navigate
         replace
-        to={locationDescriptorToTo(
+        to={legacyLocationDescriptorToTo(
           makeSeerLocation({
             organization,
             groupId: group.id,
