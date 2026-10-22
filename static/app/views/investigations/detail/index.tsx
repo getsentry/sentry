@@ -511,7 +511,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   maxWidth="264px"
                   paddingRight="2xl"
                 >
-                  <InvestigationOutline entries={outline} />
+                  <InvestigationOutline
+                    entries={outline}
+                    investigationId={investigation.id}
+                  />
                 </Container>
               ) : null}
               <Stack column="2" minWidth={0} gap="3xl">

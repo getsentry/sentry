@@ -264,6 +264,19 @@ export type SeerAnalyticsEventsParameters = {
   'seer.explorer.update_slack_clicked': {
     num_configurations: number;
   };
+  'seer.investigation.outline_clicked': {
+    /** How many entries the outline lists. */
+    entry_count: number;
+    investigation_id: string;
+    /** Which part of the page the entry points at; the heading text isn't sent. */
+    kind: 'summary' | 'hypotheses' | 'heading' | 'activity';
+    /** The entry's position in the outline, from 0. */
+    position: number;
+  };
+  'seer.investigation.outline_shown': {
+    entry_count: number;
+    investigation_id: string;
+  };
 };
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
@@ -311,4 +324,6 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.suggestions_shown': 'Seer Explorer: Suggestions Shown',
   'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
   'seer.explorer.update_slack_clicked': 'Seer Explorer: Update Slack Clicked',
+  'seer.investigation.outline_clicked': 'Seer Investigation: Outline Clicked',
+  'seer.investigation.outline_shown': 'Seer Investigation: Outline Shown',
 };

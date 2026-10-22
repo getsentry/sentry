@@ -50,6 +50,7 @@ describe('getInvestigationOutline', () => {
     ]);
     expect(outline[3]).toEqual({
       key: 'when:0',
+      kind: 'heading',
       label: 'When it happened',
       nested: false,
       target: {blockId: 'when', headingIndex: 0},
