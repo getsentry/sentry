@@ -21,7 +21,11 @@ const sourceMonitorSchema = z.object({
   // Snapshots taken before dynamic and percent monitors were supported leave this out.
   detectionType: z.enum(['static', 'percent', 'dynamic']).optional(),
   comparisonDeltaSeconds: z.number().nullable(),
-  conditions: z.array(sourceConditionSchema),
+  // Drop conditions we can't read, such as a type added on the backend later,
+  // instead of losing the whole snapshot.
+  conditions: z
+    .array(sourceConditionSchema.optional().catch(undefined))
+    .transform(conditions => conditions.filter(condition => condition !== undefined)),
 });
 
 const metricOpenPeriodSourceSchema = z.object({

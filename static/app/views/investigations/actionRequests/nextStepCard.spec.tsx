@@ -543,7 +543,7 @@ describe('NextStepCard', () => {
     expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
   });
 
-  it('ignores a snapshot with a condition type it does not know', () => {
+  it('skips a condition type it does not know', () => {
     render(
       <NextStepCard
         orchestration={completedRun}
@@ -556,7 +556,7 @@ describe('NextStepCard', () => {
     );
 
     const card = getCard();
-    expect(within(card).getByText('Monitor')).toBeInTheDocument();
+    expect(within(card).getByText('Cart p95 latency')).toBeInTheDocument();
     expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
   });
 

@@ -70,6 +70,22 @@ describe('getSourceMonitor', () => {
     ]);
   });
 
+  it('drops only the conditions it cannot read', () => {
+    const source = InvestigationMetricSourceFixture({
+      conditions: [
+        {type: 'between', comparison: 100, result: 75},
+        {type: 'gt', comparison: 100, result: 75},
+      ],
+    });
+
+    expect(getSourceMonitor(source, '789')).toEqual(
+      expect.objectContaining({
+        name: 'Checkout error rate',
+        conditions: [{type: 'gt', comparison: 100, result: 75}],
+      })
+    );
+  });
+
   it('reads a snapshot taken before the detection type was recorded', () => {
     const source = InvestigationMetricSourceFixture({detectionType: undefined});
 
