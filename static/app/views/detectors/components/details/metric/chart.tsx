@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {type Theme} from '@emotion/react';
 import {IconInfo} from '@sentry/icons/info';
 import {IconWarning} from '@sentry/icons/warning';
 import type {YAXisComponentOption} from 'echarts';
@@ -29,6 +28,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {AggregateSummaryTable} from 'sentry/views/detectors/components/details/metric/aggregateSummaryTable';
+import {
+  incidentMarklineTooltip,
+  incidentSeriesTooltip,
+} from 'sentry/views/detectors/components/details/metric/chartTooltip';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
@@ -36,7 +39,6 @@ import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetC
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
 import {
-  findIncidentPeriodAtTimestamp,
   useIncidentMarkers,
   type IncidentPeriod,
 } from 'sentry/views/detectors/hooks/useIncidentMarkers';
@@ -67,83 +69,6 @@ function shiftSeriesToBucketEnd(seriesList: Series[], intervalSeconds: number): 
       name: (point.name as number) + offsetMs,
     })),
   }));
-}
-
-interface IncidentTooltipContext {
-  period: IncidentPeriod;
-  theme: Theme;
-}
-
-function issueTooltipRow(issueShortId: string | null | undefined) {
-  return issueShortId
-    ? `<div><span class="tooltip-label">${t('Issue')}</span> ${issueShortId}</div>`
-    : '';
-}
-
-function triggerIntervalTooltip(ctx: IncidentTooltipContext) {
-  const interval = defaultFormatAxisLabel(
-    ctx.period.start,
-    true,
-    false,
-    true,
-    false,
-    ctx.period.end - ctx.period.start
-  );
-  const color =
-    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
-  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
-
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
-  return [
-    '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>${t('Threshold breached')}</strong></span></div>`,
-    issueTooltipRow(ctx.period.issueShortId),
-    `<div><span class="tooltip-label">${t('Interval')}</span> ${interval}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
-    '</div>',
-    '<div class="tooltip-arrow arrow-top"></div>',
-  ].join('');
-}
-
-function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
-  if (ctx.period.type === 'trigger-interval') {
-    return triggerIntervalTooltip(ctx);
-  }
-
-  const startTime = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const endTime = ctx.period.end
-    ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
-    : '-';
-  const color =
-    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
-  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
-
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
-  return [
-    '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>${ctx.period.issueShortId ? t('Issue %s open', ctx.period.issueShortId) : t('Issue open')}</strong></span></div>`,
-    `<div><span class="tooltip-label">${t('Started')}</span> ${startTime}</div>`,
-    `<div><span class="tooltip-label">${t('Ended')}</span> ${endTime}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
-    '</div>',
-    '<div class="tooltip-arrow arrow-top"></div>',
-  ].join('');
-}
-
-function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
-  const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const color =
-    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
-  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
-  return [
-    '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>${ctx.period.issueShortId ? t('Opened Issue %s', ctx.period.issueShortId) : t('Opened Issue')}</strong></span></div>`,
-    `<div><span class="tooltip-label">${t('Started')}</span> ${time}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
-    '</div>',
-    '<div class="tooltip-arrow arrow-top"></div>',
-  ].join('');
 }
 
 interface MetricDetectorDetailsChartProps {
@@ -218,6 +143,7 @@ function createOpenPeriodMarkerData({
     type: i === 0 ? 'open-period-start' : 'open-period-transition',
     end: segment.end,
     id: period.id,
+    isOngoing: !period.end && i === segments.length - 1,
     issueShortId: period.shortId,
     name: t('Open Periods'),
     priority: segment.priority ?? 'high',
@@ -506,24 +432,18 @@ export function useMetricDetectorChart({
                   )
                 : name
           : undefined,
-        renderSeriesDetails: (seriesNames, timestamp) => {
-          const issueDetails = issueTooltipRow(
-            findIncidentPeriodAtTimestamp(incidentPeriods, timestamp)?.issueShortId
-          );
-
-          const aggregateSummaryDetails =
-            aggregateSummary && seriesNames.includes(aggregate)
-              ? renderToString(
-                  // The wrapper absorbs `.tooltip-series > div`, which would otherwise
-                  // override the table's grid with flex.
-                  <Container paddingTop="md">
-                    <AggregateSummaryTable summary={aggregateSummary} />
-                  </Container>
-                )
-              : '';
-
-          return issueDetails + aggregateSummaryDetails;
-        },
+        renderSeriesDetails: aggregateSummary
+          ? seriesNames =>
+              seriesNames.includes(aggregate)
+                ? renderToString(
+                    // The wrapper absorbs `.tooltip-series > div`, which would otherwise
+                    // override the table's grid with flex.
+                    <Container paddingTop="md">
+                      <AggregateSummaryTable summary={aggregateSummary} />
+                    </Container>
+                  )
+                : ''
+          : undefined,
         // Data points are shifted to bucket-end timestamps
         // so we need to subtract the interval to get the bucket-start time.
         formatAxisLabel: (
@@ -565,7 +485,6 @@ export function useMetricDetectorChart({
     error,
     grid,
     height,
-    incidentPeriods,
     isLoading,
     openPeriodMarkerResult,
     query,

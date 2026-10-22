@@ -56,6 +56,10 @@ export interface IncidentPeriod {
    */
   type: 'trigger-interval' | 'open-period-start' | 'open-period-transition';
   /**
+   * Whether the incident is still open, in which case `end` is the end of the chart
+   */
+  isOngoing?: boolean;
+  /**
    * Short ID of the issue the incident belongs to, e.g. `PROJECT-1A`
    */
   issueShortId?: string | null;
