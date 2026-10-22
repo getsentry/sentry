@@ -153,6 +153,7 @@ class ConfigTransformer(ABC):
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
+    required_features: ClassVar[tuple[str, ...]] = ()
 
     class Group(StrEnum):
         NOTIFICATION = "notification"
