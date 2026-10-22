@@ -51,7 +51,7 @@ export function NextStepCard({
   return null;
 }
 
-function getPrimaryActionRequest(
+export function getPrimaryActionRequest(
   actionRequests: InvestigationActionRequest[],
   reportRevision: number | undefined
 ) {

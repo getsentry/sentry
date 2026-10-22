@@ -398,6 +398,72 @@ describe('Investigation detail', () => {
     );
   });
 
+  it('refetches the investigation when the first next step is ahead of it', async () => {
+    const finishedRun = {
+      phase: 'completed',
+      status: 'completed',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    } as const;
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: finishedRun,
+        actionRequests: [],
+      }),
+    });
+    let finishOrchestration!: () => void;
+    const orchestrationResponse = new Promise<void>(resolve => {
+      finishOrchestration = resolve;
+    });
+    const orchestrationRequest = MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'completed',
+        status: 'completed',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          status: 'completed',
+          nextStep: {status: 'completed', error: null},
+        },
+      }),
+      asyncDelay: orchestrationResponse,
+    });
+
+    renderView();
+
+    await waitFor(() => expect(orchestrationRequest).toHaveBeenCalled());
+    let finishDetails!: () => void;
+    const detailsResponse = new Promise<void>(resolve => {
+      finishDetails = resolve;
+    });
+    const detailsRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: finishedRun,
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+      asyncDelay: detailsResponse,
+    });
+    await act(async () => {
+      finishOrchestration();
+      await orchestrationResponse;
+    });
+
+    await waitFor(() => expect(detailsRequest).toHaveBeenCalled());
+    expect(screen.getByRole('region', {name: 'Recommended action'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+
+    await act(async () => {
+      finishDetails();
+      await detailsResponse;
+    });
+
+    expect(await screen.findByText(/Widen the interval/)).toBeInTheDocument();
+  });
+
   it('drops the next step placeholder when Seer suggests nothing', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,

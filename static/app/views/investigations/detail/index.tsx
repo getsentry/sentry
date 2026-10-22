@@ -33,7 +33,10 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
+import {
+  getPrimaryActionRequest,
+  NextStepCard,
+} from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
@@ -64,6 +67,7 @@ import {updateInvestigationCache} from 'sentry/views/investigations/investigatio
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {
+  InvestigationActionRequest,
   InvestigationBlock,
   InvestigationDetail,
   InvestigationOrchestration,
@@ -111,7 +115,8 @@ function ClosedMembershipPage() {
  */
 function useRefetchStaleActionRequests(
   investigationId: string,
-  orchestration: InvestigationOrchestration | undefined
+  orchestration: InvestigationOrchestration | undefined,
+  actionRequests: InvestigationActionRequest[] | undefined
 ) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -138,10 +143,14 @@ function useRefetchStaleActionRequests(
     nextStepKey !== null &&
     (refresh?.investigationId !== investigationId || refresh.key !== nextStepKey)
   ) {
+    // The first next step we see usually matches the investigation we already have,
+    // unless it finished before that investigation was fetched.
+    const missingRequest =
+      orchestration?.report.nextStep?.status === 'completed' &&
+      !getPrimaryActionRequest(actionRequests ?? [], orchestration.report.revision);
     setRefresh({
       detailUpdates,
-      // The first next step we see arrived alongside the investigation we already have.
-      initial: refresh?.investigationId !== investigationId,
+      initial: refresh?.investigationId !== investigationId && !missingRequest,
       investigationId,
       key: nextStepKey,
     });
@@ -255,7 +264,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   });
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,
-    orchestration
+    orchestration,
+    investigation.actionRequests
   );
   const runStatus =
     investigation.orchestration && orchestration
