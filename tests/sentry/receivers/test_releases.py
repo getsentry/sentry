@@ -584,7 +584,6 @@ class ProjectHasReleasesReceiverTest(TestCase):
         )
 
 
-@with_feature("organizations:pr-lifecycle-activity")
 class PullRequestLifecycleSignalTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -632,22 +631,6 @@ class PullRequestLifecycleSignalTest(TestCase):
             "pull_request": self.pull_request.id,
             "has_other_open_prs": False,
         }
-
-    @with_feature({"organizations:pr-lifecycle-activity": False})
-    def test_flag_disabled_still_emits_closed_activity(self) -> None:
-        self._save_with_state(PullRequestLifecycleState.CLOSED)
-
-        assert Activity.objects.filter(
-            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
-        ).exists()
-
-    @with_feature({"organizations:pr-lifecycle-activity": False})
-    def test_flag_disabled_does_not_emit_merged_activity(self) -> None:
-        self._save_with_state(PullRequestLifecycleState.MERGED)
-
-        assert not Activity.objects.filter(
-            group=self.group, type=ActivityType.PULL_REQUEST_MERGED.value
-        ).exists()
 
     def test_open_sibling_pr_counts_as_remaining(self) -> None:
         self._link_pr(self.group, key="2", state=PullRequestLifecycleState.OPEN)

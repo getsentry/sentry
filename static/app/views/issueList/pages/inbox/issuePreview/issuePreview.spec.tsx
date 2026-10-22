@@ -467,6 +467,21 @@ describe('IssuePreview', () => {
             data: {pullRequest: seerPullRequest},
           }),
           ActivityFeedFixture({
+            id: 'seer-ready',
+            type: GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+            dateCreated: '2024-01-01T00:01:00Z',
+            data: {
+              run_id: 42,
+              pull_requests: [
+                {
+                  provider: 'github',
+                  repo_name: seerPullRequest.repository.name,
+                  pull_request: {pr_number: 10, pr_url: seerPullRequest.externalUrl},
+                },
+              ],
+            },
+          }),
+          ActivityFeedFixture({
             id: 'seer-created',
             type: GroupActivityType.SEER_PR_CREATED,
             dateCreated: '2024-01-01T00:01:00Z',
