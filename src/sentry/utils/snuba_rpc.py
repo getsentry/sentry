@@ -491,7 +491,7 @@ def _make_rpc_request(
                     if "Too many simultaneous queries" in error.message:
                         raise SnubaRPCTooManySimultaneous(error)
                     if http_resp.status == 400:
-                        raise SnubaRPCBadRequest(error)
+                        raise SnubaRPCBadRequest(error.message)
                     raise SnubaRPCError(error)
                 return http_resp
 

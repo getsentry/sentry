@@ -55,13 +55,6 @@ describe('SentryAppExternalInstallation', () => {
       url: `/sentry-apps/${sentryApp.slug}/features/`,
       body: [],
     });
-
-    MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-      method: 'POST',
-      statusCode: 200,
-      body: {},
-    });
   });
 
   describe('single organization', () => {

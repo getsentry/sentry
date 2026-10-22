@@ -21,9 +21,15 @@ interface EventStackTraceProps {
   event: Event;
   group: Group;
   projectSlug: Project['slug'];
+  collapseAll?: boolean;
 }
 
-export function EventStackTrace({event, group, projectSlug}: EventStackTraceProps) {
+export function EventStackTrace({
+  event,
+  group,
+  projectSlug,
+  collapseAll,
+}: EventStackTraceProps) {
   const shouldUseNewStackTrace =
     // New stack trace is currently only non-native platforms.
     !isNativePlatform(event.platform);
@@ -49,6 +55,7 @@ export function EventStackTrace({event, group, projectSlug}: EventStackTraceProp
         <EntryErrorBoundary type={EntryType.EXCEPTION}>
           {shouldUseNewStackTrace ? (
             <IssueStackTrace
+              collapseAll={collapseAll}
               event={event}
               values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
               projectSlug={projectSlug}
@@ -56,6 +63,7 @@ export function EventStackTrace({event, group, projectSlug}: EventStackTraceProp
             />
           ) : (
             <Exception
+              collapseAll={collapseAll}
               event={event}
               data={eventEntries[EntryType.EXCEPTION].data}
               projectSlug={projectSlug}
@@ -70,6 +78,7 @@ export function EventStackTrace({event, group, projectSlug}: EventStackTraceProp
           <EntryErrorBoundary type={EntryType.STACKTRACE}>
             {shouldUseNewStackTrace ? (
               <IssueStackTrace
+                collapseAll={collapseAll}
                 event={event}
                 stacktrace={eventEntries[EntryType.STACKTRACE].data}
                 projectSlug={projectSlug}
@@ -77,6 +86,7 @@ export function EventStackTrace({event, group, projectSlug}: EventStackTraceProp
               />
             ) : (
               <StackTrace
+                collapseAll={collapseAll}
                 event={event}
                 data={eventEntries[EntryType.STACKTRACE].data}
                 projectSlug={projectSlug}
@@ -88,6 +98,7 @@ export function EventStackTrace({event, group, projectSlug}: EventStackTraceProp
       {defined(eventEntries[EntryType.THREADS]) && (
         <EntryErrorBoundary type={EntryType.THREADS}>
           <Threads
+            collapseAll={collapseAll}
             event={event}
             data={eventEntries[EntryType.THREADS].data}
             projectSlug={projectSlug}

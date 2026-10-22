@@ -176,7 +176,7 @@ def try_incident_resolution(ok_checkin: MonitorCheckIn) -> bool:
             resolving_checkin=ok_checkin,
             resolving_timestamp=ok_checkin.date_added,
         )
-        resolve_incident_group(incident, ok_checkin.monitor.project_id)
+        resolve_incident_group(incident, monitor_env.monitor.project_id)
         logger.info(
             "monitors.logic.mark_ok.resolving_incident",
             extra={

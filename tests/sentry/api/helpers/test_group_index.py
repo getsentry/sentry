@@ -62,6 +62,12 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import Detector
 
 pytestmark = [requires_snuba]
@@ -868,6 +874,10 @@ class UpdateGroupsTest(TestCase):
     def test_resolve_in_next_release_activity_from_action_log(self) -> None:
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group, type=ActivityType.NOTE.value, data={"text": "no GAL event"}
+            )
         GroupActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -891,6 +901,10 @@ class UpdateGroupsTest(TestCase):
         # the action log was served rather than Activity
         assert "set_resolved" in [entry["type"] for entry in activity]
         assert activity[-1]["id"] == "0"
+        notes = [item for item in activity if item["type"] == "note"]
+        assert len(notes) == 1
+        assert notes[0]["id"] == notes[0]["commentId"] == str(note.id)
+        assert notes[0]["data"]["text"] == "no GAL event"
 
     def test_resolve_in_next_release_falls_back_when_action_log_is_empty(self) -> None:
         # A gated project can still read an empty log: the GALE write for this
@@ -906,7 +920,11 @@ class UpdateGroupsTest(TestCase):
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         with (
             action_log_activity_enabled(),
-            patch.object(GroupActionLogEntry.objects, "get_actions_for_group", return_value=[]),
+            patch.object(
+                GroupActionLogEntry.objects,
+                "user_visible",
+                return_value=GroupActionLogEntry.objects.none(),
+            ),
             self.assertLogs(
                 "sentry.api.serializers.models.groupactionlogentry", level="INFO"
             ) as logs,
@@ -945,6 +963,243 @@ class UpdateGroupsTest(TestCase):
         # the COMMENT only exists in the log, so its absence means Activity was served
         activity = response.data["activity"]
         assert "note" not in [entry["type"] for entry in activity]
+
+
+@patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+class UpdateGroupsSnapshotTest(TestCase):
+    def _update_groups_and_capture_snapshots(
+        self,
+        group: Group,
+        data: dict[str, Any],
+        produce_snapshot: Mock,
+        *,
+        post_update_signal_enabled: bool,
+    ) -> list[dict[str, Any]]:
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data=data)
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+
+        produce_snapshot.reset_mock()
+
+        with (
+            self.options({"groups.enable-post-update-signal": post_update_signal_enabled}),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            update_groups(request, group_list)
+
+        return [call.args[0] for call in produce_snapshot.call_args_list]
+
+    def _update_status_and_capture_snapshot_statuses(
+        self,
+        group: Group,
+        data: dict[str, Any],
+        produce_snapshot: Mock,
+        *,
+        post_update_signal_enabled: bool,
+    ) -> list[int]:
+        snapshots = self._update_groups_and_capture_snapshots(
+            group, data, produce_snapshot, post_update_signal_enabled=post_update_signal_enabled
+        )
+
+        return [snapshot["status"] for snapshot in snapshots]
+
+    def _assert_archive_until_escalating_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        emitted_statuses = self._update_status_and_capture_snapshot_statuses(
+            group,
+            {"status": "ignored", "substatus": "archived_until_escalating"},
+            produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+        assert emitted_statuses == [GroupStatus.IGNORED]
+
+    def _assert_archive_forever_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        emitted_statuses = self._update_status_and_capture_snapshot_statuses(
+            group,
+            {"status": "ignored", "substatus": "archived_forever"},
+            produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.FOREVER
+
+        assert emitted_statuses == [GroupStatus.IGNORED]
+
+    def _assert_unresolve_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(
+            status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING
+        )
+
+        emitted_statuses = self._update_status_and_capture_snapshot_statuses(
+            group,
+            {"status": "unresolved", "substatus": "ongoing"},
+            produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
+
+        assert emitted_statuses == [GroupStatus.UNRESOLVED]
+
+    def _assert_resolve_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        emitted_statuses = self._update_status_and_capture_snapshot_statuses(
+            group,
+            {"status": "resolved", "substatus": None},
+            produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        assert emitted_statuses == [GroupStatus.RESOLVED]
+
+    def test_archive_until_escalating_emits_snapshot_via_post_update(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_archive_until_escalating_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=True
+        )
+
+    def test_archive_until_escalating_emits_snapshot_via_post_save(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_archive_until_escalating_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=False
+        )
+
+    def test_archive_forever_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
+        self._assert_archive_forever_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=True
+        )
+
+    def test_archive_forever_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
+        self._assert_archive_forever_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=False
+        )
+
+    def test_unresolve_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
+        self._assert_unresolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
+
+    def test_unresolve_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
+        self._assert_unresolve_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=False
+        )
+
+    def test_resolve_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
+        self._assert_resolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
+
+    def test_resolve_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
+        self._assert_resolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
+
+    def _assert_assign_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        snapshots = self._update_groups_and_capture_snapshots(
+            group,
+            {"assignedTo": f"user:{self.user.id}"},
+            produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
+        )
+
+        assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
+
+        assert [snapshot["assignee_user_id"] for snapshot in snapshots] == [self.user.id]
+
+    def _assert_reassign_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        new_assignee = self.create_user()
+
+        self.create_member(organization=self.organization, user=new_assignee, teams=[self.team])
+
+        with action_context_scope(source=ActionSource.SYSTEM):
+            GroupAssignee.objects.assign(group, self.user)
+
+        snapshots = self._update_groups_and_capture_snapshots(
+            group,
+            {"assignedTo": f"user:{new_assignee.id}"},
+            produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
+        )
+
+        assert GroupAssignee.objects.filter(group=group, user_id=new_assignee.id).exists()
+
+        assert [snapshot["assignee_user_id"] for snapshot in snapshots] == [new_assignee.id]
+
+    def _assert_unassign_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        with action_context_scope(source=ActionSource.SYSTEM):
+            GroupAssignee.objects.assign(group, self.user)
+
+        snapshots = self._update_groups_and_capture_snapshots(
+            group,
+            {"assignedTo": ""},
+            produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
+        )
+
+        assert not GroupAssignee.objects.filter(group=group).exists()
+
+        assert [snapshot["assignee_user_id"] for snapshot in snapshots] == [None]
+
+    def test_assign_emits_snapshot_with_post_update_signal_on(self, produce_snapshot: Mock) -> None:
+        self._assert_assign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
+
+    def test_assign_emits_snapshot_with_post_update_signal_off(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_assign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
+
+    def test_reassign_emits_snapshot_with_post_update_signal_on(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_reassign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
+
+    def test_reassign_emits_snapshot_with_post_update_signal_off(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_reassign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
+
+    def test_unassign_emits_snapshot_with_post_update_signal_on(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_unassign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
+
+    def test_unassign_emits_snapshot_with_post_update_signal_off(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_unassign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
 
 
 class MergeGroupsTest(TestCase):
@@ -1713,6 +1968,17 @@ class DeleteGroupsTest(TestCase):
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+        request_context = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == self.organization.id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.user_id == self.user.id
+            assert viewer_context.actor_type == ActorType.USER
+
+        mock_delete_seer_grouping_records_by_hash.side_effect = assert_viewer_context
 
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
@@ -1724,7 +1990,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        with self.tasks():
+        with self.tasks(), viewer_context_scope(request_context):
             schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (

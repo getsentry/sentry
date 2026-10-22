@@ -367,6 +367,21 @@ class UpdateRepositoryConfigTest(TestCase):
         assert self.repo.name == "renamed"
         assert self.repo.config == {"project_id": 1, "webhook_id": 20, "sync_comments": True}
 
+    def test_updates_and_deletes_config_keys(self) -> None:
+        assert self._update(
+            config_deletions=["project_id"],
+            expected_config={"webhook_id": 10, "project_id": 1},
+        )
+
+        self.repo.refresh_from_db()
+        assert self.repo.config == {"webhook_id": 20}
+
+    def test_deletion_wins_over_update(self) -> None:
+        assert self._update(config_deletions=["webhook_id"])
+
+        self.repo.refresh_from_db()
+        assert self.repo.config == {"project_id": 1}
+
     def test_refuses_inactive_repository(self) -> None:
         for status in (ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION):
             self.repo.update(status=status)

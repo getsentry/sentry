@@ -2,7 +2,10 @@ import type {ComponentProps} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AIOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {
+  AIOutputSection,
+  getAIToolOutput,
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 
 function makeAiNodeWithAttributes(
   attributes: Record<string, unknown>
@@ -97,5 +100,78 @@ describe('AIOutputSection', () => {
 
     expect(screen.getByText('Just a response')).toBeVisible();
     expect(screen.queryByText('Thinking')).not.toBeInTheDocument();
+  });
+
+  it('renders only the output from an input/output result envelope', () => {
+    render(
+      <AIOutputSection
+        node={makeAiNodeWithAttributes({
+          'gen_ai.tool.call.result': JSON.stringify({
+            input: {code: 'captured input'},
+            output: {answer: 'computed result'},
+          }),
+        })}
+      />
+    );
+    expect(screen.getByText(/computed result/)).toBeVisible();
+    expect(screen.queryByText(/captured input/)).not.toBeInTheDocument();
+  });
+
+  it.each([false, 0, ''])('renders a raw falsy tool result %p', result => {
+    render(
+      <AIOutputSection
+        node={makeAiNodeWithAttributes({'gen_ai.tool.call.result': result})}
+      />
+    );
+    expect(
+      screen.getByText(result === '' ? 'Empty string' : String(result))
+    ).toBeVisible();
+  });
+});
+
+describe('getAIToolOutput', () => {
+  it.each([false, 0, null, ''])(
+    'preserves falsy output %p when unwrapping an envelope',
+    output => {
+      const node = makeAiNodeWithAttributes({
+        'gen_ai.tool.call.result': JSON.stringify({input: {a: 12, b: 8}, output}),
+      });
+      expect(getAIToolOutput(node)).toBe(JSON.stringify(output));
+    }
+  );
+
+  it('accepts an already-parsed envelope', () => {
+    const node = makeAiNodeWithAttributes({
+      'gen_ai.tool.call.result': {input: {}, output: {answer: 20}},
+    });
+    expect(getAIToolOutput(node)).toBe('{"answer":20}');
+  });
+
+  it.each(['plain text', '{"input":1}', '{"output":2}', '[{"input":1,"output":2}]'])(
+    'preserves non-envelope results: %s',
+    result => {
+      expect(
+        getAIToolOutput(makeAiNodeWithAttributes({'gen_ai.tool.call.result': result}))
+      ).toBe(result);
+    }
+  );
+
+  it('reads fetched span attributes', () => {
+    expect(
+      getAIToolOutput(makeAiNodeWithAttributes({}), [
+        {
+          name: 'gen_ai.tool.call.result',
+          type: 'str',
+          value: JSON.stringify({input: {}, output: {answer: 20}}),
+        },
+      ])
+    ).toBe('{"answer":20}');
+  });
+
+  it('leaves the legacy fallback unchanged', () => {
+    const result = JSON.stringify({input: {}, output: 20});
+    expect(
+      getAIToolOutput(makeAiNodeWithAttributes({'gen_ai.tool.output': result}))
+    ).toBe(result);
   });
 });

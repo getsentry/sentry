@@ -697,6 +697,20 @@ def post_process_group(
                 tags=metric_tags,
             )
 
+            save_event_start = event.data.get("save_event_start")
+            if save_event_start is not None:
+                # Measures latency from save_event start to post-processing completion.
+                metrics.timing(
+                    "events.save_to_post_process",
+                    time() - save_event_start,
+                    instance=event.data.get("platform") or None,
+                    tags={
+                        **metric_tags,
+                        "reprocessing": "true" if is_reprocessed else "false",
+                        "type": event.data.get("type"),
+                    },
+                )
+
 
 def run_post_process_job(job: PostProcessJob) -> None:
     from sentry.issues.action_log.publish import action_context_scope
