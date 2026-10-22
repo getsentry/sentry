@@ -651,28 +651,18 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
 def _release_matcher(name: str) -> _ConditionMatcher:
     patterns = _field_matcher(name)
 
+    # A comparison takes one value, which `_custom_filter_condition` guarantees.
     def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
         if operator not in COMPARISON_OPERATORS:
             return patterns.match(operator, values)
-        return _any_of(
-            [
-                {
-                    "op": "release",
-                    "name": name,
-                    "comparator": cast(ReleaseComparator, operator.value),
-                    "value": value,
-                }
-                for value in values
-            ]
-        )
+        return {
+            "op": "release",
+            "name": name,
+            "comparator": cast(ReleaseComparator, operator.value),
+            "value": values[0],
+        }
 
     return _ConditionMatcher(TEXT_OPERATORS | COMPARISON_OPERATORS, match)
-
-
-def _any_of(conditions: list[RuleCondition]) -> RuleCondition:
-    if len(conditions) == 1:
-        return conditions[0]
-    return {"op": "or", "inner": conditions}
 
 
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
@@ -684,6 +674,7 @@ _NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
     ConditionOperator.DOES_NOT_START_WITH: ConditionOperator.STARTS_WITH,
     ConditionOperator.DOES_NOT_CONTAIN: ConditionOperator.CONTAINS,
     ConditionOperator.DOES_NOT_END_WITH: ConditionOperator.ENDS_WITH,
+    ConditionOperator.NOT_CIDR: ConditionOperator.CIDR,
 }
 
 
@@ -773,8 +764,9 @@ def _custom_filter_condition(
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, operator, or value shape unknown
     to this revision, a condition type whose field the filter's data type does not
-    carry, or an operator the field does not take): since every condition narrows the
-    match, dropping only the broken condition would filter more data than configured.
+    carry, an operator the field does not take, or a version comparison that does not
+    take exactly one value): since every condition narrows the match, dropping only the
+    broken condition would filter more data than configured.
 
     A condition without an operator holds raw values, see ``ConditionOperator``.
     """
@@ -800,6 +792,8 @@ def _custom_filter_condition(
 
         matcher = matchers.get(condition_type)
         if matcher is None or (operator is not None and operator not in matcher.operators):
+            return None
+        if operator in COMPARISON_OPERATORS and len(values) != 1:
             return None
         negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None
         if negated is None:

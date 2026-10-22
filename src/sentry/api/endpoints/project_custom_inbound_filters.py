@@ -147,8 +147,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "field against each value case-insensitively, with every character read "
             "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
             "match when no value does. `cidr` matches `ip_address` against each value as an "
-            "address or a CIDR range. `gt`, `gte`, `lt` and `lte` compare one value as a "
-            "version and only apply to `release`."
+            "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
+            "`lt` and `lte` compare one value as a version and only apply to `release`."
         ),
     )
     value = serializers.ListField(
@@ -157,8 +157,9 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         help_text=(
             "The values the field is compared to. The condition matches when any value "
             "matches, so multiple values act as OR; a negated operator matches when none "
-            "does. A version comparison takes releases with a version such as `1.2.0` or "
-            "`myapp@1.2.0`. A value with a package only applies to releases of that package."
+            "does. A version comparison takes one release "
+            "with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a package "
+            "only applies to releases of that package."
         ),
     )
 
@@ -191,14 +192,17 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         return attrs
 
     def _validate_comparison(self, attrs: CustomInboundFilterCondition) -> None:
+        if len(attrs["value"]) != 1:
+            raise serializers.ValidationError(
+                {"value": f"The {attrs['operator']} operator takes exactly one value."}
+            )
         # Relay never matches a comparison against a release without a version, so the
         # condition would silently match nothing.
-        invalid = [value for value in attrs["value"] if not _is_release_version(value)]
-        if invalid:
+        if not _is_release_version(attrs["value"][0]):
             raise serializers.ValidationError(
                 {
                     "value": (
-                        f"{', '.join(invalid)} is not a release with a version such as 1.2.0 "
+                        f"{attrs['value'][0]} is not a release with a version such as 1.2.0 "
                         "or myapp@1.2.0."
                     )
                 }
