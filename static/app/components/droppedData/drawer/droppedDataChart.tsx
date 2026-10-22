@@ -12,7 +12,7 @@ import {
   type OutcomeSelection,
 } from 'sentry/components/droppedData/outcomes';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -103,7 +103,12 @@ export function DroppedDataChart({
     <Stack gap="md">
       <Stack gap="sm">
         <Heading as="h2" size="lg">
-          {t('%s dropped and filtered events', formatAbbreviatedNumber(totalDropped))}
+          {tn(
+            '%2$s dropped and filtered event',
+            '%2$s dropped and filtered events',
+            totalDropped,
+            formatAbbreviatedNumber(totalDropped)
+          )}
         </Heading>
         {/* TODO: Only mention Seer once the Ask Seer button is limited to organizations with Seer access. */}
         <Text size="sm">

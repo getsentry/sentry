@@ -121,6 +121,20 @@ describe('useDroppedDataDrawer', () => {
     ).toBeInTheDocument();
   });
 
+  it('uses the singular heading for one dropped event', async () => {
+    mockDroppedData(1, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByRole('heading', {name: '1 dropped and filtered event'})
+    ).toBeInTheDocument();
+  });
+
   it('shows an error with retry when the request fails', async () => {
     const failedRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,
