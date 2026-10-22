@@ -650,6 +650,21 @@ class TestProjectTransfer(TestCase):
         assert other_ext_issue.organization_id == self.from_org.id
         assert ExternalIssue.objects.filter(organization_id=self.to_org.id).count() == 0
 
+    def test_transfer_to_same_organization_keeps_external_issues(self) -> None:
+        group = self.create_group(project=self.project)
+        integration = self.create_integration(
+            organization=self.from_org, provider="jira", name="Jira", external_id="jira:1"
+        )
+        ext_issue = self.create_integration_external_issue(
+            group=group, integration=integration, key="APP-1"
+        )
+
+        self.project.transfer_to(organization=self.from_org)
+
+        ext_issue.refresh_from_db()
+        assert ext_issue.organization_id == self.from_org.id
+        assert GroupLink.objects.get(group_id=group.id).linked_id == ext_issue.id
+
     def test_transfer_to_organization_with_metric_issue_detector_and_workflow(self) -> None:
         self.project.transfer_to(organization=self.to_org)
 

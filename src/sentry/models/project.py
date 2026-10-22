@@ -768,7 +768,8 @@ class Project(Model):
         RepositoryProjectPathConfig.objects.filter(project_repository__project_id=self.id).delete()
         ProjectRepository.objects.filter(project_id=self.id).delete()
 
-        self._transfer_external_issues(old_org_id, organization.id)
+        if org_changed:
+            self._transfer_external_issues(old_org_id, organization.id)
 
     def _transfer_external_issues(self, old_org_id: int, new_org_id: int) -> None:
         """
