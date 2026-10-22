@@ -5,7 +5,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconIssues} from '@sentry/icons/issues';
 import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -66,6 +66,7 @@ import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSee
 import type {
   InvestigationBlock,
   InvestigationDetail,
+  InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
@@ -101,6 +102,66 @@ function ClosedMembershipPage() {
       </Alert.Container>
     </Stack>
   );
+}
+
+/**
+ * Action requests come with the investigation, which stops polling once the run is done
+ * and which orchestration commands don't refresh. Refetch it whenever the next step moves
+ * on, and return true until that refetch settles.
+ */
+function useRefetchStaleActionRequests(
+  investigationId: string,
+  orchestration: InvestigationOrchestration | undefined
+) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const detailQueryKey = getInvestigationDetailQueryOptions(
+    organization.slug,
+    investigationId
+  ).queryKey;
+  // Re-renders when the refetch starts and settles.
+  useIsFetching({queryKey: detailQueryKey});
+  const detailState = queryClient.getQueryState(detailQueryKey);
+  const detailUpdates =
+    (detailState?.dataUpdateCount ?? 0) + (detailState?.errorUpdateCount ?? 0);
+  const nextStepKey = orchestration
+    ? `${orchestration.report.revision}:${orchestration.report.nextStep?.status}`
+    : null;
+  const [refresh, setRefresh] = useState<{
+    detailUpdates: number;
+    initial: boolean;
+    investigationId: string;
+    key: string;
+  } | null>(null);
+
+  if (
+    nextStepKey !== null &&
+    (refresh?.investigationId !== investigationId || refresh.key !== nextStepKey)
+  ) {
+    setRefresh({
+      detailUpdates,
+      // The first next step we see arrived alongside the investigation we already have.
+      initial: refresh?.investigationId !== investigationId,
+      investigationId,
+      key: nextStepKey,
+    });
+  }
+
+  useEffect(() => {
+    if (refresh && !refresh.initial) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(
+          organization.slug,
+          refresh.investigationId
+        ).queryKey,
+      });
+    }
+  }, [organization.slug, queryClient, refresh]);
+
+  if (refresh === null || refresh.initial || nextStepKey === null) {
+    return false;
+  }
+  return detailUpdates === refresh.detailUpdates;
 }
 
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
@@ -192,6 +253,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
   });
+  const actionRequestsStale = useRefetchStaleActionRequests(
+    investigation.id,
+    orchestration
+  );
   const runStatus =
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
@@ -492,6 +557,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               />
               <NextStepCard
                 actionRequests={investigation.actionRequests}
+                actionRequestsStale={actionRequestsStale}
                 orchestration={orchestration}
                 orchestrationLoading={
                   Boolean(investigation.orchestration) && orchestrationPending

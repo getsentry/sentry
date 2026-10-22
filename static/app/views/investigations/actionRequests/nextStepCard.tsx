@@ -14,11 +14,14 @@ import type {
 type NextStepCardProps = {
   actionRequests: InvestigationActionRequest[] | undefined;
   orchestration: InvestigationOrchestration | undefined;
+  /** The action requests predate the run's current next step. */
+  actionRequestsStale?: boolean;
   orchestrationLoading?: boolean;
 };
 
 export function NextStepCard({
   actionRequests,
+  actionRequestsStale = false,
   orchestration,
   orchestrationLoading = false,
 }: NextStepCardProps) {
@@ -37,7 +40,7 @@ export function NextStepCard({
     return <ActionRequestCard actionRequest={actionRequest} heading={heading} />;
   }
 
-  if (isNextStepPending(orchestration)) {
+  if (isNextStepPending(orchestration, actionRequestsStale)) {
     return <NextStepPlaceholder heading={heading} />;
   }
 
@@ -66,9 +69,12 @@ function getPrimaryActionRequest(
     )[0];
 }
 
-function isNextStepPending(orchestration: InvestigationOrchestration | undefined) {
+function isNextStepPending(
+  orchestration: InvestigationOrchestration | undefined,
+  actionRequestsStale: boolean
+) {
   const status = orchestration?.report.nextStep?.status;
-  if (status === 'generating') {
+  if (status === 'generating' || (status === 'completed' && actionRequestsStale)) {
     return true;
   }
   const runningMetadata =
