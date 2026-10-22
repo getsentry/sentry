@@ -2733,7 +2733,7 @@ function buildRoutes(): RouteObject[] {
   const seerChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: 'investigations/',
+      redirectTo: 'automations/',
     },
     {
       path: 'investigations/',
@@ -2742,6 +2742,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'investigations/:investigationId/',
       component: make(() => import('sentry/views/investigations/detail')),
+    },
+    {
+      path: 'automations/',
+      component: make(() => import('sentry/views/seerWorkflows')),
     },
   ];
   const seerRoutes: SentryRouteObject = {
@@ -2940,10 +2944,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'autofix/',
       component: make(() => import('sentry/views/seerWorkflows/overview')),
-    },
-    {
-      path: 'autofix/workflows/',
-      component: make(() => import('sentry/views/seerWorkflows')),
     },
     {
       path: 'autofix/recent/',
