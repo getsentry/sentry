@@ -3,17 +3,16 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {Placeholder} from 'sentry/components/placeholder';
-import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UptimeCheck} from 'sentry/views/detectors/components/uptime/types';
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
@@ -56,9 +55,11 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
 
   const {data: spanCounts, isPending: spanCountLoading} = useSpans(
     {
-      limit: 10,
+      // One grouped row per trace. A fixed page size drops counts for the rest
+      // of the checks and labels those traces as system-spans-only.
+      limit: traceIds.length,
       enabled: traceIds.length > 0,
-      search: new MutableSearch('').addDisjunctionFilterValues('trace', traceIds),
+      search: `trace:[${traceIds.join(',')}]`,
       fields: ['trace', 'count()'],
       // Ignore the cursor parameter, since we use that on this page to
       // paginate the checks table.
@@ -77,7 +78,7 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
       );
 
   return (
-    <GridEditable
+    <DataGrid
       emptyMessage={t('No matching uptime checks found')}
       data={uptimeChecks}
       fit="max-content"

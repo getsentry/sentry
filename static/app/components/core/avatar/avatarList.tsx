@@ -15,12 +15,7 @@ type Props = {
   avatarSize?: number;
   className?: string;
   maxVisibleAvatars?: number;
-  renderCollapsedAvatars?: (
-    avatarSize: number,
-    numCollapsedAvatars: number
-  ) => React.ReactNode;
   renderTooltip?: UserAvatarProps['renderTooltip'];
-  renderUsersFirst?: boolean;
   teams?: Team[];
   tooltipOptions?: UserAvatarProps['tooltipOptions'];
   typeAvatars?: string;
@@ -49,9 +44,7 @@ export function AvatarList({
   className,
   users = [],
   teams = [],
-  renderUsersFirst = false,
   renderTooltip,
-  renderCollapsedAvatars,
 }: Props) {
   const numTeams = teams.length;
   const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
@@ -79,59 +72,35 @@ export function AvatarList({
 
   return (
     <AvatarListWrapper className={className}>
-      {!!numCollapsedAvatars &&
-        (renderCollapsedAvatars ? (
-          renderCollapsedAvatars(avatarSize, numCollapsedAvatars)
-        ) : (
-          <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
-            <CollapsedAvatars data-test-id="avatarList-collapsedavatars">
-              {numCollapsedAvatars < 99 && '+'}
-              {numCollapsedAvatars}
-            </CollapsedAvatars>
-          </Tooltip>
-        ))}
+      {!!numCollapsedAvatars && (
+        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
+          <CollapsedAvatars data-test-id="avatarList-collapsedavatars">
+            {numCollapsedAvatars < 99 && '+'}
+            {numCollapsedAvatars}
+          </CollapsedAvatars>
+        </Tooltip>
+      )}
 
-      {renderUsersFirst
-        ? visibleTeamAvatars.map(team => (
-            <StyledTeamAvatar
-              key={`${team.id}-${team.name}`}
-              team={team}
-              size={avatarSize}
-              tooltipOptions={resolvedTooltipOptions}
-              hasTooltip
-            />
-          ))
-        : visibleUserAvatars.map(user => (
-            <StyledUserAvatar
-              key={user.id}
-              user={user}
-              size={avatarSize}
-              tooltipOptions={resolvedTooltipOptions}
-              renderTooltip={renderTooltip}
-              hasTooltip
-            />
-          ))}
+      {visibleUserAvatars.map(user => (
+        <StyledUserAvatar
+          key={user.id}
+          user={user}
+          size={avatarSize}
+          tooltipOptions={resolvedTooltipOptions}
+          renderTooltip={renderTooltip}
+          hasTooltip
+        />
+      ))}
 
-      {renderUsersFirst
-        ? visibleUserAvatars.map(user => (
-            <StyledUserAvatar
-              key={user.id}
-              user={user}
-              size={avatarSize}
-              tooltipOptions={resolvedTooltipOptions}
-              renderTooltip={renderTooltip}
-              hasTooltip
-            />
-          ))
-        : visibleTeamAvatars.map(team => (
-            <StyledTeamAvatar
-              key={`${team.id}-${team.name}`}
-              team={team}
-              size={avatarSize}
-              tooltipOptions={resolvedTooltipOptions}
-              hasTooltip
-            />
-          ))}
+      {visibleTeamAvatars.map(team => (
+        <StyledTeamAvatar
+          key={`${team.id}-${team.name}`}
+          team={team}
+          size={avatarSize}
+          tooltipOptions={resolvedTooltipOptions}
+          hasTooltip
+        />
+      ))}
     </AvatarListWrapper>
   );
 }
@@ -147,6 +116,10 @@ const AvatarStyle = (p: {theme: Theme}) => css`
   border: 2px solid ${p.theme.tokens.border.primary};
   margin-left: -8px;
   cursor: default;
+
+  &:last-child {
+    margin-left: 0;
+  }
 
   &:hover {
     z-index: 1;

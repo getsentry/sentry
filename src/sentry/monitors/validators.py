@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Any, Literal
 
@@ -19,13 +20,14 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
+from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
@@ -41,14 +43,12 @@ from sentry.monitors.models import (
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
 from sentry.monitors.utils import (
-    create_issue_alert_rule,
     ensure_cron_detector,
     get_checkin_margin,
     get_max_runtime,
+    get_request_attribution,
     signal_monitor_created,
-    update_issue_alert_rule,
 )
-from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.utils.outcomes import Outcome
@@ -57,6 +57,8 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.models import Detector
+
+logger = logging.getLogger(__name__)
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -125,21 +127,6 @@ class ScheduleField(ObjectField):
         return super().get_value(dictionary)
 
 
-class MonitorAlertRuleTargetValidator(serializers.Serializer):
-    target_identifier = serializers.IntegerField(help_text="ID of target object")
-    target_type = serializers.CharField(help_text="One of [Member, Team]")
-
-
-class MonitorAlertRuleValidator(serializers.Serializer):
-    environment = serializers.CharField(
-        max_length=64, required=False, allow_null=True, help_text="Name of the environment"
-    )
-    targets = MonitorAlertRuleTargetValidator(
-        many=True,
-        help_text="Array of dictionaries with information of the user or team to be notified",
-    )
-
-
 class MissedMarginField(EmptyIntegerField):
     def to_internal_value(self, value):
         value = super().to_internal_value(value)
@@ -194,9 +181,13 @@ class ConfigValidator(serializers.Serializer):
         required=False,
         allow_null=True,
         default=None,
-        help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
+        help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed. "
+        f"Maximum {MAX_TIMEOUT} ({MAX_TIMEOUT // 1440} days).",
         min_value=1,
         max_value=MAX_TIMEOUT,
+        error_messages={
+            "max_value": f"Max runtime must be {MAX_TIMEOUT} minutes ({MAX_TIMEOUT // 1440} days) or less. Lower it to save this monitor."
+        },
     )
 
     timezone = serializers.ChoiceField(
@@ -310,6 +301,11 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "alert_rule": "Deprecated issue alert configuration; use the dedicated Workflow APIs.",
+    }
+)
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(
         scope="project:read",
@@ -341,9 +337,9 @@ class MonitorValidator(CamelSnakeSerializer):
         help_text="Disable creation of monitor incidents",
     )
     config = ConfigValidator(help_text="The configuration for the monitor.")
-    alert_rule = MonitorAlertRuleValidator(
+    alert_rule = ObjectField(
         required=False,
-        help_text="Alert rule configuration created alongside the monitor.",
+        help_text="Deprecated alert rule configuration.",
     )
 
     def validate(self, attrs):
@@ -354,6 +350,23 @@ class MonitorValidator(CamelSnakeSerializer):
                 check_organization_monitor_limit(organization.id)
             except MonitorLimitsExceeded as e:
                 raise serializers.ValidationError(str(e))
+
+        alert_rule = attrs.get("alert_rule")
+        if alert_rule is not None:
+            organization = self.context["organization"]
+            request = self.context["request"]
+            logger.info(
+                "monitors.validator.alert_rule_rejected",
+                extra={
+                    "organization_id": organization.id,
+                    "operation": "update" if self.instance else "create",
+                    **get_request_attribution(request),
+                },
+            )
+            raise serializers.ValidationError(
+                {"alert_rule": "Cron monitor alert rules are disabled for this organization."}
+            )
+
         return attrs
 
     def validate_status(self, value):
@@ -427,21 +440,6 @@ class MonitorValidator(CamelSnakeSerializer):
 
         request = self.context["request"]
         signal_monitor_created(project, request.user, False, monitor, request)
-        validated_issue_alert_rule = validated_data.get("alert_rule")
-        if validated_issue_alert_rule:
-            metrics.incr(
-                "monitors.validator.alert_rule",
-                tags={"operation": "create"},
-                sample_rate=1.0,
-            )
-            issue_alert_rule_id = create_issue_alert_rule(
-                request, project, monitor, validated_issue_alert_rule
-            )
-
-            if issue_alert_rule_id:
-                config = monitor.config
-                config["alert_rule_id"] = issue_alert_rule_id
-                monitor.update(config=config)
         return monitor
 
     def update(self, instance, validated_data):
@@ -488,6 +486,8 @@ class MonitorValidator(CamelSnakeSerializer):
                 raise serializers.ValidationError({"config": f"Invalid config: {e.message}"})
 
             params["config"] = merged_config
+            # The config is now managed here, until a check-in upserts it again
+            params["is_upserting"] = False
 
         if "status" in params:
             # Attempt to assign a monitor seat
@@ -514,6 +514,8 @@ class MonitorValidator(CamelSnakeSerializer):
 
         if params:
             instance.update(**params)
+            if "status" in params:
+                sync_cron_detector_enabled(instance)
             create_audit_entry(
                 request=self.context["request"],
                 organization_id=instance.organization_id,
@@ -539,7 +541,12 @@ class MonitorValidator(CamelSnakeSerializer):
             max_runtime = updated_config.get("max_runtime")
             if max_runtime != existing_max_runtime:
                 MonitorCheckIn.objects.filter(
-                    monitor_id=instance.id, status=CheckInStatus.IN_PROGRESS
+                    monitor_environment_id__in=list(
+                        MonitorEnvironment.objects.filter(monitor_id=instance.id).values_list(
+                            "id", flat=True
+                        )
+                    ),
+                    status=CheckInStatus.IN_PROGRESS,
                 ).update(timeout_at=TruncMinute(F("date_added")) + get_max_runtime(max_runtime))
 
             # If the schedule changed, recompute next_checkin and next_checkin_latest for all environments
@@ -551,40 +558,6 @@ class MonitorValidator(CamelSnakeSerializer):
                     # Use last_checkin if available, otherwise use current time
                     last_checkin = monitor_env.last_checkin or now
                     update_monitor_environment(monitor_env, last_checkin, now)
-
-        # Update alert rule after in case slug or name changed
-        if "alert_rule" in validated_data:
-            metrics.incr(
-                "monitors.validator.alert_rule",
-                tags={"operation": "update"},
-                sample_rate=1.0,
-            )
-            alert_rule_data = validated_data["alert_rule"]
-            request = self.context.get("request")
-            if not request:
-                return instance
-
-            project = Project.objects.get(id=instance.project_id)
-
-            # Check to see if rule exists
-            issue_alert_rule = instance.get_issue_alert_rule()
-            # If rule exists, update as necessary
-            if issue_alert_rule:
-                issue_alert_rule_id = update_issue_alert_rule(
-                    request, project, instance, issue_alert_rule, alert_rule_data
-                )
-            # If rule does not exist, create
-            else:
-                # Type assertion for mypy - create_issue_alert_rule expects AuthenticatedHttpRequest
-                # but in tests we might have a regular Request object
-                issue_alert_rule_id = create_issue_alert_rule(
-                    request, project, instance, alert_rule_data
-                )
-
-            if issue_alert_rule_id:
-                # If config is not sent, use existing config to update alert_rule_id
-                instance.config["alert_rule_id"] = issue_alert_rule_id
-                instance.update(config=instance.config)
 
         return instance
 
@@ -791,8 +764,9 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
         # Try to assign a seat for the monitor
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            detector.update(enabled=False)
             monitor.update(status=ObjectStatus.DISABLED)
+        if monitor.status != ObjectStatus.ACTIVE:
+            detector.update(enabled=False)
 
         return detector
 

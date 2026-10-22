@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {ErrorNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/error';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isTraceError} from 'sentry/views/performance/traceDetails/traceGuards';
@@ -60,7 +61,7 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   }
 
   get drawerTabsTitle(): string {
-    return this.description || t('Error');
+    return (this.description && stripAnsi(this.description)) || t('Error');
   }
 
   analyticsName(): string {

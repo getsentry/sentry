@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect} from 'react';
+import {Fragment, useLayoutEffect, type ComponentProps} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -11,12 +11,18 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
 import {GlobalModal} from '@sentry/scraps/modal';
 
+import {
+  StreamGroupTable,
+  useStreamGroupColumns,
+} from 'sentry/components/stream/groupColumns';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
+import {ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
 import {
   IssueSelectionProvider,
   useIssueSelectionActions,
@@ -66,6 +72,27 @@ function SelectionInitializer({
   return null;
 }
 
+function IssueListActionsTable(
+  props: Omit<ComponentProps<typeof IssueListActions>, 'columns' | 'selectionEnabled'>
+) {
+  const {columns, selectionEnabled} = useStreamGroupColumns({
+    canSelect: true,
+    displayReprocessingLayout: props.displayReprocessingActions,
+    withChart: true,
+    withColumns: ISSUE_LIST_COLUMNS,
+  });
+
+  return (
+    <StreamGroupTable columns={columns}>
+      <IssueListActions
+        {...props}
+        columns={columns}
+        selectionEnabled={selectionEnabled}
+      />
+    </StreamGroupTable>
+  );
+}
+
 function WrappedComponent({
   selectedIds,
   allSelected,
@@ -80,26 +107,29 @@ function WrappedComponent({
   return (
     <Fragment>
       <GlobalModal />
-      <IssueSelectionProvider visibleGroupIds={groupIds}>
-        <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
-        <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
-      </IssueSelectionProvider>
+      <Container containerType="inline-size">
+        <IssueSelectionProvider visibleGroupIds={groupIds}>
+          <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
+          <IssueListActionsTable {...defaultProps} {...props} groupIds={groupIds} />
+        </IssueSelectionProvider>
+      </Container>
     </Fragment>
   );
 }
 
 describe('IssueListActions', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   beforeEach(() => {
     GroupStore.reset();
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [ProjectFixture({id: '1'})],
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('selection state', () => {
@@ -301,6 +331,50 @@ describe('IssueListActions', () => {
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
+      });
+
+      it('shows the validation message returned by the API when the update fails', async () => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+          statusCode: 400,
+          body: {
+            statusDetails: {
+              inNextRelease: [
+                "No release data present in the system to form a basis for 'Next Release'",
+              ],
+            },
+          },
+        });
+
+        render(
+          <WrappedComponent groupIds={['1', '2', '3', '6', '9']} selectedIds={['1']} />
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+        expect(
+          await screen.findByText(
+            "Unable to update issues: No release data present in the system to form a basis for 'Next Release'"
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('shows a generic message when the failed update has no error details', async () => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+          statusCode: 500,
+          body: {},
+        });
+
+        render(
+          <WrappedComponent groupIds={['1', '2', '3', '6', '9']} selectedIds={['1']} />
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+        expect(await screen.findByText('Unable to update issues')).toBeInTheDocument();
       });
     });
   });

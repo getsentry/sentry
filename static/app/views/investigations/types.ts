@@ -1,3 +1,4 @@
+import type {AvatarUser} from 'sentry/types/user';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -63,6 +64,17 @@ export type InvestigationViewer = {
   active: boolean;
   lastSeen: string;
   userId: string;
+};
+
+export type InvestigationComment = {
+  /** Null once the author's account is deleted. */
+  author: AvatarUser | null;
+  /** Null for a comment on the investigation as a whole. */
+  blockId: string | null;
+  body: string;
+  dateCreated: string;
+  dateUpdated: string;
+  id: string;
 };
 
 export type InvestigationBlockExecutionStart = {
@@ -209,7 +221,7 @@ export type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenStr
   'pending' | 'processing' | 'awaiting_input' | 'completed' | 'failed' | 'cancelled'
 >;
 
-/** Lifecycle of one unit of agent work. Mirrors `WORK_STATUSES`. */
+/** Lifecycle of agent work, including skipped verification checks. */
 type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString<
   | 'not_started'
   | 'queued'
@@ -220,6 +232,7 @@ type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString
   | 'completed'
   | 'failed'
   | 'cancelled'
+  | 'skipped'
 >;
 
 /**
@@ -249,7 +262,7 @@ type InvestigationOrchestrationError = {
   source?: string | null;
 };
 
-type InvestigationToolActivity = {
+export type InvestigationToolActivity = {
   id: string;
   kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'step' | 'tool'>;
   status: InvestigationOrchestrationOpenString<
@@ -280,7 +293,7 @@ type InvestigationOrchestrationEvidence = {
   url?: string | null;
 };
 
-/** One check the agent ran against a hypothesis — an "Evidence checked" row. */
+/** One check planned against a hypothesis, including checks skipped by the agent. */
 export type InvestigationVerificationStep = {
   error: InvestigationOrchestrationError | null;
   evidence: InvestigationOrchestrationEvidence[];

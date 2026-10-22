@@ -1,6 +1,8 @@
 import {Button} from '@sentry/scraps/button';
 
-import {KeyValueTable, KeyValueTableRow} from './keyValueTable';
+import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
+
+import {KeyValueColumns} from './keyValueColumns';
 import {KeyValueTableCard} from './keyValueTableCard';
 import {
   KeyValueTableDataRow,
@@ -17,40 +19,10 @@ const contentItems: KeyValueTableDataRowProps[] = [
 
 describe('KeyValueTable', () => {
   it.snapshot(
-    'inline',
-    () => (
-      <div style={{padding: 8, width: 400}}>
-        <KeyValueTable>
-          <KeyValueTableRow keyName="Created" value="Jan 15, 2025" />
-          <KeyValueTableRow keyName="Version" value="2.1.0" />
-          <KeyValueTableRow keyName="Environment" value="production" />
-        </KeyValueTable>
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'inline'}}
-  );
-
-  it.snapshot.each<'error' | 'warning'>(['error', 'warning'])(
-    'inline-%s',
-    (type: 'error' | 'warning') => (
-      <div style={{padding: 8, width: 400}}>
-        <KeyValueTable>
-          <KeyValueTableRow keyName="Status" value="Failing" type={type} />
-          <KeyValueTableRow keyName="Version" value="2.1.0" />
-        </KeyValueTable>
-      </div>
-    ),
-    (type: 'error' | 'warning') => ({tags: {area: 'core', variant: 'inline', type}})
-  );
-
-  it.snapshot(
     'card',
     () => (
       <div style={{padding: 8, width: 500}}>
-        <KeyValueTableCard
-          title="Dataset KeyValueTableCardTitle"
-          contentItems={contentItems}
-        />
+        <KeyValueTableCard title="Dataset" contentItems={contentItems} />
       </div>
     ),
     {tags: {area: 'core', variant: 'card'}}
@@ -65,6 +37,18 @@ describe('KeyValueTable', () => {
           contentItems={contentItems}
           truncateLength={2}
         />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'card'}}
+  );
+
+  it.snapshot(
+    'card-children',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableCard title="Body" contentItems={contentItems.slice(0, 2)}>
+          <pre>{'{\n  "primary": "alpha"\n}'}</pre>
+        </KeyValueTableCard>
       </div>
     ),
     {tags: {area: 'core', variant: 'card'}}
@@ -109,16 +93,6 @@ describe('KeyValueTable', () => {
   );
 
   it.snapshot(
-    'card-expand-left',
-    () => (
-      <div style={{padding: 8, width: 500}}>
-        <KeyValueTableCard contentItems={contentItems} expandLeft />
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'card'}}
-  );
-
-  it.snapshot(
     'card-standalone-row',
     () => (
       <div style={{padding: 8, width: 500}}>
@@ -138,5 +112,33 @@ describe('KeyValueTable', () => {
       </div>
     ),
     {tags: {area: 'core', variant: 'card'}}
+  );
+
+  it.snapshot(
+    'columns-mixed-rows',
+    () => (
+      <div style={{padding: 8, width: 800}}>
+        <KeyValueColumns columnCount={2}>
+          {() => [
+            [
+              <KeyValueTreeRow key="tree" label="browser" value="Chrome 140" />,
+              <KeyValueTreeRow
+                key="tree-branch"
+                label="name"
+                value="Chrome"
+                spacerCount={1}
+              />,
+              <KeyValueTreeRow key="tree-error" label="errored" value="" hasErrors />,
+            ],
+            contentItems
+              .slice(0, 3)
+              .map(rowProps => (
+                <KeyValueTableDataRow key={rowProps.item.key} {...rowProps} />
+              )),
+          ]}
+        </KeyValueColumns>
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'columns'}}
   );
 });

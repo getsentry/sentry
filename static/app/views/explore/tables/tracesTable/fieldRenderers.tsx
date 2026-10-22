@@ -5,7 +5,7 @@ import type {Location} from 'history';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -31,7 +31,7 @@ import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
 import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 import type {Field} from './data';
@@ -42,13 +42,9 @@ import {
   isPartialSpanOrTraceData,
 } from './utils';
 
-export const ProjectBadgeWrapper = styled('span')`
-  /**
-   * Max of 2 visible projects, 16px each, 2px border, 8px overlap.
-   */
-  width: 32px;
-  min-width: 32px;
-`;
+export function ProjectBadgeWrapper(props: ContainerProps<'span'>) {
+  return <Container as="span" width="32px" minWidth="32px" {...props} />;
+}
 
 export function SpanDescriptionRenderer({
   span,
@@ -656,7 +652,7 @@ const OMITTED_SPAN_STATUS = ['unknown'];
 /**
  * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
  */
-function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
+function StatusTag({status}: {status: string}) {
   const tagType = statusToTagType(status);
 
   if (!tagType) {
@@ -666,15 +662,11 @@ function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
   if (OMITTED_SPAN_STATUS.includes(status)) {
     return null;
   }
-  return (
-    <StyledTag variant={tagType} onClick={onClick}>
-      {status}
-    </StyledTag>
-  );
+  return <StyledTag variant={tagType}>{status}</StyledTag>;
 }
 
 const StyledTag = styled(Tag)`
-  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
+  cursor: default;
 `;
 
 export const Description = styled('div')`

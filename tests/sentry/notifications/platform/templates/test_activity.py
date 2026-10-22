@@ -15,6 +15,7 @@ from sentry.notifications.platform.templates.activity.base import (
     build_activity_notification_data,
     build_footer,
     build_issue_link,
+    build_subject_prefix,
     create_activity_notification_example,
     get_issue_description,
 )
@@ -165,6 +166,37 @@ class ActivityAlertBaseTest(TestCase):
         )
         assert data.email_headers is None
         assert data.email_subject_prefix == "[Sentry] "
+        assert data.enhanced_privacy is False
+
+    def test_build_activity_notification_data_enhanced_privacy(self) -> None:
+        self.organization.flags.enhanced_privacy = True
+        self.organization.save()
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+
+        data = build_activity_notification_data(activity=activity, target=self.target)
+
+        assert data.enhanced_privacy is True
+
+    def test_build_subject_prefix(self) -> None:
+        data = create_activity_notification_example(ActivityType.SET_RESOLVED)
+
+        subject_prefix = build_subject_prefix(data)
+
+        assert subject_prefix.type == NotificationTextBlockType.PLAIN_TEXT
+        assert subject_prefix.text == "JAVASCRIPT-1 - ExampleError: something went wrong"
+
+    def test_build_subject_prefix_enhanced_privacy(self) -> None:
+        data = create_activity_notification_example(ActivityType.SET_RESOLVED).copy(
+            update={"enhanced_privacy": True}
+        )
+
+        subject_prefix = build_subject_prefix(data)
+
+        assert subject_prefix.type == NotificationTextBlockType.PLAIN_TEXT
+        assert subject_prefix.text == "JAVASCRIPT-1"
 
     def test_build_activity_notification_data_user_settings_url_to_alerts(self) -> None:
         workflow = self.create_workflow(
@@ -294,8 +326,8 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
     def test_get_status_change_subject_with_short_id(self) -> None:
         data = create_activity_notification_example(ActivityType.SET_RESOLVED)
         subject = get_status_change_subject(data)
-        assert subject[0].type == NotificationTextBlockType.CODE
-        assert subject[0].text == "JAVASCRIPT-1"
+        assert subject[0].type == NotificationTextBlockType.PLAIN_TEXT
+        assert subject[0].text == "JAVASCRIPT-1 - ExampleError: something went wrong"
         assert "was resolved" in subject[1].text
 
     def test_get_status_change_subject_without_short_id(self) -> None:
@@ -303,8 +335,9 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
             update={"issue_short_id": None, "activity_user_name": None}
         )
         subject = get_status_change_subject(data)
-        assert len(subject) == 1
-        assert "A Sentry Issue was resolved" in subject[0].text
+        assert len(subject) == 2
+        assert subject[0].text == "An Issue"
+        assert subject[1].text == "was resolved"
 
     def test_get_status_change_subject_with_user(self) -> None:
         data = create_activity_notification_example(ActivityType.SET_RESOLVED)

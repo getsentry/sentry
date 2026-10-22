@@ -3,10 +3,10 @@ from typing import Any
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry.rules.filters.age_comparison import timeranges
 from sentry.workflow_engine.handlers.condition.utils.age import (
     AgeComparisonType,
     age_comparison_map,
+    timeranges,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import (

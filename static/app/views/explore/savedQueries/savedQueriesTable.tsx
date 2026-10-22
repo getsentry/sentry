@@ -208,6 +208,9 @@ export function SavedQueriesTable({
         {filteredData.map((query, index) => {
           const isExplore = isExploreSavedQuery(query);
           const isPrebuilt = isExplore && Boolean(query.isPrebuilt);
+          const allowRegexOperators =
+            isExplore &&
+            getSavedQueryTraceItemDataset(query.dataset) === TraceItemDataset.LOGS;
 
           return (
             <SavedEntityTable.Row
@@ -245,10 +248,12 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell>
                 {isExplore ? (
                   <StyledExploreParams
+                    allowRegexOperators={allowRegexOperators}
                     query={query.query[0].query}
                     visualizes={query.query[0].visualize}
                     groupBys={query.query[0].groupby}
                     agent={query.agent}
+                    errorsOnly={query.errorsOnly}
                   />
                 ) : (
                   <StyledExploreParams
@@ -257,7 +262,7 @@ export function SavedQueriesTable({
                   />
                 )}
               </SavedEntityTable.Cell>
-              <SavedEntityTable.Cell>
+              <SavedEntityTable.Cell justify="center">
                 {isPrebuilt ? (
                   <Tooltip title="Sentry">
                     <ActivityAvatar type="system" size={20} />
@@ -365,7 +370,7 @@ function savedQueryColumns(): TableColumnConfig[] {
     {
       key: 'dataset',
       visible: {xl: true},
-      width: 'min-content',
+      width: 'max-content',
     } satisfies TableColumnConfig,
     {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
     {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},

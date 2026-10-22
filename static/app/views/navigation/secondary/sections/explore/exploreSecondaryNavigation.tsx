@@ -68,11 +68,11 @@ function ExploreSecondaryNavigationImpl() {
       to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
     });
   }
-  if (organization.openMembership && organization.features.includes('investigations')) {
+  if (organization.features.includes('explore-saved-formulas')) {
     navItems.push({
-      label: 'Investigations',
+      label: 'Saved Formulas',
       badge: 'alpha',
-      to: `${baseUrl}/investigations/`,
+      to: `${baseUrl}/saved-formulas/`,
     });
   }
 
@@ -209,20 +209,6 @@ function ExploreSecondaryNavigationImpl() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
-            {organization.openMembership && (
-              <Feature features="organizations:investigations">
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/investigations/`}
-                    activeTo={`${baseUrl}/investigations/`}
-                    analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="alpha" />}
-                  >
-                    {t('Investigations')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
-            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>
@@ -235,6 +221,17 @@ function ExploreSecondaryNavigationImpl() {
                     {t('All Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
+                <Feature features="organizations:explore-saved-formulas">
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/saved-formulas/`}
+                      analyticsItemName="explore_saved_formulas"
+                      trailingItems={<FeatureBadge type="alpha" />}
+                    >
+                      {t('Saved Formulas')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                </Feature>
               </SecondaryNavigation.List>
             </SecondaryNavigation.Section>
             {starredQueries && starredQueries.length > 0 && (

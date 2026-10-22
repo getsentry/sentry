@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
@@ -178,9 +179,11 @@ function InnerContent({
   const exceptionValue =
     type === StackType.ORIGINAL ? exception.value : exception.rawValue || exception.value;
 
-  const renderedExceptionValue = exceptionValue
-    ? renderLinksInText({exceptionText: exceptionValue})
-    : null;
+  const renderedExceptionValue = exceptionValue ? (
+    <AnsiText renderText={text => renderLinksInText({exceptionText: text})}>
+      {exceptionValue}
+    </AnsiText>
+  ) : null;
   const platform = getStacktracePlatform(event, exception.stacktrace);
 
   // The banners should appear on the top exception only

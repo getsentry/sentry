@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -117,57 +117,37 @@ export function MobileBuildDetectorDetailsDetect({
       <Stack gap="md">
         <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Measurement:')}</Heading>
-          <Value>{getMetricLabel(detector.config.measurement)}</Value>
+          <Text wordBreak="break-all">{getMetricLabel(detector.config.measurement)}</Text>
         </Flex>
         <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Threshold Type:')}</Heading>
-          <Value>{getMeasurementLabel(detector.config.thresholdType)}</Value>
+          <Text wordBreak="break-all">
+            {getMeasurementLabel(detector.config.thresholdType)}
+          </Text>
         </Flex>
         {filters.length > 0 && (
           <Fragment>
             <Heading as="h4">{t('Filters:')}</Heading>
-            <Query>
+            <DescriptionList gap="sm xs">
               {filters.map((filter, index) => (
                 <Fragment key={index}>
-                  <Label>
-                    <Text variant="muted">{filter.key}</Text>
-                  </Label>
-                  <Value>
+                  <DescriptionList.Term>{filter.key}</DescriptionList.Term>
+                  <DescriptionList.Details>
                     <Flex>
                       <FilterWrapper>{filter.value}</FilterWrapper>
                     </Flex>
-                  </Value>
+                  </DescriptionList.Details>
                 </Fragment>
               ))}
-            </Query>
+            </DescriptionList>
           </Fragment>
         )}
         <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Threshold:')}</Heading>
-          <Value>{t('Static threshold')}</Value>
+          <Text wordBreak="break-all">{t('Static threshold')}</Text>
         </Flex>
         <DetectorPriorities detector={detector} />
       </Stack>
     </Container>
   );
 }
-
-const Query = styled('dl')`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: ${p => p.theme.space.sm} ${p => p.theme.space.xs};
-  margin: 0;
-  align-items: baseline;
-`;
-
-const Label = styled('dt')`
-  color: ${p => p.theme.tokens.content.secondary};
-  justify-self: flex-end;
-  margin: 0;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const Value = styled('dl')`
-  word-break: break-all;
-  margin: 0;
-`;

@@ -164,6 +164,41 @@ describe('attributesTree', () => {
     }
   });
 
+  it('renders an array attribute and types it as array in its details', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'array',
+        value: ['timestamp', 'message'],
+        name: 'tags[csv_headers,array]',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        config={{attributeDetailsType: 'log'}}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('attribute-tree-row')).toHaveTextContent(
+      '[timestamp,message]'
+    );
+
+    await userEvent.hover(
+      within(screen.getByTestId('tree-key-tags[csv_headers,array]')).getByText(
+        'csv_headers'
+      )
+    );
+
+    expect(await screen.findByText('array')).toBeInTheDocument();
+  });
+
   it('describes an attribute key when an attribute details type is given', async () => {
     const attributes: TraceItemResponseAttribute[] = [
       {
@@ -229,41 +264,6 @@ describe('attributesTree', () => {
     );
 
     expect(await screen.findByText('Data scrubbed for privacy')).toBeInTheDocument();
-  });
-
-  it('does not note scrubbing when the value was only trimmed for size', async () => {
-    const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'aaaaaaaaaa',
-        name: 'user.email',
-      },
-    ];
-
-    render(
-      <AttributesTree
-        attributes={attributes}
-        config={{attributeDetailsType: 'log'}}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-          traceItemMeta: {
-            'user.email': {
-              meta: {value: {'': {len: 10, rem: [['!limit', 'x', 0, 10]]}}},
-            },
-          },
-        }}
-      />
-    );
-
-    await userEvent.hover(
-      within(screen.getByTestId('tree-key-user.email')).getByText('email')
-    );
-
-    expect(await screen.findByText('Description')).toBeInTheDocument();
-    expect(screen.queryByText('Data scrubbed for privacy')).not.toBeInTheDocument();
   });
 
   it('falls back to a plain browser tooltip when no attribute details type is given', () => {

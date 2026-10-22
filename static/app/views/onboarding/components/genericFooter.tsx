@@ -24,9 +24,6 @@ const footerChromeProps = {
 
 export function GridFooter(props: React.ComponentProps<typeof motion.div> & GridProps) {
   return (
-    // A separate element from the grid below: an element can't query itself, and
-    // this is the outermost node the footer owns, so its containment can't
-    // re-anchor a `position: fixed` ancestor.
     <Container {...footerChromeProps} containerType="inline-size">
       <MotionGrid
         height="100%"

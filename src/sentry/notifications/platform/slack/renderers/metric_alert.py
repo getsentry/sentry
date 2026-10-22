@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import orjson
+
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.models.group import Group
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
+from sentry.notifications.utils.actions import MessageAction
 
 
 @renderer_registry.register(
@@ -19,7 +24,11 @@ from sentry.notifications.platform.types import (
 class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         if not isinstance(data, MetricAlertNotificationData):
             raise ValueError(f"SlackMetricAlertRenderer does not support {data.__class__.__name__}")
@@ -27,7 +36,10 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.integrations.messaging.types import LEVEL_TO_COLOR
         from sentry.integrations.metric_alerts import get_status_text
         from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-        from sentry.integrations.slack.message_builder.incidents import get_started_at
+        from sentry.integrations.slack.message_builder.incidents import (
+            get_started_at,
+            get_workflow_footer,
+        )
         from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING
         from sentry.integrations.slack.utils.escape import escape_slack_text
 
@@ -44,8 +56,25 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
                 BlockSlackMessageBuilder.get_image_block(data.chart_url, alt="Metric Alert Chart")
             )
 
+        if data.show_investigation_button and (
+            investigation_action := cls._get_investigation_action(data)
+        ):
+            button = BlockSlackMessageBuilder.get_button_action(investigation_action)
+            blocks.append({"type": "actions", "elements": [button]})
+
+        # The footer goes last, matching the legacy builder. Like the title link, the footer link
+        # only differs from legacy when tracking is enabled for this source.
+        if data.workflow_name and data.workflow_link:
+            workflow_link = link_decorator.decorate_url(data.workflow_link)
+            blocks.append(
+                BlockSlackMessageBuilder.get_context_block(
+                    text=get_workflow_footer(data.workflow_name, workflow_link)
+                )
+            )
+
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
-        fallback_text = f"<{data.title_link}|*{escape_slack_text(data.title)}*>"
+        title_link = link_decorator.decorate_url(data.title_link)
+        fallback_text = f"<{title_link}|*{escape_slack_text(data.title)}*>"
         slack_body = BlockSlackMessageBuilder._build_blocks(
             *blocks, fallback_text=fallback_text, color=color
         )
@@ -62,3 +91,26 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         )
 
         return renderable
+
+    @staticmethod
+    def _get_investigation_action(data: MetricAlertNotificationData) -> MessageAction | None:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
+
+        try:
+            group = Group.objects.get_from_cache(id=data.group_id)
+        except Group.DoesNotExist:
+            return None
+
+        return MessageAction(
+            name="investigate_with_seer",
+            label="Investigate with Seer",
+            value=orjson.dumps(
+                {"groupId": data.group_id, "openPeriodId": data.open_period_context.id}
+            ).decode(),
+            action_id=encode_action_id(
+                action=SlackAction.SEER_INVESTIGATION_START,
+                organization_id=data.organization_id,
+                project_id=group.project_id,
+            ),
+        )

@@ -1,10 +1,14 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCase} from '@sentry/icons/case';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
 import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -28,12 +32,10 @@ import {
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
-import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export interface GetTagValuesParams {
@@ -180,6 +182,12 @@ export interface SearchQueryBuilderProps {
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
+  /**
+   * When true, picking a value from the dropdown keeps the operator the user
+   * chose. By default a filter under "contains" with no value yet switches to
+   * "is" on a pick, since a suggestion is an exact value.
+   */
+  keepOperatorOnValueSelect?: boolean;
   label?: string;
   /**
    * Allows for key suggestions to be rendered when the value matches the pattern.

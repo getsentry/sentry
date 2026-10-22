@@ -1,13 +1,13 @@
 import logging
 
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_sdk import traces
 
 from sentry.search.eap.profile_functions.definitions import PROFILE_FUNCTIONS_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.profile_functions")
 
@@ -16,7 +16,7 @@ class ProfileFunctions(rpc_dataset_common.RPCBase):
     DEFINITIONS = PROFILE_FUNCTIONS_DEFINITIONS
 
     @classmethod
-    @trace
+    @traces.trace
     def run_table_query(
         cls,
         *,

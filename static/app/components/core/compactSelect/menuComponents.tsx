@@ -13,7 +13,7 @@ import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {ControlContext} from './control';
+import {ControlContext} from './controlContext';
 
 export const MenuComponents = {
   /**

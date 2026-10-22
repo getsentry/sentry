@@ -6,10 +6,11 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {onboarding as piFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-pi-durable/onboarding';
 import {
-  getAgentDataCollectionStep,
   getAgentIntegration,
   getManualConfigureStep,
+  getMinRequiredVersion,
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -20,6 +21,8 @@ const PACKAGE_NAME = '@sentry/deno';
 const MIN_VERSION = '10.61.0';
 
 const sentryImport = `import * as Sentry from "npm:${PACKAGE_NAME}";`;
+const MANUAL_INSTRUMENTATION_DOCS =
+  'https://docs.sentry.io/platforms/javascript/guides/deno/agent-tracing/manual-instrumentation/';
 
 // The data collection step is appended once around these branches, so none can
 // miss or repeat it.
@@ -29,9 +32,12 @@ function configureSteps(params: DocsParams): OnboardingStep[] {
   if (selected === AgentIntegration.MANUAL) {
     return getManualConfigureStep(params, {
       sentryImport,
-      docUrl:
-        'https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation',
+      docUrl: MANUAL_INSTRUMENTATION_DOCS,
     });
+  }
+
+  if (selected === AgentIntegration.PI) {
+    return piFrameworkOnboarding.configure(params);
   }
 
   return [
@@ -135,9 +141,7 @@ prompt: "What is the weather in San Francisco?",
           type: 'custom',
           content: (
             <ManualInstrumentationNote
-              docsLink={
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation" />
-              }
+              docsLink={<ExternalLink href={MANUAL_INSTRUMENTATION_DOCS} />}
             />
           ),
         },
@@ -150,46 +154,58 @@ export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
     <SdkUpdateAlert
       projectId={params.project.id}
-      minVersion={MIN_VERSION}
+      minVersion={getMinRequiredVersion(params, MIN_VERSION)}
       packageName={PACKAGE_NAME}
     />
   ),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'To enable agent monitoring, you need the Sentry SDK with a minimum version of [minVersion].',
-            {
-              minVersion: <code>{MIN_VERSION}</code>,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: sentryImport,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: params => [...configureSteps(params), ...getAgentDataCollectionStep(params)],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t('Verify that your instrumentation works by simply calling your LLM.'),
-        },
-      ],
-    },
-  ],
+  install: params => {
+    if (getAgentIntegration(params) === AgentIntegration.PI) {
+      return piFrameworkOnboarding.install(params);
+    }
+
+    return [
+      {
+        type: StepType.INSTALL,
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'To enable agent monitoring, you need the Sentry SDK with a minimum version of [minVersion].',
+              {
+                minVersion: <code>{MIN_VERSION}</code>,
+              }
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'JavaScript',
+                language: 'javascript',
+                code: sentryImport,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+  },
+  configure: configureSteps,
+  verify: params => {
+    if (getAgentIntegration(params) === AgentIntegration.PI) {
+      return piFrameworkOnboarding.verify(params);
+    }
+
+    return [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t('Verify that your instrumentation works by simply calling your LLM.'),
+          },
+        ],
+      },
+    ];
+  },
 };

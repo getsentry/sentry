@@ -56,6 +56,21 @@ describe('GroupTitle', () => {
     expect(screen.getByText('metadata title')).toBeInTheDocument();
   });
 
+  it('renders colored text without escape codes when given an ANSI title', () => {
+    const type = '\x1B[31mValueError\x1B[0m raised';
+
+    render(
+      <GroupTitle
+        data={GroupFixture({...data, type: EventOrGroupType.ERROR, metadata: {type}})}
+      />
+    );
+
+    expect(screen.getByText('ValueError').style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByText('ValueError').parentElement).toHaveTextContent(
+      /^ValueError raised$/
+    );
+  });
+
   it('does not render stack trace when issueCategory is performance', () => {
     render(
       <GroupTitle

@@ -4,8 +4,8 @@ import {
   matchRoutes,
   useLocation,
   useNavigationType,
-} from 'react-router-dom';
-import {type Event, type Log} from '@sentry/core';
+} from 'react-router';
+import {isPlainObject, type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {NODE_ENV} from 'sentry/constants';
@@ -20,6 +20,9 @@ import {
 import type {Config} from 'sentry/types/system';
 import {addUIElementTagToSegmentSpan} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+
+// Server-rendered templates use the SDK to report errors.
+window.Sentry = Sentry;
 
 let lastEventId: string | undefined;
 
@@ -37,6 +40,9 @@ const FILTERED_STATUSES_BY_ERROR_TYPE: Readonly<Record<string, ReadonlySet<strin
   TooManyRequestsError: new Set(['429']),
 };
 const FILTERED_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|DELETE) .* (\d+)$/;
+// A `RequestError` built without a response (the fetch itself failed, e.g. the
+// page navigated away or the network dropped) has no status in its value
+const NO_RESPONSE_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|PATCH|DELETE) \S+$/;
 
 const ENDPOINT_TAG_REGEX = /^([A-Za-z]+ (\/[^/]+)+\/) \d+$/;
 
@@ -59,7 +65,7 @@ function getSentryIntegrations() {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.reactRouterV6BrowserTracingIntegration({
+    Sentry.reactRouterBrowserTracingIntegration({
       useEffect,
       useLocation,
       useNavigationType,
@@ -191,7 +197,11 @@ export function initializeSdk(config: Config) {
     },
 
     beforeSend(event, hint) {
-      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
+      if (
+        isFilteredRequestErrorEvent(event) ||
+        isEventWithFileUrl(event) ||
+        isWalletProviderError(hint.originalException)
+      ) {
         return null;
       }
 
@@ -259,6 +269,10 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
   for (const error of mainAndMaybeCauseErrors) {
     const {type = '', value = ''} = error;
 
+    if (type === 'RequestError' && NO_RESPONSE_REQUEST_ERROR_VALUE_REGEX.test(value)) {
+      return true;
+    }
+
     const allowedStatuses = FILTERED_STATUSES_BY_ERROR_TYPE[type];
     if (allowedStatuses) {
       const match = FILTERED_REQUEST_ERROR_VALUE_REGEX.exec(value);
@@ -273,6 +287,32 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
+}
+
+/**
+ * Crypto wallet browser extensions inject an EIP-1193 provider into every page
+ * and reject with plain `{code, message}` objects (e.g. 4001 user rejected,
+ * 4900 disconnected, -32603 internal JSON-RPC error). They carry no stack
+ * trace, so `thirdPartyErrorFilterIntegration` can't attribute them to the
+ * extension, and they surface as "Object captured as promise rejection with
+ * keys: code, message".
+ *
+ * Ref: https://eips.ethereum.org/EIPS/eip-1193#provider-errors
+ */
+export function isWalletProviderError(originalException: unknown): boolean {
+  if (!isPlainObject(originalException)) {
+    return false;
+  }
+
+  const {code, message} = originalException;
+  if (typeof code !== 'number' || typeof message !== 'string') {
+    return false;
+  }
+
+  const isProviderErrorCode = code >= 4000 && code <= 4999;
+  // JSON-RPC 2.0 reserves -32768 to -32000 for pre-defined errors
+  const isJsonRpcErrorCode = code >= -32768 && code <= -32000;
+  return isProviderErrorCode || isJsonRpcErrorCode;
 }
 
 /** Tag and set fingerprint for UndefinedResponseBodyError events */

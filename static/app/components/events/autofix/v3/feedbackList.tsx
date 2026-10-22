@@ -1,6 +1,11 @@
 import {useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCircle} from '@sentry/icons/circle';
+import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconGithub} from '@sentry/icons/github';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {LetterAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -20,11 +25,6 @@ import {
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCircle} from 'sentry/icons/iconCircle';
-import {IconCircleCheckmark} from 'sentry/icons/iconCircleCheckmark';
-import {IconGithub} from 'sentry/icons/iconGithub';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';

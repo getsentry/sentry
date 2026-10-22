@@ -19,7 +19,6 @@ from sentry.integrations.messaging.message_builder import (
     format_actor_option_slack,
     format_actor_options_slack,
     get_title_link,
-    get_title_link_workflow_engine_ui,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
@@ -48,16 +47,16 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
-from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -65,7 +64,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.models import Workflow
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 MAX_BLOCK_TEXT_LENGTH = 256
@@ -73,7 +71,7 @@ USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 MAX_SUGGESTED_ASSIGNEES = 3
 
 
-def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
+def get_group_users_count(group: Group, rules: list[NotificationOrigin] | None = None) -> int:
     environment_ids: list[int] | None = None
     if rules:
         environment_ids = [rule.environment_id for rule in rules if rule.environment_id is not None]
@@ -195,7 +193,7 @@ def get_tags(
     return fields
 
 
-def get_context(group: Group, rules: list[Rule] | None = None) -> str:
+def get_context(group: Group, rules: list[NotificationOrigin] | None = None) -> str:
     context_text = ""
 
     context = group.issue_type.notification_config.context.copy()
@@ -416,7 +414,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
-        rules: list[Rule] | None = None,
+        rules: list[NotificationOrigin] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
@@ -427,6 +425,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         send_nudge: bool = False,
         has_mentions_read_scope: bool = False,
         workflow_id: int | None = None,
+        link_decorator: NotificationLinkDecorator | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -445,6 +444,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.send_nudge = send_nudge
         self.has_mentions_read_scope = has_mentions_read_scope
         self.workflow_id = workflow_id
+        self.link_decorator = link_decorator
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -603,24 +603,23 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             payload_actions = []
             has_action = False
 
-        rule_id = None
         workflow_id = self.workflow_id
-        rule_environment_id = None
-        key = "legacy_rule_id"
-        if self.rules:
-            key, value = get_rule_or_workflow_id(self.rules[0])
-            rule_id = int(value)
-            action = self.rules[0].data.get("actions", [{}])[0]
-            if action.get("workflow_id") is not None:
-                workflow_id = int(action["workflow_id"])
+        environment_id = None
+        origin = self.rules[0] if self.rules else None
+        if origin is not None:
+            workflow_id = origin.workflow_id if origin.workflow_id is not None else workflow_id
+            environment_id = origin.environment_id
 
-            match key:
-                case "workflow_id":
-                    workflow = Workflow.objects.filter(id=rule_id).first()
-                    rule_environment_id = workflow.environment_id if workflow else None
-                case "legacy_rule_id":
-                    rule = Rule.objects.filter(id=rule_id).first()
-                    rule_environment_id = rule.environment_id if rule else None
+            if workflow_id is None and not origin.is_test_notification():
+                logger.error(
+                    "slack.issue_alert.missing_workflow_id",
+                    extra={
+                        "legacy_rule_id": origin.legacy_rule_id,
+                        "group_id": self.group.id,
+                        "project_id": self.group.project_id,
+                        "organization_id": project.organization_id,
+                    },
+                )
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -628,32 +627,19 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
 
-        title_link = None
-        match key:
-            case "workflow_id":
-                title_link = get_title_link_workflow_engine_ui(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.SLACK,
-                    rule_id,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
-            case "legacy_rule_id":
-                title_link = get_title_link(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.SLACK,
-                    rule_id,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
+        title_link = get_title_link(
+            self.group,
+            self.event,
+            self.link_to_event,
+            self.issue_details,
+            self.notification,
+            ExternalProviders.SLACK,
+            workflow_id,
+            environment_id,
+            notification_uuid=notification_uuid,
+        )
+        if title_link is not None and self.link_decorator is not None:
+            title_link = self.link_decorator.decorate_url(title_link)
 
         blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 
@@ -665,8 +651,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # set up block id
         block_id = {"issue": self.group.id}
-        if rule_id:
-            block_id["rule"] = rule_id
         if workflow_id:
             block_id["workflow"] = workflow_id
 

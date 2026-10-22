@@ -2,9 +2,9 @@ import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
+import {CollapsedAvatars, UserAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
@@ -64,41 +64,65 @@ export function InvestigationViewers({
   return (
     <Fragment>
       {separator}
-      <Flex align="center">
-        {shown.map(({user, active, lastSeen}) => (
-          <ViewerAvatar key={user.id} active={active}>
-            <UserAvatar
-              user={user}
-              size={22}
-              hasTooltip
-              tooltipOptions={{position: 'bottom'}}
-              renderTooltip={() =>
-                active
-                  ? t('%s is viewing now', userDisplayName(user, false))
-                  : tct('[name] viewed [time]', {
-                      name: userDisplayName(user, false),
-                      time: <TimeSince date={lastSeen} />,
-                    })
-              }
-            />
-          </ViewerAvatar>
-        ))}
+      <Flex align="center" gap="xs">
+        <Flex align="center">
+          {shown.map(({user, active, lastSeen}, index) => (
+            // Stacked like AvatarList; the first (most recent) viewer is on top.
+            <ViewerAvatar key={user.id} active={active} stackOrder={shown.length - index}>
+              <UserAvatar
+                user={user}
+                size={24}
+                hasTooltip
+                tooltipOptions={{position: 'bottom'}}
+                renderTooltip={() =>
+                  active
+                    ? t('%s is viewing now', userDisplayName(user, false))
+                    : tct('[name] viewed [time]', {
+                        name: userDisplayName(user, false),
+                        time: <TimeSince date={lastSeen} />,
+                      })
+                }
+              />
+            </ViewerAvatar>
+          ))}
+        </Flex>
         {total > viewers.length ? (
-          <Text variant="muted" size="sm">
-            +{total - viewers.length}
-          </Text>
+          <Tooltip title={t('%s other viewers', total - viewers.length)}>
+            <CollapsedAvatars>+{total - viewers.length}</CollapsedAvatars>
+          </Tooltip>
         ) : null}
       </Flex>
     </Fragment>
   );
 }
 
-const ViewerAvatar = styled('span')<{active: boolean}>`
+// Stacked like AvatarList. Each avatar sits on a solid backing in the page color, so
+// overlapping avatars never show through each other. Active viewers get a green
+// ring; earlier ones fade on that backing.
+const ViewerAvatar = styled('span')<{active: boolean; stackOrder: number}>`
+  position: relative;
+  z-index: ${p => p.stackOrder};
   display: inline-flex;
   border-radius: 50%;
-  margin-right: ${p => p.theme.space['2xs']};
+  background: ${p => p.theme.tokens.background.primary};
+  /* A transparent border shows the backing, as a ring in the page color. */
   border: 2px solid
     ${p => (p.active ? p.theme.tokens.border.success.vibrant : 'transparent')};
-  opacity: ${p => (p.active ? 1 : 0.45)};
-  transition: opacity 0.3s;
+
+  &:not(:first-child) {
+    margin-left: -6px;
+  }
+
+  > * {
+    opacity: ${p => (p.active ? 1 : 0.5)};
+    transition: opacity 0.3s;
+  }
+
+  &:hover {
+    z-index: ${p => p.stackOrder + 100};
+
+    > * {
+      opacity: 1;
+    }
+  }
 `;

@@ -22,11 +22,11 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
-} from 'sentry/components/droppedData/useDroppedDataBand';
+} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {
@@ -96,6 +96,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * The props for the chart x range selection on drag.
    */
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
+
+  /**
+   * Disables drag-to-zoom, so zooming never updates the URL or page filters.
+   */
+  disableZoom?: boolean;
 
   /**
    * Dropped-data annotations rendered as a severity band between the plot and
@@ -226,6 +231,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     onChartReady: onChartReadyZoom,
     ...chartZoomProps
   } = useChartZoom({
+    disabled: props.disableZoom,
     saveOnZoom: true,
   });
 

@@ -41,7 +41,7 @@ def get_package_version(module_name, app):
 
 def get_all_package_versions():
     packages = {}
-    for module_name, app in sys.modules.items():
+    for module_name, app in sys.modules.copy().items():
         # ignore items that look like submodules
         if "." in module_name:
             continue

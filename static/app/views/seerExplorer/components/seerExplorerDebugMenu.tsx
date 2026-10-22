@@ -1,43 +1,37 @@
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {IconBug} from '@sentry/icons/bug';
+import {IconOpen} from '@sentry/icons/open';
+
+import {
+  CompactSelect,
+  type SelectOption,
+  type SelectSection,
+} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type DebugOption = 'context-engine' | 'force-bash-mode' | 'show-thinking';
+type DebugOption = 'force-bash-mode' | 'show-thinking' | 'agent-trace';
 
 interface SeerExplorerDebugMenuProps {
   onOverrideBashModeToggle: () => void;
-  onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
   overrideBashModeEnabled: boolean;
-  overrideCtxEngEnable: boolean;
   showThinking: boolean;
+  conversationsUrl?: string;
 }
 
-/**
- * Consolidated "Debug" select holding the feature-flagged developer toggles
- * (Context Engine override, Force bash mode, Show thinking). The flag checks
- * live here so the parent doesn't thread them through — if no flags are enabled
- * the whole menu renders nothing. The toggle state stays lifted (it's consumed
- * elsewhere), so we only receive the current values and their toggle handlers.
- */
 export function SeerExplorerDebugMenu({
-  overrideCtxEngEnable,
-  onOverrideCtxEngEnableToggle,
   overrideBashModeEnabled,
   onOverrideBashModeToggle,
   showThinking,
   onShowThinkingToggle,
+  conversationsUrl,
 }: SeerExplorerDebugMenuProps) {
   const organization = useOrganization({allowNull: true});
   const isSentryEmployee = useIsSentryEmployee();
-  const showContextEngineToggle = !!organization?.features.includes(
-    'seer-explorer-context-engine-fe-override-ui-flag'
-  );
   // Code mode always shows thinking with no opt-out, so keep the toggle off the
   // menu whenever that flag is on. The dedicated thinking-blocks flag still owns
   // the manual toggle for non-code-mode orgs.
@@ -48,10 +42,7 @@ export function SeerExplorerDebugMenu({
     'seer-explorer-allow-bash-mode'
   );
 
-  const options: Array<SelectOption<DebugOption>> = [
-    ...(showContextEngineToggle
-      ? [{value: 'context-engine' as const, label: t('Context Engine')}]
-      : []),
+  const toggleOptions: Array<SelectOption<DebugOption>> = [
     ...(showBashModeToggle
       ? [{value: 'force-bash-mode' as const, label: t('Force bash mode on')}]
       : []),
@@ -59,32 +50,46 @@ export function SeerExplorerDebugMenu({
       ? [{value: 'show-thinking' as const, label: t('Show thinking')}]
       : []),
   ];
-  const value: DebugOption[] = [
-    ...(showContextEngineToggle && overrideCtxEngEnable
-      ? (['context-engine'] as const)
+  const sections: Array<SelectSection<DebugOption>> = [
+    ...(toggleOptions.length ? [{key: 'toggles', options: toggleOptions}] : []),
+    ...(conversationsUrl
+      ? [
+          {
+            key: 'links',
+            options: [
+              {
+                value: 'agent-trace' as const,
+                label: t('Open agent trace'),
+                leadingItems: <IconOpen />,
+                // This is an action, not a toggle, so it never holds selection.
+                hideCheck: true,
+              },
+            ],
+          },
+        ]
       : []),
+  ];
+  const value: DebugOption[] = [
     ...(showBashModeToggle && overrideBashModeEnabled
       ? (['force-bash-mode'] as const)
       : []),
     ...(showThinkingToggle && showThinking ? (['show-thinking'] as const) : []),
   ];
 
-  if (!isSentryEmployee || options.length === 0) {
+  if (!isSentryEmployee || sections.length === 0) {
     return null;
   }
 
   return (
     <CompactSelect
       multiple
-      options={options}
+      options={sections}
       value={value}
       onChange={selectedOptions => {
         const selectedValues = new Set(selectedOptions.map(option => option.value));
-        if (
-          showContextEngineToggle &&
-          selectedValues.has('context-engine') !== overrideCtxEngEnable
-        ) {
-          onOverrideCtxEngEnableToggle();
+        if (selectedValues.has('agent-trace')) {
+          window.open(conversationsUrl, '_blank', 'noopener,noreferrer');
+          return;
         }
         if (
           showBashModeToggle &&
@@ -96,10 +101,12 @@ export function SeerExplorerDebugMenu({
           onShowThinkingToggle();
         }
       }}
+      // Toggles keep the menu open; opening the trace closes it.
+      closeOnSelect={selectedOptions =>
+        selectedOptions.some(option => option.value === 'agent-trace')
+      }
       position="bottom-end"
       preventOverflowOptions={{boundary: document.body}}
-      menuWidth={200}
-      size="xs"
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}

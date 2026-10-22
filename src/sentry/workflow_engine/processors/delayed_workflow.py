@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
@@ -10,6 +10,7 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
+from sentry_sdk import traces
 from taskbroker_client.retry import retry_task
 from taskbroker_client.state import CurrentTaskState, current_task
 
@@ -18,32 +19,28 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
-from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import RateLimitExceeded, SnubaError
-from sentry.utils.tracing import start_span, trace
 from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
 )
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
-    BaseEventFrequencyQueryHandler,
     GroupValues,
-    QueryFilter,
     QueryResult,
-    slow_condition_query_handler_registry,
 )
+from sentry.workflow_engine.handlers.condition.slow_query import (
+    UniqueConditionQuery as UniqueConditionQuery,
+)
+from sentry.workflow_engine.handlers.condition.slow_query import (
+    generate_unique_queries as generate_unique_queries,
+)
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import COMPARISON_INTERVALS
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
-from sentry.workflow_engine.models.data_condition import (
-    PERCENT_CONDITIONS,
-    SLOW_CONDITIONS,
-    Condition,
-)
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
@@ -280,43 +277,6 @@ class GroupQueryParams:
             self.timestamp = timestamp if self.timestamp is None else max(timestamp, self.timestamp)
 
 
-@dataclass(frozen=True)
-class UniqueConditionQuery:
-    """
-    Represents all the data that uniquely identifies a condition and its
-    single respective Snuba query that must be made. Multiple instances of the
-    same condition can share a single query.
-    """
-
-    handler: type[BaseEventFrequencyQueryHandler]
-    interval: str
-    environment_id: int | None
-    comparison_interval: str | None = None
-    # Hashable representation of the filters
-    frozen_filters: Sequence[frozenset[tuple[str, Any]]] | None = None
-
-    @staticmethod
-    def freeze_filters(
-        filters: Sequence[Mapping[str, Any]] | None,
-    ) -> Sequence[frozenset[tuple[str, Any]]] | None:
-        """
-        Convert the sorted representation of filters into a frozen one that can
-        be safely hashed.
-        """
-        if filters is None:
-            return None
-        return tuple(frozenset(sorted(filter.items())) for filter in filters)
-
-    @property
-    def filters(self) -> list[QueryFilter] | None:
-        if self.frozen_filters is None:
-            return None
-        return [dict(filter) for filter in self.frozen_filters]
-
-    def __repr__(self) -> str:
-        return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
-
-
 def fetch_project(project_id: int) -> Project | None:
     try:
         project = Project.objects.get_from_cache(id=project_id)
@@ -353,61 +313,7 @@ def fetch_data_condition_groups(
     return list(DataConditionGroup.objects.filter(id__in=dcg_ids))
 
 
-def generate_unique_queries(
-    condition: DataCondition, environment_id: int | None
-) -> list[UniqueConditionQuery]:
-    """
-    Returns a list of all unique condition queries that must be made for the
-    given condition instance.
-    Count comparison conditions will only have one unique query, while percent
-    comparison conditions will have two unique queries.
-    """
-
-    try:
-        condition_type = Condition(condition.type)
-    except ValueError:
-        logger.exception(
-            "Invalid condition type",
-            extra={"type": condition.type, "id": condition.id},
-        )
-        return []
-
-    if condition_type not in SLOW_CONDITIONS:
-        return []
-
-    try:
-        handler = slow_condition_query_handler_registry.get(condition_type)
-    except NoRegistrationExistsError:
-        logger.exception(
-            "No registration exists for condition",
-            extra={"type": condition.type, "id": condition.id},
-        )
-        return []
-
-    unique_queries = [
-        UniqueConditionQuery(
-            handler=handler,
-            interval=condition.comparison["interval"],
-            environment_id=environment_id,
-            frozen_filters=UniqueConditionQuery.freeze_filters(condition.comparison.get("filters")),
-        )
-    ]
-    if condition_type in PERCENT_CONDITIONS:
-        unique_queries.append(
-            UniqueConditionQuery(
-                handler=handler,
-                interval=condition.comparison["interval"],
-                environment_id=environment_id,
-                comparison_interval=condition.comparison.get("comparison_interval"),
-                frozen_filters=UniqueConditionQuery.freeze_filters(
-                    condition.comparison.get("filters")
-                ),
-            )
-        )
-    return unique_queries
-
-
-@trace
+@traces.trace
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     event_data: EventRedisData,
@@ -448,7 +354,7 @@ def get_condition_query_groups(
     # We want this to be accurate enough for alerting, so sample 100%
     sample_rate=1.0,
 )
-@trace
+@traces.trace
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, GroupQueryParams],
 ) -> dict[UniqueConditionQuery, QueryResult]:
@@ -590,6 +496,7 @@ class _ConditionEvaluationStats:
 
 @dataclass(frozen=True)
 class DelayedWorkflowEvaluationResult(WorkflowEvaluationBatch):
+    project_id: int | None
     artifacts: list[WorkflowEvaluationArtifact]
     groups_to_fire: dict[GroupId, set[DataConditionGroup]]
     stats: _ConditionEvaluationStats
@@ -639,7 +546,7 @@ class DelayedWorkflowEvaluationResult(WorkflowEvaluationBatch):
         }
 
 
-@trace
+@traces.trace
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
     workflows_to_envs: Mapping[WorkflowId, int | None],
@@ -806,6 +713,7 @@ def get_groups_to_fire(
         )
 
     return DelayedWorkflowEvaluationResult(
+        project_id=project_id,
         artifacts=artifacts,
         groups_to_fire=groups_to_fire,
         stats=_ConditionEvaluationStats(tainted=tainted, untainted=untainted),
@@ -818,7 +726,7 @@ def get_groups_to_fire(
     )
 
 
-@trace
+@traces.trace
 def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event]:
     node_id_to_event_id = {
         Event.generate_node_id(project.id, event_id=event_id): event_id for event_id in event_ids
@@ -847,7 +755,7 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
     "workflow_engine.delayed_workflow.get_group_to_groupevent",
     sample_rate=1.0,
 )
-@trace
+@traces.trace
 def get_group_to_groupevent(
     event_data: EventRedisData,
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
@@ -890,7 +798,7 @@ def get_group_to_groupevent(
     return group_to_groupevent
 
 
-@trace
+@traces.trace
 def fire_actions_for_groups(
     organization: Organization,
     groups_to_fire: dict[GroupId, set[DataConditionGroup]],
@@ -980,7 +888,7 @@ def fire_actions_for_groups(
     )
 
 
-@trace
+@traces.trace
 def cleanup_redis_buffer(
     client: ProjectDelayedWorkflowClient, event_keys: Iterable[EventKey], batch_key: str | None
 ) -> None:
@@ -1001,7 +909,10 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
 
 def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
     """Process workflows for a project - evaluate conditions and fire actions."""
-    with start_span(op="delayed_workflow.prepare_data", name="delayed_workflow.prepare_data"):
+    with traces.start_span(
+        name="delayed_workflow.prepare_data",
+        attributes={"sentry.op": "delayed_workflow.prepare_data"},
+    ):
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):
@@ -1127,7 +1038,7 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         )
 
 
-@trace
+@traces.trace
 def process_delayed_workflows(
     batch_client: DelayedWorkflowClient,
     project_id: int,

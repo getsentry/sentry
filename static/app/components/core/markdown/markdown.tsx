@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import type {ExtendedToken} from './marked';
 import {MarkedLexer} from './marked';
-import {Token} from './token';
+import {MarkdownStreamingContext, Token} from './token';
 import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
 type WithDefault<Props> = Props & {Default: ComponentType<Props>};
@@ -37,13 +37,9 @@ export type MarkdownComponents = Partial<{
   Strong: ComponentType<WithDefault<{children: ReactNode}>>;
   Table: ComponentType<
     WithDefault<{
-      children: ReactNode;
       /**
        * One entry per column, in order, with the alignment the delimiter row
-       * gave it. Together with `header` and `rows`, this is the table's parsed
-       * structure, for a renderer that has to own the whole table -- a grid
-       * table that sizes its columns before any row renders -- rather than
-       * style the `<thead>` and `<tbody>` that `children` already builds.
+       * gave it.
        */
       columns: MarkdownTableColumn[];
       /** Each header cell's rendered content, one per column. */
@@ -52,15 +48,6 @@ export type MarkdownComponents = Partial<{
       rows: ReactNode[][];
     }>
   >;
-  TableBody: ComponentType<WithDefault<{children: ReactNode}>>;
-  TableCell: ComponentType<
-    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
-  >;
-  TableHead: ComponentType<WithDefault<{children: ReactNode}>>;
-  TableHeaderCell: ComponentType<
-    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
-  >;
-  TableRow: ComponentType<WithDefault<{children: ReactNode}>>;
   Tag: ComponentType<
     WithDefault<{
       attrs: Record<string, string>;
@@ -209,7 +196,9 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
       data-streaming={isStreaming || undefined}
     >
       {isStreaming && <Global styles={streamingAnimationStyles} />}
-      {elements}
+      <MarkdownStreamingContext.Provider value={isStreaming}>
+        {elements}
+      </MarkdownStreamingContext.Provider>
     </Stack>
   );
 }

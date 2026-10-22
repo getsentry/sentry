@@ -117,7 +117,7 @@ export function IssueListContainer({children, title = t('Issues')}: Props) {
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <AnalyticsArea name="issue_list">
-        <AiQueryProvider>
+        <AiQueryProvider strategy="Issues">
           <IssueViewWrapper>{children}</IssueViewWrapper>
         </AiQueryProvider>
       </AnalyticsArea>

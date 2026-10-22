@@ -9,14 +9,9 @@ const DAY = 24 * 60 * 60 * 1000;
 interface UseRelativeDateTimeOptions {
   anchor: number;
   relativeDays: number;
-  retentionDays?: number;
 }
 
-export function useRelativeDateTime({
-  anchor,
-  relativeDays,
-  retentionDays,
-}: UseRelativeDateTimeOptions) {
+export function useRelativeDateTime({anchor, relativeDays}: UseRelativeDateTimeOptions) {
   const timezone = useTimezone();
 
   const anchorTime = anchor * 1000;
@@ -24,7 +19,7 @@ export function useRelativeDateTime({
   // Make sure to capture this once. Otherwise, each re-render will have
   // a different min/max date time, causing the query to refetch.
   const [maxDateTime] = useState(Date.now);
-  const minDateTime = maxDateTime - (retentionDays ?? 90) * DAY;
+  const minDateTime = maxDateTime - 90 * DAY;
 
   const beforeTime = anchorTime - relativeDays * DAY;
   const beforeDateTime =

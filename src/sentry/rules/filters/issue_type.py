@@ -1,7 +1,5 @@
 from collections import OrderedDict
 
-from django import forms
-
 from sentry.issues import grouptype
 from sentry.rules.filters import EventFilter
 
@@ -17,13 +15,6 @@ def get_type_choices() -> list[tuple[str, str]]:
 
 
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
-
-
-class IssueTypeForm(forms.Form):
-    include = forms.ChoiceField(
-        choices=list(INCLUDE_CHOICES.items()), required=False, initial="true"
-    )
-    value = forms.ChoiceField(choices=get_type_choices)
 
 
 class IssueTypeFilter(EventFilter):
@@ -51,6 +42,3 @@ class IssueTypeFilter(EventFilter):
         issue_type_name = (getattr(group_type, "description", None) or value) if group_type else ""
         include_label = INCLUDE_CHOICES.get(self.data.get("include", "true"), "equal to")
         return self.label.format(include=include_label, value=issue_type_name)
-
-    def get_form_instance(self) -> IssueTypeForm:
-        return IssueTypeForm(self.data)

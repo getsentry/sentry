@@ -12,19 +12,19 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {ExtraDescription} from './extraDescription';
-
-export const BULK_LIMIT = 1000;
-export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
 
 export enum ConfirmAction {
   RESOLVE = 'resolve',
@@ -180,7 +180,6 @@ export const COLUMN_BREAKPOINTS = {
   EVENTS: 'lg',
   USERS: '2xl',
   PRIORITY: '4xl',
-  PROGRESS: '2xs',
   ASSIGNEE: 'sm',
 } as const satisfies Record<string, ResponsiveKey | undefined>;
 
@@ -235,7 +234,17 @@ export function invalidateIssueQueries({
   });
 }
 
-export function performBulkUpdate({
+function getBulkUpdateErrorMessage(error: unknown): string {
+  const fallback = t('Unable to update issues');
+  if (!(error instanceof RequestError) || error.status !== 400) {
+    return fallback;
+  }
+
+  const message = getWorkflowEngineResponseErrorMessage(error.responseJSON);
+  return message ? t('Unable to update issues: %s', message) : fallback;
+}
+
+export async function performBulkUpdate({
   api,
   data,
   itemIds,
@@ -260,9 +269,8 @@ export function performBulkUpdate({
 
   addLoadingMessage(t('Saving changes…'));
 
-  bulkUpdate(
-    api,
-    {
+  try {
+    await bulkUpdate(api, {
       orgId: organizationSlug,
       itemIds,
       data,
@@ -272,16 +280,11 @@ export function performBulkUpdate({
       failSilently: true,
       ...projectConstraints,
       ...selection.datetime,
-    },
-    {
-      success: () => {
-        clearIndicators();
-        onSuccess?.(itemIds);
-      },
-      error: () => {
-        clearIndicators();
-        addErrorMessage(t('Unable to update issues'));
-      },
-    }
-  );
+    });
+    clearIndicators();
+    onSuccess?.(itemIds);
+  } catch (error) {
+    clearIndicators();
+    addErrorMessage(getBulkUpdateErrorMessage(error));
+  }
 }

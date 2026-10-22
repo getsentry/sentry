@@ -1,90 +1,67 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import {
   getOrderedAutofixSections,
-  isCodeChangesSection,
-  isRootCauseSection,
-  isSolutionSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 
-import {IssuePreviewAutofixPlanSection} from './issuePreviewAutofixPlanSection';
-import {IssuePreviewAutofixProposalSection} from './issuePreviewAutofixProposalSection';
-import {IssuePreviewAutofixRootCauseSection} from './issuePreviewAutofixRootCauseSection';
+import {IssuePreviewAutofixSection} from './issuePreviewAutofixSection';
+
+const SECTION_ORDER = ['code_changes', 'solution', 'root_cause'];
 
 interface IssuePreviewAutofixSummaryProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
+  excludeSteps?: ReadonlySet<string>;
+  readOnly?: boolean;
 }
 
 export function IssuePreviewAutofixSummary({
   autofix,
   groupId,
+  excludeSteps,
+  readOnly = false,
 }: IssuePreviewAutofixSummaryProps) {
   const {runState} = autofix;
-  const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
+  if (!runState) {
+    return autofix.isWaitingForRun ? (
+      <IssuePreviewAutofixSection
+        autofix={autofix}
+        groupId={groupId}
+        readOnly={readOnly}
+        section={{artifacts: [], blocks: [], status: 'processing', step: 'root_cause'}}
+      />
+    ) : null;
+  }
 
-  const proposalSection = sections.findLast(isCodeChangesSection);
-  const planSection = sections.findLast(isSolutionSection);
-  const rootCauseSection = sections.findLast(isRootCauseSection);
+  const orderedSections = getOrderedAutofixSections(runState);
+  const sections = SECTION_ORDER.flatMap(step => {
+    const section = orderedSections.find(item => item.step === step);
+    return section && !excludeSteps?.has(step) ? [section] : [];
+  });
 
-  if (!runState && !autofix.isWaitingForRun) {
+  if (!sections.length) {
     return null;
   }
 
-  if (!runState) {
-    return (
-      <IssuePreviewAutofixRootCauseSection
-        autofix={autofix}
-        defaultExpanded
-        groupId={groupId}
-        section={{artifacts: [], blocks: [], status: 'processing', step: 'root_cause'}}
-      />
-    );
-  }
-
-  const defaultExpandedSection = proposalSection
-    ? 'proposal'
-    : planSection
-      ? 'plan'
-      : 'rootCause';
-
   return (
-    <Dividers>
-      {proposalSection ? (
-        <IssuePreviewAutofixProposalSection
+    <Dividers gap="md">
+      {sections.map(section => (
+        <IssuePreviewAutofixSection
+          key={section.step}
           autofix={autofix}
-          defaultExpanded={defaultExpandedSection === 'proposal'}
-          section={proposalSection}
-        />
-      ) : null}
-
-      {planSection ? (
-        <IssuePreviewAutofixPlanSection
-          autofix={autofix}
-          defaultExpanded={defaultExpandedSection === 'plan'}
-          section={planSection}
-        />
-      ) : null}
-
-      {rootCauseSection ? (
-        <IssuePreviewAutofixRootCauseSection
-          autofix={autofix}
-          defaultExpanded={defaultExpandedSection === 'rootCause'}
           groupId={groupId}
-          section={rootCauseSection}
+          readOnly={readOnly}
+          section={section}
         />
-      ) : null}
+      ))}
     </Dividers>
   );
 }
 
-const Dividers = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-
+const Dividers = styled(Stack)`
   & > * + * {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
     padding-top: ${p => p.theme.space.md};

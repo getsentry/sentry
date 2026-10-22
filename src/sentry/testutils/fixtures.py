@@ -203,6 +203,9 @@ class Fixtures:
     def create_investigation_comment(self, *args, **kwargs):
         return Factories.create_investigation_comment(*args, **kwargs)
 
+    def create_investigation_action_request(self, *args, **kwargs):
+        return Factories.create_investigation_action_request(*args, **kwargs)
+
     def create_investigation_orchestration_run(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_run(*args, **kwargs)
 
@@ -238,6 +241,13 @@ class Fixtures:
 
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
+
+    def create_api_application(self, **kwargs):
+        kwargs.setdefault("owner", self.user)
+        return Factories.create_api_application(**kwargs)
+
+    def create_api_device_code(self, *args, **kwargs):
+        return Factories.create_api_device_code(*args, **kwargs)
 
     def create_auth_provider(self, *args, **kwargs):
         return Factories.create_auth_provider(*args, **kwargs)
@@ -786,9 +796,6 @@ class Fixtures:
     def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
-    def snooze_rule(self, *args, **kwargs):
-        return Factories.snooze_rule(*args, **kwargs)
-
     def create_request_access(self, *args, **kwargs):
         return Factories.create_request_access(*args, **kwargs)
 
@@ -870,6 +877,9 @@ class Fixtures:
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)
+
+    def create_data_condition_alert_rule_trigger(self, *args, **kwargs):
+        return Factories.create_data_condition_alert_rule_trigger(*args, **kwargs)
 
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)

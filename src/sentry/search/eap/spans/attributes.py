@@ -247,6 +247,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.tool.call.result.size",
+            internal_name="gen_ai.tool.call.result.size",
+            search_type="byte",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.input_tokens",
             internal_name="gen_ai.usage.input_tokens",
             search_type="integer",
@@ -300,6 +305,26 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="gen_ai.cost.total_tokens",
             internal_name="gen_ai.cost.total_tokens",
             search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.cache_read.input_tokens",
+            internal_name="gen_ai.cost.cache_read.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.cache_creation.input_tokens",
+            internal_name="gen_ai.cost.cache_creation.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.reasoning.output_tokens",
+            internal_name="gen_ai.cost.reasoning.output_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.memory.record.count",
+            internal_name="gen_ai.memory.record.count",
+            search_type="integer",
         ),
         ResolvedAttribute(
             public_alias="gen_ai.request.reasoning.level",

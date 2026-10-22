@@ -1,6 +1,7 @@
+import {IconSubscribed} from '@sentry/icons/subscribed';
+
 import {Button} from '@sentry/scraps/button';
 
-import {IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getSubscriptionReason} from 'sentry/views/issueDetails/utils';

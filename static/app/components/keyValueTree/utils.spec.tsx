@@ -107,4 +107,16 @@ describe('getKeyValueTreeColumns', () => {
       ['d', 'e', 'f'],
     ]);
   });
+
+  it('gives the last trunk its own column when the previous column is full', () => {
+    const tree = buildKeyValueTree([item('a', '1'), item('b', '2'), item('c', '3')]);
+
+    const columns = getKeyValueTreeColumns(tree, 3);
+
+    expect(columns.map(column => column.map(row => row.treeKey))).toEqual([
+      ['a'],
+      ['b'],
+      ['c'],
+    ]);
+  });
 });

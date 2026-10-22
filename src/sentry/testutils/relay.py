@@ -4,7 +4,7 @@ import pytest
 import requests
 import responses
 
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import PendingEventAttachment
 from sentry.services import eventstore
 from sentry.testutils.helpers import get_auth_header
 
@@ -106,10 +106,12 @@ class RelayStoreHelper(RequiredBaseclass):
         assert resp.ok
 
         exists = self.wait_for_ingest_consumer(
-            lambda: EventAttachment.objects.filter(
-                project_id=self.project.id, event_id=event_id
-            ).exists()
-            or None  # must return None to continue waiting
+            lambda: (
+                PendingEventAttachment.objects.filter(
+                    project_id=self.project.id, event_id=event_id
+                ).exists()
+                or None
+            )  # must return None to continue waiting
         )
 
         assert exists

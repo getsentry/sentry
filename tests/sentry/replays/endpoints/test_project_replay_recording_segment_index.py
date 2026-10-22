@@ -2,6 +2,7 @@ import datetime
 import uuid
 import zlib
 from collections import namedtuple
+from unittest import mock
 
 from django.urls import reverse
 
@@ -10,6 +11,7 @@ from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.pack import pack
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.utils.snuba import QueryTooManySimultaneous
 
 Message = namedtuple("Message", ["project_id", "replay_id"])
 
@@ -241,3 +243,25 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
         assert close_streaming_response(response) == b"[]"
+
+    @mock.patch("sentry.replays.usecases.reader.raw_snql_query")
+    def test_too_many_simultaneous_queries_returns_429(self, mock_query: mock.MagicMock) -> None:
+        """Assert Snuba concurrency limits are surfaced as a retryable 429 instead of a 500."""
+        mock_query.side_effect = QueryTooManySimultaneous("too many simultaneous queries")
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 429
+
+    def test_invalid_replay_id_returns_400(self) -> None:
+        """Assert a malformed replay id returns a 400 instead of a 500."""
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, "abc123"),
+        )
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(url + "?download=true")
+
+        assert response.status_code == 400

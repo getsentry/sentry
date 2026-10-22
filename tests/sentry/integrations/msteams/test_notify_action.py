@@ -9,6 +9,7 @@ from django.forms import Form
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.actions.notification import MsTeamsNotifyServiceAction
 from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
 from sentry.integrations.types import EventLifecycleOutcome
@@ -352,7 +353,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             json={"conversations": channels},
         )
 
-        form = rule.get_form_instance()
+        form = MsTeamsNotifyServiceForm(rule.data, integrations=rule.get_integrations())
         self.assert_form_valid(form, "d_s", "Death Star")
 
     @responses.activate
@@ -381,7 +382,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             json={"id": "i_am_your_father"},
         )
 
-        form = rule.get_form_instance()
+        form = MsTeamsNotifyServiceForm(rule.data, integrations=rule.get_integrations())
         self.assert_form_valid(form, "i_am_your_father", "Darth Vader")
 
     @responses.activate
@@ -404,7 +405,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             json={"members": members},
         )
 
-        form = rule.get_form_instance()
+        form = MsTeamsNotifyServiceForm(rule.data, integrations=rule.get_integrations())
 
         assert not form.is_valid()
         assert len(form.errors) == 1

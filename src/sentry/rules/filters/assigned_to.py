@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from django import forms
-
-from sentry.mail.forms.assigned_to import AssignedToForm
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
@@ -16,9 +13,6 @@ class AssignedToFilter(EventFilter):
     prompt = "The issue is assigned to {no one/team/member}"
 
     form_fields = {"targetType": {"type": "assignee", "choices": ASSIGNEE_CHOICES}}
-
-    def get_form_instance(self) -> forms.Form:
-        return AssignedToForm(self.project, self.data)
 
     def render_label(self) -> str:
         target_type = AssigneeTargetType(self.get_option("targetType"))

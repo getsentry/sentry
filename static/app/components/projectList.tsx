@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {Project} from 'sentry/types/project';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {useProjects} from 'sentry/utils/useProjects';
 
 type ProjectListProps = {
@@ -14,25 +14,44 @@ type ProjectListProps = {
   className?: string;
   collapsedProjectsTooltip?: (projects: Array<Project | {slug: string}>) => ReactNode;
   maxVisibleProjects?: number;
+  /**
+   * When set, project chips become clickable buttons instead of project-details
+   * links. The callback receives the project that was clicked.
+   */
+  onProjectClick?: (project: AvatarProject) => void;
 };
 
-function DefaultCollapsedProjectsTooltip({
+function CollapsedProjectsTooltip({
   projects,
+  onProjectClick,
 }: {
-  projects: Array<Project | {slug: string}>;
+  projects: AvatarProject[];
+  onProjectClick?: (project: AvatarProject) => void;
 }) {
   return (
     <Stack gap="xs" width="200px">
-      {projects.map(project => (
-        <ProjectBadge key={project.slug} project={project} avatarSize={16} />
-      ))}
+      {projects.map(project =>
+        onProjectClick ? (
+          <SlugButton
+            key={project.slug}
+            type="button"
+            onClick={() => onProjectClick(project)}
+          >
+            <ProjectBadge project={project} avatarSize={16} disableLink />
+          </SlugButton>
+        ) : (
+          <ProjectBadge key={project.slug} project={project} avatarSize={16} />
+        )
+      )}
     </Stack>
   );
 }
+
 export function ProjectList({
   projectSlugs,
   maxVisibleProjects = 2,
   collapsedProjectsTooltip,
+  onProjectClick,
   className,
 }: ProjectListProps) {
   const {projects} = useProjects({slugs: projectSlugs});
@@ -57,11 +76,19 @@ export function ProjectList({
             collapsedProjectsTooltip ? (
               collapsedProjectsTooltip(collapsedProjectAvatars)
             ) : (
-              <DefaultCollapsedProjectsTooltip projects={collapsedProjectAvatars} />
+              <CollapsedProjectsTooltip
+                projects={collapsedProjectAvatars}
+                onProjectClick={onProjectClick}
+              />
             )
           }
         >
-          <CollapsedBadge size={20} fontSize={10} data-test-id="collapsed-projects-badge">
+          <CollapsedBadge
+            size={20}
+            fontSize={10}
+            data-test-id="collapsed-projects-badge"
+            $clickable={Boolean(onProjectClick)}
+          >
             +{numCollapsedProjects}
           </CollapsedBadge>
         </Tooltip>
@@ -73,6 +100,9 @@ export function ProjectList({
           project={project}
           avatarSize={16}
           avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          disableLink={Boolean(onProjectClick)}
+          onClick={onProjectClick ? () => onProjectClick(project) : undefined}
+          $clickable={Boolean(onProjectClick)}
         />
       ))}
     </ProjectListWrapper>
@@ -87,24 +117,38 @@ const ProjectListWrapper = styled('div')`
   padding-right: 8px;
 `;
 
-const AvatarStyle = (p: {theme: Theme}) => css`
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+const AvatarStyle = (p: {theme: Theme; $clickable?: boolean}) => css`
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
-  cursor: default;
+  cursor: ${p.$clickable ? 'pointer' : 'default'};
 
   &:hover {
     z-index: 1;
   }
 `;
 
-const StyledProjectBadge = styled(ProjectBadge)`
+const StyledProjectBadge = styled(ProjectBadge, {
+  shouldForwardProp: prop => prop !== '$clickable',
+})<{$clickable?: boolean}>`
   overflow: hidden;
   z-index: 0;
   ${AvatarStyle}
+
+  ${p =>
+    p.$clickable &&
+    css`
+      img {
+        cursor: pointer;
+      }
+    `}
 `;
 
-const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
+const CollapsedBadge = styled('div')<{
+  fontSize: number;
+  size: number;
+  $clickable?: boolean;
+}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -118,4 +162,12 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   height: ${p => p.size}px;
   border-radius: ${p => p.theme.radius.md};
   ${AvatarStyle}
+`;
+
+const SlugButton = styled('button')`
+  all: unset;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: ${p => p.theme.tokens.content.accent};
 `;

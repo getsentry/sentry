@@ -20,7 +20,11 @@ import {
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {type OurLogsAggregateResponseItem} from 'sentry/views/explore/logs/types';
-import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {
+  LOGS_AGGREGATES_TIMESTAMP_FIELD,
+  LOGS_AGGREGATES_TRACE_FIELD,
+  type LogsAggregatesTableResult,
+} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 
 import {LogsAggregateTable} from './logsAggregateTable';
 
@@ -187,6 +191,58 @@ describe('LogsAggregateTable', () => {
       expect(cells[1]).toHaveTextContent(expected[i]![0]!);
       expect(cells[2]).toHaveTextContent(expected[i]![1]!);
     });
+  });
+
+  it('opens a view samples menu that can link to a random trace', async () => {
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          data: {
+            data: [
+              {
+                'message.template': 'Fetching the latest item id failed.',
+                'count(message)': 10,
+                [LOGS_AGGREGATES_TRACE_FIELD]: 'trace-123',
+                [LOGS_AGGREGATES_TIMESTAMP_FIELD]: 1712002518,
+              } as OurLogsAggregateResponseItem,
+            ],
+          },
+        })}
+      />,
+      {initialRouterConfig, organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'View Samples'}));
+
+    const viewSamplesItem = await screen.findByRole('menuitemradio', {
+      name: 'View Samples',
+    });
+    expect(viewSamplesItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('mode=samples')
+    );
+    expect(viewSamplesItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('logsQuery=test')
+    );
+
+    const viewRandomTraceItem = screen.getByRole('menuitemradio', {
+      name: 'View Random Trace',
+    });
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining(
+        `/organizations/${organization.slug}/explore/logs/trace/trace-123/`
+      )
+    );
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('timestamp=1712002518')
+    );
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('source=logs')
+    );
   });
 
   it('renders an empty boolean group-by as "(no value)" rather than a second false', () => {
@@ -373,7 +429,11 @@ describe('LogsAggregateTable', () => {
       }
     );
 
-    await userEvent.click(screen.getByText('123'));
+    await userEvent.click(
+      within(screen.getByRole('cell', {name: '123'})).getByRole('button', {
+        name: 'Actions',
+      })
+    );
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'Show values greater than'})

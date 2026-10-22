@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
+import type {ColumnAlign} from 'sentry/components/tables/dataGrid';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
@@ -72,7 +72,7 @@ export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
-      columnTypes: Readonly<ValidateColumnTypes>;
+      columnTypes: readonly ColumnType[] | ValidateColumnValueFunction;
       kind: 'column';
       required: boolean;
       defaultValue?: string;
@@ -940,9 +940,9 @@ export function measurementType(field: string): MeasurementType {
   return FieldValueType.NUMBER;
 }
 
-const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;
+const AGGREGATE_PATTERN = /^(formula\.[^()]+|\w+)\((.*)\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-export const AGGREGATE_BASE = /(\w+)\((.*)\)/g;
+export const AGGREGATE_BASE = /(formula\.[^()]+|\w+)\((.*)\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate

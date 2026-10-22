@@ -1,12 +1,11 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 import memoize from 'lodash/memoize';
 
-import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Switch} from '@sentry/scraps/switch';
@@ -15,10 +14,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {sentryAppWebhookRequestsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {DateTime} from 'sentry/components/dateTime';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppSchemaIssueLink} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
@@ -27,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {granularWebhookEvents} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
 import {useRequestLogDetailsDrawer} from './requestLogDetails';
+import {ResponseCode} from './responseCode';
 import {getWebhookSubjectLabel, WebhookSubject} from './webhookSubjects';
 
 const REQUEST_COLUMNS: TableColumnConfig[] = [
@@ -46,11 +46,6 @@ const INTERNAL_REQUEST_COLUMNS = REQUEST_COLUMNS.filter(
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
 const EMPTY_VALUE = '—';
-
-const NO_RESPONSE_STATUS_LABELS: Record<number, string> = {
-  0: t('timeout'),
-  [-1]: t('connection error'),
-};
 
 const componentHasSelectUri = (issueLinkComponent: SentryAppSchemaIssueLink): boolean => {
   const hasSelectUri = (fields: any[]): boolean =>
@@ -102,17 +97,6 @@ const getEventTypes = memoize((app: SentryApp) => {
 
   return events;
 });
-
-export function ResponseCode({code}: {code: number}) {
-  let variant: TagProps['variant'] = 'danger';
-  if (code <= 399 && code >= 300) {
-    variant = 'warning';
-  } else if (code <= 299 && code >= 100) {
-    variant = 'success';
-  }
-
-  return <Tag variant={variant}>{NO_RESPONSE_STATUS_LABELS[code] ?? code}</Tag>;
-}
 
 interface RequestLogProps {
   app: SentryApp;

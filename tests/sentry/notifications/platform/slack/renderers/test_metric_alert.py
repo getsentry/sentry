@@ -7,14 +7,19 @@ import pytest
 
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.templates.seer import SeerAutofixError
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
@@ -42,13 +47,23 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
     return MetricAlertNotificationData(**defaults)
 
 
+def _render(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> SlackRenderable:
+    return SlackMetricAlertRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK),
+    )
+
+
 class SlackMetricAlertRendererInvalidDataTest(TestCase):
     def test_render_raises_on_invalid_data_type(self) -> None:
-        invalid_data = SeerAutofixError(error_message="not a metric alert")
+        invalid_data = SeerAutofixError(organization_id=1, error_message="not a metric alert")
         rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            SlackMetricAlertRenderer.render(
+            _render(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -85,7 +100,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         self.rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
 
     def test_render_produces_blocks(self) -> None:
-        result = SlackMetricAlertRenderer.render(
+        result = _render(
             data=self.notification_data,
             rendered_template=self.rendered_template,
         )
@@ -114,7 +129,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             notes="Check <https://example.com/runbook|the runbook>",
         )
 
-        result = SlackMetricAlertRenderer.render(
+        result = _render(
             data=data_with_chart,
             rendered_template=self.rendered_template,
         )
@@ -137,8 +152,53 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         assert blocks[2]["image_url"] == MOCK_CHART_URL
         assert blocks[2]["alt_text"] == "Metric Alert Chart"
 
+    def test_render_includes_workflow_footer(self) -> None:
+        workflow_link = "https://sentry.io/organizations/example/monitors/alerts/42/"
+        result = _render(
+            data=self.notification_data.copy(
+                update={"workflow_name": "Page <the> on-call", "workflow_link": workflow_link}
+            ),
+            rendered_template=self.rendered_template,
+        )
+
+        blocks: list[Any] = result["attachments"][0]["blocks"]
+        footer = blocks[-1]
+        assert footer["type"] == "context"
+        footer_text = footer["elements"][0]["text"]
+        assert footer_text.startswith(f"Alert: <{workflow_link}")
+        assert footer_text.endswith("|Page &lt;the&gt; on-call>")
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.METRIC_ALERT]})
+    def test_render_workflow_footer_link_is_tracked(self) -> None:
+        workflow_link = "http://testserver/organizations/example/monitors/alerts/42/"
+        result = _render(
+            data=self.notification_data.copy(
+                update={"workflow_name": "Page the on-call", "workflow_link": workflow_link}
+            ),
+            rendered_template=self.rendered_template,
+        )
+
+        footer_text = result["attachments"][0]["blocks"][-1]["elements"][0]["text"]
+        assert footer_text == (
+            f"Alert: <{workflow_link}?referrer=metric-alert-slack"
+            f"&notification_uuid={self.notification_data.notification_uuid}|Page the on-call>"
+        )
+
+    def test_render_workflow_footer_replaces_pipe_in_name(self) -> None:
+        workflow_link = "https://sentry.io/organizations/example/monitors/alerts/42/"
+        result = _render(
+            data=self.notification_data.copy(
+                update={"workflow_name": "Errors | Critical", "workflow_link": workflow_link}
+            ),
+            rendered_template=self.rendered_template,
+        )
+
+        footer_text = result["attachments"][0]["blocks"][-1]["elements"][0]["text"]
+        assert footer_text.endswith("|Errors \u2223 Critical>")
+        assert footer_text.count("|") == 1
+
     def test_render_without_chart_url(self) -> None:
-        result = SlackMetricAlertRenderer.render(
+        result = _render(
             data=self.notification_data.copy(update={"notes": ""}),
             rendered_template=self.rendered_template,
         )
@@ -162,7 +222,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             notes="Check the runbook",
         )
 
-        result = SlackMetricAlertRenderer.render(
+        result = _render(
             data=resolved_data,
             rendered_template=self.rendered_template,
         )
@@ -170,3 +230,13 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         assert "Resolved" in result["text"]
         assert self.detector.name in result["text"]
         assert result["attachments"][0]["blocks"][1]["text"]["text"] == "notes: Check the runbook"
+
+    def test_render_omits_investigation_button_when_group_not_found(self) -> None:
+        data = self.notification_data.copy(
+            update={"group_id": self.group.id + 1000, "show_investigation_button": True}
+        )
+
+        result = _render(data, self.rendered_template)
+
+        blocks: list[Any] = result["attachments"][0]["blocks"]
+        assert [block["type"] for block in blocks] == ["section"]

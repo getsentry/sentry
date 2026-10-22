@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
-import type {NavigateOptions} from 'react-router-dom';
+import type {NavigateOptions} from 'react-router';
 import type {Location} from 'history';
 
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';

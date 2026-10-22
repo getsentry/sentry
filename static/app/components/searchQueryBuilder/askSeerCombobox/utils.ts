@@ -40,7 +40,6 @@ export function trackAiQueryOutcome({
   dataset,
   mode,
   organization,
-  referrer,
   resultCount,
   runId,
   error = false,
@@ -48,7 +47,6 @@ export function trackAiQueryOutcome({
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   mode: Mode | 'samples' | 'aggregate';
   organization: Organization;
-  referrer: string;
   resultCount: number;
   runId: number | string;
   error?: string | boolean | Error;
@@ -65,6 +63,7 @@ export function trackAiQueryOutcome({
         ? extractErrorReason(error)
         : undefined;
 
+  const referrer = `assisted_query.search_bar.${dataset === 'spans' ? 'traces' : dataset}`;
   const conversationUrl = getConversationsUrlForExternalUse('sentry', runId);
   const codeMode = organization.features.includes('seer-assisted-query-codemode');
   const crossEventEnabled = organization.features.includes(
@@ -107,6 +106,26 @@ export function getExpandedProjectIds(
   const selectedSet = new Set(selectedProjectIds);
   const hasExtraProjects = returnedProjectIds.some(id => !selectedSet.has(id));
   return hasExtraProjects ? returnedProjectIds : undefined;
+}
+
+/**
+ * The user's existing columns are kept in place and extras are appended with dedup.
+ * Limit only applies when there are extras to add. When hitting the limit, the
+ * existing columns are trimmed first.
+ */
+export function mergeSeerExtraFields(
+  currentFields: readonly string[],
+  extraFields: readonly string[] | undefined,
+  limit = 10
+): string[] {
+  const filteredExtra = [
+    ...new Set(extraFields?.filter(field => !currentFields.includes(field))),
+  ];
+  if (!filteredExtra?.length) {
+    return [...currentFields];
+  }
+  const keep = Math.max(0, limit - filteredExtra.length);
+  return [...currentFields.slice(0, keep), ...filteredExtra.slice(0, limit)];
 }
 
 /**

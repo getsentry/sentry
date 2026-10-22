@@ -1,6 +1,13 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconJson} from '@sentry/icons/json';
+import {IconPin} from '@sentry/icons/pin';
+import {IconSubtract} from '@sentry/icons/subtract';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconWarning} from '@sentry/icons/warning';
 import {useMutation, type UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -9,20 +16,12 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {
-  IconAdd,
-  IconJson,
-  IconPin,
-  IconSubtract,
-  IconTerminal,
-  IconWarning,
-} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -45,7 +44,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {
   Actions,
-  ActionTriggerType,
   CellAction,
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
@@ -60,13 +58,13 @@ import {
   LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {
-  TraceItemDetailsResponse,
-  TraceItemResponseAttribute,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  getScalarAttributeValue,
   usePrefetchTraceItemDetailsOnHover,
   usePrefetchTraceItemDetailsOnMount,
+  type TraceItemAttributeScalarValue,
+  type TraceItemDetailsResponse,
+  type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
@@ -309,8 +307,8 @@ export const LogRowContent = memo(function LogRowContentImpl({
   function onPointerUp(event: SyntheticEvent) {
     // do not expand the context menu if...
     if (event.target instanceof Element) {
-      // ... you clicked a button
-      if (isInsideButton(event.target)) {
+      // ... you clicked a button or a dropdown menu
+      if (isInsideButton(event.target) || event.target.closest('[role="menu"]')) {
         return;
       }
 
@@ -619,7 +617,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
         </LogsTableBodyFirstCell>
         {isErrorRow ? (
           <LogErrorLabelCell data-test-id="log-table-cell-error">
-            {String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}
+            <AnsiText>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</AnsiText>
           </LogErrorLabelCell>
         ) : (
           fields?.map((field, index) => {
@@ -753,7 +751,6 @@ export const LogRowContent = memo(function LogRowContentImpl({
                     allowActions={ALLOWED_CELL_ACTIONS}
                     extraMenuItems={extraMenuItems}
                     pin={pin}
-                    triggerType={ActionTriggerType.ELLIPSIS}
                   >
                     {renderedField}
                   </CellAction>
@@ -818,7 +815,6 @@ function LogRowDetails({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
   const projectSlug = project?.slug ?? '';
-  const fields = useQueryParamsFields();
   const getActions = useLogAttributesTreeActions({embedded});
   const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -846,9 +842,9 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
   const attributes =
-    data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['value']>>(
+    data?.attributes?.reduce<Record<string, TraceItemAttributeScalarValue>>(
       (it, attr) => {
-        it[attr.name] = attr.value;
+        it[attr.name] = getScalarAttributeValue(attr);
         return it;
       },
       {
@@ -874,14 +870,13 @@ function LogRowDetails({
     );
   }
 
-  const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
   const message = String(
     attributes[OurLogKnownFieldKey.MESSAGE] ?? dataRow[OurLogKnownFieldKey.MESSAGE] ?? ''
   );
 
   return (
     <DetailsWrapper ref={measureRef}>
-      <LogDetailTableBodyCell colSpan={colSpan}>
+      <LogDetailTableBodyCell>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
           <Fragment>
@@ -956,11 +951,9 @@ function LogRowDetails({
       </LogDetailTableBodyCell>
       {!isPending && data && (
         <LogDetailTableActionsCell
-          colSpan={colSpan}
           style={{
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexDirection: 'row',
           }}
         >
           <LogRowDetailsActions

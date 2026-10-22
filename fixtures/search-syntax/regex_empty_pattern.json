@@ -38,7 +38,7 @@
   },
   {
     "desc": "An empty pattern on an array membership key is flagged too",
-    "query": "tags[csv_headers,array][*]:////",
+    "query": "tags[csv_headers[*],array]:////",
     "additionalConfig": {
       "allowRegex": true
     },
