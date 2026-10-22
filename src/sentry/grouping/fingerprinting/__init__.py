@@ -27,9 +27,6 @@ QUOTED_STRING_REGEX = re.compile(r'"(?:[^"\\]|\\.)*"')
 LOOKALIKE_ARROW_REGEX = re.compile(r"→|⟶|⇒|➔|=>|—>|–>")
 # An unquoted matcher value swallows a `->` written directly after it
 GLUED_ARROW_REGEX = re.compile(r"[^\s-]->")
-# `->` and `→` written as their own words, rather than inside a value like `a->b`
-SEPARATOR_REGEX = re.compile(r"(?<!\S)->(?!\S)")
-UNICODE_ARROW_REGEX = re.compile(r"(?<!\S)→(?!\S)")
 
 
 def _blank_quoted_strings(text: str) -> str:
@@ -47,17 +44,23 @@ def _parse_rules(config: str) -> list[FingerprintRule]:
 
 def _convert_unicode_arrows(config: str) -> str:
     """
-    Use `->` in place of the first `→` in each rule that has no `->`. Quoted strings are blanked
-    first, since they can span lines.
+    Use `->` in place of a `→` written right after a rule's matchers, in each rule the parser can't
+    read. Rules that already parse are left alone.
     """
-    chars = list(config)
-    offset = 0
-    for line in _blank_quoted_strings(config).split("\n"):
-        if not line.lstrip().startswith("#") and not SEPARATOR_REGEX.search(line):
-            if arrow := UNICODE_ARROW_REGEX.search(line):
-                chars[offset + arrow.start()] = "->"
-        offset += len(line) + 1
-    return "".join(chars)
+    rules = fingerprinting_grammar["fingerprinting_rules"]
+    matchers = fingerprinting_grammar["matchers"]
+    spaces = fingerprinting_grammar["_"]
+    pos = 0
+    # Parse until a rule fails, fix its arrow, then carry on from that rule
+    while (pos := rules.match(config, pos).end) < len(config):
+        try:
+            arrow = spaces.match(config, matchers.match(config, pos).end).end
+        except ParseError:
+            break
+        if not config.startswith("→", arrow):
+            break
+        config = config[:arrow] + "->" + config[arrow + 1 :]
+    return config
 
 
 def normalize_config_string(config: str) -> str:
@@ -68,8 +71,11 @@ def normalize_config_string(config: str) -> str:
     try:
         _parse_rules(config)
     except InvalidFingerprintingConfig:
-        config = _convert_unicode_arrows(config)
-        _parse_rules(config)
+        converted = _convert_unicode_arrows(config)
+        if converted == config:
+            raise
+        _parse_rules(converted)
+        return converted
     return config
 
 

@@ -242,6 +242,10 @@ def test_parsing_error_messages(config: str, message: str) -> None:
         # A `->` inside a value isn't the rule's arrow
         ("message:a->b → c", "message:a->b -> c"),
         ("message:a → b->c", "message:a -> b->c"),
+        # Rules that already parse keep their `→` values
+        ("message:a ->foo → bar\nerror.type:A → a", "message:a ->foo → bar\nerror.type:A -> a"),
+        # Quotes in comments don't affect the rules after them
+        ('# A comment containing "\nmessage:"a" → b', '# A comment containing "\nmessage:"a" -> b'),
         # Quoted values can span lines, so a `→` on its own line can be part of an existing rule
         ('message:"a\n→ b\nc" -> x', 'message:"a\n→ b\nc" -> x'),
         (
