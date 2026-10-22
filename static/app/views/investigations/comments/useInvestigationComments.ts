@@ -6,7 +6,7 @@ import {investigationCommentsQueryOptions} from 'sentry/views/investigations/api
 
 export function useInvestigationComments(
   investigationId: string,
-  {archived = false}: {archived?: boolean} = {}
+  {shouldPoll = true}: {shouldPoll?: boolean} = {}
 ) {
   const organization = useOrganization();
   return useQuery({
@@ -14,7 +14,7 @@ export function useInvestigationComments(
       organizationSlug: organization.slug,
       investigationId,
     }),
-    refetchInterval: archived ? false : 10_000,
+    refetchInterval: shouldPoll ? 10_000 : false,
     select: selectJsonWithHeaders,
   });
 }

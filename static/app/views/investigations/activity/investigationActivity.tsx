@@ -46,7 +46,7 @@ export function InvestigationActivity({
   ref?: React.Ref<HTMLElement>;
 }) {
   const {data, isPending, refetch} = useInvestigationComments(investigation.id, {
-    archived: investigation.status === 'archived',
+    shouldPoll: investigation.status !== 'archived',
   });
   const blockTitles = useMemo(
     () =>
