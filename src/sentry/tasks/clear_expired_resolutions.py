@@ -1,13 +1,13 @@
 import logging
-from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from collections import defaultdict
+from collections.abc import Sequence
+from datetime import timedelta
 from time import monotonic
-from typing import Any, NamedTuple
 
 from django.db import OperationalError, connections, router
-from django.db.models import BigIntegerField, Case, Q, QuerySet, Value, When
+from django.db.models import Q, QuerySet
 from django.db.models.functions import Coalesce
-from psycopg2 import Error as PostgresError
+from psycopg2.errors import LockNotAvailable, QueryCanceled
 from taskbroker_client.retry import Retry, RetryTaskError
 from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
@@ -27,31 +27,6 @@ logger = logging.getLogger(__name__)
 
 RESOLUTION_BATCH_SIZE = 100
 RESOLUTION_BATCH_SECONDS = 2
-
-
-class ResolutionCandidate(NamedTuple):
-    id: int
-    group_id: int
-    project_id: int
-    anchor_id: int
-    anchor_date: datetime
-
-
-class ResolutionUpdate(NamedTuple):
-    group_id: int
-    release_id: int
-    version: str
-
-
-def _timeout_kind(exc: OperationalError) -> str | None:
-    cause = exc.__cause__
-    if isinstance(cause, PostgresError):
-        message = cause.diag.message_primary or ""
-        if cause.pgcode == "57014" and "statement timeout" in message:
-            return "statement_timeout"
-        if cause.pgcode == "55P03" and "lock timeout" in message:
-            return "lock_timeout"
-    return None
 
 
 @instrumented_task(
@@ -76,27 +51,7 @@ def clear_expired_resolutions(release_id: int, *, after_id: int = 0) -> None:
         return
 
     if features.has("organizations:release-resolution-finalized-order", release.organization):
-        next_cursor = _clear_finalized_resolutions(release, after_id)
-        if next_cursor is not None:
-            try:
-                future = clear_expired_resolutions.apply_async_with_future(
-                    kwargs={"release_id": release.id, "after_id": next_cursor}
-                )
-                if future is not None:
-                    future.result(timeout=3)
-            except Exception as exc:
-                # This page is committed, so retrying it only rereads rows still pending.
-                logger.warning(
-                    "releases.resolution_batch.publish_failed",
-                    extra={
-                        "release_id": release.id,
-                        "organization_id": release.organization_id,
-                        "after_id": after_id,
-                        "next_cursor": next_cursor,
-                    },
-                    exc_info=True,
-                )
-                raise RetryTaskError() from exc
+        _clear_finalized_resolutions(release, after_id)
         return
 
     # A queued continuation must stop when the flag is disabled, rather than
@@ -130,15 +85,9 @@ def clear_expired_resolutions(release_id: int, *, after_id: int = 0) -> None:
     _update_resolution_activities(resolution_list, release)
 
 
-def _clear_finalized_resolutions(release: Release, after_id: int = 0) -> int | None:
-    """
-    Resolve one page of pending resolutions and return the cursor for the next page.
-
-    Successor lookups run before any resolution row is locked, and every statement is
-    bounded server-side because the task deadline cannot interrupt a running query.
-    Rows this page cannot finish are retried with the page; on the last attempt they
-    are left pending and reported so that later pages still run.
-    """
+def _clear_finalized_resolutions(release: Release, after_id: int) -> None:
+    # The task deadline cannot interrupt a running query, so every query is bounded
+    # server-side, and no resolution row is locked while successors are looked up.
     using = router.db_for_write(GroupResolution)
     release_order = release.date_released or release.date_added
     pending = (
@@ -149,154 +98,136 @@ def _clear_finalized_resolutions(release: Release, after_id: int = 0) -> int | N
             group__project_id__in=release.projects.values("id"),
             release__organization_id=release.organization_id,
         )
-        .annotate(anchor_date=Coalesce("release__date_released", "release__date_added"))
-        .values_list("id", "group_id", "group__project_id", "release_id", "anchor_date")
+        .alias(anchor_order=Coalesce("release__date_released", "release__date_added"))
     )
-    started = monotonic()
     with statement_timeout(using, timedelta(seconds=1)):
-        candidates = [
-            ResolutionCandidate(*row)
-            for row in pending.filter(
+        page = list(
+            pending.filter(
                 Q(release=release)
-                | Q(anchor_date__lt=release_order)
-                | Q(anchor_date=release_order, release_id__lt=release.id),
+                | Q(anchor_order__lt=release_order)
+                | Q(anchor_order=release_order, release_id__lt=release.id),
                 id__gt=after_id,
-            ).order_by("id")[:RESOLUTION_BATCH_SIZE]
-        ]
-    if not candidates:
-        return None
+            )
+            .select_related("release", "group__project")
+            .order_by("id")[:RESOLUTION_BATCH_SIZE]
+        )
+    if not page:
+        return
 
-    successors: dict[tuple[int, int], tuple[int, str] | None] = {}
+    started = monotonic()
+    successors: dict[tuple[int, int], Release | None] = {}
     timed_out: set[tuple[int, int]] = set()
-    examined: dict[int, ResolutionCandidate] = {}
-    for candidate in candidates:
+    examined: list[GroupResolution] = []
+    for resolution in page:
         if examined and monotonic() - started >= RESOLUTION_BATCH_SECONDS:
             break
-        examined[candidate.id] = candidate
-        key = (candidate.project_id, candidate.anchor_id)
+        examined.append(resolution)
+        key = (resolution.group.project_id, resolution.release_id)
         if key in successors or key in timed_out:
             continue
         try:
-            with statement_timeout(using, timedelta(seconds=1)):
-                successors[key] = (
-                    Release.objects.get_next_release_queryset(
-                        organization_id=release.organization_id,
-                        project_id=candidate.project_id,
-                        current_release_id=candidate.anchor_id,
-                        current_date=candidate.anchor_date,
-                        use_finalized_order=True,
-                    )
-                    .using(using)
-                    .values_list("id", "version")
-                    .first()
+            with statement_timeout(router.db_for_read(Release), timedelta(seconds=1)):
+                successors[key] = Release.objects.get_next_release(
+                    resolution.group.project, resolution.release, use_finalized_order=True
                 )
+        except Release.DoesNotExist:
+            successors[key] = None
         except OperationalError as exc:
-            if _timeout_kind(exc) != "statement_timeout":
+            if not isinstance(exc.__cause__, QueryCanceled):
                 raise
+            metrics.incr("releases.resolution_batch.successor_timeout", sample_rate=1.0)
             timed_out.add(key)
 
-    unfinished: dict[str, list[int]] = {}
-    resolvable: dict[int, tuple[int, str]] = {}
-    for candidate in examined.values():
-        key = (candidate.project_id, candidate.anchor_id)
+    unfinished: list[int] = []
+    by_successor: dict[Release, list[GroupResolution]] = defaultdict(list)
+    for candidate in examined:
+        key = (candidate.group.project_id, candidate.release_id)
         if key in timed_out:
-            unfinished.setdefault("successor_timeout", []).append(candidate.id)
+            unfinished.append(candidate.id)
         elif (successor := successors[key]) is not None:
-            resolvable[candidate.id] = successor
+            by_successor[successor].append(candidate)
 
-    completed = 0
-    if resolvable:
+    if by_successor:
         try:
-            completed, changed = _resolve_unchanged(using, pending, examined, resolvable)
-            if changed:
-                unfinished["changed"] = changed
+            unfinished.extend(_resolve_unchanged(using, pending, by_successor))
         except OperationalError as exc:
-            kind = _timeout_kind(exc)
-            if kind is None:
+            if not isinstance(exc.__cause__, (QueryCanceled, LockNotAvailable)):
                 raise
-            unfinished[f"write_{kind}"] = list(resolvable)
+            unfinished.extend(r.id for resolutions in by_successor.values() for r in resolutions)
 
-    metrics.timing("releases.resolution_batch.duration", monotonic() - started, sample_rate=1.0)
-    metrics.distribution("releases.resolution_batch.completed", completed, sample_rate=1.0)
     if unfinished:
         task = current_task()
         retrying = task is not None and task.retries_remaining
-        for reason, resolution_ids in unfinished.items():
-            metrics.incr(
-                "releases.resolution_batch.unfinished",
-                amount=len(resolution_ids),
-                tags={"reason": reason, "outcome": "retry" if retrying else "exhausted"},
-                sample_rate=1.0,
-            )
-        # Replaying these arguments reevaluates any rows still pending.
+        # Retrying rereads this page; rows resolved above drop out of it. On the last
+        # attempt, leave these rows pending so later pages still run. Replaying these
+        # arguments reevaluates them.
         logger.warning(
             "releases.resolution_batch.unfinished",
             extra={
                 "release_id": release.id,
                 "organization_id": release.organization_id,
                 "after_id": after_id,
-                "unfinished": unfinished,
+                "resolution_ids": sorted(unfinished),
                 "retrying": retrying,
             },
         )
         if retrying:
             raise RetryTaskError()
 
-    if len(examined) < len(candidates) or len(candidates) == RESOLUTION_BATCH_SIZE:
-        return next(reversed(examined))
-    return None
+    if len(examined) < len(page) or len(page) == RESOLUTION_BATCH_SIZE:
+        clear_expired_resolutions.delay(release_id=release.id, after_id=examined[-1].id)
 
 
 def _resolve_unchanged(
     using: str,
-    pending: QuerySet[GroupResolution, Any],
-    examined: Mapping[int, ResolutionCandidate],
-    successors: Mapping[int, tuple[int, str]],
-) -> tuple[int, list[int]]:
-    """Resolve rows still matching what the lookups examined; return the count and changed IDs."""
-    changed: list[int] = []
-    updates: dict[int, ResolutionUpdate] = {}
+    pending: QuerySet[GroupResolution],
+    by_successor: dict[Release, list[GroupResolution]],
+) -> list[int]:
+    """Resolve rows that still match what the lookups examined; return the IDs that changed."""
+    examined = {r.id: r for resolutions in by_successor.values() for r in resolutions}
     with statement_timeout(using, timedelta(seconds=1)):
         with connections[using].cursor() as cursor:
             cursor.execute("SET LOCAL lock_timeout = '500ms'")
-        locked = (
-            pending.filter(id__in=list(successors)).order_by("id").select_for_update(of=("self",))
-        )
-        for row in locked:
-            current = ResolutionCandidate(*row)
-            # A concurrent resolve can reuse the row, or the anchor's dates can change.
-            if current != examined[current.id]:
-                changed.append(current.id)
-            else:
-                updates[current.id] = ResolutionUpdate(current.group_id, *successors[current.id])
-
-        if updates:
-            GroupResolution.objects.using(using).filter(id__in=list(updates)).update(
-                release_id=Case(
-                    *(
-                        When(id=resolution_id, then=Value(update.release_id))
-                        for resolution_id, update in updates.items()
-                    ),
-                    output_field=BigIntegerField(),
-                ),
+        # A concurrent resolve can reuse the row, or the anchor's dates can change.
+        current = {
+            row[0]: row[1:]
+            for row in pending.filter(id__in=list(examined))
+            .select_for_update(of=("self",))
+            .order_by("id")
+            .values_list("id", "release_id", "release__date_added", "release__date_released")
+        }
+        changed = [
+            r.id
+            for r in examined.values()
+            if r.id in current
+            and current[r.id] != (r.release_id, r.release.date_added, r.release.date_released)
+        ]
+        resolved: list[tuple[GroupResolution, str]] = []
+        for successor, resolutions in by_successor.items():
+            unchanged = [r.id for r in resolutions if r.id in current and r.id not in changed]
+            if not unchanged:
+                continue
+            GroupResolution.objects.filter(id__in=unchanged).update(
+                release=successor,
                 type=GroupResolution.Type.in_release,
                 status=GroupResolution.Status.resolved,
             )
-            _update_latest_activities(using, updates)
-    return len(updates), changed
+            resolved.extend(
+                (examined[resolution_id], successor.version) for resolution_id in unchanged
+            )
+        if resolved:
+            _update_latest_activities(resolved)
+    return changed
 
 
-def _update_latest_activities(using: str, updates: Mapping[int, ResolutionUpdate]) -> None:
+def _update_latest_activities(resolved: Sequence[tuple[GroupResolution, str]]) -> None:
+    versions = {(r.group_id, str(r.id)): version for r, version in resolved}
     activity_filter = Q()
-    versions = {}
-    for resolution_id, update in updates.items():
-        activity_filter |= Q(group_id=update.group_id, ident=str(resolution_id))
-        versions[(update.group_id, str(resolution_id))] = update.version
-
+    for group_id, ident in versions:
+        activity_filter |= Q(group_id=group_id, ident=ident)
     # The ID tie-break makes duplicate timestamps deterministic.
     activities = list(
-        Activity.objects.using(using)
-        .filter(activity_filter, type=ActivityType.SET_RESOLVED_IN_RELEASE.value)
+        Activity.objects.filter(activity_filter, type=ActivityType.SET_RESOLVED_IN_RELEASE.value)
         .order_by("group_id", "ident", "-datetime", "-id")
         .distinct("group_id", "ident")
     )
@@ -306,7 +237,7 @@ def _update_latest_activities(using: str, updates: Mapping[int, ResolutionUpdate
             **(activity.data or {}),
             "version": versions[(activity.group_id, activity.ident)],
         }
-    Activity.objects.using(using).bulk_update(activities, ["data"])
+    Activity.objects.bulk_update(activities, ["data"])
 
 
 def _update_resolution_activities(resolutions: Sequence[GroupResolution], release: Release) -> None:
