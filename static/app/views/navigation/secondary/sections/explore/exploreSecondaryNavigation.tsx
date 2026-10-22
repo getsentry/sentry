@@ -101,9 +101,9 @@ function ExploreSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.ExpandableHeader>
+      <SecondaryNavigation.HeaderWithSidebarToggle>
         {t('Explore')}
-      </SecondaryNavigation.ExpandableHeader>
+      </SecondaryNavigation.HeaderWithSidebarToggle>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>

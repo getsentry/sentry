@@ -58,9 +58,9 @@ function IssuesSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.ExpandableHeader>
+      <SecondaryNavigation.HeaderWithSidebarToggle>
         {t('Issues')}
-      </SecondaryNavigation.ExpandableHeader>
+      </SecondaryNavigation.HeaderWithSidebarToggle>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="issues-feed">
           <SecondaryNavigation.List>

@@ -63,7 +63,7 @@ export function SettingsNavigation({
 
   const Header = settingsV3
     ? SecondaryNavigation.Header
-    : SecondaryNavigation.ExpandableHeader;
+    : SecondaryNavigation.HeaderWithSidebarToggle;
 
   return (
     <ErrorBoundary customComponent={null}>

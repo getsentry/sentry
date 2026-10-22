@@ -316,7 +316,9 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   );
 }
 
-function SecondaryNavigationExpandableHeader(props: SecondaryNavigationHeaderProps) {
+function SecondaryNavigationHeaderWithSidebarToggle(
+  props: SecondaryNavigationHeaderProps
+) {
   return (
     <SecondaryNavigationHeaderLayout padding={props.padding}>
       <Container minWidth="0">
@@ -1025,7 +1027,7 @@ const SidebarNavigationLink = styled(Link)`
 
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
-  ExpandableHeader: SecondaryNavigationExpandableHeader,
+  HeaderWithSidebarToggle: SecondaryNavigationHeaderWithSidebarToggle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,
