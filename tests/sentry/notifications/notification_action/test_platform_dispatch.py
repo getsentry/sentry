@@ -11,9 +11,11 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
@@ -36,13 +38,19 @@ def slack_response(client: mock.MagicMock, ts: str) -> SlackResponse:
     )
 
 
-@override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
-@override_options(
-    {"notifications.platform.alert-providers": {"metric-alert": ["slack", "slack_staging"]}}
-)
 @with_feature("organizations:notification-platform.internal-testing")
 class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     def setUp(self) -> None:
+        self.enterContext(
+            override_options(
+                {
+                    "notifications.platform-rollout.internal-testing": {"metric-alert": 1.0},
+                    "notifications.platform.alert-providers": {
+                        "metric-alert": ["slack", "slack_staging"]
+                    },
+                }
+            )
+        )
         self.create_models()
         self.integration, _ = self.create_provider_integration_for(
             provider=IntegrationProviderSlug.SLACK,
@@ -172,15 +180,8 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
     def test_logs_when_target_identifier_missing(self, mock_logger: mock.MagicMock) -> None:
         # Create action without target_identifier
-        action = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.integration.id,
-            config={
-                "target_identifier": None,
-                "target_display": "Channel 123",
-                "target_type": ActionTarget.SPECIFIC,
-            },
-        )
+        action = self.create_slack_action(Action.Type.SLACK)
+        action.config["target_identifier"] = None
 
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(action))
 
@@ -193,7 +194,8 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
     def test_logs_when_integration_inactive(self, mock_logger: mock.MagicMock) -> None:
         # Mark integration as inactive
-        self.integration.update(status=1)  # ObjectStatus.DISABLED
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=1)  # ObjectStatus.DISABLED
 
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
 
