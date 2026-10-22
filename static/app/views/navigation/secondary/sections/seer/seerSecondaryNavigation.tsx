@@ -4,19 +4,29 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getInvestigationsPath} from 'sentry/views/investigations/utils';
+import {
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 function SeerSecondaryNavigationImpl() {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const investigationsPath = getInvestigationsPath(organization.slug);
 
   useLLMContext({
     contextHint: 'The Seer secondary nav panel.',
-    navItems: [{label: 'Investigations', badge: 'alpha', to: investigationsPath}],
+    navItems: investigationsEnabled
+      ? [{label: 'Investigations', badge: 'alpha', to: investigationsPath}]
+      : [],
   });
+
+  if (!investigationsEnabled) {
+    return null;
+  }
 
   return (
     <Fragment>

@@ -34,12 +34,12 @@ describe('SeerSecondaryNavigation', () => {
     });
   });
 
-  function renderNavigation(pathname: string) {
+  function renderNavigation(pathname: string, org = organization) {
     render(
       <PrimaryNavigationContextProvider>
         <Navigation />
       </PrimaryNavigationContextProvider>,
-      {organization, initialRouterConfig: {location: {pathname}}}
+      {organization: org, initialRouterConfig: {location: {pathname}}}
     );
   }
 
@@ -61,5 +61,17 @@ describe('SeerSecondaryNavigation', () => {
       'aria-current',
       'page'
     );
+  });
+
+  it.each([
+    ['investigations is disabled', {features: [], openMembership: true}],
+    ['membership is closed', {features: ['investigations'], openMembership: false}],
+  ])('renders no Seer sidebar content when %s', (_, orgProps) => {
+    renderNavigation(
+      '/organizations/org-slug/seer/investigations/',
+      OrganizationFixture(orgProps)
+    );
+
+    expect(screen.queryByRole('link', {name: /Investigations/})).not.toBeInTheDocument();
   });
 });
