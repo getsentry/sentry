@@ -792,11 +792,10 @@ export const SEER_EMBED_SCHEMAS = {
   issuesQuery: {
     description:
       'The ONLY way to list multiple Sentry issues. Accepts any issue search terms. ' +
-      'Issue search has no OR, and space-separated terms are ANDed, so match any ' +
-      'of several values with ONE filter holding a bracketed list: ' +
-      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. Never repeat a key — ' +
-      '`issue:JAVASCRIPT-22SP issue:JAVASCRIPT-39HX` asks for a single issue with ' +
-      'both IDs and matches nothing. ' +
+      'To list several specific issues, put their short IDs in ONE `issue:` filter: ' +
+      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. Never repeat the `issue:` filter — ' +
+      'space-separated terms are ANDed and an issue has a single short ID, so ' +
+      '`issue:JAVASCRIPT-22SP issue:JAVASCRIPT-39HX` matches nothing. ' +
       'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
       'use `issue.id:[7716642857,7716642858]` instead. ' +
       'Inline renders a link; block renders the first five matching issues with ' +
