@@ -6,6 +6,14 @@ workspaces:
     changelog:
       filePath: CHANGES
       policy: auto
+      # Craft treats pnpm workspace directories as separately owned and drops
+      # their commits from this changelog unless they are listed here.
+      includePaths:
+        - api-docs
+        - static/app
+        - static/gsAdmin
+        - static/gsApp
+        - tests/js
     statusProvider:
       name: github
       config:
