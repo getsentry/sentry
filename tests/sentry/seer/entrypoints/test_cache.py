@@ -1,7 +1,11 @@
 from typing import TypedDict
 from unittest.mock import patch
 
+import pytest
+
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
+from sentry.investigations.models import Investigation
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.seer.entrypoints.cache import (
     AGENT_CACHE_TIMEOUT_SECONDS,
     AUTOFIX_CACHE_TIMEOUT_SECONDS,
@@ -12,6 +16,7 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorAutofixCache,
     SeerOperatorInvestigationCache,
     SeerOperatorPendingMentionCache,
+    get_investigation_cache_source,
 )
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.testutils.cases import TestCase
@@ -375,3 +380,65 @@ class SeerOperatorInvestigationCacheTest(TestCase):
             )
             is None
         )
+
+    @patch("sentry.seer.entrypoints.cache.cache.set")
+    def test_set_for_source_uses_source_key_and_ttl(self, mock_cache_set):
+        payload = MockCachePayload(thread_id="thread")
+
+        SeerOperatorInvestigationCache.set_for_source(
+            entrypoint_key="slack",
+            source_type="metric_open_period",
+            source_ids=[11, 22],
+            cache_payload=payload,
+        )
+
+        mock_cache_set.assert_called_once_with(
+            "seer:investigation:slack:metric_open_period:11:22",
+            payload,
+            timeout=INVESTIGATION_CACHE_TIMEOUT_SECONDS,
+        )
+
+    def test_get_for_source_round_trip(self) -> None:
+        payload = MockCachePayload(thread_id="thread")
+        SeerOperatorInvestigationCache.set_for_source(
+            entrypoint_key="slack",
+            source_type="metric_open_period",
+            source_ids=[11, 22],
+            cache_payload=payload,
+        )
+
+        assert (
+            SeerOperatorInvestigationCache[MockCachePayload].get_for_source(
+                entrypoint_key="slack", source_type="metric_open_period", source_ids=[11, 22]
+            )
+            == payload
+        )
+        assert (
+            SeerOperatorInvestigationCache[MockCachePayload].get_for_source(
+                entrypoint_key="slack", source_type="metric_open_period", source_ids=[11, 23]
+            )
+            is None
+        )
+
+
+@pytest.mark.parametrize(
+    ("source_type", "source_ref", "expected"),
+    [
+        (
+            InvestigationSourceType.METRIC_OPEN_PERIOD,
+            {"groupId": "11", "openPeriodId": "22"},
+            ("metric_open_period", [11, 22]),
+        ),
+        (InvestigationSourceType.BREACHED_METRIC, {"groupId": "11", "openPeriodId": "22"}, None),
+        (InvestigationSourceType.METRIC_OPEN_PERIOD, {"groupId": "11"}, None),
+        (InvestigationSourceType.METRIC_OPEN_PERIOD, {"groupId": "11", "openPeriodId": "x"}, None),
+    ],
+)
+def test_get_investigation_cache_source(
+    source_type: InvestigationSourceType,
+    source_ref: dict[str, str],
+    expected: tuple[str, list[int]] | None,
+) -> None:
+    investigation = Investigation(source_type=source_type, source_ref=source_ref)
+
+    assert get_investigation_cache_source(investigation) == expected

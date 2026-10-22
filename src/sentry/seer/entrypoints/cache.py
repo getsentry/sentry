@@ -1,6 +1,9 @@
 import logging
+from collections.abc import Sequence
 from enum import StrEnum
 
+from sentry.investigations.models import Investigation
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
@@ -304,10 +307,67 @@ class SeerOperatorPendingMentionCache[CachePayloadT]:
             return cache_payload
 
 
+def get_investigation_cache_source(investigation: Investigation) -> tuple[str, list[int]] | None:
+    """Returns the source type and IDs that key the source cache, or None if there are none."""
+    if investigation.source_type != InvestigationSourceType.METRIC_OPEN_PERIOD:
+        return None
+    source_ref = investigation.source_ref
+    try:
+        source_ids = [int(source_ref["groupId"]), int(source_ref["openPeriodId"])]
+    except (KeyError, TypeError, ValueError):
+        return None
+    return InvestigationSourceType.METRIC_OPEN_PERIOD.value, source_ids
+
+
 class SeerOperatorInvestigationCache[CachePayloadT]:
     @classmethod
     def _get_cache_key(cls, *, entrypoint_key: str, investigation_id: int) -> str:
         return f"seer:investigation:{entrypoint_key}:{investigation_id}"
+
+    @classmethod
+    def _get_source_cache_key(
+        cls, *, entrypoint_key: str, source_type: str, source_ids: Sequence[int]
+    ) -> str:
+        return ":".join(
+            ["seer:investigation", entrypoint_key, source_type, *(str(i) for i in source_ids)]
+        )
+
+    @classmethod
+    def set_for_source(
+        cls,
+        *,
+        entrypoint_key: str,
+        source_type: str,
+        source_ids: Sequence[int],
+        cache_payload: CachePayloadT,
+    ) -> None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_INVESTIGATION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_source_cache_key(
+                entrypoint_key=entrypoint_key, source_type=source_type, source_ids=source_ids
+            )
+            lifecycle.add_extras({"cache_key": cache_key})
+            cache.set(cache_key, cache_payload, timeout=INVESTIGATION_CACHE_TIMEOUT_SECONDS)
+
+    @classmethod
+    def get_for_source(
+        cls, *, entrypoint_key: str, source_type: str, source_ids: Sequence[int]
+    ) -> CachePayloadT | None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_GET_INVESTIGATION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_source_cache_key(
+                entrypoint_key=entrypoint_key, source_type=source_type, source_ids=source_ids
+            )
+            lifecycle.add_extras({"cache_key": cache_key})
+            cache_payload = cache.get(cache_key)
+            if not cache_payload:
+                lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
+                return None
+            return cache_payload
 
     @classmethod
     def set(

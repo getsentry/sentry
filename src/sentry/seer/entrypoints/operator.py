@@ -27,6 +27,7 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
     SeerOperatorInvestigationCache,
+    get_investigation_cache_source,
 )
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -935,6 +936,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
+        source = get_investigation_cache_source(run.investigation)
         for (
             entrypoint_key,
             entrypoint_cls,
@@ -943,16 +945,33 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 continue
 
             # TODO: Use a provider-agnostic payload type once there are more investigation entrypoints.
-            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+            from sentry.seer.entrypoints.slack.entrypoint import (
+                SlackInvestigationCachePayload,
+                SlackInvestigationThreadsCachePayload,
+            )
 
-            cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            legacy_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
                 entrypoint_key=str(entrypoint_key),
                 investigation_id=investigation_id,
             )
+            source_payload = None
+            if source is not None:
+                source_payload = SeerOperatorInvestigationCache[
+                    SlackInvestigationThreadsCachePayload
+                ].get_for_source(
+                    entrypoint_key=str(entrypoint_key),
+                    source_type=source[0],
+                    source_ids=source[1],
+                )
+            cache_payload = source_payload or legacy_payload
             if not cache_payload:
                 continue
 
-            if cache_payload["organization_id"] != organization.id:
+            if any(
+                payload["organization_id"] != organization.id
+                for payload in (legacy_payload, source_payload)
+                if payload
+            ):
                 lifecycle.record_failure(failure_reason="org_mismatch")
                 return
 

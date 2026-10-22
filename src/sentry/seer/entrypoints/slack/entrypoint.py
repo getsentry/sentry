@@ -44,6 +44,7 @@ from sentry.seer.endpoints.agent_request import (
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAutofixCache,
     SeerOperatorInvestigationCache,
+    get_investigation_cache_source,
 )
 from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
@@ -135,6 +136,12 @@ class SlackInvestigationThread(TypedDict):
     status_message_ts: str | None
     last_sent_state: str | None
     final_sent: bool
+
+
+class SlackInvestigationThreadsCachePayload(TypedDict):
+    organization_id: int
+    investigation_id: int | None
+    threads: list[SlackInvestigationThread]
 
 
 class SlackPendingMentionPayload(TypedDict):
@@ -798,7 +805,7 @@ class SlackInvestigationEntrypoint(
 
     @staticmethod
     def on_investigation_update(
-        cache_payload: SlackInvestigationCachePayload,
+        cache_payload: SlackInvestigationCachePayload | SlackInvestigationThreadsCachePayload,
         run: InvestigationOrchestrationRun,
     ) -> None:
         investigation_id = run.investigation_id
@@ -833,42 +840,58 @@ class SlackInvestigationEntrypoint(
             lifecycle.record_halt(halt_reason="run_not_found")
             return
         entrypoint_key = str(SlackInvestigationEntrypoint.key)
-        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+        source = get_investigation_cache_source(run.investigation)
+        source_payload = None
+        if source is not None:
+            source_payload = SeerOperatorInvestigationCache[
+                SlackInvestigationThreadsCachePayload
+            ].get_for_source(
+                entrypoint_key=entrypoint_key, source_type=source[0], source_ids=source[1]
+            )
+        legacy_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key=entrypoint_key,
             investigation_id=run.investigation_id,
         )
-        if cache_payload is None:
+        if source_payload is None and legacy_payload is None:
             return
 
-        thread = SlackInvestigationThread(
-            integration_id=cache_payload["integration_id"],
-            channel_id=cache_payload["channel_id"],
-            thread_ts=cache_payload["thread_ts"],
-            show_status=True,
-            status_message_ts=cache_payload["status_message_ts"],
-            last_sent_state=cache_payload["last_sent_state"],
-            final_sent=cache_payload["final_sent"],
+        merged = _merge_investigation_cache(
+            investigation_id=run.investigation_id,
+            source_payload=source_payload,
+            legacy_payload=legacy_payload,
         )
-        organization_id = cache_payload["organization_id"]
+        organization_id = merged["organization_id"]
         installs: dict[int, SlackIntegration | None] = {}
         threads = SlackInvestigationEntrypoint._send_investigation_statuses(
-            run=run, organization_id=organization_id, threads=[thread], installs=installs
+            run=run, organization_id=organization_id, threads=merged["threads"], installs=installs
         )
-        [thread] = SlackInvestigationEntrypoint._send_investigation_conclusions(
+        threads = SlackInvestigationEntrypoint._send_investigation_conclusions(
             run=run, organization_id=organization_id, threads=threads, installs=installs
         )
-        new_payload: SlackInvestigationCachePayload = {
-            **cache_payload,
-            "status_message_ts": thread["status_message_ts"],
-            "last_sent_state": thread["last_sent_state"],
-            "final_sent": thread["final_sent"],
-        }
-        if new_payload != cache_payload:
-            SeerOperatorInvestigationCache[SlackInvestigationCachePayload].set(
+        merged = {**merged, "threads": threads}
+
+        if source is not None and merged != source_payload:
+            SeerOperatorInvestigationCache[SlackInvestigationThreadsCachePayload].set_for_source(
                 entrypoint_key=entrypoint_key,
-                investigation_id=run.investigation_id,
-                cache_payload=new_payload,
+                source_type=source[0],
+                source_ids=source[1],
+                cache_payload=merged,
             )
+        if legacy_payload is not None:
+            legacy_key = _legacy_thread_key(legacy_payload)
+            legacy_thread = next(t for t in threads if _thread_key(t) == legacy_key)
+            new_legacy_payload: SlackInvestigationCachePayload = {
+                **legacy_payload,
+                "status_message_ts": legacy_thread["status_message_ts"],
+                "last_sent_state": legacy_thread["last_sent_state"],
+                "final_sent": legacy_thread["final_sent"],
+            }
+            if new_legacy_payload != legacy_payload:
+                SeerOperatorInvestigationCache[SlackInvestigationCachePayload].set(
+                    entrypoint_key=entrypoint_key,
+                    investigation_id=run.investigation_id,
+                    cache_payload=new_legacy_payload,
+                )
 
     @staticmethod
     def _send_investigation_statuses(
@@ -1038,6 +1061,58 @@ def _get_install(
             else None
         )
     return installs[integration_id]
+
+
+def _thread_key(thread: SlackInvestigationThread) -> tuple[int, str, str]:
+    return thread["integration_id"], thread["channel_id"], thread["thread_ts"]
+
+
+def _legacy_thread_key(payload: SlackInvestigationCachePayload) -> tuple[int, str, str]:
+    return payload["integration_id"], payload["channel_id"], payload["thread_ts"]
+
+
+def _merge_investigation_cache(
+    *,
+    investigation_id: int,
+    source_payload: SlackInvestigationThreadsCachePayload | None,
+    legacy_payload: SlackInvestigationCachePayload | None,
+) -> SlackInvestigationThreadsCachePayload:
+    """
+    Adds the thread from the legacy entry to the source entry, with show_status set.
+    Threads that a different investigation used start again from no sent state.
+    """
+    threads: list[SlackInvestigationThread] = []
+    if source_payload is not None:
+        threads = list(source_payload["threads"])
+        if source_payload["investigation_id"] not in (None, investigation_id):
+            threads = [
+                {**thread, "status_message_ts": None, "last_sent_state": None, "final_sent": False}
+                for thread in threads
+            ]
+    if legacy_payload is not None:
+        legacy_thread = SlackInvestigationThread(
+            integration_id=legacy_payload["integration_id"],
+            channel_id=legacy_payload["channel_id"],
+            thread_ts=legacy_payload["thread_ts"],
+            show_status=True,
+            status_message_ts=legacy_payload["status_message_ts"],
+            last_sent_state=legacy_payload["last_sent_state"],
+            final_sent=legacy_payload["final_sent"],
+        )
+        for i, thread in enumerate(threads):
+            if _thread_key(thread) == _thread_key(legacy_thread):
+                legacy_thread["final_sent"] = legacy_thread["final_sent"] or thread["final_sent"]
+                threads[i] = legacy_thread
+                break
+        else:
+            threads.append(legacy_thread)
+    payload = source_payload or legacy_payload
+    assert payload is not None
+    return SlackInvestigationThreadsCachePayload(
+        organization_id=payload["organization_id"],
+        investigation_id=investigation_id,
+        threads=threads,
+    )
 
 
 def _record_status_sent(*, data: SeerInvestigationStatus, links: set[NotificationLink]) -> None:

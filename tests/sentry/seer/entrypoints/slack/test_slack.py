@@ -8,9 +8,11 @@ from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
@@ -46,6 +48,8 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackAutofixEntrypoint,
     SlackInvestigationCachePayload,
     SlackInvestigationEntrypoint,
+    SlackInvestigationThread,
+    SlackInvestigationThreadsCachePayload,
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
@@ -1134,11 +1138,57 @@ class SlackInvestigationEntrypointTest(TestCase):
         InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
             projection=self.orchestration_run.projection, date_updated=updated_at
         )
-        cache_payload = self._get_cache()
+        cache_payload = self._get_cache() or self._get_threads_cache()
         assert cache_payload is not None
         SlackInvestigationEntrypoint.on_investigation_update(
             cache_payload=cache_payload, run=self.orchestration_run
         )
+
+    def _use_open_period_source(self) -> None:
+        self.investigation.update(
+            source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
+            source_ref={"groupId": "11", "openPeriodId": "22"},
+            source_key="lineage-key",
+            source_revision=1,
+        )
+
+    def _thread(self, **overrides: Any) -> SlackInvestigationThread:
+        thread = SlackInvestigationThread(
+            integration_id=self.integration.id,
+            channel_id=self.channel_id,
+            thread_ts=self.message_ts,
+            show_status=False,
+            status_message_ts=None,
+            last_sent_state=None,
+            final_sent=False,
+        )
+        thread.update(overrides)  # type: ignore[typeddict-item]
+        return thread
+
+    def _set_threads_cache(
+        self, threads: list[SlackInvestigationThread], investigation_id: int | None = None
+    ) -> None:
+        SeerOperatorInvestigationCache.set_for_source(
+            entrypoint_key="slack",
+            source_type="metric_open_period",
+            source_ids=[11, 22],
+            cache_payload=SlackInvestigationThreadsCachePayload(
+                organization_id=self.organization.id,
+                investigation_id=investigation_id,
+                threads=threads,
+            ),
+        )
+
+    def _get_threads_cache(self) -> SlackInvestigationThreadsCachePayload | None:
+        return SeerOperatorInvestigationCache[SlackInvestigationThreadsCachePayload].get_for_source(
+            entrypoint_key="slack", source_type="metric_open_period", source_ids=[11, 22]
+        )
+
+    def _posts(self) -> list[tuple[str, str]]:
+        return [
+            (call.kwargs["channel"], call.kwargs["text"])
+            for call in self.mock_post_message.call_args_list
+        ]
 
     def _updated_blocks(self) -> list[Any]:
         return self.mock_update.call_args.kwargs["blocks"]
@@ -1541,3 +1591,140 @@ class SlackInvestigationEntrypointTest(TestCase):
             "b" * 4000,
             "_The rest of the report is in the full investigation._",
         ]
+
+    def test_threads_entry_sends_status_to_shown_thread_and_conclusion_to_all(self) -> None:
+        self._use_open_period_source()
+        other_integration = self.create_slack_integration(self.organization, "TXXXXXXXXX4")
+        self._set_threads_cache(
+            [
+                self._thread(show_status=True),
+                self._thread(integration_id=other_integration.id, channel_id="CXXXXXXXXX4"),
+            ]
+        )
+        self._report_cell("The release added a slow font.")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._posts() == [
+            (self.channel_id, "Investigating FCP on organization login pages"),
+            (self.channel_id, "Seer finished the investigation"),
+            ("CXXXXXXXXX4", "Seer finished the investigation"),
+        ]
+        cache_payload = self._get_threads_cache()
+        assert cache_payload is not None
+        assert cache_payload["investigation_id"] == self.investigation.id
+        shown, hidden = cache_payload["threads"]
+        assert shown["status_message_ts"] == self.status_ts
+        assert shown["final_sent"] is True
+        assert hidden["status_message_ts"] is None
+        assert hidden["final_sent"] is True
+
+    def test_legacy_entry_is_added_to_threads_entry(self) -> None:
+        self._use_open_period_source()
+        self._set_cache(status_message_ts=None)
+        self._report_cell("The release added a slow font.")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+        self._update([_hypothesis()])
+
+        assert self._posts() == [
+            (self.channel_id, "Investigating FCP on organization login pages"),
+            (self.channel_id, "Seer finished the investigation"),
+        ]
+        legacy_payload = self._get_cache()
+        assert legacy_payload is not None
+        assert legacy_payload["status_message_ts"] == self.status_ts
+        assert legacy_payload["final_sent"] is True
+        cache_payload = self._get_threads_cache()
+        assert cache_payload is not None
+        assert cache_payload["threads"] == [
+            self._thread(
+                show_status=True,
+                status_message_ts=self.status_ts,
+                last_sent_state=legacy_payload["last_sent_state"],
+                final_sent=True,
+            )
+        ]
+
+    def test_same_thread_in_both_entries_is_sent_once(self) -> None:
+        self._use_open_period_source()
+        self._set_cache(status_message_ts=None)
+        self._set_threads_cache([self._thread()])
+        self._report_cell("The release added a slow font.")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._posts() == [
+            (self.channel_id, "Investigating FCP on organization login pages"),
+            (self.channel_id, "Seer finished the investigation"),
+        ]
+        cache_payload = self._get_threads_cache()
+        assert cache_payload is not None
+        (thread,) = cache_payload["threads"]
+        assert thread["show_status"] is True
+        assert thread["final_sent"] is True
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_inactive_integration_skips_only_its_threads(self, mock_record: Mock) -> None:
+        self._use_open_period_source()
+        inactive_integration = self.create_integration(
+            organization=self.organization,
+            external_id="TXXXXXXXXX4",
+            provider="slack",
+            status=ObjectStatus.DISABLED,
+        )
+        self._set_threads_cache(
+            [
+                self._thread(integration_id=inactive_integration.id, channel_id="CXXXXXXXXX4"),
+                self._thread(),
+            ]
+        )
+        self._report_cell("The release added a slow font.")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._posts() == [(self.channel_id, "Seer finished the investigation")]
+        cache_payload = self._get_threads_cache()
+        assert cache_payload is not None
+        inactive, active = cache_payload["threads"]
+        assert inactive["final_sent"] is False
+        assert active["final_sent"] is True
+        halt_reasons = [
+            call.args[1]
+            for call in mock_record.mock_calls
+            if call.args[0] == EventLifecycleOutcome.HALTED
+        ]
+        assert halt_reasons.count("integration_not_found") == 1
+
+    def test_new_investigation_on_same_open_period_posts_conclusion_again(self) -> None:
+        self._use_open_period_source()
+        self._set_threads_cache(
+            [
+                self._thread(
+                    show_status=True,
+                    status_message_ts="1712345678.000000",
+                    last_sent_state="old",
+                    final_sent=True,
+                )
+            ],
+            investigation_id=self.investigation.id + 1000,
+        )
+        self._report_cell("The release added a slow font.")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._posts() == [
+            (self.channel_id, "Investigating FCP on organization login pages"),
+            (self.channel_id, "Seer finished the investigation"),
+        ]
+        cache_payload = self._get_threads_cache()
+        assert cache_payload is not None
+        assert cache_payload["investigation_id"] == self.investigation.id
+        (thread,) = cache_payload["threads"]
+        assert thread["status_message_ts"] == self.status_ts
+        assert thread["final_sent"] is True
