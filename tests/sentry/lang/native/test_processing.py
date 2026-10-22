@@ -131,24 +131,12 @@ def test_process_native_flamegraph(cached_flamegraph) -> None:
             {"instruction_addr": "0x100001000", "addr_mode": "abs", "custom": "retained"},
             {"instruction_addr": "0x100001200", "function": "unresolved"},
         ],
-        "trees": [
-            {
-                "thread_attributed": True,
-                "roots": [
-                    {
-                        "frame_id": 0,
-                        "sample_count": 10,
-                        "children": [
-                            {
-                                "frame_id": 0,
-                                "sample_count": 6,
-                                "children": [{"frame_id": 1, "sample_count": 4}],
-                            }
-                        ],
-                    }
-                ],
-            }
+        "nodes": [
+            {"frame_id": 0, "sample_count": 10, "children": [1]},
+            {"frame_id": 0, "sample_count": 6, "children": [2]},
+            {"frame_id": 1, "sample_count": 4},
         ],
+        "trees": [{"thread_attributed": True, "roots": [0]}],
         "custom": "retained",
     }
     original = deepcopy(payload)
@@ -221,14 +209,14 @@ def test_process_native_flamegraph(cached_flamegraph) -> None:
     assert processed["frames"][0]["addr_mode"] == "abs"
     assert processed["frames"][1] == original["frames"][1]
     assert processed["frames"][2]["function"] == "inlined"
-    root = processed["trees"][0]["roots"][0]
-    assert root["sample_count"] == 10
-    assert root["children"][0]["frame_id"] == 2
-    assert root["children"][0]["sample_count"] == 10
-    recursive = root["children"][0]["children"][0]
-    assert recursive["frame_id"] == 0
-    assert recursive["children"][0]["sample_count"] == 6
-    assert recursive["children"][0]["children"] == [{"frame_id": 1, "sample_count": 4}]
+    assert processed["trees"] == original["trees"]
+    assert processed["nodes"] == [
+        {"frame_id": 0, "sample_count": 10, "children": [3]},
+        {"frame_id": 0, "sample_count": 6, "children": [4]},
+        {"frame_id": 1, "sample_count": 4},
+        {"frame_id": 2, "sample_count": 10, "children": [1]},
+        {"frame_id": 2, "sample_count": 6, "children": [2]},
+    ]
     assert processed["debug_meta"] == original["debug_meta"]
     assert processed["custom"] == "retained"
 
@@ -258,8 +246,94 @@ def flamegraph_payload():
         "debug_meta": {
             "images": [{"type": "macho", "debug_id": "84a04d24-0e60-3810-a8c0-90a65e2df61a"}]
         },
-        "trees": [{"roots": [{"frame_id": 0, "sample_count": 10}]}],
+        "nodes": [{"frame_id": 0, "sample_count": 10}],
+        "trees": [{"roots": [0]}],
     }
+
+
+@pytest.mark.parametrize(
+    "nodes",
+    [
+        [{"frame_id": 0, "sample_count": 10, "children": [0]}],
+        [
+            {"frame_id": 0, "sample_count": 10, "children": [1]},
+            {"frame_id": 0, "sample_count": 10, "children": [0]},
+        ],
+        [
+            {"frame_id": 0, "sample_count": 10, "children": [1, 1]},
+            {"frame_id": 0, "sample_count": 5},
+        ],
+    ],
+)
+def test_flamegraph_indexed_inline_expansion(flamegraph_payload, nodes) -> None:
+    flamegraph_payload["nodes"] = nodes
+    original = deepcopy(flamegraph_payload)
+    assert _is_valid_flamegraph(flamegraph_payload)
+
+    output = _merge_flamegraph_frames(
+        flamegraph_payload,
+        [0],
+        [{"frames": [{"function": "outer"}, {"function": "inner"}]}],
+    )
+
+    assert flamegraph_payload == original
+    assert output["trees"] == original["trees"]
+    assert len(output["nodes"]) == 2 * len(nodes)
+    for index, node in enumerate(nodes):
+        assert output["nodes"][index] == {
+            "frame_id": 0,
+            "sample_count": node["sample_count"],
+            "children": [len(nodes) + index],
+        }
+        assert output["nodes"][len(nodes) + index] == {
+            **node,
+            "frame_id": 1,
+        }
+    assert _is_valid_flamegraph(output)
+
+
+def test_flamegraph_repeated_child_edges_are_not_materialized_as_paths(flamegraph_payload) -> None:
+    depth = 31
+    flamegraph_payload["nodes"] = [
+        {"frame_id": 0, "sample_count": 2 ** (depth - index), "children": [index + 1, index + 1]}
+        for index in range(depth - 1)
+    ] + [{"frame_id": 0, "sample_count": 2}]
+    assert _is_valid_flamegraph(flamegraph_payload)
+
+    output = _merge_flamegraph_frames(
+        flamegraph_payload,
+        [0],
+        [{"frames": [{"function": "outer"}, {"function": "inner"}]}],
+    )
+
+    assert len(output["nodes"]) == depth * 2
+    assert output["nodes"][depth]["children"] == [1, 1]
+    assert _is_valid_flamegraph(output)
+
+
+@pytest.mark.parametrize("roots", [[], [-1], [1], [True], [0.0], [{}], "invalid"])
+def test_flamegraph_rejects_invalid_root_indices(flamegraph_payload, roots) -> None:
+    flamegraph_payload["trees"][0]["roots"] = roots
+    assert not _is_valid_flamegraph(flamegraph_payload)
+
+
+@pytest.mark.parametrize("nodes", [[], None, {}, ["invalid"]])
+def test_flamegraph_rejects_invalid_node_tables(flamegraph_payload, nodes) -> None:
+    flamegraph_payload["nodes"] = nodes
+    assert not _is_valid_flamegraph(flamegraph_payload)
+
+
+def test_flamegraph_rejects_children_exceeding_parent_count(flamegraph_payload) -> None:
+    flamegraph_payload["nodes"] = [
+        {"frame_id": 0, "sample_count": 10, "children": [1, 1]},
+        {"frame_id": 0, "sample_count": 6},
+    ]
+    assert not _is_valid_flamegraph(flamegraph_payload)
+
+
+def test_flamegraph_validates_unreferenced_nodes(flamegraph_payload) -> None:
+    flamegraph_payload["nodes"].append({"frame_id": 1, "sample_count": 10})
+    assert not _is_valid_flamegraph(flamegraph_payload)
 
 
 @pytest.fixture
@@ -429,13 +503,13 @@ def test_flamegraph_feature_disabled(cached_flamegraph) -> None:
 
 
 @django_db_all
-@pytest.mark.parametrize("depth", [100, 600])
+@pytest.mark.parametrize("depth", [100, 1000])
 def test_flamegraph_deep_inline_expansion(cached_flamegraph, depth) -> None:
     data, payload, symbolicator = cached_flamegraph
-    node = {"frame_id": 0, "sample_count": 10, "custom": "retained"}
-    for _ in range(depth - 1):
-        node = {"frame_id": 0, "sample_count": 10, "children": [node], "custom": "retained"}
-    payload["trees"][0]["roots"] = [node]
+    payload["nodes"] = [
+        {"frame_id": 0, "sample_count": 10, "children": [index + 1], "custom": "retained"}
+        for index in range(depth - 1)
+    ] + [{"frame_id": 0, "sample_count": 10, "custom": "retained"}]
     raw = rapidjson.dumps(payload).encode()
     store_attachments_for_event(
         symbolicator.project,
@@ -450,21 +524,16 @@ def test_flamegraph_deep_inline_expansion(cached_flamegraph, depth) -> None:
     )
     assert processed["frames"][0]["function"] == "outer"
     assert processed["frames"][1]["function"] == "inner"
-    node = processed["trees"][0]["roots"][0]
-    for _ in range(depth - 1):
+    assert processed["trees"] == payload["trees"]
+    assert len(processed["nodes"]) == depth * 2
+    for index in range(depth - 1):
+        node = processed["nodes"][index]
         assert node["frame_id"] == 0
         assert node["sample_count"] == 10
         assert node["custom"] == "retained"
-        inline = node["children"][0]
-        assert inline["frame_id"] == 1
-        assert inline["sample_count"] == 10
-        node = inline["children"][0]
-    assert node == {
-        "frame_id": 0,
-        "sample_count": 10,
-        "custom": "retained",
-        "children": [{"frame_id": 1, "sample_count": 10}],
-    }
+        inline = processed["nodes"][node["children"][0]]
+        assert inline == {"frame_id": 1, "sample_count": 10, "children": [index + 1]}
+    assert processed["nodes"][-1] == {"frame_id": 1, "sample_count": 10}
 
 
 @django_db_all
@@ -613,12 +682,16 @@ def test_flamegraph_invalid_attachment(cached_flamegraph, raw) -> None:
         {"frame_id": 0, "sample_count": True},
         {"frame_id": 0, "sample_count": 9007199254740992},
         {"frame_id": 0, "sample_count": 10, "children": "invalid"},
+        {"frame_id": 0, "sample_count": 10, "children": [1]},
+        {"frame_id": 0, "sample_count": 10, "children": [-1]},
+        {"frame_id": 0, "sample_count": 10, "children": [True]},
+        {"frame_id": 0, "sample_count": 10, "children": [0.0]},
         {"frame_id": 0, "sample_count": 10, "children": [{"frame_id": 0, "sample_count": 11}]},
     ],
 )
 def test_flamegraph_invalid_tree_is_not_symbolicated(cached_flamegraph, root) -> None:
     data, payload, symbolicator = cached_flamegraph
-    payload["trees"][0]["roots"] = [root]
+    payload["nodes"] = [root]
     raw = orjson.dumps(payload)
     store_attachments_for_event(
         symbolicator.project,

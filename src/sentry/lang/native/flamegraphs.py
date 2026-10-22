@@ -26,7 +26,15 @@ def _is_valid_flamegraph(payload: Any) -> bool:
         return False
     frames = payload.get("frames")
     trees = payload.get("trees")
-    if not isinstance(frames, list) or not frames or not isinstance(trees, list) or not trees:
+    nodes = payload.get("nodes")
+    if (
+        not isinstance(frames, list)
+        or not frames
+        or not isinstance(trees, list)
+        or not trees
+        or not isinstance(nodes, list)
+        or not nodes
+    ):
         return False
     for frame in frames:
         if not isinstance(frame, dict) or not any(
@@ -54,60 +62,52 @@ def _is_valid_flamegraph(payload: Any) -> bool:
             for field in ("debug_id", "id", "uuid")
         ):
             return False
+    for node in nodes:
+        if not isinstance(node, dict):
+            return False
+        frame_id = node.get("frame_id")
+        count = node.get("sample_count")
+        if type(frame_id) is not int or not 0 <= frame_id < len(frames):
+            return False
+        if type(count) is not int or not 0 < count <= MAX_SAMPLE_COUNT:
+            return False
+        children = node.get("children", [])
+        if not isinstance(children, list) or any(
+            type(child) is not int or not 0 <= child < len(nodes) for child in children
+        ):
+            return False
+    # Check the indexed table directly, rather than walking potentially cyclic or shared paths.
+    for node in nodes:
+        if (
+            sum(nodes[child]["sample_count"] for child in node.get("children", []))
+            > node["sample_count"]
+        ):
+            return False
     for tree in trees:
         if (
             not isinstance(tree, dict)
             or not isinstance(tree.get("roots"), list)
             or not tree["roots"]
+            or any(type(root) is not int or not 0 <= root < len(nodes) for root in tree["roots"])
         ):
             return False
-        nodes = list(tree["roots"])
-        while nodes:
-            node = nodes.pop()
-            if not isinstance(node, dict):
-                return False
-            frame_id = node.get("frame_id")
-            count = node.get("sample_count")
-            if type(frame_id) is not int or not 0 <= frame_id < len(frames):
-                return False
-            if type(count) is not int or not 0 < count <= MAX_SAMPLE_COUNT:
-                return False
-            children = node.get("children", [])
-            if not isinstance(children, list) or not all(
-                isinstance(child, dict) for child in children
-            ):
-                return False
-            child_counts = [child.get("sample_count") for child in children]
-            if any(type(value) is not int or value <= 0 for value in child_counts):
-                return False
-            if sum(child_counts) > count:
-                return False
-            nodes.extend(children)
     return True
 
 
 def expand_inline_frames(
-    trees: list[dict[str, Any]], chains: dict[int, list[int]]
+    nodes: list[dict[str, Any]], chains: dict[int, list[int]]
 ) -> list[dict[str, Any]]:
-    output = [{**tree, "roots": []} for tree in trees]
-    nodes = [
-        (root, new_tree["roots"])
-        for tree, new_tree in zip(trees, output)
-        for root in reversed(tree["roots"])
-    ]
-    while nodes:
-        original, siblings = nodes.pop()
-        node = dict(original)
-        siblings.append(node)
-        children = node.pop("children", None)
-        current = node
-        for frame_id in chains.get(node["frame_id"], [])[1:]:
-            child = {"frame_id": frame_id, "sample_count": node["sample_count"]}
-            current["children"] = [child]
+    # Keep captured indices stable so roots and shared child references remain valid.
+    output = [dict(node) for node in nodes]
+    for index, original in enumerate(nodes):
+        current = output[index]
+        for frame_id in chains.get(original["frame_id"], [])[1:]:
+            child = {"frame_id": frame_id, "sample_count": original["sample_count"]}
+            current["children"] = [len(output)]
+            output.append(child)
             current = child
-        if children is not None:
-            current["children"] = []
-            nodes.extend((child, current["children"]) for child in reversed(children))
+        if "children" in original:
+            current["children"] = list(original["children"])
     return output
 
 

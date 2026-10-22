@@ -776,7 +776,8 @@ def do_process_flamegraph(default_project, task_runner, live_server, use_objects
                 }
             ]
         },
-        "trees": [{"roots": [{"frame_id": 0, "sample_count": 10}]}],
+        "nodes": [{"frame_id": 0, "sample_count": 10}],
+        "trees": [{"roots": [0]}],
     }
     attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
     raw = orjson.dumps(diagnostic)
@@ -830,6 +831,7 @@ def do_process_flamegraph(default_project, task_runner, live_server, use_objects
     assert processed["frames"][0]["function"] == "main"
     assert processed["frames"][0]["instruction_addr"] == "0x100000fa0"
     assert processed["trees"] == diagnostic["trees"]
+    assert processed["nodes"] == diagnostic["nodes"]
     assert processed["_symbolication"]["status"] == "completed"
     assert attachment.size == len(orjson.dumps(processed))
     if use_objectstore:

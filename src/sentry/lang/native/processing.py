@@ -520,7 +520,7 @@ def _merge_flamegraph_frames(
                 chain.append(len(output["frames"]))
                 output["frames"].append(merged)
         chains[frame_id] = chain
-    output["trees"] = expand_inline_frames(payload["trees"], chains)
+    output["nodes"] = expand_inline_frames(payload["nodes"], chains)
     output["_symbolication"] = {"status": "completed"}
     return output
 
