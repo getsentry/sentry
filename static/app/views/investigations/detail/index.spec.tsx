@@ -30,12 +30,12 @@ import {
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
+  InvestigationActionRequestFixture,
   InvestigationAgenticDetailFixture,
   InvestigationCommentFixture,
   InvestigationDetailFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
-  InvestigationActionRequestFixture,
 } from 'sentry/views/investigations/fixtures';
 
 jest.unmock('@tanstack/react-pacer');

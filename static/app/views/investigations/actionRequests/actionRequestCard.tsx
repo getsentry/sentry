@@ -1,39 +1,37 @@
+import {useId} from 'react';
+
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
-import type {
-  InvestigationActionRequest,
-  InvestigationDetail,
-} from 'sentry/views/investigations/types';
+import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
+import type {InvestigationActionRequest} from 'sentry/views/investigations/types';
 
 type ActionRequestCardProps = {
-  investigation: InvestigationDetail;
-  select: (actionRequest: InvestigationActionRequest) => boolean;
+  actionRequest: InvestigationActionRequest;
   heading?: string;
 };
 
-export function ActionRequestCard({
-  heading,
-  investigation,
-  select,
-}: ActionRequestCardProps) {
-  const actionRequest = (investigation.actionRequests ?? []).find(select) ?? null;
+export function ActionRequestCard({actionRequest, heading}: ActionRequestCardProps) {
+  const headingId = useId();
 
-  if (!actionRequest) {
+  if (actionRequest.state !== 'suggested' && actionRequest.state !== 'withdrawn') {
     return null;
   }
 
-  const ariaLabel = heading ?? actionRequest.title;
+  const labelProps = heading
+    ? {'aria-labelledby': headingId}
+    : {'aria-label': actionRequest.title};
+  const headingElement = heading ? (
+    <Heading as="h2" size="lg" id={headingId}>
+      {heading}
+    </Heading>
+  ) : null;
 
   if (actionRequest.state === 'withdrawn') {
     return (
-      <Stack as="section" gap="md" aria-label={ariaLabel}>
-        {heading ? (
-          <Heading as="h2" size="lg">
-            {heading}
-          </Heading>
-        ) : null}
+      <Stack as="section" gap="md" {...labelProps}>
+        {headingElement}
         <Text as="p" size="md" density="comfortable" variant="muted">
           {actionRequest.reason
             ? tct('Seer no longer recommends “[title]”: [reason]', {
@@ -47,14 +45,13 @@ export function ActionRequestCard({
   }
 
   return (
-    <Stack as="section" gap="lg" aria-label={ariaLabel}>
-      {heading ? (
-        <Heading as="h2" size="lg">
-          {heading}
-        </Heading>
-      ) : null}
+    <Stack as="section" gap="lg" {...labelProps}>
+      {headingElement}
       <Text as="p" size="md" density="comfortable">
-        <Text bold>{withPeriod(actionRequest.title)}</Text> {actionRequest.rationale}
+        {tct('[title] [rationale]', {
+          title: <Text bold>{ensureSentenceEnd(actionRequest.title)}</Text>,
+          rationale: actionRequest.rationale,
+        })}
       </Text>
       {actionRequest.impact ? (
         <Text as="p" size="md" density="comfortable">
@@ -63,9 +60,4 @@ export function ActionRequestCard({
       ) : null}
     </Stack>
   );
-}
-
-function withPeriod(sentence: string) {
-  const trimmed = sentence.trim();
-  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }

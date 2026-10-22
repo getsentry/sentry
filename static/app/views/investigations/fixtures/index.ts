@@ -241,8 +241,6 @@ export function InvestigationActionRequestFixture(
       detectorId: '789',
       before: {timeWindowSeconds: 300},
       changes: {timeWindowSeconds: 900},
-      canApply: true,
-      cannotApplyReason: null,
     },
     appliedBy: null,
     appliedDetails: null,

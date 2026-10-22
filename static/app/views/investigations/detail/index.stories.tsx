@@ -9,6 +9,7 @@ import {
 import {StoryTopBar} from 'sentry/views/investigations/__stories__/storyTopBar';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
+  InvestigationActionRequestFixture,
   InvestigationBlockExecutionFixture,
   InvestigationBlockFixture,
   InvestigationBreachedMetricDetailFixture,
@@ -18,7 +19,6 @@ import {
   InvestigationAwaitingInputExecutionFixture,
   InvestigationExecutionDetailFixture,
   InvestigationQueryOutputFixture,
-  InvestigationActionRequestFixture,
   InvestigationRunningDetailFixture,
   InvestigationTitleGenerationFixture,
   InvestigationTranscriptBlockFixture,
@@ -51,8 +51,6 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
         detectorId: '42',
         before: {timeWindowSeconds: 300},
         changes: {timeWindowSeconds: 900},
-        canApply: true,
-        cannotApplyReason: null,
       },
     }),
   ],

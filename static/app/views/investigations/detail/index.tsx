@@ -490,7 +490,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
-              <NextStepCard investigation={investigation} />
+              <NextStepCard actionRequests={investigation.actionRequests} />
 
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 
