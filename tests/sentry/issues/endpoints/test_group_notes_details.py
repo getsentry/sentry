@@ -287,6 +287,56 @@ class GroupNotesDetailsTest(APITestCase):
         # same way COMMENT_EDIT entries do, so it can be joined to the COMMENT row
         assert delete_entry.data["comment_id"] == original_entry.id
 
+    def test_edit_and_delete_body_free_comment(self) -> None:
+        self.login_as(user=self.user)
+        for serve_from_log, expected_source in ((True, "api"), (False, None)):
+            note = self.create_group_activity(
+                type=ActivityType.NOTE.value, user_id=self.user.id, data={"text": "original"}
+            )
+            created = self.create_group_action_log_entry(
+                id=note.id + 1000,
+                type=GroupActionType.COMMENT_CREATED,
+                data={"comment_id": note.id},
+                idempotency_key=f"activity:{note.id}",
+                source="api",
+            )
+            url = f"/api/0/issues/{self.group.id}/comments/{note.id}/"
+            with (
+                action_log_activity_enabled(),
+                self.feature({"projects:issue-action-log-activity": serve_from_log}),
+            ):
+                response = self.client.put(url, data={"text": "updated"}, format="json")
+                assert response.status_code == 200, response.content
+                assert response.data["id"] == response.data["commentId"] == str(note.id)
+                assert response.data["type"] == "note"
+                assert response.data["data"]["text"] == "updated"
+                assert response.data.get("source") == expected_source
+                note.refresh_from_db()
+                assert note.data["text"] == "updated"
+
+                response = self.client.delete(url, format="json")
+                assert response.status_code == 204, response.content
+            assert not Activity.objects.filter(id=note.id).exists()
+            mutations = list(
+                GroupActionLogEntry.objects.filter(
+                    group_id=self.group.id,
+                    type__in=[GroupActionType.COMMENT_EDITED, GroupActionType.COMMENT_DELETED],
+                    data={"comment_id": note.id},
+                ).order_by("id")
+            )
+            assert [entry.type for entry in mutations] == [
+                GroupActionType.COMMENT_EDITED,
+                GroupActionType.COMMENT_DELETED,
+            ]
+            keys = [entry.idempotency_key for entry in mutations]
+            assert all(keys) and len(set(keys)) == 2
+            assert not GroupActionLogEntry.objects.filter(
+                group_id=self.group.id,
+                type__in=[GroupActionType.COMMENT_EDIT, GroupActionType.COMMENT_DELETE],
+            ).exists()
+            created.refresh_from_db()
+            assert created.data == {"comment_id": note.id}
+
     @action_log_activity_enabled()
     def test_put_returns_404_without_gale_entry(self) -> None:
         # backfilled project, so GALE is authoritative for existence: a missing

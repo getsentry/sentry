@@ -29,7 +29,7 @@ from sentry.issues.action_log.read_metrics import (
     record_activity_read,
 )
 from sentry.issues.action_log.request import resolve_action_source
-from sentry.issues.action_log.types import GroupActionActor
+from sentry.issues.action_log.types import GroupActionActor, GroupActionType
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -152,10 +152,15 @@ class GroupNotesEndpoint(GroupEndpoint):
         if should_serve_action_log_activity(group.project, request.user, endpoint=endpoint):
             entry = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
+                type__in=[GroupActionType.COMMENT.value, GroupActionType.COMMENT_CREATED.value],
                 idempotency_key=activity_action_idempotency_key(activity),
             ).first()
             if entry:
                 record_activity_read(endpoint, ActivityReadResult.GAL)
+                if entry.type == GroupActionType.COMMENT_CREATED.value:
+                    return Response(
+                        serialize_group_notes(group, [activity], request.user)[0], status=201
+                    )
                 return Response(serialize(entry, request.user), status=201)
             record_activity_read(
                 endpoint,
