@@ -1,9 +1,11 @@
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   BuildDetailsVcsInfo,

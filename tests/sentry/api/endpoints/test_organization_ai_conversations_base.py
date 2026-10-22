@@ -24,6 +24,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         op="gen_ai.chat",
         description=None,
         status="ok",
+        operation_name=None,
         operation_type=None,
         tokens=None,
         input_tokens=None,
@@ -32,18 +33,32 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         cache_write_tokens=None,
         reasoning_tokens=None,
         cost=None,
+        input_cost=None,
+        output_cost=None,
+        cache_read_cost=None,
+        cache_write_cost=None,
+        reasoning_cost=None,
+        request_model=None,
+        response_model=None,
         trace_id=None,
         agent_name=None,
         messages=None,
         response_text=None,
         tool_name=None,
         tool_result=None,
+        tool_result_size=None,
         tool_output=None,
         embeddings_input=None,
+        memory_store_id=None,
+        memory_query_text=None,
+        memory_record_id=None,
+        memory_record_count=None,
+        memory_records=None,
         user_id=None,
         user_email=None,
         user_username=None,
         user_ip=None,
+        origin=None,
         input_messages=None,
         output_messages=None,
         system_instructions=None,
@@ -59,6 +74,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             op: The span operation (default: "gen_ai.chat")
             description: Span description
             status: Span status (default: "ok")
+            operation_name: The gen_ai.operation.name attribute
             operation_type: The gen_ai.operation.type attribute
             tokens: Token count (gen_ai.usage.total_tokens)
             input_tokens: Input token count (gen_ai.usage.input_tokens)
@@ -67,12 +83,20 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             cache_write_tokens: Cache-creation input token count
             reasoning_tokens: Reasoning output token count
             cost: Cost (gen_ai.cost.total_tokens)
+            input_cost: Input token cost (gen_ai.cost.input_tokens)
+            output_cost: Output token cost (gen_ai.cost.output_tokens)
+            cache_read_cost: Cache-read input token cost
+            cache_write_cost: Cache-creation input token cost
+            reasoning_cost: Reasoning output token cost
+            request_model: Requested model (gen_ai.request.model)
+            response_model: Responding model (gen_ai.response.model)
             trace_id: The trace ID for the span
             agent_name: The gen_ai.agent.name attribute
             messages: The gen_ai.request.messages (will be JSON serialized)
             response_text: The gen_ai.response.text attribute
             tool_name: The gen_ai.tool.name attribute
             tool_result: The gen_ai.tool.call.result attribute
+            tool_result_size: The gen_ai.tool.call.result.size attribute
             tool_output: The gen_ai.tool.output attribute
             embeddings_input: The gen_ai.embeddings.input attribute
             user_id: User ID (sentry.user.id)
@@ -92,6 +116,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             # deprecated in favour of `ai_conversation_id` down below.
             "gen_ai.conversation.id": conversation_id,
         }
+        if operation_name is not None:
+            span_data["gen_ai.operation.name"] = operation_name
         if operation_type:
             span_data["gen_ai.operation.type"] = operation_type
         if tokens is not None:
@@ -108,6 +134,20 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.usage.reasoning.output_tokens"] = reasoning_tokens
         if cost is not None:
             span_data["gen_ai.cost.total_tokens"] = cost
+        if input_cost is not None:
+            span_data["gen_ai.cost.input_tokens"] = input_cost
+        if output_cost is not None:
+            span_data["gen_ai.cost.output_tokens"] = output_cost
+        if cache_read_cost is not None:
+            span_data["gen_ai.cost.cache_read.input_tokens"] = cache_read_cost
+        if cache_write_cost is not None:
+            span_data["gen_ai.cost.cache_creation.input_tokens"] = cache_write_cost
+        if reasoning_cost is not None:
+            span_data["gen_ai.cost.reasoning.output_tokens"] = reasoning_cost
+        if request_model is not None:
+            span_data["gen_ai.request.model"] = request_model
+        if response_model is not None:
+            span_data["gen_ai.response.model"] = response_model
         if agent_name is not None:
             span_data["gen_ai.agent.name"] = agent_name
         if messages is not None:
@@ -119,10 +159,22 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.tool.name"] = tool_name
         if tool_result is not None:
             span_data["gen_ai.tool.call.result"] = tool_result
+        if tool_result_size is not None:
+            span_data["gen_ai.tool.call.result.size"] = tool_result_size
         if tool_output is not None:
             span_data["gen_ai.tool.output"] = tool_output
         if embeddings_input is not None:
             span_data["gen_ai.embeddings.input"] = embeddings_input
+        if memory_store_id is not None:
+            span_data["gen_ai.memory.store.id"] = memory_store_id
+        if memory_query_text is not None:
+            span_data["gen_ai.memory.query.text"] = memory_query_text
+        if memory_record_id is not None:
+            span_data["gen_ai.memory.record.id"] = memory_record_id
+        if memory_record_count is not None:
+            span_data["gen_ai.memory.record.count"] = memory_record_count
+        if memory_records is not None:
+            span_data["gen_ai.memory.records"] = json.dumps(memory_records)
         # New format attributes
         if input_messages is not None:
             span_data["gen_ai.input.messages"] = json.dumps(input_messages)
@@ -141,6 +193,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["sentry.user.username"] = user_username
         if user_ip is not None:
             span_data["sentry.user.ip"] = user_ip
+        if origin is not None:
+            span_data["sentry.origin"] = origin
 
         extra_data = {
             "description": description or "default",

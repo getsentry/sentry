@@ -338,24 +338,6 @@ _SENTRY_RULES = (
     "sentry.rules.filters.level.LevelFilter",
 )
 
-MIGRATED_CONDITIONS = frozenset(
-    [
-        "sentry.rules.conditions.tagged_event.TaggedEventCondition",
-        "sentry.rules.conditions.event_attribute.EventAttributeCondition",
-        "sentry.rules.conditions.level.LevelCondition",
-    ]
-)
-
-TICKET_ACTIONS = frozenset(
-    [
-        "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-        "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-        "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-        "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-        "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-    ]
-)
-
 SENTRY_APP_ACTIONS = frozenset(
     ["sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"]
 )
@@ -528,6 +510,9 @@ class ObjectStatus:
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
+    # HIDDEN and DISABLED are the same value: a filter on one matches rows written with the
+    # other. Code that says "hidden" (e.g. repositories) and code that says "disabled" is
+    # talking about the same rows.
     DISABLED = 1
 
     _CHOICES = (
@@ -1048,6 +1033,3 @@ EXTENSION_LANGUAGE_MAP = {
 # After this date APIs that are incompatible with cell routing
 # will begin periodic brownouts.
 CELL_API_DEPRECATION_DATE = datetime(2026, 5, 15, 0, 0, 0, tzinfo=UTC)
-ALERTS_API_DEPRECATION_DATE = datetime(2026, 5, 14, 0, 0, 0, tzinfo=UTC)
-# Option key prefix for the deprecated alerts API brownout schedule and duration.
-ALERTS_API_DEPRECATION_KEY = "api.deprecation.alerts"

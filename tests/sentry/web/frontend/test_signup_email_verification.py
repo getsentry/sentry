@@ -10,10 +10,8 @@ from django.http.response import HttpResponseBase
 from django.test import override_settings
 from django.urls import path, reverse
 
-from sentry.analytics.events.signup_email_verification import SignupEmailVerificationClickedEvent
 from sentry.auth.email_verification import hash_email
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import sign
 from sentry.web.frontend.base import control_silo_view
@@ -105,28 +103,28 @@ class BaseSignupVerificationViewTest(TestCase):
         resp = self._get_with_session(email="user@example.com")
         assert resp.status_code == 302
 
-    @mock.patch("sentry.analytics.record")
-    def test_signup_method_reflects_resolved_url_name(self, mock_record: mock.MagicMock) -> None:
+    @mock.patch("sentry.web.frontend.signup_email_verification.logger")
+    def test_signup_method_reflects_resolved_url_name(self, mock_logger: mock.MagicMock) -> None:
         resp = self._get_with_session(email="user@example.com", url_name="test-signup-verify-email")
         assert resp.status_code == 302
-        assert_last_analytics_event(
-            mock_record,
-            SignupEmailVerificationClickedEvent(
-                email_hash=hash_email("user@example.com"),
-                outcome="success",
-                signup_method="test-signup-verify-email",
-            ),
+        mock_logger.info.assert_any_call(
+            "signup_verification.clicked",
+            extra={
+                "email_hash": hash_email("user@example.com"),
+                "outcome": "success",
+                "signup_method": "test-signup-verify-email",
+            },
         )
 
         resp = self._get_with_session(
             email="other-user@example.com", url_name="test-signup-verify-email-alt"
         )
         assert resp.status_code == 302
-        assert_last_analytics_event(
-            mock_record,
-            SignupEmailVerificationClickedEvent(
-                email_hash=hash_email("other-user@example.com"),
-                outcome="success",
-                signup_method="test-signup-verify-email-alt",
-            ),
+        mock_logger.info.assert_any_call(
+            "signup_verification.clicked",
+            extra={
+                "email_hash": hash_email("other-user@example.com"),
+                "outcome": "success",
+                "signup_method": "test-signup-verify-email-alt",
+            },
         )

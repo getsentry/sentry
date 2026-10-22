@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db.models import F
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -21,7 +22,6 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
@@ -34,7 +34,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @sentry_schema_serializer(
     omit_from_public_schema={
-        "data_source.discover": "Deprecated 2026-07; use events. Send data_source explicitly.",
+        "data_source.discover": "Deprecated 2026-07; use errors. Send data_source explicitly.",
+        "data_source.events": "Deprecated 2026-09; use errors instead.",
         "data_source.transactions": "Deprecated 2026-07; use spans. Still accepted until blocked.",
     }
 )
@@ -49,6 +50,7 @@ Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
     data_source = serializers.ChoiceField(
         choices=(
             Dataset.Discover.value,
+            "errors",
             Dataset.Events.value,
             Dataset.Transactions.value,
             Dataset.IssuePlatform.value,
@@ -129,16 +131,19 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
         if not validator.is_valid():
             raise ParseError(validator.errors)
         query_params = validator.validated_data
+        data_source = (
+            Dataset.Events
+            if query_params["data_source"] == "errors"
+            else query_params["data_source"]
+        )
 
-        try:
+        with handle_query_errors():
             replay_counts = get_replay_counts(
                 snuba_params,
                 query_params["query"],
-                query_params["data_source"],
+                data_source,
                 return_ids=query_params["returnIds"],
             )
-        except (InvalidSearchQuery, ValueError) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return self.respond(replay_counts)
 

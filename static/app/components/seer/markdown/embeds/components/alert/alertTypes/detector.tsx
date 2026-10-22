@@ -1,19 +1,22 @@
 import type {ComponentType} from 'react';
+import {IconClock} from '@sentry/icons/clock';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconSiren} from '@sentry/icons/siren';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {EnabledStatusIndicator} from 'sentry/components/seer/markdown/embeds/components/enabledStatusIndicator';
 import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
 import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconClock, IconGlobe, IconGraph, IconSiren} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {
   CronDetector,
@@ -42,20 +45,6 @@ function detectorAlertApiOptions(organizationSlug: string, detectorId: string) {
       staleTime: 30_000,
     }
   );
-}
-
-function getDetectorAlertLabel(kind: DetectorAlertKind) {
-  switch (kind) {
-    case 'metric':
-      return t('Metric alert');
-    case 'uptime':
-      return t('Uptime alert');
-    case 'cron':
-      return t('Cron alert');
-    default:
-      unreachable(kind);
-      return t('Alert');
-  }
 }
 
 function getDetectorAlertIcon(kind: DetectorAlertKind): ComponentType<SVGIconProps> {
@@ -165,20 +154,10 @@ export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
 
   return (
     <SeerEmbedBlock
-      badge={
-        detector ? (
-          <Tag variant={detector.enabled ? 'success' : 'muted'}>
-            {t(
-              '%s - %s',
-              getDetectorAlertLabel(kind as DetectorAlertKind),
-              detector.enabled ? t('Enabled') : t('Disabled')
-            )}
-          </Tag>
-        ) : null
-      }
       href={href}
       icon={Icon}
       linkLabel={t('View Alert')}
+      status={detector ? <EnabledStatusIndicator enabled={detector.enabled} /> : null}
       testId="seer-alert-embed"
       title={detector?.name ?? name ?? t('Alert %s', id)}
     >

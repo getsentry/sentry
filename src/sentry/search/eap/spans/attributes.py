@@ -247,6 +247,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.tool.call.result.size",
+            internal_name="gen_ai.tool.call.result.size",
+            search_type="byte",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.input_tokens",
             internal_name="gen_ai.usage.input_tokens",
             search_type="integer",
@@ -302,9 +307,24 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
-            public_alias="gen_ai.usage.total_cost",
-            internal_name="gen_ai.usage.total_cost",
+            public_alias="gen_ai.cost.cache_read.input_tokens",
+            internal_name="gen_ai.cost.cache_read.input_tokens",
             search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.cache_creation.input_tokens",
+            internal_name="gen_ai.cost.cache_creation.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.reasoning.output_tokens",
+            internal_name="gen_ai.cost.reasoning.output_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.memory.record.count",
+            internal_name="gen_ai.memory.record.count",
+            search_type="integer",
         ),
         ResolvedAttribute(
             public_alias="gen_ai.request.reasoning.level",
@@ -390,6 +410,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="mobile.total_frames",
             internal_name="frames.total",
             search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.duration.max",
+            internal_name="react_native.module.duration.max",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.duration.total",
+            internal_name="react_native.module.duration.total",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.top.duration",
+            internal_name="react_native.module.top.duration",
+            search_type="millisecond",
         ),
         # These fields are extracted from span measurements but were accessed
         # 2 ways, with + without the measurements. prefix. So expose both for compatibility.

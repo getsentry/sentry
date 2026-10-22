@@ -28,6 +28,7 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
@@ -36,7 +37,6 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
-from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
@@ -402,6 +402,7 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         "sentry.projects.services",
         "sentry.relocation.services",
         "sentry.sentry_apps.services",
+        "sentry.service_accounts.services",
         "sentry.users.services",
     )
     for package_name in service_packages:
@@ -670,9 +671,9 @@ class _RemoteSiloCall:
     @contextmanager
     def _open_request_context(self) -> Generator[None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
-        span = start_span(
-            op="hybrid_cloud.dispatch_rpc",
+        span = traces.start_span(
             name=f"rpc to {self.service_name}.{self.method_name}",
+            attributes={"sentry.op": "hybrid_cloud.dispatch_rpc"},
         )
         with span, timer:
             yield

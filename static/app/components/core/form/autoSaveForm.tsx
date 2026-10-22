@@ -11,7 +11,7 @@ import {
   useScrapsForm,
   type BoundFieldComponents,
 } from '@sentry/scraps/form/scrapsForm';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 
@@ -281,6 +281,7 @@ export function AutoSaveForm<
   return (
     <form.AppForm form={form as never}>
       <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
+        {/* eslint-disable-next-line @sentry/scraps/require-field-component -- Forward the field API to the caller's render function. */}
         <form.AppField name={name}>{field => children(field as never)}</form.AppField>
       </AutoSaveContextProvider>
     </form.AppForm>

@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import type {BaseGroup} from 'sentry/types/group';
 import {getTitle} from 'sentry/utils/events';
 
@@ -32,10 +33,12 @@ export function GroupTitle({
           issueType={data.issueType}
           project={data.project}
         >
-          <Title data-issue-title-primary>{titleLabel}</Title>
+          <Title data-issue-title-primary>
+            <AnsiText>{titleLabel}</AnsiText>
+          </Title>
         </GroupPreviewTooltip>
       ) : (
-        titleLabel
+        <AnsiText>{titleLabel}</AnsiText>
       )}
     </span>
   );

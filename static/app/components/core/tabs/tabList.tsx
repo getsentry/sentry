@@ -16,14 +16,14 @@ import {ListCollection} from '@react-stately/list';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconEllipsis} from 'sentry/icons';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {TabListItemProps} from './item';
@@ -201,6 +201,7 @@ function useOverflowTabs({
   useLayoutEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     recompute();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [recomputeSignature]);
 
   // Recompute on container resize (available space changes) and on list resize

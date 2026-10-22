@@ -1,6 +1,10 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconList} from '@sentry/icons/list';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -16,7 +20,6 @@ import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {
   SessionFieldWithOperation,
@@ -63,6 +66,23 @@ export type ReleaseComparisonRow = {
   type: ReleaseComparisonChartType;
   tooltip?: React.ReactNode;
 };
+
+function ChartDiff({
+  diff,
+  diffColor,
+  diffDirection,
+}: Pick<ReleaseComparisonRow, 'diff' | 'diffColor' | 'diffDirection'>) {
+  return (
+    <Change color={defined(diffColor) ? diffColor : undefined}>
+      {diff}{' '}
+      {defined(diffDirection) ? (
+        <IconArrow direction={diffDirection} size="xs" />
+      ) : diff === '0%' ? null : (
+        <StyledNotAvailable />
+      )}
+    </Change>
+  );
+}
 
 type Props = {
   allSessions: SessionApiResponse | null;
@@ -993,23 +1013,6 @@ export function ReleaseComparisonChart({
     return headers;
   }
 
-  function getChartDiff(
-    diff: ReleaseComparisonRow['diff'],
-    diffColor: ReleaseComparisonRow['diffColor'],
-    diffDirection: ReleaseComparisonRow['diffDirection']
-  ) {
-    return diff ? (
-      <Change color={defined(diffColor) ? diffColor : undefined}>
-        {diff}{' '}
-        {defined(diffDirection) ? (
-          <IconArrow direction={diffDirection} size="xs" />
-        ) : diff === '0%' ? null : (
-          <StyledNotAvailable />
-        )}
-      </Change>
-    ) : null;
-  }
-
   // if there are no sessions, we do not need to do row toggling because there won't be as many rows
   if (!hasHealthData) {
     charts.push(...additionalCharts);
@@ -1046,17 +1049,16 @@ export function ReleaseComparisonChart({
   }
 
   const titleChartDiff =
-    chart.diff !== '0%' && chart.thisRelease !== '0%'
-      ? getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)
-      : null;
+    chart.diff && chart.diff !== '0%' && chart.thisRelease !== '0%' ? (
+      <ChartDiff
+        diff={chart.diff}
+        diffColor={chart.diffColor}
+        diffDirection={chart.diffDirection}
+      />
+    ) : null;
 
-  function renderChartRow({
-    diff,
-    diffColor,
-    diffDirection,
-    ...rest
-  }: ReleaseComparisonRow) {
-    return (
+  const chartRows = [...charts, ...(isOtherExpanded ? additionalCharts : [])].map(
+    ({diff, diffColor, diffDirection, ...rest}) => (
       <ReleaseComparisonChartRow
         {...rest}
         key={rest.type}
@@ -1064,13 +1066,17 @@ export function ReleaseComparisonChart({
         showPlaceholders={showPlaceholders}
         activeChart={activeChart}
         onChartChange={handleChartChange}
-        chartDiff={getChartDiff(diff, diffColor, diffDirection)}
+        chartDiff={
+          diff ? (
+            <ChartDiff diff={diff} diffColor={diffColor} diffDirection={diffDirection} />
+          ) : null
+        }
         onExpanderToggle={handleExpanderToggle}
         expanded={expanded.has(rest.type)}
         withExpanders={withExpanders}
       />
-    );
-  }
+    )
+  );
 
   return (
     <Fragment>
@@ -1134,14 +1140,13 @@ export function ReleaseComparisonChart({
           {key: 'releases', width: 'minmax(min-content, 1fr)'},
           {key: 'release', width: 'minmax(min-content, 1fr)'},
           {key: 'change', width: 'minmax(min-content, 1fr)'},
-          {key: 'expanders', visible: withExpanders, width: '75px'},
+          ...(withExpanders ? [{key: 'expanders', width: '75px'}] : []),
         ]}
         header={
           <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
         }
       >
-        {charts.map(chartRow => renderChartRow(chartRow))}
-        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
+        {chartRows}
         {additionalCharts.length > 0 && (
           <ShowMoreRow onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
             <SimpleTable.RowCell>

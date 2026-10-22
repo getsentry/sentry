@@ -28,6 +28,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
@@ -41,7 +42,6 @@ from sentry.replays.lib.new_query.conditions import IntegerScalar
 from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
 from sentry.replays.query import make_pagination_values
-from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.usecases.query import (
     Paginators,
     handle_ordering,
@@ -90,7 +90,6 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
 
         return filter_params
 
-    @handled_snuba_exceptions
     @extend_schema(
         operation_id="listOrganizationReplaySelectors",
         summary="List an Organization's Selectors",
@@ -146,11 +145,12 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
                 organization=organization,
             )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda results: {"data": process_raw_response(results)},
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: {"data": process_raw_response(results)},
+            )
 
 
 def query_selector_collection(

@@ -1,4 +1,9 @@
 import {Fragment} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconDownload} from '@sentry/icons/download';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -18,13 +23,6 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  IconCheckmark,
-  IconClose,
-  IconDownload,
-  IconTimer,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -43,6 +41,43 @@ enum ReceiptStatus {
   REFUNDED = 'refunded',
   CLOSED = 'closed',
   AWAITING_PAYMENT = 'awaiting_payment',
+}
+
+function ReceiptStatusTag({payment}: {payment: InvoiceBase}) {
+  const status = payment.amountRefunded
+    ? ReceiptStatus.REFUNDED
+    : payment.isPaid
+      ? ReceiptStatus.PAID
+      : payment.isClosed
+        ? ReceiptStatus.CLOSED
+        : ReceiptStatus.AWAITING_PAYMENT;
+  let icon = <IconWarning />;
+  let tagType: TagProps['variant'] = 'warning';
+
+  switch (status) {
+    case ReceiptStatus.PAID:
+      icon = <IconCheckmark />;
+      tagType = 'success';
+      break;
+    case ReceiptStatus.CLOSED:
+      icon = <IconClose />;
+      tagType = 'danger';
+      break;
+    case ReceiptStatus.REFUNDED:
+      icon = <IconTimer />;
+      tagType = 'promotion';
+      break;
+    default:
+      icon = <IconWarning />;
+      tagType = 'warning';
+      break;
+  }
+
+  return (
+    <Tag icon={icon} variant={tagType}>
+      {capitalize(status.replace('_', ' '))}
+    </Tag>
+  );
 }
 
 /**
@@ -97,43 +132,6 @@ function ReceiptGrid({
   const isXSmallContainer = useResponsivePropValue({zero: true, sm: false});
   const isSmallContainer = useResponsivePropValue({zero: true, xl: false});
 
-  const getTag = (payment: InvoiceBase) => {
-    const status = payment.amountRefunded
-      ? ReceiptStatus.REFUNDED
-      : payment.isPaid
-        ? ReceiptStatus.PAID
-        : payment.isClosed
-          ? ReceiptStatus.CLOSED
-          : ReceiptStatus.AWAITING_PAYMENT;
-    let icon = <IconWarning />;
-    let tagType: TagProps['variant'] = 'warning';
-
-    switch (status) {
-      case ReceiptStatus.PAID:
-        icon = <IconCheckmark />;
-        tagType = 'success';
-        break;
-      case ReceiptStatus.CLOSED:
-        icon = <IconClose />;
-        tagType = 'danger';
-        break;
-      case ReceiptStatus.REFUNDED:
-        icon = <IconTimer />;
-        tagType = 'promotion';
-        break;
-      default:
-        icon = <IconWarning />;
-        tagType = 'warning';
-        break;
-    }
-
-    return (
-      <Tag icon={icon} variant={tagType}>
-        {capitalize(status.replace('_', ' '))}
-      </Tag>
-    );
-  };
-
   return (
     <Fragment>
       <Stack
@@ -178,7 +176,9 @@ function ReceiptGrid({
                   </Text>
                 )}
               </Container>
-              <Container>{getTag(payment)}</Container>
+              <Container>
+                <ReceiptStatusTag payment={payment} />
+              </Container>
               {!isXSmallContainer && (
                 <Text monospace ellipsis>
                   {payment.id}

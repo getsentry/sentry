@@ -282,6 +282,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
   useEffect(() => {
     // Load specified team slugs
     if (shouldLoadSlugs) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       loadProjectsBySlug();
       return;
     }
@@ -300,6 +301,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       return;
     }
 
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setState(prev => ({...prev, initiallyLoaded: storeLoaded}));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.loading]);

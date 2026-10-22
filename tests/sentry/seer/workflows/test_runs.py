@@ -2,6 +2,7 @@ from functools import partial
 from unittest.mock import Mock, patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -18,6 +19,7 @@ from sentry.seer.workflows.schemas import WorkflowResult
 from sentry.testutils.cases import TestCase
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class WorkflowRunTest(TestCase):
     def test_creation_links_execution_and_defers_dispatch(self) -> None:
         with patch("sentry.receivers.outbox.cell.make_feature_run_request") as dispatch:
@@ -154,15 +156,14 @@ class WorkflowRunTest(TestCase):
         assert status["error"] is None
 
     def create_run(self) -> SeerRun:
-        with self.feature("organizations:gen-ai-features"):
-            workflow = create_workflow_run(
-                SeerAgentClient(self.organization, self.user),
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
-                feature_id="test_workflow",
-                title="Test workflow",
-                payload={},
-                extras={"summary": None},
-            )
+        workflow = create_workflow_run(
+            SeerAgentClient(self.organization, self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            feature_id="test_workflow",
+            title="Test workflow",
+            payload={},
+            extras={"summary": None},
+        )
         run = workflow.executions.get().seer_run
         assert run is not None
         return run

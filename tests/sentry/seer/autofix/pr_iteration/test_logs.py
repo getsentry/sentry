@@ -30,10 +30,10 @@ class PrIterationIdentityDerivationTest(TestCase):
         state = _run_state(repo=RepoPRState(repo_name=REPO_NAME, pr_number=PR_NUMBER))
 
         with self.assertNumQueries(0):
-            PrIterationLogContext(
+            PrIterationLogContext.for_run(
                 Mock(),
+                state,
+                ORGANIZATION_ID,
+                GROUP_ID,
                 iteration=LogCtxIteration.TRIGGERED,
-                run_state=state,
-                organization_id=ORGANIZATION_ID,
-                group_id=GROUP_ID,
             )

@@ -31,8 +31,6 @@ class SSOSignupVerificationView(BaseSignupVerificationView):
     and login via its normal code path.
     """
 
-    record_analytics = False
-
     def handle_verified_email(self, request: HttpRequest, verified_email: str) -> HttpResponseBase:
         helper = AuthHelper.get_for_request(request)
         if not helper:

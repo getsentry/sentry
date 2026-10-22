@@ -16,13 +16,14 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.signing import sign
 
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
+conversation_id = "19:selected-channel@thread.tacv2"
 user_id = (
     "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
 )
@@ -44,7 +45,7 @@ class MsTeamsApiPipelineTest(APITestCase):
             "external_name": "my_team",
             "service_url": "https://smba.trafficmanager.net/amer/",
             "user_id": user_id,
-            "conversation_id": team_id,
+            "conversation_id": conversation_id,
             "tenant_id": tenant_id,
         }
 
@@ -104,7 +105,7 @@ class MsTeamsApiPipelineTest(APITestCase):
         )
         responses.add(
             responses.POST,
-            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % conversation_id,
             json={},
         )
 
@@ -211,10 +212,7 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
             }
         )
 
-        mock_send_card.side_effect = ApiError(
-            text=error_payload,
-            code=400,
-        )
+        mock_send_card.side_effect = IntegrationConfigurationError(error_payload)
         payload: AdaptiveCard = {
             "type": "AdaptiveCard",
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",

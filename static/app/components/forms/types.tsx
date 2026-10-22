@@ -174,13 +174,6 @@ export type Field = (
 ) &
   BaseField;
 
-export type FieldObject = Field | (() => React.ReactNode);
-
-export type JsonFormObject = {
-  fields: FieldObject[];
-  title?: React.ReactNode;
-};
-
 export type Data = Record<string, any>;
 
 export type OnSubmitCallback = (

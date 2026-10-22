@@ -197,6 +197,15 @@ class Fixtures:
     def create_investigation_favorite(self, *args, **kwargs):
         return Factories.create_investigation_favorite(*args, **kwargs)
 
+    def create_investigation_seen(self, *args, **kwargs):
+        return Factories.create_investigation_seen(*args, **kwargs)
+
+    def create_investigation_comment(self, *args, **kwargs):
+        return Factories.create_investigation_comment(*args, **kwargs)
+
+    def create_investigation_action_request(self, *args, **kwargs):
+        return Factories.create_investigation_action_request(*args, **kwargs)
+
     def create_investigation_orchestration_run(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_run(*args, **kwargs)
 
@@ -232,6 +241,13 @@ class Fixtures:
 
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
+
+    def create_api_application(self, **kwargs):
+        kwargs.setdefault("owner", self.user)
+        return Factories.create_api_application(**kwargs)
+
+    def create_api_device_code(self, *args, **kwargs):
+        return Factories.create_api_device_code(*args, **kwargs)
 
     def create_auth_provider(self, *args, **kwargs):
         return Factories.create_auth_provider(*args, **kwargs)
@@ -564,9 +580,6 @@ class Fixtures:
 
         return Factories.create_incident(organization, projects, *args, **kwargs)
 
-    def create_incident_activity(self, *args, **kwargs):
-        return Factories.create_incident_activity(*args, **kwargs)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
@@ -783,9 +796,6 @@ class Fixtures:
     def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
-    def snooze_rule(self, *args, **kwargs):
-        return Factories.snooze_rule(*args, **kwargs)
-
     def create_request_access(self, *args, **kwargs):
         return Factories.create_request_access(*args, **kwargs)
 
@@ -795,11 +805,13 @@ class Fixtures:
     def create_dashboard(self, *args, **kwargs):
         return Factories.create_dashboard(*args, **kwargs)
 
+    def create_explore_saved_formula(self, organization=None, *args, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_explore_saved_formula(organization, *args, **kwargs)
+
     def create_dashboard_favorite_user(self, *args, **kwargs):
         return Factories.create_dashboard_favorite_user(*args, **kwargs)
-
-    def create_dashboard_hidden_user(self, *args, **kwargs):
-        return Factories.create_dashboard_hidden_user(*args, **kwargs)
 
     def create_dashboard_widget(self, *args, **kwargs):
         return Factories.create_dashboard_widget(*args, **kwargs)
@@ -865,6 +877,9 @@ class Fixtures:
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)
+
+    def create_data_condition_alert_rule_trigger(self, *args, **kwargs):
+        return Factories.create_data_condition_alert_rule_trigger(*args, **kwargs)
 
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
@@ -1332,6 +1347,9 @@ class Fixtures:
         )
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
+
+    def create_seer_autofix_issue_data(self, group, **kwargs):
+        return Factories.create_seer_autofix_issue_data(group=group, **kwargs)
 
     def create_seer_run(self, organization=None, **kwargs):
         if organization is None:

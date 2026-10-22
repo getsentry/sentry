@@ -1,12 +1,15 @@
 import type {ComponentProps, ReactNode} from 'react';
+import {Fragment} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {Kbd} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {SeerEmbedExample} from 'sentry/components/seer/markdown/embeds/schemas';
 import {SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
+import {useSeerMarkdownText} from 'sentry/components/seer/markdown/markdownText';
 import {Demo} from 'sentry/stories';
 
 type EmbedName = keyof typeof SEER_EMBED_SCHEMAS;
@@ -42,48 +45,86 @@ function getStoryExamples(
   });
 }
 
-function formatVariant(
-  name: EmbedName,
-  levels: readonly EmbedLevel[],
-  data: Record<string, unknown>
-): string {
-  const tag = formatTag(name, data);
-
-  return levels
-    .map(level =>
-      level === 'inline'
-        ? `Inline: Lorem ipsum ${tag} dolor sit amet.`
-        : `Block:\n\n${tag}`
-    )
-    .join('\n\n');
+/**
+ * The story's table of contents collects h2 through h6, so these read as
+ * subtitles without being headings -- otherwise every embed would add four
+ * entries to the right-hand nav.
+ */
+function LevelSection({title, children}: {children: ReactNode; title: string}) {
+  return (
+    <Stack gap="sm">
+      <Text size="xs" bold uppercase variant="muted">
+        {title}
+      </Text>
+      {children}
+    </Stack>
+  );
 }
 
 interface EmbedVariantProps {
   data: Record<string, unknown>;
-  label: string;
   name: EmbedName;
   demoProps?: Omit<ComponentProps<typeof Demo>, 'children'>;
+  /** Omitted when there is only one example, which the section already names. */
+  label?: string;
 }
 
 export function EmbedVariant({data, demoProps, label, name}: EmbedVariantProps) {
-  const markdown = formatVariant(name, SEER_EMBED_SCHEMAS[name].level, data);
+  const levels: readonly EmbedLevel[] = SEER_EMBED_SCHEMAS[name].level;
+  const tag = formatTag(name, data);
+  // Serialized from the tag alone, so the demo prose around the inline example
+  // does not end up in the copied text.
+  const {node, text: markdown} = useSeerMarkdownText(tag);
+
+  const demo = {
+    minHeight: undefined,
+    maxHeight: undefined,
+    overflow: undefined,
+    // Nothing follows these demos, so they close their own box rather than
+    // leaving the bottom open for a code block.
+    standalone: true,
+    ...demoProps,
+  };
 
   return (
-    <Stack gap="sm">
-      <Text size="sm" bold>
-        {label}
-      </Text>
-      <Demo
-        minHeight={undefined}
-        maxHeight={undefined}
-        overflow={undefined}
-        {...demoProps}
-      >
-        <SeerMarkdown raw={markdown} />
-      </Demo>
-      <CodeBlock language="markdown" dark>
-        {markdown}
-      </CodeBlock>
+    <Stack gap="xl">
+      {label ? (
+        <Text size="sm" bold>
+          {label}
+        </Text>
+      ) : null}
+
+      <LevelSection title="Tag">
+        <CodeBlock language="markdown" dark>
+          {tag}
+        </CodeBlock>
+      </LevelSection>
+
+      {levels.includes('inline') ? (
+        <LevelSection title="Inline">
+          <Demo {...demo}>
+            <SeerMarkdown raw={`Lorem ipsum ${tag} dolor sit amet.`} />
+          </Demo>
+        </LevelSection>
+      ) : null}
+
+      {levels.includes('block') ? (
+        <LevelSection title="Block">
+          <Demo {...demo}>
+            <SeerMarkdown raw={tag} />
+          </Demo>
+        </LevelSection>
+      ) : null}
+
+      {markdown ? (
+        <LevelSection title="Markdown">
+          <CodeBlock language="markdown" dark>
+            {markdown}
+          </CodeBlock>
+        </LevelSection>
+      ) : null}
+
+      {node}
     </Stack>
   );
 }
@@ -98,23 +139,30 @@ export function EmbedStory({children, name}: EmbedStoryProps) {
   const examples = getStoryExamples(name, schema.examples);
 
   return (
-    <Stack gap="md">
-      <Text size="sm" variant="muted">
-        Level: {schema.level.join(', ')}
-        {'featureFlag' in schema
-          ? ` · Flag: ${[schema.featureFlag].flat().join(' or ')}`
-          : null}
-      </Text>
-      <Text size="sm" variant="muted">
-        {schema.description}
-      </Text>
-      <Stack gap="lg">
+    <Stack gap="xl">
+      <Stack gap="xs">
+        <Text size="sm" variant="muted">
+          {schema.description}
+        </Text>
+        {'featureFlag' in schema ? (
+          <Text size="sm" variant="muted">
+            Flag:{' '}
+            {[schema.featureFlag].flat().map((flag, index) => (
+              <Fragment key={flag}>
+                {index > 0 ? ' or ' : null}
+                <Kbd>{flag}</Kbd>
+              </Fragment>
+            ))}
+          </Text>
+        ) : null}
+      </Stack>
+      <Stack gap="2xl">
         {children ??
           examples.map(example => (
             <EmbedVariant
               key={example.label}
               name={name}
-              label={example.label}
+              label={examples.length > 1 ? example.label : undefined}
               data={example.data}
             />
           ))}

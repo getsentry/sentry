@@ -43,19 +43,6 @@ export const RELEASES_DRAWER_PARSERS = {
   [ReleasesDrawerFields.SOURCE]: parseAsString.withDefault(''),
 };
 
-const RELEASES_DRAWER_FIELD_KEYS = Object.keys(RELEASES_DRAWER_PARSERS);
-
-/**
- * Removes the releases drawer parameters from the location query.
- * @param query Location query object
- * @returns Location query object with the releases drawer parameters removed
- */
-export function cleanLocationQuery(
-  query: Record<string, string[] | string | null | undefined>
-) {
-  return omit(query, RELEASES_DRAWER_FIELD_KEYS);
-}
-
 /**
  * Cleans location.query of all releases drawer cursors
  *
@@ -65,9 +52,8 @@ export function cleanLocationQuery(
 export function cleanReleaseCursors(
   query: Record<string, string[] | string | null | undefined>
 ) {
-  // Listed directly rather than intersected with RELEASES_DRAWER_FIELD_KEYS:
-  // ACTIVE_REPO has no parser, so the intersection silently dropped it and left
-  // the repo selection behind.
+  // Keep this list explicit: ACTIVE_REPO is parsed separately from
+  // RELEASES_DRAWER_PARSERS but must be cleared with the cursor state.
   return omit(query, [
     ReleasesDrawerFields.COMMIT_CURSOR,
     ReleasesDrawerFields.FILES_CURSOR,

@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useEffectEvent} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,7 +11,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProgressRing} from 'sentry/components/progressRing';
-import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {
@@ -27,7 +27,7 @@ interface PipelineModalProps<
   provider: P;
   type: T;
   /** Overrides the step's default descriptive copy. */
-  description?: string;
+  description?: React.ReactNode;
   initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
   onError?: (error: string) => void;
@@ -142,6 +142,7 @@ function PipelineModal<
           {pipeline.error && (
             <Alert
               variant="danger"
+              role="alert"
               trailingItems={
                 <Alert.Button onClick={pipeline.restart}>{t('Start over')}</Alert.Button>
               }
@@ -162,7 +163,7 @@ interface OpenPipelineModalOptions<
 > {
   provider: P;
   type: T;
-  description?: string;
+  description?: React.ReactNode;
   initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
@@ -196,6 +197,7 @@ export function openPipelineModal<
         description={description}
       />
     ),
-    {onClose, closeEvents: 'none'}
+    // Not 'all': a backdrop click must not lose a half-finished install flow.
+    {onClose, closeEvents: 'escape-key'}
   );
 }

@@ -1,8 +1,9 @@
-import {useMemo} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
@@ -10,9 +11,15 @@ import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
+import {
+  ComboBoxLayoutContext,
+  type ComboBoxMenuPresentation,
+} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
+import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import {PanelProvider} from 'sentry/utils/panelProvider';
+
+export type {ComboBoxMenuPresentation};
 
 interface ArithmeticBuilderProps {
   aggregations: string[];
@@ -27,7 +34,6 @@ interface ArithmeticBuilderProps {
   disabled?: boolean;
   /**
    * Fetches tag values for `_if` combinator filter arguments in equations.
-   * Only used when `hasConditionalAggregates` is on.
    */
   getFilterTagValues?: GetTagValues;
   /**
@@ -38,19 +44,24 @@ interface ArithmeticBuilderProps {
    */
   getSuggestedKey?: (key: string) => string | null;
   /**
-   * Enables the EAP filter-first `_if` argument editor. Should follow
-   * `explore-conditional-aggregates`.
+   * Render the equation input and suggestions together in one panel,
+   * matching SearchQueryBuilder's `menuPresentation="panel"`.
    */
-  hasConditionalAggregates?: boolean;
+  menuPresentation?: ComboBoxMenuPresentation;
   /**
    * When provided, the arithmetic builder will use the references to suggest
    * keys for the user instead of aggregations and function arguments.
    */
   references?: Set<string>;
   setExpression?: (expression: Expression) => void;
+  /**
+   * Caps function argument inputs to a narrow width with an ellipsis, for
+   * builders rendered in constrained spaces like sidebars.
+   */
+  truncateArguments?: boolean;
 }
 
-const VALID_REFERENCE_PATTERN = /^[A-Z]$/;
+export const VALID_REFERENCE_PATTERN = /^[\w.]+$/;
 
 export function ArithmeticBuilder({
   'data-test-id': dataTestId,
@@ -61,10 +72,11 @@ export function ArithmeticBuilder({
   getFieldDefinition,
   getFilterTagValues,
   getSuggestedKey,
-  hasConditionalAggregates = false,
+  menuPresentation = 'floating',
   className,
   disabled,
   references,
+  truncateArguments = true,
 }: ArithmeticBuilderProps) {
   if (references) {
     for (const reference of references) {
@@ -80,6 +92,9 @@ export function ArithmeticBuilder({
     updateExpression: setExpression,
   });
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [menuContainer, setMenuContainer] = useState<HTMLDivElement | null>(null);
+
   const contextValue = useMemo(() => {
     return {
       dispatch,
@@ -89,9 +104,8 @@ export function ArithmeticBuilder({
       }),
       functionArguments,
       getFieldDefinition,
-      getFilterTagValues: hasConditionalAggregates ? getFilterTagValues : undefined,
+      getFilterTagValues,
       getSuggestedKey,
-      hasConditionalAggregates,
       references,
     };
   }, [
@@ -102,28 +116,55 @@ export function ArithmeticBuilder({
     getFieldDefinition,
     getFilterTagValues,
     getSuggestedKey,
-    hasConditionalAggregates,
     references,
   ]);
 
-  return (
+  const layoutValue = useMemo(
+    () => ({
+      menuPresentation,
+      panelRef,
+      portalTarget: menuPresentation === 'panel' ? menuContainer : null,
+    }),
+    [menuContainer, menuPresentation]
+  );
+
+  const builder = (
     <PanelProvider>
-      <ArithmeticBuilderContext value={contextValue}>
-        <Wrapper
-          className={className}
-          aria-disabled={disabled}
-          data-test-id={dataTestId ?? 'arithmetic-builder'}
-          state={state.expression.isValid ? 'valid' : 'invalid'}
-          disabled={disabled}
-        >
-          <TokenGrid tokens={state.expression.tokens} />
-        </Wrapper>
-      </ArithmeticBuilderContext>
+      <ComboBoxLayoutContext value={layoutValue}>
+        <ArithmeticBuilderContext value={contextValue}>
+          <Wrapper
+            className={className}
+            aria-disabled={disabled}
+            data-test-id={dataTestId ?? 'arithmetic-builder'}
+            data-truncate-arguments={truncateArguments}
+            state={state.expression.isValid ? 'valid' : 'invalid'}
+            disabled={disabled}
+          >
+            <TokenGrid tokens={state.expression.tokens} />
+          </Wrapper>
+        </ArithmeticBuilderContext>
+      </ComboBoxLayoutContext>
     </PanelProvider>
+  );
+
+  if (menuPresentation !== 'panel') {
+    return builder;
+  }
+
+  return (
+    <QueryBuilderPanel
+      ref={panelRef}
+      data-test-id="arithmetic-builder-panel"
+      onMenuContainerRef={setMenuContainer}
+    >
+      {builder}
+    </QueryBuilderPanel>
   );
 }
 
-const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>`
+const Wrapper = styled(Input.withComponent('div'))<{
+  state: 'valid' | 'invalid';
+}>`
   min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;

@@ -7,11 +7,11 @@ import {defined} from 'sentry/utils/defined';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType, EventView, MetaType} from 'sentry/utils/discover/eventView';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
@@ -524,5 +524,12 @@ export function getStaleTimeForEventView(eventView: EventView) {
   if (usesRelativeDateRange) {
     return getStaleTimeForRelativePeriodTable(eventView.statsPeriod);
   }
+  if (isEventViewEndInFuture(eventView)) {
+    return 0;
+  }
   return Infinity;
+}
+
+export function isEventViewEndInFuture(eventView: EventView) {
+  return defined(eventView.end) && moment.utc(eventView.end).isAfter();
 }

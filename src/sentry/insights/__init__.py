@@ -1,6 +1,7 @@
 from typing import Any, NamedTuple
 
 from sentry.constants import InsightModules
+from sentry.utils.attributes import get_attribute_value
 
 
 class FilterSpan(NamedTuple):
@@ -32,15 +33,15 @@ class FilterSpan(NamedTuple):
         cls, attributes: dict[str, Any], is_segment: bool | None = None
     ) -> "FilterSpan":
         """Get relevant fields from `span.attributes`."""
-        op = (attributes.get("sentry.op") or {}).get("value")
+        op = get_attribute_value(attributes, "sentry.op", "string")
         if is_segment is None:
-            is_segment = (attributes.get("sentry.is_segment") or {}).get("value")
+            is_segment = get_attribute_value(attributes, "sentry.is_segment", "boolean")
         return cls(
             op=op,
-            category=(attributes.get("sentry.category") or {}).get("value"),
-            description=(attributes.get("sentry.description") or {}).get("value"),
+            category=get_attribute_value(attributes, "sentry.category", "string"),
+            description=get_attribute_value(attributes, "sentry.description", "string"),
             transaction_op=op if is_segment else None,
-            gen_ai_op_name=(attributes.get("gen_ai.operation.name") or {}).get("value"),
+            gen_ai_op_name=get_attribute_value(attributes, "gen_ai.operation.name", "string"),
         )
 
 

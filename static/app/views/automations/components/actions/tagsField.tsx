@@ -1,6 +1,6 @@
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {t} from 'sentry/locale';
-import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
 
 export function TagsField() {
   const {action, actionId, onUpdate} = useActionNodeContext();

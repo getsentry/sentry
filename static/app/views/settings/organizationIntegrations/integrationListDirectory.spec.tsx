@@ -63,6 +63,28 @@ describe('IntegrationListDirectory', () => {
       ].map(testId => expect(screen.getByTestId(testId)).toBeInTheDocument());
     });
 
+    it('loads integrations beyond the first 100 results', async () => {
+      MockApiClient.addMockResponse({
+        url: '/doc-integrations/',
+        body: Array.from({length: 100}, (_, index) =>
+          DocIntegrationFixture({name: `Doc ${index}`, slug: `doc-${index}`})
+        ),
+        headers: {
+          Link: '<https://sentry.io>; rel="next"; results="true"; cursor="0:100:0"',
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/doc-integrations/',
+        body: [DocIntegrationFixture()],
+        match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+      });
+
+      render(<IntegrationListDirectory />, {organization});
+
+      expect(await screen.findByTestId('sample-doc')).toBeInTheDocument();
+      expect(screen.getByTestId('doc-0')).toBeInTheDocument();
+    });
+
     it('shows integrations that match the search query', async () => {
       render(<IntegrationListDirectory />, {organization});
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();

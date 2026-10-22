@@ -21,9 +21,11 @@ from typing import Literal, NamedTuple
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.processing import (
     DEFAULT_BATCH_SIZE,
     PIPELINE,
@@ -236,9 +238,11 @@ def build_and_promote_derived_data(
             )
 
     if derived is None:
-        if not Group.objects.filter(id=group_id).exists():
+        # Use the same database clock as invalidation, before reading the log.
+        started_at = Group.objects.filter(id=group_id).values_list(Now(), flat=True).get_or_none()
+        if started_at is None:
             raise Group.DoesNotExist(f"Group {group_id} does not exist")
-        generated_at = timezone.now()
+        generated_at = started_at
         derived = GroupDerivedData(
             group_id=group_id,
             generated_at=generated_at,
@@ -356,6 +360,7 @@ class BatchRunResult(NamedTuple):
     # to pass through to the next run so it can resume from cached progress.
     resume_generation_id: GenerationId | None
     timeout_reason: Literal["group_timeout", "batch_timeout"] | None
+    errors: int = 0
 
 
 def build_and_promote_batch(
@@ -378,6 +383,7 @@ def build_and_promote_batch(
     start = time.monotonic()
 
     processed: dict[PromotionResult, int] = {}
+    errors = 0
     resume_group_id = initial_generation_id.group_id if initial_generation_id is not None else None
 
     for group_id in group_ids:
@@ -394,6 +400,10 @@ def build_and_promote_batch(
                 f"{log_key}.group_not_found",
                 extra={"group_id": group_id, "project_id": project_id},
             )
+        except DerivedDataError:
+            # _process_batch reported the failure. Count it without retrying it
+            # or preventing the other groups from being rebuilt.
+            errors += 1
         except PromotionFailed as e:
             processed[e.result] = processed.get(e.result, 0) + 1
             logger.exception(
@@ -403,6 +413,7 @@ def build_and_promote_batch(
         except GroupLogTimeout as e:
             return BatchRunResult(
                 processed=processed,
+                errors=errors,
                 resume_from_group_id=group_id,
                 resume_generation_id=e.generation_id,
                 timeout_reason="group_timeout",
@@ -411,6 +422,7 @@ def build_and_promote_batch(
         if time.monotonic() - start >= timeout_seconds:
             return BatchRunResult(
                 processed=processed,
+                errors=errors,
                 resume_from_group_id=group_id + 1,
                 resume_generation_id=None,
                 timeout_reason="batch_timeout",
@@ -418,6 +430,7 @@ def build_and_promote_batch(
 
     return BatchRunResult(
         processed=processed,
+        errors=errors,
         resume_from_group_id=None,
         resume_generation_id=None,
         timeout_reason=None,

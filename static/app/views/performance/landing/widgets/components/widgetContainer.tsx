@@ -13,14 +13,13 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/useMEPSettingContext';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -43,7 +42,6 @@ import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widge
 import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreWidget';
 import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 import {StackedAreaChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/stackedAreaChartListWidget';
-import {TrendsWidget} from 'sentry/views/performance/landing/widgets/widgets/trendsWidget';
 
 import type {ChartRowProps} from './widgetChartRow';
 
@@ -113,6 +111,7 @@ export function WidgetContainer(props: Props) {
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setChartSettingState(_chartSetting);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rest.defaultChartSetting, _chartSetting]);
 
   const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
@@ -146,8 +145,6 @@ export function WidgetContainer(props: Props) {
   };
 
   switch (widgetProps.dataType) {
-    case GenericPerformanceWidgetDataType.TRENDS:
-      return <TrendsWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.AREA:
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.LINE_LIST:
@@ -205,9 +202,7 @@ function WidgetInteractiveTitle({
       menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
     } else {
       menuOptions.push({
-        label: getDiscoverDeprecation(organization)
-          ? t('Open in Explore')
-          : t('Open in Discover'),
+        label: t('Open in Explore'),
         value: 'open_in_discover',
       });
     }

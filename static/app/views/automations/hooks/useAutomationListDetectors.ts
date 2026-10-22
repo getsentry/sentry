@@ -34,6 +34,7 @@ export function useAutomationListQueryOptions() {
     enabled: isReady,
     cursor,
     sort,
+    query,
   };
 }
 

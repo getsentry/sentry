@@ -1,14 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import SeerWorkflows from 'sentry/views/seerWorkflows';
 
@@ -25,7 +18,7 @@ describe('SeerWorkflows', () => {
 
   it('hides the monitor scan trigger when its flag is disabled', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [],
     });
     render(<SeerWorkflows />, {organization});
@@ -34,10 +27,12 @@ describe('SeerWorkflows', () => {
   });
 
   it('clears filters when starting a scan, expands it, and polls for completion', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const scanOrganization = OrganizationFixture({
       features: ['seer-workflows-monitor-cleanup'],
     });
-    const url = `/organizations/${scanOrganization.slug}/seer/workflows/`;
+    const url = `/organizations/${scanOrganization.slug}/seer/workflows/runs/`;
     const previousRun = {
       id: '1',
       seerRunId: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
@@ -74,9 +69,9 @@ describe('SeerWorkflows', () => {
       extras: {status: 'running'},
     };
     MockApiClient.addMockResponse({url, body: [runningRun, previousRun]});
-    await userEvent.click(screen.getByRole('button', {name: 'Run…'}));
+    await user.click(screen.getByRole('button', {name: 'Run…'}));
     expect(startScan).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Monitor scan'}));
+    await user.click(screen.getByRole('menuitemradio', {name: 'Monitor scan'}));
 
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);
@@ -111,19 +106,18 @@ describe('SeerWorkflows', () => {
       ],
     };
     MockApiClient.addMockResponse({url, body: [completedRun, previousRun]});
-    await waitFor(
-      () =>
-        expect(screen.queryByRole('status', {name: 'Running'})).not.toBeInTheDocument(),
-      {timeout: 7000}
-    );
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(5000);
+    });
+    expect(screen.queryByRole('status', {name: 'Running'})).not.toBeInTheDocument();
     expect(screen.getAllByRole('img', {name: 'Succeeded'})).toHaveLength(2);
     expect(screen.getAllByText('No findings')).not.toHaveLength(0);
-  }, 10000);
+  });
 
   it('polls running Agentic triage workflows and keeps them visible when a background poll fails', async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    const url = `/organizations/${organization.slug}/seer/workflows/`;
+    const url = `/organizations/${organization.slug}/seer/workflows/runs/`;
     const runningRun = {
       id: '1',
       strategy: 'agentic_triage',
@@ -208,7 +202,7 @@ describe('SeerWorkflows', () => {
 
   it('renders structured duplicate monitor findings in workflow history', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '2',
@@ -275,7 +269,7 @@ describe('SeerWorkflows', () => {
 
   it('shows a safe failure label without exposing diagnostic errors', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -304,7 +298,7 @@ describe('SeerWorkflows', () => {
     ['invalid_shard_plan', 'Could not prepare triage', 'Failed'],
   ])('shows friendly messaging for %s', async (errorType, resultText, status) => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -326,7 +320,7 @@ describe('SeerWorkflows', () => {
 
   it('expands a row to show the issue title, action, and a conversation link', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -375,7 +369,7 @@ describe('SeerWorkflows', () => {
 
   it('shows the reason for skipping an issue without a conversation link', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -415,7 +409,7 @@ describe('SeerWorkflows', () => {
 
   it('shows a pull request chip for each PR linked to an issue', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -469,7 +463,7 @@ describe('SeerWorkflows', () => {
 
   it('shows one labeled pill per triage batch in the expanded panel', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -515,7 +509,7 @@ describe('SeerWorkflows', () => {
 
   it('shows no triage batches recorded when a run has no shards', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -541,7 +535,7 @@ describe('SeerWorkflows', () => {
 
   it('sorts by date desc by default and toggles asc on Date header click', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: 'older',
@@ -611,7 +605,7 @@ describe('SeerWorkflows', () => {
 
   it('shows error state when fetch fails', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       statusCode: 404,
       body: {detail: 'not found'},
     });
@@ -623,7 +617,7 @@ describe('SeerWorkflows', () => {
 
   it('filters rows by status via URL query param', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -673,7 +667,7 @@ describe('SeerWorkflows', () => {
 
   it('Clear all resets all filter query params', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: '1',
@@ -717,7 +711,7 @@ describe('SeerWorkflows', () => {
 
   it('expandLatest auto-expands the latest run visible under active filters', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/`,
+      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [
         {
           id: 'newer-failed',

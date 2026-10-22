@@ -1,30 +1,28 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconFire} from '@sentry/icons/fire';
+import {IconInfo} from '@sentry/icons/info';
+import {IconOpen} from '@sentry/icons/open';
+import {IconWarning} from '@sentry/icons/warning';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {sanitizedMarked} from '@sentry/scraps/markdown';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconCheckmark,
-  IconFatal,
-  IconFire,
-  IconInfo,
-  IconOpen,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   StatuspageIncident,
   StatusPageIncidentUpdate,
   StatusPageServiceStatus,
 } from 'sentry/types/system';
-import {sanitizedMarked} from 'sentry/utils/marked/marked';
 
 interface Props {
   incident: StatuspageIncident;

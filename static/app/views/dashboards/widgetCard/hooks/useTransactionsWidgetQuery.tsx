@@ -1,9 +1,7 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {ApiResult} from 'sentry/types/api';
-import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -12,7 +10,6 @@ import type {
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import type {
   EventsTableData,
   TableData,
@@ -20,21 +17,23 @@ import type {
 } from 'sentry/utils/discover/discoverQuery';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
-import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {transactionsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/transactionsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TransactionsSeriesResponse =
@@ -61,13 +60,10 @@ export function useTransactionsSeriesQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
-    mepSetting,
-    onDemandControlContext,
     widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<TransactionsSeriesResponse[] | undefined>(undefined);
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -76,33 +72,17 @@ export function useTransactionsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-  const useOnDemandMetrics = shouldUseOnDemandMetrics(
-    organization,
-    filteredWidget,
-    onDemandControlContext
-  );
-
-  // Check if organization has the async queue feature
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
         organization,
         pageFilters,
-        isMEPEnabled ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.TRANSACTIONS,
+        DiscoverDatasets.SPANS,
         getReferrer(filteredWidget.displayType),
         widgetInterval
       );
-
-      // Handle on-demand metrics
-      if (useOnDemandMetrics) {
-        requestData.queryExtras = {
-          ...requestData.queryExtras,
-          dataset: DiscoverDatasets.METRICS_ENHANCED,
-        };
-      }
 
       // Transform requestData into proper query params
       const {
@@ -117,6 +97,8 @@ export function useTransactionsSeriesQuery(
       const queryParams = {
         ...restParams,
         ...(period ? {statsPeriod: period} : {}),
+        excludeOther: restParams.excludeOther ? '1' : undefined,
+        partial: restParams.partial ? '1' : undefined,
       };
 
       if (queryParams.start) {
@@ -137,54 +119,6 @@ export function useTransactionsSeriesQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<TransactionsSeriesResponse>> => {
-          // For on-demand metrics, we need to use a special request function
-          if (useOnDemandMetrics) {
-            const onDemandRequestData = getSeriesRequestData(
-              filteredWidget,
-              queryIndex,
-              organization,
-              pageFilters,
-              DiscoverDatasets.METRICS_ENHANCED,
-              getReferrer(filteredWidget.displayType),
-              widgetInterval
-            );
-
-            onDemandRequestData.queryExtras = {
-              ...onDemandRequestData.queryExtras,
-              dataset: DiscoverDatasets.METRICS_ENHANCED,
-            };
-
-            const toApiResponse = (
-              result: ApiResult<TransactionsSeriesResponse>
-            ): ApiResponse<TransactionsSeriesResponse> => ({
-              json: result[0],
-              headers: {},
-            });
-
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    doOnDemandMetricsRequest(
-                      QUERY_API_CLIENT,
-                      onDemandRequestData,
-                      filteredWidget.widgetType
-                    )
-                      .then(toApiResponse)
-                      .then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-
-            return doOnDemandMetricsRequest(
-              QUERY_API_CLIENT,
-              onDemandRequestData,
-              filteredWidget.widgetType
-            ).then(toApiResponse);
-          }
-
-          // Standard request flow
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
@@ -203,6 +137,7 @@ export function useTransactionsSeriesQuery(
         placeholderData: keepPreviousData,
       });
     }),
+    combine: combineWidgetQueryResults,
   });
 
   const transformedData = (() => {
@@ -219,8 +154,7 @@ export function useTransactionsSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
-    const rawData: TransactionsSeriesResponse[] = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -228,44 +162,28 @@ export function useTransactionsSeriesQuery(
       }
 
       const responseData = q.data;
-      rawData[requestIndex] = responseData;
 
-      const transformedResult = TransactionsConfig.transformSeries!(
-        responseData,
-        filteredWidget.queries[requestIndex]!,
-        organization
+      const transformedResult = transformMultipleWidgetSeriesToTimeSeries(
+        transactionsResponseTransforms.transformSeries!(
+          responseData,
+          filteredWidget.queries[requestIndex]!,
+          organization
+        ),
+        filteredWidget,
+        requestIndex
       );
 
       // Maintain color consistency
-      transformedResult.forEach((result: Series, resultIndex: number) => {
+      transformedResult.forEach((result, resultIndex) => {
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
     });
-
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -289,12 +207,9 @@ export function useTransactionsTableQuery(
     limit,
     dashboardFilters,
     skipDashboardFilterParens,
-    mepSetting,
-    onDemandControlContext,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<TransactionsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -302,15 +217,7 @@ export function useTransactionsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-  const useOnDemandMetrics = shouldUseOnDemandMetrics(
-    organization,
-    filteredWidget,
-    onDemandControlContext
-  );
-
-  // Check if organization has the async queue feature
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       // Clone the query to avoid mutating the original
       const modifiedQuery = cloneDeep(query);
@@ -334,18 +241,11 @@ export function useTransactionsTableQuery(
 
       const eventView = eventViewFromWidget('', modifiedQuery, pageFilters);
 
-      const queryExtras = useOnDemandMetrics
-        ? {useOnDemandMetrics: true, onDemandType: 'dynamic_query'}
-        : {};
-
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
         cursor,
         referrer: getReferrer(filteredWidget.displayType),
-        dataset: isMEPEnabled
-          ? DiscoverDatasets.METRICS_ENHANCED
-          : DiscoverDatasets.TRANSACTIONS,
-        ...queryExtras,
+        dataset: DiscoverDatasets.SPANS,
       };
 
       if (modifiedQuery.orderby) {
@@ -388,6 +288,7 @@ export function useTransactionsTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const transformedData = (() => {
@@ -405,7 +306,6 @@ export function useTransactionsTableQuery(
     }
 
     const tableResults: TableDataWithTitle[] = [];
-    const rawData: TransactionsTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
@@ -414,10 +314,9 @@ export function useTransactionsTableQuery(
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...TransactionsConfig.transformTable(
+        ...transactionsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,
@@ -432,31 +331,12 @@ export function useTransactionsTableQuery(
       responsePageLinks = q.data.headers.Link;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 

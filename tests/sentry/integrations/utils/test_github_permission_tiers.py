@@ -6,14 +6,13 @@ from sentry.integrations.utils.github_permission_tiers import (
     BASELINE_TIER,
     TIERS,
     _baseline_tier_reqs,
+    get_missing_permission_tiers,
     get_permission_tiers,
 )
 from sentry.integrations.utils.github_permissions import (
     PermissionLevel,
     parse_github_app_permissions,
 )
-
-PARSE_WARNING = "sentry.integrations.utils.github_permissions.logger.warning"
 
 REQUIRED_PERMISSIONS = {
     "actions": "write",
@@ -56,9 +55,9 @@ MISSING_CODE_REVIEW = {
 MISSING_PR_COMMENTS = {**MISSING_CODE_REVIEW, "pull_requests": "read"}
 
 ALL_KEYS = [
-    "autofix_pr_iteration",
+    "pr_iteration",
     "autofix_pull_requests",
-    "code_review_statuses",
+    "code_review",
     "pull_request_comments",
     "baseline",
 ]
@@ -118,10 +117,7 @@ def test_a_newer_tier_held_without_an_older_one_is_inconsistent(mock_warning) ->
 def test_a_gap_in_the_middle_of_the_chain_is_inconsistent(mock_warning) -> None:
     assert _keys({**UP_TO_DATE, "actions": "read", "checks": "read"}) == ALL_KEYS
 
-    assert mock_warning.call_args[1]["extra"]["behind_tiers"] == [
-        "autofix_pr_iteration",
-        "code_review_statuses",
-    ]
+    assert mock_warning.call_args[1]["extra"]["behind_tiers"] == ["pr_iteration", "code_review"]
 
 
 @mock.patch("sentry.integrations.utils.github_permission_tiers.logger.warning")
@@ -184,3 +180,10 @@ def test_tiers_are_exposed_highest_order_first() -> None:
 def test_the_baseline_is_the_lowest_tier_and_claims_no_scopes() -> None:
     assert BASELINE_TIER.order == min(tier.order for tier in TIERS)
     assert BASELINE_TIER.introduced == {}
+
+
+def test_get_missing_permission_tiers_compares_against_the_required_permissions() -> None:
+    # An install holding everything the app requires is missing no tiers...
+    assert get_missing_permission_tiers(REQUIRED_PERMISSIONS) == []
+    # ...and one holding nothing is missing every tier.
+    assert [tier.key for tier in get_missing_permission_tiers({})] == ALL_KEYS

@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q, QuerySet
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
@@ -20,12 +21,17 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
+    LEGACY_FEATURE_ID,
     AutofixFeaturePayload,
+    CodeChangesStepArgs,
+    PrIterationStepArgs,
     RCAStepArgs,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
@@ -37,15 +43,54 @@ logger = logging.getLogger(__name__)
 class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
-    step_args: RCAStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs | PrIterationStepArgs
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
     stopping_point: AutofixStoppingPoint | None = None
     allow_free_cohort: bool = False
     user: User | RpcUser | AnonymousUser | None = None
-    enable_bash_tools: bool = False
+    enable_bash_mode: bool = False
     flush: bool = True
+
+
+def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
+    return SeerAgentRun.objects.filter(
+        run__organization_id=group.organization.id,
+        run__seer_run_state_id=run_id,
+    )
+
+
+def _mirror_matches_issue(group: Group) -> Q:
+    return Q(group_id=group.id, project_id=group.project_id)
+
+
+def autofix_run_targets_other_issue(group: Group, run_id: int) -> bool:
+    """True unless ``run_id`` is mirrored to this issue's group and project.
+
+    Autofix runs are stored with both when they start, so a missing row is not
+    this issue's run.
+    """
+    return not _run_mirrors(group, run_id).filter(_mirror_matches_issue(group)).exists()
+
+
+def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
+    """The autofix run mirror for this issue, or a permission error.
+
+    ``run_id`` comes from the request body. Org membership is not enough: the
+    mirror must be this issue's group and project, or a member can continue a
+    run on a project they cannot access by keeping their own issue in the URL.
+    """
+    agent_run = (
+        _run_mirrors(group, run_id)
+        .filter(source__in=(FEATURE_ID, LEGACY_FEATURE_ID))
+        .select_related("run")
+        .filter(_mirror_matches_issue(group))
+        .first()
+    )
+    if agent_run is None:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+    return agent_run
 
 
 def trigger_autofix_feature(
@@ -56,7 +101,7 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
-    # Free cohort orgs bypass quota only when called from night shift
+    # Free cohort orgs bypass quota only when called from agentic triage
     # (allow_free_cohort=True). Not exposed via the API.
     skip_quota = is_new_run and args.allow_free_cohort and is_free_cohort_org(group.organization)
     if is_new_run and not skip_quota:
@@ -90,13 +135,24 @@ def trigger_autofix_feature(
         step_args=args.step_args,
     )
 
+    enable_coding = args.step in (AutofixStep.CODE_CHANGES, AutofixStep.PR_ITERATION)
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
         group=group,
         user=args.user,
-        enable_bash_tools=args.enable_bash_tools,
+        enable_bash_mode=args.enable_bash_mode,
+        enable_coding=enable_coding,
     )
+
+    agent_run_options = AgentRunOptions(
+        is_context_engine_enabled=False,
+        enable_frontend_code_search=False,
+        enable_coding=enable_coding,
+        enable_pr_context_tools=args.step == AutofixStep.PR_ITERATION,
+    )
+    if features.has("organizations:seer-autofix-code-mode", group.organization):
+        agent_run_options["enable_code_mode_tools"] = "only"
 
     extras: dict[str, Any] = {
         "referrer": args.referrer.value,
@@ -113,26 +169,13 @@ def trigger_autofix_feature(
             referrer=args.referrer.value,
             user_org_context=user_org_context,
             proxy_headers=get_proxy_headers(),
-            agent_run_options=AgentRunOptions(
-                is_context_engine_enabled=False,
-                enable_frontend_code_search=False,
-            ),
+            agent_run_options=agent_run_options,
             title=f"Autofix RCA — {payload.short_id}",
             flush=args.flush,
             extras=extras,
         )
     elif args.existing_run_id is not None:
-        existing_agent_run = (
-            SeerAgentRun.objects.select_related("run")
-            .filter(
-                run__organization_id=group.organization.id,
-                run__seer_run_state_id=args.existing_run_id,
-            )
-            .first()
-        )
-
-        if existing_agent_run is None or existing_agent_run.run is None:
-            raise Exception(f"Run with ID {args.existing_run_id} not found")
+        existing_agent_run = require_autofix_run_for_group(group, args.existing_run_id)
 
         run = client.continue_feature_run(
             existing_agent_run=existing_agent_run,
@@ -140,10 +183,7 @@ def trigger_autofix_feature(
             referrer=args.referrer.value,
             user_org_context=user_org_context,
             proxy_headers=get_proxy_headers(),
-            agent_run_options=AgentRunOptions(
-                is_context_engine_enabled=False,
-                enable_frontend_code_search=False,
-            ),
+            agent_run_options=agent_run_options,
         )
     else:
         raise Exception("Unhandled run_id branch, this should never happen")
@@ -154,12 +194,15 @@ def trigger_autofix_feature(
         )
 
     metrics.incr(
-        "autofix_feature.trigger", tags={"referrer": args.referrer.value, "step": args.step.value}
+        "autofix_feature.trigger",
+        tags={"referrer": args.referrer.value, "step": args.step.value},
+        sample_rate=1,
     )
 
     logger.info(
         "autofix_feature.dispatch.started",
         extra={
+            "step": args.step.value,
             "group_id": group.id,
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
@@ -167,8 +210,8 @@ def trigger_autofix_feature(
             "stopping_point": args.stopping_point,
             "flush": args.flush,
             "allow_free_cohort": args.allow_free_cohort,
-            "user_context": args.user_context,
-            "enable_bash_tools": args.enable_bash_tools,
+            "has_user_context": args.user_context is not None,
+            "enable_bash_mode": args.enable_bash_mode,
         },
     )
 

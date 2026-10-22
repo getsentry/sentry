@@ -1,19 +1,19 @@
 import {
-  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
+  type ReactNode,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
@@ -24,6 +24,11 @@ import {
 import {useDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
+import {
+  SIMPLE_TABLE_HEADER_ROW_HEIGHT,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
@@ -39,8 +44,16 @@ import {Status} from './debugImage/status';
 import {DebugImage} from './debugImage';
 import {combineStatus, getFileName, normalizeId} from './utils';
 
-const ROW_HEIGHT = 45;
-const MAX_HEIGHT = 400;
+const ROW_HEIGHT = 61;
+const MAX_BODY_HEIGHT = 400;
+const MAX_TABLE_HEIGHT = MAX_BODY_HEIGHT + SIMPLE_TABLE_HEADER_ROW_HEIGHT.default;
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'status', width: '0.6fr'},
+  {key: 'image', width: {zero: '1.5fr', sm: '2fr'}},
+  {key: 'processing', visible: {lg: true}, width: '1fr'},
+  {key: 'actions', width: {zero: '0.6fr', lg: '0.4fr'}},
+];
 
 function filterImages(
   images: ImageWithCombinedStatus[],
@@ -99,7 +112,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const theme = useTheme();
   const organization = useOrganization();
 
-  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const [filterSelections, setFilterSelections] = useState<FilterSelections>([]);
   const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [lockHeight, setLockHeight] = useState(false);
@@ -154,6 +166,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     const defaults = (
       'options' in filterOptions[0]! ? filterOptions[0].options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
+    // oxlint-disable-next-line react/set-state-in-effect
     setFilterSelections(defaults);
     setFiltersInitialized(true);
   }, [filterOptions, filtersInitialized]);
@@ -163,19 +176,21 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     [allImages, filterSelections, searchTerm]
   );
 
-  const virtualizer = useVirtualizer({
-    count: filteredImages.length,
-    getScrollElement: () => scrollContainer,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 5,
-  });
+  const filtersReady = filtersInitialized || !filterOptions.length;
 
-  const totalSize = virtualizer.getTotalSize();
-  useLayoutEffect(() => {
-    if (!lockHeight && totalSize > MAX_HEIGHT) {
+  if (
+    filtersReady &&
+    !lockHeight &&
+    filteredImages.length * ROW_HEIGHT > MAX_BODY_HEIGHT
+  ) {
+    setLockHeight(true);
+  }
+
+  const lockTableHeight = useCallback(() => {
+    if (filtersReady) {
       setLockHeight(true);
     }
-  }, [totalSize, lockHeight]);
+  }, [filtersReady]);
 
   const openDetails = useCallback(
     (image: ImageWithCombinedStatus) => {
@@ -212,7 +227,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       title={t('Images Loaded')}
       initialCollapse
     >
-      <Fragment>
+      <Stack gap="sm">
         <SearchBarAction
           placeholder={t('Search images')}
           onChange={setSearchTerm}
@@ -221,72 +236,13 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           onFilterChange={setFilterSelections}
           filterSelections={filterSelections}
         />
-        <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
-          <Header
-            columns={{
-              zero: '0.6fr 1.5fr 0.6fr',
-              sm: '0.6fr 2fr 0.6fr',
-              md: '0.6fr 2fr 1fr 0.4fr',
-            }}
-            background="secondary"
-            borderBottom="primary"
-          >
-            <Flex align="center" minWidth="0" padding="md lg">
-              {t('Status')}
-            </Flex>
-            <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
-              {t('Image')}
-            </Flex>
-            <Flex
-              align="center"
-              display={{
-                zero: 'none',
-                md: 'flex',
-              }}
-              minWidth="0"
-              paddingTop="md"
-              paddingBottom="md"
-            >
-              {t('Processing')}
-            </Flex>
-            <div />
-          </Header>
-          {filteredImages.length ? (
-            <ScrollArea
-              ref={setScrollContainer}
-              style={{height: lockHeight ? MAX_HEIGHT : undefined, maxHeight: MAX_HEIGHT}}
-            >
-              <div style={{height: totalSize, position: 'relative'}}>
-                {virtualizer.getVirtualItems().map(row => (
-                  <div
-                    key={row.key}
-                    ref={virtualizer.measureElement}
-                    data-index={row.index}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      transform: `translateY(${row.start}px)`,
-                    }}
-                  >
-                    <DebugImage
-                      image={filteredImages[row.index]!}
-                      isLast={row.index === filteredImages.length - 1}
-                      onOpenImageDetailsModal={openDetails}
-                    />
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          ) : (
-            <Stack
-              align="center"
-              justify="center"
-              gap="md"
-              padding="lg"
-              style={lockHeight ? {height: MAX_HEIGHT} : undefined}
-            >
+        <DebugImagesTable
+          images={filteredImages}
+          lockHeight={lockHeight}
+          onExceedMaxHeight={lockTableHeight}
+          onOpenImageDetailsModal={openDetails}
+          emptyState={
+            <Stack align="center" gap="md">
               <Text align="center" variant="muted">
                 {searchTerm
                   ? t('No images match your search query')
@@ -303,20 +259,78 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
                 </Button>
               )}
             </Stack>
-          )}
-        </Container>
-      </Fragment>
+          }
+        />
+      </Stack>
     </FoldSection>
   );
 }
 
-const Header = styled(Grid)`
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-`;
+interface DebugImagesTableProps {
+  emptyState: ReactNode;
+  images: ImageWithCombinedStatus[];
+  lockHeight: boolean;
+  onExceedMaxHeight: () => void;
+  onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
+}
 
-const ScrollArea = styled('div')`
-  overflow-y: auto;
-`;
+function DebugImagesTable({
+  emptyState,
+  images,
+  lockHeight,
+  onExceedMaxHeight,
+  onOpenImageDetailsModal,
+}: DebugImagesTableProps) {
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  const {paddingBottom, paddingTop, totalSize, virtualItems, virtualizer} =
+    useVirtualRows({
+      count: images.length,
+      getScrollElement: () => tableRef.current,
+      estimateSize: () => ROW_HEIGHT,
+    });
+
+  useLayoutEffect(() => {
+    if (!lockHeight && totalSize > MAX_BODY_HEIGHT) {
+      onExceedMaxHeight();
+    }
+  }, [totalSize, lockHeight, onExceedMaxHeight]);
+
+  return (
+    <SimpleTable
+      aria-label={t('Images Loaded')}
+      columns={COLUMNS}
+      customSections
+      maxHeight={`${MAX_TABLE_HEIGHT}px`}
+      ref={tableRef}
+      scrollable
+      style={lockHeight ? {height: MAX_TABLE_HEIGHT} : undefined}
+    >
+      <SimpleTable.Head sticky>
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Image')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Processing')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell />
+        </SimpleTable.HeaderRow>
+      </SimpleTable.Head>
+      {images.length ? (
+        <SimpleTable.Body style={{alignContent: 'start', paddingBottom, paddingTop}}>
+          {virtualItems.map(row => (
+            <DebugImage
+              key={row.key}
+              ref={virtualizer.measureElement}
+              data-index={row.index}
+              image={images[row.index]!}
+              onOpenImageDetailsModal={onOpenImageDetailsModal}
+            />
+          ))}
+        </SimpleTable.Body>
+      ) : (
+        <SimpleTable.Body>
+          <SimpleTable.Empty>{emptyState}</SimpleTable.Empty>
+        </SimpleTable.Body>
+      )}
+    </SimpleTable>
+  );
+}

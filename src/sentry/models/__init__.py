@@ -56,7 +56,6 @@ from .groupreaction import *  # NOQA
 from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
-from .grouprulestatus import *  # NOQA
 from .groupsearchview import *  # NOQA
 from .groupsearchviewlastvisited import *  # NOQA
 from .groupsearchviewstarred import *  # NOQA
@@ -111,7 +110,6 @@ from .repositorysettings import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA
-from .rulesnooze import *  # NOQA
 from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA
 from sentry.seer.models import *  # NOQA

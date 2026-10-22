@@ -13,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {
   IssueDetailsContextProvider,
   useIssueDetails,
@@ -27,6 +28,8 @@ import {
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
   useIsSampleEvent,
   getGroupReprocessingStatus,
@@ -66,6 +69,18 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
     <EventSection as="section" background="secondary">
       {children}
     </EventSection>
+  );
+}
+
+// Fill the column beside the sidebar so a short tab keeps the secondary
+// background and the scroll position stable. Below this width the sidebar
+// stacks under the content, and the floor would only push it a full viewport
+// down. That is the common case once the Seer panel narrows the app content.
+function EventDetailsContent({children}: {children: React.ReactNode}) {
+  return (
+    <Container padding="0 xl 2xl xl" minHeight={{zero: 'auto', '4xl': '100vh'}}>
+      {children}
+    </Container>
   );
 }
 
@@ -154,6 +169,28 @@ function StickyIssueEventNavigation({
   );
 }
 
+function AutofixPanelBoundary({
+  children,
+  enabled,
+  group,
+  project,
+}: {
+  children: React.ReactNode;
+  enabled: boolean;
+  group: Group;
+  project: Project;
+}) {
+  if (!enabled) {
+    return children;
+  }
+
+  return (
+    <AutofixPanelProvider group={group} project={project}>
+      {children}
+    </AutofixPanelProvider>
+  );
+}
+
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
   event: Event | undefined;
@@ -173,6 +210,8 @@ export function GroupDetailsLayout({
   const theme = useTheme();
   const organization = useOrganization();
   const isSampleError = useIsSampleEvent();
+  const {currentTab} = useGroupDetailsRoute();
+  const isAutofixTab = currentTab === Tab.AUTOFIX;
 
   return (
     <IssueDetailsContextProvider>
@@ -185,50 +224,70 @@ export function GroupDetailsLayout({
       >
         <GroupHeader group={group} event={event ?? null} project={project} />
         <GroupLayoutBody>
-          <IssueDetailsColumn>
-            <SharedTourElement<IssueDetailsTour>
-              id={IssueDetailsTour.AGGREGATES}
-              demoTourId={DemoTourStep.ISSUES_AGGREGATES}
-              tourContext={IssueDetailsTourContext}
-              title={t('See overall impact')}
-              description={t(
-                "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
+          <AutofixPanelBoundary enabled={isAutofixTab} group={group} project={project}>
+            <IssueDetailsColumn>
+              <SharedTourElement<IssueDetailsTour>
+                id={IssueDetailsTour.AGGREGATES}
+                demoTourId={DemoTourStep.ISSUES_AGGREGATES}
+                tourContext={IssueDetailsTourContext}
+                title={t('See overall impact')}
+                description={t(
+                  "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
+                )}
+                position="bottom"
+              >
+                {tourProps => (
+                  <div {...tourProps}>
+                    <EventDetailsHeader event={event} group={group} project={project} />
+                  </div>
+                )}
+              </SharedTourElement>
+              {isAutofixTab ? (
+                // The autofix section. Same chrome and tab navigation as the
+                // event pages — the navigation is the only way back out of the
+                // tab — but no event details tour, whose copy is about stack
+                // traces and tags, neither of which this tab shows.
+                <EventDetailsSection>
+                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                    issueTypeConfig.header.eventNavigation.enabled && (
+                      <StickyIssueEventNavigation
+                        event={event}
+                        group={group}
+                        hasToggleSidebar={!hasFilterBar}
+                      />
+                    )}
+                  <EventDetailsContent>{children}</EventDetailsContent>
+                </EventDetailsSection>
+              ) : (
+                <SharedTourElement<IssueDetailsTour>
+                  id={IssueDetailsTour.EVENT_DETAILS}
+                  demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
+                  tourContext={IssueDetailsTourContext}
+                  title={t('Investigate the issue')}
+                  description={t(
+                    'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
+                  )}
+                  position="top"
+                >
+                  {tourProps => (
+                    <div {...tourProps}>
+                      <EventDetailsSection>
+                        {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                          issueTypeConfig.header.eventNavigation.enabled && (
+                            <StickyIssueEventNavigation
+                              event={event}
+                              group={group}
+                              hasToggleSidebar={!hasFilterBar}
+                            />
+                          )}
+                        <EventDetailsContent>{children}</EventDetailsContent>
+                      </EventDetailsSection>
+                    </div>
+                  )}
+                </SharedTourElement>
               )}
-              position="bottom"
-            >
-              {tourProps => (
-                <div {...tourProps}>
-                  <EventDetailsHeader event={event} group={group} project={project} />
-                </div>
-              )}
-            </SharedTourElement>
-            <SharedTourElement<IssueDetailsTour>
-              id={IssueDetailsTour.EVENT_DETAILS}
-              demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
-              tourContext={IssueDetailsTourContext}
-              title={t('Investigate the issue')}
-              description={t(
-                'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
-              )}
-              position="top"
-            >
-              {tourProps => (
-                <div {...tourProps}>
-                  <EventDetailsSection>
-                    {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
-                      issueTypeConfig.header.eventNavigation.enabled && (
-                        <StickyIssueEventNavigation
-                          event={event}
-                          group={group}
-                          hasToggleSidebar={!hasFilterBar}
-                        />
-                      )}
-                    <ContentPadding>{children}</ContentPadding>
-                  </EventDetailsSection>
-                </div>
-              )}
-            </SharedTourElement>
-          </IssueDetailsColumn>
+            </IssueDetailsColumn>
+          </AutofixPanelBoundary>
           <IssueDetailsSidebar group={group} event={event} project={project} />
         </GroupLayoutBody>
       </Container>
@@ -250,7 +309,13 @@ const NavigationSidebarWrapper = styled(Sticky, {
   shouldForwardProp: prop => prop !== 'hasToggleSidebar',
 })<{hasToggleSidebar: boolean}>`
   isolation: isolate;
-  z-index: ${p => p.theme.zIndex.initial};
+  background: ${p => p.theme.tokens.background.secondary};
+  /* The tab list's overflow menu opens downward over the event title, a sibling
+     sticky that otherwise carries the same z-index and so wins on DOM order.
+     Isolating this context traps the menu inside it, and CompactSelect cannot
+     portal out, so the context itself has to outrank that sibling in both the
+     resting and the stuck state. */
+  z-index: ${p => p.theme.zIndex.initial + 1};
   display: flex;
   gap: ${p => p.theme.space.xs};
   padding: ${p =>
@@ -275,19 +340,6 @@ const NavigationSidebarWrapper = styled(Sticky, {
   }
 
   &[data-stuck] {
-    z-index: ${p => p.theme.zIndex.stickyHeader};
-  }
-`;
-
-const ContentPadding = styled('div')`
-  padding: 0 var(--issue-details-inset, ${p => p.theme.space['2xl']})
-    ${p => p.theme.space['2xl']} var(--issue-details-inset, ${p => p.theme.space['2xl']});
-
-  /* Fill the column beside the sidebar so a short tab keeps the secondary
-     background and the scroll position stable. Below this width the sidebar
-     stacks under the content, and the floor would only push it a full viewport
-     down. That is the common case once the Seer panel narrows the app content. */
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    min-height: 100vh;
+    z-index: ${p => p.theme.zIndex.stickyHeader + 1};
   }
 `;

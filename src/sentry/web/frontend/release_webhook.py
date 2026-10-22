@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
-from sentry.api import client
+from sentry.api.client import client
 from sentry.models.apikey import ApiKey
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project

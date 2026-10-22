@@ -7,6 +7,7 @@ import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
@@ -35,8 +36,12 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
     mutationFn: ([ids, payload]) => {
       const isSingleId = ids !== 'all' && ids.length === 1;
       const url = isSingleId
-        ? `/organizations/${organization.slug}/issues/${ids[0]}/`
-        : `/organizations/${organization.slug}/issues/`;
+        ? getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+            path: {organizationIdOrSlug: organization.slug, issueId: String(ids[0])},
+          })
+        : getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+            path: {organizationIdOrSlug: organization.slug},
+          });
 
       // TODO: it would be excellent if `PUT /issues/` could return the same data
       // as `GET /issues/` when query params are set. IE: it should expand inbox & owners

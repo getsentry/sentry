@@ -161,7 +161,7 @@ describe('OurlogsSection', () => {
             [OurLogKnownFieldKey.MESSAGE]: 'i am a log',
           }),
         ],
-        meta: {},
+        meta: {routingHint: 'issue-log-hint'},
       },
     });
 
@@ -243,6 +243,16 @@ describe('OurlogsSection', () => {
     expect(
       screen.queryByRole('complementary', {name: 'logs drawer'})
     ).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByTestId('log-table-row'));
+    await waitFor(() => {
+      expect(mockRowDetailsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({routing_hint: 'issue-log-hint'}),
+        })
+      );
+    });
 
     await userEvent.click(screen.getByText(/i am a log/));
 

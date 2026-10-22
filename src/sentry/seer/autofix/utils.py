@@ -10,7 +10,6 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from pydantic import BaseModel
-from rest_framework import serializers
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features, options, projectoptions, ratelimits
@@ -272,43 +271,6 @@ def make_store_coding_agent_states_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
-    )
-
-
-class SeerAutofixSettingsSerializer(serializers.Serializer):
-    """Base serializer for autofixAutomationTuning and automatedRunStoppingPoint"""
-
-    autofixAutomationTuning = serializers.ChoiceField(
-        choices=[opt.value for opt in AutofixAutomationTuningSettings],
-        required=False,
-        help_text="The tuning setting for the projects.",
-    )
-    automatedRunStoppingPoint = serializers.CharField(
-        required=False,
-        help_text="The stopping point for the projects.",
-    )
-
-    def validate_automatedRunStoppingPoint(self, value: str) -> str:
-        organization = self.context["organization"]
-        if value not in get_valid_automated_run_stopping_points(organization):
-            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
-        return value
-
-    def validate(self, data):
-        if "autofixAutomationTuning" not in data and "automatedRunStoppingPoint" not in data:
-            raise serializers.ValidationError(
-                "At least one of 'autofixAutomationTuning' or 'automatedRunStoppingPoint' must be provided."
-            )
-        return data
-
-
-def default_seer_project_preference(project: Project) -> SeerProjectPreference:
-    return SeerProjectPreference(
-        organization_id=project.organization.id,
-        project_id=project.id,
-        repositories=[],
-        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
-        automation_handoff=None,
     )
 
 
@@ -691,6 +653,7 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     automation_tuning: str
     scanner_automation: bool
     auto_create_pr: bool
+    pr_iteration: bool
 
 
 def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
@@ -738,6 +701,9 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
         _set_or_clear(
             "sentry:seer_automation_handoff_auto_create_pr", data["auto_create_pr"], default=False
         )
+
+    if "pr_iteration" in data:
+        _set_or_clear("sentry:seer_pr_iteration", data["pr_iteration"], default=True)
 
     if "automation_tuning" in data:
         _set_or_clear(
@@ -991,7 +957,7 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
 
 def is_free_cohort_org(organization: Organization) -> bool:
     """Check if org is in the agentic triage free cohort — selected non-paying
-    orgs that receive night shift and autofix without a Seer subscription.
+    orgs that receive agentic triage and autofix without a Seer subscription.
 
     Returns True when the kill switch is NOT engaged (flag disabled = cohort
     active), the org is NOT on a paid seat-based Seer plan, and the org

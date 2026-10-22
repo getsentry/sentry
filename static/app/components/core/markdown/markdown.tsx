@@ -4,13 +4,16 @@ import {Global} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import type {ExtendedToken} from 'sentry/utils/marked/marked';
-import {MarkedLexer} from 'sentry/utils/marked/marked';
-
-import {Token} from './token';
+import type {ExtendedToken} from './marked';
+import {MarkedLexer} from './marked';
+import {MarkdownStreamingContext, Token} from './token';
 import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
 type WithDefault<Props> = Props & {Default: ComponentType<Props>};
+
+export interface MarkdownTableColumn {
+  align?: 'left' | 'right' | 'center';
+}
 
 export type MarkdownComponents = Partial<{
   Blockquote: ComponentType<WithDefault<{children: ReactNode}>>;
@@ -20,7 +23,7 @@ export type MarkdownComponents = Partial<{
     WithDefault<{children: ReactNode; level: 1 | 2 | 3 | 4 | 5 | 6}>
   >;
   HorizontalRule: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
-  Html: ComponentType<WithDefault<{html: string}>>;
+  Html: ComponentType<WithDefault<{html: TrustedHTML}>>;
   Image: ComponentType<{src: string; alt?: string; title?: string | null}>;
   InlineCode: ComponentType<WithDefault<{children: string}>>;
   LineBreak: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
@@ -32,16 +35,19 @@ export type MarkdownComponents = Partial<{
   Paragraph: ComponentType<WithDefault<{children: ReactNode}>>;
   Strikethrough: ComponentType<WithDefault<{children: ReactNode}>>;
   Strong: ComponentType<WithDefault<{children: ReactNode}>>;
-  Table: ComponentType<WithDefault<{children: ReactNode}>>;
-  TableBody: ComponentType<WithDefault<{children: ReactNode}>>;
-  TableCell: ComponentType<
-    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
+  Table: ComponentType<
+    WithDefault<{
+      /**
+       * One entry per column, in order, with the alignment the delimiter row
+       * gave it.
+       */
+      columns: MarkdownTableColumn[];
+      /** Each header cell's rendered content, one per column. */
+      header: ReactNode[];
+      /** Each body row's rendered cell contents, one per column. */
+      rows: ReactNode[][];
+    }>
   >;
-  TableHead: ComponentType<WithDefault<{children: ReactNode}>>;
-  TableHeaderCell: ComponentType<
-    WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
-  >;
-  TableRow: ComponentType<WithDefault<{children: ReactNode}>>;
   Tag: ComponentType<
     WithDefault<{
       attrs: Record<string, string>;
@@ -178,6 +184,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
     if (changed) {
       prevTextLensRef.current = nextLens;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [isStreaming, elements]);
 
   return (
@@ -189,7 +196,9 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
       data-streaming={isStreaming || undefined}
     >
       {isStreaming && <Global styles={streamingAnimationStyles} />}
-      {elements}
+      <MarkdownStreamingContext.Provider value={isStreaming}>
+        {elements}
+      </MarkdownStreamingContext.Provider>
     </Stack>
   );
 }

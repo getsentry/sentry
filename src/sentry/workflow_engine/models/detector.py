@@ -202,7 +202,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return self.settings.handler(self)
 
     @property
-    def settings(self) -> DetectorSettings:
+    def settings(self) -> builtins.type[DetectorSettings]:
         settings = self.group_type.detector_settings
 
         if settings is None:

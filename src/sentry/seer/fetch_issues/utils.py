@@ -14,6 +14,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.constants import SeerSCMProvider
+from sentry.seer.public_caller import caller_can_access_project
 from sentry.seer.sentry_data_models import EmptyResponse, IssueDetails
 from sentry.seer.utils import filter_repo_by_provider
 
@@ -104,9 +105,10 @@ def get_repo_and_projects(
             project = config.project_repository.project
         except Project.DoesNotExist:
             continue
-        else:
-            valid_configs.append(config)
-            projects.append(project)
+        if not caller_can_access_project(project):
+            continue
+        valid_configs.append(config)
+        projects.append(project)
 
     if not projects:
         raise NoProjectsForRepoError("No Sentry projects found for repo")
@@ -178,7 +180,7 @@ def get_latest_issue_event(
             id=int(group_id), project__organization_id=organization_id
         ).first()
 
-    if not group:
+    if not group or not caller_can_access_project(group.project):
         logger.warning(
             "Group not found", extra={"group_id": group_id, "organization_id": organization_id}
         )

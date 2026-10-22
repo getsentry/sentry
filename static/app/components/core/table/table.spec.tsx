@@ -24,8 +24,8 @@ function TestTable({
     <Table columns={columns} {...props}>
       <Table.Head>
         <Table.Row>
-          {columns.map(column => (
-            <Table.HeadCell columnKey={column.key} key={column.key}>
+          {columns.map((column, index) => (
+            <Table.HeadCell columnIndex={index} key={column.key}>
               {column.key}
             </Table.HeadCell>
           ))}
@@ -34,10 +34,7 @@ function TestTable({
       <Table.Body>
         <Table.Row>
           {columns.map(column => (
-            <Table.Cell
-              columnKey={column.key}
-              key={column.key}
-            >{`${column.key}-value`}</Table.Cell>
+            <Table.Cell key={column.key}>{`${column.key}-value`}</Table.Cell>
           ))}
         </Table.Row>
       </Table.Body>
@@ -56,6 +53,13 @@ describe('Table', () => {
     expect(within(table).getAllByRole('columnheader')).toHaveLength(3);
     expect(within(table).getAllByRole('row')).toHaveLength(2);
     expect(within(table).getAllByRole('cell')).toHaveLength(3);
+  });
+
+  it('takes a more specific role when given one', () => {
+    render(<TestTable aria-label="Tree" role="treegrid" />);
+
+    expect(screen.getByRole('treegrid', {name: 'Tree'})).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it.each([
@@ -290,29 +294,6 @@ describe('Table', () => {
       expect(gridTemplate()).toBe('120px minmax(90px, auto)');
     });
 
-    it('hides the cells of a column hidden at the container width', () => {
-      setClientWidth(400);
-      render(
-        <Container containerType="inline-size">
-          <TestTable columns={RESPONSIVE_COLUMNS} />
-        </Container>
-      );
-
-      expect(screen.getByText('age-value')).not.toBeVisible();
-      expect(screen.getByText('name-value')).toBeVisible();
-    });
-
-    it('keeps a column named only at wider breakpoints hidden at the base', () => {
-      setClientWidth(400);
-      render(
-        <Container containerType="inline-size">
-          <TestTable columns={[{key: 'name'}, {key: 'age', visible: {xl: true}}]} />
-        </Container>
-      );
-
-      expect(screen.getByText('age-value')).not.toBeVisible();
-    });
-
     it('keeps a column visible at the base when its `visible` says so', () => {
       setClientWidth(400);
       render(
@@ -323,7 +304,7 @@ describe('Table', () => {
         </Container>
       );
 
-      expect(screen.getByText('age-value')).toBeVisible();
+      expect(gridTemplate()).toBe('minmax(90px, auto) minmax(90px, auto)');
     });
 
     it('leaves the last visible column flexible when a later column is hidden', () => {
@@ -354,7 +335,7 @@ describe('Table', () => {
       expect(resizers()[0]).toHaveAccessibleName('name');
     });
 
-    it('reports the visible index of a resized column to onColumnResize', () => {
+    it('reports the config index of a resized column to onColumnResize', () => {
       const onColumnResize = jest.fn();
       setClientWidth(400);
       render(
@@ -372,7 +353,8 @@ describe('Table', () => {
 
       dragHandle(resizers()[0]!, {from: 100, to: 350});
 
-      expect(onColumnResize).toHaveBeenCalledWith(0, 250);
+      // The first column is hidden, so the first handle is the second entry.
+      expect(onColumnResize).toHaveBeenCalledWith(1, 250);
     });
   });
 

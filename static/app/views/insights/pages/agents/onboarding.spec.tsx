@@ -107,6 +107,114 @@ describe('Onboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('shows the unsupported platform setup for a browser project', async () => {
+    const {organization} = setupProject('javascript');
+
+    render(<Onboarding />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Auto instrumentation of AI Agents is not available for your Browser JavaScript project/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /manually instrument/i})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/manual-instrumentation/'
+    );
+    expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
+  });
+
+  it('prefers a supported project over a selected browser project', async () => {
+    const {organization, project} = setupProject('javascript-nextjs');
+    const browserProject = ProjectFixture({
+      id: '100',
+      slug: 'browser-project',
+      platform: 'javascript',
+    });
+    ProjectsStore.loadInitialData([browserProject, project]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(browserProject.id), Number(project.id)]}),
+      false
+    );
+
+    render(<Onboarding />, {organization});
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(`Set up the Sentry SDK for ${project.slug}`)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    ['node-mastra', 'Mastra', /@mastra\/observability/],
+    ['node-flue', 'Flue', /flue add tooling sentry/],
+    ['node-eve', 'Eve', /Install the Sentry Node SDK in your Eve project/],
+    [
+      'node-pi-durable',
+      'Pi Durable',
+      /Install the Sentry Node SDK in your Pi Durable project/,
+    ],
+  ] as const)(
+    'uses the %s project integration without showing a selector',
+    async (platform, integration, setupCode) => {
+      const {organization} = setupProject(platform);
+
+      render(<Onboarding />, {organization});
+
+      expect(
+        (await screen.findAllByText(textWithMarkupMatcher(setupCode))).length
+      ).toBeGreaterThan(0);
+      expect(screen.queryByRole('button', {name: integration})).not.toBeInTheDocument();
+    }
+  );
+
+  it.each(['node-mastra', 'node-flue', 'node-eve', 'node-pi-durable'] as const)(
+    'hides generic Conversations guidance for %s projects',
+    async platform => {
+      const {organization} = setupProject(platform);
+
+      render(<Onboarding />, {organization});
+
+      expect(await screen.findByText('Install')).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'Conversations'})).not.toBeInTheDocument();
+    }
+  );
+
+  it('ignores integration and deployment query overrides for framework projects', async () => {
+    const {organization} = setupProject('node-eve');
+
+    render(<Onboarding />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {integration: 'openai', deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/Install the Sentry Node SDK in your Eve project/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', {name: 'OpenAI SDK'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
   it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 
@@ -209,6 +317,53 @@ describe('Onboarding deployment target', () => {
     const runtimeSelector = await screen.findByRole('button', {name: 'Node'});
     expect(runtimeSelector).toBeDisabled();
     expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
+  it('hides the runtime selector and shows the Node setup for Pi Durable', async () => {
+    const {organization} = setupProject('node');
+
+    render(<Onboarding />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {deploymentTarget: 'cloudflare'},
+        },
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'Cloudflare'})).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Pi Durable'}));
+
+    // Even with Cloudflare selected before, Pi Durable gets the Node setup and
+    // no runtime selector, locked or not.
+    expect(
+      await screen.findByText(/Install the Sentry Node SDK in your Pi Durable project/)
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Node'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
+  it('shows the Cloudflare setup for Pi Durable in Cloudflare Workers projects', async () => {
+    const {organization} = setupProject('node-cloudflare-workers');
+
+    render(<Onboarding />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Pi Durable'}));
+
+    expect(
+      await screen.findByText(/Install the Sentry Cloudflare SDK in your Worker/)
+    ).toBeInTheDocument();
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/npm install @sentry\/cloudflare/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
   });
 
   it('switches instructions when the deployment target changes', async () => {

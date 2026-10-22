@@ -75,6 +75,7 @@ function useApplyFocusOverride(state: ListState<Token>) {
       state.selectionManager.setFocusedKey(focusOverride.itemKey);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [dispatch, focusOverride, state.collection, state.selectionManager]);
 }
 

@@ -285,7 +285,7 @@ class AuthOrganizationConfig:
 
     can_register: bool
     join_request_url: str | None
-    login_method: Literal["password", "sso"]
+    login_method: Literal["demo", "password", "sso"]
     sso_required: bool
     organization: AuthOrganizationConfigOrganization
     provider: AuthOrganizationConfigProvider | None
@@ -297,7 +297,7 @@ class AuthOrganizationConfigSerializerResponse(TypedDict):
     memberAuthenticated: bool
     canRegister: bool
     joinRequestUrl: str | None
-    loginMethod: Literal["password", "sso"]
+    loginMethod: Literal["demo", "password", "sso"]
     ssoRequired: bool
     organization: AuthOrganizationConfigOrganization
     provider: AuthOrganizationConfigProvider | None

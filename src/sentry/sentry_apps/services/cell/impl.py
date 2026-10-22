@@ -17,6 +17,7 @@ from sentry.issues.action_log.types import (
     LinkPlatformExternalIssueAction,
     UnlinkPlatformExternalIssueAction,
 )
+from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -41,9 +42,14 @@ from sentry.sentry_apps.services.cell.serial import (
     serialize_service_hook_project,
 )
 from sentry.sentry_apps.services.cell.service import SentryAppCellService
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 from sentry.tsdb.base import TSDBModel
 from sentry.users.services.user import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
@@ -126,6 +132,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         fields: dict[str, Any],
         uri: str,
         user: RpcUser,
+        expected_external_issue_url: str | None = None,
     ) -> RpcPlatformExternalIssueResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_actions.py @ POST
@@ -169,15 +176,17 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         actor = _get_external_issue_action_actor(installation, user)
         try:
             with action_context_scope(source=ActionSource.API, actor=actor):
-                external_issue = IssueLinkCreator(
+                creator = IssueLinkCreator(
                     install=installation,
                     group=group,
                     action=action,
                     fields=fields,
                     uri=uri,
                     user=user,
-                ).run()
-        except (SentryAppIntegratorError, SentryAppSentryError) as e:
+                    expected_external_issue_url=expected_external_issue_url,
+                )
+                external_issue = creator.run()
+        except (SentryAppError, SentryAppIntegratorError, SentryAppSentryError) as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         action_cls = (
@@ -185,20 +194,22 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             if action == "create"
             else LinkPlatformExternalIssueAction
         )
-        publish_action(
-            action_cls(
-                service_type=external_issue.service_type,
-                display_name=external_issue.display_name,
-                web_url=external_issue.web_url,
-            ),
-            source=ActionSource.API,
-            group_id=group.id,
-            project=group.project,
-            actor=actor,
-        )
+        if creator.changed:
+            publish_action(
+                action_cls(
+                    service_type=external_issue.service_type,
+                    display_name=external_issue.display_name,
+                    web_url=external_issue.web_url,
+                ),
+                source=ActionSource.API,
+                group_id=group.id,
+                project=group.project,
+                actor=actor,
+            )
 
         return RpcPlatformExternalIssueResult(
-            external_issue=serialize_platform_external_issue(external_issue)
+            external_issue=serialize_platform_external_issue(external_issue),
+            changed=creator.changed if expected_external_issue_url is not None else None,
         )
 
     def create_external_issue(
@@ -294,18 +305,19 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_details.py @ DELETE
         """
+        external_issues = PlatformExternalIssue.objects.select_related(
+            "group",
+            "group__project",
+            "group__project__organization",
+            "project",
+            "project__organization",
+        ).filter(
+            id=external_issue_id,
+            group__project__organization_id=organization_id,
+            service_type=installation.sentry_app.slug,
+        )
         try:
-            platform_external_issue = PlatformExternalIssue.objects.select_related(
-                "group",
-                "group__project",
-                "group__project__organization",
-                "project",
-                "project__organization",
-            ).get(
-                id=external_issue_id,
-                group__project__organization_id=organization_id,
-                service_type=installation.sentry_app.slug,
-            )
+            platform_external_issue = external_issues.get()
         except PlatformExternalIssue.DoesNotExist:
             return RpcEmptyResult(
                 success=False,
@@ -340,19 +352,40 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 ),
             )
 
-        publish_action(
-            UnlinkPlatformExternalIssueAction(
-                service_type=platform_external_issue.service_type,
-                display_name=platform_external_issue.display_name,
-                web_url=platform_external_issue.web_url,
-            ),
-            source=ActionSource.API,
-            group_id=platform_external_issue.group_id,
-            project=issue_project,
-            actor=_get_external_issue_action_actor(installation, user),
-        )
+        try:
+            lock = locks.get(
+                f"platform-external-issue-link:{platform_external_issue.group_id}:{platform_external_issue.service_type}",
+                duration=300,
+                name="platform_external_issue_link",
+            ).acquire()
+        except UnableToAcquireLock:
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="This issue link is being updated. Try again.", status_code=409
+                ),
+            )
 
-        deletions.exec_sync(platform_external_issue)
+        with lock:
+            try:
+                platform_external_issue = external_issues.get()
+            except PlatformExternalIssue.DoesNotExist:
+                # Another request completed the unlink after we authorized it.
+                return RpcEmptyResult()
+
+            publish_action(
+                UnlinkPlatformExternalIssueAction(
+                    service_type=platform_external_issue.service_type,
+                    display_name=platform_external_issue.display_name,
+                    web_url=platform_external_issue.web_url,
+                ),
+                source=ActionSource.API,
+                group_id=platform_external_issue.group_id,
+                project=issue_project,
+                actor=_get_external_issue_action_actor(installation, user),
+            )
+
+            deletions.exec_sync(platform_external_issue)
 
         return RpcEmptyResult()
 

@@ -1,4 +1,7 @@
-import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import {
+  ArithmeticBuilder,
+  type ComboBoxMenuPresentation,
+} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {TagCollection} from 'sentry/types/group';
 import {useExploreEquationBuilderConfig} from 'sentry/views/explore/hooks/useExploreEquationBuilderConfig';
@@ -12,6 +15,8 @@ interface ExploreEquationArithmeticBuilderProps {
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
   ['data-test-id']?: string;
+  menuPresentation?: ComboBoxMenuPresentation;
+  truncateArguments?: boolean;
 }
 
 /**
@@ -26,6 +31,8 @@ export function ExploreEquationArithmeticBuilder({
   stringTags,
   booleanTags,
   'data-test-id': dataTestId,
+  menuPresentation,
+  truncateArguments,
 }: ExploreEquationArithmeticBuilderProps) {
   const {
     aggregations,
@@ -33,7 +40,6 @@ export function ExploreEquationArithmeticBuilder({
     getFieldDefinition,
     getFilterTagValues,
     getSuggestedKey,
-    hasConditionalAggregates,
   } = useExploreEquationBuilderConfig({
     traceItemType,
     numberTags,
@@ -48,10 +54,11 @@ export function ExploreEquationArithmeticBuilder({
       functionArguments={functionArguments}
       getFieldDefinition={getFieldDefinition}
       getFilterTagValues={getFilterTagValues}
-      hasConditionalAggregates={hasConditionalAggregates}
       expression={expression}
       setExpression={setExpression}
       getSuggestedKey={getSuggestedKey}
+      menuPresentation={menuPresentation}
+      truncateArguments={truncateArguments}
     />
   );
 }

@@ -1,24 +1,17 @@
-import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
-
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
-import {SupergroupRow} from 'sentry/components/stream/supergroups/supergroupRow';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
-import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
-import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {NoGroupsHandler} from './noGroupsHandler';
 
 type GroupListBodyProps = {
+  canSelect: boolean;
   displayReprocessingLayout: boolean;
   error: string | null;
   groupIds: string[];
@@ -30,22 +23,19 @@ type GroupListBodyProps = {
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
-  supergroupLookup?: SupergroupLookup;
-  withColumns?: GroupListColumn[];
 };
 
 type GroupListProps = {
+  canSelect: boolean;
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
   memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
-  supergroupLookup?: SupergroupLookup;
-  withColumns?: GroupListColumn[];
 };
 
-const DEFAULT_COLUMNS: GroupListColumn[] = [
+export const ISSUE_LIST_COLUMNS: GroupListColumn[] = [
   'graph',
   'firstSeen',
   'lastSeen',
@@ -53,36 +43,33 @@ const DEFAULT_COLUMNS: GroupListColumn[] = [
   'users',
   'priority',
   'assignee',
-  'lastTriggered',
 ];
 
-type RenderItem =
-  | {id: string; type: 'issue'}
-  | {matchingIds: string[]; supergroup: SupergroupDetail; type: 'supergroup'};
-
 function LoadingSkeleton({
+  canSelect,
   pageSize,
   displayReprocessingLayout,
-  columns,
 }: {
-  columns: GroupListColumn[];
+  canSelect: boolean;
   displayReprocessingLayout: boolean;
   pageSize: number;
 }) {
   return (
-    <PanelBody>
+    <SimpleTable.Body>
       {Array.from({length: pageSize}).map((_, index) => (
         <LoadingStreamGroup
           key={`loading-group-${index}`}
+          canSelect={canSelect}
           displayReprocessingLayout={displayReprocessingLayout}
-          withColumns={columns}
+          withColumns={ISSUE_LIST_COLUMNS}
         />
       ))}
-    </PanelBody>
+    </SimpleTable.Body>
   );
 }
 
 export function GroupListBody({
+  canSelect,
   groupIds,
   memberList,
   query,
@@ -94,154 +81,91 @@ export function GroupListBody({
   selectedProjectIds,
   pageSize,
   onActionTaken,
-  supergroupLookup,
-  withColumns,
 }: GroupListBodyProps) {
   const organization = useOrganization();
-  const columns = withColumns ?? DEFAULT_COLUMNS;
 
   if (loading) {
     return (
       <LoadingSkeleton
+        canSelect={canSelect}
         displayReprocessingLayout={displayReprocessingLayout}
         pageSize={pageSize}
-        columns={columns}
       />
     );
   }
 
   if (error) {
-    return <LoadingError message={error} onRetry={refetchGroups} />;
+    return (
+      <SimpleTable.Body>
+        <SimpleTable.FullWidthRow>
+          <LoadingError message={error} onRetry={refetchGroups} />
+        </SimpleTable.FullWidthRow>
+      </SimpleTable.Body>
+    );
   }
 
   if (!groupIds.length) {
     return (
-      <NoGroupsHandler
-        organization={organization}
-        query={query}
-        selectedProjectIds={selectedProjectIds}
-        groupIds={groupIds}
-      />
+      <SimpleTable.Body>
+        <SimpleTable.FullWidthRow>
+          <NoGroupsHandler
+            organization={organization}
+            query={query}
+            selectedProjectIds={selectedProjectIds}
+            groupIds={groupIds}
+          />
+        </SimpleTable.FullWidthRow>
+      </SimpleTable.Body>
     );
   }
 
   return (
     <GroupList
+      canSelect={canSelect}
       groupIds={groupIds}
       memberList={memberList}
       query={query}
       displayReprocessingLayout={displayReprocessingLayout}
       groupStatsPeriod={groupStatsPeriod}
       onActionTaken={onActionTaken}
-      supergroupLookup={supergroupLookup}
-      withColumns={columns}
     />
   );
 }
 
-function buildRenderItems(
-  groupIds: string[],
-  getSuperGroupForIssue: (id: string) => SupergroupDetail | null | undefined,
-  enabled: boolean
-): RenderItem[] {
-  if (!enabled) {
-    return groupIds.map(id => ({type: 'issue' as const, id}));
-  }
-
-  const seen = new Map<number, string[]>();
-  const items: RenderItem[] = [];
-
-  for (const id of groupIds) {
-    const sg = getSuperGroupForIssue(id);
-    if (sg && sg.group_ids.length > 1) {
-      const existing = seen.get(sg.id);
-      if (existing) {
-        existing.push(id);
-      } else {
-        const matchingIds = [id];
-        seen.set(sg.id, matchingIds);
-        items.push({type: 'supergroup', supergroup: sg, matchingIds});
-      }
-    } else {
-      items.push({type: 'issue', id});
-    }
-  }
-
-  return items;
-}
-
 function GroupList({
+  canSelect,
   groupIds,
   memberList,
   query,
   displayReprocessingLayout,
   groupStatsPeriod,
   onActionTaken,
-  supergroupLookup,
-  withColumns = DEFAULT_COLUMNS,
 }: GroupListProps) {
-  const theme = useTheme();
-  const organization = useOrganization();
   const topIssue = groupIds[0];
-  const selectDisabled = useMedia(`(width < ${theme.breakpoints.sm})`);
-
-  const showProgress = withColumns.includes('progress');
-
-  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-  const renderItems = useMemo(
-    () =>
-      buildRenderItems(
-        groupIds,
-        (id: string) => supergroupLookup?.[id] ?? null,
-        hasTopIssuesUI
-      ),
-    [groupIds, supergroupLookup, hasTopIssuesUI]
-  );
-
-  const renderStreamGroup = (id: string, columns: GroupListColumn[]) => {
-    const group = GroupStore.get(id) as Group | undefined;
-    if (!group) {
-      return null;
-    }
-    return (
-      <StreamGroup
-        key={id}
-        group={group}
-        statsPeriod={groupStatsPeriod}
-        query={query}
-        hasGuideAnchor={id === topIssue}
-        memberList={group.project ? memberList?.get(group.project.slug) : undefined}
-        displayReprocessingLayout={displayReprocessingLayout}
-        useFilteredStats
-        canSelect={!selectDisabled}
-        onPriorityChange={priority => onActionTaken([id], {priority})}
-        withColumns={columns}
-        progressState={showProgress ? (group.derivedData?.progress ?? null) : undefined}
-      />
-    );
-  };
 
   return (
-    <PanelBody>
-      {renderItems.map(item => {
-        if (item.type === 'issue') {
-          return renderStreamGroup(item.id, withColumns);
+    <SimpleTable.Body>
+      {groupIds.map(id => {
+        const group = GroupStore.get(id) as Group | undefined;
+        if (!group) {
+          return null;
         }
-
-        const {supergroup, matchingIds} = item;
-        const memberGroups = matchingIds
-          .map(id => GroupStore.get(id) as Group | undefined)
-          .filter((g): g is Group => g !== undefined);
-        const stats = aggregateSupergroupStats(memberGroups, groupStatsPeriod);
-
         return (
-          <SupergroupRow
-            key={`sg-${supergroup.id}`}
-            supergroup={supergroup}
-            aggregatedStats={stats}
+          <StreamGroup
+            key={id}
+            group={group}
+            statsPeriod={groupStatsPeriod}
+            query={query}
+            hasGuideAnchor={id === topIssue}
+            memberList={group.project ? memberList?.get(group.project.slug) : undefined}
+            displayReprocessingLayout={displayReprocessingLayout}
+            useFilteredStats
+            canSelect={canSelect}
+            onPriorityChange={priority => onActionTaken([id], {priority})}
+            withColumns={ISSUE_LIST_COLUMNS}
           />
         );
       })}
-    </PanelBody>
+    </SimpleTable.Body>
   );
 }

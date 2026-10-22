@@ -403,6 +403,13 @@ describe('MutableSearch', () => {
   });
 
   describe('formatString', () => {
+    it('quotes an added value that starts with the regex delimiter', () => {
+      const search = new MutableSearch('');
+      search.addFilterValue('url', '//a//');
+
+      expect(search.formatString()).toBe('url:"//a//"');
+    });
+
     const cases = [
       {
         name: 'should convert a basic object to a query string',

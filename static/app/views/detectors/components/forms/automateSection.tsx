@@ -1,5 +1,7 @@
 import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -12,7 +14,6 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -32,16 +33,18 @@ export const AutomateSection = withFieldGroup({
   defaultValues: {workflowIds: [] as string[]},
   props: {} as {project: Project; step?: number},
   render: ({group, step, project}) => (
-    <group.AppField name="workflowIds">
-      {field => (
+    <group.Subscribe selector={state => state.values.workflowIds}>
+      {workflowIds => (
         <AutomateSectionInner
           step={step}
           project={project}
-          workflowIds={field.state.value}
-          setWorkflowIds={field.handleChange}
+          workflowIds={workflowIds}
+          setWorkflowIds={nextWorkflowIds =>
+            group.setFieldValue('workflowIds', nextWorkflowIds)
+          }
         />
       )}
-    </group.AppField>
+    </group.Subscribe>
   ),
 });
 
@@ -95,12 +98,6 @@ function AutomateSectionInner({
   const permissionTooltipText = canEditWorkflowConnections
     ? undefined
     : getNoAlertWritePermissionTooltip();
-  const createPermissionTooltipText = canCreateAlert
-    ? undefined
-    : canEditWorkflowConnections
-      ? t('Save this monitor, then create an alert from its detail page.')
-      : getNoAlertWritePermissionTooltip();
-
   const toggleDrawer = () => {
     if (isDrawerOpen) {
       closeDrawer();
@@ -158,15 +155,13 @@ function AutomateSectionInner({
           />
         </FormSection>
         <ButtonWrapper justify="between">
-          <Button
-            size="sm"
-            icon={<IconAdd />}
-            onClick={openCreateDrawer}
-            disabled={!canCreateAlert}
-            tooltipProps={{title: createPermissionTooltipText}}
-          >
-            {t('Create New Alert')}
-          </Button>
+          {canCreateAlert ? (
+            <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
+              {t('Create New Alert')}
+            </Button>
+          ) : (
+            <div />
+          )}
           <Button
             size="sm"
             icon={<IconEdit />}
@@ -205,14 +200,11 @@ function AutomateSectionInner({
                 >
                   {t('Connect Existing Alerts')}
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={openCreateDrawer}
-                  disabled={!canCreateAlert}
-                  tooltipProps={{title: createPermissionTooltipText}}
-                >
-                  {t('Create New Alert')}
-                </Button>
+                {canCreateAlert && (
+                  <Button size="sm" onClick={openCreateDrawer}>
+                    {t('Create New Alert')}
+                  </Button>
+                )}
                 <Text variant="muted" align="center" density="comfortable">
                   {tct(
                     'Alerts configured for all Issues in the project [project] will also apply to this Monitor.',

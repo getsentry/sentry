@@ -105,7 +105,6 @@ describe('ProjectUserFeedback', () => {
   });
 
   it('cannot toggle spam detection when the user does not have the spam feature flag', () => {
-    organization.features.push('gen-ai-features');
     seerSetupMock = mockSeerSetup();
 
     render(<ProjectUserFeedback />, {
@@ -120,7 +119,6 @@ describe('ProjectUserFeedback', () => {
 
   it('can toggle spam detection', async () => {
     organization.features.push('user-feedback-spam-ingest');
-    organization.features.push('gen-ai-features');
     seerSetupMock = mockSeerSetup();
 
     const detailedProject = DetailedProjectFixture(project);

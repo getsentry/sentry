@@ -7,6 +7,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,8 +36,7 @@ export function useOverviewSeerDrawer() {
   });
   const openGroupIdRef = useRef<string | undefined>(undefined);
 
-  const hasSeerAccess =
-    organization.features.includes('gen-ai-features') && !organization.hideAiFeatures;
+  const hasSeerAccess = areAiFeaturesAllowed(organization);
   const groupId = decodeScalar(location.query.seerDrawer);
 
   useEffect(() => {

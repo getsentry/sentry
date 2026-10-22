@@ -48,6 +48,13 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
 
+# Opt-in private schema for local review; never included in the public docs build.
+build-investigation-api-docs: build-deprecated-docs
+	@mkdir -p .artifacts/investigation-api-docs
+	@OPENAPIGENERATE=1 sentry django spectacular --custom-settings sentry.investigations.apidocs.PRIVATE_SCHEMA_SETTINGS --file .artifacts/investigation-api-docs/openapi.json --format openapi-json --validate --fail-on-warn
+	pnpm exec node api-docs/index.ts .artifacts/investigation-api-docs/openapi.json .artifacts/investigation-api-docs/openapi-derefed.json
+	pnpm --filter @sentry-internal/api-docs exec openapi-examples-validator ../.artifacts/investigation-api-docs/openapi-derefed.json --no-additional-properties
+
 watch-api-docs:
 	@cd api-docs/ && node ./watch.ts
 
@@ -120,13 +127,29 @@ test-js-ci:
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
-	python3 -b -m pytest \
+	python3 -b .github/workflows/scripts/pytest-selected.py \
 		tests \
 		--reuse-db \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
+		--json-report \
+		--json-report-file=".artifacts/pytest.json" \
+		--json-report-omit=log \
+		--junit-xml=.artifacts/pytest.junit.xml \
+		-o junit_suite_name=pytest
+	@echo ""
+
+test-migrations-ci:
+	@echo "--> Running CI Python migration tests"
+	python3 -b -m pytest \
+		$$(find tests -type d -name migrations) \
+		-m migrations \
+		--migrations \
+		--reruns 0 \
+		--fail-slow=150s \
+		--reuse-db \
 		--json-report \
 		--json-report-file=".artifacts/pytest.json" \
 		--json-report-omit=log \
@@ -164,7 +187,7 @@ test-selective:
 	python3 .github/workflows/scripts/selective-testing/confirm-test-selection.py \
 		.cache/selected-tests.txt
 	SELECTED_TESTS_FILE=.cache/selected-tests.txt \
-	python3 -b -m pytest \
+	python3 -b .github/workflows/scripts/pytest-selected.py \
 		-n3 \
 		tests \
 		--reuse-db \
@@ -226,7 +249,7 @@ test-relay-integration:
 		-vv
 	@echo ""
 
-test-api-docs: build-api-docs
+test-api-docs: build-api-docs build-investigation-api-docs
 	pnpm run validate-api-examples
 	python3 -b -m pytest tests/apidocs --reuse-db
 	@echo ""

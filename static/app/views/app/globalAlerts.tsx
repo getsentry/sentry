@@ -9,8 +9,9 @@ import {
 } from 'react';
 import {uuid4} from '@sentry/core';
 
+import type {AlertVariant} from '@sentry/scraps/theme';
+
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import type {AlertVariant} from 'sentry/utils/theme';
 
 export interface GlobalAlert {
   /**
@@ -63,7 +64,7 @@ export type AddAlert = (alert: GlobalAlert) => void;
 interface GlobalAlertContextValue {
   addAlert: AddAlert;
   alerts: readonly StoredGlobalAlert[];
-  closeAlert: (alert: StoredGlobalAlert, muteDurationSeconds?: number) => void;
+  closeAlert: (alert: StoredGlobalAlert) => void;
 }
 
 const MUTED_STORAGE_KEY = 'alerts:muted';
@@ -102,24 +103,21 @@ export function GlobalAlertProvider({children}: Props) {
   const [alerts, setAlerts] = useState<readonly StoredGlobalAlert[]>([]);
   const timersRef = useRef(new Map<string, number>());
 
-  const closeAlert = useCallback(
-    (alert: StoredGlobalAlert, muteDurationSeconds = DEFAULT_MUTE_DURATION_SECONDS) => {
-      if (alert.id !== undefined) {
-        const muted = readMutedAlerts();
-        muted[alert.id] = Math.floor(Date.now() / 1000) + muteDurationSeconds;
-        writeMutedAlerts(muted);
-      }
+  const closeAlert = useCallback((alert: StoredGlobalAlert) => {
+    if (alert.id !== undefined) {
+      const muted = readMutedAlerts();
+      muted[alert.id] = Math.floor(Date.now() / 1000) + DEFAULT_MUTE_DURATION_SECONDS;
+      writeMutedAlerts(muted);
+    }
 
-      const timer = timersRef.current.get(alert.key);
-      if (timer !== undefined) {
-        window.clearTimeout(timer);
-        timersRef.current.delete(alert.key);
-      }
+    const timer = timersRef.current.get(alert.key);
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      timersRef.current.delete(alert.key);
+    }
 
-      setAlerts(prev => prev.filter(a => a.key !== alert.key));
-    },
-    []
-  );
+    setAlerts(prev => prev.filter(a => a.key !== alert.key));
+  }, []);
 
   const addAlert = useCallback(
     (alert: GlobalAlert) => {

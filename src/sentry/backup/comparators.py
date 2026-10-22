@@ -856,9 +856,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardfavoriteuser": [
                 DateUpdatedComparator("date_added", "date_updated"),
             ],
-            "sentry.dashboardhiddenuser": [
-                DateUpdatedComparator("date_added", "date_updated"),
-            ],
             "sentry.dashboardlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated"),
             ],
@@ -878,7 +875,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_added"),
             ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
-            "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
@@ -922,6 +918,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 EmailObfuscatingComparator("creator_label"),
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
+            "service_accounts.serviceaccount": [DateUpdatedComparator("date_updated")],
+            "service_accounts.serviceaccountproject": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             "sentry.team": [
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
@@ -992,7 +992,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
+            "explore.exploresavedformula": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquery": [DateUpdatedComparator("date_updated", "date_added")],
+            "explore.exploresavedvariable": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquerystarred": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
@@ -1019,6 +1021,12 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
             "seer.seerprojectrepositorybranchoverride": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
+            "seer.seerworkflowconfig": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
+            "seer.seerworkflowconfigproject": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
         },

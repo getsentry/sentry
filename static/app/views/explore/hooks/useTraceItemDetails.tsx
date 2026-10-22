@@ -46,6 +46,8 @@ interface UseTraceItemDetailsProps {
    * Alias for `enabled` in react-query.
    */
   enabled?: boolean;
+  /** Opaque hint from the events response that returned this item. */
+  routingHint?: string;
   /**
    * Optional Unix timestamp in seconds to disambiguate trace item lookup.
    */
@@ -80,9 +82,10 @@ export interface TraceItemDetailsResponse {
 // decodes the JSON for us. Since links are so structurally similar to spans, the types are similar as well.
 export type TraceItemResponseLink = {
   itemId: string;
-  sampled: boolean;
   traceId: string;
   attributes?: TraceItemResponseAttribute[];
+  /** Absent when the SDK did not record the sampling decision. */
+  sampled?: boolean;
 };
 
 type TraceItemDetailsUrlParams = {
@@ -96,6 +99,7 @@ type TraceItemDetailsQueryParams = {
   traceId: string;
   traceItemType: TraceItemDataset;
   end?: string;
+  routingHint?: string;
   start?: string;
   statsPeriod?: string | null;
   timestamp?: number;
@@ -117,7 +121,28 @@ export type TraceItemResponseAttribute =
   | {name: string; type: 'str'; value: string}
   | {name: string; type: 'int'; value: number}
   | {name: string; type: 'float'; value: number}
-  | {name: string; type: 'bool'; value: boolean};
+  | {name: string; type: 'bool'; value: boolean}
+  | {name: string; type: 'array'; value: Array<string | number | boolean>};
+
+/**
+ * The scalar value an attribute flattens to for the string-keyed maps field
+ * renderers consume. Array attributes are JSON-encoded into this shape.
+ */
+export type TraceItemAttributeScalarValue = Exclude<
+  TraceItemResponseAttribute,
+  {type: 'array'}
+>['value'];
+
+/**
+ * Flattens an attribute to a scalar for the string-keyed maps field renderers
+ * consume. Arrays are JSON-encoded so the representation matches the attribute
+ * tree rather than a lossy comma-join.
+ */
+export function getScalarAttributeValue(
+  attribute: TraceItemResponseAttribute
+): TraceItemAttributeScalarValue {
+  return attribute.type === 'array' ? JSON.stringify(attribute.value) : attribute.value;
+}
 
 /**
  * Query hook fetching trace item details in EAP.
@@ -148,6 +173,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
       traceItemType: props.traceItemType,
       referrer: props.referrer,
       traceId: props.traceId,
+      routingHint: props.routingHint,
       ...timeQueryParams,
     }),
     enabled,
@@ -158,13 +184,14 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   return result;
 }
 
-function traceItemDetailsApiOptions({
+export function traceItemDetailsApiOptions({
   organizationSlug,
   projectSlug,
   traceItemId,
   traceItemType,
   referrer,
   traceId,
+  routingHint,
   timestamp,
   statsPeriod,
   start,
@@ -196,6 +223,7 @@ function traceItemDetailsApiOptions({
         item_type: traceItemType,
         referrer,
         trace_id: traceId,
+        routing_hint: routingHint || undefined,
         ...timeQuery,
       },
       staleTime: Infinity,
@@ -210,6 +238,7 @@ function useTraceItemDetailsPrefetch({
   traceItemType,
   referrer,
   timestamp,
+  routingHint,
 }: UseTraceItemDetailsProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -224,6 +253,7 @@ function useTraceItemDetailsPrefetch({
     traceItemType,
     referrer,
     traceId,
+    routingHint,
     ...(timestamp
       ? {timestamp: normalizeTimestampToSeconds(timestamp)}
       : normalizeDateTimeParams(selection.datetime)),
@@ -261,7 +291,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   traceItemType,
   referrer,
   timestamp,
-  hoverPrefetchDisabled,
+  routingHint,
   sharedHoverTimeoutRef,
   timeout,
 }: UseTraceItemDetailsProps & {
@@ -274,10 +304,6 @@ export function usePrefetchTraceItemDetailsOnHover({
    * Custom timeout for the prefetched item.
    */
   timeout: number;
-  /**
-   * Whether the hover prefetch should be disabled.
-   */
-  hoverPrefetchDisabled?: boolean;
 }) {
   const {fetchDetails, prefetch, project, traceItemMeta, traceItemAttributes, isPending} =
     useTraceItemDetailsPrefetch({
@@ -287,6 +313,7 @@ export function usePrefetchTraceItemDetailsOnHover({
       traceItemType,
       referrer,
       timestamp,
+      routingHint,
     });
 
   const ownHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -307,7 +334,6 @@ export function usePrefetchTraceItemDetailsOnHover({
       ownHoverTimeoutRef.current = timeoutId;
     },
     onHoverEnd: clearSharedHoverTimeout,
-    isDisabled: hoverPrefetchDisabled,
   });
 
   useEffect(

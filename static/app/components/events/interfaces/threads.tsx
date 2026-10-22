@@ -1,8 +1,14 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClock} from '@sentry/icons/clock';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLock} from '@sentry/icons/lock';
+import {IconPlay} from '@sentry/icons/play';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -21,14 +27,6 @@ import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {
-  IconChevron,
-  IconClock,
-  IconInfo,
-  IconLock,
-  IconPlay,
-  IconTimer,
-} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -56,6 +54,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
+  collapseAll?: boolean;
 };
 
 function getIntendedStackView(
@@ -101,6 +100,7 @@ const useActiveThreadState = (
   const [activeThread, setActiveThread] = useState<Thread | undefined>(() => bestThread);
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setActiveThread(bestThread);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.id]);
@@ -168,7 +168,14 @@ function ThreadStackTraceContent({
   );
 }
 
-export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
+export function Threads({
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+  collapseAll,
+}: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
@@ -194,31 +201,23 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     ? getIntendedStackView(activeThread, exception)
     : undefined;
 
-  function renderPills() {
-    const {
-      id,
-      name,
-      current,
-      crashed,
-      state: threadState,
-      heldLocks,
-    } = activeThread ?? {};
-
-    if (id === null || id === undefined || !name) {
-      return null;
-    }
-
-    const threadStateDisplay = getMappedThreadState(threadState);
-    const lockReason = getLockReason(heldLocks);
-
-    return (
+  const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
+  const hideThreadTags = activeThreadId === undefined || !activeThreadName;
+  const threadStateDisplay = getMappedThreadState(activeThread?.state);
+  const lockReason = getLockReason(activeThread?.heldLocks);
+  const threadPills =
+    activeThreadId === null ||
+    activeThreadId === undefined ||
+    !activeThreadName ? null : (
       <Pills>
-        <Pill name={t('id')} value={id} />
-        {!!name?.trim() && <Pill name={t('name')} value={name} />}
-        {current !== undefined && <Pill name={t('was active')} value={current} />}
-        {crashed !== undefined && (
-          <Pill name={t('errored')} className={crashed ? 'false' : 'true'}>
-            {crashed ? t('yes') : t('no')}
+        <Pill name={t('id')} value={activeThreadId} />
+        {!!activeThreadName?.trim() && <Pill name={t('name')} value={activeThreadName} />}
+        {activeThread?.current !== undefined && (
+          <Pill name={t('was active')} value={activeThread.current} />
+        )}
+        {activeThread?.crashed !== undefined && (
+          <Pill name={t('errored')} className={activeThread.crashed ? 'false' : 'true'}>
+            {activeThread.crashed ? t('yes') : t('no')}
           </Pill>
         )}
         {threadStateDisplay !== undefined && (
@@ -227,13 +226,8 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         {defined(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
     );
-  }
 
   const platform = inferPlatform(event, activeThread);
-  const threadStateDisplay = getMappedThreadState(activeThread?.state);
-
-  const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
-  const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
   function handleChangeThread(direction: 'previous' | 'next') {
     const currentIndex = threads.findIndex((thread: any) => thread.id === activeThreadId);
@@ -257,7 +251,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
-          <Grid>
+          <Grid gap="xl" columns="auto 1fr">
             <div>
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
@@ -307,7 +301,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                       skipWrapper
                     />
                   )}
-                  <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
+                  <LockReason>{lockReason}</LockReason>
                 </Flex>
               </TheadStateContainer>
             )}
@@ -315,12 +309,13 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           {!hideThreadTags && (
             <div>
               <ThreadHeading>{t('Thread Tags')}</ThreadHeading>
-              {renderPills()}
+              {threadPills}
             </div>
           )}
         </Fragment>
       )}
       <StacktraceContext
+        collapseAll={collapseAll}
         projectSlug={projectSlug}
         forceFullStackTrace={hasNonAppFrames ? stackView === StackView.FULL : true}
         defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
@@ -414,12 +409,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     threadComponent
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
 
 const TheadStateContainer = styled('div')`
   display: block;

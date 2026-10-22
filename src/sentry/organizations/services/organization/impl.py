@@ -10,20 +10,19 @@ from django.dispatch import Signal
 
 from sentry import roles
 from sentry.api.serializers import serialize
+from sentry.auth.email import first_matching_email
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
-from sentry.incidents.models.incident import IncidentActivity
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.activity import Activity
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -44,8 +43,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
-from sentry.models.rule import Rule, RuleActivity
-from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.rule import Rule
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
 from sentry.organizations.services.organization import (
@@ -196,11 +194,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> RpcOrganizationMember | None:
-        try:
-            member = OrganizationMember.objects.get(
-                organization_id=organization_id, email__iexact=email
-            )
-        except OrganizationMember.DoesNotExist:
+        member = first_matching_email(
+            OrganizationMember.objects.filter(organization_id=organization_id), email
+        )
+        if member is None:
             return None
 
         return serialize_member(member)
@@ -273,9 +270,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 organization_id=org.id, user_id=user_id
             ).first()
         if member is None and email is not None:
-            member = OrganizationMember.objects.filter(
-                organization_id=org.id, email__iexact=email
-            ).first()
+            member = first_matching_email(
+                OrganizationMember.objects.filter(organization_id=org.id), email
+            )
         if member is None and organization_member_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, id=organization_member_id
@@ -588,10 +585,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
             model_list = [
                 Activity,
                 AlertRule,
-                AlertRuleActivity,
                 Dashboard,
                 DashboardFavoriteUser,
-                DashboardHiddenUser,
                 DashboardLastVisited,
                 DashboardRevision,
                 GroupAssignee,
@@ -602,13 +597,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 GroupSearchViewLastVisited,
                 GroupSearchViewStarred,
                 GroupSubscription,
-                IncidentActivity,
                 OrganizationAccessRequest,
                 ProjectBookmark,
                 RecentSearch,
                 Rule,
-                RuleActivity,
-                RuleSnooze,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(

@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from requests import PreparedRequest, Request
 
 from sentry.constants import ObjectStatus
@@ -13,13 +18,16 @@ from sentry.integrations.cursor_origin.client import (
     CursorOriginSetupApiClient,
 )
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_URL
+from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiPaginationTruncated
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 
 INSTALLATION_ID = "i_01example"
 JWT = "my_cool_jwt"
 TOKEN_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}/access_tokens"
+REPOS_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/installation/repos"
 
 
 def _prepared(path: str) -> PreparedRequest:
@@ -49,16 +57,36 @@ class SetupApiClientTest(TestCase):
         assert mock_jwt.call_count == 2
 
     @responses.activate
+    def test_get_app_reads_the_registration(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/app",
+            json={"id": "app_1", "webhookUrl": "https://sentry.io/hook", "events": ["push"]},
+        )
+
+        app = CursorOriginSetupApiClient().get_app()
+
+        assert app["id"] == "app_1"
+        assert app["events"] == ["push"]
+
+    @responses.activate
     def test_get_installation(self, mock_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}",
-            json={"target": {"slug": "acme"}},
+            json={
+                "id": INSTALLATION_ID,
+                "target": {"slug": "acme", "id": "ns_1", "type": "team"},
+                "repoSelectionMode": "selected",
+                "scopes": ["repository:contents:read"],
+            },
         )
 
         result = CursorOriginSetupApiClient().get_installation(INSTALLATION_ID)
 
-        assert result == {"target": {"slug": "acme"}}
+        assert result["target"]["slug"] == "acme"
+        assert result["repoSelectionMode"] == "selected"
+        assert result["scopes"] == ["repository:contents:read"]
 
     @responses.activate
     def test_delete_installation(self, mock_jwt: mock.MagicMock) -> None:
@@ -101,6 +129,14 @@ class AccessTokenTest(TestCase):
         responses.add(
             responses.POST, TOKEN_URL, json={"token": token, "expiresAt": _iso(expires_in)}
         )
+
+    def _mint_while(self, change: Callable[[], object]) -> None:
+        def mint(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            change()
+            body = {"token": "oit_abc", "expiresAt": _iso(timedelta(minutes=15))}
+            return 200, {}, json.dumps(body)
+
+        responses.add_callback(responses.POST, TOKEN_URL, callback=mint)
 
     @responses.activate
     def test_mints_and_persists_the_token(self, mock_jwt: mock.MagicMock) -> None:
@@ -164,6 +200,75 @@ class AccessTokenTest(TestCase):
         assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
 
     @responses.activate
+    def test_keeps_changes_made_to_the_integration_while_minting(
+        self, mock_jwt: mock.MagicMock
+    ) -> None:
+        self._mint_while(
+            lambda: Integration.objects.filter(id=self.integration.id).update(
+                name="renamed", metadata={"domain_name": "renamed"}
+            )
+        )
+
+        CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        self.integration.refresh_from_db()
+        assert self.integration.name == "renamed"
+        assert self.integration.metadata["domain_name"] == "renamed"
+        assert self.integration.metadata["access_token"] == "oit_abc"
+
+    @responses.activate
+    def test_takes_no_row_lock(self, mock_jwt: mock.MagicMock) -> None:
+        self._mint()
+
+        with CaptureQueriesContext(connections[router.db_for_write(Integration)]) as queries:
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        assert not [q for q in queries.captured_queries if "FOR UPDATE" in q["sql"]]
+
+    @responses.activate
+    def test_keeps_an_uninstall_made_while_minting(self, mock_jwt: mock.MagicMock) -> None:
+        self._mint_while(
+            lambda: Integration.objects.filter(id=self.integration.id).update(
+                status=ObjectStatus.DISABLED
+            )
+        )
+
+        CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        self.integration.refresh_from_db()
+        assert self.integration.status == ObjectStatus.DISABLED
+
+    @responses.activate
+    def test_stores_nothing_for_an_integration_deleted_while_minting(
+        self, mock_jwt: mock.MagicMock
+    ) -> None:
+        self._mint_while(lambda: Integration.objects.get(id=self.integration.id).delete())
+
+        assert CursorOriginApiClient(integration=self.integration).get_access_token() is None
+        assert not Integration.objects.filter(id=self.integration.id).exists()
+
+    @responses.activate
+    def test_rejects_a_response_without_a_token(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json={"expiresAt": _iso(timedelta(minutes=15))})
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+    @responses.activate
+    def test_rejects_a_response_without_an_expiry(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json={"token": "oit_abc", "expiresAt": None})
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+    @responses.activate
+    def test_rejects_a_response_that_is_not_an_object(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json=["oit_abc"])
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+    @responses.activate
     def test_rejects_an_unparseable_expiry(self, mock_jwt: mock.MagicMock) -> None:
         """Storing it would refresh on every later request, quietly and forever."""
         responses.add(
@@ -214,6 +319,25 @@ class AuthorizeRequestTest(TestCase):
 
         assert request.headers["Authorization"] == "Bearer oit_stored"
 
+    @responses.activate
+    @mock.patch("sentry.integrations.cursor_origin.client.get_jwt", return_value=JWT)
+    def test_an_scm_platform_request_names_a_credential_set(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}",
+            json={"id": INSTALLATION_ID, "scopes": ["repository:contents:read"]},
+        )
+
+        response = self.origin_client.request(
+            "GET",
+            f"/app/installations/{INSTALLATION_ID}",
+            raw_response=True,
+            credentials_set="application",
+        )
+
+        assert response.json()["scopes"] == ["repository:contents:read"]
+        assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
+
 
 @control_silo_test
 class PaginateTest(TestCase):
@@ -228,38 +352,47 @@ class PaginateTest(TestCase):
         )
         self.origin_client = CursorOriginApiClient(integration=self.integration)
 
+    def _stub_page(self, *ids: str, next_page_token: str = "") -> None:
+        responses.add(
+            responses.GET,
+            REPOS_URL,
+            json={"repositories": [{"id": i} for i in ids], "nextPageToken": next_page_token},
+        )
+
+    def _query(self, index: int) -> dict[str, list[str]]:
+        return parse_qs(urlparse(responses.calls[index].request.url).query)
+
+    @responses.activate
     def test_follows_page_tokens(self) -> None:
-        pages = [
-            {"repositories": [{"id": "1"}], "nextPageToken": "cursor-2"},
-            {"repositories": [{"id": "2"}], "nextPageToken": ""},
-        ]
-        with mock.patch.object(self.origin_client, "get", side_effect=pages) as mock_get:
-            result = self.origin_client._paginate("/installation/repos", "repositories")
+        self._stub_page("1", next_page_token="cursor-2")
+        self._stub_page("2")
+
+        result: list[dict[str, Any]] = self.origin_client._paginate(
+            "/installation/repos", "repositories"
+        )
 
         assert result == [{"id": "1"}, {"id": "2"}]
-        assert mock_get.call_args_list[0].kwargs["params"] == {"pageSize": 100}
-        assert mock_get.call_args_list[1].kwargs["params"] == {
-            "pageSize": 100,
-            "pageToken": "cursor-2",
-        }
+        assert self._query(0) == {"pageSize": ["100"]}
+        assert self._query(1) == {"pageSize": ["100"], "pageToken": ["cursor-2"]}
 
+    @responses.activate
     def test_stops_on_a_single_page(self) -> None:
-        with mock.patch.object(
-            self.origin_client,
-            "get",
-            return_value={"repositories": [{"id": "1"}], "nextPageToken": ""},
-        ) as mock_get:
-            result = self.origin_client._paginate("/installation/repos", "repositories")
+        self._stub_page("1")
+
+        result: list[dict[str, Any]] = self.origin_client._paginate(
+            "/installation/repos", "repositories"
+        )
 
         assert result == [{"id": "1"}]
-        assert mock_get.call_count == 1
+        assert len(responses.calls) == 1
 
+    @responses.activate
     def test_raises_when_the_page_limit_is_hit(self) -> None:
         """A short list reads as removed repositories to the sync, so never truncate silently."""
-        endless = {"repositories": [{"id": "1"}], "nextPageToken": "always-more"}
-        with mock.patch.object(self.origin_client, "get", return_value=endless) as mock_get:
-            with pytest.raises(ApiPaginationTruncated) as excinfo:
-                self.origin_client._paginate("/installation/repos", "repositories")
+        self._stub_page("1", next_page_token="always-more")
 
-        assert mock_get.call_count == self.origin_client.page_number_limit
+        with pytest.raises(ApiPaginationTruncated) as excinfo:
+            self.origin_client._paginate("/installation/repos", "repositories")
+
+        assert len(responses.calls) == self.origin_client.page_number_limit
         assert len(excinfo.value.partial_data) == self.origin_client.page_number_limit

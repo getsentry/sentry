@@ -73,7 +73,13 @@ describe('ScmFeatureSelectionCards', () => {
     const errorMonitoringCard = screen.getByRole('checkbox', {
       name: /Error monitoring/,
     });
-    expect(errorMonitoringCard).toBeDisabled();
+    expect(errorMonitoringCard).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.tab();
+    expect(errorMonitoringCard).toHaveFocus();
+    expect(
+      await screen.findByText('Error monitoring is always enabled')
+    ).toBeInTheDocument();
 
     await userEvent.click(errorMonitoringCard);
     expect(onToggleFeature).not.toHaveBeenCalled();
@@ -119,9 +125,17 @@ describe('ScmFeatureSelectionCards', () => {
       />
     );
 
-    expect(screen.getByRole('checkbox', {name: /Session replay/})).toBeDisabled();
-    expect(screen.getByRole('checkbox', {name: /Profiling/})).toBeDisabled();
-    expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeEnabled();
+    expect(screen.getByRole('checkbox', {name: /Session replay/})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('checkbox', {name: /Profiling/})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toHaveAttribute(
+      'aria-disabled'
+    );
   });
 
   it('error monitoring checkbox is always checked', () => {
@@ -157,6 +171,29 @@ describe('ScmFeatureSelectionCards', () => {
     expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
     expect(screen.getByText('5M spans / mo')).toBeInTheDocument();
     expect(screen.getByText('Usage-based')).toBeInTheDocument();
+  });
+
+  it('describes a card with its volume tooltip without adding it to the name', () => {
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={NO_DISABLED}
+        onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
+      />
+    );
+
+    const tracingCard = screen.getByRole('checkbox', {name: /Tracing/});
+    expect(tracingCard).toHaveAccessibleDescription(
+      'Your Free plan includes 5M spans / month. Upgrade to Team or Business to send more.'
+    );
+    expect(tracingCard).not.toHaveAccessibleName(/Free plan includes/);
+
+    // The volume label sits inside the card button, so it must not be a focus
+    // stop of its own: interactive content cannot nest inside a button.
+    expect(tracingCard.querySelector('[tabindex="0"]')).toBeNull();
   });
 
   it('renders skeletons in place of volume tags while loading', () => {

@@ -16,7 +16,7 @@ export function ProjectCreationErrorAlert({error}: Props) {
 
   return (
     <Alert.Container>
-      <Alert variant="danger" showIcon={false}>
+      <Alert variant="danger" showIcon={false} role="alert">
         {message}
       </Alert>
     </Alert.Container>

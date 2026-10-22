@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -68,11 +69,12 @@ function UpsellModal(props: Props) {
       // We want to track analytics right away, cannot wait for the network.
       has_price_change: loading ? undefined : previewData?.billedAmount !== 0,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, subscription]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <HighlightModalContainer>
-      <ModalLayout>
+      <Grid columns={{zero: '1fr', xl: '1fr auto'}} gap={{xl: '2xl'}} marginBottom="xl">
         <UpsellContent>
           <SubheaderPrimary>{t('Updates to Sentry')}</SubheaderPrimary>
           <Header>{t('Performance Monitoring and Profiling that scales')}</Header>
@@ -119,7 +121,7 @@ function UpsellModal(props: Props) {
             )}
           </ErrorBoundary>
         </div>
-      </ModalLayout>
+      </Grid>
     </HighlightModalContainer>
   );
 }
@@ -140,17 +142,6 @@ const Header = styled('h1')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin: ${p => p.theme.space.md} 0;
-`;
-
-const ModalLayout = styled('div')`
-  display: grid;
-  font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr auto;
-    gap: ${p => p.theme.space['2xl']};
-  }
 `;
 
 const UpsellContent = styled('div')`

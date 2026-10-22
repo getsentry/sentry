@@ -63,7 +63,7 @@ class ProjectIndexEndpoint(Endpoint):
                 if org_context is None:
                     queryset = queryset.none()
                 else:
-                    agent_access = access.from_agent_auth(request.auth, org_context)
+                    agent_access = access.from_rpc_auth(request.auth, org_context)
                     queryset = queryset.filter(organization_id=request.auth.organization_id)
                     if not agent_access.has_global_access:
                         queryset = queryset.filter(id__in=agent_access.accessible_project_ids)

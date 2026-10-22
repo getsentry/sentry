@@ -55,6 +55,16 @@ LITERAL_OPERATOR_MAP = {
 }
 IN_OPERATORS = ["IN", "NOT IN"]
 
+# Snuba applies the same type rules to OP_REGEXP as to OP_LIKE: the pattern matches string
+# values, or the string elements of a string array.
+REGEXP_ATTRIBUTE_TYPES = frozenset(
+    {
+        AttributeKey.TYPE_STRING,
+        AttributeKey.TYPE_ARRAY,
+        AttributeKey.TYPE_ARRAY_STRING,
+    }
+)
+
 AGGREGATION_OPERATOR_MAP = {
     "=": AggregationComparisonFilter.OP_EQUALS,
     "!=": AggregationComparisonFilter.OP_NOT_EQUALS,
@@ -274,3 +284,7 @@ PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] 
     AttributeKey.Type.TYPE_ARRAY_DOUBLE: "array",
     AttributeKey.Type.TYPE_ARRAY_BOOL: "array",
 }
+
+# Protobuf has a max recursion depth, set a maximum on our side because snuba will 400 on parsing a request that has too
+# many functions chained together
+MAX_BOOLEAN_DEPTH = 50

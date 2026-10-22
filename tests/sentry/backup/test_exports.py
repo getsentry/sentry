@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
+import pytest
 from django.db import router
 from orjson import JSONDecodeError, dumps
 
@@ -45,6 +46,8 @@ from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import get_matching_exportable_models
+
+pytestmark = pytest.mark.usefixtures("skip_group_attributes_snapshots")
 
 
 class FakeExportCheckpointer(ExportCheckpointer):

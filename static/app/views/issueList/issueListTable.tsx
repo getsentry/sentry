@@ -1,24 +1,27 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {useResponsivePropValue} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
+import {HoverOverlayGroupProvider} from '@sentry/scraps/useHoverOverlay';
 
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import {Panel} from 'sentry/components/panels/panel';
+import {
+  StreamGroupTable,
+  useStreamGroupColumns,
+} from 'sentry/components/stream/groupColumns';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
-import {GroupListBody} from 'sentry/views/issueList/groupListBody';
+import {GroupListBody, ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
-import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface IssueListTableProps {
   allResultsVisible: boolean;
@@ -40,10 +43,9 @@ interface IssueListTableProps {
   queryCount: number;
   refetchGroups: (fetchAllCounts?: boolean) => void;
   selection: PageFilters;
+  sort: IssueSortOptions;
   statsLoading: boolean;
   statsPeriod: string;
-  supergroupLookup?: SupergroupLookup;
-  withColumns?: GroupListColumn[];
 }
 
 export function IssueListTable({
@@ -55,6 +57,7 @@ export function IssueListTable({
   query,
   queryCount,
   selection,
+  sort,
   statsPeriod,
   onActionTaken,
   issuesLoading,
@@ -68,10 +71,15 @@ export function IssueListTable({
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
   pageSize,
-  supergroupLookup,
-  withColumns,
 }: IssueListTableProps) {
   const location = useLocation();
+  const selectDisabled = useResponsivePropValue({zero: true, xl: false});
+  const {columns, selectionEnabled} = useStreamGroupColumns({
+    canSelect: !selectDisabled,
+    displayReprocessingLayout: displayReprocessingActions,
+    withChart: true,
+    withColumns: ISSUE_LIST_COLUMNS,
+  });
 
   const isNewViewEmptyStateActive =
     location.query.new === 'true' &&
@@ -95,18 +103,22 @@ export function IssueListTable({
       >
         {tourProps => (
           <div {...tourProps}>
-            <ContainerPanel data-test-id="issue-list">
-              <IssueListBulkCommandPaletteActions
-                query={query}
-                queryCount={queryCount}
-                selection={selection}
-                groupIds={groupIds}
-                onActionTaken={onActionTaken}
-              />
+            <IssueListBulkCommandPaletteActions
+              query={query}
+              queryCount={queryCount}
+              selection={selection}
+              sort={sort}
+              groupIds={groupIds}
+              onActionTaken={onActionTaken}
+            />
+            <StreamGroupTable columns={columns} data-test-id="issue-list">
               {(groupIds.length > 0 || issuesLoading) && (
                 <HoverOverlayGroupProvider>
                   <IssueListActions
+                    columns={columns}
+                    selectionEnabled={selectionEnabled}
                     selection={selection}
+                    sort={sort}
                     query={query}
                     queryCount={queryCount}
                     onSelectStatsPeriod={onSelectStatsPeriod}
@@ -116,7 +128,6 @@ export function IssueListTable({
                     groupIds={groupIds}
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
-                    withColumns={withColumns}
                   />
                 </HoverOverlayGroupProvider>
               )}
@@ -127,6 +138,7 @@ export function IssueListTable({
                   isLoading={issuesLoading}
                 >
                   <GroupListBody
+                    canSelect={!selectDisabled}
                     memberList={memberList}
                     groupStatsPeriod={statsPeriod}
                     groupIds={groupIds}
@@ -139,12 +151,10 @@ export function IssueListTable({
                     pageSize={pageSize}
                     refetchGroups={refetchGroups}
                     onActionTaken={onActionTaken}
-                    supergroupLookup={supergroupLookup}
-                    withColumns={withColumns}
                   />
                 </VisuallyCompleteWithData>
               </HoverOverlayGroupProvider>
-            </ContainerPanel>
+            </StreamGroupTable>
           </div>
         )}
       </DemoTourElement>
@@ -160,8 +170,4 @@ export function IssueListTable({
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
-`;
-
-const ContainerPanel = styled(Panel)`
-  container-type: inline-size;
 `;

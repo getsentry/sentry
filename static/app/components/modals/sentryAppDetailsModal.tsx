@@ -1,18 +1,19 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFlag} from '@sentry/icons/flag';
 import {useMutation} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 
 import {Access} from 'sentry/components/acl/access';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -22,9 +23,7 @@ import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
   closeModal: () => void;
@@ -41,8 +40,6 @@ export function SentryAppDetailsModal(props: Props) {
 
   useEffect(() => {
     // if the user changes org, count this as a fresh event to track
-    recordInteraction(sentryApp.slug, 'sentry_app_viewed');
-
     trackIntegrationAnalytics(
       'integrations.install_modal_opened',
       {
@@ -108,12 +105,8 @@ export function SentryAppDetailsModal(props: Props) {
     permissions.write.length > 0 ||
     permissions.admin.length > 0;
 
-  const renderPermissions = () => {
-    if (!hasStandardPermissions && specialPermissions.length === 0) {
-      return null;
-    }
-
-    return (
+  const permissionsContent =
+    !hasStandardPermissions && specialPermissions.length === 0 ? null : (
       <Fragment>
         <Title>Permissions</Title>
         {permissions.read.length > 0 && (
@@ -163,7 +156,6 @@ export function SentryAppDetailsModal(props: Props) {
         ))}
       </Fragment>
     );
-  };
 
   // Prepare the features list
   const features = (featureData || []).map(f => ({
@@ -180,19 +172,19 @@ export function SentryAppDetailsModal(props: Props) {
 
   return (
     <Fragment>
-      <Heading>
+      <Grid align="center" marginBottom="xl" gap="md" columns="max-content 1fr">
         <SentryAppAvatar sentryApp={sentryApp} size={50} />
         <Stack gap="sm">
           <Name>{sentryApp.name}</Name>
           {!!features.length && <Features>{featureTags(features)}</Features>}
         </Stack>
-      </Heading>
+      </Grid>
       <Description>{overview}</Description>
       <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
       <IntegrationFeatures {...featureProps}>
         {({disabled, disabledReason}) => (
           <Fragment>
-            {!disabled && renderPermissions()}
+            {!disabled && permissionsContent}
             <Footer>
               <Author>{t('Authored By %s', sentryApp.author)}</Author>
               <div>
@@ -225,14 +217,6 @@ export function SentryAppDetailsModal(props: Props) {
     </Fragment>
   );
 }
-
-const Heading = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const Name = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};

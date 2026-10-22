@@ -104,9 +104,9 @@ export function useUndoStack(state: ListState<ParseResultToken>) {
         focusOverride: newFocusOverride,
       });
     }
+    // oxlint-disable-next-line react/memo-dependencies
   }, [dispatch, trimmedQuery]);
 
-  // oxlint-disable-next-line react/refs
   return {
     // oxlint-disable-next-line react/refs
     undoStack: undoStackRef.current,

@@ -156,7 +156,6 @@ function ZoomPane({
   zoom: ReturnType<typeof useD3Zoom>;
 }) {
   return (
-    // oxlint-disable-next-line react/refs
     <ZoomViewport ref={zoom.containerRef}>
       <ImageSizer {...imageSizerProps(image)}>
         {/* oxlint-disable-next-line react/refs */}
@@ -274,6 +273,7 @@ export const OnionCardBody = memo(function OnionCardBodyImpl({
         </Text>
         <Flex width="200px">
           <Slider
+            aria-label={t('Head image opacity')}
             value={opacity}
             onChange={setOpacity}
             formatOptions={{style: 'unit', unit: 'percent'}}
@@ -305,6 +305,7 @@ function LazyImage({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setLoaded(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [src]);
 
   const onLoad = useCallback(() => setLoaded(true), []);
@@ -317,7 +318,8 @@ function LazyImage({
   return (
     <Container position="relative" display="inline-block" maxWidth="100%">
       {!loaded && (
-        <PlaceholderSizer
+        <Container
+          overflow="hidden"
           style={{
             width: width ? `${width}px` : '100%',
             maxWidth: '100%',
@@ -326,7 +328,7 @@ function LazyImage({
           }}
         >
           <Placeholder width="100%" height="100%" />
-        </PlaceholderSizer>
+        </Container>
       )}
       <HiddenUntilLoaded
         ref={refCallback}
@@ -342,10 +344,6 @@ function LazyImage({
     </Container>
   );
 }
-
-const PlaceholderSizer = styled('div')`
-  overflow: hidden;
-`;
 
 const HiddenUntilLoaded = styled('img')`
   display: block;

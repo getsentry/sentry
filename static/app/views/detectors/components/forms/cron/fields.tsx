@@ -4,6 +4,7 @@ import type {
   CronDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {
   ScheduleType,
   type MonitorConfig,
@@ -16,12 +17,8 @@ export const DEFAULT_CRONTAB = '0 0 * * *';
 export const CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE = 1;
 export const CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT = 'day';
 
-export const CRON_DEFAULT_CHECKIN_MARGIN = 1;
 export const CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD = 1;
 export const CRON_DEFAULT_RECOVERY_THRESHOLD = 1;
-
-// In minutes
-export const CRON_DEFAULT_MAX_RUNTIME = 30;
 
 interface CronDetectorFormData {
   checkinMargin: number | null;
@@ -45,10 +42,10 @@ type CronDetectorFormFieldName = keyof CronDetectorFormData;
 const DEFAULT_CRON_DETECTOR_FORM_DATA_MAP: {
   [K in CronDetectorFormFieldName]: CronDetectorFormData[K];
 } = {
-  checkinMargin: CRON_DEFAULT_CHECKIN_MARGIN,
+  checkinMargin: DEFAULT_CHECKIN_MARGIN,
   description: null,
   failureIssueThreshold: CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
-  maxRuntime: CRON_DEFAULT_MAX_RUNTIME,
+  maxRuntime: DEFAULT_MAX_RUNTIME,
   name: '',
   owner: '',
   projectId: '',

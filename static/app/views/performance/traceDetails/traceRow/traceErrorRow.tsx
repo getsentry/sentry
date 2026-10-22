@@ -1,0 +1,85 @@
+import {PlatformIcon} from 'platformicons';
+
+import {AnsiText} from 'sentry/components/ansiText';
+import {t} from 'sentry/locale';
+import type {Level} from 'sentry/types/event';
+import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
+import type {ErrorNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/errorNode';
+import {InvisibleTraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
+import {
+  maybeFocusTraceRow,
+  TraceRowConnectors,
+  type TraceRowProps,
+} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+
+const ERROR_LEVEL_LABELS: Record<Level | 'default', string> = {
+  sample: t('Sample'),
+  info: t('Info'),
+  warning: t('Warning'),
+  error: t('Error'),
+  fatal: t('Fatal'),
+  default: t('Default'),
+  unknown: t('Unknown'),
+};
+
+export function TraceErrorRow(props: TraceRowProps<ErrorNode>) {
+  const description = props.node.description;
+  const timestamp = props.node.space[0];
+
+  return (
+    <div
+      key={props.index}
+      ref={r =>
+        props.tabIndex === 0
+          ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
+          : undefined
+      }
+      tabIndex={props.tabIndex}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.maxIssueSeverity}`}
+      onPointerDown={props.onRowClick}
+      onKeyDown={props.onRowKeyDown}
+      style={props.style}
+    >
+      <div
+        className="TraceLeftColumn"
+        ref={props.registerListColumnRef}
+        // oxlint-disable-next-line react/refs
+        onDoubleClick={props.onRowDoubleClick}
+      >
+        <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
+          <div className="TraceChildrenCountWrapper">
+            <TraceRowConnectors node={props.node} manager={props.manager} />{' '}
+          </div>
+          <PlatformIcon
+            platform={props.projects[props.node.value.project_slug] ?? 'default'}
+          />
+          <span className="TraceOperation">
+            {ERROR_LEVEL_LABELS[props.node.value.level ?? 'error']}
+          </span>
+          <strong className="TraceEmDash"> — </strong>
+          <span className="TraceDescription">
+            <AnsiText>{description ?? ''}</AnsiText>
+          </span>
+        </div>
+      </div>
+      {props.pinnedAttributeCell}
+      <div
+        ref={props.registerSpanColumnRef}
+        className={props.spanColumnClassName}
+        onDoubleClick={props.onRowDoubleClick}
+      >
+        <InvisibleTraceBar
+          node_space={props.node.space}
+          manager={props.manager}
+          virtualizedIndex={props.virtualized_index}
+        >
+          {typeof timestamp === 'number' ? (
+            <div className={`TraceIcon ${props.node.value.level}`}>
+              <TraceIcons.Icon event={props.node.value} />
+            </div>
+          ) : null}
+        </InvisibleTraceBar>
+      </div>
+    </div>
+  );
+}

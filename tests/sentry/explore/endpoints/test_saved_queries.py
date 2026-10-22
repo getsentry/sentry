@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 from sentry.discover.models import (
@@ -20,11 +19,9 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-@pytest.mark.skip(reason="API not public yet, this line will be removed in future")
 class SavedQueriesTest(APITestCase):
     features = {
         "organizations:visibility-explore-view": True,
-        "organizations:discover-queries-in-all-queries": True,
     }
 
     def setUp(self) -> None:
@@ -81,7 +78,7 @@ class SavedQueriesTest(APITestCase):
             is_homepage=True,
         )
 
-        self.url = reverse("sentry-api-0-saved-queries", args=[self.org.slug])
+        self.url = reverse("sentry-api-0-explore-all-queries", args=[self.org.slug])
 
     def test_get(self) -> None:
         with self.feature(self.features):
@@ -138,7 +135,8 @@ class SavedQueriesTest(APITestCase):
         assert response.data[5]["name"] == "Test query"
         assert response.data[5]["queryType"] == "explore"
         assert sorted(response.data[5]["projects"]) == sorted(self.project_ids)
-        assert response.data[5]["range"] == "24h"
+        assert "range" not in response.data[5]
+        assert response.data[5]["statsPeriod"] == "24h"
         assert response.data[5]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
         assert "createdBy" in response.data[5]
         assert response.data[5]["createdBy"]["username"] == self.user.username
@@ -271,29 +269,6 @@ class SavedQueriesTest(APITestCase):
         assert [s.explore_saved_query.name for s in starred] == sorted_names
         assert [s.position for s in starred] == list(range(1, len(sorted_names) + 1))
         assert starred[middle_index].explore_saved_query.name == middle_name
-
-    def test_sync_prebuilt_starred_preserves_user_custom_order(self) -> None:
-        sync_prebuilt_queries(self.org)
-        sync_prebuilt_queries_starred(self.org, self.user)
-
-        original_ids = list(
-            ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
-            .order_by("position")
-            .values_list("explore_saved_query_id", flat=True)
-        )
-        reversed_ids = list(reversed(original_ids))
-        ExploreSavedQueryStarred.objects.reorder_starred_queries(
-            self.org, self.user.id, reversed_ids
-        )
-
-        sync_prebuilt_queries_starred(self.org, self.user)
-
-        after_ids = list(
-            ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
-            .order_by("position")
-            .values_list("explore_saved_query_id", flat=True)
-        )
-        assert after_ids == reversed_ids
 
     def test_get_my_queries(self) -> None:
         with self.feature(self.features):

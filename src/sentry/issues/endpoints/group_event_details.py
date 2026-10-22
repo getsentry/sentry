@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Sequence
+from dataclasses import asdict
 from typing import Any, cast
 
 import sentry_sdk
@@ -17,11 +18,18 @@ from snuba_sdk.legacy import is_condition, parse_condition
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.event_search import (
+    ParenExpression,
+    SearchBoolean,
+    SearchConfig,
+    SearchFilter,
+    parse_search_query,
+)
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.serializers import EventSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.event import (
     EventSerializerResponse,
     GroupEventDetailsResponse,
@@ -48,14 +56,17 @@ from sentry.issues.formatting.mixin import (
     format_event_response,
 )
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.issue_search import issue_search_config
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.filter import (
     FilterConvertParams,
     convert_search_filter_to_snuba_query,
     format_search_filter,
 )
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereType
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -63,6 +74,16 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.snuba import get_snuba_column_name
+
+BOOLEAN_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
+
+
+class IssueEventQueryBuilder(DiscoverQueryBuilder):
+    def format_search_filter(self, term: SearchFilter) -> WhereType | None:
+        # Like the legacy path, ignore issue-only filters when selecting events.
+        if term.key.name in GroupSerializerSnuba.skip_snuba_fields:
+            return None
+        return super().format_search_filter(term)
 
 
 def issue_search_query_to_conditions(
@@ -83,8 +104,6 @@ def issue_search_query_to_conditions(
     legacy_conditions: list[Any] = []
     if search_filters:
         for search_filter in search_filters:
-            from sentry.api.serializers import GroupSerializerSnuba
-
             if search_filter.key.name not in GroupSerializerSnuba.skip_snuba_fields:
                 filter_keys: FilterConvertParams = {
                     "organization_id": group.project.organization.id,
@@ -216,13 +235,55 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             raise ParseError(detail="Invalid date range")
 
         query = request.GET.get("query")
+        boolean_search = False
         conditions: list[Condition] = []
         legacy_conditions: list[Any] = []
         if query:
             try:
-                conditions, legacy_conditions = issue_search_query_to_conditions(
-                    query, group, request.user, environments
-                )
+                if features.has(
+                    "organizations:issue-details-boolean-search", organization, actor=request.user
+                ):
+                    parsed_query = parse_search_query(
+                        query,
+                        config=BOOLEAN_SEARCH_CONFIG,
+                    )
+                    boolean_search = any(
+                        isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
+                        for term in parsed_query
+                    )
+                if boolean_search:
+                    dataset = (
+                        Dataset.Events
+                        if group.issue_category == GroupCategory.ERROR
+                        else Dataset.IssuePlatform
+                    )
+                    builder = IssueEventQueryBuilder(
+                        dataset=dataset,
+                        params={},
+                        snuba_params=SnubaParams(
+                            organization=organization,
+                            projects=[group.project],
+                            environments=environments,
+                        ),
+                        query=query,
+                        config=QueryBuilderConfig(
+                            parser_config_overrides=asdict(BOOLEAN_SEARCH_CONFIG),
+                            skip_time_conditions=True,
+                            use_aggregate_conditions=True,
+                            column_resolver=functools.partial(
+                                get_snuba_column_name, dataset=dataset
+                            ),
+                        ),
+                    )
+                    if builder.having:
+                        raise InvalidSearchQuery(
+                            "Aggregate filters are not supported for individual events."
+                        )
+                    conditions = builder.where
+                else:
+                    conditions, legacy_conditions = issue_search_query_to_conditions(
+                        query, group, request.user, environments
+                    )
             except ValidationError:
                 raise ParseError(detail="Invalid event query")
             except InvalidSearchQuery as error:
@@ -308,6 +369,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             include_full_release_data="fullRelease" not in collapse,
             conditions=conditions,
             legacy_conditions=legacy_conditions,
+            use_snql=boolean_search,
             start=start,
             end=end,
         )

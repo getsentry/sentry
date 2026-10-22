@@ -19,7 +19,7 @@ import {
   type SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
-import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapWidgetTypes';
 import {EAP_WEB_VITALS} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {Chart as DurationPercentileChart} from './durationPercentileChart/chart';

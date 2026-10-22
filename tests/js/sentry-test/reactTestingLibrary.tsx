@@ -2,27 +2,27 @@ import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {
   Outlet,
-  RouterProvider,
+  UNSAFE_createMemoryHistory,
+  UNSAFE_createRouter,
   useRouteError,
+  type DataRouter,
+  type InitialEntry,
+  type RouterNavigateOptions,
   type RouteObject,
   type To,
-} from 'react-router-dom';
+} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-import {
-  createMemoryHistory,
-  createRouter,
-  type InitialEntry,
-  type MemoryHistory,
-  type Router,
-  type RouterNavigateOptions,
-} from '@remix-run/router';
 import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
+
+import {instrumentUserEvent} from 'sentry-test/instrumentedEnv/userEventIntegration';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
@@ -32,10 +32,8 @@ import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
-import {TopBar} from 'sentry/views/navigation/topBar';
+import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
-
-import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 import {SentryNuqsTestingAdapter} from './nuqsTestingAdapter';
@@ -47,6 +45,10 @@ interface ProviderOptions {
    * Pass additional context providers
    */
   additionalWrapper?: rtl.RenderOptions['wrapper'];
+  /**
+   * Observe nuqs URL updates, including navigation options.
+   */
+  onNuqsUrlUpdate?: OnUrlUpdateFunction;
   /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
@@ -122,12 +124,11 @@ interface InitialRouterOptions {
 function TopBarTestSlotOutlets() {
   return createPortal(
     <Fragment>
-      <TopBar.Slot.Outlet name="breadcrumbs">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      {/* Mirror the real TopBar, which renders the title slot as an <h1>. */}
-      <TopBar.Slot.Outlet name="title">{p => <h1 {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="search">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="actions">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="feedback">{p => <div {...p} />}</TopBar.Slot.Outlet>
+      <TopBarSlots.Outlet name="breadcrumbs">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="title">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="search">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="actions">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="feedback">{p => <div {...p} />}</TopBarSlots.Outlet>
     </Fragment>,
     document.body
   );
@@ -145,7 +146,7 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <TopBar.Slot.Provider>
+      <TopBarSlots.Provider>
         <TopBarTestSlotOutlets />
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
@@ -156,7 +157,7 @@ function makeAllTheProviders(options: ProviderOptions) {
             </GlobalAlertProvider>
           </OrganizationContext>
         </LLMContextProvider>
-      </TopBar.Slot.Provider>
+      </TopBarSlots.Provider>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;
@@ -164,7 +165,10 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <SentryNuqsTestingAdapter defaultOptions={{shallow: false}}>
+          <SentryNuqsTestingAdapter
+            defaultOptions={{shallow: false}}
+            onUrlUpdate={options.onNuqsUrlUpdate}
+          >
             <ThemeProvider theme={ThemeFixture()}>
               <ScrapsTestingProviders>
                 <CommandPaletteProvider>{wrappedContent}</CommandPaletteProvider>
@@ -181,7 +185,7 @@ function createRoutesFromConfig(
   children: React.ReactNode,
   config: RouterConfig | undefined
 ): RouteObject[] {
-  // By default react-router 6 catches exceptions and displays the stack
+  // By default React Router catches exceptions and displays the stack
   // trace. For tests we want them to bubble out
   function ErrorBoundary(): React.ReactNode {
     throw useRouteError();
@@ -228,7 +232,7 @@ function makeRouter({
 }: {
   children: React.ReactNode;
   config: RouterConfig | undefined;
-  history: MemoryHistory;
+  history: ReturnType<typeof UNSAFE_createMemoryHistory>;
   outletContext: Record<string, unknown> | undefined;
 }) {
   const childRoutes = createRoutesFromConfig(children, config);
@@ -242,11 +246,7 @@ function makeRouter({
       ]
     : childRoutes;
 
-  const router = createRouter({
-    future: {
-      v7_prependBasename: true,
-      v7_relativeSplatPath: true,
-    },
+  const router = UNSAFE_createRouter({
     history,
     routes,
   }).initialize();
@@ -255,9 +255,9 @@ function makeRouter({
 }
 
 class TestRouter {
-  private router: Router;
+  private router: DataRouter;
 
-  constructor(router: Router) {
+  constructor(router: DataRouter) {
     this.router = router;
   }
 
@@ -269,6 +269,14 @@ class TestRouter {
       ...this.router.state.location,
       query,
     };
+  }
+
+  /**
+   * How the current location was reached: 'POP' (initial entry or back/forward),
+   * 'PUSH', or 'REPLACE'.
+   */
+  get historyAction() {
+    return this.router.state.historyAction;
   }
 
   navigate = (to: To | number, opts?: RouterNavigateOptions) => {
@@ -342,13 +350,14 @@ function getInitialRouterConfig(options: InitialRouterOptions): {
 function render(ui: React.ReactElement, options: RenderOptions = {}): RenderReturn {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
-  const history = createMemoryHistory({
+  const history = UNSAFE_createMemoryHistory({
     initialEntries: [initialEntry],
   });
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     additionalWrapper: options.additionalWrapper,
+    onNuqsUrlUpdate: options.onNuqsUrlUpdate,
   });
 
   const memoryRouter = makeRouter({
@@ -358,10 +367,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  const renderResult = rtl.render(
-    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
-    options
-  );
+  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -371,11 +377,11 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(
-      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
-    );
+    renderResult.rerender(<RouterProvider router={newRouter} />);
     // Force the router to update children
-    rtl.act(() => newRouter.revalidate());
+    rtl.act(() => {
+      newRouter.revalidate();
+    });
   };
 
   const testRouter = new TestRouter(memoryRouter);
@@ -393,16 +399,17 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
 ): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
-  const history = createMemoryHistory({
+  const history = UNSAFE_createMemoryHistory({
     initialEntries: [initialEntry],
   });
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     additionalWrapper: options.additionalWrapper,
+    onNuqsUrlUpdate: options.onNuqsUrlUpdate,
   });
 
-  let memoryRouter: Router | null = null;
+  let memoryRouter: DataRouter | null = null;
 
   function Wrapper({children}: {children?: React.ReactNode}) {
     // oxlint-disable-next-line react/globals -- Test helper exposes the router built inside the wrapper.
@@ -413,7 +420,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
+    return <RouterProvider router={memoryRouter} />;
   }
 
   const {initialProps, ...rest} = options;

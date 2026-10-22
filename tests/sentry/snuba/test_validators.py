@@ -18,7 +18,7 @@ class SnubaQueryValidatorTest(TestCase):
             "dataset": Dataset.Events.value,
             "query": "test query",
             "aggregate": "count()",
-            "timeWindow": 60,
+            "timeWindow": 3600,
             "environment": self.environment.name,
             "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
         }
@@ -35,7 +35,7 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.validated_data["dataset"] == Dataset.Events
         assert validator.validated_data["query"] == "test query"
         assert validator.validated_data["aggregate"] == "count()"
-        assert validator.validated_data["time_window"] == 60
+        assert validator.validated_data["time_window"] == 3600
         assert validator.validated_data["environment"] == self.environment
         assert validator.validated_data["event_types"] == [SnubaQueryEventType.EventType.ERROR]
         assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
@@ -177,7 +177,7 @@ class SnubaQueryValidatorTest(TestCase):
             "dataset": Dataset.EventsAnalyticsPlatform.value,
             "query": "",
             "aggregate": "user_misery(span.duration,300)",
-            "timeWindow": 60,
+            "timeWindow": 3600,
             "environment": self.environment.name,
             "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
         }
@@ -197,7 +197,7 @@ class SnubaQueryValidatorTest(TestCase):
             "dataset": Dataset.EventsAnalyticsPlatform.value,
             "query": "",
             "aggregate": "per_second(value,sentry.apigateway.proxy_request,counter,none)",
-            "timeWindow": 60,
+            "timeWindow": 3600,
             "environment": self.environment.name,
             "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.name.lower()],
         }

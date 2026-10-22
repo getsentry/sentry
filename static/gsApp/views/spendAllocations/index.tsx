@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -15,7 +17,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -274,6 +275,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     fetchSpendAllocations();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [fetchSpendAllocations, viewNextPeriod]);
 
   const openForm = (formData?: SpendAllocation) => (e: React.MouseEvent) => {
@@ -364,7 +366,11 @@ export function SpendAllocationsRoot({subscription}: Props) {
         action={
           !isLoading &&
           orgEnabledFlag && (
-            <Flex gap="md">
+            <Flex
+              direction={{zero: 'column', md: 'row'}}
+              flex={{zero: '1 0 100%', md: '0 1 auto'}}
+              gap="md"
+            >
               {subscription.canSelfServe && hasBillingPerms && (
                 <LinkButton
                   aria-label={t('Manage Subscription')}
@@ -374,16 +380,18 @@ export function SpendAllocationsRoot({subscription}: Props) {
                   {t('Manage Subscription')}
                 </LinkButton>
               )}
-              <Button
-                aria-label={t('New Allocation')}
-                variant="primary"
-                size="sm"
-                data-test-id="new-allocation"
-                icon={<IconAdd size="xs" />}
-                onClick={openForm()}
-              >
-                {t('New Allocation')}
-              </Button>
+              <Container width={{zero: '100%', md: 'fit-content'}}>
+                <Button
+                  aria-label={t('New Allocation')}
+                  variant="primary"
+                  size="sm"
+                  icon={<IconAdd size="xs" />}
+                  onClick={openForm()}
+                  style={{width: '100%'}}
+                >
+                  {t('New Allocation')}
+                </Button>
+              </Container>
             </Flex>
           )
         }
@@ -410,11 +418,11 @@ export function SpendAllocationsRoot({subscription}: Props) {
       )}
       {canViewSpendAllocation && (
         <Grid
-          columns={{'screen:xs': 'repeat(3, 1fr)', 'screen:lg': 'repeat(5, 1fr)'}}
-          areas={{'screen:xs': '"bb bb dd"', 'screen:lg': '"bb bb dd . ."'}}
+          columns={{zero: '1fr', md: 'repeat(3, 1fr)', '4xl': 'repeat(5, 1fr)'}}
+          areas={{zero: '"bb" "dd"', md: '"bb bb dd"', '4xl': '"bb bb dd . ."'}}
           gap="xl"
           margin="xl 0"
-          data-test-id="subhead-actions"
+          width="100%"
         >
           <StyledButtonBar>
             <Stack align="center" column="2 / 5">
@@ -501,22 +509,24 @@ export function SpendAllocationsRoot({subscription}: Props) {
           </Fragment>
         )}
       {!isLoading && orgEnabledFlag && canViewSpendAllocation && (
-        <Confirm
-          onConfirm={() => {
-            disableSpendAllocations();
-          }}
-          renderMessage={confirmDisableContent}
-        >
-          <Button
-            aria-label={t('Disable Spend Allocations')}
-            size="sm"
-            variant="danger"
-            data-test-id="disable"
-            disabled={!orgEnabledFlag}
+        <Container width={{zero: '100%', md: 'fit-content'}}>
+          <Confirm
+            onConfirm={() => {
+              disableSpendAllocations();
+            }}
+            renderMessage={confirmDisableContent}
           >
-            {t('Disable Spend Allocations')}
-          </Button>
-        </Confirm>
+            <Button
+              aria-label={t('Disable Spend Allocations')}
+              size="sm"
+              variant="danger"
+              disabled={!orgEnabledFlag}
+              style={{width: '100%'}}
+            >
+              {t('Disable Spend Allocations')}
+            </Button>
+          </Confirm>
+        </Container>
       )}
     </SubscriptionPageContainer>
   );
@@ -527,6 +537,7 @@ export default withSubscription(SpendAllocationsRoot);
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;
   grid-area: dd;
+  width: 100%;
 
   button[aria-haspopup='listbox'] {
     width: 100%;

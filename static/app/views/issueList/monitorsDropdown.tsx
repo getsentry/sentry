@@ -1,7 +1,8 @@
 import {keepPreviousData} from '@tanstack/react-query';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t, tn} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -93,13 +94,13 @@ export function MonitorsDropdown() {
         },
       ]}
       trigger={(props, isOpen) => (
-        <DropdownButton size="sm" isOpen={isOpen} {...props}>
+        <OverlayTrigger.Button size="sm" isOpen={isOpen} {...props}>
           {tn(
             '%s Monitor',
             '%s Monitors',
             cronsData.counts.total + uptimeData.counts.total
           )}
-        </DropdownButton>
+        </OverlayTrigger.Button>
       )}
     />
   );

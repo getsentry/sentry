@@ -15,11 +15,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {PreviewInvoiceItem, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPriceWithCents,
   getCreditApplied,
   getCredits,
   getFees,
 } from 'getsentry/utils/billing';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
 type NextBillInvoiceItem = Pick<PreviewInvoiceItem, 'amount' | 'type' | 'description'>;
@@ -69,6 +69,9 @@ export function NextBillCard({
     .filter(item => item.type.startsWith('ondemand_'))
     .reduce((acc, item) => acc + item.amount, 0);
   const seerItem = invoiceItems.find(item => item.type === 'activated_seer_users');
+  const oneTimeAdjustments = invoiceItems.filter(
+    item => item.type === 'one_time_adjustment'
+  );
   const fees = getFees({invoiceItems});
   const credits = getCredits({invoiceItems}); // these should all be negative already
   const creditApplied =
@@ -154,8 +157,8 @@ export function NextBillCard({
                   </Text>
                 </Flex>
               )}
-              {fees.map(item => (
-                <Flex justify="between" align="center" key={item.type}>
+              {[...oneTimeAdjustments, ...fees].map((item, index) => (
+                <Flex justify="between" align="center" key={index}>
                   <Text variant="muted" size="sm">
                     {item.description}
                   </Text>

@@ -38,7 +38,7 @@ export const makeDashboardsWidgetCharts = (
       const {thresholds} = data.widget;
       if (
         thresholds &&
-        (defined(thresholds.max_values.max1) || defined(thresholds.max_values.max2))
+        (defined(thresholds.max_values?.max1) || defined(thresholds.max_values?.max2))
       ) {
         extraPlottables.push(
           new Thresholds({

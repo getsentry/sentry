@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Outlet, useOutletContext} from 'react-router-dom';
+import {Outlet, useOutletContext} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -60,6 +60,7 @@ export default function TeamDetails() {
           team: `#${teamSlug}`,
         })
       );
+      // oxlint-disable-next-line react/todo
     } finally {
       setRequesting(false);
     }

@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 
 import {ExternalLink} from '@sentry/scraps/link';
-
-import {IconOpen} from 'sentry/icons';
 
 import {effectiveDirectives} from './effectiveDirectives';
 
@@ -29,16 +28,12 @@ export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
     return `${baseLink}${key}`;
   };
 
-  const getLink = () => {
-    const href = getLinkHref();
-
-    return (
-      <StyledExternalLink href={href}>
-        {'developer.mozilla.org'}
-        <IconOpen size="xs" className="external-icon" />
-      </StyledExternalLink>
-    );
-  };
+  const link = (
+    <StyledExternalLink href={getLinkHref()}>
+      {'developer.mozilla.org'}
+      <IconOpen size="xs" className="external-icon" />
+    </StyledExternalLink>
+  );
 
   return (
     <div>
@@ -48,7 +43,7 @@ export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
       <blockquote>{effectiveDirectives[key]}</blockquote>
       <StyledP>
         <span>{'\u2014 MDN ('}</span>
-        <span>{getLink()}</span>
+        <span>{link}</span>
         <span>{')'}</span>
       </StyledP>
     </div>

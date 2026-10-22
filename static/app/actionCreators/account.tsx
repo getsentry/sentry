@@ -48,11 +48,30 @@ export function updateUser(user: User | ChangeAvatarUser) {
   ConfigStore.set('user', {...previousUser, ...user, options});
 }
 
-export async function logout(api: Client, redirectUrl?: string) {
+type LogoutOptions = {
+  redirect?: boolean;
+  redirectUrl?: string;
+};
+
+export async function logout(
+  api: Client,
+  {redirect = true, redirectUrl}: LogoutOptions = {}
+) {
   const data = await api.requestPromise('/auth/', {method: 'DELETE'});
 
-  // If there's a URL for SAML Single-logout, redirect back to IdP
-  testableWindowLocation.assign(data?.sloUrl || getRedirectUrl(redirectUrl));
+  if (data?.sloUrl) {
+    testableWindowLocation.assign(data.sloUrl);
+    return true;
+  }
+
+  if (redirect) {
+    testableWindowLocation.assign(getRedirectUrl(redirectUrl));
+    return true;
+  }
+
+  await api.requestPromise('/auth-v2/csrf/');
+
+  return false;
 }
 
 function getRedirectUrl(redirectUrl = '/auth/login/') {

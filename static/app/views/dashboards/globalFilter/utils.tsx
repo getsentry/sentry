@@ -58,6 +58,21 @@ export function mergeGlobalFilters(
   return merged;
 }
 
+/**
+ * Returns the tag keys that are used by filters across more than one dataset.
+ */
+export function getTagKeysInMultipleDatasets(filters: GlobalFilter[]): Set<string> {
+  const datasetsByKey = new Map<string, Set<WidgetType>>();
+  for (const filter of filters) {
+    const datasets = datasetsByKey.get(filter.tag.key) ?? new Set();
+    datasets.add(filter.dataset);
+    datasetsByKey.set(filter.tag.key, datasets);
+  }
+  return new Set(
+    [...datasetsByKey].filter(([, datasets]) => datasets.size > 1).map(([key]) => key)
+  );
+}
+
 export function getFieldDefinitionForDataset(
   tag: Tag,
   datasetType: WidgetType

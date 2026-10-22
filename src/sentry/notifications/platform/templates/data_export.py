@@ -33,6 +33,7 @@ class DataExportSuccess(NotificationData):
 class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
     category = NotificationCategory.DATA_EXPORT
     example_data = DataExportSuccess(
+        organization_id=1,
         export_url="https://example.com/export",
         expiration_date=timezone.now(),
     )
@@ -65,6 +66,7 @@ class DataExportFailure(NotificationData):
 class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
     category = NotificationCategory.DATA_EXPORT
     example_data = DataExportFailure(
+        organization_id=1,
         error_message="An error occurred while exporting your data.",
         error_payload={
             "export_type": "Issues-by-Tag",

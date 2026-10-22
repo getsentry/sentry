@@ -35,7 +35,6 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     group_id: int
     run_id: int
     referrer: str | None
-    iteration_index: int
 
     # Why the drain that claimed this iteration ran, written at claim time.
     trigger_source: str | None
@@ -49,6 +48,11 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     # Outcome, written when the iteration ends. See ``PrIterationOutcome`` for
     # the values Sentry knows about.
     outcome: str
+
+    # Every ``AutofixReferrer`` behind the feedback the drain consumed, sorted,
+    # deduped and joined with ``,``: ``github.check_suite,github.pr_comment``.
+    # ``referrer`` collapses a mixed batch to ``unknown``; this keeps the parts.
+    feedback_types: str | None = None
 
     # Review bots behind the feedback the drain consumed, sorted and deduped.
     feedback_bot_logins: list[str] = field(default_factory=list)
@@ -79,7 +83,6 @@ class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
     project_id: int
     group_id: int
     run_id: int
-    iteration_index: int
 
     # How long the batch had been waiting when the gate stopped it.
     duration_ms: int

@@ -7,6 +7,7 @@ import {
   BreadcrumbType,
   type BreadcrumbTypeDefault,
   type BreadcrumbTypeHTTP,
+  type RawCrumb,
 } from 'sentry/types/breadcrumbs';
 
 describe('BreadcrumbItemContent', () => {
@@ -141,6 +142,101 @@ describe('BreadcrumbItemContent', () => {
         'ValidationError: {"field":"email","error":"invalid"}, {"field":"password","error":"too short"}'
       )
     ).toBeInTheDocument();
+  });
+
+  it('renders colored text without escape codes for ANSI messages', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      message: '\x1B[31mfailed\x1B[0m to connect',
+    };
+    const {container} = render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(container).toHaveTextContent(/^failed to connect$/);
+    expect(screen.getByText('failed').style.color).toContain('color-mix(in srgb,');
+  });
+
+  it('renders colored text without escape codes for ANSI exception values', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.ERROR,
+      level: BreadcrumbLevelType.ERROR,
+      data: {type: 'ConnectionError', value: '\x1B[31mfailed\x1B[0m to connect'},
+    };
+    const {container} = render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(container).toHaveTextContent(/^ConnectionError: failed to connect$/);
+    expect(screen.getByText('failed').style.color).toContain('color-mix(in srgb,');
+  });
+
+  it('renders annotated text for ANSI messages with meta', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      message: '\x1B[31mfailed\x1B[0m to connect to [Filtered]',
+    };
+    const meta = {
+      message: {
+        '': {
+          chunks: [
+            {type: 'text', text: '\x1B[31mfailed\x1B[0m to connect to '},
+            {type: 'redaction', text: '[Filtered]', rule_id: '@password', remark: 's'},
+          ],
+        },
+      },
+    };
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} meta={meta} />);
+    expect(screen.getByText('[Filtered]')).toBeInTheDocument();
+    expect(screen.queryByText('failed')).not.toBeInTheDocument();
+  });
+
+  describe('data the SDK adds on its own', () => {
+    it.each<[string, RawCrumb, string]>([
+      [
+        'console arguments',
+        {
+          type: BreadcrumbType.DEBUG,
+          level: BreadcrumbLevelType.INFO,
+          category: 'console',
+          message: 'UndoManager: startGroupIfNeeded',
+          data: {arguments: ['UndoManager: startGroupIfNeeded'], logger: 'console'},
+        },
+        '2 items',
+      ],
+      [
+        'click component names',
+        {
+          type: BreadcrumbType.UI,
+          level: BreadcrumbLevelType.INFO,
+          category: 'ui.click',
+          message: 'LinkBase > Component',
+          data: {'ui.component_name': 'Component'},
+        },
+        '1 item',
+      ],
+      [
+        'fetch body sizes',
+        {
+          type: BreadcrumbType.HTTP,
+          level: BreadcrumbLevelType.INFO,
+          category: 'fetch',
+          data: {method: 'GET', url: 'https://example.com', response_body_size: 2},
+        },
+        '1 item',
+      ],
+    ])('collapses %s', (_, breadcrumb, itemCount) => {
+      render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+      expect(screen.getByRole('button', {name: itemCount})).toBeInTheDocument();
+    });
+
+    it('keeps console objects expanded', () => {
+      const breadcrumb: BreadcrumbTypeDefault = {
+        type: BreadcrumbType.DEBUG,
+        level: BreadcrumbLevelType.INFO,
+        category: 'console',
+        message: 'user [object Object]',
+        data: {arguments: ['user', {id: 1}], logger: 'console'},
+      };
+      render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+      expect(screen.getByText('arguments')).toBeInTheDocument();
+    });
   });
 
   it('applies item limits with fullyExpanded', () => {

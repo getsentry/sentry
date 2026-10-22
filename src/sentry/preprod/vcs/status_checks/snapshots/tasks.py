@@ -17,6 +17,7 @@ from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import evaluate_snapshot_changes_by_artifact_id
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.pr_comments.snapshot_templates import _selected_types_query
 from sentry.preprod.vcs.repo_utils import resolve_base_repo_url
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     get_snapshot_approval_policy,
@@ -152,11 +153,22 @@ def create_preprod_snapshot_status_check_task(
     for approval in approval_qs:
         approvals_map[approval.preprod_artifact_id] = approval
 
-    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(
+        all_artifacts, require_snapshot_metrics=True
+    )
 
-    is_solo = not base_artifact_map
+    has_base_artifacts = bool(base_artifact_map)
 
-    if not is_solo:
+    # If the base arrives before this delayed check runs, comparison processing
+    # will publish the final status. Avoid creating a duplicate Check Run here.
+    if is_timeout_check and has_base_artifacts:
+        logger.info(
+            "preprod.snapshot_status_checks.create.skipped_timeout_base_resolved",
+            extra={"preprod_artifact_id": preprod_artifact.id},
+        )
+        return
+
+    if has_base_artifacts:
         changes_map = evaluate_snapshot_changes_by_artifact_id(
             all_artifacts,
             snapshot_metrics_map,
@@ -201,7 +213,7 @@ def create_preprod_snapshot_status_check_task(
     approve_action_identifier: str | None = None
     waiting_for_base = False
 
-    if is_solo:
+    if not has_base_artifacts:
         app_ids = {a.app_id for a in all_artifacts if a.app_id}
         has_previous_snapshots = (
             PreprodSnapshotMetrics.objects.filter(
@@ -309,6 +321,13 @@ def create_preprod_snapshot_status_check_task(
         else all_artifacts[0]
     )
     target_url = get_preprod_artifact_url(url_artifact, view_type="snapshots")
+    url_metrics = snapshot_metrics_map.get(url_artifact.id)
+    url_comparison = comparisons_map.get(url_metrics.id) if url_metrics else None
+    if url_comparison is not None and url_comparison.state not in (
+        PreprodSnapshotComparison.State.PENDING,
+        PreprodSnapshotComparison.State.PROCESSING,
+    ):
+        target_url += _selected_types_query(url_comparison)
 
     post_snapshot_status_check_task.delay(
         preprod_artifact_id=preprod_artifact.id,
@@ -340,6 +359,7 @@ def _compute_snapshot_status(
     changes_map: dict[int, bool],
 ) -> StatusCheckStatus:
     has_in_progress = False
+    needs_approval = False
 
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
@@ -359,7 +379,10 @@ def _compute_snapshot_status(
                     return StatusCheckStatus.FAILURE
             case PreprodSnapshotComparison.State.SUCCESS:
                 if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
-                    return StatusCheckStatus.FAILURE
+                    needs_approval = True
+
+    if needs_approval:
+        return StatusCheckStatus.ACTION_REQUIRED
 
     if has_in_progress:
         return StatusCheckStatus.IN_PROGRESS
@@ -447,7 +470,7 @@ def post_snapshot_status_check_task(
             return
 
     if (
-        status_enum == StatusCheckStatus.FAILURE
+        status_enum in (StatusCheckStatus.FAILURE, StatusCheckStatus.ACTION_REQUIRED)
         and preprod_artifact.commit_comparison_id is not None
     ):
         superseded = (
@@ -461,11 +484,13 @@ def post_snapshot_status_check_task(
                 artifact_type=preprod_artifact.artifact_type,
                 build_configuration_id=preprod_artifact.build_configuration_id,
                 date_added__gt=preprod_artifact.date_added,
-                # Only a newer SUCCESS supersedes: an in-flight (PENDING/PROCESSING) sibling
-                # will post its own result when it finishes, so suppressing on those risks a
-                # hung newer attempt silently swallowing this legitimate failure forever.
-                preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=(
-                    PreprodSnapshotComparison.State.SUCCESS
+                # Only a newer finished (SUCCESS/FAILED) comparison supersedes: an in-flight
+                # (PENDING/PROCESSING) sibling will post its own result when it finishes, so
+                # suppressing on those risks a hung newer attempt silently swallowing this
+                # legitimate failure forever.
+                preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state__in=(
+                    PreprodSnapshotComparison.State.SUCCESS,
+                    PreprodSnapshotComparison.State.FAILED,
                 ),
             )
             .exclude(id=preprod_artifact_id)

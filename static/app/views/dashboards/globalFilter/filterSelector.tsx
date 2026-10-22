@@ -1,27 +1,27 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import * as Sentry from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
 
-import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {
   CompactSelect,
   MenuComponents,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {modifyFilterValue} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
 import {
   escapeTagValueForSearch,
   getFilterValueType,
@@ -36,14 +36,16 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {emptyValue, EMPTY_VALUE_LABEL} from 'sentry/utils/discover/emptyFieldValues';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
+import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/datasetLabels';
+import {
+  FilterSelectorTrigger,
+  FilterSelectorTriggerButton,
+} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   buildNoValueFilterQuery,
   deriveFilterState,
@@ -67,6 +69,7 @@ type FilterSelectorProps = {
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
   disableRemoveFilter?: boolean;
+  showDatasetLabel?: boolean;
 };
 
 export function FilterSelector({
@@ -75,6 +78,7 @@ export function FilterSelector({
   onRemoveFilter,
   onUpdateFilter,
   disableRemoveFilter,
+  showDatasetLabel,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
 
@@ -142,6 +146,7 @@ export function FilterSelector({
         },
       })),
     };
+    // oxlint-disable-next-line react/memo-dependencies
   }, [pickerToken, filterToken, noValueToken, fieldDefinition]);
 
   const [stagedOperator, setStagedOperator] = useState(initialOperator);
@@ -163,6 +168,7 @@ export function FilterSelector({
    */
   useEffect(() => {
     setStagedOperator(initialOperator);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [initialOperator]);
 
   // Retrieve full tag definition to check if it has predefined values
@@ -329,6 +335,7 @@ export function FilterSelector({
       }
     });
     return prependNoValueOption([...fixedOptionMap.values(), ...optionMap.values()]);
+    // oxlint-disable-next-line react/memo-dependencies
   }, [
     fetchedFilterValues,
     predefinedValues,
@@ -420,19 +427,6 @@ export function FilterSelector({
   const hasStagedChanges =
     xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
 
-  const renderFilterSelectorTrigger = (filterValues: string[]) => {
-    const displayValues = stripUnsupportedNoValue(filterValues, stagedOperator);
-
-    return (
-      <FilterSelectorTrigger
-        globalFilter={globalFilter}
-        activeFilterValues={displayValues}
-        operator={stagedOperator}
-        options={translatedOptions}
-      />
-    );
-  };
-
   const loadingFooter = isFetching ? (
     <Flex justify="center" padding="xs">
       <FooterLoadingIndicator size={14} />
@@ -483,9 +477,21 @@ export function FilterSelector({
           </Flex>
         )}
         trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(activeFilterValues)}
-          </OverlayTrigger.Button>
+          <FilterSelectorTriggerButton
+            {...triggerProps}
+            globalFilter={globalFilter}
+            showDatasetLabel={showDatasetLabel}
+          >
+            <FilterSelectorTrigger
+              activeFilterValues={stripUnsupportedNoValue(
+                activeFilterValues,
+                stagedOperator
+              )}
+              globalFilter={globalFilter}
+              operator={stagedOperator}
+              options={translatedOptions}
+            />
+          </FilterSelectorTriggerButton>
         )}
       />
     );
@@ -544,12 +550,17 @@ export function FilterSelector({
                   <FilterValueTruncated>
                     {prettifyTagKey(globalFilter.tag.key)}
                   </FilterValueTruncated>
-                  <Button {...triggerProps} size="zero" variant="transparent">
+                  <OverlayTrigger.Button
+                    showChevron={false}
+                    {...triggerProps}
+                    size="zero"
+                    variant="transparent"
+                  >
                     <Flex gap="xs" align="center">
                       <SubText>{OP_LABELS[stagedOperator]}</SubText>
                       <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
                     </Flex>
-                  </Button>
+                  </OverlayTrigger.Button>
                 </WildcardButton>
               )}
               items={operatorDropdownItems}
@@ -580,9 +591,21 @@ export function FilterSelector({
         </Flex>
       )}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps}>
-          {renderFilterSelectorTrigger(activeFilterValues)}
-        </OverlayTrigger.Button>
+        <FilterSelectorTriggerButton
+          {...triggerProps}
+          globalFilter={globalFilter}
+          showDatasetLabel={showDatasetLabel}
+        >
+          <FilterSelectorTrigger
+            activeFilterValues={stripUnsupportedNoValue(
+              activeFilterValues,
+              stagedOperator
+            )}
+            globalFilter={globalFilter}
+            operator={stagedOperator}
+            options={translatedOptions}
+          />
+        </FilterSelectorTriggerButton>
       )}
     />
   );

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
 import {Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
@@ -7,7 +8,6 @@ import {Heading} from '@sentry/scraps/text';
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

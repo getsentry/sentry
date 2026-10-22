@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
-import {css} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
 import {Container} from '@sentry/scraps/layout';
@@ -100,17 +99,7 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
       if (level === 'inline') {
         return embed;
       }
-      return (
-        <Container
-          css={theme => css`
-            &:last-child {
-              margin-bottom: ${theme.space['2xl']};
-            }
-          `}
-        >
-          {embed}
-        </Container>
-      );
+      return <Container>{embed}</Container>;
     }
     // Unknown embeds are expected to be registered here; drop them and report
     // instead of echoing plaintext like default Markdown.

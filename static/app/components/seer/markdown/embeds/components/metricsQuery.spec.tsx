@@ -28,7 +28,7 @@ const TIME_SERIES = [
   },
 ];
 
-function renderEmbed({
+function ExampleMetricsQueryEmbed({
   data,
   level = 'block',
 }: {
@@ -36,15 +36,17 @@ function renderEmbed({
   level?: 'block' | 'inline';
 }) {
   const tag = `{% metricsQuery %}${JSON.stringify(data)}{% /metricsQuery %}`;
-  return render(<SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />);
+  return <SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />;
 }
 
 describe('metrics query embed', () => {
   it('qualifies a bare y-axis with the metric it measures', () => {
-    renderEmbed({
-      data: {...METRIC, mode: 'aggregate', query: '', yAxes: ['p95(value)']},
-      level: 'inline',
-    });
+    render(
+      <ExampleMetricsQueryEmbed
+        data={{...METRIC, mode: 'aggregate', query: '', yAxes: ['p95(value)']}}
+        level="inline"
+      />
+    );
 
     // Seer emits `p95(value)`; Explore only decodes the qualified spelling, and
     // refuses a query that charts nothing.
@@ -57,10 +59,12 @@ describe('metrics query embed', () => {
   });
 
   it('falls back to the default aggregate for the metric type', () => {
-    renderEmbed({
-      data: {...METRIC, mode: 'aggregate', query: ''},
-      level: 'inline',
-    });
+    render(
+      <ExampleMetricsQueryEmbed
+        data={{...METRIC, mode: 'aggregate', query: ''}}
+        level="inline"
+      />
+    );
 
     // `distribution` defaults to `sum`, not a blanket `sum(value)`.
     const href = screen
@@ -85,16 +89,18 @@ describe('metrics query embed', () => {
       },
     });
 
-    renderEmbed({
-      data: {
-        ...METRIC,
-        mode: 'aggregate',
-        query: 'release:1.0',
-        groupBy: ['service.name'],
-        yAxes: ['p95(value)'],
-        statsPeriod: '24h',
-      },
-    });
+    render(
+      <ExampleMetricsQueryEmbed
+        data={{
+          ...METRIC,
+          mode: 'aggregate',
+          query: 'release:1.0',
+          groupBy: ['service.name'],
+          yAxes: ['p95(value)'],
+          statsPeriod: '24h',
+        }}
+      />
+    );
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(await screen.findByText('checkout')).toBeInTheDocument();
@@ -140,9 +146,11 @@ describe('metrics query embed', () => {
       body: {data: []},
     });
 
-    renderEmbed({
-      data: {...METRIC, mode: 'aggregate', query: '', yAxes: ['p95(value)']},
-    });
+    render(
+      <ExampleMetricsQueryEmbed
+        data={{...METRIC, mode: 'aggregate', query: '', yAxes: ['p95(value)']}}
+      />
+    );
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
@@ -159,7 +167,11 @@ describe('metrics query embed', () => {
       body: {data: [{id: '1', 'metric.value': 42, timestamp: '2026-08-27T12:00:00Z'}]},
     });
 
-    renderEmbed({data: {...METRIC, mode: 'samples', query: 'release:1.0'}});
+    render(
+      <ExampleMetricsQueryEmbed
+        data={{...METRIC, mode: 'samples', query: 'release:1.0'}}
+      />
+    );
 
     await waitFor(() => {
       expect(table).toHaveBeenCalledWith(

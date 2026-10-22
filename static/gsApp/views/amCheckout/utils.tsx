@@ -11,10 +11,12 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {THREE_DS_REFERRER, MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
@@ -44,27 +46,11 @@ import type {
   CheckoutFormData,
   PlanContent,
 } from 'getsentry/views/amCheckout/types';
-import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 import {
   normalizeOnDemandBudget,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/spendLimits/utils';
-
-const CURRENCY_LOCALE = 'en-US';
-
-/**
- * Includes $, and cents in the price when needed.
- *
- * 100.01 => $100.01
- * 100.00 => $100
- * 100.30 => $100.30
- * -100 => -$100
- */
-type DisplayPriceTypes = {
-  cents: number;
-  formatBigNum?: boolean;
-};
 
 // Intent details returned by CustomerSubscriptionEndpoint
 // when there is an error and customer card actions are
@@ -83,89 +69,6 @@ type APIDataProps = {
   referrer?: string;
   shouldUpdateOnDemand?: boolean;
 };
-
-export function displayPrice({cents, formatBigNum = false}: DisplayPriceTypes): string {
-  const dollars = cents / 100;
-  const prefix = dollars >= 0 ? '$' : '-$';
-
-  if (formatBigNum) {
-    return prefix + bigNumFormatter(Math.abs(dollars));
-  }
-  const hasCents = dollars % 1 !== 0;
-  if (hasCents) {
-    return displayPriceWithCents({cents});
-  }
-  return prefix + Math.abs(dollars).toLocaleString(CURRENCY_LOCALE);
-}
-
-/**
- * Always include $ and cents in the price.
- *
- * $100.01 => $100.01
- * $100.00 => $100.00
- * $100.30 => $100.30
- * -100 => -$100.00
- */
-export function displayPriceWithCents({
-  cents,
-  minimumFractionDigits,
-  maximumFractionDigits,
-}: {
-  cents: number;
-  maximumFractionDigits?: number;
-  minimumFractionDigits?: number;
-}): string {
-  const dollars = cents / 100;
-  const prefix = dollars >= 0 ? '$' : '-$';
-
-  return (
-    prefix +
-    Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
-      minimumFractionDigits: minimumFractionDigits ?? 2,
-      maximumFractionDigits: maximumFractionDigits ?? 2,
-    })
-  );
-}
-
-type UnitPriceProps = {
-  cents: number;
-  maxDigits?: number;
-  minDigits?: number;
-};
-
-/**
- * Includes cents in the price when needed and excludes $ for separate formatting.
- * Note: Use `displayPrice` if prices can be negative (ex: credits)
- *
- * 100.01 => 100.01
- * 100.00 => 100
- * 100.30 => 100.30
- * -100 => -100
- */
-export function formatPrice({cents}: {cents: number}): string {
-  return displayPrice({cents}).replace('$', '');
-}
-
-/**
- * Format per unit price for events,
- * where errors and transactions default to 5 digits
- * and attachments should use 2 digits.
- */
-export function displayUnitPrice({
-  cents,
-  minDigits = 5,
-  maxDigits = 7,
-}: UnitPriceProps): string {
-  const dollars = cents / 100;
-
-  return (
-    '$' +
-    dollars.toLocaleString(CURRENCY_LOCALE, {
-      minimumFractionDigits: minDigits,
-      maximumFractionDigits: maxDigits,
-    })
-  );
-}
 
 export function getBucket({
   buckets,
@@ -573,6 +476,7 @@ export function useSubmitCheckout({
   referrer?: string;
 }) {
   const api = useApi({});
+  const navigate = useNavigate();
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
@@ -610,6 +514,21 @@ export function useSubmitCheckout({
       SubscriptionStore.loadData(organization.slug);
 
       const {invoice} = response;
+
+      // The plan change went through, but the bank wants the cardholder to
+      // authenticate before releasing the money. Send them to the invoice,
+      // which opens the payment modal on arrival and resumes the same charge.
+      // Deliberately not the checkout success screen: nothing is paid yet, and
+      // showing a receipt would say otherwise.
+      if (response.paymentRequiresAction && response.invoiceGuid) {
+        navigate(
+          normalizeUrl(
+            `/settings/${organization.slug}/billing/receipts/${response.invoiceGuid}/?referrer=${THREE_DS_REFERRER}`
+          )
+        );
+        return;
+      }
+
       const nextQueryParams = [referrer];
       if (justBoughtSeer) {
         nextQueryParams.push('showSeerAutomationAlert=true');

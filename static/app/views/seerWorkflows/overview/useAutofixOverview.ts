@@ -294,6 +294,7 @@ export function useAutofixOverview({
     setScmByRunId(new Map());
     setSettledRunIds(new Set());
     setStatsUnavailableRunIds(new Set());
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [scopeKey]);
 
   const isScmSettled = useCallback(

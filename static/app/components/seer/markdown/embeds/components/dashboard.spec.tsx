@@ -1,5 +1,5 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-import {EventsStatsFixture} from 'sentry-fixture/events';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -9,7 +9,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
-import {renderEmbed} from './resourceEmbedTestUtils';
+import {Dashboard} from './dashboard';
+import {renderEmbed, renderEmbedMarkdown} from './resourceEmbedTestUtils';
 
 describe('dashboard embed', () => {
   let initialConfig: Config;
@@ -52,7 +53,7 @@ describe('dashboard embed', () => {
     );
   });
 
-  it('renders a live preview of the first four dashboard widgets', async () => {
+  it('renders a live preview of the first two dashboard widgets', async () => {
     const widgets = ['Errors', 'Latency', 'Users', 'Throughput', 'Slow spans'].map(
       (title, index) =>
         WidgetFixture({
@@ -75,8 +76,8 @@ describe('dashboard embed', () => {
       }),
     });
     const widgetDataRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -98,18 +99,18 @@ describe('dashboard embed', () => {
     );
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Latency')).toBeInTheDocument();
-    expect(screen.getByText('Users')).toBeInTheDocument();
-    expect(screen.getByText('Throughput')).toBeInTheDocument();
+    expect(screen.queryByText('Users')).not.toBeInTheDocument();
+    expect(screen.queryByText('Throughput')).not.toBeInTheDocument();
     expect(screen.queryByText('Slow spans')).not.toBeInTheDocument();
     expect(screen.getByText('5 widgets')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'View 1 more widget'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: '+ 3 additional widgets'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/123/'
     );
     expect(dashboardRequest).toHaveBeenCalled();
     await waitFor(() =>
       expect(widgetDataRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             environment: ['production'],
@@ -152,8 +153,8 @@ describe('dashboard embed', () => {
       body: DashboardFixture([widget], {id: '123', title: 'Application health'}),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -183,6 +184,25 @@ describe('dashboard embed', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to load dashboard details.'
+    );
+  });
+});
+
+describe('dashboard embed at the markdown level', () => {
+  it('serializes to a markdown link carrying the same destination', () => {
+    expect(
+      renderEmbedMarkdown(Dashboard, 'dashboard', {
+        id: '123',
+        title: 'Application health',
+      })
+    ).toBe(
+      `[Application health](${window.location.origin}/organizations/org-slug/dashboard/123/)`
+    );
+  });
+
+  it('uses the same fallback label the rendered link uses', () => {
+    expect(renderEmbedMarkdown(Dashboard, 'dashboard', {id: '456'})).toBe(
+      `[Dashboard 456](${window.location.origin}/organizations/org-slug/dashboard/456/)`
     );
   });
 });

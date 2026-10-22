@@ -1,8 +1,11 @@
+import {IconChat} from '@sentry/icons/chat';
 import queryString from 'query-string';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -62,11 +65,15 @@ export function getConversationsQueryTitle(data: ConversationsQueryData): string
   return data.title ?? t('Conversation search');
 }
 
-export function ConversationsQueryLink({data}: {data: ConversationsQueryData}) {
+export function ConversationsQueryLink({
+  data,
+  format,
+}: {data: ConversationsQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconChat}
       href={getConversationsQueryHref(data, organization)}
       title={getConversationsQueryTitle(data)}

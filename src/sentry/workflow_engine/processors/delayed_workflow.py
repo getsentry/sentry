@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
@@ -10,45 +10,52 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
+from sentry_sdk import traces
 from taskbroker_client.retry import retry_task
-from taskbroker_client.state import current_task
+from taskbroker_client.state import CurrentTaskState, current_task
 
 from sentry import features, nodestore
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
-from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import RateLimitExceeded, SnubaError
-from sentry.utils.tracing import start_span, trace
 from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
 )
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
-    BaseEventFrequencyQueryHandler,
     GroupValues,
-    QueryFilter,
     QueryResult,
-    slow_condition_query_handler_registry,
 )
+from sentry.workflow_engine.handlers.condition.slow_query import (
+    UniqueConditionQuery as UniqueConditionQuery,
+)
+from sentry.workflow_engine.handlers.condition.slow_query import (
+    generate_unique_queries as generate_unique_queries,
+)
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import COMPARISON_INTERVALS
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
-from sentry.workflow_engine.models.data_condition import (
-    PERCENT_CONDITIONS,
-    SLOW_CONDITIONS,
-    Condition,
-)
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionGroupEvaluation,
+    EvaluationPhase,
+    EvaluationType,
+    WorkflowEvaluationOutcome,
+)
+from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
+from sentry.workflow_engine.processors.evaluations.workflow import (
+    WorkflowEvaluationArtifact,
+    WorkflowEvaluationBatch,
+)
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
@@ -64,6 +71,10 @@ logger = log_context.get_logger("sentry.workflow_engine.processors.delayed_workf
 
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
+
+
+def is_retry(task: CurrentTaskState | None) -> bool:
+    return task is not None and task.attempt > 0
 
 
 class EventInstance(BaseModel):
@@ -266,43 +277,6 @@ class GroupQueryParams:
             self.timestamp = timestamp if self.timestamp is None else max(timestamp, self.timestamp)
 
 
-@dataclass(frozen=True)
-class UniqueConditionQuery:
-    """
-    Represents all the data that uniquely identifies a condition and its
-    single respective Snuba query that must be made. Multiple instances of the
-    same condition can share a single query.
-    """
-
-    handler: type[BaseEventFrequencyQueryHandler]
-    interval: str
-    environment_id: int | None
-    comparison_interval: str | None = None
-    # Hashable representation of the filters
-    frozen_filters: Sequence[frozenset[tuple[str, Any]]] | None = None
-
-    @staticmethod
-    def freeze_filters(
-        filters: Sequence[Mapping[str, Any]] | None,
-    ) -> Sequence[frozenset[tuple[str, Any]]] | None:
-        """
-        Convert the sorted representation of filters into a frozen one that can
-        be safely hashed.
-        """
-        if filters is None:
-            return None
-        return tuple(frozenset(sorted(filter.items())) for filter in filters)
-
-    @property
-    def filters(self) -> list[QueryFilter] | None:
-        if self.frozen_filters is None:
-            return None
-        return [dict(filter) for filter in self.frozen_filters]
-
-    def __repr__(self) -> str:
-        return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
-
-
 def fetch_project(project_id: int) -> Project | None:
     try:
         project = Project.objects.get_from_cache(id=project_id)
@@ -339,61 +313,7 @@ def fetch_data_condition_groups(
     return list(DataConditionGroup.objects.filter(id__in=dcg_ids))
 
 
-def generate_unique_queries(
-    condition: DataCondition, environment_id: int | None
-) -> list[UniqueConditionQuery]:
-    """
-    Returns a list of all unique condition queries that must be made for the
-    given condition instance.
-    Count comparison conditions will only have one unique query, while percent
-    comparison conditions will have two unique queries.
-    """
-
-    try:
-        condition_type = Condition(condition.type)
-    except ValueError:
-        logger.exception(
-            "Invalid condition type",
-            extra={"type": condition.type, "id": condition.id},
-        )
-        return []
-
-    if condition_type not in SLOW_CONDITIONS:
-        return []
-
-    try:
-        handler = slow_condition_query_handler_registry.get(condition_type)
-    except NoRegistrationExistsError:
-        logger.exception(
-            "No registration exists for condition",
-            extra={"type": condition.type, "id": condition.id},
-        )
-        return []
-
-    unique_queries = [
-        UniqueConditionQuery(
-            handler=handler,
-            interval=condition.comparison["interval"],
-            environment_id=environment_id,
-            frozen_filters=UniqueConditionQuery.freeze_filters(condition.comparison.get("filters")),
-        )
-    ]
-    if condition_type in PERCENT_CONDITIONS:
-        unique_queries.append(
-            UniqueConditionQuery(
-                handler=handler,
-                interval=condition.comparison["interval"],
-                environment_id=environment_id,
-                comparison_interval=condition.comparison.get("comparison_interval"),
-                frozen_filters=UniqueConditionQuery.freeze_filters(
-                    condition.comparison.get("filters")
-                ),
-            )
-        )
-    return unique_queries
-
-
-@trace
+@traces.trace
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     event_data: EventRedisData,
@@ -434,7 +354,7 @@ def get_condition_query_groups(
     # We want this to be accurate enough for alerting, so sample 100%
     sample_rate=1.0,
 )
-@trace
+@traces.trace
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, GroupQueryParams],
 ) -> dict[UniqueConditionQuery, QueryResult]:
@@ -452,9 +372,9 @@ def get_condition_group_results(
         )
     )
 
-    last_try = False
-    if task := current_task():
-        last_try = not task.retries_remaining
+    task = current_task()
+    last_try = task is not None and not task.retries_remaining
+    retry = is_retry(task)
 
     for unique_condition, time_and_groups in queries_to_groups.items():
         handler = unique_condition.handler()
@@ -471,6 +391,10 @@ def get_condition_group_results(
             )
 
         try:
+            metrics.incr(
+                "workflow_engine.delayed_workflow.condition_query",
+                tags={"is_retry": retry},
+            )
             result = handler.get_rate_bulk(
                 duration=duration,
                 groups=groups_to_query,
@@ -571,7 +495,9 @@ class _ConditionEvaluationStats:
 
 
 @dataclass(frozen=True)
-class DelayedWorkflowEvaluationResult:
+class DelayedWorkflowEvaluationResult(WorkflowEvaluationBatch):
+    project_id: int | None
+    artifacts: list[WorkflowEvaluationArtifact]
     groups_to_fire: dict[GroupId, set[DataConditionGroup]]
     stats: _ConditionEvaluationStats
 
@@ -588,6 +514,16 @@ class DelayedWorkflowEvaluationResult:
     # workflow_id -> group_id -> [dcg_ids that failed]
     # Condition-level detail is omitted; all conditions not in if_dcg_passed are assumed failed.
     if_dcg_failed: dict[WorkflowId, dict[GroupId, list[DataConditionGroupId]]]
+
+    @property
+    def evaluation_phase(self) -> EvaluationPhase:
+        return EvaluationPhase.DELAYED
+
+    def evaluated_workflow_ids(self) -> set[WorkflowId]:
+        return set(self.workflow_ids)
+
+    def evaluation_artifacts(self) -> tuple[WorkflowEvaluationArtifact, ...]:
+        return tuple(self.artifacts)
 
     def iter_per_workflow_log_dicts(self) -> Iterator[dict[str, Any]]:
         """Yield one log-ready dict per workflow, keeping each entry bounded in size."""
@@ -610,15 +546,17 @@ class DelayedWorkflowEvaluationResult:
         }
 
 
-@trace
+@traces.trace
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
     workflows_to_envs: Mapping[WorkflowId, int | None],
     event_data: EventRedisData,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
+    project_id: int | None = None,
 ) -> DelayedWorkflowEvaluationResult:
     data_condition_group_mapping = {dcg.id: dcg for dcg in data_condition_groups}
+    artifacts: list[WorkflowEvaluationArtifact] = []
     groups_to_fire: dict[GroupId, set[DataConditionGroup]] = defaultdict(set)
 
     # Mutable outcome tracking
@@ -634,7 +572,7 @@ def get_groups_to_fire(
     )
 
     tainted, untainted = 0, 0
-    for event_key in event_data.events:
+    for event_key, event_instance in event_data.events.items():
         group_id = event_key.group_id
         workflow_id = event_key.workflow_id
         if workflow_id not in workflows_to_envs:
@@ -643,6 +581,8 @@ def get_groups_to_fire(
 
         evaluated_workflow_ids.add(workflow_id)
         workflow_env = workflows_to_envs[workflow_id]
+        filter_evaluations: list[DataConditionGroupEvaluation] = []
+        actions_triggered = False
         # When there is no WHEN group, treat the workflow as triggered with no taint.
         # This is the identity element for the taint-aware AND (`.all`) below.
         when_evaluation = DataConditionGroupEvaluation(
@@ -657,14 +597,23 @@ def get_groups_to_fire(
             when_dcg = data_condition_group_mapping.get(when_dcg_id)
             if not when_dcg:
                 when_dcg_missing[workflow_id].append(group_id)
-                continue
-            when_evaluation = _evaluate_group_result_for_dcg(
-                when_dcg,
-                dcg_to_slow_conditions,
-                group_id,
-                workflow_env,
-                condition_group_results,
-            )
+                when_evaluation = DataConditionGroupEvaluation(
+                    result=False,
+                    triggered=False,
+                    error=ConditionError(msg="DataConditionGroup does not exist"),
+                    data={
+                        "condition_evaluations": [],
+                        "logic_type": DataConditionGroup.Type.ANY,
+                    },
+                )
+            else:
+                when_evaluation = _evaluate_group_result_for_dcg(
+                    when_dcg,
+                    dcg_to_slow_conditions,
+                    group_id,
+                    workflow_env,
+                    condition_group_results,
+                )
             if not when_evaluation.triggered:
                 # If we're not triggering, all action-y if conditions need to be treated
                 # as tainted or not based on the when condition result.
@@ -677,10 +626,16 @@ def get_groups_to_fire(
                 else:
                     untainted += if_cond_count
                     when_failed_untainted[workflow_id].append(group_id)
-                continue
+
+        if when_evaluation.triggered:
+            if_dcg_ids = event_key.if_dcg_ids
+            passing_dcg_ids = event_key.passing_dcg_ids
+        else:
+            if_dcg_ids = frozenset()
+            passing_dcg_ids = frozenset()
 
         # the WHEN condition passed / was not evaluated, so we can now check the IF conditions
-        for if_dcg_id in event_key.if_dcg_ids:
+        for if_dcg_id in if_dcg_ids:
             if dcg := data_condition_group_mapping.get(if_dcg_id):
                 if_group = _evaluate_group_result_for_dcg(
                     dcg,
@@ -689,6 +644,7 @@ def get_groups_to_fire(
                     workflow_env,
                     condition_group_results,
                 )
+                filter_evaluations.append(if_group)
                 if_triggered, if_error = DataConditionGroupEvaluation.all(
                     [when_evaluation, if_group]
                 )
@@ -699,6 +655,7 @@ def get_groups_to_fire(
                     untainted += 1
 
                 if if_triggered:
+                    actions_triggered = True
                     groups_to_fire[group_id].add(dcg)
                     if_dcg_passed[workflow_id][group_id][dcg.id] = [
                         pc.condition.id for pc in if_group.data["condition_evaluations"]
@@ -706,7 +663,7 @@ def get_groups_to_fire(
                 else:
                     if_dcg_failed[workflow_id][group_id].append(dcg.id)
 
-        for if_dcg_id in event_key.passing_dcg_ids:
+        for if_dcg_id in passing_dcg_ids:
             if dcg := data_condition_group_mapping.get(if_dcg_id):
                 # TODO: Propagate taint with passing conditions.
                 if when_evaluation.is_tainted():
@@ -714,12 +671,50 @@ def get_groups_to_fire(
                 else:
                     untainted += 1
 
+                actions_triggered = True
                 groups_to_fire[group_id].add(dcg)
                 if_dcg_passed[workflow_id][group_id][dcg.id] = [
                     c.id for c in dcg_to_slow_conditions.get(dcg.id, [])
                 ]
 
+        error = when_evaluation.error or next(
+            (evaluation.error for evaluation in filter_evaluations if evaluation.error),
+            None,
+        )
+        if error is not None:
+            outcome = WorkflowEvaluationOutcome.ERROR
+        elif not when_evaluation.triggered:
+            outcome = WorkflowEvaluationOutcome.NOT_TRIGGERED
+        elif actions_triggered:
+            outcome = WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
+        else:
+            outcome = WorkflowEvaluationOutcome.NO_ACTIONS
+
+        artifacts.append(
+            WorkflowEvaluationArtifact(
+                triggered=when_evaluation.triggered,
+                error=error.msg if error is not None else None,
+                delayed=None,
+                detector_id=None,
+                detector_type=None,
+                evaluation_phase=EvaluationPhase.DELAYED,
+                evaluation_type=EvaluationType.WORKFLOW,
+                event_id=event_instance.event_id,
+                filter_evaluations=[
+                    filter_evaluation.to_artifact() for filter_evaluation in filter_evaluations
+                ],
+                group_id=group_id,
+                outcome=outcome,
+                project_id=project_id,
+                trigger_evaluation=when_evaluation.to_artifact(),
+                triggered_action_ids=[],
+                workflow_id=workflow_id,
+            )
+        )
+
     return DelayedWorkflowEvaluationResult(
+        project_id=project_id,
+        artifacts=artifacts,
         groups_to_fire=groups_to_fire,
         stats=_ConditionEvaluationStats(tainted=tainted, untainted=untainted),
         workflow_ids=evaluated_workflow_ids,
@@ -731,7 +726,7 @@ def get_groups_to_fire(
     )
 
 
-@trace
+@traces.trace
 def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event]:
     node_id_to_event_id = {
         Event.generate_node_id(project.id, event_id=event_id): event_id for event_id in event_ids
@@ -760,7 +755,7 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
     "workflow_engine.delayed_workflow.get_group_to_groupevent",
     sample_rate=1.0,
 )
-@trace
+@traces.trace
 def get_group_to_groupevent(
     event_data: EventRedisData,
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
@@ -803,7 +798,7 @@ def get_group_to_groupevent(
     return group_to_groupevent
 
 
-@trace
+@traces.trace
 def fire_actions_for_groups(
     organization: Organization,
     groups_to_fire: dict[GroupId, set[DataConditionGroup]],
@@ -893,7 +888,7 @@ def fire_actions_for_groups(
     )
 
 
-@trace
+@traces.trace
 def cleanup_redis_buffer(
     client: ProjectDelayedWorkflowClient, event_keys: Iterable[EventKey], batch_key: str | None
 ) -> None:
@@ -914,7 +909,10 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
 
 def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
     """Process workflows for a project - evaluate conditions and fire actions."""
-    with start_span(op="delayed_workflow.prepare_data", name="delayed_workflow.prepare_data"):
+    with traces.start_span(
+        name="delayed_workflow.prepare_data",
+        attributes={"sentry.op": "delayed_workflow.prepare_data"},
+    ):
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):
@@ -993,7 +991,13 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         event_data,
         condition_group_results,
         dcg_to_slow_conditions,
+        project.id,
     )
+    emit_evaluations(
+        organization=project.organization,
+        result=evaluation,
+    )
+
     metrics.incr(
         "workflow_engine.delayed_workflow.workflow_if_conditions_evaluated",
         amount=evaluation.stats.tainted,
@@ -1034,9 +1038,11 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         )
 
 
-@trace
+@traces.trace
 def process_delayed_workflows(
-    batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
+    batch_client: DelayedWorkflowClient,
+    project_id: int,
+    batch_key: str | None = None,
 ) -> None:
     """
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
@@ -1049,6 +1055,7 @@ def process_delayed_workflows(
     metrics.incr(
         "workflow_engine.delayed_workflow",
         amount=len(event_data.events),
+        tags={"is_retry": is_retry(current_task())},
     )
 
     project = fetch_project(project_id)

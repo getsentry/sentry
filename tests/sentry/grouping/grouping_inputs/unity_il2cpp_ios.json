@@ -1,0 +1,78 @@
+{
+  "platform": "cocoa",
+  "exception": {
+    "values": [
+      {
+        "type": "EXC_BAD_ACCESS",
+        "value": "Attempted to dereference null pointer.",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "main",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/SpaceGame",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Builds/iOS/MainApp/main.mm"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore"
+            },
+            {
+              "function": "-[UnityAppController repaint]",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/UnityFramework"
+            },
+            {
+              "function": "PlayerLoop",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/Frameworks/UnityRuntime.framework/UnityRuntime"
+            },
+            {
+              "function": "ScriptingInvocation::Invoke",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/Frameworks/UnityRuntime.framework/UnityRuntime"
+            },
+            {
+              "function": "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/UnityFramework",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/Bee/artifacts/iOSPlayerBuildProgram/il2cppOutput/cpp/Il2CppInvokerTable.cpp"
+            },
+            {
+              "function": "EnemySpawner_Update_m1A2B3C4D5E6F708192A3B4C5D6E7F80912345ABC",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/UnityFramework",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Assets/Scripts/EnemySpawner.cs"
+            },
+            {
+              "function": "CombatSystem_ApplyDamage_mB4E7D2C9A16F03E58D4C7B2A19F60E3D5C8B7A41",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/UnityFramework",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Packages/com.mystudio.combat/Runtime/CombatSystem.cs"
+            },
+            {
+              "function": "TMP_Text_SetText_mC3D4E5F60718293A4B5C6D7E8F90123456789ABC",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/UnityFramework",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/PackageCache/com.unity.textmeshpro@3.0.6/Assets/TMP_Text.cs"
+            },
+            {
+              "function": "Animation_Play_m7F1A2B4C6D7E8F9A0B1C2D3E4F506172839405D3",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/UnityFramework",
+              "abs_path": "/Users/bokken/build/output/unity/unity/Modules/Animation/ScriptBindings/Assets/Animation.bindings.cs"
+            },
+            {
+              "function": "il2cpp_codegen_raise_null_reference_exception",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/UnityFramework",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/Bee/artifacts/iOSPlayerBuildProgram/il2cppOutput/cpp/Il2CppCodeGen.cpp"
+            },
+            {
+              "function": "-[SentryCrashInstallationReporter reportCrash]",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/SentryObjC.framework/SentryObjC"
+            },
+            {
+              "function": "__pthread_kill",
+              "package": "/usr/lib/system/libsystem_kernel.dylib"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 import type {
   InvestigationBlock,
+  InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationHypothesis,
@@ -88,6 +89,26 @@ export function InvestigationQueryOutputFixture(
     chartUnavailableReason: null,
     isEmpty: false,
     queryLinks: [],
+    ...overrides,
+  };
+}
+
+export function InvestigationCommentFixture(
+  overrides: Partial<InvestigationComment> = {}
+): InvestigationComment {
+  return {
+    id: '1',
+    blockId: null,
+    author: {
+      id: '1',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      username: 'ada@example.com',
+      ip_address: '127.0.0.1',
+    },
+    body: 'A comment',
+    dateCreated: '2026-01-01T00:00:00Z',
+    dateUpdated: '2026-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -213,6 +234,7 @@ export function InvestigationBreachedMetricDetailFixture(
       type: 'metric_open_period',
       ref: {groupId: '123', openPeriodId: '456'},
       revision: null,
+      snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
     },
     blocks: [
       InvestigationBlockFixture({

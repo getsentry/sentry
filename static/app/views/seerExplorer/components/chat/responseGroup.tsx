@@ -1,12 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, memo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {ClippedDetail, MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
+import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {t} from 'sentry/locale';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import type {
@@ -18,7 +17,12 @@ import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
 import {hasValidContent} from './shared';
-import {CODE_MODE_TOOLS, ToolCallList, blockRendersToolContent} from './toolUse';
+import {
+  CODE_MODE_TOOLS,
+  ToolCallList,
+  blockRendersToolContent,
+  type LatestTodos,
+} from './toolUse';
 
 /**
  * One assistant response: a run of consecutive `assistant`/`tool_use` blocks that follows a user
@@ -133,14 +137,32 @@ export function deriveThinkingTitle(group: Block[]): string {
 interface ResponseGroupProps {
   blockIndex: number;
   group: Block[];
-  blocks?: Block[];
   getPageReferrer?: () => string;
   interactionPending?: boolean;
+  /** The conversation's newest todo snapshot, from `findLatestTodos`. */
+  latestTodos?: LatestTodos | null;
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
-  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
+}
+
+/**
+ * Every poll rebuilds the transcript's arrays, so `group` is a fresh array even when none of its
+ * blocks changed. Compare it element-wise so a settled response skips re-rendering (and re-parsing
+ * its markdown) while a later one streams.
+ */
+function areResponseGroupPropsEqual(prev: ResponseGroupProps, next: ResponseGroupProps) {
+  for (const key of Object.keys(next) as Array<keyof ResponseGroupProps>) {
+    if (key !== 'group' && prev[key] !== next[key]) {
+      return false;
+    }
+  }
+  return (
+    Object.keys(prev).length === Object.keys(next).length &&
+    prev.group.length === next.group.length &&
+    prev.group.every((block, i) => block === next.group[i])
+  );
 }
 
 /**
@@ -149,15 +171,14 @@ interface ResponseGroupProps {
  * as a sibling. Replaces the previous one-row-per-block rendering that produced a wall of separate
  * "Thinking" and tool-call rows for a single turn.
  */
-export function ResponseGroup({
+export const ResponseGroup = memo(function ResponseGroup({
   group,
   blockIndex,
-  blocks,
+  latestTodos,
   getPageReferrer,
   interactionPending,
   pendingInput,
   readOnly,
-  respondToUserInput,
   runId,
   showThinking,
 }: ResponseGroupProps) {
@@ -178,11 +199,11 @@ export function ResponseGroup({
       (!isAnswer && hasValidContent(block.message.content)) ||
       // Not `tool_calls.length`: a call that reported nothing renders no row, and counting it
       // opens a reasoning box with an empty body.
-      blockRendersToolContent(block, blocks)
+      blockRendersToolContent(block, latestTodos)
     );
   });
 
-  const startTime = new Date(group[0]!.timestamp);
+  const [startTime] = useState(() => new Date(group[0]!.timestamp));
   // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
   // between tool calls, but answer settles once
   const endTime =
@@ -193,79 +214,71 @@ export function ResponseGroup({
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
-        <AgentWriteApprovalProvider
-          pendingInput={pendingInput ?? null}
-          readOnly={readOnly ?? false}
-          respondToUserInput={respondToUserInput}
-        >
-          {active || hasTrace ? (
-            <MessageRow from="assistant" density="compact">
-              <ThinkingBlock
-                title={deriveThinkingTitle(group)}
-                startTime={startTime}
-                endTime={endTime}
-              >
-                {hasTrace
-                  ? group.map((block, i) => {
-                      const isAnswer = block === answer;
-                      // A block's own tool calls render after its thinking, so they count as
-                      // "after"; "before" is an earlier block's tool calls. Thinking that is
-                      // flanked on both sides gets extra breathing room to set it apart;
-                      // leading/trailing thinking does not, so it stays tight against the answer
-                      // or the block edge.
-                      const toolCallBefore = group
-                        .slice(0, i)
-                        .some(b => Boolean(b.message.tool_calls?.length));
-                      const toolCallAtOrAfter = group
-                        .slice(i)
-                        .some(b => Boolean(b.message.tool_calls?.length));
-                      const thinkingBetweenToolCalls =
-                        toolCallBefore && toolCallAtOrAfter;
-                      return (
-                        <Fragment key={block.id}>
-                          {showThinking &&
-                            hasValidContent(block.message.thinking_content) && (
-                              <ClippedDetail>
-                                <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
-                                  <SeerMarkdown raw={block.message.thinking_content} />
-                                </ThinkingProse>
-                              </ClippedDetail>
-                            )}
-                          {!isAnswer && hasValidContent(block.message.content) && (
-                            <ClippedDetail>
-                              <SeerMarkdown raw={block.message.content} />
-                            </ClippedDetail>
+        {active || hasTrace ? (
+          <MessageRow from="assistant" density="compact">
+            <ThinkingBlock
+              title={deriveThinkingTitle(group)}
+              startTime={startTime}
+              endTime={endTime}
+            >
+              {/* `hasTrace`, not `active`: an active response with nothing to show yet still
+                    maps to a non-empty array of blocks that each render nothing, and an array is
+                    truthy, so ThinkingBlock would open its bordered panel around no content. */}
+              {hasTrace
+                ? group.map((block, i) => {
+                    const isAnswer = block === answer;
+                    // A block's own tool calls render after its thinking, so they count as
+                    // "after"; "before" is an earlier block's tool calls. Thinking that is
+                    // flanked on both sides gets extra breathing room to set it apart;
+                    // leading/trailing thinking does not, so it stays tight against the answer
+                    // or the block edge.
+                    const toolCallBefore = group
+                      .slice(0, i)
+                      .some(b => Boolean(b.message.tool_calls?.length));
+                    const toolCallAtOrAfter = group
+                      .slice(i)
+                      .some(b => Boolean(b.message.tool_calls?.length));
+                    const thinkingBetweenToolCalls = toolCallBefore && toolCallAtOrAfter;
+                    return (
+                      <Fragment key={block.id}>
+                        {showThinking &&
+                          hasValidContent(block.message.thinking_content) && (
+                            <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
+                              <SeerMarkdown raw={block.message.thinking_content} />
+                            </ThinkingProse>
                           )}
-                          {block.message.tool_calls ? (
-                            <ToolCallList
-                              block={block}
-                              blocks={blocks}
-                              getPageReferrer={getPageReferrer}
-                            />
-                          ) : null}
-                        </Fragment>
-                      );
-                    })
-                  : null}
-              </ThinkingBlock>
-            </MessageRow>
-          ) : null}
+                        {!isAnswer && hasValidContent(block.message.content) && (
+                          <SeerMarkdown raw={block.message.content} />
+                        )}
+                        {block.message.tool_calls ? (
+                          <ToolCallList
+                            block={block}
+                            latestTodos={latestTodos}
+                            getPageReferrer={getPageReferrer}
+                          />
+                        ) : null}
+                      </Fragment>
+                    );
+                  })
+                : null}
+            </ThinkingBlock>
+          </MessageRow>
+        ) : null}
 
-          {settledAnswer ? (
-            <AssistantBlock
-              block={settledAnswer}
-              blockIndex={blockIndex + group.length - 1}
-              runId={runId}
-              interactionPending={interactionPending}
-              readOnly={readOnly}
-              compact={hasTrace}
-            />
-          ) : null}
-        </AgentWriteApprovalProvider>
+        {settledAnswer ? (
+          <AssistantBlock
+            block={settledAnswer}
+            blockIndex={blockIndex + group.length - 1}
+            runId={runId}
+            interactionPending={interactionPending}
+            readOnly={readOnly}
+            compact={hasTrace}
+          />
+        ) : null}
       </motion.div>
     </Container>
   );
-}
+}, areResponseGroupPropsEqual);
 
 // The response's raw reasoning. When it sits between tool calls it is set apart with extra vertical
 // space (`data-spaced`); leading or trailing reasoning gets none so it stays tight against the

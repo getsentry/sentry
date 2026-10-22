@@ -18,10 +18,10 @@ export function CheckoutOption({
 }: {
   ariaLabel: string;
   ariaRole: 'radio' | 'checkbox';
-  dataTestId: string;
   isSelected: boolean;
   onClick: () => void;
   optionHeader: React.ReactNode;
+  dataTestId?: string;
   optionDescription?: React.ReactNode;
   topDecoration?: React.ReactNode;
   withDivider?: boolean;
@@ -53,8 +53,7 @@ export function CheckoutOption({
             ) : (
               <Checkbox
                 tabIndex={-1} // let parent handle the focus
-                aria-label={ariaLabel}
-                aria-checked={isSelected}
+                aria-hidden
                 checked={isSelected}
                 readOnly
               />

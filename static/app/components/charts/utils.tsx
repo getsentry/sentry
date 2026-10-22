@@ -268,14 +268,11 @@ export function canIncludePreviousPeriod(
 }
 
 export function shouldFetchPreviousPeriod({
-  includePrevious = true,
   period,
   start,
   end,
-}: {
-  includePrevious?: boolean;
-} & Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
-  return !start && !end && canIncludePreviousPeriod(includePrevious, period);
+}: Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
+  return !start && !end && canIncludePreviousPeriod(true, period);
 }
 
 /**

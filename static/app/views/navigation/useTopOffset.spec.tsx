@@ -1,0 +1,59 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {
+  PRIMARY_HEADER_HEIGHT,
+  SUPERUSER_MARQUEE_HEIGHT,
+} from 'sentry/views/navigation/constants';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: jest.fn(),
+}));
+
+const HEADER_HEIGHT = PRIMARY_HEADER_HEIGHT;
+
+describe('useTopOffset', () => {
+  beforeEach(() => {
+    jest.mocked(isActiveSuperuser).mockReturnValue(true);
+  });
+
+  it('offsets the TopBar and in-page stickies by the superuser marquee when the window scrolls', () => {
+    const {result} = renderHookWithProviders(useTopOffset, {
+      organization: OrganizationFixture(),
+    });
+
+    expect(result.current.barTop).toBe(`${SUPERUSER_MARQUEE_HEIGHT}px`);
+    expect(result.current.topBarTop).toBe(`${SUPERUSER_MARQUEE_HEIGHT}px`);
+    expect(result.current.pageContentTop).toBe(
+      `${SUPERUSER_MARQUEE_HEIGHT + HEADER_HEIGHT}px`
+    );
+  });
+
+  it('does not offset the TopBar when the Seer Explorer sidebar pane is the scroller', () => {
+    const {result} = renderHookWithProviders(useTopOffset, {
+      organization: OrganizationFixture({
+        openMembership: true,
+        features: ['seer-explorer'],
+      }),
+    });
+
+    expect(result.current.barTop).toBe(`${SUPERUSER_MARQUEE_HEIGHT}px`);
+    expect(result.current.topBarTop).toBe('0px');
+    expect(result.current.pageContentTop).toBe(`${HEADER_HEIGHT}px`);
+  });
+
+  it('has no marquee offset for non-superusers', () => {
+    jest.mocked(isActiveSuperuser).mockReturnValue(false);
+
+    const {result} = renderHookWithProviders(useTopOffset, {
+      organization: OrganizationFixture(),
+    });
+
+    expect(result.current.barTop).toBe('0px');
+    expect(result.current.topBarTop).toBe('0px');
+    expect(result.current.pageContentTop).toBe(`${HEADER_HEIGHT}px`);
+  });
+});

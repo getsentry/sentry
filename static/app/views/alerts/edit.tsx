@@ -4,7 +4,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -68,10 +67,6 @@ export default function ProjectAlertsEditor() {
     alert_type: alertType,
   });
 
-  //  Used to hide specific fields like actions while migrating metric alert rules.
-  //  Currently used to help people add `is:unresolved` to their metric alert query.
-  const isMigration = location?.query?.migration === '1';
-
   return (
     <Stack flex={1}>
       <SentryDocumentTitle
@@ -79,16 +74,7 @@ export default function ProjectAlertsEditor() {
         orgSlug={organization.slug}
         projectSlug={project.slug}
       />
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <BuilderBreadCrumbs
-            organization={organization}
-            title={isMigration ? t('Review Thresholds') : t('Edit Alert Rule')}
-            projectSlug={project.slug}
-          />
-          <Layout.Title>{title}</Layout.Title>
-        </Layout.HeaderContent>
-      </Layout.Header>
+      <BuilderBreadCrumbs organization={organization} title={title} />
       <Layout.Body>
         {alertType === CombinedAlertType.UPTIME && (
           <UptimeRulesEdit

@@ -1538,22 +1538,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_seer_coding") is True
 
-    @with_feature("organizations:seer-disable-coding-setting")
-    def test_enable_seer_coding_cannot_be_disabled_when_flag_enabled(self) -> None:
-        data = {"enableSeerCoding": False}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert self.organization.get_option("sentry:enable_seer_coding") is not False
-
-    @with_feature("organizations:seer-disable-coding-setting")
-    def test_enable_seer_coding_cannot_be_enabled_when_flag_enabled(self) -> None:
-        self.organization.update_option("sentry:enable_seer_coding", False)
-
-        data = {"enableSeerCoding": True}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert self.organization.get_option("sentry:enable_seer_coding") is False
-
     def test_default_coding_agent_default(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["defaultCodingAgent"] == SEER_DEFAULT_CODING_AGENT_DEFAULT
@@ -2088,6 +2072,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.assert_valid_deleted_log(deleted_org, org)
 
         schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        assert schedule.actor_id == self.user.id
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 

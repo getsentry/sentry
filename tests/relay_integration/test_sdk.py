@@ -10,14 +10,11 @@ from sentry.models.project import Project
 from sentry.receivers import create_default_projects
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
-from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
-from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.testutils.skips import requires_kafka
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
-from sentry.users.models.userrole import manage_default_super_admin_role
 from sentry.utils.sdk import bind_organization_context, get_project_key
 
 pytestmark = [requires_kafka, thread_leak_allowlist(reason="relay integration tests", issue=97040)]
@@ -26,38 +23,34 @@ pytestmark = [requires_kafka, thread_leak_allowlist(reason="relay integration te
 @pytest.fixture
 def scope():
     with sentry_sdk.isolation_scope() as scope:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            manage_default_super_admin_role()
         create_default_projects()
         yield scope
 
 
 @pytest.fixture
 def post_event_with_sdk(settings, scope: Scope, relay_server, wait_for_ingest_consumer):
-    adjust_settings_for_relay_tests(settings)
-    settings.SENTRY_ENDPOINT = relay_server["url"]
-    settings.SENTRY_PROJECT = 1
-    internal_project_key = get_project_key()
-    assert internal_project_key is not None
+    with override_settings(SENTRY_ENDPOINT=relay_server["url"], SENTRY_PROJECT=1):
+        internal_project_key = get_project_key()
+        assert internal_project_key is not None
 
-    client = sentry_sdk.Client(
-        dsn=internal_project_key.dsn_private,
-    )
-
-    wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
-
-    def inner(*args, **kwargs):
-        kwargs.setdefault("scope", scope)
-        event_id = client.capture_event(*args, **kwargs)
-        assert event_id is not None
-        client.flush()
-
-        return wait_for_ingest_consumer(
-            lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
+        client = sentry_sdk.Client(
+            dsn=internal_project_key.dsn_private,
         )
 
-    yield inner
-    client.close()
+        wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+
+        def inner(*args, **kwargs):
+            kwargs.setdefault("scope", scope)
+            event_id = client.capture_event(*args, **kwargs)
+            assert event_id is not None
+            client.flush()
+
+            return wait_for_ingest_consumer(
+                lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
+            )
+
+        yield inner
+        client.close()
 
 
 @no_silo_test
@@ -72,13 +65,10 @@ def test_simple(settings, post_event_with_sdk) -> None:
 
 
 @no_silo_test
-@override_settings(SENTRY_PROJECT=1)
+@override_settings(SENTRY_PROJECT=1, SENTRY_INGEST_CONSUMER_APM_SAMPLING=1.0)
 @django_db_all
-def test_recursion_breaker(settings, post_event_with_sdk) -> None:
+def test_recursion_breaker(post_event_with_sdk) -> None:
     # If this test terminates at all then we avoided recursion.
-    settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
-    settings.SENTRY_PROJECT = 1
-
     event_id = uuid.uuid4().hex
     with mock.patch(
         "sentry.event_manager.EventManager.save", spec=Event, side_effect=ValueError("oh no!")

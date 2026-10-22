@@ -6,6 +6,13 @@ import {ReleaseLink} from './releaseLink';
 export const Release = defineSeerEmbed({
   name: 'release',
   render(props, level) {
-    return level === 'block' ? <ReleaseBlock {...props} /> : <ReleaseLink {...props} />;
+    switch (level) {
+      case 'block':
+        return <ReleaseBlock {...props} />;
+      case 'markdown':
+        return <ReleaseLink {...props} format="markdown" />;
+      case 'inline':
+        return <ReleaseLink {...props} />;
+    }
   },
 });

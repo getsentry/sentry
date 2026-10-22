@@ -17,11 +17,11 @@ import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {
   canUseMetricsData,
   useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -221,6 +221,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('has', 'sentry.normalized_description');
+          mutableSearch.addFilterValue('has', SpanFields.SPAN_GROUP);
           mutableSearch.addFilterValue('span.category', 'db');
           mutableSearch.addFilterValue('!span.op', `[${EXCLUDED_DB_OPS.join(',')}]`);
           eventView.query = mutableSearch.formatString();
@@ -448,19 +449,27 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             if (
               props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
             ) {
+              const spanDomain =
+                provided.widgetData.list.data[selectedListIndex]?.[
+                  SpanFields.SPAN_DOMAIN
+                ];
+              if (spanDomain === null || spanDomain === undefined) {
+                return null;
+              }
               eventView.additionalConditions.addFilterValue(
                 SpanFields.SPAN_DOMAIN,
-                provided.widgetData.list.data[selectedListIndex][
-                  SpanFields.SPAN_DOMAIN
-                ]!.toString(),
+                spanDomain.toString(),
                 false
               );
             } else {
+              const spanGroup =
+                provided.widgetData.list.data[selectedListIndex]?.[SpanFields.SPAN_GROUP];
+              if (spanGroup === null || spanGroup === undefined) {
+                return null;
+              }
               eventView.additionalConditions.addFilterValue(
                 SpanFields.SPAN_GROUP,
-                provided.widgetData.list.data[selectedListIndex][
-                  SpanFields.SPAN_GROUP
-                ]!.toString()
+                spanGroup.toString()
               );
             }
 
@@ -537,18 +546,19 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   };
 
   const assembleAccordionItems = (provided: ComponentData) =>
-    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
-
-  const getChart = (provided: ComponentData) => (
-    <DurationChart
-      {...provided.widgetData.chart}
-      {...provided}
-      disableMultiAxis
-      disableXAxis
-      chartColors={props.chartColor ? [props.chartColor] : undefined}
-      isLineChart
-    />
-  );
+    getItems(provided).map(item => ({
+      header: item,
+      content: (
+        <DurationChart
+          {...provided.widgetData.chart}
+          {...provided}
+          disableMultiAxis
+          disableXAxis
+          chartColors={props.chartColor ? [props.chartColor] : undefined}
+          isLineChart
+        />
+      ),
+    }));
 
   const getItems = (provided: ComponentData) =>
     provided.widgetData.list.data.map(listItem => {
@@ -826,35 +836,32 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
   const moduleURLBuilder = useModuleURLBuilder();
 
-  const getContainerActions = () => {
-    const route: string =
-      (
-        {
-          [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: moduleURLBuilder('db'),
-          [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
-            moduleURLBuilder('resource'),
-          [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]:
-            moduleURLBuilder('http'),
-          [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
-            moduleURLBuilder('cache'),
-        } as any
-      )[props.chartSetting] ?? '';
+  const route: string =
+    (
+      {
+        [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: moduleURLBuilder('db'),
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
+          moduleURLBuilder('resource'),
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: moduleURLBuilder('http'),
+        [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
+          moduleURLBuilder('cache'),
+      } as any
+    )[props.chartSetting] ?? '';
 
-    return [
-      PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
-      PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
-      PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
-      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
-    ].includes(props.chartSetting) ? (
-      <Fragment>
-        <div>
-          <LinkButton to={`${route}/`} size="sm">
-            {t('View All')}
-          </LinkButton>
-        </div>
-      </Fragment>
-    ) : null;
-  };
+  const containerActions = [
+    PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+    PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
+  ].includes(props.chartSetting) ? (
+    <Fragment>
+      <div>
+        <LinkButton to={`${route}/`} size="sm">
+          {t('View All')}
+        </LinkButton>
+      </div>
+    </Fragment>
+  ) : null;
 
   return (
     <GenericPerformanceWidget<DataType>
@@ -863,7 +870,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       Subtitle={() => (
         <Subtitle>{props.subTitle ?? t('Found in the following transactions')}</Subtitle>
       )}
-      HeaderActions={() => getContainerActions()}
+      HeaderActions={() => containerActions}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />

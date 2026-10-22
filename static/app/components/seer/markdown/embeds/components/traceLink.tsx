@@ -1,8 +1,11 @@
+import {IconSpan} from '@sentry/icons/span';
 import queryString from 'query-string';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
@@ -35,11 +38,15 @@ export function getTraceHref(
   });
 }
 
-export function TraceLink(props: EmbedOutput<'trace'>) {
+export function TraceLink({
+  format,
+  ...props
+}: EmbedOutput<'trace'> & ResourceLinkFormatProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconSpan}
       href={getTraceHref(props, organization)}
       title={t('Trace %s', getShortEventId(props.traceId))}

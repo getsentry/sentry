@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import logging
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
@@ -22,6 +23,8 @@ from snuba_sdk import (
 from sentry import features, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
@@ -39,7 +42,11 @@ from sentry.statistical_detectors.algorithm import (
 )
 from sentry.statistical_detectors.base import DetectorPayload
 from sentry.statistical_detectors.detector import RegressionDetector
-from sentry.statistical_detectors.redis import RedisDetectorStore
+from sentry.statistical_detectors.redis import (
+    FUNCTION_CHANGE_POINT_BATCH_SIZE,
+    FunctionChangePointQueue,
+    RedisDetectorStore,
+)
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.utils import compute_delay
@@ -49,12 +56,19 @@ from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
 FUNCTIONS_PER_PROJECT = 50
 FUNCTIONS_PER_BATCH = 1_000
+CHANGE_POINTS_PER_BATCH = 10
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -212,36 +226,75 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
     trends = FunctionRegressionDetector.redirect_escalations(trends, start_time)
     trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
-    delay = 12  # hours
-    delayed_start = start_time + timedelta(hours=delay)
+    delayed_start = start_time + timedelta(hours=12)
+    queue = FunctionChangePointQueue()
 
     for regression_chunk in chunked(trends, FUNCTIONS_PER_BATCH):
-        detect_function_change_points.apply_async(
-            args=[
-                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start.isoformat(),
-            ],
-            # delay the check by delay hours because we want to make sure there
-            # will be enough data after the potential change point to be confident
-            # that a change has occurred
-            countdown=delay * 60 * 60,
+        queue.enqueue_many(
+            [
+                (bundle.payload.project_id, bundle.payload.group, delayed_start)
+                for bundle in regression_chunk
+            ]
         )
 
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_change_points",
     namespace=profiling_tasks,
+    processing_deadline_duration=60,
 )
 def detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: str, *args, **kwargs
+    functions_list: list[tuple[int, int]] | None = None,
+    start: str | None = None,
+    *args,
+    **kwargs,
 ) -> None:
-    start_time = datetime.fromisoformat(start)
+    if not options.get("statistical_detectors.enable"):
+        return
 
-    _detect_function_change_points(functions_list, start_time, *args, **kwargs)
+    # Legacy version of this job.
+    if functions_list is not None and start is not None:
+        _detect_function_change_points(
+            functions_list, datetime.fromisoformat(start), *args, **kwargs
+        )
+        return
+
+    queue = FunctionChangePointQueue()
+    due = queue.claim_due(django_timezone.now())
+    for candidates in chunked(due, CHANGE_POINTS_PER_BATCH):
+        process_function_change_points.apply_async(
+            args=[
+                [
+                    (project_id, function, candidate_start.isoformat())
+                    for project_id, function, candidate_start in candidates
+                ]
+            ]
+        )
+        queue.acknowledge(candidates)
+
+    if len(due) == FUNCTION_CHANGE_POINT_BATCH_SIZE:
+        detect_function_change_points.apply_async()
+
+
+@instrumented_task(
+    name="sentry.tasks.statistical_detectors.process_function_change_points",
+    namespace=profiling_tasks,
+    processing_deadline_duration=5 * 60,
+    wait_for_delivery=True,
+)
+def process_function_change_points(candidates: list[tuple[int, str, str]]) -> None:
+    candidates_by_start: dict[datetime, list[tuple[int, str]]] = {}
+    for project_id, function, candidate_start in candidates:
+        candidates_by_start.setdefault(datetime.fromisoformat(candidate_start), []).append(
+            (project_id, function)
+        )
+
+    for start_time, functions_list in candidates_by_start.items():
+        _detect_function_change_points(functions_list, start_time)
 
 
 def _detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: Sequence[tuple[int, int | str]], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -259,22 +312,50 @@ def _detect_function_change_points(
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
-    viewer_context = None
-    if function_pairs:
-        project = function_pairs[0][0]
-        viewer_context = SeerViewerContext(organization_id=project.organization_id)
+    function_pairs_by_organization: dict[int, list[tuple[Project, int | str]]] = {}
+    for function_pair in function_pairs:
+        function_pairs_by_organization.setdefault(function_pair[0].organization_id, []).append(
+            function_pair
+        )
 
-    regressions = FunctionRegressionDetector.detect_regressions(
-        function_pairs, start, "p95()", TIMESERIES_PER_BATCH, viewer_context=viewer_context
+    def detect_regressions_with_viewer_context() -> Generator[BreakpointData]:
+        for organization_id, organization_function_pairs in function_pairs_by_organization.items():
+            viewer_context = SeerViewerContext(organization_id=organization_id)
+            viewer_context_manager: contextlib.AbstractContextManager[None] = (
+                contextlib.nullcontext()
+            )
+            if get_viewer_context() is None:
+                viewer_context_manager = viewer_context_scope(
+                    ViewerContext(
+                        organization_id=organization_id,
+                        actor_type=ActorType.SYSTEM,
+                    )
+                )
+
+            with viewer_context_manager:
+                yield from FunctionRegressionDetector.detect_regressions(
+                    organization_function_pairs,
+                    start,
+                    "p95()",
+                    TIMESERIES_PER_BATCH,
+                    viewer_context=viewer_context,
+                )
+
+    regressions = FunctionRegressionDetector.save_regressions_with_versions(
+        detect_regressions_with_viewer_context()
     )
-    regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
-    emitted_count = 0
+    vroom_emitted_count = 0
+    sentry_emitted_count = 0
 
     for regression_chunk in chunked(regressions, 100):
         breakpoint_count += len(regression_chunk)
-        emitted_count += emit_function_regression_issue(projects_by_id, regression_chunk, start)
+        vroom_count, sentry_count = emit_function_regression_issue(
+            projects_by_id, regression_chunk, start
+        )
+        vroom_emitted_count += vroom_count
+        sentry_emitted_count += sentry_count
 
     metrics.incr(
         "statistical_detectors.breakpoint.detected",
@@ -285,8 +366,14 @@ def _detect_function_change_points(
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
-        amount=emitted_count,
-        tags={"source": "profile", "kind": "function"},
+        amount=vroom_emitted_count,
+        tags={"source": "profile", "kind": "function", "producer": "vroom"},
+        sample_rate=1.0,
+    )
+    metrics.incr(
+        "statistical_detectors.breakpoint.emitted",
+        amount=sentry_emitted_count,
+        tags={"source": "profile", "kind": "function", "producer": "sentry"},
         sample_rate=1.0,
     )
 
@@ -295,7 +382,7 @@ def emit_function_regression_issue(
     projects_by_id: dict[int, Project],
     regressions: list[BreakpointData],
     start: datetime,
-) -> int:
+) -> tuple[int, int]:
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
 
@@ -350,7 +437,8 @@ def emit_function_regression_issue(
 
     continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
-    payloads = []
+    payloads_by_producer: dict[bool, list[dict[str, Any]]] = {}
+    produce_in_sentry_by_org: dict[int, bool] = {}
 
     for regression in regressions:
         project_id = int(regression["project"])
@@ -366,7 +454,12 @@ def emit_function_regression_issue(
         if example is None:
             continue
 
-        payloads.append(
+        if project.organization_id not in produce_in_sentry_by_org:
+            produce_in_sentry_by_org[project.organization_id] = features.has(
+                "organizations:profiling-sentry-regression-occurrences", project.organization
+            )
+        produce_in_sentry = produce_in_sentry_by_org[project.organization_id]
+        payloads_by_producer.setdefault(produce_in_sentry, []).append(
             {
                 "organization_id": project.organization_id,
                 "project_id": project_id,
@@ -383,15 +476,37 @@ def emit_function_regression_issue(
             }
         )
 
-    if not payloads:
-        return 0
+    vroom_occurrences = 0
+    sentry_occurrences = 0
+    for produce_in_sentry, payloads in payloads_by_producer.items():
+        response = get_from_profiling_service(
+            method="POST",
+            path="/regressed?produce=false" if produce_in_sentry else "/regressed",
+            json_data=payloads,
+        )
+        if response.status != 200:
+            continue
 
-    response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
-    if response.status != 200:
-        return 0
+        data = json.loads(response.data)
+        if produce_in_sentry:
+            for payload in data["occurrence_payloads"]:
+                event_data = payload["event"]
+                occurrence = IssueOccurrence.from_dict(
+                    cast(
+                        IssueOccurrenceData,
+                        {
+                            **payload,
+                            "event_id": event_data["event_id"],
+                            "resource_id": payload.get("resource_id"),
+                        },
+                    )
+                )
+                produce_occurrence_to_kafka(occurrence=occurrence, event_data=event_data)
+            sentry_occurrences += len(data["occurrence_payloads"])
+        else:
+            vroom_occurrences += data["occurrences"]
 
-    data = json.loads(response.data)
-    return data.get("occurrences")
+    return vroom_occurrences, sentry_occurrences
 
 
 def fetch_continuous_examples(raw_examples):

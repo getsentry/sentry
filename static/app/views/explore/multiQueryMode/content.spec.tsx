@@ -1074,6 +1074,8 @@ describe('MultiQueryModeContent', () => {
     await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
 
+    // The picker stays open after selection, so close it before clicking the link.
+    await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getAllByTestId('unstack-link')[0]!);
 
     expect(queries).toEqual([
@@ -1134,7 +1136,7 @@ describe('MultiQueryModeContent', () => {
 
   it('clears the save highlight and refreshes saved queries after updating', async () => {
     const listRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -1157,6 +1159,7 @@ describe('MultiQueryModeContent', () => {
           },
         ],
         range: '14d',
+        statsPeriod: '14d',
         projects: [],
         environment: [],
       },
@@ -1208,6 +1211,7 @@ describe('MultiQueryModeContent', () => {
         },
       ],
       range: '7d',
+      statsPeriod: '7d',
       projects: [Number(project.id)],
       environment: [],
     };

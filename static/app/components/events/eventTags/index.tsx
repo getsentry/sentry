@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import {EventTagCustomBanner} from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
-import type {EventTagTreeRowConfig} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {associateTagsWithMeta, TagFilter} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
@@ -16,8 +15,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 type Props = {
   event: Event;
   projectSlug: Project['slug'];
-  /** Applied to every tag row; e.g. `disableActions` for read-only surfaces. */
-  config?: EventTagTreeRowConfig;
   filteredTags?: EventTagWithMeta[];
   tagFilter?: TagFilter;
 };
@@ -28,7 +25,6 @@ export function EventTags({
   event,
   filteredTags,
   projectSlug,
-  config,
   tagFilter = TagFilter.ALL,
 }: Props) {
   const organization = useOrganization();
@@ -104,12 +100,7 @@ export function EventTags({
 
   return (
     <Fragment>
-      <EventTagsTree
-        event={event}
-        projectSlug={projectSlug}
-        tags={filtered}
-        config={config}
-      />
+      <EventTagsTree event={event} projectSlug={projectSlug} tags={filtered} />
       {hasCustomTagsBanner && <EventTagCustomBanner />}
     </Fragment>
   );

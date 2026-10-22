@@ -2,7 +2,7 @@
 
 ## Intent
 
-Encode the fixed three-PR order for deleting a Sentry option or FlagPole feature flag once its rollout is finished, and the failure modes that follow from getting the order wrong. The order is not arbitrary: it is forced by `configoptions` validation, by `configoptions sync` only iterating registered options, and by what each kind falls back to when its automator value disappears.
+Encode the fixed three-PR order for deleting a Sentry option or FlagPole feature flag once its rollout is finished, and the failure modes that follow from getting the order wrong. For options the order is forced by `configoptions` validation, by `configoptions sync` only iterating registered options, and by what the option falls back to when its automator value disappears. For FlagPole flags, which are read from the `getsentry-features` sentry-options namespace, it is forced by the fallback to `default=` and by nothing else catching a leftover `flagpole.yaml` block.
 
 ## Scope
 
@@ -19,7 +19,7 @@ Out of scope:
 - Adding an option or flag — use the `feature-flags` skill and the automator README
 - Changing a value or rollout percentage (a single automator PR, no ordering constraint)
 - Options with `FLAG_PRIORITIZE_DISK` or without `FLAG_AUTOMATOR_MODIFIABLE` — those come from ops config
-- The newer `getsentry/sentry-options` platform (`option-values/`, schema-in-service-repo)
+- Options on the newer `getsentry/sentry-options` platform (`option-values/`, schema-in-service-repo); FlagPole flags are in scope even though they are now served from it
 
 ## Users And Trigger Context
 
@@ -44,12 +44,12 @@ Data that must not be stored:
 
 ## Validation
 
-- Lightweight: the ordering table and failure matrix match `src/sentry/runner/commands/configoptions.py` (`_validate_options`, `sync`) and `src/sentry/features/manager.py` (`add`)
+- Lightweight: the ordering table and failure matrix match `src/sentry/runner/commands/configoptions.py` (`_validate_options`, `sync`), `src/sentry/features/manager.py` (`add`), and the automator's `generate.py` skipping `flagpole.yaml`
 - Deeper: a real removal lands with a green automator run and no `[DRIFT]`/unregistered entries in `#feed-options-automator`
 
 ## Known Limitations
 
-- Covers the legacy DB-backed options path only; the file-based `sentry-options` platform has a different validation surface
+- Options: covers the legacy DB-backed path only; the file-based `sentry-options` platform has a different validation surface. Flags: covered, but nothing enforces the step-2/step-3 pairing
 - Automator file layout (`options/default/`, `options/regions/`) is verified against `main` as of 2026-08-12 and is not machine-checked here
 - Cannot verify deploy completion; the agent must confirm rollout externally
 

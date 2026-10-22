@@ -1,10 +1,7 @@
-import {ThemeProvider} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-
-import {lightTheme} from 'sentry/utils/theme/theme';
 
 import {BillingDetailsPanel} from 'getsentry/components/billingDetails/panel';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
@@ -92,14 +89,12 @@ describe('BillingDetailsPanel', () => {
       } as unknown as ReturnType<typeof useBillingDetails>);
 
       return (
-        <ThemeProvider theme={lightTheme}>
-          <div style={{padding: 8, width: 400}}>
-            <BillingDetailsPanel
-              organization={organization}
-              subscription={scenario.subscription}
-            />
-          </div>
-        </ThemeProvider>
+        <div style={{padding: 8, width: 400}}>
+          <BillingDetailsPanel
+            organization={organization}
+            subscription={scenario.subscription}
+          />
+        </div>
       );
     },
     () => ({tags: {area: 'billing'}})

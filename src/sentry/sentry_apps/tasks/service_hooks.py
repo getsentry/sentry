@@ -11,7 +11,6 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_tasks
-from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 from sentry.utils.cache import cache
 
@@ -89,10 +88,6 @@ def process_service_hook(
         payload = json.dumps(get_payload_v0(event))
     else:
         raise NotImplementedError
-
-    from sentry import tsdb
-
-    tsdb.backend.incr(TSDBModel.servicehook_fired, servicehook.id)
 
     headers = {
         "Content-Type": "application/json",

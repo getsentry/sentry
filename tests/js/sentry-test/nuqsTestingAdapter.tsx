@@ -1,4 +1,5 @@
-import {useCallback, useMemo, useRef, type ReactElement, type ReactNode} from 'react';
+import {createContext, use, useCallback, type ReactElement, type ReactNode} from 'react';
+import {UNSAFE_DataRouterContext} from 'react-router';
 import {
   unstable_createAdapterProvider as createAdapterProvider,
   renderQueryString,
@@ -26,78 +27,65 @@ type SentryNuqsTestingAdapterProps = {
   onUrlUpdate?: OnUrlUpdateFunction;
 };
 
+const UrlUpdateContext = createContext<OnUrlUpdateFunction | undefined>(undefined);
+
+function useSentryAdapter(): AdapterInterface {
+  const routerContext = use(UNSAFE_DataRouterContext);
+  if (!routerContext) {
+    throw new Error('SentryNuqsTestingAdapter requires a data router');
+  }
+  const {router} = routerContext;
+  const onUrlUpdate = use(UrlUpdateContext);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+
+  const updateUrl = useCallback<AdapterInterface['updateUrl']>(
+    (search, options) => {
+      const queryString = renderQueryString(search);
+      onUrlUpdate?.({
+        searchParams: new URLSearchParams(search),
+        queryString,
+        options,
+      });
+
+      navigate(`${router.state.location.pathname}${queryString}`, {
+        replace: options.history === 'replace',
+      });
+    },
+    [navigate, onUrlUpdate, router]
+  );
+
+  // A queued write can follow navigation before React renders the new
+  // location. Compose onto router state so that earlier writes are retained.
+  const getSearchParamsSnapshot = useCallback(
+    () => new URLSearchParams(router.state.location.search),
+    [router]
+  );
+
+  return {
+    searchParams,
+    updateUrl,
+    getSearchParamsSnapshot,
+    rateLimitFactor: 0,
+    autoResetQueueOnUpdate: true,
+  };
+}
+
+const AdapterProvider = createAdapterProvider(useSentryAdapter);
+
 /**
- * Custom nuqs adapter component for Sentry that reads location from our
- * useLocation hook instead of maintaining its own internal state.
- *
- * This ensures nuqs uses the same location source as the rest of the
- * application during tests.
+ * Read rendered query state from useLocation and compose queued writes onto
+ * the data router's current location. Keep the provider stable across rerenders.
  */
 export function SentryNuqsTestingAdapter({
   children,
   defaultOptions,
   onUrlUpdate,
 }: SentryNuqsTestingAdapterProps): ReactElement {
-  // Create a hook that nuqs will call to get the adapter interface
-  // This hook needs to be defined inside a component that has access to location/navigate
-  const useSentryAdapter = useCallback(
-    (_watchKeys: string[]): AdapterInterface => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const location = useLocation();
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const navigate = useNavigate();
-
-      // nuqs flushes updates on a deferred tick, so read location through a ref
-      // to compose onto the live URL instead of a stale render snapshot.
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const locationRef = useRef(location);
-      locationRef.current = location;
-
-      // Get search params from the current location
-      const searchParams = new URLSearchParams(location.search || '');
-
-      const updateUrl: AdapterInterface['updateUrl'] = (search, options) => {
-        const newSearchParams = new URLSearchParams(search);
-        const queryString = renderQueryString(newSearchParams);
-
-        // Call the onUrlUpdate callback if provided
-        onUrlUpdate?.({
-          searchParams: new URLSearchParams(search), // make a copy
-          queryString,
-          options,
-        });
-
-        // Navigate to the new location using Sentry's navigate
-        // We need to construct the full path with the search string
-        const newPath = queryString
-          ? `${locationRef.current.pathname}${queryString}`
-          : locationRef.current.pathname;
-
-        // The navigate function from TestRouter already wraps this in act()
-        navigate(newPath, {replace: options.history === 'replace'});
-      };
-
-      const getSearchParamsSnapshot = () => {
-        // Always read from the current location
-        return new URLSearchParams(locationRef.current.search || '');
-      };
-
-      return {
-        searchParams,
-        updateUrl,
-        getSearchParamsSnapshot,
-        rateLimitFactor: 0, // No throttling in tests
-        autoResetQueueOnUpdate: true, // Reset update queue after each update
-      };
-    },
-    [onUrlUpdate]
+  return (
+    <UrlUpdateContext value={onUrlUpdate}>
+      <AdapterProvider defaultOptions={defaultOptions}>{children}</AdapterProvider>
+    </UrlUpdateContext>
   );
-
-  // Create the adapter provider (memoized to prevent remounting)
-  const AdapterProvider = useMemo(
-    () => createAdapterProvider(useSentryAdapter),
-    [useSentryAdapter]
-  );
-
-  return <AdapterProvider defaultOptions={defaultOptions}>{children}</AdapterProvider>;
 }

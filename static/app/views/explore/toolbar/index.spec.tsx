@@ -24,7 +24,10 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeFunction,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 
@@ -107,7 +110,99 @@ describe('ExploreToolbar', () => {
         valid: true,
       },
     });
+    // Series filter bars always mount and fetch recent searches.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
   });
+
+  it('edits transformations in the URL for one span series and excludes equations', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      }),
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            aggregateField: [
+              {groupBy: 'span.op'},
+              {yAxes: ['count(span.duration)'], transformations: ['fill(locf)']},
+              {yAxes: ['avg(span.duration)']},
+              {yAxes: ['equation|$a + $b']},
+            ].map(field => JSON.stringify(field)),
+          },
+        },
+      },
+    });
+
+    const addButtons = screen.getAllByRole('button', {name: 'Add Transformation'});
+    expect(addButtons).toHaveLength(2);
+    await userEvent.click(addButtons[1]!);
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'span.op'}),
+        JSON.stringify({
+          yAxes: ['count(span.duration)'],
+          transformations: ['fill(locf)'],
+        }),
+        JSON.stringify({
+          yAxes: ['avg(span.duration)'],
+          transformations: ['smooth(sma,3)'],
+        }),
+        JSON.stringify({yAxes: ['equation|$a + $b']}),
+      ])
+    );
+  });
+
+  it.each([false, true])(
+    'aligns an unfiltered visualize row with transformations enabled=%s',
+    async enabled => {
+      render(<ExploreToolbar />, {
+        organization: OrganizationFixture({
+          ...organization,
+          features: enabled
+            ? [...organization.features, 'explore-interpolation-and-smoothing']
+            : organization.features,
+        }),
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({yAxes: ['epm()']}),
+              ],
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByRole('button', {name: 'epm'})).toBeInTheDocument();
+      const row = screen.getByRole('button', {name: 'Clear Visualize'}).parentElement;
+      expect(row?.style.alignItems).toBe(enabled ? 'flex-start' : '');
+      if (enabled) {
+        expect(
+          screen.getByRole('button', {name: 'Add Transformation'})
+        ).toBeInTheDocument();
+      } else {
+        expect(
+          screen.queryByRole('button', {name: 'Add Transformation'})
+        ).not.toBeInTheDocument();
+      }
+    }
+  );
 
   it('disables changing visualize fields for count', async () => {
     let visualizes: any;
@@ -123,7 +218,6 @@ describe('ExploreToolbar', () => {
 
     // this is the default
     expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
-
     expect(await within(section).findByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
@@ -322,6 +416,82 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
+  it('allows visualizing saved formulas', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/formulas/`,
+      body: [
+        {
+          id: '1',
+          name: 'formula.apdex',
+          dataset: 'spans',
+          description: null,
+          formula: '{count_satisfied} / count()',
+          prebuilt: true,
+          type: 'number',
+          unit: null,
+          references: [],
+          params: [
+            {name: 'duration', type: 'column', order: 0, value: ''},
+            {name: 'threshold', type: 'number', order: 1, value: ''},
+            {name: 'frustrated', type: 'calculation', order: 2, value: '{threshold} * 4'},
+          ],
+        },
+        {
+          id: '2',
+          name: 'formula.log_rate',
+          dataset: 'logs',
+          description: null,
+          formula: 'count()',
+          prebuilt: false,
+          type: 'number',
+          unit: null,
+          references: [],
+          params: [],
+        },
+      ],
+    });
+
+    let visualizes: readonly Visualize[] = [];
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-saved-formulas'],
+      }),
+      additionalWrapper: Wrapper,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    expect(
+      within(section).queryByRole('option', {name: 'log_rate'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(await within(section).findByRole('option', {name: 'apdex'}));
+    expect(visualizes).toEqual([new VisualizeFunction('formula.apdex(span.duration,1)')]);
+
+    const threshold = within(section).getByRole('textbox', {name: 'threshold'});
+    await userEvent.clear(threshold);
+    await userEvent.type(threshold, '300{Enter}');
+    expect(visualizes).toEqual([
+      new VisualizeFunction('formula.apdex(span.duration,300)'),
+    ]);
+
+    await userEvent.clear(threshold);
+    await userEvent.type(threshold, 'abc');
+    await userEvent.tab();
+    expect(threshold).toHaveValue('300');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'apdex'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
+  });
+
   it('does not show a clear button when the default chart is only hidden', async () => {
     render(<ExploreToolbar />, {additionalWrapper: Wrapper});
 
@@ -381,6 +551,107 @@ describe('ExploreToolbar', () => {
 
     // last one so remove column button is hidden
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
+  });
+
+  it('only offers group bys present on spans matching the search query', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'http.method',
+          name: 'http.method',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+      body: [
+        {
+          attributeType: 'string',
+          key: 'db.system',
+          name: 'db.system',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {query: 'span.op:db'},
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+
+    expect(
+      await within(section).findByRole('option', {name: 'db.system'})
+    ).toBeInTheDocument();
+    expect(
+      within(section).queryByRole('option', {name: 'http.method'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers all group bys when the search query is invalid', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'http.method',
+          name: 'http.method',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      match: [MockApiClient.matchQuery({query: 'span.op:'})],
+      statusCode: 400,
+      body: {detail: 'Invalid query'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: 'Invalid query', fields: [], valid: false},
+        valid: false,
+      },
+    });
+
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {query: 'span.op:'},
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+
+    expect(
+      await within(section).findByRole('option', {name: 'http.method'})
+    ).toBeInTheDocument();
   });
 
   it('uses validated field type for the selected group by', async () => {
@@ -894,6 +1165,8 @@ describe('ExploreToolbar', () => {
     expect(samplesSortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
 
     act(() => setMode(Mode.AGGREGATE));
+    // Switching to aggregates mounts series filter bars; wait for them to settle.
+    await screen.findByPlaceholderText('Filter spans for this series');
 
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'desc'}]);
 
@@ -906,12 +1179,13 @@ describe('ExploreToolbar', () => {
     expect(samplesSortBys).toEqual([{field: 'timestamp', kind: 'asc'}]);
 
     act(() => setMode(Mode.AGGREGATE));
+    await screen.findByPlaceholderText('Filter spans for this series');
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
   });
 
   describe('conditional aggregates', () => {
-    const organizationWithConditionalAggregates = OrganizationFixture({
-      features: ['dashboards-edit', 'incidents', 'explore-conditional-aggregates'],
+    const organizationWithDashboardFeatures = OrganizationFixture({
+      features: ['dashboards-edit', 'incidents'],
     });
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
@@ -931,36 +1205,37 @@ describe('ExploreToolbar', () => {
       });
     }
 
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/recent-searches/`,
-        method: 'GET',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/recent-searches/`,
-        method: 'POST',
-        body: [],
-      });
-    });
+    it('expands the series filter to match the autocomplete menu width', async () => {
+      const viewportWidth = jest
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1200);
 
-    it('hides the series filter without the feature', async () => {
-      render(<ExploreToolbar />, {additionalWrapper: Wrapper, organization});
+      try {
+        render(<ExploreToolbar />, {
+          additionalWrapper: Wrapper,
+          organization: organizationWithDashboardFeatures,
+        });
 
-      const section = screen.getByTestId('section-visualizes');
+        const input = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
+        await userEvent.click(input);
 
-      expect(
-        await within(section).findByRole('button', {name: 'count'})
-      ).toBeInTheDocument();
-      expect(
-        within(section).queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
-      ).not.toBeInTheDocument();
+        const expandedBar = input.closest<HTMLElement>('[data-expanded="true"]')!;
+        const menu = (await screen.findByRole('listbox')).closest<HTMLElement>(
+          '[data-overlay]'
+        )!;
+
+        expect(expandedBar).toHaveStyle({width: '460px'});
+        expect(screen.getByTestId('search-query-builder-panel')).toContainElement(menu);
+        expect(screen.getByTestId('search-query-builder-panel')).toContainElement(input);
+      } finally {
+        viewportWidth.mockRestore();
+      }
     });
 
     it('turns a series filter into an _if aggregate', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       const section = screen.getByTestId('section-visualizes');
@@ -982,7 +1257,7 @@ describe('ExploreToolbar', () => {
     it('keeps a series filter that has errors', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       const section = screen.getByTestId('section-visualizes');
@@ -1010,7 +1285,7 @@ describe('ExploreToolbar', () => {
     it('drops the combinator when the series filter is cleared', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
@@ -1040,7 +1315,7 @@ describe('ExploreToolbar', () => {
     it('hides the series filter for aggregates that cannot be filtered', async () => {
       render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       const section = screen.getByTestId('section-visualizes');
@@ -1059,7 +1334,7 @@ describe('ExploreToolbar', () => {
     it('drops an existing filter when switching to an aggregate that cannot be filtered', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
@@ -1086,7 +1361,7 @@ describe('ExploreToolbar', () => {
     it('keeps an existing filter when switching between filterable aggregates', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
@@ -1115,7 +1390,7 @@ describe('ExploreToolbar', () => {
     it('opens compare queries with series filters moved into the query filter', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
@@ -1163,37 +1438,10 @@ describe('ExploreToolbar', () => {
       ]);
     });
 
-    it('drops the filter when the feature is off', async () => {
-      const {router} = render(<ExploreToolbar />, {
-        additionalWrapper: Wrapper,
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              aggregateField: [
-                JSON.stringify({groupBy: ''}),
-                JSON.stringify({yAxes: ['count_if(`span.op:db`,span.duration)']}),
-              ],
-            },
-          },
-        },
-      });
-
-      const section = screen.getByTestId('section-visualizes');
-
-      await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
-      await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-
-      await waitFor(() => {
-        expect(visualizeYAxesFromRouter(router)).toEqual(['avg(span.duration)']);
-      });
-    });
-
     it('expands the equation editor on click', async () => {
       render(<ExploreToolbar extras={['equations']} />, {
         additionalWrapper: Wrapper,
-        organization: organizationWithConditionalAggregates,
+        organization: organizationWithDashboardFeatures,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
@@ -1204,10 +1452,10 @@ describe('ExploreToolbar', () => {
       expect(input.closest('[data-expanded="true"]')).toBeTruthy();
     });
 
-    it('does not expand the equation editor without the feature', async () => {
+    it('keeps equation suggestions in the same panel as the input', async () => {
       render(<ExploreToolbar extras={['equations']} />, {
         additionalWrapper: Wrapper,
-        organization,
+        organization: organizationWithDashboardFeatures,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
@@ -1215,7 +1463,10 @@ describe('ExploreToolbar', () => {
       const input = await screen.findByTestId('arithmetic-builder-input');
       await userEvent.click(input);
 
-      expect(input.closest('[data-expanded="true"]')).toBeNull();
+      const panel = screen.getByTestId('arithmetic-builder-panel');
+      const listbox = await screen.findByRole('listbox');
+      expect(panel).toContainElement(listbox);
+      expect(panel).toContainElement(input);
     });
   });
 
@@ -1393,6 +1644,7 @@ describe('ExploreToolbar', () => {
           },
         ],
         range: '14d',
+        statsPeriod: '14d',
         projects: [],
         environment: [],
       },

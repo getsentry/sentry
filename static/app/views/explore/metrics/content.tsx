@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -15,13 +15,13 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -89,6 +89,8 @@ function MetricsHeader() {
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
 
+  useVisitQuery(pageId);
+
   const documentTitle = hasSavedQueryTitle ? (
     <SentryDocumentTitle
       title={`${savedQuery.name} — ${METRICS_TITLE}`}
@@ -96,32 +98,31 @@ function MetricsHeader() {
     />
   ) : null;
 
-  const titleTooltip = (
-    <PageHeadingQuestionTooltip
-      docsUrl="https://docs.sentry.io/product/explore/metrics/"
-      title={t(
-        'Track critical application signals using counters, gauges, and distributions.'
-      )}
-      linkLabel={t('Read the Docs')}
-    />
-  );
-
-  const hasBreadcrumb = Boolean(title && defined(pageId));
-
   return (
     <Fragment>
       {documentTitle}
-      <TopBar.Slot name="title">
-        {hasBreadcrumb ? (
-          <ExploreBreadcrumb
-            traceItemDataset={TraceItemDataset.TRACEMETRICS}
-            savedQueryName={savedQuery?.name}
-          />
-        ) : (
-          title || METRICS_TITLE
-        )}
-        {titleTooltip}
-      </TopBar.Slot>
+      {defined(pageId) && title ? (
+        <ExploreSavedQueryBreadcrumbs
+          surface="metrics"
+          savedQueryId={pageId}
+          title={title}
+        />
+      ) : (
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || METRICS_TITLE,
+            labelTooltip: (
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/metrics/">
+                {t(
+                  'Track critical application signals using counters, gauges, and distributions.'
+                )}
+              </DocumentationHint>
+            ),
+          }}
+        />
+      )}
       <TopBar.Slot name="feedback">
         <FeedbackButton
           feedbackOptions={metricsFeedbackOptions}

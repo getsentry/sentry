@@ -12,6 +12,7 @@ from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationRe
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.services.integration.model import (
+    RpcAccessToken,
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
@@ -319,6 +320,44 @@ class IntegrationService(RpcService):
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
         pass
+
+    @rpc_method
+    @abstractmethod
+    def get_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcAccessToken | None:
+        """Return an access token for the integration's provider, minted or refreshed in control.
+
+        For callers outside control that hand the token on: they can't mint or refresh one, and
+        can't retry after a 401, so the token has at least five minutes left. For a new token
+        once ``expires_at`` passes, call this again. Supports GitHub, GitHub Enterprise and
+        Cursor Origin.
+
+        None when the organization has no active install of an active integration with that id
+        from one of those providers, or when there's no token to give (the provider refused or
+        failed).
+        """
+
+    @rpc_method
+    @abstractmethod
+    def refresh_github_permissions(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcIntegration | None:
+        """Re-read what a GitHub App installation grants, from any silo.
+
+        Reads ``GET /app/installations/{id}`` with the app's JWT, without minting
+        or rotating the installation token, and returns the integration with
+        the new ``metadata["permissions"]`` and ``metadata["last_refresh_at"]``.
+
+        Org-scoped like ``refresh_github_access_token``: the caller has to name
+        an organization the install is actually linked to. The read itself is
+        authed with the app's own JWT and would work without one, but reaching
+        an installation through an integration id alone is not a door we want
+        open.
+
+        None when the integration is missing, not GitHub, not active, or not
+        installed on that organization.
+        """
 
     @rpc_method
     @abstractmethod

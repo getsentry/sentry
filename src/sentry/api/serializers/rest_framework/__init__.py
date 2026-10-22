@@ -8,4 +8,3 @@ from .origin import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
 from .project_key import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
-from .rule import *  # noqa: F401,F403

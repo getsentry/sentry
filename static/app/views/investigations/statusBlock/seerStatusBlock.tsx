@@ -1,16 +1,16 @@
 import type {ReactNode} from 'react';
+import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconCircleDashed} from '@sentry/icons/circleDashed';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconWarning} from '@sentry/icons/warning';
 
-import {Tag} from '@sentry/scraps/badge';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {
-  IconCircleCheckmark,
-  IconCircleDashed,
-  IconFatal,
-  IconWarning,
-} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
 
 /**
  * Where an agentic run has got to, as one line the viewer can read without
@@ -38,7 +38,7 @@ export type SeerStatusBlockVariant =
 /**
  * Only a state that has stopped and needs attention colours its title. A run
  * that is simply working, or has finished cleanly, leaves the sentence in the
- * ordinary heading colour and lets the chip carry the state — otherwise every
+ * ordinary heading colour and lets the header badge carry the state — otherwise every
  * status block on the page shouts.
  */
 const TITLE_VARIANT = {
@@ -49,22 +49,12 @@ const TITLE_VARIANT = {
   cancelled: 'muted',
 } as const;
 
-const TAG_VARIANT = {
-  // `info` is the accent-purple pill: `content.accent` on
-  // `background.transparent.accent.muted`, which is what the design names.
-  running: 'info',
-  awaitingInput: 'warning',
-  failed: 'danger',
-  complete: 'success',
-  cancelled: 'muted',
-} as const;
-
 function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
   switch (variant) {
     case 'running':
-      // A ring rather than a pulsing dot: the run is doing something, not
-      // sitting in a state.
-      return <LoadingIndicator size={14} />;
+      // The same spinning Seer the agent's thinking block shows while it works,
+      // so a running investigation reads as Seer at work wherever it appears.
+      return <IconSeer size="sm" animation="loading" />;
     case 'awaitingInput':
       return <IconWarning size="sm" variant="warning" />;
     case 'failed':
@@ -80,9 +70,87 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
   }
 }
 
+function ToolCallTitle({activity}: {activity: InvestigationToolActivity}) {
+  return (
+    <Flex as="span" align="baseline" gap="sm" minWidth="0">
+      <Text size="sm" variant="secondary" density="fixed" monospace ellipsis>
+        {activity.title}
+      </Text>
+      {activity.status === 'failed' ? (
+        <Text size="sm" variant="danger" density="fixed" wrap="nowrap">
+          {t('Failed')}
+        </Text>
+      ) : null}
+    </Flex>
+  );
+}
+
+/**
+ * The calls behind the current phase.
+ *
+ * Only the latest is shown: it says what the agent is doing right now, and the
+ * block's title is still the sentence to read. When there is history behind it,
+ * the latest call becomes the `Disclosure` toggle, and opening it lists the
+ * earlier calls newest first, so the list reads back in time from what is
+ * happening now.
+ *
+ * The calls carry no running or done glyph. The block's own icon already says
+ * the run is working, and a second spinner beside it would show two loading
+ * states in one place.
+ *
+ * Each call sits in a row as tall as an `xs` disclosure title (a 16px line with
+ * 6px above and below), whether or not it can be expanded. The block's lines
+ * are spaced to match that row, so the gaps between title, description and
+ * tool call read the same.
+ */
+function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivity[]}) {
+  const latest = toolActivity[toolActivity.length - 1];
+  if (!latest) {
+    return null;
+  }
+  const earlier = toolActivity.slice(0, -1).reverse();
+
+  if (!earlier.length) {
+    return (
+      <Flex
+        data-test-id="seer-status-block-tool-activity"
+        minWidth="0"
+        paddingTop="sm"
+        paddingBottom="sm"
+        paddingLeft="lg"
+      >
+        <ToolCallTitle activity={latest} />
+      </Flex>
+    );
+  }
+
+  return (
+    <Container data-test-id="seer-status-block-tool-activity" minWidth="0">
+      <Disclosure size="xs">
+        <Disclosure.Title>
+          <ToolCallTitle activity={latest} />
+        </Disclosure.Title>
+        <Disclosure.Content>
+          <Stack
+            as="ul"
+            gap="xs"
+            margin="0"
+            padding="0"
+            aria-label={t('Earlier tool calls')}
+          >
+            {earlier.map(activity => (
+              <Flex as="li" key={activity.id} minWidth="0">
+                <ToolCallTitle activity={activity} />
+              </Flex>
+            ))}
+          </Stack>
+        </Disclosure.Content>
+      </Disclosure>
+    </Container>
+  );
+}
+
 type SeerStatusBlockProps = {
-  /** The short pill on the right, e.g. "Running…", "Awaiting input". */
-  statusLabel: string;
   /** The sentence the block leads with, in the agent's voice. */
   title: string;
   variant: SeerStatusBlockVariant;
@@ -92,6 +160,11 @@ type SeerStatusBlockProps = {
    * otherwise.
    */
   action?: ReactNode;
+  /**
+   * Content under the description that a plain sentence can't carry, such as
+   * the conclusion of a finished investigation.
+   */
+  children?: ReactNode;
   className?: string;
   /** The paragraph under the title. */
   description?: string;
@@ -107,14 +180,25 @@ type SeerStatusBlockProps = {
    * something to count.
    */
   meta?: string;
+  /**
+   * The tool calls behind the current phase, latest last. Only the latest is
+   * shown; it expands to list the earlier ones. Only a running block should supply
+   * these — once a run stops they are history, not status.
+   */
+  toolActivity?: InvestigationToolActivity[];
+  /**
+   * A control on the right edge of the block, such as a link to open the
+   * investigation. Unlike `action`, it is not a request for input.
+   */
+  trailing?: ReactNode;
 };
 
 /**
  * The status line above an agentic investigation's hypotheses.
  *
  * One component covers the whole run lifecycle because the shape never changes
- * — icon, sentence, chip, elapsed time — only the words and the colour do. That
- * is deliberate: the block sits in a fixed spot at the top of the panel, and a
+ * — icon, sentence, elapsed time — only the words and the colour do. That
+ * is deliberate: the block sits in a fixed spot above the hypotheses panel, and a
  * reader who has learned where to look for "what is Seer doing" should not have
  * to relearn it when the run changes state.
  *
@@ -123,12 +207,14 @@ type SeerStatusBlockProps = {
  */
 export function SeerStatusBlock({
   action,
+  children,
   className,
   description,
   elapsed,
   meta,
-  statusLabel,
   title,
+  toolActivity,
+  trailing,
   variant,
 }: SeerStatusBlockProps) {
   return (
@@ -141,63 +227,76 @@ export function SeerStatusBlock({
       data-test-id="seer-status-block"
       data-variant={variant}
     >
-      <Flex gap="md" align="start">
-        {/*
-         * A fixed column so the title, the description and the action all line
-         * up on the same left edge regardless of which icon is showing. `16px`
-         * is the title's line height, which centres the icon against the first
-         * line rather than the block.
-         */}
-        <Flex height="16px" align="center" justify="center" flex="0 0 auto">
-          <StatusIcon variant={variant} />
-        </Flex>
-
-        <Stack gap="xs" flex="1 1 auto" minWidth="0">
-          <Flex justify="between" align="center" gap="md">
-            <Text size="md" bold variant={TITLE_VARIANT[variant]}>
-              {title}
-            </Text>
-            {/*
-             * The chip and the clock never wrap under the sentence: they are
-             * the part a viewer glances at, so they hold the top-right corner
-             * and the title wraps around them instead.
-             */}
-            <Flex gap="md" align="center" flex="0 0 auto">
-              <Tag variant={TAG_VARIANT[variant]}>{statusLabel}</Tag>
-              {elapsed ? (
-                // Monospace and tabular so a ticking counter does not shuffle
-                // the chip sideways on every update.
-                <Text size="sm" variant="muted" monospace tabular>
-                  {elapsed}
-                </Text>
-              ) : null}
-            </Flex>
+      {/*
+       * The content and the trailing control centre against each other, so a
+       * one-line status sits level with a button taller than it.
+       */}
+      <Flex gap="md" align="center">
+        <Flex gap="md" align="start" flex="1 1 auto" minWidth="0">
+          {/*
+           * A fixed column so the title, the description and the action all line
+           * up on the same left edge regardless of which icon is showing. `16px`
+           * is the title's line height, which centres the icon against the first
+           * line rather than the block.
+           */}
+          <Flex height="16px" align="center" justify="center" flex="0 0 auto">
+            <StatusIcon variant={variant} />
           </Flex>
 
-          {meta ? (
-            <Text size="sm" variant="muted">
-              {meta}
-            </Text>
-          ) : null}
+          <Stack gap="xs" flex="1 1 auto" minWidth="0">
+            {/*
+             * A tool call row carries 6px of its own above its text, so it sits
+             * `2xs` below the description and the text lines sit `md` apart:
+             * either way, 8px between one line of text and the next.
+             */}
+            <Stack gap="2xs" minWidth="0">
+              <Stack gap="md" minWidth="0">
+                <Flex justify="between" align="center" gap="md">
+                  <Text size="md" bold variant={TITLE_VARIANT[variant]}>
+                    {title}
+                  </Text>
+                  {elapsed ? (
+                    <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
+                      {elapsed}
+                    </Text>
+                  ) : null}
+                </Flex>
 
-          {description ? (
-            <Text size="sm" density="comfortable">
-              {description}
-            </Text>
-          ) : null}
+                {meta ? (
+                  <Text size="sm" variant="muted">
+                    {meta}
+                  </Text>
+                ) : null}
 
-          {action ? (
-            <Container
-              background="secondary"
-              radius="md"
-              padding="lg"
+                {description ? (
+                  <Text size="sm" density="comfortable">
+                    {description}
+                  </Text>
+                ) : null}
+              </Stack>
 
-              data-test-id="seer-status-block-action"
-            >
-              {action}
-            </Container>
-          ) : null}
-        </Stack>
+              {toolActivity?.length ? (
+                <ToolActivityList toolActivity={toolActivity} />
+              ) : null}
+            </Stack>
+
+            {children}
+
+            {action ? (
+              <Container
+                background="secondary"
+                radius="md"
+                padding="lg"
+
+                data-test-id="seer-status-block-action"
+              >
+                {action}
+              </Container>
+            ) : null}
+          </Stack>
+        </Flex>
+
+        {trailing ? <Flex flex="0 0 auto">{trailing}</Flex> : null}
       </Flex>
     </Container>
   );

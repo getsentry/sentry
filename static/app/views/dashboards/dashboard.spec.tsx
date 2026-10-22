@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -8,7 +9,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Dashboard} from 'sentry/views/dashboards/dashboard';
 import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
@@ -47,9 +47,9 @@ describe('Dashboards > Dashboard', () => {
   };
   const newWidget: Widget = {
     id: '1',
-    title: 'Test Discover Widget',
+    title: 'Test Errors Widget',
     displayType: DisplayType.LINE,
-    widgetType: WidgetType.DISCOVER,
+    widgetType: WidgetType.ERRORS,
     interval: '5m',
     queries: [
       {
@@ -105,6 +105,10 @@ describe('Dashboards > Dashboard', () => {
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -195,17 +199,15 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <MEPSettingProvider forceTransactions={false}>
-        <Dashboard
-          dashboard={dashboardWithOneWidget}
-          isEditingDashboard={false}
-          onUpdate={mockOnUpdate}
-          handleUpdateWidgetList={mockHandleUpdateWidgetList}
-          handleAddCustomWidget={() => {}}
-          widgetLimitReached={false}
-          widgetLegendState={widgetLegendState}
-        />
-      </MEPSettingProvider>,
+      <Dashboard
+        dashboard={dashboardWithOneWidget}
+        isEditingDashboard={false}
+        onUpdate={mockOnUpdate}
+        handleUpdateWidgetList={mockHandleUpdateWidgetList}
+        handleAddCustomWidget={() => {}}
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />,
       {organization: initialData.organization}
     );
 
@@ -253,18 +255,16 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <MEPSettingProvider forceTransactions={false}>
-        <Dashboard
-          dashboard={dashboardWithOneWidget}
-          isEditingDashboard={false}
-          onUpdate={() => {}}
-          handleUpdateWidgetList={() => {}}
-          handleAddCustomWidget={() => {}}
-          widgetLimitReached={false}
-          isEmbedded
-          widgetLegendState={widgetLegendState}
-        />
-      </MEPSettingProvider>,
+      <Dashboard
+        dashboard={dashboardWithOneWidget}
+        isEditingDashboard={false}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
+        handleAddCustomWidget={() => {}}
+        widgetLimitReached={false}
+        isEmbedded
+        widgetLegendState={widgetLegendState}
+      />,
       {organization: initialData.organization}
     );
 
@@ -296,17 +296,15 @@ describe('Dashboards > Dashboard', () => {
 
     const mount = (dashboard: DashboardDetails) => {
       render(
-        <MEPSettingProvider forceTransactions={false}>
-          <Dashboard
-            dashboard={dashboard}
-            isEditingDashboard={false}
-            onUpdate={() => {}}
-            handleUpdateWidgetList={() => {}}
-            handleAddCustomWidget={() => {}}
-            widgetLimitReached={false}
-            widgetLegendState={widgetLegendState}
-          />
-        </MEPSettingProvider>,
+        <Dashboard
+          dashboard={dashboard}
+          isEditingDashboard={false}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />,
         {organization: initialData.organization}
       );
     };
@@ -318,7 +316,7 @@ describe('Dashboards > Dashboard', () => {
       };
 
       mount(mockDashboardWithIssueWidget);
-      expect(await screen.findByText('Test Discover Widget')).toBeInTheDocument();
+      expect(await screen.findByText('Test Errors Widget')).toBeInTheDocument();
       expect(screen.getByText('Test Issue Widget')).toBeInTheDocument();
     });
 
@@ -415,7 +413,7 @@ describe('Dashboards > Dashboard', () => {
       const location = useLocation();
       const [widgetInterval] = useDashboardChartInterval();
       return (
-        <MEPSettingProvider forceTransactions={false}>
+        <Fragment>
           <FiltersBar
             dashboard={dashboard}
             filters={{}}
@@ -435,7 +433,7 @@ describe('Dashboards > Dashboard', () => {
             widgetLegendState={widgetLegendState}
             widgetInterval={widgetInterval}
           />
-        </MEPSettingProvider>
+        </Fragment>
       );
     }
 
@@ -457,15 +455,15 @@ describe('Dashboards > Dashboard', () => {
     describe('no interval set in URL', () => {
       it('defaults to the second-biggest valid interval for the dashboard period', async () => {
         const tenMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '10m'})],
         });
         const thirtyMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '30m'})],
         });
 
@@ -494,22 +492,22 @@ describe('Dashboards > Dashboard', () => {
     describe('interval set in URL', () => {
       it('uses the URL interval as the selector default and queries with that interval', async () => {
         const thirtyMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '30m'})],
         });
         const fiveMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
         const tenMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '10m'})],
         });
 
@@ -547,15 +545,15 @@ describe('Dashboards > Dashboard', () => {
 
       it('ignores the URL interval and falls back to the period default', async () => {
         const sixHourMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '6h'})],
         });
         const fiveMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
@@ -632,21 +630,19 @@ describe('Dashboards > Dashboard', () => {
     let widgets: Widget[];
     const mount = ({dashboard, isPreview = false, onEditWidget = jest.fn()}: any) => {
       const getDashboardComponent = () => (
-        <MEPSettingProvider forceTransactions={false}>
-          <Dashboard
-            dashboard={dashboard}
-            isEditingDashboard
-            onUpdate={newWidgets => {
-              widgets.splice(0, widgets.length, ...newWidgets);
-            }}
-            handleUpdateWidgetList={() => {}}
-            handleAddCustomWidget={() => {}}
-            widgetLimitReached={false}
-            isPreview={isPreview}
-            onEditWidget={onEditWidget}
-            widgetLegendState={widgetLegendState}
-          />
-        </MEPSettingProvider>
+        <Dashboard
+          dashboard={dashboard}
+          isEditingDashboard
+          onUpdate={newWidgets => {
+            widgets.splice(0, widgets.length, ...newWidgets);
+          }}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
+          widgetLimitReached={false}
+          isPreview={isPreview}
+          onEditWidget={onEditWidget}
+          widgetLegendState={widgetLegendState}
+        />
       );
       const {rerender} = render(getDashboardComponent(), {
         organization: initialData.organization,
@@ -673,7 +669,7 @@ describe('Dashboards > Dashboard', () => {
       rerender();
 
       await waitFor(() => {
-        expect(screen.getAllByText('Test Discover Widget')).toHaveLength(2);
+        expect(screen.getAllByText('Test Errors Widget')).toHaveLength(2);
       });
     });
 
@@ -720,7 +716,7 @@ describe('Dashboards > Dashboard', () => {
         isPreview: true,
       });
 
-      await screen.findByText('Test Discover Widget');
+      await screen.findByText('Test Errors Widget');
 
       expect(screen.queryByRole('button', {name: /add widget/i})).not.toBeInTheDocument();
     });
@@ -759,26 +755,24 @@ describe('Dashboards > Dashboard', () => {
       widgets: [spansWidget],
     };
 
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+    const eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
       method: 'GET',
-      body: [],
+      body: {timeSeries: []},
     });
 
     // URL has release= but no globalFilter — saved global filters must still
     // be applied to the widget data request.
     render(
-      <MEPSettingProvider forceTransactions={false}>
-        <Dashboard
-          dashboard={dashboardWithGlobalFilters}
-          isEditingDashboard={false}
-          onUpdate={() => {}}
-          handleUpdateWidgetList={() => {}}
-          handleAddCustomWidget={() => {}}
-          widgetLimitReached={false}
-          widgetLegendState={widgetLegendState}
-        />
-      </MEPSettingProvider>,
+      <Dashboard
+        dashboard={dashboardWithGlobalFilters}
+        isEditingDashboard={false}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
+        handleAddCustomWidget={() => {}}
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />,
       {
         organization,
         initialRouterConfig: {
@@ -790,8 +784,8 @@ describe('Dashboards > Dashboard', () => {
       }
     );
 
-    await waitFor(() => expect(eventsStatsMock).toHaveBeenCalled());
-    const requestQuery = eventsStatsMock.mock.calls[0]![1]!.query!.query as string;
+    await waitFor(() => expect(eventsTimeseriesMock).toHaveBeenCalled());
+    const requestQuery = eventsTimeseriesMock.mock.calls[0]![1]!.query!.query as string;
     expect(requestQuery).toContain('span.op:db');
   });
 

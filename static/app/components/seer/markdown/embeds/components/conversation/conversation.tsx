@@ -10,9 +10,13 @@ const LazyConversationBlock = lazy(() => import('./conversationBlock'));
 export const Conversation = defineSeerEmbed({
   name: 'conversation',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazyConversationBlock} data={props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazyConversationBlock} data={props} />;
+      case 'markdown':
+        return <ConversationLink data={props} format="markdown" />;
+      case 'inline':
+        return <ConversationLink data={props} />;
     }
-    return <ConversationLink data={props} />;
   },
 });

@@ -26,13 +26,13 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.services.investigations import (
-    DEFAULT_INVESTIGATION_TITLE,
     InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
     _create_project_links,
     _legacy_storage_filters,
     archive_investigation,
+    default_investigation_title,
     investigation_lineage_key,
     update_investigation,
 )
@@ -152,7 +152,7 @@ def _create_agentic_investigation(
         investigation = Investigation.objects.create(
             organization=organization,
             created_by_id=user_id,
-            title=title or DEFAULT_INVESTIGATION_TITLE,
+            title=title or default_investigation_title(source_type),
             source_type=source_type,
             source_ref=deepcopy(source_ref or {}),
             source_key=source_key,
@@ -606,6 +606,8 @@ def _serialize_orchestration_run(run: InvestigationOrchestrationRun) -> dict[str
             "notebookRevision": run.notebook_revision,
             "heartbeatAt": run.heartbeat_at,
             "updatedAt": run.date_updated,
+            # This must be fresh on every read, even when the stored projection has not changed.
+            "serverTime": timezone.now(),
         }
     )
     report = projection["report"]

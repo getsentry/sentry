@@ -10,7 +10,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
-import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
@@ -27,15 +26,9 @@ import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobile
 import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-const OnboardingCTAHook = OverrideOrDefault({
-  overrideName: 'component:replay-onboarding-cta',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-});
-
 export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
-  const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
 
   const supportedPlatforms = replayPlatforms;
@@ -69,13 +62,18 @@ export function ReplayOnboardingPanel() {
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
-        <OnboardingCTAHook organization={organization}>
-          <SetupReplaysCTA
-            primaryAction={primaryAction}
-            disabled={primaryActionDisabled}
-          />
-        </OnboardingCTAHook>
+      <ReplayPanel
+        image={
+          <Container
+            width={{zero: '100%', xl: '220px', '3xl': '300px'}}
+            maxWidth="300px"
+            margin="0 auto"
+          >
+            <HeroImage src={emptyStateImg} />
+          </Container>
+        }
+      >
+        <SetupReplaysCTA primaryAction={primaryAction} disabled={primaryActionDisabled} />
       </ReplayPanel>
     </Fragment>
   );
@@ -89,7 +87,7 @@ interface SetupReplaysCTAProps {
 export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
   const organization = useOrganization();
 
   const FAQ = [
@@ -189,30 +187,26 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
     },
   ];
 
-  function renderCTA() {
-    if (primaryAction === 'setup') {
-      return (
-        <Tooltip
-          title={
-            <span data-test-id="setup-replays-tooltip">
-              {t('Select a supported project from the projects dropdown.')}
-            </span>
-          }
-          disabled={!disabled} // we only want to show the tooltip when the button is disabled
+  const cta =
+    primaryAction === 'setup' ? (
+      <Tooltip
+        title={
+          <span data-test-id="setup-replays-tooltip">
+            {t('Select a supported project from the projects dropdown.')}
+          </span>
+        }
+        disabled={!disabled} // we only want to show the tooltip when the button is disabled
+      >
+        <Button
+          data-test-id="setup-replays-btn"
+          onClick={() => activateSidebar()}
+          variant="primary"
+          disabled={disabled}
         >
-          <Button
-            data-test-id="setup-replays-btn"
-            onClick={() => activateSidebar()}
-            variant="primary"
-            disabled={disabled}
-          >
-            {t('Set Up Replays')}
-          </Button>
-        </Tooltip>
-      );
-    }
-
-    return (
+          {t('Set Up Replays')}
+        </Button>
+      </Tooltip>
+    ) : (
       <Tooltip
         title={
           <span data-test-id="create-project-tooltip">
@@ -234,7 +228,6 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         </LinkButton>
       </Tooltip>
     );
-  }
 
   return (
     <Container padding="2xl">
@@ -245,7 +238,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         )}
       </p>
       <ButtonList>
-        {renderCTA()}
+        {cta}
         <LinkButton
           href={
             allMobileProj
@@ -278,18 +271,8 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 const HeroImage = styled('img')`
   display: block;
   width: 100%;
-  max-width: 300px;
   height: auto;
-  margin: 0 auto;
   user-select: none;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    width: 220px;
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    width: 300px;
-  }
 `;
 
 const ButtonList = styled((props: GridProps) => (

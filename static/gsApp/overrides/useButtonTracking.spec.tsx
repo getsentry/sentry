@@ -1,4 +1,5 @@
-import {createMemoryRouter, RouterProvider} from 'react-router-dom';
+import {createMemoryRouter} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
@@ -21,6 +22,7 @@ describe('buttonTracking', () => {
   const wrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={organization}>
       <RouterProvider
+        useTransitions={false}
         router={createMemoryRouter(
           [
             {
@@ -49,7 +51,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );
@@ -57,6 +58,7 @@ describe('buttonTracking', () => {
   const anonymousWrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={null}>
       <RouterProvider
+        useTransitions={false}
         router={createMemoryRouter(
           [
             {
@@ -67,7 +69,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: ['/auth/login/']}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );
@@ -185,18 +186,18 @@ describe('buttonTracking', () => {
 
     result.current({
       clickType: 'button',
-      'aria-label': 'Return to the old login experience',
-      analyticsEventKey: 'auth_v2.login.legacy_fallback_clicked',
-      analyticsEventName: 'Auth V2: Legacy Login Fallback Clicked',
+      'aria-label': 'Sign in',
+      analyticsEventKey: 'auth.login.submit_clicked',
+      analyticsEventName: 'Auth: Login Submit Clicked',
       analyticsParams: {state: 'login'},
     });
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
-      eventName: 'Auth V2: Legacy Login Fallback Clicked',
-      eventKey: 'auth_v2.login.legacy_fallback_clicked',
+      eventName: 'Auth: Login Submit Clicked',
+      eventKey: 'auth.login.submit_clicked',
       organization: null,
       parameterized_path: 'auth.login',
-      text: 'Return to the old login experience',
+      text: 'Sign in',
       state: 'login',
     });
   });

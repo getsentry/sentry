@@ -1,5 +1,9 @@
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconGraph} from 'sentry/icons';
+import {IconGraph} from '@sentry/icons/graph';
+
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {getMetricsQueryHref, type MetricsQueryData} from './metricsQueryUtils';
@@ -12,11 +16,15 @@ export function getMetricsQueryTitle(data: MetricsQueryData): string {
   return data.title ?? data.name;
 }
 
-export function MetricsQueryLink({data}: {data: MetricsQueryData}) {
+export function MetricsQueryLink({
+  data,
+  format,
+}: {data: MetricsQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconGraph}
       href={getMetricsQueryHref(data, organization)}
       title={getMetricsQueryTitle(data)}

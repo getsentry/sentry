@@ -111,6 +111,19 @@ def build_array_type(
     return drf_build_array_type(schema=schema, min_length=min_length, max_length=max_length)
 
 
+# The TypedDicts whose fields are being resolved right now, outermost first.
+_typed_dicts_in_progress: list[Any] = []
+
+
+def _cycle_placeholder(hint: Any) -> dict[str, Any]:
+    """Stand-in for a TypedDict met again while its own fields are being resolved."""
+    return {
+        "type": "object",
+        "description": f"Same as the {hint.__name__} this is inside. "
+        "Its fields are left out here so it doesn't repeat forever.",
+    }
+
+
 def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified as described above"""
     origin, args = _get_type_hint_origin(hint)
@@ -166,16 +179,23 @@ def resolve_type_hint(hint) -> Any:
             schema.update(basic_type)
         return schema
     elif is_typeddict(hint):
+        if hint in _typed_dicts_in_progress:
+            return _cycle_placeholder(hint)
+
         excluded_fields = _typed_dict_exclusions(hint, excluded_fields)
-        return build_object_type(
-            properties={
-                k: _resolve_at(v, "properties", k)
-                for k, v in get_type_hints(hint).items()
-                if k not in excluded_fields
-            },
-            description=inspect.cleandoc(hint.__doc__ or ""),
-            required=[h for h in hint.__required_keys__ if h not in excluded_fields],
-        )
+        _typed_dicts_in_progress.append(hint)
+        try:
+            return build_object_type(
+                properties={
+                    k: _resolve_at(v, "properties", k)
+                    for k, v in get_type_hints(hint).items()
+                    if k not in excluded_fields
+                },
+                description=inspect.cleandoc(hint.__doc__ or ""),
+                required=[h for h in hint.__required_keys__ if h not in excluded_fields],
+            )
+        finally:
+            _typed_dicts_in_progress.pop()
     elif origin is Union or origin is UnionType:
         type_args = [arg for arg in args if arg is not type(None)]
         if len(type_args) > 1:

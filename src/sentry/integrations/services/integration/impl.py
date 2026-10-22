@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -36,6 +36,7 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
 )
 from sentry.integrations.services.integration.model import (
+    RpcAccessToken,
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
@@ -46,6 +47,7 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
@@ -59,15 +61,43 @@ from sentry.sentry_apps.utils.webhooks import (
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
-if TYPE_CHECKING:
-    from datetime import datetime
-
-
 logger = logging.getLogger(__name__)
+
+# Providers whose client takes token_minimum_validity_time and refreshes ahead of expiry.
+ACCESS_TOKEN_PROVIDERS = (
+    IntegrationProviderSlug.GITHUB.value,
+    IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+    IntegrationProviderSlug.CURSOR_ORIGIN.value,
+)
+
+# Not tuned: a caller uses the token within seconds, and a wider margin only means minting
+# a little more often.
+ACCESS_TOKEN_MINIMUM_VALIDITY = timedelta(minutes=5)
+
+
+def _parse_expires_at(value: str) -> datetime:
+    # GitHub stores a naive UTC time, Cursor Origin an aware one.
+    parsed = datetime.fromisoformat(value)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+
+
+def _log_access_token_unavailable(
+    integration: Integration, organization_id: int, error: str, status_code: int | None = None
+) -> None:
+    logger.warning(
+        "integration_service.access_token.unavailable",
+        extra={
+            "integration_id": integration.id,
+            "organization_id": organization_id,
+            "provider": integration.provider,
+            "error": error,
+            "status_code": status_code,
+        },
+    )
 
 
 class DatabaseBackedIntegrationService(IntegrationService):
@@ -541,7 +571,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             try:
                 client.send_card(channel, attachment)
                 return True
-            except ApiError as e:
+            except (ApiError, IntegrationError) as e:
                 record_lifecycle_termination_level(lifecycle, e)
             except Exception as e:
                 lifecycle.add_extras({"integration_id": integration_id, "channel": channel})
@@ -656,4 +686,78 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         integration.refresh_from_db()
 
+        return serialize_integration(integration)
+
+    def get_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcAccessToken | None:
+        integration = Integration.objects.filter(
+            id=integration_id,
+            provider__in=ACCESS_TOKEN_PROVIDERS,
+            status=ObjectStatus.ACTIVE,
+            organizationintegration__organization_id=organization_id,
+            organizationintegration__status=ObjectStatus.ACTIVE,
+        ).first()
+        if integration is None:
+            return None
+
+        try:
+            client = integration.get_installation(organization_id=organization_id).get_client()
+            token = client.get_access_token(
+                token_minimum_validity_time=ACCESS_TOKEN_MINIMUM_VALIDITY
+            )
+        except (
+            # The organization's install went away after the lookup above.
+            OrganizationIntegrationNotFound,
+            ApiError,
+        ) as e:
+            # Not the message: it can carry the provider's response.
+            _log_access_token_unavailable(
+                integration, organization_id, type(e).__name__, getattr(e, "code", None)
+            )
+            return None
+
+        if not token:
+            # The integration was deleted while a token was being minted.
+            _log_access_token_unavailable(integration, organization_id, "no_token")
+            return None
+        return RpcAccessToken(
+            token=token["access_token"], expires_at=_parse_expires_at(token["expires_at"])
+        )
+
+    def refresh_github_permissions(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcIntegration | None:
+        try:
+            integration = Integration.objects.get(
+                id=integration_id,
+                provider__in=[
+                    IntegrationProviderSlug.GITHUB.value,
+                    IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                ],
+                status=ObjectStatus.ACTIVE,
+                # An integration id on its own is not enough to reach an
+                # installation: the organization has to actually have it
+                # installed. get_installation below does not check that.
+                organizationintegration__organization_id=organization_id,
+            )
+        except Integration.DoesNotExist:
+            return None
+
+        installation = integration.get_installation(organization_id=organization_id)
+
+        # Read with the app JWT rather than minting a token: the installation
+        # itself reports its current permissions, so there is no reason to
+        # rotate credentials just to see them.
+        client = installation.get_client()
+        info = client.get_installation_info(client._get_installation_id())
+
+        integration.refresh_from_db()
+        integration.metadata.update(
+            {
+                "permissions": info.get("permissions"),
+                "last_refresh_at": timezone.now().isoformat(),
+            }
+        )
+        integration.save(update_fields=["metadata"])
         return serialize_integration(integration)

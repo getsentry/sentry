@@ -2,22 +2,22 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {
@@ -26,12 +26,11 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -64,9 +63,9 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
@@ -169,13 +168,14 @@ export function AggregateColumnEditorModal({
                   },
                 ]}
                 trigger={triggerProps => (
-                  <Button
+                  <OverlayTrigger.Button
+                    showChevron={false}
                     {...triggerProps}
                     aria-label={t('Add a Column')}
                     icon={<IconAdd />}
                   >
                     {t('Add a Column')}
-                  </Button>
+                  </OverlayTrigger.Button>
                 )}
               />
             </RowContainer>
@@ -418,11 +418,6 @@ function AggregateSelector({
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
-  const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-
   // The dropdowns operate on the base aggregate, with the `_if` combinator and its
   // filter argument stripped off.
   const parsedFunction = useMemo(() => parseConditionalAggregate(yAxis), [yAxis]);
@@ -431,9 +426,7 @@ function AggregateSelector({
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
-  // Filters only survive a swap to another aggregate that supports them, and are dropped
-  // entirely while the feature is off so that toggling it never leaves a stale filter.
-  const filter = hasConditionalAggregates ? (parsedFunction?.filter ?? '') : '';
+  const filter = parsedFunction?.filter ?? '';
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -502,9 +495,9 @@ function AggregateSelector({
     [onChange, parsedFunction, visualize]
   );
 
-  const showFilterSearchBar =
-    hasConditionalAggregates &&
-    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
+  );
 
   return (
     <Stack flex="3" minWidth="0" gap="sm">
@@ -766,7 +759,6 @@ const RowContainer = styled('div')`
    * icons to the top of the row. */
   &:has([data-test-id='editor-visualize-filter']) {
     align-items: flex-start;
-
     > button {
       height: ${p => p.theme.form.md.height};
     }

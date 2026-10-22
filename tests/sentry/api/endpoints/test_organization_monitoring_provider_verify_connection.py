@@ -231,6 +231,32 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
 
         assert response.status_code == 400
 
+    @patch(_PATCH_VERIFY)
+    def test_invalid_project_id_rejected(self, mock_verify: MagicMock) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug,
+                customer_sa_email="cust@customer.iam.gserviceaccount.com",
+                gcp_project_ids=["proj-a", "../Bad"],
+            )
+
+        assert response.status_code == 400
+        assert "gcpProjectIds" in response.data
+        mock_verify.assert_not_called()
+
+    @patch(_PATCH_VERIFY)
+    def test_invalid_customer_sa_email_rejected(self, mock_verify: MagicMock) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug,
+                customer_sa_email="a" * 256,
+                gcp_project_ids=["proj-a"],
+            )
+
+        assert response.status_code == 400
+        assert "customerSaEmail" in response.data
+        mock_verify.assert_not_called()
+
     @patch(_PATCH_SA_EMAIL, return_value=None)
     def test_no_service_account_returns_404(self, mock_sa_email: MagicMock) -> None:
         with self.feature("organizations:seer-infra-telemetry"):

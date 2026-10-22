@@ -9,7 +9,7 @@ import {
   validateSeerActivityTriggerCondition,
 } from 'sentry/views/automations/components/actionFilters/seerActivityTrigger';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 describe('SeerActivityTriggerDetails', () => {
   it('renders single-stage text', () => {

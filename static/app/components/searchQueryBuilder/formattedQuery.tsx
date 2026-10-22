@@ -9,9 +9,9 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderConfig,
 } from 'sentry/components/searchQueryBuilder/context';
-import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
-import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKeyVisual';
+import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filterValueText';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
 import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderParenIcon} from 'sentry/components/searchQueryBuilder/tokens/paren';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
@@ -33,6 +33,10 @@ export type FormattedQueryProps = {
   filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+};
+
+type ProvidedFormattedQueryProps = FormattedQueryProps & {
+  allowRegexOperators?: boolean;
 };
 
 type TokenProps = {
@@ -120,12 +124,14 @@ export function FormattedQuery({
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
+  const {allowRegexOperators} = useSearchQueryBuilderConfig();
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, fieldDefinitionGetter, {
+      allowRegexOperators,
       filterKeys,
       filterKeyAliases,
     });
-  }, [fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
+  }, [allowRegexOperators, fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
 
   if (!parsedQuery) {
     return <QueryWrapper className={className} />;
@@ -150,15 +156,17 @@ export function FormattedQuery({
  * Use this one if your component is not wrapped in a `SearchQueryBuilderProvider`.
  */
 export function ProvidedFormattedQuery({
+  allowRegexOperators,
   className,
   query,
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
   getFilterTokenWarning,
-}: FormattedQueryProps) {
+}: ProvidedFormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
+      allowRegexOperators={allowRegexOperators}
       filterKeys={filterKeys}
       fieldDefinitionGetter={fieldDefinitionGetter}
       getTagValues={() => Promise.resolve([])}

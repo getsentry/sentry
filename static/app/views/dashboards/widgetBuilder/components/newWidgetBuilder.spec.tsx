@@ -79,6 +79,10 @@ describe('NewWidgetBuilder', () => {
         end: 1646120000,
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -143,7 +147,6 @@ describe('NewWidgetBuilder', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Errors'}));
     expect(await screen.findByRole('option', {name: 'Errors'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Transactions'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Spans'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Issues'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();

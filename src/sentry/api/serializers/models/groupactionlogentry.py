@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed
+from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed, serialize_group_notes
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
@@ -18,14 +18,15 @@ from sentry.issues.action_log.types import (
     COMMENT_MUTATION_ACTION_TYPES,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
+    ActionSource,
     CommentAction,
-    CommentDeleteAction,
-    CommentEditAction,
+    FirstSeenAction,
     GroupActionType,
     GroupActorType,
 )
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.pullrequest import PullRequest
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
@@ -41,6 +42,7 @@ from sentry.utils.action_log.activity_translator import (
     GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS,
     GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
 )
+from sentry.utils.http import LEGACY_MCP_CLIENT_FAMILY_ALIASES
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -50,6 +52,8 @@ logger = logging.getLogger(__name__)
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
+    # The reference accepted by the notes endpoints, or null for non-comments.
+    commentId: str | None
     # the serialized acting user when actorType is USER, otherwise null
     user: dict[str, Any] | None
     sentry_app: _ActivitySentryAppEmbed | None
@@ -59,71 +63,62 @@ class GroupActionLogEntrySerializerResponse(TypedDict):
     dateCreated: datetime
 
 
-def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerResponse:
+def _serialized_source(source: str) -> str:
     """
-    GALE has no FIRST_SEEN action type, so synthesize the entry the same way
-    ActivityManager.get_activities_for_group does.
+    The source as clients should see it.
+
+    Action log rows are never migrated, so rows written with a since-renamed MCP client
+    family (e.g. ``mcp:claude-desktop``) are translated to the current name here.
+    """
+    prefix, sep, family = source.partition(":")
+    if sep and prefix == ActionSource.MCP and family in LEGACY_MCP_CLIENT_FAMILY_ALIASES:
+        return f"{prefix}:{LEGACY_MCP_CLIENT_FAMILY_ALIASES[family]}"
+    return source
+
+
+def serialize_first_seen_entry(
+    group: "Group", entry: GroupActionLogEntry | None = None
+) -> GroupActionLogEntrySerializerResponse:
+    """
+    The first-seen item, in the shape ActivityManager.get_activities_for_group synthesizes.
+
+    Groups created before FIRST_SEEN was logged have no *entry*, so one is synthesized
+    from the group.
     """
     initial_priority_value = group.get_event_metadata().get("initial_priority")
     initial_priority = (
         PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
     )
     return {
-        "id": "0",
+        "id": str(entry.id) if entry else "0",
+        "commentId": None,
         "user": None,
         "sentry_app": None,
         "type": ActivityType.FIRST_SEEN.name.lower(),
-        "source": None,
+        "source": _serialized_source(entry.source) if entry else None,
         "data": {"priority": initial_priority},
-        "dateCreated": group.first_seen,
+        "dateCreated": (
+            entry.action.first_seen
+            if entry and isinstance(entry.action, FirstSeenAction)
+            else group.first_seen
+        ),
     }
 
 
-def _serialized_id(obj: GroupActionLogEntry) -> str:
+def _serialized_comment_id(obj: GroupActionLogEntry) -> str | None:
     """
-    The id clients address this entry by.
+    The comment reference accepted by the notes endpoints.
 
     The notes endpoints resolve ``note_id`` against ``Activity.id``, so a COMMENT
-    serializes its ``comment_id`` (the Activity it mirrors) rather than its own.
+    references its ``comment_id`` (the Activity it mirrors).
     COMMENT_EDIT and COMMENT_DELETE carry a ``comment_id`` too, but theirs points
-    at the GALE id of the COMMENT they supersede, so they keep their own.
+    at the GALE id of the COMMENT they supersede, not an addressable comment.
     """
     if obj.type == GroupActionType.COMMENT.value:
         match obj.action:
             case CommentAction(comment_id=comment_id):
                 return str(comment_id)
-    return str(obj.id)
-
-
-def _fold_comment_mutations(
-    entries: Sequence[GroupActionLogEntry],
-) -> tuple[list[GroupActionLogEntry], dict[int, str | None]]:
-    """
-    Resolve COMMENT_EDIT and COMMENT_DELETE against the comments they supersede.
-
-    The log is append-only, so editing or deleting a comment appends an entry rather than
-    rewriting the COMMENT. Returns the entries to serialize — mutations dropped, deleted
-    comments removed — and the current text of each edited comment, keyed by the id of the
-    COMMENT itself, which is what a mutation's ``comment_id`` points at.
-    """
-    latest_text_by_comment: dict[int, str | None] = {}
-    deleted_comment_ids: set[int] = set()
-    for entry in entries:
-        if entry.type not in COMMENT_MUTATION_ACTION_TYPES:
-            continue
-        match entry.action:
-            case CommentEditAction(comment_id=comment_id, text=text):
-                # Entries arrive newest-first, so the first edit seen wins.
-                latest_text_by_comment.setdefault(comment_id, text)
-            case CommentDeleteAction(comment_id=comment_id):
-                deleted_comment_ids.add(comment_id)
-
-    kept = [
-        entry
-        for entry in entries
-        if entry.type not in COMMENT_MUTATION_ACTION_TYPES and entry.id not in deleted_comment_ids
-    ]
-    return kept, latest_text_by_comment
+    return None
 
 
 def get_serialized_activity_items(
@@ -134,10 +129,10 @@ def get_serialized_activity_items(
     limit: int = 99,
 ) -> list[dict[str, Any]] | None:
     """
-    Activity-shaped items for a group, read from the action log.
+    Merge live Activity comments with non-comment log entries, then append one first-seen.
 
-    Comment edits and deletes are folded into the comments they supersede, so the window
-    reads the way Activity's mutable rows would.
+    Each source supplies at most limit candidates. Order by creation time descending,
+    comments before actions on ties, and numeric ID descending within each source.
 
     Returns None when the log can't back the response — either the gate is closed or it's
     open and the log is empty — and the caller should fall back to Activity. Reports the
@@ -146,8 +141,11 @@ def get_serialized_activity_items(
     if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
         return None
 
-    action_log = GroupActionLogEntry.objects.get_actions_for_group(group, limit)
-    if not action_log:
+    action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
+    # Inspect the whole visible log, not just non-comment entries: a comment-only
+    # log is valid. This also identifies the original first-seen after merges.
+    oldest_entry = action_log.order_by("date_added", "id").first()
+    if oldest_entry is None:
         record_activity_read(
             endpoint, ActivityReadResult.FELL_BACK, ActivityReadFallbackReason.EMPTY_LOG
         )
@@ -157,14 +155,47 @@ def get_serialized_activity_items(
         )
         return None
 
-    entries, latest_text_by_comment = _fold_comment_mutations(action_log)
-    items = serialize(entries, user)
-    for entry, item in zip(entries, items):
-        if entry.id in latest_text_by_comment:
-            item["data"] = {**item["data"], "text": latest_text_by_comment[entry.id]}
+    entries = list(
+        action_log.exclude(
+            type__in=[
+                GroupActionType.COMMENT.value,
+                *COMMENT_MUTATION_ACTION_TYPES,
+                GroupActionType.FIRST_SEEN.value,
+            ]
+        ).order_by("-date_added", "-id")[:limit]
+    )
+    notes = list(
+        Activity.objects.filter(group=group, type=ActivityType.NOTE.value).order_by(
+            "-datetime", "-id"
+        )[:limit]
+    )
+    candidates: list[Activity | GroupActionLogEntry] = [*notes, *entries]
+    page = sorted(
+        candidates,
+        key=lambda item: (
+            item.datetime if isinstance(item, Activity) else item.date_added,
+            isinstance(item, Activity),
+            item.id,
+        ),
+        reverse=True,
+    )[:limit]
+
+    # Serialize only the selected rows, batching each model's related-data lookups.
+    notes = [item for item in page if isinstance(item, Activity)]
+    entries = [item for item in page if isinstance(item, GroupActionLogEntry)]
+    serialized: dict[Activity | GroupActionLogEntry, dict[str, Any]] = {
+        note: dict(item) for note, item in zip(notes, serialize_group_notes(group, notes, user))
+    }
+    serialized.update(zip(entries, serialize(entries, user)))
+
+    first_seen_entry = (
+        oldest_entry if oldest_entry.type == GroupActionType.FIRST_SEEN.value else None
+    )
 
     record_activity_read(endpoint, ActivityReadResult.GAL)
-    return [*items, serialize_first_seen_entry(group)]
+    return [serialized[item] for item in page] + [
+        dict(serialize_first_seen_entry(group, first_seen_entry))
+    ]
 
 
 @register(GroupActionLogEntry)
@@ -316,11 +347,12 @@ class GroupActionLogEntrySerializer(Serializer):
             data.pop("current_release_version", None)
 
         return {
-            "id": _serialized_id(obj),
+            "id": str(obj.id),
+            "commentId": _serialized_comment_id(obj),
             "type": type_display,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],
             "data": data,
-            "source": obj.source,
+            "source": _serialized_source(obj.source),
             "dateCreated": obj.date_added,
         }

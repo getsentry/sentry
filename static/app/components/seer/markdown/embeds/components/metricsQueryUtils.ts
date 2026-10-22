@@ -10,8 +10,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   AlwaysPresentTraceMetricFields,
   TraceSamplesTableColumns,
+  getTraceSamplesTableFields,
 } from 'sentry/views/explore/metrics/constants';
-import {getTraceSamplesTableFields} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   createTraceMetricEventsFilter,

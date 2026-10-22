@@ -4,8 +4,16 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 
 import {ModelName} from './modelName';
+
+export interface CostBreakdownDetails {
+  inputCost: number;
+  model: string | null;
+  outputCost: number;
+  totalCost: number;
+}
 
 export interface TokenBreakdownDetails {
   cacheRead: number;
@@ -28,11 +36,31 @@ export function TokenBreakdownTooltip({
       {breakdowns.map((breakdown, index) => (
         <BreakdownGroup gap="sm" key={breakdown.model ?? index}>
           {breakdown.model && <ModelName modelId={breakdown.model} size={14} gap="sm" />}
-          <TokenBreakdownGrid>
+          <BreakdownGrid>
             {breakdown.isComplete ? <CompleteBreakdown breakdown={breakdown} /> : null}
             <span>{t('Total')}</span>
             <span>{breakdown.total.toLocaleString()}</span>
-          </TokenBreakdownGrid>
+          </BreakdownGrid>
+        </BreakdownGroup>
+      ))}
+    </Stack>
+  );
+}
+
+export function CostBreakdownTooltip({breakdowns}: {breakdowns: CostBreakdownDetails[]}) {
+  return (
+    <Stack gap="0">
+      {breakdowns.map((breakdown, index) => (
+        <BreakdownGroup gap="sm" key={breakdown.model ?? index}>
+          <ModelName modelId={breakdown.model ?? t('Unknown model')} size={14} gap="sm" />
+          <BreakdownGrid>
+            <span>{t('Input cost')}</span>
+            <span>{formatLLMCosts(breakdown.inputCost)}</span>
+            <span>{t('Output cost')}</span>
+            <span>{formatLLMCosts(breakdown.outputCost)}</span>
+            <span>{t('Total cost')}</span>
+            <span>{formatLLMCosts(breakdown.totalCost)}</span>
+          </BreakdownGrid>
         </BreakdownGroup>
       ))}
     </Stack>
@@ -102,7 +130,7 @@ const BreakdownGroup = styled(Stack)`
   }
 `;
 
-const TokenBreakdownGrid = styled('div')`
+const BreakdownGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};

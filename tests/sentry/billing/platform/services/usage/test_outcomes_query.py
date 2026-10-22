@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.billing.v1.date_pb2 import Date
 from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_by_project_pb2 import (
@@ -26,7 +25,6 @@ from sentry.billing.platform.services.usage._outcomes_query import (
     query_outcomes_usage,
 )
 from sentry.billing.platform.services.usage._project_outcomes_query import (
-    ProjectUsageQueryTruncatedError,
     _build_project_query,
     _build_project_response,
     query_project_outcomes_usage,
@@ -274,6 +272,13 @@ class TestBuildQuery:
             Outcome.RATE_LIMITED,
         }
 
+        outcome_conditions = [
+            c for c in snuba_request.query.where if hasattr(c, "lhs") and c.lhs.name == "outcome"
+        ]
+        assert len(outcome_conditions) == 1
+        assert outcome_conditions[0].op == Op.IN
+        assert set(outcome_conditions[0].rhs) == set(_BILLABLE_OUTCOMES)
+
     def test_build_query_total_all_outcomes_when_none(self):
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
@@ -286,6 +291,9 @@ class TestBuildQuery:
         total_fn = next(f for f in select if isinstance(f, Function) and f.alias == "total")
         # No outcome filter — bare sum(quantity) for all outcomes
         assert total_fn.function == "sum"
+        assert not [
+            c for c in snuba_request.query.where if hasattr(c, "lhs") and c.lhs.name == "outcome"
+        ]
 
     def test_total_function_with_outcomes(self):
         fn = _total_function(_BILLABLE_OUTCOMES)
@@ -506,19 +514,26 @@ class TestQueryProjectOutcomesUsage:
         assert timestamp_conditions[Op.GTE] == start_dt
         assert timestamp_conditions[Op.LT] == end_dt + timedelta(days=1)
 
+    @patch("sentry.billing.platform.services.usage._project_outcomes_query.logger")
     @patch("sentry.billing.platform.services.usage._project_outcomes_query.metrics")
     @patch("sentry.billing.platform.services.usage._project_outcomes_query.raw_snql_query")
-    def test_raises_when_query_reaches_row_limit(self, mock_query, mock_metrics):
-        mock_query.return_value = {"data": [{}] * 10000}
+    def test_warns_and_returns_response_when_query_reaches_row_limit(
+        self, mock_query, mock_metrics, mock_logger
+    ):
+        mock_query.return_value = {"data": [_make_project_row()] * 10000}
         request = GetUsageByProjectRequest(
             organization_id=1,
             start=_make_timestamp(datetime(2025, 3, 1, tzinfo=timezone.utc)),
             end=_make_timestamp(datetime(2025, 3, 2, tzinfo=timezone.utc)),
         )
 
-        with pytest.raises(ProjectUsageQueryTruncatedError, match="10,000-row limit"):
-            query_project_outcomes_usage(request)
+        response = query_project_outcomes_usage(request)
 
+        assert [project.project_id for project in response.projects] == [10]
+        mock_logger.warning.assert_called_once_with(
+            "billing.project_usage_query.truncated",
+            extra={"org_id": 1, "row_count": 10000},
+        )
         mock_metrics.incr.assert_called_once_with(
             "billing.project_usage_query.truncated", sample_rate=1.0
         )

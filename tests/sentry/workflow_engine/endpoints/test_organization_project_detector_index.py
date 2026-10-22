@@ -35,7 +35,78 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, FeatureGate
+from tests.sentry.workflow_engine.endpoints.test_helpers import (
+    GATE_FEATURE,
+    assert_querysets_unchanged,
+    override_detector_api_availability,
+)
+from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
+
+
+@cell_silo_test
+class OrganizationProjectDetectorWorkflowAccessTest(APITestCase, ProjectAccessTestMixin):
+    endpoint = "sentry-api-0-organization-project-detector-index"
+    method = "POST"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(self.limited_user)
+        self.data = {
+            "type": MonitorIncidentType.slug,
+            "name": "Test Monitor Detector",
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "config": {"schedule": "0 * * * *", "scheduleType": "crontab"},
+                }
+            ],
+        }
+
+    def test_workflow_attachment_permissions(self) -> None:
+        workflow_url = (
+            f"/api/0/organizations/{self.organization.slug}/workflows/{self.other_workflow.id}/"
+        )
+        assert self.client.get(workflow_url).status_code == 403
+        initial_detectors = Detector.objects.filter(project=self.user_project).count()
+        initial_data_sources = DataSource.objects.filter(organization=self.organization).count()
+        initial_monitors = Monitor.objects.filter(project_id=self.user_project.id).count()
+
+        self.get_error_response(
+            self.organization.slug,
+            self.user_project.slug,
+            **self.data,
+            workflowIds=[self.user_workflow.id, self.other_workflow.id],
+            status_code=403,
+        )
+
+        assert Detector.objects.filter(project=self.user_project).count() == initial_detectors
+        assert (
+            DataSource.objects.filter(organization=self.organization).count()
+            == initial_data_sources
+        )
+        assert Monitor.objects.filter(project_id=self.user_project.id).count() == initial_monitors
+        assert not DetectorWorkflow.objects.filter(
+            detector__project=self.user_project, workflow=self.other_workflow
+        ).exists()
+        assert self.client.get(workflow_url).status_code == 403
+
+        # The same member can create a detector with workflows they can edit.
+        response = self.get_success_response(
+            self.organization.slug,
+            self.user_project.slug,
+            **self.data,
+            workflowIds=[self.user_workflow.id, self.unattached_workflow.id],
+            status_code=201,
+        )
+
+        assert set(
+            DetectorWorkflow.objects.filter(detector_id=response.data["id"]).values_list(
+                "workflow_id", flat=True
+            )
+        ) == {self.user_workflow.id, self.unattached_workflow.id}
 
 
 class OrganizationProjectDetectorIndexBaseTest(APITestCase):
@@ -101,6 +172,41 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 @cell_silo_test
 @with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
+    def test_post_feature_gate(self) -> None:
+        # Read exclusions don't restrict creation
+        with override_detector_api_availability(
+            MetricIssue.slug,
+            {
+                DetectorAPIOperation.POST: FeatureGate(GATE_FEATURE),
+                DetectorAPIOperation.LIST: False,
+                DetectorAPIOperation.GET: False,
+            },
+        ):
+            with (
+                self.feature({GATE_FEATURE: False}),
+                assert_querysets_unchanged(
+                    detectors=Detector.objects.filter(project=self.project),
+                    data_sources=DataSource.objects.filter(organization=self.organization),
+                    snuba_queries=SnubaQuery.objects.all(),
+                    condition_groups=DataConditionGroup.objects.filter(
+                        organization_id=self.organization.id
+                    ),
+                ),
+            ):
+                response = self.get_error_response(
+                    self.organization.slug, self.project.slug, **self.valid_data, status_code=400
+                )
+            assert "type" in response.data
+
+            with self.feature(GATE_FEATURE), self.tasks():
+                response = self.get_success_response(
+                    self.organization.slug, self.project.slug, **self.valid_data, status_code=201
+                )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.type == MetricIssue.slug
+        assert detector.project_id == self.project.id
+
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
         data = {**self.valid_data}
@@ -431,6 +537,42 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 **data,
                 status_code=201,
             )
+
+    def test_documented_eap_transaction_payload_is_valid(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "is_transaction:true",
+                    "aggregate": "p75(measurements.ttfb)",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                    "extrapolationMode": "unknown",
+                }
+            ],
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"] == {
+            "id": mock.ANY,
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "is_transaction:true",
+            "aggregate": "p75(measurements.ttfb)",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            "extrapolationMode": "unknown",
+        }
 
     @with_feature(
         [

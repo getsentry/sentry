@@ -92,14 +92,10 @@ export enum DocsPageLocation {
  * the copy-as-markdown `source`, and the gaming-SDK-access `origin`.
  *
  * Replaces the old `newOrg` + `hasScmOnboarding` boolean pair, which could not
- * express the four flows that reach these components. When absent, consumers
+ * express the flows that reach these components. When absent, consumers
  * fall back to the pre-enum default (the plain project-creation/legacy names).
  */
-export type DocsFlow =
-  | 'onboarding'
-  | 'onboarding-scm'
-  | 'project-creation'
-  | 'project-creation-scm';
+export type DocsFlow = 'onboarding-scm' | 'project-creation' | 'project-creation-scm';
 
 export enum ProductSolution {
   ERROR_MONITORING = 'error-monitoring',

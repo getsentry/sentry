@@ -5,7 +5,58 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategoryExact} from 'sentry/types/core';
 
-import {CustomerStats} from 'admin/components/customers/customerStats';
+import {CustomerStats, populateChartData} from 'admin/components/customers/customerStats';
+
+describe('populateChartData', () => {
+  const series = {
+    accepted: {seriesName: 'Accepted', data: []},
+    overQuota: {seriesName: 'Over Quota', data: []},
+    totalFiltered: {seriesName: 'Filtered (Server)', data: []},
+    totalDiscarded: {seriesName: 'Discarded (Client)', data: []},
+    totalDropped: {seriesName: 'Dropped (Server)', data: []},
+  };
+
+  it('shows every custom inbound filter as one series without its id', () => {
+    const intervals = ['2021-04-21T00:00:00Z', '2021-04-22T00:00:00Z'];
+    const groups = [
+      {
+        by: {outcome: 'filtered', reason: 'custom-inbound-filter:1'},
+        series: {'sum(quantity)': [1, 2]},
+        totals: {'sum(quantity)': 3},
+      },
+      {
+        by: {outcome: 'filtered', reason: 'custom-inbound-filter:2'},
+        series: {'sum(quantity)': [10, 20]},
+        totals: {'sum(quantity)': 30},
+      },
+      {
+        by: {outcome: 'filtered', reason: 'Sampled:1000,1500'},
+        series: {'sum(quantity)': [5, 5]},
+        totals: {'sum(quantity)': 10},
+      },
+    ];
+
+    const [, filtered] = populateChartData(intervals, groups, series);
+
+    expect(filtered!.subSeries).toEqual([
+      {
+        seriesName: 'Custom Inbound Filter',
+        data: [
+          {name: intervals[0], value: 11},
+          {name: intervals[1], value: 22},
+        ],
+      },
+      {
+        seriesName: 'Dynamic Sampling',
+        data: [
+          {name: intervals[0], value: 5},
+          {name: intervals[1], value: 5},
+        ],
+      },
+    ]);
+    expect(filtered!.data.map(point => point.value)).toEqual([16, 27]);
+  });
+});
 
 describe('CustomerStats', () => {
   const organization = OrganizationFixture();

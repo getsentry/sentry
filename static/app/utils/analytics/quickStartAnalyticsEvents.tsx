@@ -5,7 +5,6 @@ export type QuickStartEventParameters = {
   'quick_start.opened': {
     source:
       | 'targeted_onboarding_welcome_skip'
-      | 'targeted_onboarding_select_platform_skip'
       | 'targeted_onboarding_first_event_footer_skip'
       | 'targeted_onboarding_scm_connect_skip'
       | 'targeted_onboarding_scm_platform_features_skip'

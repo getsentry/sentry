@@ -1,5 +1,9 @@
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconPlay} from 'sentry/icons';
+import {IconPlay} from '@sentry/icons/play';
+
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -13,11 +17,15 @@ export function getReplaysQueryTitle(data: ReplaysQueryData): string {
   return data.title ?? t('Replay search');
 }
 
-export function ReplaysQueryLink({data}: {data: ReplaysQueryData}) {
+export function ReplaysQueryLink({
+  data,
+  format,
+}: {data: ReplaysQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconPlay}
       href={getReplaysQueryHref(data, organization)}
       title={getReplaysQueryTitle(data)}

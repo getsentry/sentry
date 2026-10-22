@@ -20,6 +20,22 @@ type Props = {
 } & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 
+function RelayCardContent({
+  activities,
+  disabled,
+  onRefresh,
+}: {
+  activities: RelayActivity[];
+  disabled: boolean;
+  onRefresh: WaitingActivityProps['onRefresh'];
+}) {
+  if (!activities.length) {
+    return <WaitingActivity onRefresh={onRefresh} disabled={disabled} />;
+  }
+
+  return <ActivityList activities={activities} />;
+}
+
 export function List({
   relays,
   relayActivities,
@@ -32,14 +48,6 @@ export function List({
   const orderedRelays = orderBy(relays, relay => relay.created, ['desc']);
 
   const relaysByPublicKey = getRelaysByPublicKey(orderedRelays, relayActivities);
-
-  const renderCardContent = (activities: RelayActivity[]) => {
-    if (!activities.length) {
-      return <WaitingActivity onRefresh={onRefresh} disabled={disabled} />;
-    }
-
-    return <ActivityList activities={activities} />;
-  };
 
   return (
     <Stack gap="xl">
@@ -62,7 +70,11 @@ export function List({
                   : undefined
               }
             />
-            {renderCardContent(activities)}
+            <RelayCardContent
+              activities={activities}
+              disabled={disabled}
+              onRefresh={onRefresh}
+            />
           </Stack>
         );
       })}

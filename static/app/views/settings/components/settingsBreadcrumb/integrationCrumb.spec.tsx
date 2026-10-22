@@ -3,14 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {BreadcrumbTitle} from './breadcrumbTitle';
 import {IntegrationCrumb} from './integrationCrumb';
 
 describe('IntegrationCrumb', () => {
@@ -31,10 +26,13 @@ describe('IntegrationCrumb', () => {
   });
 
   it('switches integrations while clearing the selected detail tab', async () => {
-    const parentRoute = {path: 'integrations/', name: 'Integrations'};
-    const route = {path: ':integrationSlug', name: 'Integration Details'};
     const {router} = render(
-      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />,
+      <IntegrationCrumb
+        to="/settings/:orgId/integrations/:integrationSlug/"
+        switchTo="/settings/:orgId/integrations/:providerKey/"
+      >
+        <BreadcrumbTitle title="Details" />
+      </IntegrationCrumb>,
       {
         organization,
         initialRouterConfig: {
@@ -48,15 +46,12 @@ describe('IntegrationCrumb', () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'GitHub'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Switch GitHub'})).toHaveAttribute(
         'aria-haspopup',
         'listbox'
       )
     );
-    expect(
-      within(screen.getByRole('button', {name: 'GitHub'})).getByRole('img')
-    ).toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('button', {name: 'GitHub'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Switch GitHub'}));
     await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
 
     expect(router.location.pathname).toBe(
@@ -66,11 +61,6 @@ describe('IntegrationCrumb', () => {
   });
 
   it('returns to overview when switching from a configured item', async () => {
-    const parentRoute = {path: 'integrations/', name: 'Integrations'};
-    const route = {
-      path: ':providerKey/:integrationId/',
-      name: 'Configure Integration',
-    };
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/1/`,
       body: OrganizationIntegrationsFixture({
@@ -78,7 +68,12 @@ describe('IntegrationCrumb', () => {
       }),
     });
     const {router} = render(
-      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />,
+      <IntegrationCrumb
+        to="/settings/:orgId/integrations/:providerKey/"
+        switchTo="/settings/:orgId/integrations/:providerKey/"
+      >
+        <BreadcrumbTitle title="Details" />
+      </IntegrationCrumb>,
       {
         organization,
         initialRouterConfig: {
@@ -90,26 +85,23 @@ describe('IntegrationCrumb', () => {
       }
     );
 
-    const integrationLink = await screen.findByRole('link', {name: /GitHub/});
-    expect(integrationLink).toHaveAttribute(
+    const integrationButton = await screen.findByRole('button', {name: 'Switch GitHub'});
+    expect(screen.getByRole('link', {name: 'GitHub'})).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/integrations/github/`
     );
-    expect(within(integrationLink).getByRole('img')).toHaveAttribute(
+    expect(integrationButton.closest('li')?.querySelector('img')).toHaveAttribute(
       'src',
       'https://example.com/custom-integration.png'
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'GitHub'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Switch GitHub'})).toHaveAttribute(
         'aria-haspopup',
         'listbox'
       )
     );
-    expect(
-      within(screen.getByRole('button', {name: 'GitHub'})).getAllByRole('img')
-    ).toHaveLength(2);
-    await userEvent.hover(screen.getByRole('button', {name: 'GitHub'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Switch GitHub'}));
     await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
 
     expect(router.location.pathname).toBe(
@@ -119,8 +111,6 @@ describe('IntegrationCrumb', () => {
   });
 
   it('shows the Sentry App icon on its overview page', async () => {
-    const parentRoute = {path: 'sentry-apps/', name: 'Integrations'};
-    const route = {path: ':integrationSlug', name: 'Details'};
     MockApiClient.addMockResponse({
       url: '/sentry-apps/shortcut/',
       body: SentryAppFixture({
@@ -138,27 +128,36 @@ describe('IntegrationCrumb', () => {
       }),
     });
 
-    render(<IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />, {
-      organization,
-      initialRouterConfig: {
-        route: '/settings/:orgId/sentry-apps/:integrationSlug/',
-        location: {
-          pathname: `/settings/${organization.slug}/sentry-apps/shortcut/`,
+    render(
+      <IntegrationCrumb
+        to="/settings/:orgId/sentry-apps/:integrationSlug/"
+        switchTo="/settings/:orgId/integrations/:providerKey/"
+        isSentryAppRoute
+      >
+        <BreadcrumbTitle title="Details" />
+      </IntegrationCrumb>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/settings/:orgId/sentry-apps/:integrationSlug/',
+          location: {
+            pathname: `/settings/${organization.slug}/sentry-apps/shortcut/`,
+          },
         },
-      },
-    });
+      }
+    );
 
-    const integrationLink = await screen.findByRole('link', {name: /Shortcut/});
-    expect(integrationLink).toHaveAttribute(
+    const integrationButton = await screen.findByRole('button', {
+      name: 'Switch Shortcut',
+    });
+    expect(screen.getByRole('link', {name: 'Shortcut'})).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/sentry-apps/shortcut/`
     );
-    expect(within(integrationLink).getByRole('img')).toHaveAttribute(
+    expect(integrationButton.closest('li')?.querySelector('img')).toHaveAttribute(
       'src',
       'https://example.com/shortcut.png?s=120'
     );
-    expect(
-      within(screen.getByRole('button', {name: /Shortcut/})).getAllByRole('img')
-    ).toHaveLength(1);
+    expect(screen.getByRole('button', {name: 'Switch Shortcut'})).toBeInTheDocument();
   });
 });

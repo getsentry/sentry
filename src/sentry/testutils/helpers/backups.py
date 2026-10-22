@@ -41,10 +41,14 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
+    ExploreSavedFormula,
     ExploreSavedQuery,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    ExploreSavedVariable,
+    KindItemTypes,
+    ParamItemTypes,
     TraceItemAttributeContext,
     TraceItemAttributeTypes,
     TraceItemAttributeValueContext,
@@ -52,7 +56,6 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -70,12 +73,12 @@ from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStat
 from sentry.models.counter import Counter
 from sentry.models.custominboundfilter import (
     CustomInboundFilter,
-    CustomInboundFilterDataType,
+    DataType,
+    LegacyFilter,
 )
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -110,7 +113,6 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
@@ -118,8 +120,14 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
+    SeerWorkflowStrategy,
+)
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -512,8 +520,15 @@ class ExhaustiveFixtures(Fixtures):
         CustomInboundFilter.objects.create(
             project=project,
             name=f"custom-inbound-filter-{slug}",
-            data_type=CustomInboundFilterDataType.ALL,
+            data_type=DataType.ALL,
             conditions=[{"type": "release", "value": ["1.0.0"]}],
+        )
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"legacy-releases-{slug}",
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["2.0.0"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
         )
 
         # Auth*
@@ -523,11 +538,7 @@ class ExhaustiveFixtures(Fixtures):
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
         # Rule*
-        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
-        RuleActivity.objects.create(
-            rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
-        )
-        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
+        self.create_project_rule(project=project, owner_user_id=owner_id)
 
         # Environment*
         self.create_environment(project=project)
@@ -552,13 +563,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         # Incident*
-        incident = self.create_incident(org, [project])
-        IncidentActivity.objects.create(
-            incident=incident,
-            type=1,
-            comment=f"hello {slug}",
-            user_id=owner_id,
-        )
+        self.create_incident(org, [project])
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -575,10 +580,6 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
-        )
-        DashboardHiddenUser.objects.create(
-            user_id=owner_id,
-            dashboard=dashboard,
         )
         DashboardLastVisited.objects.create(
             user_id=owner_id,
@@ -655,6 +656,12 @@ class ExhaustiveFixtures(Fixtures):
             tag_value="production",
             branch_name="release",
         )
+        seer_workflow_config = SeerWorkflowConfig.objects.create(
+            organization=org,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            filters={"environments": ["production"]},
+        )
+        SeerWorkflowConfigProject.objects.create(config=seer_workflow_config, project=project)
 
         CodeReviewEvent.objects.create(
             organization=org,
@@ -805,6 +812,23 @@ class ExhaustiveFixtures(Fixtures):
             last_visited=timezone.now(),
         )
 
+        explore_saved_formula = ExploreSavedFormula.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
+            name="formula.apdex",
+            formula="count()",
+        )
+        ExploreSavedVariable.objects.create(
+            organization=org,
+            explore_saved_formula=explore_saved_formula,
+            name="duration",
+            value="",
+            kind=KindItemTypes.PARAM,
+            param_type=ParamItemTypes.COLUMN,
+            order=0,
+        )
+
         TraceItemAttributeContext.objects.create(
             organization=org,
             project=project,
@@ -876,6 +900,13 @@ class ExhaustiveFixtures(Fixtures):
             date_last_used=None,
             project_last_used_id=project.id,
         )
+        service_account = ServiceAccount.objects.create(
+            organization_id=org.id,
+            name=f"service account for {org.slug}",
+            scope_list=["org:read", "project:read"],
+            created_by=owner,
+        )
+        ServiceAccountProject.objects.create(service_account=service_account, project_id=project.id)
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_organization_integration(self, org: Organization):

@@ -44,6 +44,22 @@ def migrate_debug_file(
 
         try:
             metadata = upload_and_verify(debug_file)
+        except Project.DoesNotExist:
+            deleted = (
+                delete_corrupt_debug_file(debug_file.id, source_file_id=source_file_id)
+                if delete_corrupt
+                else False
+            )
+            logger.warning(
+                "debug_files.objectstore_migration.project_missing",
+                extra={
+                    "debug_file_id": debug_file.id,
+                    "project_id": debug_file.project_id,
+                    "file_id": source_file_id,
+                    "deleted": deleted,
+                },
+            )
+            return
         except FilestoreIntegrityError as error:
             _handle_filestore_integrity_error(
                 debug_file.id,
@@ -228,11 +244,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
     if file is None:
         return None
 
-    try:
-        project = Project.objects.get_from_cache(id=debug_file.project_id)
-    except Project.DoesNotExist:
-        return None
-
+    project = Project.objects.get_from_cache(id=debug_file.project_id)
     session = get_session(UsecaseId.DEBUG_FILES, project)
 
     content_type = file.headers.get("Content-Type", "application/octet-stream")

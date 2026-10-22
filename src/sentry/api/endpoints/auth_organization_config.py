@@ -61,6 +61,7 @@ class AuthOrganizationConfigEndpoint(Endpoint):
         organization = organization_context.organization
         auth_provider = AuthProvider.objects.filter(organization_id=organization.id).first()
         avatar = OrganizationAvatarReplica.objects.filter(organization_id=organization.id).first()
+        is_demo_organization = is_demo_mode_enabled() and is_demo_org(organization)
 
         provider = None
         if auth_provider is not None:
@@ -100,7 +101,7 @@ class AuthOrganizationConfigEndpoint(Endpoint):
             request.user.is_authenticated
             and organization_context.member is None
             and not organization_access.has_global_access
-            and not (is_demo_mode_enabled() and is_demo_org(organization))
+            and not is_demo_organization
         ):
             warnings.append(
                 f"Your account ({request.user.email}) is not a member of the "
@@ -117,7 +118,13 @@ class AuthOrganizationConfigEndpoint(Endpoint):
             member_authenticated=member_authenticated,
             can_register=bool(has_user_registration() or request.session.get("can_register")),
             join_request_url=join_request_url,
-            login_method="sso" if provider is not None else "password",
+            login_method=(
+                "demo"
+                if provider is None and is_demo_organization
+                else "sso"
+                if provider is not None
+                else "password"
+            ),
             sso_required=bool(auth_provider is not None and not auth_provider.flags.allow_unlinked),
             organization={
                 "avatarUrl": (

@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any
 
 import sentry_sdk
+from sentry_sdk import traces
 from snuba_sdk import (
     AliasedExpression,
     And,
@@ -33,7 +34,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils import snuba
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
@@ -376,7 +376,7 @@ def _get_snuba_dataclass_for_saved_query(
     return _get_snuba_dataclass(saved_query.organization, projects, start, end, period, environment)
 
 
-@trace
+@traces.trace
 def _get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[int, bool]:

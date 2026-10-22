@@ -12,7 +12,7 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import features, options
 from sentry.ai_monitoring.tasks import spawn_conversation_title_generation
-from sentry.constants import DataCategory
+from sentry.constants import MAX_TAG_VALUE_LENGTH, DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.insights import FilterSpan
@@ -57,6 +57,8 @@ from sentry.utils.last_seen import LAST_SEEN_INTERVAL_SECONDS
 from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.utils.safe import strict_trim
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,7 @@ MAX_SPAN_DESCRIPTION_LENGTH = 2048
 MAX_SPAN_DATA_VALUE_LENGTH = 500
 MAX_EVIDENCE_VALUE_LENGTH = 500
 MAX_EVIDENCE_LIST_ITEMS = 100
+MAX_OCCURRENCE_TAGS_BYTES = 16_384
 
 # The `evidence_data` values we actually use for issue details and Seer - all others are dropped
 # when we produce the occurrence
@@ -197,13 +200,12 @@ def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dic
             if "attributes" in span:
                 metrics.incr("spans.consumers.process_segments.span_v2")
 
-                attributes = span.get("attributes") or {}
                 data = span.get("data") or {}
                 # Verify that all data exist also in attributes.
                 mismatches = [
-                    (key, data_value, attribute_value)
+                    (key, data_value, value)
                     for (key, data_value) in data.items()
-                    if data_value != (attribute_value := (attributes.get(key) or {}).get("value"))
+                    if data_value != (value := attribute_value(span, key))
                 ]
                 if mismatches:
                     redacted = _redact(span)
@@ -451,6 +453,7 @@ def _run_legacy_detectors(
 
     # Produce an occurrence for each problem, first filtering and trimming data to stay within the
     # occurrence consumer's limits
+    _trim_event_data_for_occurrence(event_data)
     spans_by_id = {span["span_id"]: span for span in event_data["spans"]}
     for problem in detected_problems:
         evidence_display = [
@@ -490,7 +493,7 @@ def _run_legacy_detectors(
             type=problem.type,
             issue_title=problem.title,
             subtitle=_truncate_value_for_occurrence(problem.desc, MAX_EVIDENCE_VALUE_LENGTH),
-            culprit=event_data["transaction"],
+            culprit=event_data.get("transaction"),
             evidence_data=evidence_data,
             evidence_display=evidence_display,
             detection_time=to_datetime(segment_span["end_timestamp"]),
@@ -515,6 +518,33 @@ def _truncate_span_id_list(
     """
     ids_for_existing_spans = [span_id for span_id in raw_span_ids if span_id in spans_by_id]
     return ids_for_existing_spans[:max_span_ids]
+
+
+def _trim_event_data_for_occurrence(event_data: dict[str, Any]) -> None:
+    """
+    Trim values in the shim transaction event before using them to create occurrences, so that the
+    full occurrence stays within the occurrence consumer's limits. Modifies the given `event_data`
+    dict in place.
+    """
+    # Tag values are capped by character count rather than byte count, to match what `set_tag`
+    # does everywhere else in the event pipeline. The list as a whole then gets a byte budget,
+    # spent one whole tag at a time, so that no tag ends up with a truncated key or no value.
+    if "tags" in event_data:
+        initial_tag_count = len(event_data["tags"])
+
+        trimmed_tags = [
+            [key, truncatechars(value, MAX_TAG_VALUE_LENGTH)] for key, value in event_data["tags"]
+        ]
+        event_data["tags"] = strict_trim(
+            trimmed_tags, MAX_OCCURRENCE_TAGS_BYTES, treat_as_dict_entries=True
+        )
+
+        final_tag_count = len(event_data["tags"])
+        if final_tag_count < initial_tag_count:
+            logger.info(
+                "issue_detection.shim.tags_dropped",
+                extra={"initial_count": initial_tag_count, "final_count": final_tag_count},
+            )
 
 
 def _get_evidence_data_for_occurrence(

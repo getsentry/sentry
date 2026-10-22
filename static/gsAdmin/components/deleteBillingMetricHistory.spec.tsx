@@ -141,7 +141,7 @@ describe('DeleteBillingMetricHistory', () => {
 
       // Mock the API endpoint for deleting billing metric history
       const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
-        url: `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
+        url: `/customers/${organization.slug}/delete-billing-metric-history/`,
         method: 'POST',
         body: {},
       });
@@ -170,7 +170,7 @@ describe('DeleteBillingMetricHistory', () => {
 
       // Check that the API call was made with the correct parameters
       expect(deleteBillingMetricHistoryMock).toHaveBeenCalledWith(
-        `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
+        `/customers/${organization.slug}/delete-billing-metric-history/`,
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -219,7 +219,7 @@ describe('DeleteBillingMetricHistory', () => {
 
     // Mock the API endpoint to return an error
     const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
-      url: `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
+      url: `/customers/${organization.slug}/delete-billing-metric-history/`,
       method: 'POST',
       statusCode: 400,
       body: {

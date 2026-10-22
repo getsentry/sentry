@@ -1,15 +1,16 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {
   useDelayedLoadingState,
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardPanel,
+} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 
 type SpanEvidencePreviewProps = {
@@ -61,17 +62,14 @@ function SpanEvidencePreviewBody({
 
   if (evidenceDisplay?.length) {
     return (
-      <Container padding="lg lg 0 lg" width="700px" data-test-id="evidence-preview-body">
-        <KeyValueTableDataList
-          margin
-          data={evidenceDisplay.map(item => ({
-            key: item.name,
-            subject: item.name,
-            value: item.value,
+      <PreviewBody data-test-id="evidence-preview-body">
+        <KeyValueTableCard
+          variant="label"
+          contentItems={evidenceDisplay.map(item => ({
+            item: {key: item.name, subject: item.name, value: item.value},
           }))}
-          shouldSort={false}
         />
-      </Container>
+      </PreviewBody>
     );
   }
 
@@ -101,6 +99,15 @@ export function EvidencePreview({children, groupId, query}: SpanEvidencePreviewP
     </GroupPreviewHovercard>
   );
 }
+
+const PreviewBody = styled('div')`
+  width: 700px;
+
+  > ${KeyValueTableCardPanel} {
+    border: none;
+    margin: 0;
+  }
+`;
 
 const EmptyWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};

@@ -2,12 +2,12 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 // import {
 //   NotificationActionCell,
 //   NotificationActionFormContainer,
@@ -74,15 +74,15 @@ export function SlackForm({
         <DropdownMenu
           items={workspaceOptions}
           trigger={(triggerProps, isOpen) => (
-            <DropdownButton
+            <OverlayTrigger.Button
               {...triggerProps}
               isOpen={isOpen}
               size="xs"
               aria-label={t('Select Workspace')}
               data-test-id="slack-workspace-dropdown"
             >
-              {selectedWorkspace}
-            </DropdownButton>
+              {selectedWorkspace ?? ''}
+            </OverlayTrigger.Button>
           )}
         />
 

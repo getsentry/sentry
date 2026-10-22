@@ -5,6 +5,7 @@ from typing import Any
 
 import sentry_sdk
 from django.db.models import QuerySet
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -19,6 +20,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
+from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.utils.sdk import bind_organization_context
 from sentry.viewer_context import set_viewer_context_project
 
@@ -165,7 +167,15 @@ class GroupAiPermission(GroupPermission):
                 return False
 
             return True
-        return super().has_object_permission(request, view, group)
+
+        if not super().has_object_permission(request, view, group):
+            return False
+
+        has_access, detail = has_seer_access_with_detail(group.organization)
+        if not has_access:
+            raise PermissionDenied(detail)
+
+        return True
 
 
 class GroupAiEndpoint(GroupEndpoint):

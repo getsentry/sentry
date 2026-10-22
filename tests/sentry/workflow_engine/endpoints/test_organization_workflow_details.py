@@ -18,7 +18,6 @@ from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
@@ -67,7 +66,6 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
         workflow.save()
         self.get_error_response(self.organization.slug, workflow.id, status_code=404)
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_workflow(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
         detector = ensure_default_all_projects_detector(self.organization.id)
@@ -76,13 +74,6 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
         response = self.get_success_response(self.organization.slug, workflow.id)
 
         assert response.data["id"] == str(workflow.id)
-
-    def test_all_projects_workflow_without_feature(self) -> None:
-        workflow = self.create_workflow(organization_id=self.organization.id)
-        detector = ensure_default_all_projects_detector(self.organization.id)
-        self.create_detector_workflow(workflow=workflow, detector=detector)
-
-        self.get_error_response(self.organization.slug, workflow.id, status_code=403)
 
 
 @cell_silo_test
@@ -127,7 +118,6 @@ class OrganizationWorkflowProjectScopeTest(APITestCase):
 
         self.get_error_response(self.organization.slug, workflow.id, status_code=404)
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_workflow(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
         detector = ensure_default_all_projects_detector(self.organization.id)
@@ -139,13 +129,6 @@ class OrganizationWorkflowProjectScopeTest(APITestCase):
             "projectIds": [],
             "includesAllProjects": True,
         }
-
-    def test_all_projects_workflow_without_feature(self) -> None:
-        workflow = self.create_workflow(organization_id=self.organization.id)
-        detector = ensure_default_all_projects_detector(self.organization.id)
-        self.create_detector_workflow(workflow=workflow, detector=detector)
-
-        self.get_error_response(self.organization.slug, workflow.id, status_code=403)
 
     def test_only_get_is_supported(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
@@ -308,7 +291,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             status_code=400,
         )
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_workflow_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
@@ -329,7 +311,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         self.workflow.refresh_from_db()
         assert self.workflow.name != "Unauthorized update"
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
     def test_all_projects_workflow_agent_token_advertises_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
@@ -355,7 +336,53 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
         )
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_project_scoped_workflow_agent_token_advertises_alerts_write(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        workflow_data = {**self.valid_workflow, "name": "Approved update"}
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="workflow-update",
+        )
+        client = APIClient()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/{self.workflow.id}/",
+                data=workflow_data,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="alerts:write"'
+        )
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Approved update"
+
+        retry_token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["alerts:write"],
+            session_id="workflow-update",
+        )
+        with self.feature(agent_token.FEATURE_FLAG):
+            retry_response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/{self.workflow.id}/",
+                data=workflow_data,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {retry_token}",
+            )
+
+        assert retry_response.status_code == 200, retry_response.content
+        self.workflow.refresh_from_db()
+        assert self.workflow.name == "Approved update"
+
     @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
     def test_all_projects_workflow_agent_token_does_not_advertise_ungrantable_scope(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
@@ -1964,7 +1991,6 @@ class OrganizationWorkflowDetailsProjectAccessTest(APITestCase, ProjectAccessTes
         )
         assert response.data["id"] == str(multi_project_workflow.id)
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_connection_grants_org_level_read_access(self) -> None:
         self.login_as(self.limited_user)
         workflow = self.create_workflow(

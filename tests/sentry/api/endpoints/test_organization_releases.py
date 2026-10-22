@@ -3154,8 +3154,7 @@ class DebounceUpdateReleaseHealthDataTest(TestCase):
         project = self.create_project()
         project.update_option("sentry:enable_auto_release_creation", False)
 
-        with self.feature("organizations:auto-release-creation"):
-            self.run_with_health_data(project)
+        self.run_with_health_data(project)
 
         assert not Release.objects.filter(organization_id=project.organization_id).exists()
 
@@ -3166,7 +3165,6 @@ class DebounceUpdateReleaseHealthDataTest(TestCase):
         project.update_option("sentry:enable_auto_release_creation", False)
         release = Release.objects.create(organization_id=project.organization_id, version="1.0")
 
-        with self.feature("organizations:auto-release-creation"):
-            self.run_with_health_data(project)
+        self.run_with_health_data(project)
 
         assert ReleaseProject.objects.filter(release=release, project=project).exists()

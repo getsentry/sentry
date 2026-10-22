@@ -13,6 +13,10 @@ describe('DatadogCredentialsStep', () => {
   it('renders the credentials form', () => {
     render(<DatadogCredentialsStep {...makeStepProps({stepData: {}})} />);
 
+    expect(screen.getByRole('link', {name: 'documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/integrations/debugging/datadog-seer/'
+    );
     expect(screen.getByLabelText('API Key')).toBeInTheDocument();
     expect(screen.getByLabelText('Application Key')).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Datadog Site'})).toBeInTheDocument();

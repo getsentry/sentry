@@ -4,7 +4,7 @@ from django.db.models import BigIntegerField
 from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,20 +31,19 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.issues import grouptype
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.organization_detector_index import get_detector_validator
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializer,
     DetectorSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
     can_edit_detector,
-    get_unknown_detector_type_error,
     is_system_created_detector,
     should_include_all_projects_detector,
 )
@@ -74,63 +73,6 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
         raise ResourceDoesNotExist
 
 
-def remove_detector(
-    request: Request, organization: Organization, detector: Detector
-) -> Response[None]:
-    """
-    Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
-    for backwards compatibility and can be moved back under DELETE after API deprecation.
-    """
-    if not can_delete_detector(detector, request):
-        raise PermissionDenied
-
-    validator = get_detector_validator(
-        request, detector.linked_project, detector.type, instance=detector
-    )
-    validator.delete()
-
-    if detector.type == MetricIssue.slug:
-        schedule_update_project_config(detector)
-
-    create_audit_entry(
-        request=request,
-        organization=detector.linked_project.organization,
-        target_object=detector.id,
-        event=audit_log.get_event_id("DETECTOR_REMOVE"),
-        data=detector.get_audit_log_data(),
-    )
-    return Response(status=204)
-
-
-def get_detector_validator(
-    request: Request,
-    project: Project,
-    detector_type_slug: str,
-    instance: Detector | None = None,
-    partial: bool = False,
-) -> BaseDetectorTypeValidator:
-    type = grouptype.registry.get_by_slug(detector_type_slug)
-    if type is None:
-        error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
-        raise ValidationError({"type": [error_message]})
-
-    if type.detector_settings is None or type.detector_settings.validator is None:
-        raise ValidationError({"type": ["Detector type not compatible with detectors"]})
-
-    return type.detector_settings.validator(
-        instance=instance,
-        context={
-            "project": project,
-            "organization": project.organization,
-            "request": request,
-            "access": request.access,
-            "user": request.user,
-        },
-        data=request.data,
-        partial=partial,
-    )
-
-
 @cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
@@ -144,6 +86,11 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             detector = (
                 Detector.objects.by_organization(organization.id)
                 .with_type_filters()
+                .exclude(
+                    type__in=get_excluded_detector_types(
+                        request.method, organization, actor=request.user
+                    )
+                )
                 .select_related("project")
                 .get(id=validated_detector_id)
             )
@@ -265,4 +212,22 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         # Intentionally no _check_metric_detector_allowed gate here:
         # orgs should be able to delete detectors they can no longer use
         # (e.g. after a plan downgrade).
-        return remove_detector(request, organization, detector)
+        if not can_delete_detector(detector, request):
+            raise PermissionDenied
+
+        validator = get_detector_validator(
+            request, detector.linked_project, detector.type, instance=detector
+        )
+        validator.delete()
+
+        if detector.type == MetricIssue.slug:
+            schedule_update_project_config(detector)
+
+        create_audit_entry(
+            request=request,
+            organization=detector.linked_project.organization,
+            target_object=detector.id,
+            event=audit_log.get_event_id("DETECTOR_REMOVE"),
+            data=detector.get_audit_log_data(),
+        )
+        return Response(status=204)

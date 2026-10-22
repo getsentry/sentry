@@ -39,8 +39,8 @@ function baseListCheckboxState(overrides: Partial<ListItemCheckboxState>) {
   };
 }
 
-function renderWithOrganization() {
-  render(
+function ExampleReplayTableHeader() {
+  return (
     <SimpleTable>
       <ReplayTableHeader
         columns={[
@@ -53,8 +53,7 @@ function renderWithOrganization() {
         ]}
         replays={[]}
       />
-    </SimpleTable>,
-    {organization: OrganizationFixture()}
+    </SimpleTable>
   );
 }
 
@@ -64,7 +63,7 @@ describe('ReplayTableHeader', () => {
       baseListCheckboxState({isAnySelected: false, selectedIds: []})
     );
 
-    renderWithOrganization();
+    render(<ExampleReplayTableHeader />, {organization: OrganizationFixture()});
 
     expect(screen.queryByTestId('replay-bulk-viewed-actions')).not.toBeInTheDocument();
     expect(screen.queryByTestId('delete-replays')).not.toBeInTheDocument();
@@ -80,7 +79,7 @@ describe('ReplayTableHeader', () => {
       })
     );
 
-    renderWithOrganization();
+    render(<ExampleReplayTableHeader />, {organization: OrganizationFixture()});
 
     expect(screen.queryByTestId('replay-bulk-viewed-actions')).not.toBeInTheDocument();
     expect(screen.getByTestId('delete-replays')).toBeInTheDocument();
@@ -96,7 +95,7 @@ describe('ReplayTableHeader', () => {
       })
     );
 
-    renderWithOrganization();
+    render(<ExampleReplayTableHeader />, {organization: OrganizationFixture()});
 
     expect(screen.getByTestId('replay-bulk-viewed-actions')).toBeInTheDocument();
     expect(screen.getByTestId('delete-replays')).toBeInTheDocument();

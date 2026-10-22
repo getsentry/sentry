@@ -5,13 +5,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.db import OperationalError
 from django.utils import timezone
-from rest_framework.exceptions import APIException, Throttled, ValidationError
+from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
 from sentry_sdk import Scope
 from snuba_sdk.column import InvalidColumnError
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
+    ServiceUnavailable,
     clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
@@ -38,7 +39,7 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCTooManySimultaneous
+from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTooManySimultaneous, SnubaRPCUnavailable
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -253,6 +254,52 @@ class HandleQueryErrorsTest(APITestCase):
                 raise SnubaRPCTooManySimultaneous(error_proto)
         except Exception as e:
             assert isinstance(e, Throttled)
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    @patch("sentry.api.utils.logger.warning")
+    @patch("sentry.api.utils.sentry_sdk.set_attribute")
+    @patch("sentry.api.utils.sentry_sdk.set_tag")
+    def test_handle_snuba_rpc_unavailable(
+        self,
+        mock_set_tag: MagicMock,
+        mock_set_attribute: MagicMock,
+        mock_warning: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        with pytest.raises(ServiceUnavailable) as raised:
+            with handle_query_errors():
+                raise SnubaRPCUnavailable("no healthy upstream")
+
+        assert raised.value.status_code == 503
+        assert raised.value.wait == 5
+        mock_set_tag.assert_called_once_with("query.error_reason", "SnubaUnavailable")
+        mock_set_attribute.assert_called_once_with("query.error_reason", "SnubaUnavailable")
+        mock_warning.assert_called_once_with("snuba_rpc.unavailable")
+        mock_capture_exception.assert_not_called()
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    @patch("sentry.api.utils.sentry_sdk.set_attribute")
+    @patch("sentry.api.utils.sentry_sdk.set_tag")
+    def test_handle_snuba_rpc_query_timeout(
+        self,
+        mock_set_tag: MagicMock,
+        mock_set_attribute: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
+
+        error_proto = ErrorProto(
+            code=408,
+            message="Query timed out, this violates the EAP SLO",
+        )
+        with pytest.raises(ParseError) as raised:
+            with handle_query_errors():
+                raise SnubaRPCError(error_proto)
+
+        assert raised.value.status_code == 400
+        mock_set_tag.assert_called_once_with("query.error_reason", "Timeout")
+        mock_set_attribute.assert_called_once_with("query.error_reason", "Timeout")
+        mock_capture_exception.assert_not_called()
 
 
 class ClampDateRangeTest(unittest.TestCase):

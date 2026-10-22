@@ -5,11 +5,13 @@ import * as Sentry from '@sentry/react';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   issues: ['issues'],
   explore: ['explore', 'preprod'],
+  seer: ['seer'],
   dashboards: ['dashboards', 'dashboard'],
   insights: ['insights'],
   projects: ['projects'], // No primary nav button — accessed via logo nav. Needed for secondary nav routing.
@@ -51,7 +53,10 @@ const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
 });
 
 export function usePrimaryNavigation(): PrimaryNavigationContext {
-  return useContext(PrimaryNavigationContext);
+  const context = useContext(PrimaryNavigationContext);
+  const organization = useOrganization({allowNull: true});
+
+  return organization ? context : {...context, activeGroup: 'settings'};
 }
 
 interface PrimaryNavigationContextProviderProps {

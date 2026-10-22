@@ -12,14 +12,12 @@ from sentry.backup.dependencies import (
 )
 from sentry.db.models.base import Model
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
-from sentry.incidents.models.incident import IncidentActivity
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -38,11 +36,11 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
-from sentry.models.rule import Rule, RuleActivity
-from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.rule import Rule
 from sentry.models.search_common import SearchType
 from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
+from sentry.service_accounts.models import ServiceAccount
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.backups import BackupTestCase
@@ -473,10 +471,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ORG_MEMBER_MERGE_TESTED,
         Activity,
         AlertRule,
-        AlertRuleActivity,
         Dashboard,
         DashboardFavoriteUser,
-        DashboardHiddenUser,
         DashboardLastVisited,
         DashboardRevision,
         GroupAssignee,
@@ -487,7 +483,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         GroupSearchViewLastVisited,
         GroupSearchViewStarred,
         GroupSubscription,
-        IncidentActivity,
         Monitor,
         OrganizationAccessRequest,
         OrganizationMember,
@@ -495,8 +490,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ProjectBookmark,
         RecentSearch,
         Rule,
-        RuleActivity,
-        RuleSnooze,
+        ServiceAccount,
     )
     def test_only_source_user_is_member_of_organization(
         self, expected_models: list[type[Model]]
@@ -518,10 +512,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ORG_MEMBER_MERGE_TESTED,
         Activity,
         AlertRule,
-        AlertRuleActivity,
         Dashboard,
         DashboardFavoriteUser,
-        DashboardHiddenUser,
         DashboardLastVisited,
         DashboardRevision,
         GroupAssignee,
@@ -532,7 +524,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         GroupSearchViewLastVisited,
         GroupSearchViewStarred,
         GroupSubscription,
-        IncidentActivity,
         Monitor,
         OrganizationAccessRequest,
         OrganizationMember,
@@ -540,8 +531,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ProjectBookmark,
         RecentSearch,
         Rule,
-        RuleActivity,
-        RuleSnooze,
+        ServiceAccount,
     )
     def test_both_users_are_members_of_organization(
         self, expected_models: list[type[Model]]

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, TypedDict
+from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -41,9 +41,15 @@ class OwnershipRuleMatcher(TypedDict):
     pattern: str
 
 
+class OwnershipRuleOwner(TypedDict):
+    type: str
+    identifier: str
+    id: NotRequired[int]
+
+
 class OwnershipRule(TypedDict):
     matcher: OwnershipRuleMatcher
-    owners: list[dict[str, Any]]
+    owners: list[OwnershipRuleOwner]
 
 
 # $version is not a valid Python identifier, so we use the functional form.
@@ -264,7 +270,7 @@ class Owner(NamedTuple):
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
-    def load(cls, data: Mapping[str, str]) -> Owner:
+    def load(cls, data: OwnershipRuleOwner) -> Owner:
         return cls(data["type"], data["identifier"])
 
 

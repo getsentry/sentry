@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterator
 from typing import Any, Protocol, TypedDict, TypeVar
 
 from django.http.request import HttpHeaders
+from django.utils.crypto import constant_time_compare
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -548,7 +549,7 @@ class AuthTokenValidator:
             return False
 
         for secret in self.secret_finder(self.organization_id, self.provider):
-            if secret == self.signature:
+            if constant_time_compare(secret, self.signature):
                 return True
 
         return False
@@ -582,7 +583,7 @@ class PayloadSignatureValidator:
             return False
 
         for secret in self.secret_finder(self.organization_id, self.provider):
-            if self.secret_validator(secret, self.message) == self.signature:
+            if constant_time_compare(self.secret_validator(secret, self.message), self.signature):
                 return True
         return False
 

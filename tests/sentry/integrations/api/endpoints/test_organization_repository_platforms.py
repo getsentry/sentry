@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.github.multi_platform_detection import PlatformDetectionClient
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiConflictError, ApiError
 from sentry.testutils.cases import APITestCase
@@ -261,6 +262,43 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
         assert mock_get_client.called
         platforms = {p["platform"] for p in response.data["platforms"]}
         assert platforms == {"python-django", "python"}
+
+    @mock.patch("sentry.integrations.cursor_origin.integration.CursorOriginIntegration.get_client")
+    def test_cursor_origin_is_supported(self, mock_get_client: mock.MagicMock) -> None:
+        # Its own integration and repository: Integration is a control silo model, so
+        # this test cannot reprovision the one setUp made.
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+            name="acme",
+            external_id="i_01example",
+        )
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="acme/rocket",
+            url="https://cursor.com/codebase/acme/rocket",
+            provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
+            external_id="r_01example",
+            integration_id=integration.id,
+        )
+        mock_get_client.return_value = StubDetectionClient(
+            languages={"C#": 50000},
+            tree=[{"path": "src/app.cs", "type": "blob", "size": 100}],
+            # Origin has no languages endpoint, so detection reads the tree it holds.
+            has_languages_endpoint=False,
+        )
+
+        response = self.get_success_response(self.organization.slug, repo.id, status_code=200)
+
+        assert response.data["platforms"] == [
+            {
+                "platform": "dotnet",
+                "language": "C#",
+                "bytes": 50000,
+                "confidence": "medium",
+                "priority": 1,
+            }
+        ]
 
     @mock.patch(f"{ENDPOINT_MODULE}.detect_platforms_multi")
     @mock.patch("sentry.integrations.models.integration.Integration.get_installation")

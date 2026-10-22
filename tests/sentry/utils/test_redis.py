@@ -1,28 +1,39 @@
 from __future__ import annotations
 
+import os
 import uuid
+from collections.abc import Generator
+from typing import Any
 from unittest import TestCase, mock
 
 import pytest
 import rb
 from django.db import transaction
+from redis.client import Script
+from redis.exceptions import ResponseError
 from sentry_redis_tools.failover_redis import FailoverRedis
 
+from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.testutils.helpers.redis import use_redis_cluster
+from sentry.testutils.pytest import xdist
 from sentry.utils import imports
 from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
     _add_transaction_checks,
+    _matches_redis_transaction_lock_ratchet,
     _matches_redis_transaction_ratchet,
     _redis_transaction_callers,
     _shared_pool,
+    _to_str,
     check_cluster_versions,
     get_cluster_from_options,
+    pop_used_key_prefix_clients,
     redis_clusters,
 )
+from sentry.utils.redis_key_specs import COMMAND_KEY_SPECS, KeySpec
 from sentry.utils.versioning import Version
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -182,6 +193,54 @@ class TransactionCheckingRedisTest(SentryTestCase):
         assert _matches_redis_transaction_ratchet(existing_single_caller)
         assert not _matches_redis_transaction_ratchet(new_callers)
 
+    def test_transaction_lock_ratchet_matches_only_the_lock_owner(self) -> None:
+        acquire = (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+        )
+        release = (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "contextlib._GeneratorContextManager.__exit__",
+        )
+        project_save = ("sentry.models.project.Project.save", "sentry.new_code.create_project")
+        # A different lock taken under Project.save, for example in a post_save receiver.
+        nested_lock = (
+            *acquire,
+            "sentry.new_code.post_save_receiver",
+            "django.db.models.base.Model.save_base",
+            *project_save,
+        )
+        # A Redis call from Project.save that is not a lock call.
+        not_a_lock = ("sentry.models.project.Project.save", "sentry.new_code.create_project")
+        locked_check = (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.locked",
+            "sentry.utils.locking.lock.Lock.locked",
+            *project_save,
+        )
+        monitor_from_mockdata = (
+            *acquire,
+            "sentry.monitors.models.Monitor.save",
+            "django.db.models.query.QuerySet.create",
+            "sentry.utils.mockdata.core.create_monitor",
+        )
+        monitor_from_new_code = (
+            *acquire,
+            "sentry.monitors.models.Monitor.save",
+            "sentry.new_code.create_monitor",
+        )
+
+        assert _matches_redis_transaction_lock_ratchet((*acquire, *project_save))
+        assert _matches_redis_transaction_lock_ratchet((*release, *project_save))
+        assert _matches_redis_transaction_lock_ratchet(monitor_from_mockdata)
+        assert not _matches_redis_transaction_lock_ratchet(nested_lock)
+        assert not _matches_redis_transaction_lock_ratchet(not_a_lock)
+        assert not _matches_redis_transaction_lock_ratchet(locked_check)
+        assert not _matches_redis_transaction_lock_ratchet(monitor_from_new_code)
+        assert not _matches_redis_transaction_lock_ratchet(acquire)
+
     def test_transaction_callers_include_application_frames_until_test_harness(self) -> None:
         def outer_caller() -> tuple[str, ...]:
             def shared_helper() -> tuple[str, ...]:
@@ -280,3 +339,215 @@ def test_check_cluster_versions_parses_version_formats(version_value: str | floa
 
     # Should not raise - all test versions meet requirement 5.0.0
     check_cluster_versions(cluster, Version((5, 0, 0)))
+
+
+@pytest.fixture
+def prefixed_clusters() -> Generator[tuple[Any, Any, Any, str]]:
+    """Two clients with the prefixes of two workers, and one client without a prefix."""
+    config = options.get("redis.clusters")["cluster"]
+    run = f"test-{uuid.uuid4().hex}"
+    cluster_options: Any = {
+        "redis.clusters": {
+            "a": {**config, "key_prefix": f"{run}-a:"},
+            "b": {**config, "key_prefix": f"{run}-b:"},
+            "raw": {k: v for k, v in config.items() if k != "key_prefix"},
+        }
+    }
+    manager = RedisClusterManager(cluster_options)
+    a, b, raw = manager.get("a"), manager.get("b"), manager.get("raw")
+    yield a, b, raw, f"{run}-a:"
+    for key in raw.scan_iter(match=f"{run}*"):
+        raw.delete(key)
+
+
+def test_worker_key_prefix_is_configured() -> None:
+    prefix = xdist.get_redis_cluster_key_prefix()
+    assert options.get("redis.clusters")["cluster"]["key_prefix"] == prefix
+    assert prefix == f"test-{os.environ.get('PYTEST_XDIST_WORKER', 'main')}:"
+    assert "{" not in prefix
+
+
+def _load_command_key_specs(client: Any) -> dict[str, KeySpec]:
+    """The key positions of each command that takes keys, from the COMMAND reply of the server."""
+    connection = client.connection_pool.get_random_connection()
+    try:
+        connection.send_command("COMMAND")
+        reply = connection.read_response()
+    finally:
+        client.connection_pool.release(connection)
+
+    specs = {}
+
+    def add(entry: list[Any]) -> None:
+        flags = {_to_str(flag) for flag in entry[2]}
+        spec = KeySpec(entry[3], entry[4], entry[5], "movablekeys" in flags)
+        if spec.first > 0 or spec.movable:
+            specs[_to_str(entry[0]).lower()] = spec
+        # Redis 7 subcommands (such as "object|encoding") have their own key positions.
+        for subcommand in entry[9] if len(entry) > 9 else []:
+            add(subcommand)
+
+    for entry in reply:
+        add(entry)
+    return specs
+
+
+def test_command_key_specs_match_redis(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    # If this fails after a change to the redis-cluster version in devservices, update
+    # COMMAND_KEY_SPECS in sentry.utils.redis_key_specs with the values from the server.
+    _, _, raw, _ = prefixed_clusters
+
+    assert COMMAND_KEY_SPECS == _load_command_key_specs(raw)
+
+
+def test_key_prefix_is_transparent(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    a, b, raw, prefix = prefixed_clusters
+
+    a.set("key", "a")
+    b.set("key", "b")
+
+    assert a.get("key") == "a"
+    assert b.get("key") == "b"
+    assert raw.get(f"{prefix}key") == "a"
+    assert raw.get("key") is None
+
+
+def test_key_prefix_keeps_hash_tag_slot(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    a, _, raw, prefix = prefixed_clusters
+    keyslot = raw.connection_pool.nodes.keyslot
+
+    assert keyslot(f"{prefix}{{tag}}:key") == keyslot("{tag}:key")
+
+    a.set("{tag}:1", "1")
+    a.set("{tag}:2", "2")
+    assert a.execute_command("EXISTS", "{tag}:1", "{tag}:2") == 2
+
+    # Keys without a common hash tag still fail as they do in production.
+    with pytest.raises(ResponseError, match="hash to the same slot"):
+        a.execute_command("EXISTS", "{tag}:1", "{other}:2")
+
+
+def test_key_prefix_multi_key_commands(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    a, _, raw, prefix = prefixed_clusters
+
+    # MSET has a key at every second argument, so the values must keep their names.
+    a.execute_command("MSET", "{mset}:1", "{mset}:2", "{mset}:2", "{mset}:1")
+    assert raw.get(f"{prefix}{{mset}}:1") == "{mset}:2"
+    assert raw.get(f"{prefix}{{mset}}:2") == "{mset}:1"
+
+    a.mset({"one": "1", "two": "2"})
+    assert a.mget(["one", "two", "three"]) == ["1", "2", None]
+    assert raw.get(f"{prefix}two") == "2"
+
+    a.rpush("{list}:src", "x")
+    assert a.rpoplpush("{list}:src", "{list}:dst") == "x"
+    assert raw.lrange(f"{prefix}{{list}}:dst", 0, -1) == ["x"]
+
+    assert a.delete("one", "two") == 2
+    assert a.exists("one") == 0
+
+
+def test_key_prefix_pipeline(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    a, _, raw, prefix = prefixed_clusters
+
+    pipeline = a.pipeline()
+    pipeline.set("key", "value")
+    pipeline.incr("counter")
+    pipeline.get("key")
+    assert pipeline.execute() == [True, 1, "value"]
+
+    assert raw.get(f"{prefix}key") == "value"
+    assert raw.get(f"{prefix}counter") == "1"
+
+
+def test_key_prefix_lua_script(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    a, _, raw, prefix = prefixed_clusters
+    script = Script(
+        None,
+        b"redis.call('set', KEYS[1], ARGV[1]) "
+        b"redis.call('set', KEYS[1] .. ':copy', ARGV[1]) "
+        b"return redis.call('get', KEYS[1])",
+    )
+
+    assert script(keys=["{script}:key"], args=["value"], client=a) == "value"
+    assert a.get("{script}:key") == "value"
+    # A key made from KEYS keeps the prefix. A key made only from ARGV or text does not.
+    assert raw.get(f"{prefix}{{script}}:key:copy") == "value"
+
+
+def test_key_prefix_commands_sent_as_one_name(prefixed_clusters: tuple[Any, Any, Any, str]) -> None:
+    # redis-py sends these commands as one argument, such as "XGROUP CREATE".
+    a, _, raw, prefix = prefixed_clusters
+
+    a.xadd("stream", {"field": "value"})
+    a.xgroup_create("stream", "group", id="0")
+
+    assert [group["name"] for group in a.xinfo_groups("stream")] == ["group"]
+    assert [group["name"] for group in raw.xinfo_groups(f"{prefix}stream")] == ["group"]
+    assert a.memory_usage("stream") is not None
+    assert raw.memory_usage("stream") is None
+
+
+def test_key_prefix_removed_from_returned_keys(
+    prefixed_clusters: tuple[Any, Any, Any, str],
+) -> None:
+    a, b, _, _ = prefixed_clusters
+
+    a.set("found:1", "1")
+    a.set("found:2", "2")
+    b.set("found:3", "3")
+
+    assert sorted(a.keys("found:*")) == ["found:1", "found:2"]
+    assert sorted(a.scan_iter(match="found:*")) == ["found:1", "found:2"]
+    assert sorted(a.scan_iter()) == ["found:1", "found:2"]
+
+    a.rpush("queue", "item")
+    assert a.blpop(["queue"], timeout=1) == ("queue", "item")
+
+    with pytest.raises(NotImplementedError):
+        a.randomkey()
+
+
+def test_key_prefix_flush_deletes_only_own_keys(
+    prefixed_clusters: tuple[Any, Any, Any, str],
+) -> None:
+    a, b, raw, prefix = prefixed_clusters
+
+    other_key = prefix.replace("-a:", "-other:") + "key"
+    a.set("key", "a")
+    b.set("key", "b")
+    raw.set(other_key, "other")
+
+    a.flushdb()
+
+    assert a.get("key") is None
+    assert b.get("key") == "b"
+    assert raw.get(other_key) == "other"
+
+
+def test_used_key_prefix_clients_are_tracked(
+    prefixed_clusters: tuple[Any, Any, Any, str],
+) -> None:
+    a, b, _, _ = prefixed_clusters
+    pop_used_key_prefix_clients()
+
+    a.get("key")
+
+    assert pop_used_key_prefix_clients() == [a._wrapped]
+    assert pop_used_key_prefix_clients() == []
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        pytest.param({"hosts": {0: {}}, "key_prefix": "test:"}, id="not-a-cluster"),
+        pytest.param(
+            {"is_redis_cluster": True, "hosts": {0: {}}, "key_prefix": "{test}:"}, id="hash-tag"
+        ),
+    ],
+)
+def test_invalid_key_prefix(config: dict[str, Any]) -> None:
+    cluster_options: Any = {"redis.clusters": {"invalid": config}}
+    manager = RedisClusterManager(cluster_options)
+    with pytest.raises(InvalidConfiguration):
+        manager.get("invalid")

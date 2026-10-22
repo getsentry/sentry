@@ -1,59 +1,14 @@
-import {useEffect, useState} from 'react';
-import {useMutation} from '@tanstack/react-query';
-
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
-import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
+import type {PaymentCreateResponse} from 'getsentry/types';
 
 interface HookResult {
   error: string | undefined;
-  intentData: PaymentSetupCreateResponse | PaymentCreateResponse | undefined;
+  intentData: PaymentCreateResponse | undefined;
   isError: boolean;
   isLoading: boolean;
-}
-
-/**
- * Get payment method setup intent data.
- */
-export function useSetupIntentData({endpoint}: {endpoint: string}): HookResult {
-  const [setupIntentData, setSetupIntentData] = useState<
-    PaymentSetupCreateResponse | undefined
-  >(undefined);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const {mutate: loadSetupIntentData} = useMutation<
-    PaymentSetupCreateResponse,
-    RequestError
-  >({
-    mutationFn: () => fetchMutation({url: endpoint, method: 'POST'}),
-    onSuccess: data => {
-      setSetupIntentData(data);
-      setIsLoading(false);
-    },
-    onError: err => {
-      const errorMessage =
-        typeof err?.responseJSON?.detail === 'string'
-          ? err?.responseJSON?.detail
-          : (err?.responseJSON?.detail?.message ?? err?.message);
-      setError(errorMessage);
-      setIsLoading(false);
-    },
-  });
-
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    setIsLoading(true);
-    loadSetupIntentData();
-  }, [loadSetupIntentData]);
-
-  return {
-    intentData: setupIntentData,
-    isLoading,
-    isError: !!error,
-    error,
-  };
 }
 
 /**
@@ -70,15 +25,18 @@ export function usePaymentIntentData({queryKey}: {queryKey: ApiQueryKey}): HookR
     staleTime: Infinity,
   });
 
-  const errorMessage =
-    typeof error?.responseJSON?.detail === 'string'
-      ? error?.responseJSON?.detail
-      : (error?.responseJSON?.detail?.message ?? error?.message);
-
   return {
     intentData: paymentIntentData,
     isLoading: isLoading || isPending,
     isError,
-    error: errorMessage,
+    error: getIntentErrorMessage(error),
   };
+}
+
+function getIntentErrorMessage(error: Error | null): string | undefined {
+  if (!(error instanceof RequestError)) {
+    return error?.message;
+  }
+  const detail = error.responseJSON?.detail;
+  return typeof detail === 'string' ? detail : (detail?.message ?? error.message);
 }

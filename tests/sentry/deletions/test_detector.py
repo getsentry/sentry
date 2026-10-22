@@ -9,7 +9,6 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
-from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
@@ -275,7 +274,22 @@ class DeleteDualWrittenDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             projects=[self.project],
         )
         trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
-        dual_write_alert_rule(alert_rule)
+        detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            workflow_condition_group=self.create_data_condition_group(
+                organization=self.organization
+            ),
+        )
+        self.create_alert_rule_detector(alert_rule_id=alert_rule.id, detector=detector)
+        workflow = self.create_workflow(organization=self.organization)
+        self.create_alert_rule_workflow(alert_rule_id=alert_rule.id, workflow=workflow)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query)
+        source = self.create_data_source(
+            organization=self.organization, source_id=str(subscription.id)
+        )
+        self.create_data_source_detector(data_source=source, detector=detector)
 
         snuba_query = alert_rule.snuba_query
         subscription = QuerySubscription.objects.get(snuba_query=snuba_query)

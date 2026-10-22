@@ -4,7 +4,7 @@ import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import {
   TranslationContextProvider,
   type TranslationContextValue,
-} from '@sentry/scraps/translationContext';
+} from '@sentry/scraps/translation';
 
 const testTranslation: TranslationContextValue = {
   t: string => string,

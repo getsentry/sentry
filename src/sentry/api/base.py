@@ -6,13 +6,14 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.module_loading import import_string
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
@@ -21,7 +22,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from sentry_sdk import Scope
+from sentry_sdk import Scope, traces
 
 # I don't know why, but unless we declare these loggers earlier, we run into
 # circular import errors.
@@ -29,11 +30,10 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-from sentry import analytics, features, tsdb
+from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
 from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
@@ -64,7 +64,9 @@ from sentry.utils.http import (
     origin_from_request,
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
-from sentry.utils.tracing import set_span_data, start_span
+
+if TYPE_CHECKING:
+    from rest_framework.views import AsView, GenericView
 
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -110,6 +112,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
+    *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     AgentTokenAuthentication,
@@ -257,6 +260,9 @@ class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
     permission_classes: tuple[type[BasePermission], ...] = (NoPermission,)
+    # Enable this for anonymous browser endpoints that rely on cookie-backed session state.
+    # DRF only performs its own CSRF check after session authentication succeeds.
+    csrf_protect = False
 
     cursor_name = "cursor"
 
@@ -265,6 +271,13 @@ class Endpoint(APIView):
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
+
+    @classmethod
+    def as_view(cls, **initkwargs: Any) -> AsView[GenericView]:
+        view = super().as_view(**initkwargs)
+        if cls.csrf_protect:
+            view.csrf_exempt = False
+        return view
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:
@@ -441,7 +454,9 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with start_span(op="base.dispatch.setup", name=type(self).__name__):
+        with traces.start_span(
+            name=type(self).__name__, attributes={"sentry.op": "base.dispatch.setup"}
+        ):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
@@ -467,7 +482,9 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with start_span(op="base.dispatch.request", name=type(self).__name__):
+            with traces.start_span(
+                name=type(self).__name__, attributes={"sentry.op": "base.dispatch.request"}
+            ):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -498,25 +515,23 @@ class Endpoint(APIView):
                     self.args = args
                     self.kwargs = kwargs
 
-                    # Resolved solely to check the opt-in; everything else is
-                    # derived from the request. Both sources are conventions rather
-                    # than contracts, so the result is type-checked before use.
+                    # Attribution is scoped to endpoints that resolve an organization;
+                    # everything else is derived from the request. Both sources are
+                    # conventions rather than contracts, so the result is type-checked.
                     organization = kwargs.get("organization") or getattr(
                         request, "organization", None
                     )
-                    if isinstance(organization, (Organization, RpcOrganization)) and features.has(
-                        CLIENT_KIND_FEATURE_FLAG, organization, actor=request.user
-                    ):
+                    if isinstance(organization, (Organization, RpcOrganization)):
                         set_client_kind_attributes(request)
                 else:
                     handler = self.http_method_not_allowed
 
-            with start_span(
-                op="base.dispatch.execute",
+            with traces.start_span(
                 name=".".join(
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
-            ) as span:
+                attributes={"sentry.op": "base.dispatch.execute"},
+            ):
                 response = handler(request, *args, **kwargs)
 
         except Exception as exc:
@@ -531,13 +546,13 @@ class Endpoint(APIView):
             duration = time.time() - start_time
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
-                with start_span(
-                    op="base.dispatch.sleep",
+                with traces.start_span(
                     name=type(self).__name__,
-                ) as span:
-                    set_span_data(
-                        span, "SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY
-                    )
+                    attributes={
+                        "sentry.op": "base.dispatch.sleep",
+                        "SENTRY_API_RESPONSE_DELAY": settings.SENTRY_API_RESPONSE_DELAY,
+                    },
+                ):
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         # Only enforced in dev environment
@@ -621,9 +636,9 @@ class Endpoint(APIView):
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)
-            with start_span(
-                op="base.paginate.get_result",
+            with traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.get_result"},
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
                 paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
@@ -641,9 +656,9 @@ class Endpoint(APIView):
 
         # map results based on callback
         if on_results:
-            with start_span(
-                op="base.paginate.on_results",
+            with traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.on_results"},
             ):
                 results = on_results(cursor_result.results)
         else:

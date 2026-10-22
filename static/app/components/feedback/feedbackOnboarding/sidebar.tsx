@@ -95,6 +95,7 @@ function SidebarContent() {
         platform: currentProject?.platform ?? 'unknown',
       });
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [currentProject, organization, setCurrentProject]);
 
   const projectSelectOptions = useMemo(() => {
@@ -259,7 +260,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const isExcluded = excludedPlatformOptions.includes(currentPlatform.id);
 
   const radioButtons = (
-    <Header>
+    <Container padding="md 0">
       {showRadioButtons ? (
         <Container padding="md 0">
           <RadioGroup<typeof setupMode>
@@ -323,7 +324,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           </Flex>
         )
       )}
-    </Header>
+    </Container>
   );
 
   if (isLoading) {
@@ -395,10 +396,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     </Fragment>
   );
 }
-
-const Header = styled('div')`
-  padding: ${p => p.theme.space.md} 0;
-`;
 
 const TopRightBackgroundImage = styled('img')`
   position: absolute;

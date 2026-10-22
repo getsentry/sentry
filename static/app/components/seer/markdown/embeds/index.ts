@@ -9,7 +9,7 @@ import {Docs} from './components/docs';
 import {Dsn} from './components/dsn';
 import {ErrorsQuery} from './components/errorsQuery';
 import {SeerEvent} from './components/event/event';
-import {Issue, Issues} from './components/issue';
+import {Issue} from './components/issue';
 import {IssuesQuery} from './components/issuesQuery';
 import {Log} from './components/log/log';
 import {LogsQuery} from './components/logsQuery';
@@ -41,7 +41,6 @@ const embeds = [
   Dsn,
   ErrorsQuery,
   Issue,
-  Issues,
   IssuesQuery,
   Log,
   LogsQuery,
