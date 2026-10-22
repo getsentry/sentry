@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 
 from sentry.api.helpers.projects import ProjectIdOrSlugField
 
@@ -19,9 +20,11 @@ VALID_FIELD_SET = (
     "id",
     "is_archived",
     "os",
+    "ota_updates",
     "platform",
     "project_id",
     "releases",
+    "replay_type",
     "sdk",
     "started_at",
     "tags",
@@ -36,6 +39,13 @@ VALID_FIELD_SET = (
     "count_infos",
     "has_viewed",
 )
+
+
+def validate_fields(fields: list[str]) -> list[str]:
+    invalid = sorted(set(fields) - set(VALID_FIELD_SET))
+    if invalid:
+        raise ParseError(f"Invalid field: {', '.join(invalid)}")
+    return fields
 
 
 class ReplayValidator(serializers.Serializer):
