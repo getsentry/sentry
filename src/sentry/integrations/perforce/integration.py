@@ -34,6 +34,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import (
+    FileCheckResult,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -240,9 +241,11 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
 
         return False
 
-    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
+    def check_file_result(
+        self, repo: Repository, filepath: str, branch: str | None = None
+    ) -> FileCheckResult:
         """
-        Check if a file exists in the Perforce depot and return the URL.
+        Check if a file exists in the Perforce depot.
 
         Uses the client's check_file method to verify file existence on the P4 server.
 
@@ -252,7 +255,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
             branch: Branch/stream name (optional)
 
         Returns:
-            Formatted URL if the file exists, None otherwise
+            FOUND if the file exists, NOT_FOUND if it doesn't, ERROR if it couldn't be checked
 
         Raises:
             ApiUnauthorized: For authentication failures (should be shown to user)
@@ -261,11 +264,9 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         try:
             client = self.get_client()
             # Use client's check_file to verify file exists on P4 server
-            result = client.check_file(repo, filepath, branch)
-            if result is None:
-                return None
-            # File exists, return formatted URL
-            return self.format_source_url(repo, filepath, branch)
+            if client.check_file(repo, filepath, branch) is None:
+                return FileCheckResult.NOT_FOUND
+            return FileCheckResult.FOUND
         except (ApiUnauthorized, IntegrationError):
             # Re-raise auth/config errors so they're visible to users
             raise
@@ -273,8 +274,19 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
             # Re-raise API errors for visibility
             raise
         except Exception:
-            # For other errors (e.g., file not found), return None
-            return None
+            # Any other failure means the file couldn't be checked
+            return FileCheckResult.ERROR
+
+    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
+        """
+        Check if a file exists in the Perforce depot and return the URL.
+
+        Unlike the base implementation, absolute depot paths (//depot/...) keep their
+        leading slashes in the URL.
+        """
+        if self.check_file_result(repo, filepath, branch) is FileCheckResult.FOUND:
+            return self.format_source_url(repo, filepath, branch)
+        return None
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         """
