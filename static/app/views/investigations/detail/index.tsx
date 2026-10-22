@@ -62,6 +62,7 @@ import {
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import {getInvestigationSource} from 'sentry/views/investigations/source';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {
   InvestigationBlock,
@@ -492,6 +493,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               />
               <NextStepCard
                 actionRequests={investigation.actionRequests}
+                source={investigation.source}
                 orchestration={orchestration}
                 orchestrationLoading={
                   Boolean(investigation.orchestration) && orchestrationPending
@@ -610,30 +612,6 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   return normalizeUrl(
     `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
-}
-
-function getRecord(value: unknown, key: string): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-  const field: unknown = (value as Record<string, unknown>)[key];
-  return field && typeof field === 'object' ? (field as Record<string, unknown>) : null;
-}
-
-function getString(value: Record<string, unknown> | null, key: string): string | null {
-  const field = value?.[key];
-  return typeof field === 'string' && field ? field : null;
-}
-
-// A breached metric investigation references the metric issue it was started
-// from, and snapshots that issue's monitor. Older investigations may predate the
-// snapshot, but still carry the issue reference.
-function getInvestigationSource(investigation: InvestigationDetail) {
-  const {source} = investigation;
-  return {
-    groupId: getString(getRecord(source, 'ref'), 'groupId'),
-    monitorName: getString(getRecord(getRecord(source, 'snapshot'), 'monitor'), 'name'),
-  };
 }
 
 function formatSourceType(sourceType: string) {

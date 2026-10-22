@@ -8,6 +8,7 @@ import {ActionRequestCard} from 'sentry/views/investigations/actionRequests/acti
 import {PlaceholderBar} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import type {
   InvestigationActionRequest,
+  InvestigationDetail,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 
@@ -15,12 +16,14 @@ type NextStepCardProps = {
   actionRequests: InvestigationActionRequest[] | undefined;
   orchestration: InvestigationOrchestration | undefined;
   orchestrationLoading?: boolean;
+  source?: InvestigationDetail['source'];
 };
 
 export function NextStepCard({
   actionRequests,
   orchestration,
   orchestrationLoading = false,
+  source,
 }: NextStepCardProps) {
   const heading = t('Recommended action');
 
@@ -34,7 +37,13 @@ export function NextStepCard({
   );
 
   if (actionRequest) {
-    return <ActionRequestCard actionRequest={actionRequest} heading={heading} />;
+    return (
+      <ActionRequestCard
+        actionRequest={actionRequest}
+        heading={heading}
+        source={source}
+      />
+    );
   }
 
   if (isNextStepPending(orchestration)) {
