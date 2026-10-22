@@ -593,28 +593,6 @@ class Fixtures:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
-    def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
-        if not alert_rule:
-            alert_rule = self.create_alert_rule()
-        return Factories.create_alert_rule_trigger(alert_rule, *args, **kwargs)
-
-    def create_alert_rule_trigger_action(
-        self,
-        alert_rule_trigger=None,
-        target_identifier=None,
-        *args,
-        **kwargs,
-    ):
-        if not alert_rule_trigger:
-            alert_rule_trigger = self.create_alert_rule_trigger()
-
-        if not target_identifier:
-            target_identifier = str(self.user.id)
-
-        return Factories.create_alert_rule_trigger_action(
-            alert_rule_trigger, target_identifier=target_identifier, **kwargs
-        )
-
     def create_notification_action(self, organization=None, projects=None, **kwargs):
         return Factories.create_notification_action(
             organization=organization, projects=projects, **kwargs

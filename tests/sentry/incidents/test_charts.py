@@ -103,8 +103,6 @@ class BuildMetricAlertChartTest(TestCase):
         open_period_context = OpenPeriodContext(
             id=1, date_started=timezone.now() - datetime.timedelta(minutes=2)
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         url = build_metric_alert_chart(
             self.organization,
@@ -139,8 +137,6 @@ class BuildMetricAlertChartTest(TestCase):
         open_period_context = OpenPeriodContext(
             id=1, date_started=timezone.now() - datetime.timedelta(minutes=2)
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         detector = self.create_detector(project=self.project)
         self.create_alert_rule_detector(detector=detector, alert_rule_id=alert_rule.id)
@@ -175,8 +171,6 @@ class BuildMetricAlertChartTest(TestCase):
         open_period_context = OpenPeriodContext(
             id=1, date_started=timezone.now() - datetime.timedelta(minutes=2)
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         url = build_metric_alert_chart(
             self.organization,
