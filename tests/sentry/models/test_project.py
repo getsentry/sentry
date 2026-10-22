@@ -1078,7 +1078,7 @@ class CopyProjectSettingsTest(TestCase):
         assert project.get_option("sentry:releases") == ["1.*"]
         row = CustomInboundFilter.objects.get(project_id=project.id)
         assert row.legacy_filter == "release-version"
-        assert row.conditions == [{"type": "release", "value": ["1.*"]}]
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
         self.assert_settings_copied(project)
 
 

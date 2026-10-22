@@ -12,17 +12,23 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 
+@functools.cache
+def _load_schema() -> Spec:
+    # Spec.from_dict validates the whole multi-MB document (~2s), so share one
+    # Spec per process instead of rebuilding it for every test instance.
+    path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
+    with open(path, "rb") as json_file:
+        data = orjson.loads(json_file.read())
+    data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
+    del data["components"]
+    return Spec.from_dict(data)
+
+
 @requires_snuba
 class APIDocsTestCase(APITestCase):
-    @functools.cached_property
-    def cached_schema(self):
-        path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
-        with open(path, "rb") as json_file:
-            data = orjson.loads(json_file.read())
-            data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
-            del data["components"]
-
-            return Spec.from_dict(data)
+    @property
+    def cached_schema(self) -> Spec:
+        return _load_schema()
 
     def validate_schema(self, request, response):
         assert 200 <= response.status_code < 300, response.status_code

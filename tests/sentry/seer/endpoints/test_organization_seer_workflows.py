@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.test import override_settings
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -21,6 +22,7 @@ from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.seer.workflows.runs import create_workflow_run
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import with_feature
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -717,3 +719,89 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 ],
             },
         }
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:seer-automations")
+class OrganizationSeerWorkflowConfigsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-configs"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_feature_disabled_does_not_seed_defaults(self) -> None:
+        with self.feature({"organizations:seer-automations": False}):
+            self.get_error_response(self.organization.slug, status_code=404)
+
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_empty_organization_does_not_seed_defaults(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+
+        assert 'rel="next"' in response.headers["Link"]
+        assert response.data == {"configs": []}
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_lists_saved_configs_for_organization(self) -> None:
+        project = self.create_project()
+        config = self.create_config(
+            enabled=False,
+            version=4,
+            filters={"environments": ["production"], "min_event_count": 10},
+            output_policy={"review_mode": "manual"},
+            extras={"seeded_default": "agentic_triage_v2"},
+        )
+        Factories.create_seer_workflow_config_project(config, project)
+        empty = self.create_config()
+        Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        Factories.create_seer_workflow_config(
+            self.create_organization(owner=self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [item["id"] for item in response.data["configs"]] == [str(config.id), str(empty.id)]
+        assert response.data["configs"][0] == {
+            "id": str(config.id),
+            "strategy": "agentic_triage_v2",
+            "enabled": False,
+            "schedule": "daily",
+            "version": 4,
+            "projects": [project.id],
+            "environments": ["production"],
+            "filters": {"minEventCount": 10},
+            "outputPolicy": {"review_mode": "manual"},
+            "seededDefault": "agentic_triage_v2",
+            "dateAdded": config.date_added,
+            "dateUpdated": config.date_updated,
+        }
+        assert response.data["configs"][1]["projects"] == []
+
+    def test_scope_only_includes_accessible_active_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        inactive = self.create_project(teams=[team], status=ObjectStatus.PENDING_DELETION)
+        foreign = self.create_project(organization=self.create_organization())
+        selected = self.create_config()
+        for project in (accessible, hidden, inactive, foreign):
+            Factories.create_seer_workflow_config_project(selected, project)
+        self.login_as(member)
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data["configs"]) == 1
+        assert response.data["configs"][0]["projects"] == [accessible.id]
+
+    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+        return Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
+        )

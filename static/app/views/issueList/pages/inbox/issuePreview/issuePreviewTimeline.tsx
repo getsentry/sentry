@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -91,7 +89,7 @@ export function IssuePreviewTimeline({
   });
 
   return (
-    <Fragment>
+    <Stack gap="2xl">
       <IssuePreviewSeerContent
         group={group}
         project={project}
@@ -115,12 +113,11 @@ export function IssuePreviewTimeline({
             group={group}
             minHeight={40}
             variant="standalone"
-            inputPosition="end"
             placeholder={t('Add a comment. Tag users with @, or teams with #')}
             items={items}
           />
         </ErrorBoundary>
       </Stack>
-    </Fragment>
+    </Stack>
   );
 }

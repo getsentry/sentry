@@ -5,6 +5,7 @@ import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
+from functools import cache
 from typing import TYPE_CHECKING, ClassVar, Self, override
 from uuid import uuid4
 
@@ -67,6 +68,13 @@ MONITOR_CONFIG = {
     "required": ["checkin_margin", "max_runtime", "schedule_type", "schedule"],
     "additionalProperties": False,
 }
+
+
+@cache
+def get_monitor_config_validator() -> jsonschema.protocols.Validator:
+    validator_cls = jsonschema.validators.validator_for(MONITOR_CONFIG)
+    validator_cls.check_schema(MONITOR_CONFIG)
+    return validator_cls(MONITOR_CONFIG)
 
 
 class MonitorLimitsExceeded(Exception):
@@ -363,7 +371,7 @@ class Monitor(Model):
 
     def get_validated_config(self):
         try:
-            jsonschema.validate(self.config, MONITOR_CONFIG)
+            get_monitor_config_validator().validate(self.config)
         except jsonschema.ValidationError:
             logging.warning("Monitor: %s invalid config: %s", self.id, self.config, exc_info=True)
         # We should always return the config here - just log an error if we detect that it doesn't
@@ -541,8 +549,6 @@ class MonitorCheckIn(Model):
     Trace ID associated during this check-in. Useful to find associated events
     that occurred during the check-in.
     """
-
-    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "monitors"

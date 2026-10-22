@@ -16,7 +16,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {ListItem} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -709,7 +709,7 @@ export function MetricSelector({
                           height={0}
                           overflow="hidden"
                         >
-                          <MenuListItem
+                          <ListItem
                             as="div"
                             size="md"
                             label={longestOption.label}

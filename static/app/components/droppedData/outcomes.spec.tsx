@@ -1,6 +1,26 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {getOutcomeColors, reasonTitle} from './outcomes';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {
+  buildAskSeerPrompt,
+  getOutcomeColors,
+  reasonDocsUrl,
+  reasonTitle,
+} from './outcomes';
+
+describe('buildAskSeerPrompt', () => {
+  it('uses customer-facing dataset names, never the internal enum value', () => {
+    const prompt = buildAskSeerPrompt({
+      dataset: DiscoverDatasets.OURLOGS,
+      outcome: 'client_discard',
+      reason: 'buffer_overflow',
+    });
+
+    expect(prompt).toContain('My log data');
+    expect(prompt).not.toContain('ourlogs');
+  });
+});
 
 describe('getOutcomeColors', () => {
   it('assigns the same colors regardless of input order', () => {
@@ -56,5 +76,27 @@ describe('reasonTitle', () => {
 
   it('falls back to the raw code for an unknown reason', () => {
     expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
+  });
+});
+
+describe('reasonDocsUrl', () => {
+  const docsUrl = 'https://docs.sentry.io/product/explore/dropped-data/';
+
+  it("anchors to the reason's docs section", () => {
+    expect(reasonDocsUrl('ratelimit_backoff')).toBe(`${docsUrl}#sdk-rate-limit-backoff`);
+    expect(reasonDocsUrl('chunk-load-error')).toBe(`${docsUrl}#chunkloaderror-filter`);
+    expect(reasonDocsUrl('transaction_sampled')).toBe(
+      `${docsUrl}#dynamic-sampling-legacy`
+    );
+  });
+
+  it('normalizes reason codes before linking', () => {
+    expect(reasonDocsUrl('ignored')).toBe(`${docsUrl}#dropped-by-ignored-spans`);
+    expect(reasonDocsUrl('Sampled:3000')).toBe(`${docsUrl}#dynamic-sampling`);
+    expect(reasonDocsUrl('error_usage_exceeded')).toBe(`${docsUrl}#quota-exceeded`);
+  });
+
+  it('links an unknown reason to the docs page without an anchor', () => {
+    expect(reasonDocsUrl('some_new_reason')).toBe(docsUrl);
   });
 });

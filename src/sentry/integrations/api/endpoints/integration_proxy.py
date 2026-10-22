@@ -11,8 +11,6 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponseBadRequest, StreamingHttpResponse
 from requests import Request, Response
 from requests.exceptions import RequestException
-from rest_framework.negotiation import BaseContentNegotiation
-from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DRFResponse
 from sentry_sdk import Scope, traces
@@ -20,6 +18,7 @@ from sentry_sdk import Scope, traces
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_control_silo_endpoint
+from sentry.api.negotiation import PassthroughContentNegotiation
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
@@ -81,24 +80,6 @@ class IntegrationProxyFailureMetricType(StrEnum):
     RATE_LIMITED_ERROR = "rate_limited_error"
     FORBIDDEN_ERROR = "forbidden_error"
     UNKNOWN_ERROR = "unknown_error"
-
-
-class _PassthroughContentNegotiation(BaseContentNegotiation):
-    """
-    DRF's initial() method calls perform_content_negotiation() before the handler runs. The default
-    negotiation class (DefaultContentNegotiation) tries to match the request's Accept header against
-    configured renderers. Sentry only configures JSONRenderer, so any request with Accept: text/html,
-    application/xml, etc. gets rejected with 406 Not Acceptable — even though this endpoint never
-    uses DRF's rendering at all (it returns a raw StreamingHttpResponse).
-
-    _PassthroughContentNegotiation bypasses that check by always returning a valid renderer,
-    regardless of what the client sent in Accept. The returned renderer is never actually used.
-    StreamingHttpResponse skips DRF's finalize_response rendering entirely — but DRF requires
-    select_renderer to succeed for the request to proceed past initial().
-    """
-
-    def select_renderer(self, request, renderers, format_suffix=None):
-        return (JSONRenderer(), JSONRenderer.media_type)
 
 
 class IntegrationProxyRequestValidationContext(TypedDict):
@@ -323,7 +304,7 @@ class IntegrationProxyRequestValidator:
 
 @internal_control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
-    content_negotiation_class = _PassthroughContentNegotiation
+    content_negotiation_class = PassthroughContentNegotiation
     publish_status = defaultdict(lambda: ApiPublishStatus.PRIVATE)
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()

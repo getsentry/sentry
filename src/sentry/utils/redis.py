@@ -304,8 +304,6 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
 # wrapped by this check, so these stayed hidden until default locks moved to RedisClusterLockBackend.
 _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
     {
-        # INFRENG-806: detector lock for the default detectors of a new project
-        ("sentry.workflow_engine.defaults.detectors._ensure_detector",),
         # INFRENG-807: grant lock in GrantExchanger.run
         ("sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger.run",),
         # INFRENG-808: invite request team assignments
