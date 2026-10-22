@@ -36,6 +36,14 @@ class TestAction(TestCase):
             "data": {"foo": "bar"},
         }
 
+    def test_seer_workflow_actions_have_distinct_dedup_keys(self) -> None:
+        handler = Mock(config_schema={}, data_schema={})
+        with patch.object(Action, "get_handler", return_value=handler):
+            first = self.create_action(type=Action.Type.SEER_WORKFLOW)
+            second = self.create_action(type=Action.Type.SEER_WORKFLOW)
+
+        assert first.get_dedup_key() != second.get_dedup_key()
+
     def test_get_handler_notification_type(self) -> None:
         with patch("sentry.workflow_engine.registry.action_handler_registry.get") as mock_get:
             mock_handler = Mock(spec=ActionHandler)

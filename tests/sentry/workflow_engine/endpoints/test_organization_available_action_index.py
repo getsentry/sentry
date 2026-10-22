@@ -36,6 +36,22 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         super().tearDown()
         self.registry_patcher.stop()
 
+    def test_seer_workflow_hidden_without_automation_feature(self) -> None:
+        self.registry.register(Action.Type.SEER_WORKFLOW)(ActionHandler)
+
+        with self.feature({"organizations:seer-automations": False}):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data == []
+
+    def test_seer_workflow_hidden_with_automation_feature(self) -> None:
+        self.registry.register(Action.Type.SEER_WORKFLOW)(ActionHandler)
+
+        with self.feature("organizations:seer-automations"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data == []
+
     def setup_email(self) -> None:
         @self.registry.register(Action.Type.EMAIL)
         @dataclass(frozen=True)

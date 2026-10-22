@@ -321,6 +321,13 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 
 
 class TestIsActionPermitted(BaseWorkflowTest):
+    def test_seer_workflow_requires_automation_feature(self) -> None:
+        with self.feature({"organizations:seer-automations": False}):
+            assert not is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+
+        with self.feature("organizations:seer-automations"):
+            assert is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+
     @patch("sentry.workflow_engine.processors.action._get_integration_features")
     def test_basic(self, mock_get_features: MagicMock) -> None:
         org = self.create_organization()

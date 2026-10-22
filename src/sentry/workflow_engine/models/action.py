@@ -78,6 +78,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
+        SEER_WORKFLOW = "seer_workflow"
 
         def is_integration(self) -> bool:
             """
@@ -89,6 +90,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 Action.Type.SENTRY_APP,
                 Action.Type.PLUGIN,
                 Action.Type.WEBHOOK,
+                Action.Type.SEER_WORKFLOW,
             ]
 
     # The type field is used to denote the type of action we want to trigger
@@ -165,6 +167,8 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         )
 
     def get_dedup_key(self) -> str:
+        if self.type == Action.Type.SEER_WORKFLOW:
+            return f"{self.type}:{self.id}"
         key_parts = [self.type]
         if self.integration_id:
             key_parts.append(str(self.integration_id))
