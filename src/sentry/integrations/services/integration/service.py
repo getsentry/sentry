@@ -12,6 +12,7 @@ from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationRe
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.services.integration.model import (
+    RpcAccessToken,
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
@@ -319,6 +320,22 @@ class IntegrationService(RpcService):
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
         pass
+
+    @rpc_method
+    @abstractmethod
+    def get_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcAccessToken | None:
+        """Return an access token for the integration's provider, minted or refreshed in control.
+
+        For callers outside control that hand the token on: they can't mint or refresh one, and
+        can't retry after a 401, so the token has at least a few minutes left. Supports GitHub,
+        GitHub Enterprise, GitLab and Cursor Origin.
+
+        Org-scoped like ``refresh_github_access_token``. None when the organization has no active
+        install of an active integration with that id from one of those providers, or when
+        there's no token to give (no identity, or the provider refused or failed).
+        """
 
     @rpc_method
     @abstractmethod

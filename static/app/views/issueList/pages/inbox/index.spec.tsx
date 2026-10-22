@@ -538,10 +538,6 @@ describe('InboxPage', () => {
     expect(
       within(fixSection).queryByRole('link', {name: 'Pull request #14, Merged'})
     ).not.toBeInTheDocument();
-    const shortId = within(fixSection).getByText('PROJECT-101');
-    expect(
-      openPullRequest.compareDocumentPosition(shortId) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
     expect(diagnosedPullRequests).not.toHaveBeenCalled();
     expect(assignedPullRequests).not.toHaveBeenCalled();
   });

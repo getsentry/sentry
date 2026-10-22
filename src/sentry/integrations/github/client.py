@@ -290,6 +290,7 @@ class GithubProxyClient(IntegrationProxyClient):
 
     class AccessTokenData(TypedDict):
         access_token: str
+        expires_at: str | None
         permissions: dict[str, str] | None
 
     @cached_property
@@ -377,6 +378,7 @@ class GithubProxyClient(IntegrationProxyClient):
         self.integration = integration
         return {
             "access_token": access_token,
+            "expires_at": expires_at,
             "permissions": permissions,
         }
 
@@ -439,6 +441,7 @@ class GithubProxyClient(IntegrationProxyClient):
         if access_token:
             return {
                 "access_token": access_token,
+                "expires_at": expires_at,
                 "permissions": self.integration.metadata.get("permissions"),
             }
 
