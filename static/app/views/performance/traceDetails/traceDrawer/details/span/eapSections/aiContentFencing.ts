@@ -122,12 +122,14 @@ interface ConsumedLines {
 type DiffMatcher = (lines: Line[], start: number) => number;
 
 const GIT_DIFF_HEADER = /^diff --git /;
-const GIT_EXTENDED_HEADER =
+// Extended header lines plus the `Binary files … differ` notice, which sit
+// between `diff --git` and the file's hunks.
+const GIT_FILE_METADATA =
   /^(index |old mode |new mode |deleted file mode |new file mode |similarity index |dissimilarity index |rename from |rename to |copy from |copy to |Binary files )/;
-// Line counts default to 1 when omitted, e.g. `@@ -3 +3 @@`.
-const UNIFIED_HUNK_HEADER = /^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@/;
 // Also matches the count-less `@@` / `@@ context` headers that models often emit.
-const LOOSE_HUNK_HEADER = /^@@(?:\s|$)/;
+const HUNK_HEADER = /^@@(?:\s|$)/;
+// Line counts default to 1 when omitted, e.g. `@@ -3 +3 @@`.
+const HUNK_HEADER_COUNTS = /^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@/;
 const MARKDOWN_LIST_ITEM = /^[-+] \S/;
 
 const CONTEXT_HUNK_SEPARATOR = /^\*{15}$/;
@@ -207,14 +209,14 @@ function matchUnifiedDiff(lines: Line[], start: number): number {
     const fileStart = i;
     if (GIT_DIFF_HEADER.test(textAt(lines, i))) {
       i++;
-      while (GIT_EXTENDED_HEADER.test(textAt(lines, i))) {
+      while (GIT_FILE_METADATA.test(textAt(lines, i))) {
         i++;
       }
     }
     if (startsUnifiedFileHeader(lines, i)) {
       i += 2;
     }
-    while (LOOSE_HUNK_HEADER.test(textAt(lines, i))) {
+    while (HUNK_HEADER.test(textAt(lines, i))) {
       const hunk = consumeUnifiedHunk(lines, i);
       changed ||= hunk.changed;
       i = hunk.end;
@@ -239,46 +241,48 @@ function startsUnifiedFileHeader(lines: Line[], index: number): boolean {
  * markdown list item, since models frequently get the counts wrong.
  */
 function consumeUnifiedHunk(lines: Line[], headerIndex: number): ConsumedLines {
-  const counts = UNIFIED_HUNK_HEADER.exec(textAt(lines, headerIndex));
-  let oldLeft = counts ? Number(counts[1] ?? 1) : 0;
-  let newLeft = counts ? Number(counts[2] ?? 1) : 0;
+  const counts = HUNK_HEADER_COUNTS.exec(textAt(lines, headerIndex));
+  let oldLinesLeft = counts ? Number(counts[1] ?? 1) : 0;
+  let newLinesLeft = counts ? Number(counts[2] ?? 1) : 0;
   let changed = false;
   let i = headerIndex + 1;
   for (; i < lines.length; i++) {
-    const line = lines[i]!.text;
-    const counting = oldLeft > 0 || newLeft > 0;
-    if (line === '') {
-      // Models often strip the leading space off empty context lines.
-      if (!counting && !continuesHunkAfterBlank(lines, i + 1)) {
-        break;
-      }
-      oldLeft--;
-      newLeft--;
-    } else if (
-      !counting &&
-      (startsUnifiedFileHeader(lines, i) || MARKDOWN_LIST_ITEM.test(line))
-    ) {
+    const withinCounts = oldLinesLeft > 0 || newLinesLeft > 0;
+    if (!withinCounts && !continuesHunk(lines, i)) {
       break;
-    } else if (line[0] === ' ') {
-      oldLeft--;
-      newLeft--;
-    } else if (line[0] === '-') {
-      oldLeft--;
+    }
+    // Models often strip the leading space off empty context lines.
+    const marker = lines[i]!.text[0] ?? ' ';
+    if (marker === ' ') {
+      oldLinesLeft--;
+      newLinesLeft--;
+    } else if (marker === '-') {
+      oldLinesLeft--;
       changed = true;
-    } else if (line[0] === '+') {
-      newLeft--;
+    } else if (marker === '+') {
+      newLinesLeft--;
       changed = true;
-    } else if (line[0] !== '\\') {
+    } else if (marker !== '\\') {
       break;
     }
   }
   return {changed, end: i};
 }
 
-/** Whether a blank line past a hunk's counts is followed by more hunk body, not prose. */
-function continuesHunkAfterBlank(lines: Line[], index: number): boolean {
-  const next = textAt(lines, index);
-  return /^[ +\-\\]/.test(next) && !MARKDOWN_LIST_ITEM.test(next);
+/**
+ * Whether the line at `index`, past a hunk's counts, is more hunk body rather
+ * than prose. A blank line counts as body only when more body follows it.
+ */
+function continuesHunk(lines: Line[], index: number): boolean {
+  const line = textAt(lines, index);
+  if (line === '') {
+    return textAt(lines, index + 1) !== '' && continuesHunk(lines, index + 1);
+  }
+  return (
+    /^[ +\-\\]/.test(line) &&
+    !MARKDOWN_LIST_ITEM.test(line) &&
+    !startsUnifiedFileHeader(lines, index)
+  );
 }
 
 /** Matches one or more files of a context diff (`diff -c`). */
@@ -292,12 +296,20 @@ function matchContextDiff(lines: Line[], start: number): number {
       if (!oldRange) {
         break;
       }
-      const oldSection = consumeContextSection(lines, i + 2, rangeLength(oldRange));
+      const oldSection = consumeContextSection(
+        lines,
+        i + 2,
+        contextRangeLength(oldRange)
+      );
       i = oldSection.end;
       changed ||= oldSection.changed;
       const newRange = CONTEXT_NEW_RANGE.exec(textAt(lines, i));
       if (newRange) {
-        const newSection = consumeContextSection(lines, i + 1, rangeLength(newRange));
+        const newSection = consumeContextSection(
+          lines,
+          i + 1,
+          contextRangeLength(newRange)
+        );
         i = newSection.end;
         changed ||= newSection.changed;
       }
@@ -314,7 +326,7 @@ function startsContextFileHeader(lines: Line[], index: number): boolean {
   );
 }
 
-function rangeLength(range: RegExpExecArray): number {
+function contextRangeLength(range: RegExpExecArray): number {
   const first = Number(range[1]);
   if (range[2] === undefined) {
     return first === 0 ? 0 : 1;
@@ -360,9 +372,11 @@ export function fenceContent(text: string): string {
   // Code fully inside a block (e.g. `x` on a diff line) becomes literal text
   // once the block is fenced; a partial overlap would break the existing code.
   const straddlesProtected = (start: number, end: number) =>
-    protectedRanges.some(
-      r => start < r.end && end > r.start && (start > r.start || end < r.end)
-    );
+    protectedRanges.some(r => {
+      const overlaps = start < r.end && end > r.start;
+      const containsRange = start <= r.start && r.end <= end;
+      return overlaps && !containsRange;
+    });
 
   const candidates = DETECTORS.flatMap(detector => detector.detect(text))
     .filter(block => !straddlesProtected(block.start, block.end))
