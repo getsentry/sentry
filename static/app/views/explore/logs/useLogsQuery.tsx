@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {logger} from '@sentry/react';
 import type {QueryClient} from '@tanstack/react-query';
 import {hashKey, useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -11,11 +12,16 @@ import {defined} from 'sentry/utils/defined';
 import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {encodeSort} from 'sentry/utils/queryString';
+import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
+  LOGS_ROW_ID_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -28,6 +34,7 @@ import {
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
+import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -685,6 +692,30 @@ export function useInfiniteLogsQuery({
   };
 }
 
+function useUrlLogAnchor() {
+  const location = useLocation();
+  const isFrozen = useLogsFrozenIsFrozen();
+  const id = decodeScalar(location.query[LOGS_ROW_ID_KEY]);
+  const timestampPrecise = decodeScalar(location.query[LOGS_ANCHOR_TIMESTAMP_KEY]);
+  const [, setTimestampPrecise] = useQueryState(LOGS_ANCHOR_TIMESTAMP_KEY);
+
+  const urlAnchor = useMemo(
+    () =>
+      isFrozen || !id || !timestampPrecise || !/^\d+$/.test(timestampPrecise)
+        ? undefined
+        : {id, timestampPrecise: BigInt(timestampPrecise)},
+    [id, isFrozen, timestampPrecise]
+  );
+
+  const clearUrlAnchor = useCallback(() => {
+    if (!isFrozen && defined(timestampPrecise)) {
+      setTimestampPrecise(null);
+    }
+  }, [isFrozen, setTimestampPrecise, timestampPrecise]);
+
+  return {urlAnchor, clearUrlAnchor};
+}
+
 function useLogAnchor({
   autoRefresh,
   queryKey,
@@ -694,11 +725,16 @@ function useLogAnchor({
 }) {
   const queryClient = useQueryClient();
   const queryKeyHash = hashKey(queryKey);
+  const {urlAnchor, clearUrlAnchor} = useUrlLogAnchor();
   const [anchorState, setAnchorState] = useState<{
     anchor: LogAnchor;
     queryKeyHash: string;
   } | null>(null);
   const [previousAutoRefresh, setPreviousAutoRefresh] = useState(autoRefresh);
+
+  if (anchorState && anchorState.queryKeyHash !== queryKeyHash) {
+    setAnchorState(null);
+  }
 
   if (autoRefresh !== previousAutoRefresh) {
     setPreviousAutoRefresh(autoRefresh);
@@ -710,6 +746,7 @@ function useLogAnchor({
   const anchorToLog = useCallback(
     (row: OurLogsResponseItem) => {
       queryClient.removeQueries({predicate: query => query.queryHash === queryKeyHash});
+      clearUrlAnchor();
       setAnchorState({
         anchor: {
           id: row[OurLogKnownFieldKey.ID],
@@ -718,15 +755,19 @@ function useLogAnchor({
         queryKeyHash,
       });
     },
-    [queryClient, queryKeyHash]
+    [clearUrlAnchor, queryClient, queryKeyHash]
   );
 
-  const clearAnchor = useCallback(() => setAnchorState(null), []);
+  const clearAnchor = useCallback(() => {
+    clearUrlAnchor();
+    setAnchorState(null);
+  }, [clearUrlAnchor]);
 
-  const anchor =
-    !autoRefresh && anchorState?.queryKeyHash === queryKeyHash
+  const anchor = autoRefresh
+    ? undefined
+    : anchorState?.queryKeyHash === queryKeyHash
       ? anchorState.anchor
-      : undefined;
+      : urlAnchor;
 
   return {anchor, anchorToLog, clearAnchor};
 }

@@ -11,7 +11,10 @@ import {
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
+  LOGS_FIELDS_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -417,5 +420,25 @@ describe('LogsAutoRefresh Integration Tests', () => {
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
     });
     expect(router.location.key).not.toBe(keyBefore);
+  });
+
+  it('drops the log anchor from the URL when auto-refresh is enabled', async () => {
+    const {router} = renderWithProviders(<SetAutoRefreshButton state="enabled" />, {
+      initialRouterConfig: {
+        ...routerConfig,
+        location: {
+          ...routerConfig.location,
+          query: {...routerConfig.location.query, [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000'},
+        },
+      },
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+    });
+
+    expect(router.location.query[LOGS_ANCHOR_TIMESTAMP_KEY]).toBeUndefined();
   });
 });

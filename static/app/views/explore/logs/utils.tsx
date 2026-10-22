@@ -26,9 +26,11 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import {
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -46,6 +48,10 @@ import {
   getTargetWithReadableQueryParams,
   LOGS_AGGREGATE_FIELD_KEY,
 } from 'sentry/views/explore/logs/logsQueryParams';
+import {
+  LOGS_PINNED_KEY,
+  logsPinnedParser,
+} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -400,14 +406,17 @@ type BaseGetLogsUrlParams = {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
+  anchorTimestamp?: string;
   caseInsensitive?: '1' | null;
-  field?: string[];
+  field?: readonly string[];
   groupBy?: string[];
   id?: number;
   interval?: string;
   mode?: Mode;
+  pinnedRowIds?: string[];
   query?: string;
   referrer?: string;
+  rowId?: string;
   selection?: PageFilters;
   sortBy?: string;
   title?: string;
@@ -432,7 +441,10 @@ export function getLogsUrl({
   aggregateFields,
   aggregateFn,
   aggregateParam,
+  anchorTimestamp,
   caseInsensitive,
+  pinnedRowIds,
+  rowId,
 }: BaseGetLogsUrlParams & {organization: Organization | string}) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
@@ -459,6 +471,11 @@ export function getLogsUrl({
     [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
     title,
     caseInsensitive,
+    [LOGS_ROW_ID_KEY]: rowId,
+    [LOGS_ANCHOR_TIMESTAMP_KEY]: anchorTimestamp,
+    [LOGS_PINNED_KEY]: pinnedRowIds?.length
+      ? logsPinnedParser.serialize(pinnedRowIds)
+      : undefined,
   };
 
   const orgSlug = typeof organization === 'string' ? organization : organization.slug;
