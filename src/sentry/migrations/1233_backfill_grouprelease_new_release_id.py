@@ -18,8 +18,7 @@ def backfill_new_release_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEd
         result_value_getter=lambda row: row.id,
     )
     for batch in chunked(rows, BATCH_SIZE):
-        out_of_sync = [row for row in batch if row.new_release_id != row.release_id]
-        pending_ids = [row.id for row in out_of_sync]
+        pending_ids = [row.id for row in batch if row.new_release_id != row.release_id]
         if pending_ids:
             GroupRelease.objects.filter(id__in=pending_ids).update(new_release_id=F("release_id"))
 
