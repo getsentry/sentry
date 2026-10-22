@@ -822,13 +822,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
         assert where == TraceItemFilter(
-            and_filter=AndFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=trace_key),
-                    ),
-                ]
-            )
+            exists_filter=ExistsFilter(key=trace_key),
         )
         assert having is None
 
@@ -836,17 +830,11 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("!has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
         assert where == TraceItemFilter(
-            or_filter=OrFilter(
+            not_filter=NotFilter(
                 filters=[
                     TraceItemFilter(
-                        not_filter=NotFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    exists_filter=ExistsFilter(key=trace_key),
-                                )
-                            ]
-                        )
-                    ),
+                        exists_filter=ExistsFilter(key=trace_key),
+                    )
                 ]
             )
         )
@@ -858,20 +846,7 @@ class SearchResolverQueryTest(TestCase):
             name="sentry.parent_span_id", type=AttributeKey.Type.TYPE_STRING
         )
         assert where == TraceItemFilter(
-            and_filter=AndFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=parent_span_key),
-                    ),
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=parent_span_key,
-                            op=ComparisonFilter.OP_NOT_EQUALS,
-                            value=AttributeValue(val_str=""),
-                        )
-                    ),
-                ]
-            )
+            exists_filter=ExistsFilter(key=parent_span_key),
         )
         assert having is None
 
