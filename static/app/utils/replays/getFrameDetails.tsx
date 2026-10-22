@@ -105,7 +105,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
   navigation: (frame: NavFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.data.to),
+    description: stripURLOrigin(frame.data?.to ?? frame.message),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
@@ -124,7 +124,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     title: <CrumbErrorTitle frame={frame} />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
-    const node = frame.data.node;
+    const node = frame.data?.node;
     if (isDeadClick(frame)) {
       return {
         colorGraphicsToken: isDeadRageClick(frame) ? 'danger' : 'warning',
@@ -132,7 +132,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
           'Click on [selector] did not cause a visible effect within [timeout] ms',
           {
             selector: stringifyNodeAttributes(node),
-            timeout: Math.round(frame.data.timeAfterClickMs),
+            timeout: frame.data && Math.round(frame.data.timeAfterClickMs),
           }
         ),
         icon: <IconCursorArrow size="xs" />,
@@ -146,7 +146,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
         'Click on [selector] took [duration] ms to have a visible effect',
         {
           selector: stringifyNodeAttributes(node),
-          duration: Math.round(frame.data.timeAfterClickMs),
+          duration: frame.data && Math.round(frame.data.timeAfterClickMs),
         }
       ),
       icon: <IconWarning size="xs" />,
@@ -159,8 +159,8 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
       return {
         colorGraphicsToken: 'danger',
         description: tct('Rage clicked [clickCount] times on [selector]', {
-          clickCount: frame.data.clickCount,
-          selector: stringifyNodeAttributes(frame.data.node),
+          clickCount: frame.data?.clickCount,
+          selector: stringifyNodeAttributes(frame.data?.node),
         }),
         tabKey: TabKey.BREADCRUMBS,
         title: 'Rage Click',
@@ -171,8 +171,8 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     return {
       colorGraphicsToken: 'warning',
       description: tct('[clickCount] clicks on [selector]', {
-        clickCount: frame.data.clickCount,
-        selector: stringifyNodeAttributes(frame.data.node),
+        clickCount: frame.data?.clickCount,
+        selector: stringifyNodeAttributes(frame.data?.node),
       }),
       tabKey: TabKey.BREADCRUMBS,
       title: 'Multi Click',
@@ -181,11 +181,11 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   },
   'replay.mutations': (frame: MutationFrame) => ({
     colorGraphicsToken: 'warning',
-    description: frame.data.limit
+    description: frame.data?.limit
       ? tct(
           'Significant mutations detected: [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
           {
-            count: frame.data.count,
+            count: frame.data?.count,
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits">
                 {t('Learn more.')}
@@ -196,7 +196,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
       : tct(
           'Significant mutations detected: [count]. This can slow down the Replay SDK, impacting your customers. [link]',
           {
-            count: frame.data.count,
+            count: frame.data?.count,
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#mutation-limits">
                 {t('Learn more.')}
@@ -323,12 +323,12 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconLocation size="xs" />,
   }),
   'web-vital': (frame: WebVitalFrame) => {
-    switch (frame.data.rating) {
+    switch (frame.data?.rating) {
       case 'good':
         return {
           colorGraphicsToken: 'success',
           description: tct('[value][unit] (Good)', {
-            value: frame.data.value.toFixed(2),
+            value: frame.data?.value.toFixed(2),
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
@@ -339,7 +339,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
         return {
           colorGraphicsToken: 'warning',
           description: tct('[value][unit] (Meh)', {
-            value: frame.data.value.toFixed(2),
+            value: frame.data?.value.toFixed(2),
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
@@ -350,7 +350,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
         return {
           colorGraphicsToken: 'danger',
           description: tct('[value][unit] (Poor)', {
-            value: frame.data.value.toFixed(2),
+            value: frame.data?.value.toFixed(2),
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
@@ -438,7 +438,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
   'device.connectivity': (frame: DeviceConnectivityFrame) => ({
     colorGraphicsToken: 'promotion',
-    description: DEVICE_CONNECTIVITY_MESSAGE[frame.data.state],
+    description: frame.data && DEVICE_CONNECTIVITY_MESSAGE[frame.data.state],
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Connectivity',
     icon: <IconWifi size="xs" />,
@@ -446,8 +446,8 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'device.battery': (frame: DeviceBatteryFrame) => ({
     colorGraphicsToken: 'promotion',
     description: tct('Device was at [percent]% battery and [charging]', {
-      percent: Math.round(frame.data.level),
-      charging: frame.data.charging ? 'charging' : 'not charging',
+      percent: frame.data && Math.round(frame.data.level),
+      charging: frame.data?.charging ? 'charging' : 'not charging',
     }),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Battery',
@@ -456,7 +456,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'device.orientation': (frame: DeviceOrientationFrame) => ({
     colorGraphicsToken: 'promotion',
     description: tct('Device orientation was changed to [orientation]', {
-      orientation: frame.data.position,
+      orientation: frame.data?.position,
     }),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Orientation',

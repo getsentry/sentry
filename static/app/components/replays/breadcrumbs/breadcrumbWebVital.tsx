@@ -42,10 +42,10 @@ export function BreadcrumbWebVital({
 
   const selectors = extraction?.selectors;
   const webVitalData: Record<string, number | ReactNode | LayoutShift[]> = {
-    value: frame.data.value,
+    value: frame.data?.value,
   };
 
-  if (isCLSFrame(frame) && frame.data.attributions && selectors) {
+  if (isCLSFrame(frame) && frame.data?.attributions && selectors) {
     const layoutShifts: LayoutShift[] = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
