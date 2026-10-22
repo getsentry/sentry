@@ -172,7 +172,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         # Without a thread_ts this posts a top-level message, and unlike send_notification it
         # returns the message ts, which callers like Seer need.
         try:
-            response = slack_target.integration_installation.send_notification_with_threading(
+            response = slack_target.integration_installation.send_notification_with_response(
                 target=target, payload=renderable, threading_context=SlackProviderThreadingContext()
             )
         except IntegrationError as e:
@@ -193,7 +193,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         )
 
         try:
-            response = slack_target.integration_installation.send_notification_with_threading(
+            response = slack_target.integration_installation.send_notification_with_response(
                 target=slack_target.target,
                 payload=renderable,
                 threading_context=provider_threading_ctx,
