@@ -74,7 +74,8 @@ ACCESS_TOKEN_PROVIDERS = (
     IntegrationProviderSlug.CURSOR_ORIGIN.value,
 )
 
-# Covers the time until the caller uses the token, and clock skew with the provider.
+# Not tuned: a caller uses the token within seconds, and a wider margin only means minting
+# a little more often.
 ACCESS_TOKEN_MINIMUM_VALIDITY = timedelta(minutes=5)
 
 
