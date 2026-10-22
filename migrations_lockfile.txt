@@ -33,7 +33,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0038_add_workflow_config_scope
+seer: 0039_seerprojectrepository_one_to_one
 
 sentry: 1232_backfill_commit_new_repository_id
 
