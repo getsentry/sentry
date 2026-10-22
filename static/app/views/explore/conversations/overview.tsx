@@ -1,4 +1,5 @@
 import {Fragment, type ReactNode, useCallback, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -109,6 +110,7 @@ function MissingMessagesAlert({conversations}: {conversations: Conversation[]}) 
 }
 
 function ConversationsOverviewPage() {
+  const theme = useTheme();
   const organization = useOrganization();
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
@@ -311,7 +313,9 @@ function ConversationsOverviewPage() {
       {...searchQueryBuilderProviderProps}
       placeholder={searchPlaceholder}
     >
-      <ExploreBodySearch>
+      <ExploreBodySearch
+        style={{zIndex: selectedTabShowsOnboarding ? theme.zIndex.header : undefined}}
+      >
         <Layout.Main width="full">
           <Stack gap="md">
             <Flex gap="md" align="center" wrap="wrap">
