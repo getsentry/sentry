@@ -63,6 +63,17 @@ describe('describeInvalidEmbed', () => {
     expect(failure).toBe(`start: expected datetime format, received "${'x'.repeat(79)}…`);
   });
 
+  it('keeps a union whose variants fail differently', () => {
+    const report = reportFor('spansQuery', {projects: [true]});
+
+    expect(report.failures).toEqual(['projects.0: Invalid input, received boolean true']);
+    expect(report.fingerprint).toEqual([
+      'seer-embed-invalid-props',
+      'spansQuery',
+      'projects.0:invalid_union',
+    ]);
+  });
+
   it('describes a body that is not an object', () => {
     const report = reportFor('trace', undefined);
 

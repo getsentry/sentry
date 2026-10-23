@@ -46,7 +46,12 @@ describe('seerEmbedsToJsonSchemas', () => {
                     data: {
                       items: {
                         properties: {
-                          x: {type: 'string', pattern: expect.any(String)},
+                          x: {
+                            anyOf: [
+                              {type: 'string', pattern: expect.any(String)},
+                              {type: 'string', pattern: expect.any(String)},
+                            ],
+                          },
                         },
                       },
                     },
@@ -133,6 +138,21 @@ describe('SEER_EMBED_SCHEMAS charts', () => {
   );
 });
 
+describe('SEER_EMBED_SCHEMAS timestamps', () => {
+  it.each(['2026-09-11T10:02Z', '2026-09-11T10:02+02:00'])(
+    'accepts minute-precision timestamp %s',
+    timestamp => {
+      expect(
+        SEER_EMBED_SCHEMAS.replay.schema.safeParse({id: 'abc', eventTimestamp: timestamp})
+          .success
+      ).toBe(true);
+      expect(
+        SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({start: timestamp}).success
+      ).toBe(true);
+    }
+  );
+});
+
 describe('SEER_EMBED_SCHEMAS page filters', () => {
   it('accepts numeric project IDs for spansQuery', () => {
     const parsed = SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({
@@ -186,7 +206,7 @@ describe('SEER_EMBED_SCHEMAS page filters', () => {
       properties: {
         projects: {
           items: {
-            anyOf: [{type: 'string'}, {type: 'number'}],
+            type: ['string', 'number'],
           },
         },
       },
