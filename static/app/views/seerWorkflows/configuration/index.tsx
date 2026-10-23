@@ -214,7 +214,15 @@ function SeerAutomationCard({
                 {t('No projects')}
               </Text>
             ) : (
-              <ProjectList projectSlugs={projectSlugs} />
+              <Flex align="center" gap="sm">
+                <ProjectList projectSlugs={projectSlugs} />
+                {/* TODO(aliu): Limit the length of this list */}
+                <Container flex="1" minWidth={0}>
+                  <Text size="sm" variant="muted">
+                    {projectSlugs.join(', ')}
+                  </Text>
+                </Container>
+              </Flex>
             )}
           </Stack>
         </Stack>
