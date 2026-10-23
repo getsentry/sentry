@@ -18,6 +18,7 @@ describe('DroppedDataChart', () => {
       <DroppedDataChart
         droppedEvents={[DroppedEventFixture({outcome: 'filtered', count: 5})]}
         colors={{filtered: '#000'}}
+        hasAskSeer={false}
         selection={{}}
         onSelectionChange={jest.fn()}
       />,
@@ -70,7 +71,7 @@ describe('droppedEventsToSeries', () => {
 
     expect(Object.values(series).map(s => s.yAxis)).toEqual([
       'Client Discard',
-      'Inbound Filter',
+      'Inbound Filters',
       'Invalid or Malformed',
     ]);
   });

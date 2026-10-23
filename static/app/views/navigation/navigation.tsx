@@ -4,6 +4,7 @@ import {IconCompass} from '@sentry/icons/compass';
 import {IconDashboard} from '@sentry/icons/dashboard';
 import {IconGraph} from '@sentry/icons/graph';
 import {IconIssues} from '@sentry/icons/issues';
+import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {motion, type MotionProps} from 'framer-motion';
@@ -18,6 +19,10 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
+import {
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
@@ -44,6 +49,10 @@ import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigatio
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
@@ -152,6 +161,8 @@ interface PrimaryNavigationItemsProps {
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
+  const investigationsEnabled = useInvestigationsEnabled();
+  const automationsEnabled = useAutomationsEnabled();
   const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
@@ -187,6 +198,10 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
     return settingsItem;
   }
 
+  const seerPath = automationsEnabled
+    ? getAutomationsPath(organization.slug)
+    : getInvestigationsPath(organization.slug);
+
   const prefix = `organizations/${organization.slug}`;
 
   return (
@@ -208,6 +223,20 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
           </PrimaryNavigation.ListItem>
         )}
       </NavigationTourElement>
+
+      {organization.features.includes('seer-primary-nav') &&
+        (investigationsEnabled || automationsEnabled) && (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={seerPath}
+              analyticsKey="seer"
+              label={t('Seer')}
+              {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
+            >
+              <IconSeer />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
 
       <NavigationTourElement id={NavigationTour.EXPLORE} title={null} description={null}>
         {tourProps => (

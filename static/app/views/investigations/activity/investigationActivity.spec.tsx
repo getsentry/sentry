@@ -23,9 +23,9 @@ const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 const initialRouterConfig = {
   location: {
-    pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+    pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
   },
-  route: '/organizations/:orgId/explore/investigations/:investigationId/',
+  route: '/organizations/:orgId/seer/investigations/:investigationId/',
 };
 
 function renderPage() {

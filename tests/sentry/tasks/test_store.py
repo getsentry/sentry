@@ -428,7 +428,7 @@ def test_save_event_sets_viewer_context(default_project) -> None:
     assert captured_vc is not None
     assert captured_vc.organization_id == default_project.organization_id
     assert captured_vc.project_id == default_project.id
-    assert captured_vc.actor_type == ActorType.SYSTEM
+    assert captured_vc.actor.type == ActorType.SYSTEM
 
 
 @django_db_all
@@ -471,7 +471,7 @@ def test_save_event_passes_system_viewer_context_to_seer(mock_urlopen, default_p
     assert viewer_context.organization_id == default_project.organization_id
     assert viewer_context.project_id == default_project.id
     assert viewer_context.user_id is None
-    assert viewer_context.actor_type == ActorType.SYSTEM
+    assert viewer_context.actor.type == ActorType.SYSTEM
 
 
 @django_db_all

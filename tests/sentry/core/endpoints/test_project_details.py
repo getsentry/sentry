@@ -17,11 +17,10 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.organization_option import OrganizationOption
@@ -36,7 +35,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
@@ -616,10 +614,7 @@ class ProjectUpdateTest(APITestCase):
     def test_platform_invalid(self) -> None:
         self.get_error_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
 
-    @override_options({STAGE_OPTION: {"error_messages": "double_write"}})
-    def test_filter_list_writes_its_row_at_the_double_write_stage_and_reads_back_unchanged(
-        self,
-    ) -> None:
+    def test_filter_list_writes_its_row_and_reads_back_unchanged(self) -> None:
         options = {
             "filters:error_messages": "TypeError*\n# old\nValueError*",
             "filters:releases": "1.*",
@@ -631,19 +626,48 @@ class ProjectUpdateTest(APITestCase):
         lines = ["TypeError*", "# old", "ValueError*"]
         assert project.get_option("sentry:error_messages") == lines
         assert project.get_option("sentry:releases") == ["1.*"]
-        rows = list(CustomInboundFilter.objects.filter(project_id=project.id))
+        rows = CustomInboundFilter.objects.filter(project_id=project.id).order_by("legacy_filter")
         assert [(row.legacy_filter, row.data_type, row.conditions) for row in rows] == [
             (
                 "error-message",
                 "error",
                 [{"type": "error_message", "operator": "glob", "value": lines}],
-            )
+            ),
+            ("release-version", "all", [{"type": "release", "operator": "glob", "value": ["1.*"]}]),
         ]
 
         with self.feature("projects:custom-inbound-filters"):
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         assert response.data["options"]["filters:error_messages"] == "\n".join(lines)
         assert response.data["options"]["filters:releases"] == "1.*"
+
+    @with_feature("organizations:inbound-filters-v2")
+    def test_filter_list_at_v2_reads_its_row_and_writes_it_with_the_option(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="error",
+            conditions=[{"type": "error_message", "value": ["Stored*"]}],
+            legacy_filter=LegacyFilter.ERROR_MESSAGE,
+        )
+        self.project.update_option("sentry:error_messages", ["stale"])
+
+        with self.feature("projects:custom-inbound-filters"):
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
+        assert response.data["options"]["filters:error_messages"] == "Stored*"
+
+        with self.feature("projects:custom-inbound-filters"):
+            self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                options={"filters:error_messages": "TypeError*\n# old"},
+            )
+
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:error_messages") == ["TypeError*", "# old"]
+        row = CustomInboundFilter.objects.get(project_id=project.id, legacy_filter="error-message")
+        assert row.conditions == [
+            {"type": "error_message", "operator": "glob", "value": ["TypeError*", "# old"]}
+        ]
 
     def test_options(self) -> None:
         options: dict[str, Any] = {
