@@ -30,6 +30,27 @@ def test_authenticated_token_reports_undeclared_scope(warning: Mock, capture_mes
     assert capture_message.call_count == 1
 
 
+def test_authenticated_token_translates_deprecated_scopes() -> None:
+    token = AuthenticatedToken(kind="api_token", scopes=["org:read"])
+
+    assert token.get_scopes() == [
+        "dashboard:create",
+        "dashboard:delete",
+        "dashboard:read",
+        "dashboard:write",
+        "org:read",
+    ]
+    assert token.get_stored_scopes() == ["org:read"]
+    assert token.has_scope("dashboard:read")
+
+
+def test_authenticated_token_without_deprecated_scopes() -> None:
+    token = AuthenticatedToken(kind="api_token", scopes=["project:read"])
+
+    assert token.get_scopes() == ["project:read"]
+    assert not token.has_scope("dashboard:read")
+
+
 @control_silo_test
 class TestRpcApiToken(TestCase):
     def setUp(self) -> None:
