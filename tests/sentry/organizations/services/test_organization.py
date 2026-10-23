@@ -14,8 +14,8 @@ from sentry.models.project import Project
 from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 from sentry.organizations.services.organization.service import organization_service
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 
 
