@@ -18,6 +18,7 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import get_action_kind
+from sentry.investigations.services.action_kinds.base import CannotApplyReason
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -38,9 +39,10 @@ class InvestigationActionRequestAnchorResponse(TypedDict):
 class InvestigationActionRequestSerializerResponse(TypedDict):
     """
     A step Seer suggests. `primary` marks the recommended next step after a run, and `anchor`
-    puts a request under a block or hypothesis. `action` is null when it's only advice. What's
-    in `appliedDetails` depends on the action kind, and `appliedBy` is null when Sentry applied
-    it automatically.
+    puts a request under a block or hypothesis. `action` is Seer's payload, or null when it's
+    only advice. `canApply` says whether this viewer can apply it now, and `cannotApplyReason`
+    says why not. What's in `appliedDetails` depends on the action kind, and `appliedBy` is null
+    when Sentry applied it automatically.
     """
 
     id: str
@@ -54,6 +56,8 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     state: str
     reason: str | None
     action: dict[str, Any] | None
+    canApply: bool
+    cannotApplyReason: CannotApplyReason | None
     appliedBy: UserSerializerResponse | None
     appliedDetails: dict[str, Any] | None
     dateApplied: datetime | None
@@ -79,7 +83,7 @@ class InvestigationActionRequestSerializer(
         self,
         item_list: Sequence[InvestigationActionRequest],
         user: User | RpcUser | AnonymousUser,
-    ) -> dict[int, str | None]:
+    ) -> dict[int, CannotApplyReason | None]:
         investigation_ids = {item.investigation_id for item in item_list}
         investigations = {
             investigation.id: investigation
@@ -91,23 +95,28 @@ class InvestigationActionRequestSerializer(
                 )
             )
         }
-        reasons: dict[int, str | None] = {}
+        access = self.access
+        reasons: dict[int, CannotApplyReason | None] = {}
         by_kind: dict[str, list[InvestigationActionRequest]] = defaultdict(list)
         for item in item_list:
             if investigations[item.investigation_id].status == InvestigationStatus.ARCHIVED:
-                reasons[item.id] = "investigation_archived"
+                reasons[item.id] = CannotApplyReason.INVESTIGATION_ARCHIVED
             elif item.state != InvestigationActionRequestState.SUGGESTED:
-                reasons[item.id] = "not_suggested"
+                reasons[item.id] = CannotApplyReason.NOT_SUGGESTED
             elif get_action_kind(item.action_kind) is None:
-                reasons[item.id] = "unsupported_action"
+                reasons[item.id] = CannotApplyReason.UNSUPPORTED_ACTION
+            elif access is None:
+                reasons[item.id] = CannotApplyReason.NO_ACCESS
             else:
                 by_kind[item.action_kind or ""].append(item)
+        if access is None:
+            return reasons
         for kind_name, items in by_kind.items():
             kind = get_action_kind(kind_name)
             assert kind is not None
             reasons.update(
                 kind.cannot_apply_reasons(
-                    items, investigations=investigations, access=self.access, user=user
+                    items, investigations=investigations, access=access, user=user
                 )
             )
         return reasons
@@ -154,7 +163,7 @@ class InvestigationActionRequestSerializer(
         )
         return {
             item: {
-                "cannot_apply_reason": reasons.get(item.id, "not_suggested"),
+                "cannot_apply_reason": reasons.get(item.id, CannotApplyReason.UNSUPPORTED_ACTION),
                 "block_id": (
                     anchored_blocks.get((item.investigation_id, item.anchor_id or ""))
                     if item.anchor_type == InvestigationActionRequestAnchorType.BLOCK
@@ -173,15 +182,6 @@ class InvestigationActionRequestSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationActionRequestSerializerResponse:
-        action = (
-            {
-                **obj.action_payload,
-                "canApply": attrs["cannot_apply_reason"] is None,
-                "cannotApplyReason": attrs["cannot_apply_reason"],
-            }
-            if obj.action_payload is not None
-            else None
-        )
         return {
             "id": str(obj.id),
             "key": obj.key,
@@ -197,7 +197,9 @@ class InvestigationActionRequestSerializer(
             "impact": obj.impact,
             "state": obj.state,
             "reason": obj.reason,
-            "action": action,
+            "action": obj.action_payload,
+            "canApply": attrs["cannot_apply_reason"] is None,
+            "cannotApplyReason": attrs["cannot_apply_reason"],
             "appliedBy": attrs["applied_by"],
             "appliedDetails": obj.applied_details,
             "dateApplied": obj.date_applied,

@@ -2867,6 +2867,26 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_a_snapshot_prefers_a_suggested_primary_listed_last(self) -> None:
         self.assert_snapshot_keeps_one_primary(("failed", "newer"))
 
+    def test_a_snapshot_only_tells_the_kind_about_the_primary_that_wins(self) -> None:
+        self.deliver(
+            self.completed_snapshot(
+                1,
+                blocks=[],
+                actionRequests=[
+                    self.action_request("loser", primary=True),
+                    self.action_request("winner", primary=True, reportRevision=2),
+                ],
+            )
+        )
+
+        kind = ACTION_KINDS["test_kind"]
+        assert isinstance(kind, RecordingKind)
+        assert self.request_states() == {
+            "loser": InvestigationActionRequestState.SUPERSEDED,
+            "winner": InvestigationActionRequestState.SUGGESTED,
+        }
+        assert [request.key for request in kind.upserted] == ["winner"]
+
     def test_removing_a_block_supersedes_the_requests_under_it(self) -> None:
         self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(

@@ -21,7 +21,9 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationStatus,
 )
+from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.testutils.cases import TestCase
+from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
 
 class InvestigationSerializerTest(TestCase):
@@ -286,6 +288,9 @@ class InvestigationDetailsSerializerTest(TestCase):
 class InvestigationActionRequestSerializationTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        kind = fake_action_kind()
+        kind.start()
+        self.addCleanup(kind.stop)
         self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
         self.investigation = self.create_investigation(
             organization=self.organization, created_by=self.user, title="Investigation"
@@ -337,11 +342,9 @@ class InvestigationActionRequestSerializationTest(TestCase):
                 "impact": "Fewer alerts.",
                 "state": "suggested",
                 "reason": None,
-                "action": {
-                    **self.action(),
-                    "canApply": False,
-                    "cannotApplyReason": "unsupported_action",
-                },
+                "action": self.action(),
+                "canApply": False,
+                "cannotApplyReason": "unsupported_action",
                 "appliedBy": None,
                 "appliedDetails": None,
                 "dateApplied": None,
@@ -376,14 +379,12 @@ class InvestigationActionRequestSerializationTest(TestCase):
         self.add_request(action=None, primary=True)
         self.add_request("task", action={"kind": "seer_task", "prompt": "Add spans"})
 
-        assert [row["action"] for row in self.serialize_requests()] == [
-            None,
-            {
-                "kind": "seer_task",
-                "prompt": "Add spans",
-                "canApply": False,
-                "cannotApplyReason": "unsupported_action",
-            },
+        assert [
+            (row["action"], row["canApply"], row["cannotApplyReason"])
+            for row in self.serialize_requests()
+        ] == [
+            (None, False, "unsupported_action"),
+            ({"kind": "seer_task", "prompt": "Add spans"}, False, "unsupported_action"),
         ]
 
     def test_orders_the_newest_report_first_and_omits_superseded_requests(self) -> None:
@@ -436,7 +437,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "detail": {"dataSources": ["Bad window."]},
         }
         assert (withdrawn["state"], withdrawn["reason"]) == ("withdrawn", "The spikes are real.")
-        assert withdrawn["action"]["cannotApplyReason"] == "not_suggested"
+        assert withdrawn["cannotApplyReason"] == "not_suggested"
 
     def test_shows_no_applier_once_the_user_is_gone(self) -> None:
         self.add_request(
@@ -483,7 +484,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
         ]
 
     def cannot_apply_reason(self, user: Any = None) -> str | None:
-        return self.serialize_for(user or self.user)[0]["action"]["cannotApplyReason"]
+        return self.serialize_for(user or self.user)[0]["cannotApplyReason"]
 
     def test_archived_investigations_cannot_apply(self) -> None:
         self.add_request()
@@ -499,9 +500,32 @@ class InvestigationActionRequestSerializationTest(TestCase):
     def test_unknown_action_kinds_cannot_apply(self) -> None:
         self.add_request(action={"kind": "seer_task", "prompt": "Add retry spans"})
 
-        assert self.serialize_for(self.user)[0]["action"] == {
-            "kind": "seer_task",
-            "prompt": "Add retry spans",
-            "canApply": False,
-            "cannotApplyReason": "unsupported_action",
-        }
+        (serialized,) = self.serialize_for(self.user)
+        assert serialized["action"] == {"kind": "seer_task", "prompt": "Add retry spans"}
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (
+            False,
+            "unsupported_action",
+        )
+
+    def test_the_kind_decides_suggested_requests(self) -> None:
+        action_request = self.add_request(action=fake_action())
+        access = from_user(self.user, self.organization)
+        kind = ACTION_KINDS["test_kind"]
+        assert isinstance(kind, RecordingKind)
+
+        (serialized,) = serialize(
+            self.investigation, self.user, InvestigationDetailsSerializer(access=access)
+        )["actionRequests"]
+
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
+        assert kind.checked == [([action_request.id], [self.investigation.id], access, self.user)]
+
+    def test_nothing_can_apply_without_access(self) -> None:
+        action_request = self.add_request(action=fake_action())
+        kind = ACTION_KINDS["test_kind"]
+        assert isinstance(kind, RecordingKind)
+
+        serialized = serialize(action_request, self.user)
+
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (False, "no_access")
+        assert kind.checked == []

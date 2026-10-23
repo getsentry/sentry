@@ -34,7 +34,7 @@ from sentry.investigations.contracts import (
 )
 from sentry.investigations.models import Investigation, InvestigationActionRequest
 from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import ActionKind
+from sentry.investigations.services.action_kinds.base import ActionKind, CannotApplyReason
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
@@ -652,6 +652,8 @@ class RecordingKind(ActionKind):
     def __init__(self) -> None:
         # The requests after_upsert ran for, in order.
         self.upserted: list[InvestigationActionRequest] = []
+        # What each cannot_apply_reasons call got: request ids, investigation ids, access, user.
+        self.checked: list[tuple[list[int], list[int], Access, User | RpcUser | AnonymousUser]] = []
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         self.upserted.append(action_request)
@@ -661,9 +663,12 @@ class RecordingKind(ActionKind):
         action_requests: Sequence[InvestigationActionRequest],
         *,
         investigations: dict[int, Investigation],
-        access: Access | None,
+        access: Access,
         user: User | RpcUser | AnonymousUser,
-    ) -> dict[int, str | None]:
+    ) -> dict[int, CannotApplyReason | None]:
+        self.checked.append(
+            ([item.id for item in action_requests], sorted(investigations), access, user)
+        )
         return {item.id: None for item in action_requests}
 
 
