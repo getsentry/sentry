@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from unittest.mock import ANY, MagicMock, patch
 
+import orjson
 import responses
 from django.test.utils import override_settings
 from rest_framework import status
@@ -26,6 +27,7 @@ from sentry.models.group import Group
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
+from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, encode_webhook_delivery_signature
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -223,8 +225,9 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
 
         assert group.get_assignee() is None
 
+    @override_settings(SENTRY_SUBNET_SECRET="subnet-secret")
     @patch.object(IssueSyncIntegration, "sync_status_inbound")
-    def test_cell_accepts_token_that_expired_while_queued(
+    def test_expired_token_accepted_only_from_signed_delivery(
         self, mock_sync_status_inbound: MagicMock
     ) -> None:
         path = "/extensions/jira/issue-updated/"
@@ -236,15 +239,22 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             },
             self.integration.metadata["shared_secret"],
         )
-        data = StubService.get_stub_data("jira", "edit_issue_status_payload.json")
-        headers = dict(HTTP_AUTHORIZATION=f"JWT {token}")
+        body = orjson.dumps(StubService.get_stub_data("jira", "edit_issue_status_payload.json"))
+        headers = {"Authorization": f"JWT {token}"}
 
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            self.get_error_response(**data, extra_headers=headers, status_code=409)
+        response = self.client.post(
+            path, data=body, content_type="application/json", headers=headers
+        )
+        assert response.status_code == 409
         assert not mock_sync_status_inbound.called
 
-        with override_settings(SILO_MODE=SiloMode.CELL):
-            self.get_success_response(**data, extra_headers=headers)
+        signature = encode_webhook_delivery_signature(path, headers["Authorization"], body)
+        assert signature is not None
+        headers[WEBHOOK_DELIVERY_SIGNATURE_HEADER] = signature
+        response = self.client.post(
+            path, data=body, content_type="application/json", headers=headers
+        )
+        assert response.status_code == 200
         assert mock_sync_status_inbound.called
 
     @patch.object(IssueSyncIntegration, "sync_status_inbound")

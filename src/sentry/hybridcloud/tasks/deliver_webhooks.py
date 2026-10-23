@@ -36,6 +36,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
+from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, encode_webhook_delivery_signature
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.cell import Cell, get_cell_by_name
@@ -1360,12 +1361,21 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
             tags={"destination_region": cell.name},
         ):
             headers = orjson.loads(payload.request_headers)
+            # We need to send the body as raw bytes to avoid interfering with webhook signatures
+            body = payload.request_body.encode("utf-8")
+            # Lets the cell trust that control verified this webhook on arrival. Drop any
+            # copy of the header that came in with the original request.
+            headers.pop(WEBHOOK_DELIVERY_SIGNATURE_HEADER, None)
+            signature = encode_webhook_delivery_signature(
+                payload.request_path, headers.get("Authorization", ""), body
+            )
+            if signature:
+                headers[WEBHOOK_DELIVERY_SIGNATURE_HEADER] = signature
             response = client.request(
                 method=payload.request_method,
                 path=payload.request_path,
                 headers=headers,
-                # We need to send the body as raw bytes to avoid interfering with webhook signatures
-                data=payload.request_body.encode("utf-8"),
+                data=body,
                 json=False,
                 timeout=CELL_REQUEST_TIMEOUT,
             )
