@@ -9,8 +9,12 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlatformKey} from 'sentry/types/platform';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAgentSetupPrompt} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 
 import {NoDocsOnboarding, Onboarding, UnsupportedPlatformOnboarding} from './onboarding';
+
+jest.mock('sentry/utils/analytics');
 
 describe('UnsupportedPlatformOnboarding', () => {
   const project = ProjectFixture();
@@ -57,6 +61,14 @@ describe('UnsupportedPlatformOnboarding', () => {
 });
 
 describe('Onboarding deployment target', () => {
+  /**
+   * Renders the onboarding and switches from the coding agent prompt to the
+   * step-by-step instructions.
+   */
+  async function renderInstructions(options: Parameters<typeof render>[1]) {
+    render(<Onboarding />, options);
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+  }
   function setupProject(platform: PlatformKey) {
     const organization = OrganizationFixture();
     const project = ProjectFixture({platform, firstTransactionEvent: false});
@@ -96,7 +108,7 @@ describe('Onboarding deployment target', () => {
   it('defaults a Node project to the Node target and installs @sentry/node', async () => {
     const {organization} = setupProject('node');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     // The deployment-target selector renders alongside the integration selector
     expect(await screen.findByRole('button', {name: 'Node'})).toBeInTheDocument();
@@ -107,7 +119,80 @@ describe('Onboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('shows the unsupported platform setup for a browser project', async () => {
+  it('opens on the coding agent prompt and tracks copying it', async () => {
+    const {organization, project} = setupProject('node');
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
+
+    render(<Onboarding />, {organization});
+
+    expect(
+      await screen.findByRole('tab', {name: 'For your agent', selected: true})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      getAgentSetupPrompt({
+        organizationSlug: organization.slug,
+        project,
+        dsn: ProjectKeysFixture()[0]!.dsn.public,
+      })
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.onboarding.interaction',
+      expect.objectContaining({action: 'copy_agent_prompt'})
+    );
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'agent-monitoring.copy-llm-prompt-click',
+      expect.anything()
+    );
+  });
+
+  it('tracks switching tabs and changing the setup options', async () => {
+    const {organization} = setupProject('node');
+
+    await renderInstructions({organization});
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.onboarding.interaction',
+      expect.objectContaining({action: 'switch_tab', tab: 'human'})
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Cloudflare'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'agent-monitoring.onboarding.interaction',
+      expect.objectContaining({
+        action: 'select_setup_option',
+        option: 'deploymentTarget',
+        value: 'cloudflare',
+      })
+    );
+  });
+
+  it('checks the SDK version of the selected Pi Durable runtime', async () => {
+    const {organization, project} = setupProject('node-pi-durable');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [
+        {projectId: project.id, sdkName: 'sentry.javascript.bun', sdkVersion: '10.0.0'},
+      ],
+    });
+
+    await renderInstructions({organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Bun'}));
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your @sentry/bun version is below the minimum required for agent monitoring. Update to 11.6.0 or later.'
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('only offers the coding agent prompt for a browser project', async () => {
     const {organization} = setupProject('javascript');
 
     render(<Onboarding />, {
@@ -121,17 +206,13 @@ describe('Onboarding deployment target', () => {
     });
 
     expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          /Auto instrumentation of AI Agents is not available for your Browser JavaScript project/
-        )
-      )
+      await screen.findByRole('tab', {name: 'For your agent', selected: true})
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /manually instrument/i})).toHaveAttribute(
-      'href',
-      'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/manual-instrumentation/'
+    expect(screen.getByRole('tab', {name: 'For you'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
     );
-    expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
   it('prefers a supported project over a selected browser project', async () => {
@@ -147,7 +228,7 @@ describe('Onboarding deployment target', () => {
       false
     );
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     expect(
       await screen.findByText(
@@ -170,7 +251,7 @@ describe('Onboarding deployment target', () => {
     async (platform, integration, setupCode) => {
       const {organization} = setupProject(platform);
 
-      render(<Onboarding />, {organization});
+      await renderInstructions({organization});
 
       expect(
         (await screen.findAllByText(textWithMarkupMatcher(setupCode))).length
@@ -184,7 +265,7 @@ describe('Onboarding deployment target', () => {
     async platform => {
       const {organization} = setupProject(platform);
 
-      render(<Onboarding />, {organization});
+      await renderInstructions({organization});
 
       expect(await screen.findByText('Install')).toBeInTheDocument();
       expect(screen.queryByRole('link', {name: 'Conversations'})).not.toBeInTheDocument();
@@ -194,7 +275,7 @@ describe('Onboarding deployment target', () => {
   it('ignores integration and deployment query overrides for framework projects', async () => {
     const {organization} = setupProject('node-eve');
 
-    render(<Onboarding />, {
+    await renderInstructions({
       organization,
       initialRouterConfig: {
         location: {
@@ -218,7 +299,7 @@ describe('Onboarding deployment target', () => {
   it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     // Cloudflare install instructions render...
     expect(
@@ -236,7 +317,7 @@ describe('Onboarding deployment target', () => {
   it('does not show the deployment selector for Cloudflare Pages', async () => {
     const {organization} = setupProject('node-cloudflare-pages');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     // Pages keeps its existing onboarding and is left out of the runtime selector
     expect(
@@ -249,7 +330,7 @@ describe('Onboarding deployment target', () => {
   it('offers every SDK regardless of the selected runtime', async () => {
     const {organization} = setupProject('node');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     // On the Node runtime both the Node-only (Mastra) and Cloudflare-only
     // (Workers AI) SDKs are offered; the list is no longer filtered by runtime.
@@ -261,7 +342,7 @@ describe('Onboarding deployment target', () => {
   it('pins and locks the runtime to Cloudflare when a Cloudflare-only SDK is selected', async () => {
     const {organization} = setupProject('node');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     // Node runtime is selected by default
     expect(await screen.findByRole('button', {name: 'Node'})).toBeInTheDocument();
@@ -286,7 +367,7 @@ describe('Onboarding deployment target', () => {
   it('keeps the runtime selector interactive for a runtime-agnostic SDK (Flue)', async () => {
     const {organization} = setupProject('node');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Flue'}));
@@ -303,7 +384,7 @@ describe('Onboarding deployment target', () => {
   it('pins and locks the runtime to Node when a Node-only SDK is selected', async () => {
     const {organization} = setupProject('node');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     // Manually switch to the Cloudflare runtime first
     await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
@@ -322,7 +403,7 @@ describe('Onboarding deployment target', () => {
   it('hides the runtime selector and shows the Node setup for Pi Durable', async () => {
     const {organization} = setupProject('node');
 
-    render(<Onboarding />, {
+    await renderInstructions({
       organization,
       initialRouterConfig: {
         location: {
@@ -346,10 +427,44 @@ describe('Onboarding deployment target', () => {
     expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
   });
 
+  it('offers the Node, Cloudflare, Deno, and Bun runtimes in Pi Durable projects', async () => {
+    const {organization} = setupProject('node-pi-durable');
+
+    await renderInstructions({organization});
+
+    const runtimeSelector = await screen.findByRole('button', {name: 'Node'});
+    expect(runtimeSelector).toBeEnabled();
+    expect(screen.queryByRole('button', {name: 'Pi Durable'})).not.toBeInTheDocument();
+
+    await userEvent.click(runtimeSelector);
+    expect(
+      (await screen.findAllByRole('option')).map(option => option.textContent)
+    ).toEqual(['Node', 'Cloudflare', 'Deno', 'Bun']);
+  });
+
+  it.each([
+    ['Cloudflare', /Install the Sentry Cloudflare SDK in your Worker/],
+    ['Deno', /there is nothing to install/],
+    ['Bun', /Install the Sentry Bun SDK in your Pi Durable project/],
+  ])(
+    'switches the Pi Durable project instructions to %s',
+    async (runtime, installText) => {
+      const {organization} = setupProject('node-pi-durable');
+
+      await renderInstructions({organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+      await userEvent.click(await screen.findByRole('option', {name: runtime}));
+
+      expect(await screen.findByRole('button', {name: runtime})).toBeInTheDocument();
+      expect(await screen.findByText(installText)).toBeInTheDocument();
+    }
+  );
+
   it('shows the Cloudflare setup for Pi Durable in Cloudflare Workers projects', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Pi Durable'}));
@@ -369,7 +484,7 @@ describe('Onboarding deployment target', () => {
   it('switches instructions when the deployment target changes', async () => {
     const {organization} = setupProject('node');
 
-    render(<Onboarding />, {organization});
+    await renderInstructions({organization});
 
     // Starts on the Node target
     expect(

@@ -18,6 +18,7 @@ import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmO
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
+  DEPLOYMENT_TARGET_PACKAGE_NAMES,
   DeploymentTarget,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
@@ -55,6 +56,20 @@ export function getAgentIntegration(params: DocsParams): AgentIntegration {
 export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
   return (params.platformOptions?.deploymentTarget ??
     DeploymentTarget.NODE) as DeploymentTarget;
+}
+
+/**
+ * The Sentry SDK package for the selected runtime. The Node runtime keeps the
+ * platform's own package.
+ */
+function getRuntimePackageName(
+  params: DocsParams,
+  packageName: `@sentry/${string}`
+): `@sentry/${string}` {
+  const deploymentTarget = getDeploymentTarget(params);
+  return deploymentTarget === DeploymentTarget.NODE
+    ? packageName
+    : DEPLOYMENT_TARGET_PACKAGE_NAMES[deploymentTarget];
 }
 
 /**
@@ -752,10 +767,7 @@ export function getInstallStep(
     return piFrameworkOnboarding.install(params);
   }
 
-  const resolvedPackageName =
-    getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE
-      ? '@sentry/cloudflare'
-      : packageName;
+  const resolvedPackageName = getRuntimePackageName(params, packageName);
   const resolvedMinVersion = getMinRequiredVersion(params, minVersion);
 
   return [
@@ -1213,7 +1225,7 @@ export const agentMonitoring = ({
     <SdkUpdateAlert
       projectId={params.project.id}
       minVersion={getMinRequiredVersion(params, MIN_REQUIRED_VERSION)}
-      packageName={packageName}
+      packageName={getRuntimePackageName(params, packageName)}
     />
   ),
   install: params =>
