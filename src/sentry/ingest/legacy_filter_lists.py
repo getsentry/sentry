@@ -85,6 +85,11 @@ def filter_type_of(legacy_filter: str) -> str:
     return _FILTER_TYPE_BY_LEGACY_FILTER[legacy_filter]
 
 
+def list_name(legacy_filter: str) -> str:
+    """The name of the list in the project settings, such as ``Error Messages``."""
+    return _ROWS[filter_type_of(legacy_filter)].name
+
+
 def served_legacy_filters(organization: Organization) -> list[str]:
     """The ``legacy_filter`` ids of the rows the custom inbound filter API serves."""
     return LEGACY_FILTERS if has_inbound_filters_v2(organization) else []

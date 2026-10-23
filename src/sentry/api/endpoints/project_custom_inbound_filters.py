@@ -332,31 +332,28 @@ def _validate_legacy_row_change(
     conditions: list[CustomInboundFilterCondition],
 ) -> None:
     """
-    The project details API still maps a legacy list onto the one condition of its row, so
-    the data type, the condition type and its glob operator must stay. Only the values may
-    change.
+    The project details API maps a legacy list onto the one condition of its row, so only
+    the condition values may change.
     """
+    assert stored.legacy_filter is not None
+    list_name = legacy_filter_lists.list_name(stored.legacy_filter)
     if data_type.value != stored.data_type:
         raise serializers.ValidationError(
-            {
-                "dataType": "A filter that holds a filter list of the project settings keeps its data type."
-            }
+            {"dataType": f"The data type cannot be changed on the {list_name} filter."}
         )
-    condition_type = stored.conditions[0]["type"]
-    # A row from the backfill or the double write of an older revision has no operator,
-    # which reads as glob.
+    condition = stored.conditions[0]
+    # A stored condition without an operator is a glob condition.
+    stored_operator = condition.get("operator", ConditionOperator.GLOB.value)
     if (
         len(conditions) != 1
-        or conditions[0]["type"] != condition_type
-        or conditions[0].get("operator", ConditionOperator.GLOB.value)
-        != ConditionOperator.GLOB.value
+        or conditions[0]["type"] != condition["type"]
+        or conditions[0].get("operator", ConditionOperator.GLOB.value) != stored_operator
     ):
         raise serializers.ValidationError(
             {
                 "conditions": (
-                    f"A filter that holds a filter list of the project settings keeps its one "
-                    f"{condition_type} condition with the glob operator. Only its values can "
-                    f"change."
+                    f"The condition cannot be changed on the {list_name} filter. "
+                    f"Only its values can."
                 )
             }
         )
@@ -388,12 +385,6 @@ def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
 
 
 def _visible_filters(project: Project) -> QuerySet[CustomInboundFilter]:
-    """
-    The filters this API serves: the ones a user made here, plus the row of every filter
-    list of the project settings that has moved into the table (its v2 stage). The row of
-    a list the project settings still own stays hidden, or a client would see the list
-    twice.
-    """
     return CustomInboundFilter.objects.filter(
         Q(legacy_filter__isnull=True)
         | Q(legacy_filter__in=legacy_filter_lists.served_legacy_filters(project.organization)),

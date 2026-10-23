@@ -828,7 +828,10 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 status_code=400,
                 dataType="error",
             )
-            assert "keeps its data type" in str(response.data["dataType"][0])
+            assert (
+                response.data["dataType"][0]
+                == "The data type cannot be changed on the Releases filter."
+            )
 
             response = self.get_error_response(
                 self.organization.slug,
@@ -840,7 +843,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
                     {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]},
                 ],
             )
-            assert "keeps its one release condition" in str(response.data["conditions"][0])
+            assert "cannot be changed on the Releases filter" in str(response.data["conditions"][0])
 
             response = self.get_error_response(
                 self.organization.slug,
@@ -849,7 +852,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 status_code=400,
                 conditions=[{"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]}],
             )
-            assert "keeps its one release condition" in str(response.data["conditions"][0])
+            assert "cannot be changed on the Releases filter" in str(response.data["conditions"][0])
 
             response = self.get_error_response(
                 self.organization.slug,
@@ -858,7 +861,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 status_code=400,
                 conditions=[{"type": "release", "operator": "starts_with", "value": ["2."]}],
             )
-            assert "with the glob operator" in str(response.data["conditions"][0])
+            assert "cannot be changed on the Releases filter" in str(response.data["conditions"][0])
 
         legacy_row.refresh_from_db()
         assert legacy_row.data_type == "all"
