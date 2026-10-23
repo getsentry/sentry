@@ -201,7 +201,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
 
     def test_assigns_authoritative_identity_and_preserves_latest_settings(self) -> None:
         with outbox_runner():
-            unrelated = Factories.create_service_account(self.organization)
+            unrelated = Factories.create_service_account(self.organization, name="unrelated")
         ServiceAccountReplica.objects.filter(service_account_id=unrelated.id).update(
             id=self.account.id
         )
@@ -227,7 +227,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert self.workflow.config.version == 2
 
         with outbox_runner():
-            replacement = Factories.create_service_account(self.organization)
+            replacement = Factories.create_service_account(self.organization, name="replacement")
         self.workflow.set_service_account(replacement.id)
         assert self.workflow.config.version == 3
         self.workflow.set_service_account(None)
@@ -238,7 +238,9 @@ class SeerWorkflowServiceAccountTest(TestCase):
     def test_rejects_unavailable_and_inactive_accounts_without_mutation(self) -> None:
         self.workflow.set_service_account(self.account.id)
         with outbox_runner():
-            inactive = Factories.create_service_account(self.organization, is_active=False)
+            inactive = Factories.create_service_account(
+                self.organization, name="inactive", is_active=False
+            )
             foreign = Factories.create_service_account(self.create_organization())
         for account_id, message in [
             (inactive.id, "inactive"),
@@ -265,7 +267,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
 
     def test_assignment_can_retry_after_replication(self) -> None:
         with outbox_context(flush=False):
-            pending = Factories.create_service_account(self.organization)
+            pending = Factories.create_service_account(self.organization, name="pending")
         with pytest.raises(ValueError, match="unavailable"):
             self.workflow.set_service_account(pending.id)
         self.config.refresh_from_db()
@@ -316,7 +318,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
         )
         SeerWorkflow(other).set_service_account(self.account.id)
         with outbox_runner():
-            unrelated = Factories.create_service_account(self.organization)
+            unrelated = Factories.create_service_account(self.organization, name="unrelated")
         unrelated_workflow = SeerWorkflow(
             Factories.create_seer_workflow_config(
                 self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
