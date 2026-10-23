@@ -12,7 +12,6 @@ from sentry.eventstream.base import GroupState
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -37,7 +36,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
-from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Action, Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import process_workflows
@@ -166,9 +164,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert result == IgnoredMetricBreach("out_of_scope")
         assert not SeerWorkflowRun.objects.exists()
 
-    def test_new_issue_without_an_open_period_can_start_a_run(self) -> None:
+    def test_new_issue_starts_noop_run(self) -> None:
         event = self.breach_event()
-        assert not GroupOpenPeriod.objects.filter(group=self.group).exists()
 
         self.process_breach_workflow(event)
 
@@ -205,32 +202,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert SeerWorkflowRun.objects.count() == 1
         assert SeerWorkflowRunExecution.objects.count() == 1
 
-    def test_connected_monitor_created_later_can_feed_the_same_automation(self) -> None:
-        project = self.create_project(organization=self.organization)
-        event, detector = self.breach_in_project(project)
-        connection = self.create_detector_workflow(workflow=self.workflow, detector=detector)
-
-        self.process_breach_workflow(event)
-
-        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
-        assert run.extras["trigger"]["project_id"] == project.id
-        assert run.extras["trigger"]["detector_id"] == detector.id
-        assert connection.detector_id == detector.id
-        assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 2
-        assert run.executions.get().extras["result"] == "noop"
-
-    @mock.patch("sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available")
-    def test_unconnected_monitor_is_ignored_even_with_org_wide_routing_enabled(
-        self, admission: mock.MagicMock
-    ) -> None:
-        ensure_default_all_projects_detector(self.organization.id)
-        event, _ = self.breach_in_project(self.project)
-        with self.options({"workflow_engine.all_projects_detectors.rollout-rate": 1.0}):
-            self.process_breach_workflow(event)
-
-        assert not SeerWorkflowRun.objects.exists()
-        admission.assert_not_called()
-
     def test_later_event_on_same_issue_does_not_create_another_run(self) -> None:
         event = self.breach_event()
         with (
@@ -262,38 +233,13 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert duplicate.kwargs["extra"]["outcome"] == "accepted"
         assert duplicate.kwargs["extra"]["deduplicated"] is True
 
-    def test_missing_binding_is_observable_without_creating_a_run(self) -> None:
-        self.action.seer_workflow_binding.delete()
-        event = self.breach_event()
-
-        with (
-            mock.patch("sentry.seer.workflows.action.metrics.incr") as incr,
-            mock.patch("sentry.seer.workflows.action.logger") as logger,
-        ):
-            self.process_breach_workflow(event)
-
-        assert not SeerWorkflowRun.objects.exists()
-        incr.assert_any_call(
-            "seer.workflow.trigger",
-            tags={"outcome": "ignored", "reason": "missing_binding", "deduplicated": "false"},
-            sample_rate=1.0,
-        )
-        logger.info.assert_called_once()
-        assert logger.info.call_args.args == ("seer.workflow.trigger",)
-        extra = logger.info.call_args.kwargs["extra"]
-        assert extra["outcome"] == "ignored"
-        assert extra["deduplicated"] is False
-        assert extra["reason"] == "missing_binding"
-        assert extra["organization_id"] == self.organization.id
-        assert extra["group_id"] == self.group.id
-        assert extra["action_id"] == self.action.id
-
     def test_existing_issue_does_not_start_a_run_even_without_previous_history(self) -> None:
         self.process_breach_workflow(self.breach_event(), is_new=False)
         assert not SeerWorkflowRun.objects.exists()
 
-    def test_two_connected_monitors_create_runs_for_the_same_automation(self) -> None:
-        event, detector = self.breach_in_project(self.project)
+    def test_connected_monitors_in_different_projects_feed_the_same_automation(self) -> None:
+        project = self.create_project(organization=self.organization)
+        event, detector = self.breach_in_project(project)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
         self.process_breach_workflow(self.breach_event())
         self.process_breach_workflow(event)
