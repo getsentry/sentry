@@ -2445,7 +2445,7 @@ requires-dist = [
     { name = "sentry-conventions", specifier = ">=0.27.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
-    { name = "sentry-ophio", specifier = ">=1.2.0" },
+    { name = "sentry-ophio", specifier = ">=1.3.1" },
     { name = "sentry-options", specifier = ">=1.2.15" },
     { name = "sentry-protos", specifier = ">=0.91.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
@@ -2607,12 +2607,12 @@ wheels = [
 
 [[package]]
 name = "sentry-ophio"
-version = "1.2.0"
+version = "1.3.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_ophio-1.2.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:04213927fc651a3864c5b01af0dc966171524e7c02e19b7d842ebca4786fcf10" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_ophio-1.2.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e3c522bc0450b5fe0b2c832e967987979f4c98bd9eda771244b842786125f149" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_ophio-1.2.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4206ef6360697c6ca97c8521e9058709657f32f6ec21d28e0e0a8425495b50d6" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_ophio-1.3.1-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:e94ba788b32ab950b2035abdb9e7d62746ba10aa2343050584e7875f98c85a34" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_ophio-1.3.1-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:df66b1de4c87df66df34316d3ba5cf55ba2b549c27fdd24d19399d10b8b3166b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_ophio-1.3.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:126f5da8a2e7e9a3bb98a6b9c5d2e2060821f2608d2c4a1d251e0b7c369d778d" },
 ]
 
 [[package]]
