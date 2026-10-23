@@ -251,6 +251,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
                     "group_id": metric_issue_context.id,
                     "open_period_start": open_period_context.date_started.isoformat(),
                 },
+                object_id=metric_issue_context.id,
             ),
             reply_broadcast=(metric_issue_context.new_status == IncidentStatus.CRITICAL),
         )
@@ -281,7 +282,9 @@ def send_issue_alert(invocation: ActionInvocation, provider: NotificationProvide
                 open_period_start.isoformat() if open_period_start else None
             )
         threading_options = ThreadingOptions(
-            thread_key=ThreadKey(key_type=NotificationSource.ISSUE, key_data=key_data),
+            thread_key=ThreadKey(
+                key_type=NotificationSource.ISSUE, key_data=key_data, object_id=group.id
+            ),
             reply_broadcast=True,
         )
 

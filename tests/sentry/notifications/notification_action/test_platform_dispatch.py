@@ -12,6 +12,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.notification_action.issue_alert_registry import (
     DiscordIssueAlertHandler,
     SlackIssueAlertHandler,
@@ -136,6 +137,10 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         follow_up = client.chat_postMessage.call_args_list[1].kwargs
         assert follow_up["thread_ts"] == "123.456"
         assert follow_up["reply_broadcast"] is True
+
+        thread = NotificationThread.objects.get()
+        assert thread.object_id == self.event_data.group.id
+        assert thread.key_data["group_id"] == self.event_data.group.id
 
     @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_metric_thread_flag_off_posts_top_level(
@@ -304,6 +309,10 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
         follow_up = client.chat_postMessage.call_args_list[1].kwargs
         assert follow_up["thread_ts"] == "123.456"
         assert follow_up["reply_broadcast"] is True
+
+        thread = NotificationThread.objects.get()
+        assert thread.object_id == self.group.id
+        assert thread.key_data["group_id"] == self.group.id
 
     @mock.patch("sentry.analytics.record")
     @mock.patch(f"{PLATFORM_DISPATCH_PATH}.metrics")

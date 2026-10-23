@@ -275,6 +275,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                     "target_id": "C1234567890",
                     "thread_identifier": thread_ts,
                     "provider_data": None,
+                    "object_id": group.id,
                 },
                 external_message_id=thread_ts,
             )

@@ -253,14 +253,13 @@ class SlackService:
                 )
 
         # Also query platform threads for issue alerts sent via notification platform. Only orgs in
-        # a platform rollout tier have them, and the query can't use an index, so skip it for
-        # everyone else. This checks the tier, not the per-send random rollout rate, so replies
-        # reach every existing thread.
+        # a platform rollout tier have them, so skip the query for everyone else. This checks the
+        # tier, not the per-send random rollout rate, so replies reach every existing thread.
         platform_threads = NotificationThread.objects.none()
         if NotificationRolloutService(organization=group.organization).has_feature_flag_access():
             platform_threads = NotificationThread.objects.filter(
                 key_type=NotificationSource.ISSUE.value,
-                key_data__group_id=group.id,
+                object_id=group.id,
                 provider_key__in=SLACK_PROVIDERS,
             )
         if use_open_period_start:
