@@ -7,6 +7,7 @@ from rest_framework import serializers
 
 from sentry import newsletter
 from sentry.auth import password_validation
+from sentry.auth.email import ascii_casefold
 from sentry.users.models.user import User
 from sentry.utils.dates import get_timezone_choices
 from sentry.utils.email.address import is_valid_email_address
@@ -57,11 +58,14 @@ class RegistrationValidator(serializers.Serializer[RegistrationRequest]):
     def validate_email(self, value: str) -> str:
         if not is_valid_email_address(value):
             raise serializers.ValidationError(_("Enter a valid email address."))
+        # Only ASCII case differences make two addresses the same, but login
+        # looks users up with username__iexact (Postgres UPPER()), so registration must
+        # also reject addresses that UPPER() folds onto an existing user
         if User.objects.filter(
             Q(username__iexact=value) | Q(email__iexact=value) | Q(email_unique__iexact=value)
         ).exists():
             raise serializers.ValidationError(EMAIL_ALREADY_REGISTERED)
-        return value.lower()
+        return ascii_casefold(value)
 
     def validate(self, data: RegistrationRequest) -> RegistrationRequest:
         try:
