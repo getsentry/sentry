@@ -2269,6 +2269,7 @@ dependencies = [
     { name = "sentry-scm" },
     { name = "sentry-sdk", extra = ["http2"] },
     { name = "sentry-usage-accountant" },
+    { name = "sentry-viewercontext" },
     { name = "simplejson" },
     { name = "slack-sdk" },
     { name = "snuba-sdk" },
@@ -2441,6 +2442,7 @@ requires-dist = [
     { name = "sentry-scm", specifier = ">=1.9.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.72.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
+    { name = "sentry-viewercontext", specifier = ">=0.1.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
     { name = "slack-sdk", specifier = ">=3.40.1" },
     { name = "snuba-sdk", specifier = ">=3.0.43" },
@@ -2688,6 +2690,17 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_usage_accountant-0.0.10-py3-none-any.whl", hash = "sha256:8317a2117b694c26b429150134287dcdc03c9e5b0711888ddd87bf75147b0cca" },
+]
+
+[[package]]
+name = "sentry-viewercontext"
+version = "0.1.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "pyjwt" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_viewercontext-0.1.0-py3-none-any.whl", hash = "sha256:388161ccf93af22ed0c3bd6e48ac4875b05d096e6839edd68befe47ec8b15132" },
 ]
 
 [[package]]
