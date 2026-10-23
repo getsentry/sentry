@@ -5,6 +5,7 @@ import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -17,6 +18,7 @@ import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Truncate} from 'sentry/components/truncate';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -112,7 +114,7 @@ const orderedRelocationArtifacts = [
 ];
 
 const getArtifactRow = (row: RelocationArtifact) => [
-  <td key="file">
+  <SimpleTable.RowCell key="file">
     <strong>
       <Link
         to={`/_admin/relocations/${row.regionName}/${row.relocation.uuid}/${row.path}/`}
@@ -120,36 +122,33 @@ const getArtifactRow = (row: RelocationArtifact) => [
         {row.path}
       </Link>
     </strong>
-  </td>,
-  <td key="size" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="size" justify="center">
     {row.sizeInKbs} KB
-  </td>,
-  <td key="description" style={{textAlign: 'left'}}>
-    {row.description}
-  </td>,
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="description">{row.description}</SimpleTable.RowCell>,
 ];
 
 const getOrgRow = (row: Organization) => [
-  <td key="customer">
+  <SimpleTable.RowCell key="customer">
     <CustomerName>
       <OrganizationAvatar size={36} organization={row} />
       <div>
         <strong>
           <Link to={`/_admin/customers/${row.slug}/`}>{row.name}</Link>
         </strong>
-        <small> — {row.slug}</small>
+        <Text size="xs"> — {row.slug}</Text>
       </div>
     </CustomerName>
-  </td>,
-  <td key="joined" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="joined" direction="column" align="end" gap="xs">
     {moment(row.dateCreated).format('MMMM YYYY')}
-    <br />
-    <small>{moment(row.dateCreated).fromNow()}</small>
-  </td>,
+    <Text size="xs">{moment(row.dateCreated).fromNow()}</Text>
+  </SimpleTable.RowCell>,
 ];
 
 const getUserRow = (row: any) => [
-  <td key="user">
+  <SimpleTable.RowCell key="user" overflow="visible">
     <Link to={`/_admin/users/${row.id}/`}>
       <UserBadge
         hideEmail
@@ -157,18 +156,17 @@ const getUserRow = (row: any) => [
         displayName={<Truncate maxLength={40} value={row.name} />}
       />
     </Link>
-  </td>,
-  <td key="email" style={{textAlign: 'center'}}>
-    {row.username}
-    <br />
-    {row.username !== row.email && row.email}
-  </td>,
-  <td key="status" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="email" direction="column" gap="xs">
+    <Text>{row.username}</Text>
+    {row.username !== row.email && <Text>{row.email}</Text>}
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="center">
     {row.isActive ? 'Active' : 'Disabled'}
-  </td>,
-  <td key="joined" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="joined" justify="end">
     {moment(row.dateJoined).fromNow()}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function RelocationDetails() {
@@ -485,15 +483,9 @@ export function RelocationDetails() {
           api={regionApi}
           endpoint={`/relocations/${relocationData.uuid}/artifacts/`}
           columns={[
-            <th key="file" style={{width: 240}}>
-              File
-            </th>,
-            <th key="size" style={{width: 100, textAlign: 'center'}}>
-              Size
-            </th>,
-            <th key="description" style={{textAlign: 'left'}}>
-              Description
-            </th>,
+            {key: 'file', label: 'File', width: 240},
+            {key: 'size', label: 'Size', width: 100, align: 'center'},
+            {key: 'description', label: 'Description'},
           ]}
           hasPagination={false}
           columnsForRow={getArtifactRow}
@@ -561,10 +553,8 @@ export function RelocationDetails() {
             api={regionApi}
             endpoint={`/_admin/cells/${regionName}/customers/`}
             columns={[
-              <th key="customer">Customer</th>,
-              <th key="joined" style={{width: 150, textAlign: 'right'}}>
-                Joined
-              </th>,
+              {key: 'customer', label: 'Customer'},
+              {key: 'joined', label: 'Joined', width: 150, align: 'right'},
             ]}
             columnsForRow={getOrgRow}
             defaultParams={{
@@ -587,16 +577,10 @@ export function RelocationDetails() {
             path={`/_admin/relocations/${relocationData.uuid}/`}
             endpoint="/users/"
             columns={[
-              <th key="user">User</th>,
-              <th key="email" style={{width: 100, textAlign: 'center'}}>
-                Email
-              </th>,
-              <th key="status" style={{width: 100, textAlign: 'center'}}>
-                Status
-              </th>,
-              <th key="joined" style={{width: 200, textAlign: 'right'}}>
-                Joined
-              </th>,
+              {key: 'user', label: 'User'},
+              {key: 'email', label: 'Email', width: 100, align: 'center'},
+              {key: 'status', label: 'Status', width: 100, align: 'center'},
+              {key: 'joined', label: 'Joined', width: 200, align: 'right'},
             ]}
             columnsForRow={getUserRow}
             defaultParams={{

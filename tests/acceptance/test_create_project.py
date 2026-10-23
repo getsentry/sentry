@@ -214,6 +214,12 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.browser.wait_until(xpath='//button[contains(., "Install GitHub App")]')
             self.browser.driver.execute_script("window.__testOpenUrl = null;")
             self.browser.click(xpath='//button[contains(., "Install GitHub App")]')
+            self.create_provider_integration(
+                provider="github",
+                name="getsentry",
+                external_id="12345",
+                metadata={"sender": {"login": "testuser"}},
+            )
             self.browser.driver.execute_script(
                 "window.postMessage(arguments[0], window.location.origin);",
                 {

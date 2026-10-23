@@ -27,7 +27,7 @@ import {
   IssueSelectionProvider,
   useIssueSelectionActions,
 } from 'sentry/views/issueList/issueSelectionContext';
-import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
+import {DEFAULT_QUERY, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const organization = OrganizationFixture();
 
@@ -35,6 +35,7 @@ const defaultProps = {
   allResultsVisible: false,
   query: '',
   queryCount: 15,
+  sort: IssueSortOptions.DATE,
   projectId: 'project-slug',
   selection: {
     projects: [1],
@@ -169,13 +170,23 @@ describe('IssueListActions', () => {
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
-      it('bulk resolves', async () => {
+      it('bulk resolves with the current search filters and sort', async () => {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
 
-        render(<WrappedComponent queryCount={1500} />);
+        render(
+          <WrappedComponent
+            queryCount={1500}
+            sort={IssueSortOptions.FREQ}
+            selection={{
+              projects: [1],
+              environments: ['production'],
+              datetime: {start: null, end: null, period: '24h', utc: true},
+            }}
+          />
+        );
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(
@@ -193,6 +204,11 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: ['production'],
+              statsPeriod: '24h',
+              utc: true,
+              sort: IssueSortOptions.FREQ,
             },
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
@@ -229,6 +245,10 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: [],
+              utc: true,
+              sort: IssueSortOptions.DATE,
             },
             data: {priority: 'high'},
           })
@@ -275,6 +295,10 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: [],
+              utc: true,
+              sort: IssueSortOptions.DATE,
             },
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
@@ -609,9 +633,14 @@ describe('IssueListActions', () => {
           method: 'DELETE',
         });
 
-        render(<WrappedComponent query={DEFAULT_QUERY} queryCount={100} />, {
-          organization: orgWithPerformanceIssues,
-        });
+        render(
+          <WrappedComponent
+            query={DEFAULT_QUERY}
+            queryCount={100}
+            sort={IssueSortOptions.FREQ}
+          />,
+          {organization: orgWithPerformanceIssues}
+        );
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
@@ -639,6 +668,7 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: expect.objectContaining({
               query: DEFAULT_QUERY + ' issue.category:error',
+              sort: IssueSortOptions.FREQ,
             }),
           })
         );
@@ -655,9 +685,14 @@ describe('IssueListActions', () => {
           .spyOn(GroupStore, 'get')
           .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
 
-        render(<WrappedComponent query={DEFAULT_QUERY} queryCount={100} />, {
-          organization: orgWithPerformanceIssues,
-        });
+        render(
+          <WrappedComponent
+            query={DEFAULT_QUERY}
+            queryCount={100}
+            sort={IssueSortOptions.FREQ}
+          />,
+          {organization: orgWithPerformanceIssues}
+        );
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
@@ -682,6 +717,7 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: expect.objectContaining({
               query: DEFAULT_QUERY + ' issue.category:error',
+              sort: IssueSortOptions.FREQ,
             }),
           })
         );

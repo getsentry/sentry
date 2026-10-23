@@ -1,5 +1,6 @@
 import {IconCircle} from '@sentry/icons/circle';
 
+import {Tag} from '@sentry/scraps/badge';
 import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 
 const sizes: Array<NonNullable<ListItemProps['size']>> = ['xs', 'sm', 'md'];
@@ -32,6 +33,23 @@ describe('ListItem', () => {
           details: String(variant === 'details' || variant === 'leading-details'),
         },
       })
+    );
+
+    it.snapshot(
+      'rich-label',
+      () => (
+        <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
+          <ListItem
+            size={size}
+            label={
+              <Tag variant="muted" icon={<IconCircle />}>
+                Option
+              </Tag>
+            }
+          />
+        </ul>
+      ),
+      {tags: {area: 'core', size}}
     );
   });
 });

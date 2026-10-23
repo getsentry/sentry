@@ -9,6 +9,7 @@ from sentry.seer.code_review.webhooks.task import process_github_webhook_event
 from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -43,6 +44,5 @@ class ProcessGithubWebhookEventTest(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
-            actor_type=ActorType.INTEGRATION,
+            actor=Actor(type=ActorType.INTEGRATION), organization_id=self.organization.id
         )

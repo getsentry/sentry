@@ -4,7 +4,7 @@ import contextlib
 import logging
 from collections.abc import Generator, Iterable, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
@@ -23,6 +23,8 @@ from snuba_sdk import (
 from sentry import features, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
@@ -55,6 +57,7 @@ from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -325,8 +328,7 @@ def _detect_function_change_points(
             if get_viewer_context() is None:
                 viewer_context_manager = viewer_context_scope(
                     ViewerContext(
-                        organization_id=organization_id,
-                        actor_type=ActorType.SYSTEM,
+                        actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id
                     )
                 )
 
@@ -344,11 +346,16 @@ def _detect_function_change_points(
     )
 
     breakpoint_count = 0
-    emitted_count = 0
+    vroom_emitted_count = 0
+    sentry_emitted_count = 0
 
     for regression_chunk in chunked(regressions, 100):
         breakpoint_count += len(regression_chunk)
-        emitted_count += emit_function_regression_issue(projects_by_id, regression_chunk, start)
+        vroom_count, sentry_count = emit_function_regression_issue(
+            projects_by_id, regression_chunk, start
+        )
+        vroom_emitted_count += vroom_count
+        sentry_emitted_count += sentry_count
 
     metrics.incr(
         "statistical_detectors.breakpoint.detected",
@@ -359,8 +366,14 @@ def _detect_function_change_points(
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
-        amount=emitted_count,
-        tags={"source": "profile", "kind": "function"},
+        amount=vroom_emitted_count,
+        tags={"source": "profile", "kind": "function", "producer": "vroom"},
+        sample_rate=1.0,
+    )
+    metrics.incr(
+        "statistical_detectors.breakpoint.emitted",
+        amount=sentry_emitted_count,
+        tags={"source": "profile", "kind": "function", "producer": "sentry"},
         sample_rate=1.0,
     )
 
@@ -369,7 +382,7 @@ def emit_function_regression_issue(
     projects_by_id: dict[int, Project],
     regressions: list[BreakpointData],
     start: datetime,
-) -> int:
+) -> tuple[int, int]:
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
 
@@ -424,7 +437,8 @@ def emit_function_regression_issue(
 
     continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
-    payloads = []
+    payloads_by_producer: dict[bool, list[dict[str, Any]]] = {}
+    produce_in_sentry_by_org: dict[int, bool] = {}
 
     for regression in regressions:
         project_id = int(regression["project"])
@@ -440,7 +454,12 @@ def emit_function_regression_issue(
         if example is None:
             continue
 
-        payloads.append(
+        if project.organization_id not in produce_in_sentry_by_org:
+            produce_in_sentry_by_org[project.organization_id] = features.has(
+                "organizations:profiling-sentry-regression-occurrences", project.organization
+            )
+        produce_in_sentry = produce_in_sentry_by_org[project.organization_id]
+        payloads_by_producer.setdefault(produce_in_sentry, []).append(
             {
                 "organization_id": project.organization_id,
                 "project_id": project_id,
@@ -457,15 +476,37 @@ def emit_function_regression_issue(
             }
         )
 
-    if not payloads:
-        return 0
+    vroom_occurrences = 0
+    sentry_occurrences = 0
+    for produce_in_sentry, payloads in payloads_by_producer.items():
+        response = get_from_profiling_service(
+            method="POST",
+            path="/regressed?produce=false" if produce_in_sentry else "/regressed",
+            json_data=payloads,
+        )
+        if response.status != 200:
+            continue
 
-    response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
-    if response.status != 200:
-        return 0
+        data = json.loads(response.data)
+        if produce_in_sentry:
+            for payload in data["occurrence_payloads"]:
+                event_data = payload["event"]
+                occurrence = IssueOccurrence.from_dict(
+                    cast(
+                        IssueOccurrenceData,
+                        {
+                            **payload,
+                            "event_id": event_data["event_id"],
+                            "resource_id": payload.get("resource_id"),
+                        },
+                    )
+                )
+                produce_occurrence_to_kafka(occurrence=occurrence, event_data=event_data)
+            sentry_occurrences += len(data["occurrence_payloads"])
+        else:
+            vroom_occurrences += data["occurrences"]
 
-    data = json.loads(response.data)
-    return data.get("occurrences")
+    return vroom_occurrences, sentry_occurrences
 
 
 def fetch_continuous_examples(raw_examples):
