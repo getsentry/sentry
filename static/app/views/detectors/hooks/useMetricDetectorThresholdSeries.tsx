@@ -35,10 +35,6 @@ function sortThresholdsBySeverity<Threshold extends {priority: DetectorPriorityL
   return thresholds.toSorted((a, b) => a.priority - b.priority);
 }
 
-/**
- * Thresholds must be ordered from least to most severe. Without a resolution,
- * the OK band ends at the least severe threshold.
- */
 function createPriorityThresholdBands<Bound>({
   resolution,
   theme,
@@ -52,14 +48,16 @@ function createPriorityThresholdBands<Bound>({
   }>;
   resolution?: Bound;
 }): Array<ThresholdBand<Bound>> {
-  const [leastSevereThreshold] = thresholds;
+  const thresholdsBySeverity = sortThresholdsBySeverity(thresholds);
+
+  const [leastSevereThreshold] = thresholdsBySeverity;
 
   if (!leastSevereThreshold) {
     return [];
   }
 
   return getThresholdBands({
-    alertBoundaries: thresholds.map(threshold => ({
+    alertBoundaries: thresholdsBySeverity.map(threshold => ({
       bound: threshold.bound,
       color: getThresholdColor(theme, threshold.priority),
     })),
@@ -239,7 +237,7 @@ export function useMetricDetectorThresholdSeries({
         return {maxValue: undefined, additionalSeries: additional};
       }
 
-      const thresholdLines = sortThresholdsBySeverity(thresholds).map(threshold => {
+      const thresholdLines = thresholds.map(threshold => {
         const isAbove = threshold.type === DataConditionType.GREATER;
         const seriesName = `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`;
 
@@ -327,10 +325,7 @@ export function useMetricDetectorThresholdSeries({
 
       const staticThresholdBands = createPriorityThresholdBands({
         theme,
-        thresholds: sortThresholdsBySeverity(thresholds).map(threshold => ({
-          ...threshold,
-          bound: threshold.value,
-        })),
+        thresholds: thresholds.map(threshold => ({...threshold, bound: threshold.value})),
         resolution: resolution?.value,
       });
 
