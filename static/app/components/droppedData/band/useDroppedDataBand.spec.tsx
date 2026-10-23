@@ -86,7 +86,7 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries?.data).toEqual([
       expect.objectContaining({start: 0, ratio: 0}),
       expect.objectContaining({start: 60_000, ratio: 0.01}),
-      expect.objectContaining({start: 120_000, ratio: 0, accepted: {count: 50}}),
+      expect.objectContaining({start: 120_000, ratio: 0, accepted: 50}),
     ]);
   });
 
