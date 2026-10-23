@@ -5,15 +5,15 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/outcomeSections';
 import type {AskSeerHandler} from 'sentry/components/droppedData/outcomeSections';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 
 function OutcomeList({
   droppedEvents,
   acceptedEvents,
   onAskSeer,
 }: {
-  acceptedEvents: DroppedEventsBucket[];
-  droppedEvents: DroppedEventsBucket[];
+  acceptedEvents: OutcomeRow[];
+  droppedEvents: OutcomeRow[];
   onAskSeer?: AskSeerHandler;
 }) {
   return (

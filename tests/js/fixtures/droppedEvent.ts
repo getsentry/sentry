@@ -1,8 +1,6 @@
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 
-export function DroppedEventFixture(
-  params: Partial<DroppedEventsBucket> = {}
-): DroppedEventsBucket {
+export function DroppedEventFixture(params: Partial<OutcomeRow> = {}): OutcomeRow {
   return {
     type: 'system',
     category: 'span',

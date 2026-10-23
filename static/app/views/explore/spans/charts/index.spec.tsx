@@ -6,7 +6,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -362,8 +362,8 @@ describe('ExploreCharts', () => {
       droppedEvents = [],
       organizationFeatures = features,
     }: {
-      acceptedEvents?: DroppedEventsBucket[];
-      droppedEvents?: DroppedEventsBucket[];
+      acceptedEvents?: OutcomeRow[];
+      droppedEvents?: OutcomeRow[];
       organizationFeatures?: string[];
     }) {
       const request = MockApiClient.addMockResponse({
