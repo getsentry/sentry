@@ -255,7 +255,8 @@ class SentryAppPermission(SentryPermission):
         owner_app = access.get_organization_access_context(
             request, organization_id=sentry_app.owner_id
         )
-        assert owner_app, f"owner organization for {sentry_app.name} was not found"
+        if owner_app is None:
+            raise SentryAppError(message="Organization not found", status_code=404)
         self.determine_access(request, owner_app)
 
         if superuser_has_permission(request):
@@ -491,7 +492,8 @@ class SentryAppAuthorizationsPermission(SentryPermission):
         installation_org_context = access.get_organization_access_context(
             request, organization_id=installation.organization_id
         )
-        assert installation_org_context, "organization for installation was not found"
+        if installation_org_context is None:
+            raise SentryAppError(message="Organization not found", status_code=404)
         self.determine_access(request, installation_org_context)
 
         if not request.user.is_authenticated or not request.user.is_sentry_app:
@@ -522,7 +524,8 @@ class SentryInternalAppTokenPermission(SentryPermission):
             request, organization_id=sentry_app.owner_id
         )
 
-        assert owner_app, "Failed to get organization/owner_app to check in has_object_permission"
+        if owner_app is None:
+            raise SentryAppError(message="Organization not found", status_code=404)
         self.determine_access(request, owner_app)
 
         if superuser_has_permission(request):

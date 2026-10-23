@@ -6,6 +6,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {ChartLegend, type LegendItem} from 'sentry/components/charts/chartLegend';
 import {
+  datasetNoun,
   isOutcomeSelected,
   outcomeLabel,
   type OutcomeColors,
@@ -13,6 +14,7 @@ import {
 } from 'sentry/components/droppedData/outcomes';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -61,7 +63,9 @@ export function droppedEventsToSeries(
 
 interface DroppedDataChartProps {
   colors: OutcomeColors;
+  dataset: DiscoverDatasets;
   droppedEvents: DroppedEventsBucket[];
+  hasAskSeer: boolean;
   onSelectionChange: (selection: OutcomeSelection) => void;
   selection: OutcomeSelection;
 }
@@ -69,6 +73,8 @@ interface DroppedDataChartProps {
 export function DroppedDataChart({
   droppedEvents,
   colors,
+  dataset,
+  hasAskSeer,
   selection,
   onSelectionChange,
 }: DroppedDataChartProps) {
@@ -103,13 +109,20 @@ export function DroppedDataChart({
     <Stack gap="md">
       <Stack gap="sm">
         <Heading as="h2" size="lg">
-          {t('%s dropped and filtered events', formatAbbreviatedNumber(totalDropped))}
-        </Heading>
-        {/* TODO: Only mention Seer once the Ask Seer button is limited to organizations with Seer access. */}
-        <Text size="sm">
           {t(
-            'Your filtered events are broken down by category below. Use Seer to understand what each category means and how to fix common causes of unintentional data loss.'
+            '%s dropped and filtered %s',
+            formatAbbreviatedNumber(totalDropped),
+            datasetNoun(dataset, totalDropped)
           )}
+        </Heading>
+        <Text size="sm">
+          {hasAskSeer
+            ? t(
+                'Your filtered events are broken down by category below. Use Seer to understand what each category means and how to fix common causes of unintentional data loss.'
+              )
+            : t(
+                'Your filtered events are broken down by category below. Each reason links to docs with explanations and common fixes of unintentional data loss.'
+              )}
         </Text>
       </Stack>
       <ChartLegend

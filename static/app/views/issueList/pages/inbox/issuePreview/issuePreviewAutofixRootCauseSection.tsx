@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
@@ -8,53 +6,36 @@ import {
   type AutofixSection,
   getAutofixArtifactFromSection,
   isRootCauseArtifact,
-  type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
 import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
 import {t} from 'sentry/locale';
 
-import {CopySectionMarkdown} from './copySectionMarkdown';
 import {IssuePreviewSection} from './issuePreviewSection';
-import {RetryableAutofixSection} from './retryableAutofixSection';
 import {WorkingIndicator} from './workingIndicator';
 
 export function IssuePreviewAutofixRootCauseSection({
-  autofix,
-  readOnly = false,
   groupId,
   section,
 }: {
-  autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
   section: AutofixSection;
-  readOnly?: boolean;
 }) {
   const artifact = getAutofixArtifactFromSection(section);
   const rootCause = isRootCauseArtifact(artifact) && artifact.data ? artifact.data : null;
   const evidence = useAutofixSectionEvidence({section});
+  const hasDetails = Boolean(
+    rootCause &&
+    (rootCause.five_whys.length ||
+      rootCause.reproduction_steps?.length ||
+      evidence.length)
+  );
 
   return (
-    <RetryableAutofixSection
-      autofix={autofix}
-      readOnly={readOnly}
+    <IssuePreviewSection
       section={section}
-      step="root_cause"
-    >
-      <IssuePreviewSection
-        title={t('Root Cause')}
-        actions={
-          <Fragment>
-            <RetryableAutofixSection.Button />
-            <CopySectionMarkdown section={section} />
-          </Fragment>
-        }
-      >
-        <RetryableAutofixSection.Prompt
-          placeholder={t('Give Seer additional context to improve this root cause.')}
-          prompt={t('How can this root cause be improved?')}
-        />
-        {section.status === 'processing' ? (
+      summary={
+        section.status === 'processing' ? (
           <WorkingIndicator blocks={section.blocks}>
             {t('Generating root cause...')}
           </WorkingIndicator>
@@ -62,12 +43,15 @@ export function IssuePreviewAutofixRootCauseSection({
           <Markdown raw={rootCause.one_line_description} />
         ) : (
           <Text variant="muted">{t('No root cause was identified.')}</Text>
-        )}
+        )
+      }
+    >
+      {hasDetails && (
         <Stack gap="lg">
           {rootCause?.five_whys.length ? (
             <Stack gap="md">
               <Text bold>{t('Why did this happen?')}</Text>
-              <Stack as="ul" gap="sm" paddingLeft="xl">
+              <Stack as="ul" gap="sm" paddingLeft="xl" margin="0">
                 {rootCause.five_whys.map((why, index) => (
                   <Container as="li" key={index}>
                     <Markdown raw={why} />
@@ -79,7 +63,7 @@ export function IssuePreviewAutofixRootCauseSection({
           {rootCause?.reproduction_steps?.length ? (
             <Stack gap="md">
               <Text bold>{t('Reproduction Steps')}</Text>
-              <Stack as="ol" gap="sm" paddingLeft="xl">
+              <Stack as="ol" gap="sm" paddingLeft="xl" margin="0">
                 {rootCause.reproduction_steps.map((step, index) => (
                   <Container as="li" key={index}>
                     <Markdown raw={step} />
@@ -104,7 +88,7 @@ export function IssuePreviewAutofixRootCauseSection({
             </Stack>
           ) : null}
         </Stack>
-      </IssuePreviewSection>
-    </RetryableAutofixSection>
+      )}
+    </IssuePreviewSection>
   );
 }

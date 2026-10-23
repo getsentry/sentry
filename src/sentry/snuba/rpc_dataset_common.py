@@ -1,6 +1,5 @@
 import logging
 import math
-from bisect import bisect_right
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -60,10 +59,8 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.columns import (
     ColumnDefinitions,
-    ResolvedAggregate,
     ResolvedAttribute,
     ResolvedColumn,
-    ResolvedConditionalAggregate,
     ResolvedLiteral,
 )
 from sentry.search.eap.constants import (
@@ -492,6 +489,10 @@ class RPCBase:
             )
 
         if query.sampling_mode == SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+            # Flextime walks rows backward by timestamp. An aggregate has no row to
+            # walk, so the routing cannot paginate it.
+            if has_aggregations or having is not None:
+                raise InvalidSearchQuery("aggregates are not supported with flextime sampling")
             if len(resolved_orderby) == 0:
                 raise InvalidSearchQuery(
                     "You must orderby -timestamp and -id to use HIGHEST_ACCURACY_FLEX_TIME"
@@ -821,118 +822,23 @@ class RPCBase:
                 setattr(e, "debug", MessageToJson(rpc_request))
             raise
 
-    @classmethod
-    def get_transformation_query(
-        cls,
-        request: TimeSeriesRequest,
-        y_axes: Sequence[str],
-        transformations: Mapping[int, Sequence[Transformation]] | None,
-        search_resolver: SearchResolver,
-    ) -> TimeSeriesRequest | None:
-        if not transformations:
-            return None
-
-        smoothing_axes = list(
-            dict.fromkeys(
-                y_axes[index]
-                for index, pipeline in transformations.items()
-                if any(
-                    not isinstance(transformation, FillTransformation)
-                    for transformation in pipeline
-                )
-            )
-        )
-        if not smoothing_axes:
-            return None
-
-        start = request.meta.start_timestamp.seconds + request.meta.start_timestamp.nanos / 1e9
-        end = request.meta.end_timestamp.seconds + request.meta.end_timestamp.nanos / 1e9
-        granularity = next(
-            (
-                interval
-                for interval in sorted(VALID_GRANULARITIES)
-                if interval <= request.granularity_secs
-                and request.granularity_secs % interval == 0
-                and math.ceil((end - start) / interval) <= MAX_ROLLUP_POINTS
-            ),
-            None,
-        )
-        if granularity is None:
-            raise InvalidSearchQuery(
-                "Selected interval would create too many buckets for the timeseries"
-            )
-        if granularity == request.granularity_secs:
-            return None
-
-        selected_equations, selected_axes = arithmetic.categorize_columns(smoothing_axes)
-        fine_params = search_resolver.params.copy()
-        fine_params.granularity_secs = granularity
-        resolver = cls.get_resolver(fine_params, search_resolver.config)
-        functions, _ = resolver.resolve_functions(selected_axes)
-        equations, _ = resolver.resolve_equations(selected_equations)
-        query = TimeSeriesRequest()
-        query.CopyFrom(request)
-        query.granularity_secs = granularity
-        query.ClearField("expressions")
-        query.expressions.extend(
-            cls.categorize_aggregate(column)
-            for column in functions + equations
-            if column.is_aggregate
-        )
-        return query
-
     @staticmethod
-    def rebucket_timeseries(
-        timestamps: Sequence[float],
-        values: Sequence[float | None],
-        output_timestamps: Sequence[float],
-        interval: int,
-        *,
-        sum_values: bool = False,
-    ) -> list[float | None]:
-        sums = [0.0] * len(output_timestamps)
-        counts = [0] * len(output_timestamps)
-        for timestamp, value in zip(timestamps, values):
-            index = bisect_right(output_timestamps, timestamp) - 1
-            if value is None or index < 0 or timestamp >= output_timestamps[index] + interval:
-                continue
-            sums[index] += value
-            counts[index] += 1
-        return [
-            (total if sum_values else total / count) if count else None
-            for total, count in zip(sums, counts)
-        ]
-
-    @classmethod
     def apply_timeseries_transformations(
-        cls,
         result: ProcessedTimeseries,
         timeseries_list: Sequence[TimeSeries],
         y_axes: Sequence[str],
         transformations: Mapping[int, Sequence[Transformation]] | None,
-        interval: int,
-        *,
-        resolved_columns: Sequence[ResolvedColumn],
-        fine_timeseries_list: Sequence[TimeSeries] = (),
     ) -> None:
         if not transformations:
             return
 
-        sum_axes = {
-            column.public_alias
-            for column in resolved_columns
-            if isinstance(column, (ResolvedAggregate, ResolvedConditionalAggregate))
-            and column.internal_name in {Function.FUNCTION_COUNT, Function.FUNCTION_SUM}
-        }
         series_by_label = {series.label: series for series in timeseries_list}
-        fine_series_by_label = {series.label: series for series in fine_timeseries_list}
         output_timestamps = [row["time"] for row in result.timeseries]
         for axis_index, pipeline in transformations.items():
+            has_fill = any(
+                isinstance(transformation, FillTransformation) for transformation in pipeline
+            )
             series = series_by_label.get(y_axes[axis_index])
-            if any(
-                not isinstance(transformation, FillTransformation) for transformation in pipeline
-            ):
-                series = fine_series_by_label.get(y_axes[axis_index], series)
             timestamps = (
                 [bucket.seconds for bucket in series.buckets]
                 if series is not None
@@ -940,7 +846,7 @@ class RPCBase:
             )
             values = (
                 [
-                    process_value(point.data if point.data_present else None)
+                    process_value(point.data if point.data_present or not has_fill else None)
                     for point in series.data_points
                 ]
                 if series is not None
@@ -959,28 +865,11 @@ class RPCBase:
 
             alias = f"__transformed_y_axis_{axis_index}"
             result.transformation_aliases[axis_index] = alias
-            rebucketed = cls.rebucket_timeseries(
-                timestamps,
-                values,
-                output_timestamps,
-                interval,
-                sum_values=y_axes[axis_index] in sum_axes,
-            )
             result.transformation_flags[axis_index] = TimeseriesTransformationFlags(
-                filled=[
-                    bool(value)
-                    for value in cls.rebucket_timeseries(
-                        timestamps, filled, output_timestamps, interval, sum_values=True
-                    )
-                ],
-                smoothed=[
-                    bool(value)
-                    for value in cls.rebucket_timeseries(
-                        timestamps, smoothed, output_timestamps, interval, sum_values=True
-                    )
-                ],
+                filled=filled,
+                smoothed=smoothed,
             )
-            for row, value in zip(result.timeseries, rebucketed):
+            for row, value in zip(result.timeseries, values):
                 row[alias] = process_value(value)
 
     @classmethod
@@ -1150,14 +1039,6 @@ class RPCBase:
 
         """Run the query"""
         rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
-        transformation_query = cls.get_transformation_query(
-            rpc_request, y_axes, transformations, search_resolver
-        )
-        transformation_response = (
-            cls._run_timeseries_rpc(params.debug, transformation_query)
-            if transformation_query is not None
-            else rpc_response
-        )
 
         """Process the results"""
         result = ProcessedTimeseries()
@@ -1191,9 +1072,6 @@ class RPCBase:
             rpc_response.result_timeseries,
             y_axes,
             transformations,
-            params.timeseries_granularity_secs,
-            resolved_columns=aggregates,
-            fine_timeseries_list=transformation_response.result_timeseries,
         )
 
         if comparison_delta is not None:
@@ -1215,14 +1093,6 @@ class RPCBase:
                 additional_queries=additional_queries,
             )
             comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
-            comp_transformation_query = cls.get_transformation_query(
-                comp_rpc_request, y_axes, transformations, search_resolver
-            )
-            comp_transformation_response = (
-                cls._run_timeseries_rpc(params.debug, comp_transformation_query)
-                if comp_transformation_query is not None
-                else comp_rpc_response
-            )
 
             processed = cls.process_timeseries_list(
                 list(comp_rpc_response.result_timeseries), config
@@ -1237,9 +1107,6 @@ class RPCBase:
                 comp_rpc_response.result_timeseries,
                 y_axes,
                 transformations,
-                params.timeseries_granularity_secs,
-                resolved_columns=aggregates,
-                fine_timeseries_list=comp_transformation_response.result_timeseries,
             )
             comparison_column = processed.transformation_aliases.get(0, y_axes[0])
             result.comparison_transformation_flags = processed.transformation_flags.get(0)
@@ -1399,25 +1266,12 @@ class RPCBase:
             )
             requests.append(other_request)
 
-        transformation_offset = len(requests)
-        for request in list(requests):
-            transformation_query = cls.get_transformation_query(
-                request, y_axes, transformations, search_resolver
-            )
-            if transformation_query is not None:
-                requests.append(transformation_query)
-
         """Run the query"""
         try:
             timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests, debug=params.debug)
             rpc_response = timeseries_rpc_response[0]
             if include_other:
                 other_response = timeseries_rpc_response[1]
-            transformation_response = (
-                timeseries_rpc_response[transformation_offset]
-                if len(timeseries_rpc_response) > transformation_offset
-                else rpc_response
-            )
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if params.debug:
@@ -1426,11 +1280,6 @@ class RPCBase:
 
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)
-        transformation_series_by_group = defaultdict(list)
-        for timeseries in transformation_response.result_timeseries:
-            group_key = tuple(sorted(timeseries.group_by_attributes.items()))
-            transformation_series_by_group[group_key].append(timeseries)
-        map_result_key_to_transformation_series = defaultdict(list)
 
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
 
@@ -1442,7 +1291,6 @@ class RPCBase:
 
         for timeseries in rpc_response.result_timeseries:
             groupby_attributes = timeseries.group_by_attributes
-            group_key = tuple(sorted(groupby_attributes.items()))
             remapped_groupby = {}
             # Remap internal attrs back to public ones
             for col in groupby_columns:
@@ -1475,9 +1323,6 @@ class RPCBase:
 
             result_key = create_result_key(remapped_groupby, groupby_columns, {})
             map_result_key_to_timeseries[result_key].append(timeseries)
-            map_result_key_to_transformation_series[result_key] = transformation_series_by_group[
-                group_key
-            ]
         final_result = {}
         # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
         for index, row in enumerate(top_events["data"]):
@@ -1490,9 +1335,6 @@ class RPCBase:
                 map_result_key_to_timeseries[result_key],
                 y_axes,
                 transformations,
-                params.timeseries_granularity_secs,
-                resolved_columns=aggregates,
-                fine_timeseries_list=map_result_key_to_transformation_series[result_key],
             )
             final_result[result_key] = SnubaTSResult(
                 {
@@ -1513,19 +1355,11 @@ class RPCBase:
             )
             apply_resolved_literals(result.timeseries, aggregates)
             if check_timeseries_has_data(result.timeseries, y_axes):
-                other_transformation_response = (
-                    timeseries_rpc_response[transformation_offset + 1]
-                    if len(timeseries_rpc_response) > transformation_offset + 1
-                    else other_response
-                )
                 cls.apply_timeseries_transformations(
                     result,
                     other_response.result_timeseries,
                     y_axes,
                     transformations,
-                    params.timeseries_granularity_secs,
-                    resolved_columns=aggregates,
-                    fine_timeseries_list=other_transformation_response.result_timeseries,
                 )
                 final_result[OTHER_KEY] = SnubaTSResult(
                     {

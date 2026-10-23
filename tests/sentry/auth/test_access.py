@@ -5,6 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 from django.utils import timezone
 
+from sentry.api.permissions import SentryPermission
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
 from sentry.auth.providers.dummy import DummyProvider
@@ -23,10 +24,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.resources import get_active_resource_ids
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import (
     all_silo_test,
     assume_test_silo_mode,
@@ -966,6 +969,77 @@ class RpcGlobalAccessTest(TestCase):
         self.context = context
         self.token = AuthenticatedToken(kind="org_auth_token", organization_id=self.org.id)
 
+    def test_control_prefetch_matches_access_kind(self) -> None:
+        owner = self.create_user()
+        member = self.create_user()
+        self.create_member(organization=self.org, user=owner, role="owner")
+        self.create_member(organization=self.org, user=member, role="member", teams=[self.team])
+        superuser = self.create_user(is_superuser=True)
+        staff = self.create_user(is_staff=True)
+        app = self.create_sentry_app(organization=self.org)
+        self.create_sentry_app_installation(
+            organization=self.org, slug=app.slug, user=owner, prevent_token_exchange=True
+        )
+        agent = AuthenticatedToken(
+            kind="agent_token", user_id=member.id, organization_id=self.org.id, scopes=["org:read"]
+        )
+        delegated = AuthenticatedToken(
+            kind="viewer_context",
+            user_id=superuser.id,
+            organization_id=self.org.id,
+            scopes=["org:read"],
+            superuser=SuperuserAccess(expires_at=int(timezone.now().timestamp()) + 60),
+        )
+        cases = (
+            ("member", self.make_request(user=member), False, False),
+            ("owner", self.make_request(user=owner), False, False),
+            ("staff", self.make_request(user=staff, is_staff=True), False, False),
+            ("agent", self.make_request(user=member, auth=agent), False, False),
+            ("system", self.make_request(auth=AuthenticatedToken(kind="system")), False, False),
+            ("org_token", self.make_request(auth=self.token), True, True),
+            ("sentry_app", self.make_request(user=app.proxy_user), True, True),
+            (
+                "delegated_superuser",
+                self.make_request(user=superuser, auth=delegated),
+                True,
+                True,
+            ),
+            (
+                "superuser",
+                self.make_request(user=superuser, is_superuser=True),
+                True,
+                True,
+            ),
+            (
+                "wrong_org_token",
+                self.make_request(
+                    auth=AuthenticatedToken(
+                        kind="org_auth_token", organization_id=self.create_organization().id
+                    )
+                ),
+                True,
+                False,
+            ),
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            for kind, raw_request, prefetched, org_wide in cases:
+                with self.subTest(kind=kind):
+                    request = drf_request_from_request(raw_request)
+                    context = access.get_organization_access_context(
+                        request, organization_id=self.org.id
+                    )
+                    assert context is not None
+                    SentryPermission().determine_access(request, context)
+                    result = request.access
+                    assert (context.resource_ids is not None) == prefetched
+                    assert isinstance(result, access.ApiBackedOrganizationGlobalAccess) == org_wide
+                    with patch(
+                        "sentry.hybridcloud.rpc.service.dispatch_remote_call",
+                        side_effect=AssertionError("Resource enumeration must not make an RPC"),
+                    ) as rpc:
+                        _ = result.accessible_project_ids, result.accessible_team_ids
+                    rpc.assert_not_called()
+
     def test_org_token_resource_ids(self) -> None:
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
@@ -1007,7 +1081,7 @@ class RpcGlobalAccessTest(TestCase):
             with (
                 patch(
                     "sentry.auth.access.get_active_resource_ids",
-                    wraps=access.get_active_resource_ids,
+                    wraps=get_active_resource_ids,
                 ) as resources,
                 patch(
                     "sentry.hybridcloud.rpc.service.dispatch_remote_call",

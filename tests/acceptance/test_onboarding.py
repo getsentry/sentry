@@ -450,9 +450,17 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.driver.execute_script("window.__testOpenUrl = null;")
             self.browser.click(xpath='//button[contains(., "Install GitHub App")]')
 
-            # The install popup was intercepted. Send a postMessage callback
-            # with the installation_id. The backend validates and completes
-            # the pipeline, creating the integration.
+            # The installation.created webhook creates the trusted integration
+            # before GitHub redirects the popup back to the pipeline.
+            self.create_provider_integration(
+                provider="github",
+                name="getsentry",
+                external_id="12345",
+                metadata={"sender": {"login": "testuser"}},
+            )
+
+            # The install popup was intercepted. Send its postMessage callback
+            # with the installation_id so the pipeline can link the integration.
             self.browser.driver.execute_script(
                 "window.postMessage(arguments[0], window.location.origin);",
                 {

@@ -7,11 +7,11 @@ from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
+from sentry.investigations.access import has_investigations_access
 from sentry.investigations.endpoints.schema import InvestigationSchema
 from sentry.investigations.models import (
     Investigation,
@@ -26,19 +26,10 @@ from sentry.investigations.services import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
-FEATURE = "organizations:investigations"
-
 
 class InvestigationArchivedError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "Archived investigations are read-only."
-
-
-def feature_enabled(request: Request, organization: Organization) -> bool:
-    return (
-        features.has(FEATURE, organization, actor=request.user)
-        and request.access.has_open_membership
-    )
 
 
 def service_error(error: Exception) -> Response | None:
@@ -108,7 +99,7 @@ class OrganizationInvestigationsBaseEndpoint(OrganizationEndpoint):
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
-        if not feature_enabled(request, kwargs["organization"]):
+        if not has_investigations_access(kwargs["organization"], actor=request.user):
             raise ResourceDoesNotExist
         return args, kwargs
 

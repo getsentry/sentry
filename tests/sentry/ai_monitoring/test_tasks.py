@@ -36,6 +36,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -492,9 +493,9 @@ class SpawnConversationTitleGenerationTest(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.SYSTEM),
             organization_id=self.project.organization_id,
             project_id=self.project.id,
-            actor_type=ActorType.SYSTEM,
         )
         assert get_viewer_context() is None
 
