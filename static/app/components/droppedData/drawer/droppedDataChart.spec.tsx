@@ -5,6 +5,7 @@ import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {EChartDataZoomHandler} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {DroppedDataChart, droppedEventsToSeries} from './droppedDataChart';
 
@@ -18,6 +19,7 @@ describe('DroppedDataChart', () => {
       <DroppedDataChart
         droppedEvents={[DroppedEventFixture({outcome: 'filtered', count: 5})]}
         colors={{filtered: '#000'}}
+        dataset={DiscoverDatasets.SPANS}
         hasAskSeer={false}
         selection={{}}
         onSelectionChange={jest.fn()}

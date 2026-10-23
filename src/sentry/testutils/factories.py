@@ -206,6 +206,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowTriggerBinding,
 )
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -222,7 +223,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
-from sentry.service_accounts.models import ServiceAccount
+from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
@@ -2307,6 +2308,28 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_service_account(
+        organization: Organization,
+        name: str = "seer-autofix",
+        scope_list: Sequence[str] = ("org:read",),
+        project_ids: Sequence[int] = (),
+        **kwargs: Any,
+    ) -> ServiceAccount:
+        with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
+            service_account = ServiceAccount.objects.create(
+                organization_id=organization.id,
+                name=name,
+                scope_list=list(scope_list),
+                **kwargs,
+            )
+            ServiceAccountProject.objects.bulk_create(
+                ServiceAccountProject(service_account=service_account, project_id=project_id)
+                for project_id in project_ids
+            )
+        return service_account
+
+    @staticmethod
     def create_organization_contributor(
         organization: Organization,
         integration: Integration | RpcIntegration,
@@ -3420,15 +3443,21 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_service_account(organization, **kwargs) -> ServiceAccount:
-        kwargs.setdefault("name", uuid4().hex)
-        return ServiceAccount.objects.create(organization_id=organization.id, **kwargs)
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config(
+        organization, *, trigger_actions: Sequence[Action] = (), **kwargs
+    ) -> SeerWorkflowConfig:
+        config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
+        for action in trigger_actions:
+            Factories.create_seer_workflow_trigger_binding(config, action)
+        return config
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_seer_workflow_config(organization, **kwargs) -> SeerWorkflowConfig:
-        return SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
+    def create_seer_workflow_trigger_binding(config, action) -> SeerWorkflowTriggerBinding:
+        return SeerWorkflowTriggerBinding.objects.create(
+            workflow_config=config, trigger_action=action
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
