@@ -375,13 +375,13 @@ wheels = [
 
 [[package]]
 name = "djangorestframework"
-version = "3.17.2"
+version = "3.18.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "django" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/djangorestframework-3.17.2-py3-none-any.whl", hash = "sha256:cb0546a7415d5b46c04e0f4fe0a54b2109f4fdd5e83ca773c8c6183a6493d042" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/djangorestframework-3.18.2-py3-none-any.whl", hash = "sha256:a92d6a4e128a2550bd2fe2e02008a9e47fe52c180e130bb438f5ba70ee933a3f" },
 ]
 
 [[package]]
@@ -2379,7 +2379,7 @@ requires-dist = [
     { name = "django-crispy-forms", specifier = ">=1.14.0" },
     { name = "django-csp", specifier = ">=3.8" },
     { name = "django-pg-zero-downtime-migrations", specifier = ">=0.18" },
-    { name = "djangorestframework", specifier = ">=3.16.1" },
+    { name = "djangorestframework", specifier = ">=3.18.2" },
     { name = "drf-spectacular", specifier = ">=0.27.2" },
     { name = "emmett-prometheus", specifier = ">=0.3.0" },
     { name = "emmett-sentry", specifier = ">=0.9.0" },
