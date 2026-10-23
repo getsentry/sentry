@@ -23,37 +23,37 @@ function datasetLabel(dataset: DiscoverDatasets): string {
   return DATASET_LABELS[dataset] ?? dataset;
 }
 
-const DROPPED_DATA_LABELS: Partial<Record<DiscoverDatasets, string>> = {
-  errors: t('Dropped Errors'),
-  ourlogs: t('Dropped Logs'),
-  spans: t('Dropped Spans'),
-  tracemetrics: t('Dropped Metrics'),
+interface TelemetryName {
+  noun: (count: number) => string;
+  title: string;
+}
+
+const TELEMETRY_NAMES: Partial<Record<DiscoverDatasets, TelemetryName>> = {
+  errors: {title: t('Errors'), noun: count => tn('error', 'errors', count)},
+  ourlogs: {title: t('Logs'), noun: count => tn('log', 'logs', count)},
+  spans: {title: t('Spans'), noun: count => tn('span', 'spans', count)},
+  tracemetrics: {title: t('Metrics'), noun: count => tn('metric', 'metrics', count)},
 };
+
+const DEFAULT_TELEMETRY_NAME: TelemetryName = {
+  title: t('Events'),
+  noun: count => tn('event', 'events', count),
+};
+
+function telemetryName(dataset: DiscoverDatasets): TelemetryName {
+  return TELEMETRY_NAMES[dataset] ?? DEFAULT_TELEMETRY_NAME;
+}
 
 export function droppedDataLabel(dataset: DiscoverDatasets): string {
-  return DROPPED_DATA_LABELS[dataset] ?? t('Dropped Events');
+  return t('Dropped %s', telemetryName(dataset).title);
 }
-
-const DROPPED_AND_FILTERED_LABELS: Partial<Record<DiscoverDatasets, string>> = {
-  errors: t('Dropped and Filtered Errors'),
-  ourlogs: t('Dropped and Filtered Logs'),
-  spans: t('Dropped and Filtered Spans'),
-  tracemetrics: t('Dropped and Filtered Metrics'),
-};
 
 export function droppedAndFilteredLabel(dataset: DiscoverDatasets): string {
-  return DROPPED_AND_FILTERED_LABELS[dataset] ?? t('Dropped and Filtered Events');
+  return t('Dropped and Filtered %s', telemetryName(dataset).title);
 }
 
-const DATASET_NOUNS: Partial<Record<DiscoverDatasets, (count: number) => string>> = {
-  errors: count => tn('error', 'errors', count),
-  ourlogs: count => tn('log', 'logs', count),
-  spans: count => tn('span', 'spans', count),
-  tracemetrics: count => tn('metric', 'metrics', count),
-};
-
 export function datasetNoun(dataset: DiscoverDatasets, count: number): string {
-  return DATASET_NOUNS[dataset]?.(count) ?? tn('event', 'events', count);
+  return telemetryName(dataset).noun(count);
 }
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
