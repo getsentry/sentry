@@ -1,11 +1,12 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db.models import Value
 from django.db.models.functions import Coalesce
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -48,6 +49,19 @@ from sentry.utils.security.orgauthtoken_token import (
     generate_token,
     hash_token,
 )
+
+
+class OrgAuthTokenCreateSerializer(serializers.Serializer[dict[str, Any]]):
+    # Name errors are reported by the endpoint with its existing specific messages.
+    name = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, trim_whitespace=False
+    )
+    scopes = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=False,
+        default=lambda: list(DEFAULT_ORG_AUTH_TOKEN_SCOPES),
+    )
 
 
 @control_silo_endpoint
@@ -105,7 +119,11 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
 
         token_hashed = hash_token(token_str)
 
-        name = request.data.get("name")
+        serializer = OrgAuthTokenCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        name = serializer.validated_data.get("name")
+        scopes = serializer.validated_data["scopes"]
 
         # Main validation cases with specific error messages
         if not name:
@@ -115,14 +133,6 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
             return Response(
                 {"detail": "The name cannot be longer than 255 characters."}, status=400
             )
-
-        scopes = request.data.get("scopes", list(DEFAULT_ORG_AUTH_TOKEN_SCOPES))
-        if (
-            not isinstance(scopes, list)
-            or not scopes
-            or not all(isinstance(scope, str) for scope in scopes)
-        ):
-            return Response({"detail": "Scopes must be a non-empty list of strings."}, status=400)
 
         disallowed_scopes = {
             scope
