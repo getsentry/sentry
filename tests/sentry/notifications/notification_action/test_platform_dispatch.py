@@ -8,7 +8,6 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey
@@ -116,10 +115,6 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         follow_up = client.chat_postMessage.call_args_list[1].kwargs
         assert follow_up["thread_ts"] == "123.456"
         assert follow_up["reply_broadcast"] is True
-
-        thread = NotificationThread.objects.get()
-        assert thread.object_id == self.event_data.group.id
-        assert thread.key_data["group_id"] == self.event_data.group.id
 
     @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_metric_thread_flag_off_posts_top_level(

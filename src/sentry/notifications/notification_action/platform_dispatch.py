@@ -159,7 +159,6 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
                     "group_id": metric_issue_context.id,
                     "open_period_start": open_period_context.date_started.isoformat(),
                 },
-                object_id=metric_issue_context.id,
             ),
             reply_broadcast=(metric_issue_context.new_status == IncidentStatus.CRITICAL),
         )

@@ -178,24 +178,12 @@ class ThreadingServiceStoreNewThreadTest(ThreadingServiceTestBase):
         assert thread.key_type == self.key_type
         assert thread.key_data == self.key_data
         assert thread.provider_data == {}
-        assert thread.object_id is None
 
         assert record.id is not None
         assert record.thread_id == thread.id
         assert record.provider_key == self.provider_key
         assert record.target_id == self.target_id
         assert record.message_id == self.message_id
-
-    def test_store_new_thread_stores_object_id(self) -> None:
-        thread, _ = ThreadingService.store_new_thread(
-            threading_config={**self.threading_config, "object_id": 456},
-            external_message_id=self.message_id,
-        )
-
-        assert thread.object_id == 456
-        # object_id is for lookups only and doesn't change the thread key
-        assert thread.thread_key == self.thread_key
-        assert NotificationThread.objects.get(key_type=self.key_type, object_id=456) == thread
 
     def test_store_new_thread_uses_existing_thread_on_race(self) -> None:
         """If two workers race, the second get_or_create returns the first's thread."""
