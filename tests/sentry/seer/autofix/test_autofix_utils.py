@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.test import override_settings
@@ -31,11 +31,9 @@ from sentry.seer.autofix.utils import (
     extract_api_error_message,
     get_org_default_seer_automation_handoff,
     get_repo_url_path,
-    get_seer_token_billed_cache_key,
     get_token_based_billing_project_repos,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
-    is_seer_token_billed_enabled,
     read_preference_from_sentry_db,
     replace_all_seer_project_repos,
     update_seer_project_settings,
@@ -274,36 +272,6 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         assert result is True
 
 
-class TestIsSeerTokenBilledEnabled(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.organization = self.create_organization(name="test-org")
-        self.cache_key = f"seer:token-billed:{self.organization.id}"
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        cache.delete(self.cache_key)
-
-    def test_returns_true_when_token_billed_seer_enabled(self) -> None:
-        with self.feature("organizations:token-billed-seer-enabled"):
-            assert is_seer_token_billed_enabled(self.organization) is True
-
-        assert cache.get(self.cache_key) is True
-
-    def test_returns_false_when_flag_disabled(self) -> None:
-        assert is_seer_token_billed_enabled(self.organization) is False
-        assert cache.get(self.cache_key) is False
-
-    def test_returns_cached_value(self) -> None:
-        cache.set(self.cache_key, True, timeout=60)
-
-        assert is_seer_token_billed_enabled(self.organization) is True
-
-    @patch("sentry.seer.autofix.utils.features.has", side_effect=Exception)
-    def test_returns_false_when_flag_check_raises(self, mock_features_has: MagicMock) -> None:
-        assert is_seer_token_billed_enabled(self.organization) is False
-
-
 class HasProjectConnectedReposTestMixin(BaseTestCase):
     """Test the has_project_connected_repos function."""
 
@@ -402,10 +370,6 @@ class TestHasProjectConnectedRepos(HasProjectConnectedReposTestMixin, TestCase):
     }
 )
 class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposTestMixin, TestCase):
-    def tearDown(self) -> None:
-        super().tearDown()
-        cache.delete(get_seer_token_billed_cache_key(self.organization.id))
-
     def test_returns_true_when_repo_has_no_seer_config(self) -> None:
         repo = self.create_repo(
             project=self.project,
@@ -1352,10 +1316,6 @@ class TestReadPreferenceFromSentryDbTokenBasedBilling(
 ):
     """Runs the tests above under token-based billing, plus token-based billing only cases."""
 
-    def tearDown(self) -> None:
-        super().tearDown()
-        cache.delete(get_seer_token_billed_cache_key(self.organization.id))
-
     def test_includes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo)
 
@@ -1529,10 +1489,6 @@ class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(
     BulkReadPreferencesFromSentryDbTestMixin, TestCase
 ):
     """Runs the tests above under token-based billing, plus token-based billing only cases."""
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        cache.delete(get_seer_token_billed_cache_key(self.organization.id))
 
     def test_includes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project1, repository=self.repo)
