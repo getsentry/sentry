@@ -2,7 +2,7 @@ import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataTooltip} from 'sentry/components/droppedData/band/bucketTooltip';
+import {DroppedDataTooltip} from 'sentry/components/droppedData/band/droppedDataTooltip';
 import {groupIntoBuckets} from 'sentry/components/droppedData/buckets';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
