@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {AggregationKey} from 'sentry/utils/fields';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
@@ -31,6 +32,10 @@ export const SHARED_CHART_AGGREGATE_REGIONS: ReadonlyArray<{
     aggregates: [AggregationKey.AVG, AggregationKey.MIN, AggregationKey.MAX],
   },
 ];
+
+export function hasMultiAggregateCharts(organization: Organization): boolean {
+  return organization.features.includes('explore-multi-aggregate-charts');
+}
 
 export const SHARED_CHART_AGGREGATES: readonly string[] =
   SHARED_CHART_AGGREGATE_REGIONS.flatMap(region => region.aggregates);

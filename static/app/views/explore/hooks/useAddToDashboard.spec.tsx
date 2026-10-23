@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -290,7 +291,8 @@ describe('AddToDashboardButton', () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} includeChartGroup />
-      </Wrapper>
+      </Wrapper>,
+      {organization: OrganizationFixture({features: ['explore-multi-aggregate-charts']})}
     );
 
     act(() => setMode(Mode.AGGREGATE));

@@ -22,6 +22,7 @@ import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -47,6 +48,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
@@ -265,6 +267,7 @@ function Chart({
   // first one is used to read them.
   const visualize = visualizes[0]!;
 
+  const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
@@ -425,7 +428,9 @@ function Chart({
               chartInfo={chartInfo}
               chartRef={chartRef}
               plottables={plottables}
-              tooltipLimit={MAX_TOOLTIP_SERIES}
+              tooltipLimit={
+                hasMultiAggregateCharts(organization) ? MAX_TOOLTIP_SERIES : undefined
+              }
               droppedData={
                 showDroppedDataBand
                   ? {
