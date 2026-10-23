@@ -212,7 +212,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
         self.workflow.set_service_account(self.account.id)
 
         self.config.refresh_from_db()
-        assert self.config.service_account_id == replica.id
+        assert self.config.service_account_id == self.account.id
         assert self.config.version == self.workflow.config.version == 5
         assert self.config.enabled is True
         assert self.config.filters == {"environments": ["production"]}
@@ -250,9 +250,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
             with pytest.raises(ValueError, match=message):
                 self.workflow.set_service_account(account_id)
             self.config.refresh_from_db()
-            replica = self.config.service_account
-            assert replica is not None
-            assert replica.service_account_id == self.account.id
+            assert self.config.service_account_id == self.account.id
             assert self.config.version == 2
 
     def test_failed_save_rolls_back_association_and_version(self) -> None:
@@ -278,11 +276,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
         self.workflow.set_service_account(pending.id)
         assert self.workflow.resolve_service_account().service_account_id == pending.id
 
-    def test_resolution_reads_updates_instead_of_cached_relation(self) -> None:
+    def test_resolution_reads_current_replica_state(self) -> None:
         self.workflow.set_service_account(self.account.id)
-        cached_replica = self.workflow.config.service_account
-        assert cached_replica is not None
-        assert cached_replica.is_active
         assert self.workflow.resolve_service_account().is_active
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.account.update(name="updated", scope_list=["project:read"])
@@ -296,7 +291,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
         with pytest.raises(ValueError, match="inactive"):
             self.workflow.set_service_account(self.account.id)
         self.config.refresh_from_db()
-        assert self.config.service_account_id == resolved.id
+        assert self.config.service_account_id == self.account.id
         assert self.config.version == 2
 
     def test_resolution_rejects_unset_and_differently_owned_associations(self) -> None:
@@ -304,13 +299,13 @@ class SeerWorkflowServiceAccountTest(TestCase):
             self.workflow.resolve_service_account()
         with outbox_runner():
             foreign = Factories.create_service_account(self.create_organization())
-        self.workflow.config.service_account = ServiceAccountReplica.objects.get(
-            service_account_id=foreign.id
-        )
+        self.workflow.config.service_account_id = foreign.id
         with pytest.raises(ValueError, match="unavailable"):
             self.workflow.resolve_service_account()
 
     def test_control_deletion_clears_associations_and_rejects_stale_wrapper(self) -> None:
+        selected = self.create_project()
+        Factories.create_seer_workflow_config_project(self.config, selected)
         self.workflow.set_service_account(self.account.id)
         other = Factories.create_seer_workflow_config(
             self.organization,
@@ -337,6 +332,30 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert self.config.filters == {"environments": ["production"]}
         assert self.config.output_policy == {"notify": True}
         assert self.config.version == 2
+        assert self.workflow.get_project_ids() == [selected.id]
         assert unrelated_workflow.resolve_service_account().service_account_id == unrelated.id
         with pytest.raises(ValueError, match="unavailable"):
             self.workflow.resolve_service_account()
+
+    def test_assignment_during_delayed_account_deletion_is_eventually_cleared(self) -> None:
+        account_id = self.account.id
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(flush=False):
+            self.account.delete()
+        # Control deletion has not reached the cell, so assignment sees the active replica.
+        self.workflow.set_service_account(account_id)
+        with outbox_runner():
+            pass
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+        self.config.refresh_from_db()
+        assert self.config.service_account_id is None
+        assert self.config.version == 2
+
+    def test_missing_replica_does_not_clear_account_identity(self) -> None:
+        self.workflow.set_service_account(self.account.id)
+        ServiceAccountReplica.objects.filter(service_account_id=self.account.id).delete()
+        with pytest.raises(ValueError, match="unavailable"):
+            self.workflow.resolve_service_account()
+        self.config.refresh_from_db()
+        assert self.config.service_account_id == self.account.id
+        assert self.config.version == 2

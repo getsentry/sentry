@@ -91,12 +91,11 @@ class SeerWorkflow:
         return list(projects.order_by("id").values_list("id", flat=True))
 
     def set_service_account(self, service_account_id: int | None) -> None:
-        """Assign by control account ID, storing the corresponding cell replica's PK."""
+        """Store the control account ID after validating its current cell replica."""
         with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
             config = SeerWorkflowConfig.objects.select_for_update().get(
                 id=self.config.id, organization_id=self.config.organization_id
             )
-            replica = None
             if service_account_id is not None:
                 replica = ServiceAccountReplica.objects.filter(
                     service_account_id=service_account_id, organization_id=config.organization_id
@@ -108,20 +107,20 @@ class SeerWorkflow:
                 if not replica.is_active:
                     raise ValueError("Service account is inactive")
 
-            replica_id = replica.id if replica is not None else None
-            if config.service_account_id != replica_id:
-                config.service_account = replica
+            if config.service_account_id != service_account_id:
+                config.service_account_id = service_account_id
                 config.version += 1
-                config.save(update_fields=["service_account", "version", "date_updated"])
+                config.save(update_fields=["service_account_id", "version", "date_updated"])
 
         self.config = config
 
     def resolve_service_account(self) -> ServiceAccountReplica:
-        """Read current cell state without reusing Django's related-object cache."""
+        """Resolve authoritative identity against current cell state on every call."""
         if self.config.service_account_id is None:
             raise ValueError("Workflow has no service account")
         replica = ServiceAccountReplica.objects.filter(
-            id=self.config.service_account_id, organization_id=self.config.organization_id
+            service_account_id=self.config.service_account_id,
+            organization_id=self.config.organization_id,
         ).first()
         if replica is None:
             raise ValueError("Service account is unavailable in the workflow's organization")
