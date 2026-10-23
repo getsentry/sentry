@@ -206,6 +206,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowTriggerBinding,
 )
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -3443,8 +3444,20 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_seer_workflow_config(organization, **kwargs) -> SeerWorkflowConfig:
-        return SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
+    def create_seer_workflow_config(
+        organization, *, trigger_actions: Sequence[Action] = (), **kwargs
+    ) -> SeerWorkflowConfig:
+        config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
+        for action in trigger_actions:
+            Factories.create_seer_workflow_trigger_binding(config, action)
+        return config
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_trigger_binding(config, action) -> SeerWorkflowTriggerBinding:
+        return SeerWorkflowTriggerBinding.objects.create(
+            workflow_config=config, trigger_action=action
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
