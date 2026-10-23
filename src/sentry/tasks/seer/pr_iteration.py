@@ -90,6 +90,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.identity import (
+    AskSeerIterationIdentity,
     AutofixIterationIdentity,
     IterationIdentity,
     iteration_identity_from_run,
@@ -539,12 +540,24 @@ def consume_queued_autofix_feedback(
             )
             return
 
+        # Resolve from fresh state, not the identity captured when feedback was
+        # queued: turning off Ask Seer's flag must also stop pending consumption.
+        identity = iteration_identity_from_run(state, organization_id)
+        if identity is None:
+            log_ctx.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                trigger_id=trigger_id,
+                trigger_source=trigger_source,
+                reason="not_enabled",
+            )
+            return
+
         try:
-            _drain_queued_autofix_feedback(
+            _drain_queued_pr_iteration_feedback(
                 log_ctx=log_ctx,
                 run_id=run_id,
                 organization_id=organization_id,
-                group_id=group_id,
+                identity=identity,
                 state=state,
                 trigger_id=trigger_id,
                 trigger_source=trigger_source,
@@ -555,6 +568,42 @@ def consume_queued_autofix_feedback(
                 error_type=type(e).__name__,
             )
             raise
+
+
+def _consume_ask_seer_pr_iteration_feedback(
+    *,
+    log_ctx: PrIterationLogContext,
+    state: SeerRunState,
+    organization_id: int,
+    feedback: Sequence[Feedback],
+    iteration_id: int | None,
+    trigger_id: str | None,
+    trigger_source: str | None,
+) -> None:
+    """Consume a batch without claiming that an agent has acted on it yet.
+
+    TODO: Start a fresh background chat pinned to the existing PR, with its own
+    completion hook. For this checkpoint, explicitly close out the bookkeeping
+    as unimplemented rather than leaving a triggered iteration dangling.
+    """
+    log_ctx.info(
+        "autofix.pr_iteration.consume_feedback.skipped",
+        reason="ask_seer_consumer_not_implemented",
+        iteration_type="ask_seer",
+        feedback_count=len(feedback),
+        run_status=state.status,
+        trigger_id=trigger_id,
+        trigger_source=trigger_source,
+    )
+    if iteration_id is not None:
+        fail_pr_iteration_details(
+            log_ctx=log_ctx,
+            run_state=state,
+            organization_id=organization_id,
+            iteration_id=iteration_id,
+            outcome=PrIterationOutcome.CONSUMER_NOT_IMPLEMENTED.value,
+        )
+    _record_drain_outcome(PrIterationOutcome.CONSUMER_NOT_IMPLEMENTED.value, trigger_source)
 
 
 def _dropped_drain_reason(dropped: list[dict[str, Any]]) -> str:
@@ -624,25 +673,25 @@ def _hand_off_exhausted_cap(
 
 
 @traces.trace
-def _drain_queued_autofix_feedback(
+def _drain_queued_pr_iteration_feedback(
     *,
     log_ctx: PrIterationLogContext,
     run_id: int,
     organization_id: int,
-    group_id: int | None,
+    identity: IterationIdentity,
     state: SeerRunState,
     trigger_id: str | None,
     trigger_source: str | None,
 ) -> None:
-    """Pop this run's queued feedback and hand whatever survives to the agent."""
-    group = (
-        Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
-        if group_id
-        else None
-    )
-    if group is None:
-        log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
-        return
+    """Pop and validate feedback, then hand the batch to its run-type consumer."""
+    group = None
+    if isinstance(identity, AutofixIterationIdentity):
+        group = Group.objects.filter(
+            id=identity.group_id, project__organization_id=organization_id
+        ).first()
+        if group is None:
+            log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
+            return
 
     if state.status in ("processing", "error"):
         # An errored run should already be paused. A processing run's
@@ -796,6 +845,7 @@ def _drain_queued_autofix_feedback(
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.drain",
         outcome="drained",
+        iteration_type=identity.type,
         reason="ok",
         run_status=state.status,
         trigger_id=trigger_id,
@@ -823,6 +873,19 @@ def _drain_queued_autofix_feedback(
             feedback_bot_logins=bot_logins_for_feedback([item.source for item in feedback_items]),
         )
 
+    if isinstance(identity, AskSeerIterationIdentity):
+        _consume_ask_seer_pr_iteration_feedback(
+            log_ctx=log_ctx,
+            state=state,
+            organization_id=organization_id,
+            feedback=feedback_items,
+            iteration_id=iteration_id,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+        )
+        return
+
+    assert group is not None
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
         metrics.incr(

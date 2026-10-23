@@ -87,6 +87,8 @@ class PrIterationOutcome(StrEnum):
     # The drain popped the batch but failed to hand it to the agent.
     DRAIN_FAILED = "drain_failed"
     MISSING_GROUP_ID = "missing_group_id"
+    # Feedback was consumed, but background Ask Seer execution is not wired yet.
+    CONSUMER_NOT_IMPLEMENTED = "consumer_not_implemented"
 
     # technically we can recover from this
     # but an iteration is stuck until then
