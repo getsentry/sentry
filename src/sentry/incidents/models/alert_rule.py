@@ -177,28 +177,3 @@ class AlertRuleThresholdType(Enum):
     ABOVE = 0
     BELOW = 1
     ABOVE_AND_BELOW = 2
-
-
-@cell_silo_model
-class AlertRuleTrigger(Model):
-    """
-    This model represents the *threshold* trigger for an AlertRule
-
-    threshold_type is AlertRuleThresholdType (Above/Below)
-    alert_threshold is the trigger value
-    """
-
-    # Retained only until state retirement; native rows are no longer backup inputs.
-    __relocation_scope__ = RelocationScope.Excluded
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
-    label = models.TextField()
-    threshold_type = models.SmallIntegerField(null=True)
-    alert_threshold = models.FloatField()
-    resolve_threshold = models.FloatField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletrigger"
-        unique_together = (("alert_rule", "label"),)
