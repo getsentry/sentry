@@ -468,7 +468,12 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
 // JSX as components, and this one is called from event handlers.
 const defaultMapper = (frame: any): Details => ({
   colorGraphicsToken: 'neutral',
-  description: frame.message ?? frame.data ?? '',
+  // frame.message may be a non-string object at runtime (e.g. a malformed frame).
+  // The ?? operator only guards null/undefined, so we guard with typeof first.
+  // Passing a plain object is fine: BreadcrumbItem routes it to BreadcrumbStructuredData
+  // which renders it as an interactive inspector via StructuredEventData.
+  description:
+    (typeof frame.message === 'string' ? frame.message : undefined) ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,
   title: toTitleCase(defaultTitle(frame)),
   icon: <IconTerminal size="xs" />,
