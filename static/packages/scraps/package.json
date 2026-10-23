@@ -67,14 +67,6 @@
       "types": "./dist/input/index.d.ts",
       "import": "./dist/input/index.js"
     },
-    "./input/inputStyles": {
-      "types": "./dist/input/inputStyles.d.ts",
-      "import": "./dist/input/inputStyles.js"
-    },
-    "./input/otpInput": {
-      "types": "./dist/input/otpInput.d.ts",
-      "import": "./dist/input/otpInput.js"
-    },
     "./textarea": {
       "types": "./dist/textarea/index.d.ts",
       "import": "./dist/textarea/index.js"

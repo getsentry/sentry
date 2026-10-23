@@ -4,6 +4,5 @@ export {InputGroup} from './inputGroup';
 export {NumberDragInput} from './numberDragInput';
 export {NumberInput} from './numberInput';
 /** @public */
-export {OTPInput} from './otpInput';
+export {OTPInput, type OTPInputProps} from './otpInput';
 export {useAutosizeInput} from './useAutosizeInput';
-export {inputStyles} from './inputStyles';
