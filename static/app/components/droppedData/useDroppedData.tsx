@@ -1,7 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -18,8 +18,8 @@ import {
 const REFERRER = 'api.explore.dropped-data-annotations';
 
 interface DroppedEventsResponse {
-  acceptedEvents: DroppedEventsBucket[];
-  droppedEvents: DroppedEventsBucket[];
+  acceptedEvents: OutcomeRow[];
+  droppedEvents: OutcomeRow[];
   meta: {
     dataset: string;
     end: number;

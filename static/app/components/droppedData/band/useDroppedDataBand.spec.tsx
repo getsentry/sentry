@@ -14,7 +14,7 @@ import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/band/useDroppedDataBand';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
@@ -223,10 +223,7 @@ describe('useDroppedDataBand', () => {
       };
     }
 
-    function renderShapes(
-      dropped: DroppedEventsBucket[],
-      accepted: DroppedEventsBucket[] = []
-    ) {
+    function renderShapes(dropped: OutcomeRow[], accepted: OutcomeRow[] = []) {
       const {result} = renderHookWithProviders(() =>
         useDroppedDataBand({
           chartRef,
