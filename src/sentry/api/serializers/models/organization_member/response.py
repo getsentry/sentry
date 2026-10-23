@@ -69,6 +69,7 @@ class _TeamRole(TypedDict):
     omit_from_public_schema={
         "role": "Deprecated, use orgRole.",
         "roleName": "Deprecated, derived from orgRole.",
+        "pending": "Internal invite state, use inviteStatus.",
     }
 )
 class OrganizationMemberResponse(TypedDict):

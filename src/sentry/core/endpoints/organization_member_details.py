@@ -201,6 +201,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        if "orgRole" in request.data and not request.access.has_scope("member:admin"):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
