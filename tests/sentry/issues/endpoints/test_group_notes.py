@@ -436,6 +436,12 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
 
+        # API duplicate protection expires after one hour.
+        activity.update(datetime=activity.datetime - datetime.timedelta(hours=2))
+        response = self.client.post(url, format="json", data={"text": "hello world"})
+        assert response.status_code == 201, response.content
+        assert response.data["commentId"] != str(activity.id)
+
     @action_log_activity_enabled()
     def test_returns_activity_with_gale_source(self) -> None:
         group = self.group
