@@ -66,7 +66,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   );
   const isQueryEnabled = hasGithubSourceLink
     ? false
-    : shouldStartQuery && validFilePath && frame.inApp;
+    : shouldStartQuery && validFilePath && frame.inApp && !!project;
 
   const {
     data: match,
