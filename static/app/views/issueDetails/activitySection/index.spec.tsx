@@ -2377,6 +2377,58 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Plan started')).toBeInTheDocument();
   });
 
+  it.each([
+    [
+      GroupActivityType.SEER_RCA_STARTED,
+      GroupActivityType.SEER_RCA_COMPLETED,
+      'Root cause found',
+    ],
+    [
+      GroupActivityType.SEER_SOLUTION_STARTED,
+      GroupActivityType.SEER_SOLUTION_COMPLETED,
+      'Plan created',
+    ],
+    [
+      GroupActivityType.SEER_CODING_STARTED,
+      GroupActivityType.SEER_CODING_COMPLETED,
+      'Code changes suggested',
+    ],
+  ] as const)(
+    'attributes a collapsed %s pair to the user who started it',
+    async (startedType, completedType, title) => {
+      const seerGroup = GroupFixture({
+        id: '1343',
+        activity: [
+          {
+            type: completedType,
+            id: 'seer-completed',
+            dateCreated: '2020-01-01T00:30:00Z',
+            data: {run_id: 123},
+            user: null,
+          },
+          {
+            type: startedType,
+            id: 'seer-started',
+            dateCreated: '2020-01-01T00:20:00Z',
+            data: {run_id: 123},
+            user,
+          },
+        ],
+        project,
+      });
+
+      render(
+        <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+          <ActivitySection group={seerGroup} variant="standalone" />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText(title)).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.queryByRole('img', {name: 'Seer activity'})).not.toBeInTheDocument();
+    }
+  );
+
   it('collapses Seer PR iteration activity', async () => {
     const seerIterationGroup = GroupFixture({
       id: '1346',

@@ -6,6 +6,7 @@ from django.urls import reverse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -30,7 +31,7 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
 
     def test_returns_org_viewer_context(self) -> None:
         response = self._post(
-            ViewerContext(organization_id=self.organization.id, actor_type=ActorType.SYSTEM)
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id)
         )
 
         assert response.status_code == 200
@@ -41,13 +42,18 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
     def test_rejects_viewer_context_for_other_org(self) -> None:
         other_org = self.create_organization()
 
-        response = self._post(ViewerContext(organization_id=other_org.id))
+        response = self._post(
+            ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=other_org.id)
+        )
 
         assert response.status_code == 403
 
     def test_rejects_viewer_context_with_user(self) -> None:
         response = self._post(
-            ViewerContext(organization_id=self.organization.id, user_id=self.user.id)
+            ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=self.user.id),
+                organization_id=self.organization.id,
+            )
         )
 
         assert response.status_code == 403
@@ -64,7 +70,7 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
     def test_flag_off_returns_404(self) -> None:
         url = reverse(self.endpoint, args=[self.organization.slug, "7"])
         viewer_context = ViewerContext(
-            organization_id=self.organization.id, actor_type=ActorType.SYSTEM
+            actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id
         )
 
         response = self.client.post(

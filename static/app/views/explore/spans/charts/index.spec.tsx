@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -10,11 +11,25 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+jest.mock('echarts-for-react/lib/core', () => {
+  return function Chart({
+    option,
+  }: {
+    option: {series: Array<{data?: Array<[number, number]>}>};
+  }) {
+    return (
+      <output aria-label="Chart values">
+        {JSON.stringify(option.series.map(series => series.data))}
+      </output>
+    );
+  };
+});
 
 function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
   const base: Partial<SortedTimeSeries> = {
@@ -27,6 +42,53 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
+  it('plots raw and smoothed values in their respective charts', async () => {
+    const result = timeseriesResultFixture({
+      data: {
+        'count(span.duration)': [
+          TimeSeriesFixture({
+            yAxis: 'count(span.duration)',
+            requestedTransformations: [],
+            values: [{timestamp: 1729796400000, value: 10}],
+          }),
+          TimeSeriesFixture({
+            yAxis: 'count(span.duration)',
+            requestedTransformations: ['smooth(sma,5)'],
+            values: [{timestamp: 1729796400000, value: 20}],
+          }),
+        ],
+      },
+    });
+    render(
+      <SpansQueryParamsProvider>
+        <ChartSelectionProvider>
+          <ExploreCharts
+            extrapolate
+            query=""
+            timeseriesResult={result}
+            visualizes={[
+              new VisualizeFunction('count(span.duration)'),
+              new VisualizeFunction('count(span.duration)', {
+                transformations: ['smooth(sma,5)'],
+              }),
+            ]}
+            setVisualizes={() => {}}
+            rawSpanCounts={{
+              total: {count: 100, isLoading: false},
+              normal: {count: 100, isLoading: false},
+            }}
+          />
+        </ChartSelectionProvider>
+      </SpansQueryParamsProvider>
+    );
+
+    const charts = await screen.findAllByLabelText('Chart values');
+    expect(charts.map(chart => chart.textContent)).toEqual([
+      '[[[1729796400000,10]]]',
+      '[[[1729796400000,20]]]',
+    ]);
+  });
+
   it('renders the high accuracy message when the widget is loading more data', async () => {
     const loadingTimeseriesResult = timeseriesResultFixture({
       isLoading: true,

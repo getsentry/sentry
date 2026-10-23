@@ -1239,7 +1239,7 @@ class PushEventWebhookTest(APITestCase):
         ctx = captured_contexts[0]
         assert ctx is not None
         assert ctx.organization_id == self.project.organization.id
-        assert ctx.actor_type == ActorType.INTEGRATION
+        assert ctx.actor.type == ActorType.INTEGRATION
         assert ctx.user_id is None
 
     @responses.activate

@@ -149,7 +149,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/events-sql/'
   | '/organizations/$organizationIdOrSlug/events-stats/'
   | '/organizations/$organizationIdOrSlug/events-timeseries/'
-  | '/organizations/$organizationIdOrSlug/events-vitals/'
   | '/organizations/$organizationIdOrSlug/events/'
   | '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/'
   | '/organizations/$organizationIdOrSlug/events/anomalies/'

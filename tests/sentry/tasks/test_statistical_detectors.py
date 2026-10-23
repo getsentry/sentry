@@ -63,6 +63,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -1081,8 +1082,7 @@ def test_detect_function_change_points(
         key="viewer-context-test-secret",
     )
     assert viewer_context == ViewerContext(
-        organization_id=project.organization_id,
-        actor_type=ActorType.SYSTEM,
+        actor=Actor(type=ActorType.SYSTEM), organization_id=project.organization_id
     )
 
 
@@ -1132,16 +1132,14 @@ def test_detect_function_change_points_groups_viewer_context_by_organization(
         (
             [project.id],
             ViewerContext(
-                organization_id=project.organization_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM), organization_id=project.organization_id
             ),
             SeerViewerContext(organization_id=project.organization_id),
         ),
         (
             [other_project.id],
             ViewerContext(
-                organization_id=other_project.organization_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM), organization_id=other_project.organization_id
             ),
             SeerViewerContext(organization_id=other_project.organization_id),
         ),
