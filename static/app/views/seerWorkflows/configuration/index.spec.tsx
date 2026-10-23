@@ -38,7 +38,6 @@ describe('AutomationsList', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    // The Breached Metrics placeholder lists projects that aren't in the store
     projectsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
