@@ -307,7 +307,9 @@ function ColumnEditorRow({
     if (additions.length === 0) {
       return baseOptions;
     }
-    return [...baseOptions, ...additions];
+    return [...baseOptions, ...additions].toSorted((a, b) =>
+      sortKnownAttributes(a, b, traceItemType)
+    );
   }, [
     hasSearch,
     baseOptions,
