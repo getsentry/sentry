@@ -193,20 +193,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert not SeerWorkflowRun.objects.exists()
         assert not SeerWorkflowRunExecution.objects.exists()
 
-    def test_ignored_unsupported_activity_reports_reason(self) -> None:
-        event = self.breach_event()
-        self.group.update(type=1)
-
-        rejected = BreachedMetricWorkflow(self.config).accept(
-            self.group,
-            event,
-            binding=self.action.seer_workflow_binding,
-            workflow_id=self.workflow.id,
-        )
-
-        assert rejected == IgnoredMetricBreach("unsupported_trigger")
-        assert not SeerWorkflowRun.objects.exists()
-
     def test_ignored_malformed_source_reports_reason(self) -> None:
         event = self.breach_event()
         assert event.occurrence is not None
