@@ -39,6 +39,7 @@ import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
   useQueryParamsId,
   useQueryParamsMode,
   useQueryParamsQuery,
@@ -70,6 +71,7 @@ export function ToolbarSaveAs() {
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
+  const hasTransformations = useQueryParamsHasTransformations();
   const fields = useQueryParamsFields();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
@@ -262,7 +264,7 @@ export function ToolbarSaveAs() {
         (pageFilters.selection.datetime.end
           ? new Date(pageFilters.selection.datetime.end).getTime()
           : null),
-      (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+      (savedQuery.statsPeriod ?? null) !== pageFilters.selection.datetime.period,
     ];
     return hasChangesArray.some(Boolean);
   }, [
@@ -299,6 +301,12 @@ export function ToolbarSaveAs() {
                   {...mergeProps(triggerProps, containerProps)}
                   showChevron={false}
                   variant="primary"
+                  disabled={hasTransformations}
+                  tooltipProps={
+                    hasTransformations
+                      ? {title: t('Queries with transformations cannot be saved yet.')}
+                      : undefined
+                  }
                   aria-label={t('Save as')}
                 >
                   {shouldHighlightSaveButton ? t('Save') : t('Save as')}

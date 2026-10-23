@@ -934,6 +934,28 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
   NO_ORGS: 'NO_ORGS',
 };
 
+// Keep in sync with RESERVED_PROJECT_SLUGS in src/sentry/constants.py
+export const RESERVED_PROJECT_SLUGS: ReadonlySet<string> = new Set([
+  '$all',
+  'api-keys',
+  'audit-log',
+  'auth',
+  'members',
+  'projects',
+  'rate-limits',
+  'repos',
+  'settings',
+  'teams',
+  'billing',
+  'payments',
+  'legal',
+  'subscription',
+  'support',
+  'integrations',
+  'developer-settings',
+  'usage',
+]);
+
 export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 export const SPAN_PROPS_DOCS_URL =

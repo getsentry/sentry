@@ -36,6 +36,12 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -302,7 +308,16 @@ def save_issue_from_occurrence(
             try:
                 # Since this calls hybrid cloud it has to be run outside the transaction
                 assignee = occurrence.assignee.resolve()
-                with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                with (
+                    viewer_context_scope(
+                        ViewerContext(
+                            actor=Actor(type=ActorType.SYSTEM),
+                            organization_id=project.organization_id,
+                            project_id=project.id,
+                        )
+                    ),
+                    action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR),
+                ):
                     GroupAssignee.objects.assign(group, assignee, create_only=True)
             except Exception:
                 logger.exception("Failed to process assignment for occurrence")

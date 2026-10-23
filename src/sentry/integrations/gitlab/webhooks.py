@@ -33,7 +33,8 @@ from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
-from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
+from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log.request import resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -711,11 +712,11 @@ class PushEventWebhook(GitlabWebhook):
                     email=author_email,
                     defaults={"name": commit["author"]["name"]},
                 )[0]
+                # Only look up users once per unique author, not once per commit.
+                author.preload_users()
             else:
                 author = authors[author_email]
             try:
-                if author is not None:
-                    author.preload_users()
                 with transaction.atomic(router.db_for_write(Commit)):
                     commit_row = Commit.objects.create(
                         repository_id=repo.id,

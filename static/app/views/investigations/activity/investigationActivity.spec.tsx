@@ -23,9 +23,9 @@ const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 const initialRouterConfig = {
   location: {
-    pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+    pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
   },
-  route: '/organizations/:orgId/explore/investigations/:investigationId/',
+  route: '/organizations/:orgId/seer/investigations/:investigationId/',
 };
 
 function renderPage() {
@@ -46,6 +46,7 @@ async function findEditor(name: string) {
 describe('InvestigationActivity', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+    MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
     MockApiClient.addMockResponse({
       url: `${detailUrl}presence/`,
       method: 'PUT',
@@ -73,7 +74,9 @@ describe('InvestigationActivity', () => {
     expect(items).toHaveLength(3);
     expect(items[0]).toHaveTextContent('Second');
     expect(within(items[0]!).getByText('Unknown user commented')).toBeInTheDocument();
-    expect(within(items[0]!).getByText('on Latency query')).toBeInTheDocument();
+    expect(
+      within(items[0]!).getByRole('link', {name: 'Latency query'})
+    ).toBeInTheDocument();
     expect(items[1]).toHaveTextContent('First');
     expect(within(items[1]!).getByText('Ada Lovelace commented')).toBeInTheDocument();
     expect(items[2]).toHaveTextContent('Investigation first created');

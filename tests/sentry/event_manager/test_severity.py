@@ -98,7 +98,7 @@ class TestGetEventSeverity(TestCase):
 
             vc = decode_viewer_context(headers["X-Viewer-Context"], key="some-secret")
             assert vc.organization_id == self.project.organization_id
-            assert vc.actor_type.value == "unknown"
+            assert vc.actor.type.value == "unknown"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",

@@ -114,6 +114,7 @@ export function AgentWriteApprovalBlock({
       );
     } catch {
       addErrorMessage(t('Failed to approve this permission.'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsSubmitting(false);
     }

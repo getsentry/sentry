@@ -32,6 +32,7 @@ import {
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
@@ -50,6 +51,7 @@ type IssueListActionsProps = {
   queryCount: number;
   selection: PageFilters;
   selectionEnabled: boolean;
+  sort: IssueSortOptions;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
@@ -210,6 +212,7 @@ export function IssueListActions({
   query,
   selection,
   selectionEnabled,
+  sort,
   statsPeriod,
 }: IssueListActionsProps) {
   const api = useApi();
@@ -255,14 +258,18 @@ export function IssueListActions({
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
+          sort,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
         });
       } catch {
         // GroupStore already shows the error
+        // oxlint-disable-next-line react/todo
       } finally {
-        onDelete();
+        if (itemIds?.length !== 0) {
+          onDelete();
+        }
       }
     });
   }
@@ -285,6 +292,7 @@ export function IssueListActions({
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
+          sort,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -304,6 +312,7 @@ export function IssueListActions({
         organizationSlug: organization.slug,
         query,
         selection,
+        sort,
         onSuccess: updatedItemIds => {
           onActionTaken?.(updatedItemIds ?? [], data);
           invalidateIssueQueries({

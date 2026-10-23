@@ -2,7 +2,10 @@ import type {Theme} from '@emotion/react';
 
 import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  getScalarAttributeValue,
+  type TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   GenAiOperationType,
   getGenAiOperationTypeFromSpanName,
@@ -19,7 +22,7 @@ function getAttributeValue(
   attribute: TraceItemResponseAttribute
 ): string | number | boolean {
   if (!attribute.name.startsWith('tags[')) {
-    return attribute.value;
+    return getScalarAttributeValue(attribute);
   }
   if (attribute.type === 'int') {
     return Number(attribute.value);
@@ -30,7 +33,7 @@ function getAttributeValue(
   if (attribute.type === 'bool') {
     return String(attribute.value) === 'true';
   }
-  return attribute.value;
+  return getScalarAttributeValue(attribute);
 }
 
 export function ensureAttributeObject(

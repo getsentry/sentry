@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
@@ -12,7 +13,9 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
+import {INVESTIGATION_COMMENTS_PAGE_SIZE} from 'sentry/views/investigations/api';
 import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
 import {
   CommentComposer,
@@ -20,7 +23,7 @@ import {
 } from 'sentry/views/investigations/comments/commentComposer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
-import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
+import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
 import type {
   InvestigationComment,
   InvestigationDetail,
@@ -42,7 +45,9 @@ export function InvestigationActivity({
   composerRef?: React.RefObject<HTMLDivElement | null>;
   ref?: React.Ref<HTMLElement>;
 }) {
-  const {data, isPending, refetch} = useInvestigationComments(investigation.id);
+  const {data, isPending, refetch} = useInvestigationComments(investigation.id, {
+    shouldPoll: investigation.status !== 'archived',
+  });
   const blockTitles = useMemo(
     () =>
       new Map(
@@ -83,7 +88,7 @@ export function InvestigationActivity({
                 <ActivityProgressMarker state="activity" label={t('Older comments')} />
               </Grid>
               <Text variant="muted" density="comfortable">
-                {t('Showing the latest 100 comments.')}
+                {t('Showing the latest %s comments.', INVESTIGATION_COMMENTS_PAGE_SIZE)}
               </Text>
             </ActivityLineRow>
           ) : null}
@@ -120,6 +125,7 @@ function CommentRow({
 }) {
   const actionsRef = useRef<HTMLButtonElement>(null);
   const user = useUser();
+  const location = useLocation();
   const [editing, setEditing] = useState(false);
 
   const isAuthor = comment.author?.id === user.id;
@@ -152,7 +158,27 @@ function CommentRow({
         </Text>
         {comment.blockId ? (
           <Text variant="muted" density="comfortable">
-            {tct('on [block]', {block: blockTitle ?? t('a deleted block')})}
+            {blockTitle
+              ? tct('on [block]', {
+                  block: (
+                    <Link
+                      data-block-comments-trigger
+                      to={{
+                        query: {
+                          ...location.query,
+                          comments: 'open',
+                          commentsBlock: comment.blockId,
+                          comment: comment.id,
+                        },
+                      }}
+                    >
+                      <Text variant="muted" underline>
+                        {blockTitle}
+                      </Text>
+                    </Link>
+                  ),
+                })
+              : t('on a deleted block')}
           </Text>
         ) : null}
         <Text variant="muted" density="comfortable">

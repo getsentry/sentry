@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
+from django.utils import timezone
 from requests import PreparedRequest
 
 from sentry.integrations.cursor_origin.constants import (
@@ -286,19 +287,31 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
 
     @control_silo_function
     def _refresh_access_token(self) -> AccessTokenData | None:
-        integration = Integration.objects.filter(id=self.integration.id).first()
-        if not integration:
+        if not Integration.objects.filter(id=self.integration.id).exists():
             return None
 
         data = self.post(f"/app/installations/{self.integration.external_id}/access_tokens")
+        if not isinstance(data, Mapping):
+            raise ApiError("no token or expiresAt from Cursor Origin")
 
-        token = data["token"]
-        expires_at = data["expiresAt"]
+        token = data.get("token")
+        expires_at = data.get("expiresAt")
+        if not isinstance(token, str) or not isinstance(expires_at, str):
+            raise ApiError("no token or expiresAt from Cursor Origin")
         if _parse_expires_at(expires_at) is None:
             raise ApiError(f"unparseable expiresAt from Cursor Origin: {expires_at!r}")
 
+        # Re-read and write only the metadata: saving the copy read before the request would
+        # undo a rename or an uninstall that landed meanwhile. No row lock, since locks on
+        # control tables have stalled the control database before.
+        integration = Integration.objects.filter(id=self.integration.id).first()
+        if not integration:
+            return None
         integration.metadata.update({"access_token": token, "expires_at": expires_at})
-        integration.save()
+        if not Integration.objects.filter(id=integration.id).update(
+            metadata=integration.metadata, date_updated=timezone.now()
+        ):
+            return None
         self.integration = integration
 
         return {"access_token": token, "expires_at": expires_at}

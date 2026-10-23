@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {BlockCommentsDrawer} from 'sentry/views/investigations/comments/blockCommentsDrawer';
 import {COMMENTS_DRAWER_PARSERS} from 'sentry/views/investigations/comments/utils';
-import {getBlockElementId} from 'sentry/views/investigations/detail/cell';
+import {getBlockElementId} from 'sentry/views/investigations/detail/block';
 
 /**
  * A block's comments open in a drawer while `?comments=open&commentsBlock=<id>`
@@ -62,7 +62,7 @@ export function useBlockCommentsDrawer(investigationId: string) {
     if (
       !isDrawerOpen ||
       !(target instanceof Element) ||
-      target.closest('[data-overlay]') ||
+      target.closest('[data-overlay], [data-block-comments-trigger]') ||
       document.getElementById('modal-portal')?.contains(target)
     ) {
       return;

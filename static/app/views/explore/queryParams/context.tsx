@@ -26,6 +26,7 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
+  hasVisualizeTransformations,
   isVisualize,
   isVisualizeEquation,
   type BaseVisualize,
@@ -379,6 +380,10 @@ export function useSetQueryParamsVisualizes() {
     },
     [queryParams, setQueryParams]
   );
+}
+
+export function useQueryParamsHasTransformations(): boolean {
+  return hasVisualizeTransformations(useQueryParamsVisualizes());
 }
 
 export function useQueryParamsGroupBys(): readonly string[] {

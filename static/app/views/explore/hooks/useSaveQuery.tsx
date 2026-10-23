@@ -64,8 +64,8 @@ type ExploreSavedQueryRequest = {
       chartType?: number;
     }>;
   }>;
-  range?: string;
   start?: DateString;
+  statsPeriod?: string;
 };
 
 function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
@@ -270,7 +270,7 @@ function convertQueryParamsToRequest({
     crossEvents: crossEvents?.length ? [...crossEvents] : undefined,
     start,
     end,
-    range: period ?? undefined,
+    statsPeriod: period ?? undefined,
     environment: environments,
     interval,
     query: [

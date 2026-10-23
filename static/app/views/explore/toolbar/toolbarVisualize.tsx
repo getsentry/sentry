@@ -9,7 +9,6 @@ import {Badge} from '@sentry/scraps/badge';
 import {
   CompositeSelect,
   TriggerLabel,
-  type SelectKey,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,6 +17,7 @@ import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -30,14 +30,20 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  useDatasetFormulas,
+  type SavedFormula,
+} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
@@ -51,6 +57,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {
   SHARED_CHART_AGGREGATE_REGIONS,
   SHARED_CHART_AGGREGATES,
@@ -61,6 +68,11 @@ import {
   buildConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  buildFormulaYAxis,
+  findFormula,
+  getFormulaColumnFunction,
+} from 'sentry/views/explore/utils/formulaAggregate';
 import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
@@ -75,6 +87,8 @@ export function ToolbarVisualize({
   setVisualizes,
   visualizes,
 }: ToolbarVisualizeProps) {
+  const formulas = useDatasetFormulas('spans');
+
   // Each row in the toolbar is one chart, which can plot several aggregates.
   const charts = useMemo(
     () => groupVisualizes(visualizes).map(group => group.visualizes),
@@ -150,6 +164,7 @@ export function ToolbarVisualize({
               <ToolbarVisualizeItem
                 key={column.uniqueId}
                 {...rowProps}
+                formulas={formulas}
                 visualizes={chart}
                 onReplace={newChart => replaceChart(i, newChart)}
                 maxAggregates={MAX_VISUALIZES - (visualizes.length - chart.length)}
@@ -175,6 +190,7 @@ export function ToolbarVisualize({
 }
 
 interface VisualizeDropdownProps {
+  formulas: readonly SavedFormula[];
   label: ReactNode;
   /**
    * The most aggregates this chart can plot without exceeding the limit on
@@ -194,6 +210,7 @@ interface VisualizeDropdownProps {
 
 function ToolbarVisualizeItem({
   dragColumnId,
+  formulas,
   label,
   maxAggregates,
   onDelete,
@@ -202,6 +219,7 @@ function ToolbarVisualizeItem({
   visualizes,
 }: VisualizeDropdownProps) {
   const visualize = visualizes[0]!;
+  const organization = useOrganization();
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
@@ -223,6 +241,7 @@ function ToolbarVisualizeItem({
     () => parseConditionalAggregate(visualize.yAxis),
     [visualize.yAxis]
   );
+  const formula = findFormula(formulas, parsedFunction?.name);
 
   const selectedAggregates = useMemo(
     () =>
@@ -236,7 +255,10 @@ function ToolbarVisualizeItem({
     numberTags,
     stringTags,
     booleanTags,
-    parsedFunction,
+    parsedFunction:
+      formula && parsedFunction
+        ? getFormulaColumnFunction(formula, parsedFunction)
+        : parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
 
@@ -249,14 +271,28 @@ function ToolbarVisualizeItem({
       const aggregates = newAggregates.length
         ? newAggregates
         : [DEFAULT_VISUALIZATION_AGGREGATE];
+      // Formulas are picked on their own, never alongside other aggregates.
+      const newFormula =
+        aggregates.length === 1 ? findFormula(formulas, aggregates[0]) : undefined;
+      if (newFormula) {
+        const formulaYAxis = buildFormulaYAxis(newFormula, DEFAULT_VISUALIZATION_FIELD);
+        if (formulaYAxis) {
+          onReplace([visualize.replace({yAxis: formulaYAxis, chartGroup: null})]);
+        }
+        return;
+      }
+      // Formula arguments don't map onto built in aggregates, so switch as if from the default.
+      const previous = formula
+        ? parseConditionalAggregate(DEFAULT_VISUALIZATION)
+        : parsedFunction;
       const chartGroup =
         aggregates.length > 1 ? (visualize.chartGroup ?? createChartGroup()) : null;
       onReplace(
         aggregates.map(aggregate => {
           const yAxis = updateVisualizeAggregate({
             newAggregate: aggregate,
-            oldAggregate: parsedFunction?.name,
-            oldArguments: parsedFunction?.arguments,
+            oldAggregate: previous?.name,
+            oldArguments: previous?.arguments,
           });
           return visualize.replace({
             yAxis: supportsConditionalAggregateFilter(aggregate)
@@ -267,15 +303,11 @@ function ToolbarVisualizeItem({
         })
       );
     },
-    [filter, onReplace, parsedFunction, visualize]
+    [filter, formula, formulas, onReplace, parsedFunction, visualize]
   );
 
   const onChangeArgument = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value !== 'string') {
-        return;
-      }
-      const value = option.value;
+    (index: number, value: string) => {
       onReplace(
         visualizes.map(v => {
           const parsed = parseConditionalAggregate(v.yAxis);
@@ -324,12 +356,15 @@ function ToolbarVisualizeItem({
       dragColumnId={dragColumnId}
       aggregateSelect={
         <AggregateMultiSelect
+          formulas={formulas}
           maxAggregates={maxAggregates}
           onChange={onChangeAggregates}
           value={selectedAggregates}
         />
       }
       fieldOptions={fieldOptions}
+      formulaDefaultColumn={DEFAULT_VISUALIZATION_FIELD}
+      formulas={formulas}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
       deleteLabel={deleteLabel}
@@ -338,6 +373,22 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
+      transformationControls={
+        organization.features.includes('explore-interpolation-and-smoothing') &&
+        isVisualizeFunction(visualize) ? (
+          <VisualizeTransformations
+            traceItemDataset={TraceItemDataset.SPANS}
+            transformations={visualize.transformations}
+            onChange={transformations =>
+              onReplace(
+                visualizes.map(v =>
+                  isVisualizeFunction(v) ? v.replace({transformations}) : v
+                )
+              )
+            }
+          />
+        ) : undefined
+      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar
@@ -357,12 +408,14 @@ const SINGLE_SELECT_AGGREGATES = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(
 );
 
 interface AggregateMultiSelectProps {
+  formulas: readonly SavedFormula[];
   maxAggregates: number;
   onChange: (aggregates: string[]) => void;
   value: string[];
 }
 
 function AggregateMultiSelect({
+  formulas,
   maxAggregates,
   onChange,
   value,
@@ -374,6 +427,7 @@ function AggregateMultiSelect({
   const singleSelectValue = SINGLE_SELECT_AGGREGATES.find(aggregate =>
     selected.has(aggregate)
   );
+  const selectedFormula = formulas.find(formula => selected.has(formula.name));
   const isDefaultSelection =
     value.length === 1 && value[0] === DEFAULT_VISUALIZATION_AGGREGATE;
 
@@ -404,7 +458,11 @@ function AggregateMultiSelect({
       }
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
-          <TriggerLabel>{value[0] ?? t('None')}</TriggerLabel>
+          <TriggerLabel>
+            {selectedFormula
+              ? stripNamePrefix(selectedFormula.name)
+              : (value[0] ?? t('None'))}
+          </TriggerLabel>
           {value.length > 1 && (
             <Badge variant="muted" style={{marginLeft: 4, flexShrink: 0, top: 'auto'}}>
               {`+${value.length - 1}`}
@@ -452,6 +510,25 @@ function AggregateMultiSelect({
           value={singleSelectValue}
           onChange={option => onChange([option.value])}
         />,
+        ...(formulas.length
+          ? [
+              <CompositeSelect.Region
+                key="formulas"
+                label={t('Formulas')}
+                options={formulas.map(formula => ({
+                  label: stripNamePrefix(formula.name),
+                  value: formula.name,
+                  textValue: formula.name,
+                  details: formula.description,
+                  disabled:
+                    buildFormulaYAxis(formula, DEFAULT_VISUALIZATION_FIELD) === null,
+                  trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
+                }))}
+                value={selectedFormula?.name}
+                onChange={option => onChange([option.value])}
+              />,
+            ]
+          : []),
       ]}
     </AggregateCompositeSelect>
   );

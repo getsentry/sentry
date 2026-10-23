@@ -45,10 +45,10 @@ function renderPage(query: Record<string, string> = {}, extra?: React.ReactNode)
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+          pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
           query,
         },
-        route: '/organizations/:orgId/explore/investigations/:investigationId/',
+        route: '/organizations/:orgId/seer/investigations/:investigationId/',
       },
     }
   );
@@ -66,6 +66,7 @@ describe('BlockCommentsDrawer', () => {
   beforeEach(() => {
     localStorage.clear();
     MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+    MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
     MockApiClient.addMockResponse({
       url: `${detailUrl}presence/`,
       method: 'PUT',
@@ -82,7 +83,7 @@ describe('BlockCommentsDrawer', () => {
     renderPage();
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Cell actions for Summary'})
+      await screen.findByRole('button', {name: 'Block actions for Summary'})
     );
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Comment'}));
 
@@ -167,6 +168,121 @@ describe('BlockCommentsDrawer', () => {
     await userEvent.click(screen.getByRole('heading', {name: 'Activity'}));
 
     await waitFor(() => expect(drawer).not.toBeInTheDocument());
+  });
+
+  it("opens from a block's button", async () => {
+    mockBlockComments([]);
+    renderPage();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Comment on Summary'})
+    );
+
+    expect(
+      await screen.findByRole('complementary', {name: 'Block comments'})
+    ).toBeInTheDocument();
+  });
+
+  it('opens at the comment linked from the activity feed', async () => {
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [InvestigationCommentFixture({id: '7', body: 'On it', blockId: 'block-1'})],
+    });
+    mockBlockComments([
+      InvestigationCommentFixture({id: '7', body: 'On it', blockId: 'block-1'}),
+    ]);
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('link', {name: 'Summary'}));
+
+    const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
+    const item = await within(drawer).findByRole('listitem');
+    expect(item).toHaveAttribute('aria-current', 'true');
+  });
+
+  it("switches to another block's thread without closing", async () => {
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [InvestigationCommentFixture({id: '7', blockId: 'block-2'})],
+    });
+    mockBlockComments([]);
+    renderPage({comments: 'open', commentsBlock: 'block-1'});
+
+    const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
+    await userEvent.click(await screen.findByRole('link', {name: 'Latency query'}));
+
+    expect(
+      await within(drawer).findByRole('heading', {name: 'Comments on Latency query'})
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the comment button visible with the count on blocks with comments', async () => {
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}comment-counts/`,
+      body: {'block-1': 3},
+    });
+    renderPage();
+
+    const button = await screen.findByRole('button', {name: '3 comments on Summary'});
+    expect(button.closest('[data-pinned]')).toBeInTheDocument();
+  });
+
+  it('hides the comment button until hover on blocks without comments', async () => {
+    renderPage();
+
+    const button = await screen.findByRole('button', {name: 'Comment on Summary'});
+    expect(button.closest('[data-pinned]')).not.toBeInTheDocument();
+  });
+
+  it('hides the comment button on archived blocks without comments', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({status: 'archived'}),
+    });
+    const counts = MockApiClient.addMockResponse({
+      url: `${detailUrl}comment-counts/`,
+      body: {},
+    });
+    renderPage();
+
+    await screen.findByRole('button', {name: 'Block actions for Summary'});
+    await waitFor(() => expect(counts).toHaveBeenCalled());
+    expect(
+      screen.queryByRole('button', {name: 'Comment on Summary'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the comment button on archived blocks until counts load', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({status: 'archived'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}comment-counts/`,
+      statusCode: 500,
+      body: {},
+    });
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Comment on Summary'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows the comment button on archived blocks with comments', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({status: 'archived'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}comment-counts/`,
+      body: {'block-1': 2},
+    });
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: '2 comments on Summary'})
+    ).toBeInTheDocument();
   });
 
   it('hides the composer and comment actions on an archived investigation', async () => {

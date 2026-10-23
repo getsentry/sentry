@@ -42,10 +42,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
-  PRIMARY_HEADER_HEIGHT,
-} from 'sentry/views/navigation/constants';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
@@ -115,10 +112,7 @@ function SidebarHeaderShell({
       as="header"
       align="center"
       gap="md"
-      height={{
-        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
-        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
-      }}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding="0 lg"
       background="primary"
       borderBottom="primary"
@@ -241,8 +235,6 @@ export function SeerExplorerContent({
     createPR,
     interruptRun,
     hasSentInterrupt,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
     setOverrideCodeModeEnable,
@@ -327,7 +319,7 @@ export function SeerExplorerContent({
 
   const suggestions = useChatSuggestions({
     enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
-    allowStructuredContext: overrideCtxEngEnable,
+    allowStructuredContext: true,
   });
   const handleSuggestionClick = useCallback(
     (suggestion: ChatSuggestion, position: number) => {
@@ -750,12 +742,11 @@ export function SeerExplorerContent({
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-      overrideCtxEngEnable={overrideCtxEngEnable}
-      onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
       overrideBashModeEnabled={overrideBashModeEnabled}
       onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
+      conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}

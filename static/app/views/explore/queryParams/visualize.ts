@@ -25,6 +25,7 @@ interface VisualizeOptions {
   // equations so we can properly update the correct references when
   // dependencies change
   internalExpression?: string;
+  transformations?: readonly string[];
   visible?: boolean;
 }
 
@@ -92,6 +93,11 @@ export abstract class Visualize {
       return new VisualizeFunction(yAxis, {
         chartType: json.chartType,
         visible: json.visible,
+        transformations:
+          Array.isArray(json.transformations) &&
+          json.transformations.every(value => typeof value === 'string')
+            ? json.transformations
+            : undefined,
       });
     });
   }
@@ -157,10 +163,12 @@ export function serializeVisualizes(visualizes: readonly Visualize[]): BaseVisua
 export class VisualizeFunction extends Visualize {
   readonly kind = 'function';
   readonly parsedFunction: ParsedFunction | null;
+  readonly transformations: readonly string[];
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     super(yAxis, options);
     this.parsedFunction = parseFunction(yAxis);
+    this.transformations = [...(options?.transformations ?? [])];
   }
 
   clone(): VisualizeFunction {
@@ -168,6 +176,7 @@ export class VisualizeFunction extends Visualize {
       chartType: this.selectedChartType,
       visible: this.visible,
       chartGroup: this.chartGroup,
+      transformations: this.transformations,
     });
   }
 
@@ -176,9 +185,11 @@ export class VisualizeFunction extends Visualize {
     visible,
     yAxis,
     chartGroup,
+    transformations,
   }: {
     chartGroup?: string | null;
     chartType?: ChartType;
+    transformations?: readonly string[];
     visible?: boolean;
     yAxis?: string;
   }): VisualizeFunction {
@@ -187,7 +198,16 @@ export class VisualizeFunction extends Visualize {
       visible: visible ?? this.visible,
       // `null` removes the visualize from its chart group.
       chartGroup: chartGroup === null ? undefined : (chartGroup ?? this.chartGroup),
+      transformations: transformations ?? this.transformations,
     });
+  }
+
+  override serialize(): BaseVisualize {
+    const json = super.serialize();
+    if (this.transformations.length) {
+      json.transformations = [...this.transformations];
+    }
+    return json;
   }
 }
 
@@ -290,6 +310,12 @@ export function isVisualizeFunction(
   return visualize.kind === 'function';
 }
 
+export function hasVisualizeTransformations(visualizes: readonly Visualize[]): boolean {
+  return visualizes.some(
+    visualize => isVisualizeFunction(visualize) && visualize.transformations.length > 0
+  );
+}
+
 export function isVisualizeEquation(
   visualize: Visualize
 ): visualize is VisualizeEquation {
@@ -300,6 +326,7 @@ export interface BaseVisualize {
   yAxes: readonly string[];
   chartType?: ChartType;
   internalExpression?: string;
+  transformations?: readonly string[];
   visible?: boolean;
 }
 

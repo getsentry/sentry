@@ -1,13 +1,11 @@
 import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {
@@ -16,7 +14,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToSeries';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToTable';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
-import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -25,6 +23,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -142,7 +141,7 @@ export function useIssuesSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data?.json) {
@@ -151,16 +150,13 @@ export function useIssuesSeriesQuery(
 
       const responseData = q.data.json;
 
-      const transformedResult = transformIssuesResponseToSeries(responseData);
-      const seriesQueryPrefix = getSeriesQueryPrefix(
-        filteredWidget.queries[requestIndex]!,
-        filteredWidget
+      const transformedResult = transformMultipleWidgetSeriesToTimeSeries(
+        transformIssuesResponseToSeries(responseData),
+        filteredWidget,
+        requestIndex
       );
 
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
+      transformedResult.forEach((result, resultIndex) => {
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
     });
