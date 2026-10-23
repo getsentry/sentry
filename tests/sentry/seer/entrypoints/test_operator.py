@@ -8,6 +8,7 @@ from django.test import override_settings
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -1323,6 +1324,20 @@ class TestProcessInvestigationUpdates(TestCase):
             cache_payload=cache_payload,
         )
 
+    def _set_open_period_cache(self, cache_payload: dict[str, Any]) -> None:
+        self.investigation.update(
+            source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
+            source_ref={"groupId": "1", "openPeriodId": "2"},
+            source_key="open-period",
+            source_revision=1,
+        )
+        SeerOperatorInvestigationCache.set_for_source(
+            entrypoint_key="slack",
+            source_type="metric_open_period",
+            source_ids=[1, 2],
+            cache_payload=cache_payload,
+        )
+
     def _process(self, registrations: dict[str, Mock]) -> None:
         with (
             self.feature("organizations:investigations"),
@@ -1403,6 +1418,27 @@ class TestProcessInvestigationUpdates(TestCase):
         entrypoint_cls = self._make_entrypoint()
         other_org = self.create_organization()
         self._set_cache("slack", {"organization_id": other_org.id})
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "org_mismatch")
+
+    def test_calls_entrypoint_on_open_period_cache_hit(self) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_open_period_cache(self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=None, run=self.orchestration_run
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_records_failure_on_open_period_org_mismatch(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+        self._set_open_period_cache({"organization_id": self.create_organization().id})
 
         self._process({"slack": entrypoint_cls})
 

@@ -7,6 +7,7 @@ from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.investigations.access import has_investigations_access
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.telemetry import record_investigation_started
@@ -28,6 +29,7 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
     SeerOperatorInvestigationCache,
+    get_metric_open_period_ids,
 )
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -944,16 +946,33 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 continue
 
             # TODO: Use a provider-agnostic payload type once there are more investigation entrypoints.
-            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+            from sentry.seer.entrypoints.slack.entrypoint import (
+                SlackInvestigationCachePayload,
+                SlackInvestigationThreadsCachePayload,
+            )
 
             cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
                 entrypoint_key=str(entrypoint_key),
                 investigation_id=investigation_id,
             )
-            if not cache_payload:
+            threads_payload = None
+            source_ids = get_metric_open_period_ids(run.investigation)
+            if source_ids is not None:
+                threads_payload = SeerOperatorInvestigationCache[
+                    SlackInvestigationThreadsCachePayload
+                ].get_for_source(
+                    entrypoint_key=str(entrypoint_key),
+                    source_type=InvestigationSourceType.METRIC_OPEN_PERIOD.value,
+                    source_ids=source_ids,
+                )
+            if not cache_payload and not threads_payload:
                 continue
 
-            if cache_payload["organization_id"] != organization.id:
+            if any(
+                payload["organization_id"] != organization.id
+                for payload in (cache_payload, threads_payload)
+                if payload
+            ):
                 lifecycle.record_failure(failure_reason="org_mismatch")
                 return
 

@@ -1,7 +1,9 @@
 import logging
 from collections.abc import Sequence
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
@@ -9,6 +11,9 @@ from sentry.seer.entrypoints.metrics import (
 from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import SeerOperatorCacheResult
 from sentry.utils.cache import cache
+
+if TYPE_CHECKING:
+    from sentry.investigations.models import Investigation
 
 logger = logging.getLogger(__name__)
 
@@ -383,3 +388,16 @@ class SeerOperatorInvestigationCache[CachePayloadT]:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
             return cache_payload
+
+
+def get_metric_open_period_ids(investigation: "Investigation") -> list[int] | None:
+    """Returns the [group_id, open_period_id] source IDs of a metric open period investigation."""
+    if investigation.source_type != InvestigationSourceType.METRIC_OPEN_PERIOD:
+        return None
+    source_ref = investigation.source_ref
+    if not isinstance(source_ref, dict):
+        return None
+    ids = [source_ref.get("groupId"), source_ref.get("openPeriodId")]
+    if not all(type(i) is int or (isinstance(i, str) and i.isdigit()) for i in ids):
+        return None
+    return [int(i) for i in ids]
