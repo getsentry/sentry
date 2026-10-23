@@ -352,6 +352,21 @@ class RpcUserOrganizationContext(RpcModel):
             assert self.user_id == self.member.user_id
 
 
+class RpcOrganizationResourceIds(RpcModel):
+    project_ids: list[int] = Field(default_factory=list)
+    team_ids: list[int] = Field(default_factory=list)
+
+
+class RpcOrganizationAccessContext(RpcUserOrganizationContext):
+    # None means not loaded, rather than an organization with no active resources.
+    resource_ids: RpcOrganizationResourceIds | None = None
+
+
+class RpcOrganizationProjectSummary(RpcModel):
+    platforms: list[str | None] = Field(default_factory=list)
+    flags: RpcProjectFlags
+
+
 class RpcUserInviteContext(RpcUserOrganizationContext):
     """
     A context containing an intended organization member object as a potential invite, and the true

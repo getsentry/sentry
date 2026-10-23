@@ -23,11 +23,13 @@ from sentry.organizations.services.organization.model import (
     RpcAuditLogEntryActor,
     RpcCellUser,
     RpcOrganization,
+    RpcOrganizationAccessContext,
     RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
+    RpcOrganizationProjectSummary,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcTeam,
@@ -50,6 +52,59 @@ class OrganizationService(RpcService):
         )
 
         return DatabaseBackedOrganizationService()
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_active_project_ids(self, *, organization_id: int, project_ids: list[int]) -> list[int]:
+        """Return the supplied IDs that belong to active projects in this organization."""
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_access_context(
+        self,
+        *,
+        organization_id: int,
+        user_id: int | None = None,
+        include_resource_ids: bool = False,
+    ) -> RpcOrganizationAccessContext | None:
+        """Return organization/member data for access checks without full resource collections.
+
+        include_resource_ids batches org-wide enumeration into this response; it does not
+        authorize the user to access those resources. Callers still apply access policy.
+        """
+        pass
+
+    def get_access_context_by_slug(
+        self,
+        *,
+        slug: str,
+        only_visible: bool,
+        user_id: int | None = None,
+        include_resource_ids: bool = False,
+    ) -> RpcOrganizationAccessContext | None:
+        from sentry.models.organization import OrganizationStatus
+
+        organization_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
+        if organization_id is None:
+            return None
+        context = self.get_access_context(
+            organization_id=organization_id,
+            user_id=user_id,
+            include_resource_ids=include_resource_ids,
+        )
+        if only_visible and context and context.organization.status != OrganizationStatus.ACTIVE:
+            return None
+        return context
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_project_summary(self, *, organization_id: int) -> RpcOrganizationProjectSummary:
+        """Return distinct platforms and aggregate flags for broadcast targeting.
+
+        Includes inactive projects to preserve existing targeting semantics.
+        """
+        pass
 
     def get(self, id: int) -> RpcOrganization | None:
         """
