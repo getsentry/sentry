@@ -54,7 +54,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
-  collapseAll?: boolean;
+  initialCollapse?: boolean;
 };
 
 function getIntendedStackView(
@@ -174,7 +174,7 @@ export function Threads({
   projectSlug,
   groupingCurrentLevel,
   group,
-  collapseAll,
+  initialCollapse,
 }: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
@@ -315,7 +315,6 @@ export function Threads({
         </Fragment>
       )}
       <StacktraceContext
-        collapseAll={collapseAll}
         projectSlug={projectSlug}
         forceFullStackTrace={hasNonAppFrames ? stackView === StackView.FULL : true}
         defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
@@ -324,6 +323,7 @@ export function Threads({
         }
       >
         <TraceEventDataSection
+          initialCollapse={initialCollapse}
           type={SectionKey.THREADS}
           projectSlug={projectSlug}
           event={event}
@@ -399,6 +399,7 @@ export function Threads({
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
     <FoldSection
+      initialCollapse={initialCollapse}
       sectionKey={SectionKey.STACKTRACE}
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       disableCollapsePersistence
