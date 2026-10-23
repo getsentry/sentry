@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationTrackingContext
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -157,6 +158,20 @@ class NotificationProvider[RenderableT](Protocol):
         - Any other provider specific checks related to the organization
         """
         ...
+
+    @classmethod
+    def track_actions(
+        cls, *, renderable: RenderableT, context: NotificationTrackingContext
+    ) -> set[str]:
+        """
+        Marks the renderable's callback actions, such as buttons that call back into Sentry rather
+        than open a page, with the notification they're sent in, so the provider's callback can
+        attribute clicks on them. Returns the kinds of action marked.
+
+        Call this just before sending, never from rendering: shadow reads compare rendered payloads
+        with legacy ones, which don't carry these marks.
+        """
+        return set()
 
     @classmethod
     def send(
