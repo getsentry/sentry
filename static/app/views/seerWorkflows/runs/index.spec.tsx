@@ -3,7 +3,7 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import SeerWorkflows from 'sentry/views/seerWorkflows/runs';
+import AutomationRunsList from 'sentry/views/seerWorkflows/runs';
 
 describe('SeerWorkflows', () => {
   const organization = OrganizationFixture();
@@ -21,7 +21,7 @@ describe('SeerWorkflows', () => {
       url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [],
     });
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
     expect(await screen.findByText('No workflow runs yet.')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Run…'})).not.toBeInTheDocument();
   });
@@ -51,7 +51,7 @@ describe('SeerWorkflows', () => {
         runId: '2',
       },
     });
-    const {router} = render(<SeerWorkflows />, {
+    const {router} = render(<AutomationRunsList />, {
       organization: scanOrganization,
       initialRouterConfig: {
         location: {
@@ -140,7 +140,7 @@ describe('SeerWorkflows', () => {
       url,
       body: [...unsupportedRuns, runningRun],
     });
-    render(<SeerWorkflows />, {
+    render(<AutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -249,7 +249,7 @@ describe('SeerWorkflows', () => {
         },
       ],
     });
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
     expect(await screen.findByText('Duplicate monitors')).toBeInTheDocument();
     expect(
       screen.getByText('1 exact duplicate group · 1 other finding')
@@ -283,7 +283,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByText('Run failed')).toBeInTheDocument();
     expect(screen.getByLabelText('Failed')).toBeInTheDocument();
@@ -312,7 +312,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByText(resultText)).toBeInTheDocument();
     expect(screen.getByLabelText(status)).toBeInTheDocument();
@@ -344,7 +344,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByText('1 issue')).toBeInTheDocument();
     expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
@@ -394,7 +394,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
@@ -448,7 +448,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
@@ -487,7 +487,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByText('1 issue')).toBeInTheDocument();
     expect(
@@ -523,7 +523,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByText('No issues processed')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
@@ -587,7 +587,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    const {router} = render(<SeerWorkflows />, {organization});
+    const {router} = render(<AutomationRunsList />, {organization});
 
     const resultsDesc = (await screen.findAllByText(/issues?$/)).map(
       el => el.textContent
@@ -610,7 +610,7 @@ describe('SeerWorkflows', () => {
       body: {detail: 'not found'},
     });
 
-    render(<SeerWorkflows />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByRole('button', {name: /retry/i})).toBeInTheDocument();
   });
@@ -651,7 +651,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {
+    render(<AutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -691,7 +691,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    const {router} = render(<SeerWorkflows />, {
+    const {router} = render(<AutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -743,7 +743,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<SeerWorkflows />, {
+    render(<AutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {

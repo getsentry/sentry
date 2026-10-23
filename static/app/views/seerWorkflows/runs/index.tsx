@@ -63,7 +63,7 @@ const RUNS_COLUMNS: TableColumnConfig[] = [
   {key: 'actions', width: 'min-content'},
 ];
 
-function SeerWorkflows() {
+export default function AutomationRunsList() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -647,5 +647,3 @@ function RunDetail({
     </Stack>
   );
 }
-
-export default SeerWorkflows;

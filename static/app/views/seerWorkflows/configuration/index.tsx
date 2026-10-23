@@ -38,7 +38,7 @@ const MIN_CARD_WIDTH = '280px';
  */
 const DAILY_SCHEDULE_HOURS = [10, 22];
 
-type SeerAutomationCardProps = {
+type AutomationCardProps = {
   id: string;
   /**
    * ['all'] when the automation covers all projects, [] when it covers none
@@ -61,7 +61,7 @@ type SeerAutomationCardProps = {
   tokensPerMonth?: number;
 };
 
-export default function Automations() {
+export default function AutomationsList() {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
   const {projects} = useProjects();
@@ -76,7 +76,7 @@ export default function Automations() {
     )
   );
 
-  const cards: SeerAutomationCardProps[] = [
+  const cards: AutomationCardProps[] = [
     // Placeholders for automations the configs endpoint doesn't return yet
     {
       id: 'placeholder-agentic-triage',
@@ -124,13 +124,13 @@ export default function Automations() {
       padding="0"
     >
       {cards.map(card => (
-        <SeerAutomationCard key={card.id} {...card} />
+        <AutomationCard key={card.id} {...card} />
       ))}
     </Grid>
   );
 }
 
-function SeerAutomationCard({
+function AutomationCard({
   title,
   description,
   projectSlugs,
@@ -138,7 +138,7 @@ function SeerAutomationCard({
   subtitleOverride,
   tokensPerMonth,
   costPerRun,
-}: SeerAutomationCardProps) {
+}: AutomationCardProps) {
   const organization = useOrganization();
   const usage = [
     tokensPerMonth === undefined
