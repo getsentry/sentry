@@ -304,8 +304,6 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
 # wrapped by this check, so these stayed hidden until default locks moved to RedisClusterLockBackend.
 _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
     {
-        # INFRENG-808: invite request team assignments
-        ("sentry.core.endpoints.organization_member_utils.save_team_assignments",),
         # --------------------------------
         # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
         # --------------------------------
