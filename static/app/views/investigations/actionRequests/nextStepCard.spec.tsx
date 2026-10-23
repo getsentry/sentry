@@ -1,4 +1,10 @@
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {
@@ -58,14 +64,43 @@ function runWith(
   });
 }
 
+const applyUrl =
+  '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
+
+type MockResponse = Parameters<typeof MockApiClient.addMockResponse>[0];
+
+function mockApply(response: MockResponse) {
+  return MockApiClient.addMockResponse({
+    url: applyUrl,
+    method: 'POST',
+    match: [(_url, options) => !options.data?.dryRun],
+    ...response,
+  });
+}
+
+function mockDryRun(response: MockResponse = {}) {
+  return MockApiClient.addMockResponse({
+    url: applyUrl,
+    method: 'POST',
+    match: [MockApiClient.matchData({dryRun: true})],
+    body: {actionRequest: InvestigationActionRequestFixture()},
+    ...response,
+  });
+}
+
 function getCard() {
   return screen.getByRole('region', {name: 'Recommended action'});
 }
 
 describe('NextStepCard', () => {
+  beforeEach(() => {
+    mockDryRun();
+  });
+
   it('renders the primary request', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
@@ -95,6 +130,7 @@ describe('NextStepCard', () => {
   it('describes cleared filters, all environments and thresholds', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
@@ -124,6 +160,7 @@ describe('NextStepCard', () => {
   it('renders advice without an action as text only', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
@@ -143,6 +180,7 @@ describe('NextStepCard', () => {
   it('does not add a period after closing punctuation', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
@@ -158,6 +196,7 @@ describe('NextStepCard', () => {
   it('renders nothing without a primary request', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[InvestigationActionRequestFixture({primary: false})]}
       />
@@ -171,6 +210,7 @@ describe('NextStepCard', () => {
   it('only shows a primary from the newest report', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={runWith({status: 'completed', error: null}, {}, {revision: 3})}
         actionRequests={[
           InvestigationActionRequestFixture({
@@ -197,6 +237,7 @@ describe('NextStepCard', () => {
   it('renders nothing for a state it does not know', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[InvestigationActionRequestFixture({state: 'archived'})]}
       />
@@ -210,6 +251,7 @@ describe('NextStepCard', () => {
   it('renders text from Seer as plain text', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
@@ -233,6 +275,7 @@ describe('NextStepCard', () => {
   it('collapses a request Seer withdrew to its reason', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
@@ -255,6 +298,7 @@ describe('NextStepCard', () => {
   it('collapses a withdrawn request without a reason to its title', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[InvestigationActionRequestFixture({state: 'withdrawn'})]}
       />
@@ -268,6 +312,7 @@ describe('NextStepCard', () => {
   it('holds space while the next step generates', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         actionRequests={[]}
         orchestration={runWith(
           {status: 'generating', error: null},
@@ -282,6 +327,7 @@ describe('NextStepCard', () => {
   it('holds space before the next step starts', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         actionRequests={[]}
         orchestration={runWith(
           {status: 'not_started', error: null},
@@ -296,6 +342,7 @@ describe('NextStepCard', () => {
   it('holds space for a completed next step until its request arrives', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         actionRequests={[]}
         actionRequestsStale
         orchestration={runWith({status: 'completed', error: null})}
@@ -308,6 +355,7 @@ describe('NextStepCard', () => {
   it('renders nothing for a completed next step that suggested nothing', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         actionRequests={[]}
         orchestration={runWith({status: 'completed', error: null})}
       />
@@ -321,6 +369,7 @@ describe('NextStepCard', () => {
   it('renders nothing while the run is loading', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         actionRequests={[InvestigationActionRequestFixture()]}
         orchestration={undefined}
         orchestrationLoading
@@ -335,6 +384,7 @@ describe('NextStepCard', () => {
   it('shows the newest primary over one Seer withdrew', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
@@ -356,6 +406,7 @@ describe('NextStepCard', () => {
   it('holds space for a new next step over a withdrawn one', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         actionRequests={[
           InvestigationActionRequestFixture({
             reportRevision: 1,
@@ -377,6 +428,7 @@ describe('NextStepCard', () => {
   it('explains a next step that failed', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         actionRequests={[]}
         orchestration={runWith({status: 'failed', error: null})}
       />
@@ -390,6 +442,7 @@ describe('NextStepCard', () => {
   it('hides an old primary while a new report is written', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         actionRequests={[
           InvestigationActionRequestFixture({
             reportRevision: 2,
@@ -413,6 +466,7 @@ describe('NextStepCard', () => {
   it('names the monitor and what it measures', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith()}
         actionRequests={[InvestigationActionRequestFixture()]}
@@ -431,6 +485,7 @@ describe('NextStepCard', () => {
   it('formats static thresholds with the aggregate unit', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith()}
         actionRequests={[
@@ -457,6 +512,7 @@ describe('NextStepCard', () => {
   it('formats each threshold with its own aggregate unit', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith()}
         actionRequests={[
@@ -479,6 +535,7 @@ describe('NextStepCard', () => {
   it('does not describe the opening condition when the aggregate changes', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith()}
         actionRequests={[
@@ -502,6 +559,7 @@ describe('NextStepCard', () => {
   it('formats percent thresholds like the monitor page', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith({
           ...latencyMonitor,
@@ -525,6 +583,7 @@ describe('NextStepCard', () => {
   it('describes the condition that opens an issue for a percent monitor', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith({
           ...latencyMonitor,
@@ -547,6 +606,7 @@ describe('NextStepCard', () => {
   it('describes the opening condition from a snapshot without a detection type', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith({...latencyMonitor, detectionType: undefined})}
         actionRequests={[InvestigationActionRequestFixture()]}
@@ -559,6 +619,7 @@ describe('NextStepCard', () => {
   it('reads a percent monitor from a snapshot without a detection type', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith({
           ...latencyMonitor,
@@ -578,6 +639,7 @@ describe('NextStepCard', () => {
   it('names the monitor without an opening condition for a dynamic monitor', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith({
           ...latencyMonitor,
@@ -602,6 +664,7 @@ describe('NextStepCard', () => {
   it('skips a condition type it does not know', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith({
           ...latencyMonitor,
@@ -619,6 +682,7 @@ describe('NextStepCard', () => {
   it('leaves out monitor details when the snapshot does not parse', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith({id: '789', name: 'Another monitor'})}
         actionRequests={[InvestigationActionRequestFixture()]}
@@ -635,6 +699,7 @@ describe('NextStepCard', () => {
   it('leaves out a different monitor than the one the suggestion changes', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith({...latencyMonitor, id: '42', name: 'Another monitor'})}
         actionRequests={[InvestigationActionRequestFixture()]}
@@ -649,6 +714,7 @@ describe('NextStepCard', () => {
   it('shows query and environment changes in place of what they replace', () => {
     render(
       <NextStepCard
+        investigationId="investigation-1"
         orchestration={completedRun}
         source={sourceWith()}
         actionRequests={[
@@ -673,5 +739,166 @@ describe('NextStepCard', () => {
     );
     expect(card).toHaveTextContent('Measuresp95(span.duration)');
     expect(card).not.toHaveTextContent('p95(span.duration) • transaction:/api/cart');
+  });
+
+  it('applies the change', async () => {
+    const apply = mockApply({
+      body: {actionRequest: InvestigationActionRequestFixture({state: 'applied'})},
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Update monitor'}));
+
+    expect(apply).toHaveBeenCalledWith(
+      applyUrl,
+      expect.objectContaining({method: 'POST', data: {}})
+    );
+    expect(await screen.findByText('Monitor updated.')).toBeInTheDocument();
+  });
+
+  it('shows the updating state while the change is applied', async () => {
+    mockApply({body: {}, asyncDelay: 1_000_000});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Update monitor'}));
+
+    expect(await screen.findByRole('button', {name: 'Updating monitor…'})).toBeDisabled();
+  });
+
+  it.each([
+    {status: 500, body: {}, message: 'Unable to apply this change.'},
+    {
+      status: 403,
+      body: {
+        code: 'permission_denied',
+        detail: 'You do not have permission to edit this monitor.',
+      },
+      message: 'You do not have permission to edit this monitor.',
+    },
+  ])('says when an apply fails with $status', async ({status, body, message}) => {
+    mockApply({statusCode: status, body});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Update monitor'}));
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
+  it.each([
+    ['permission_denied', "You don't have permission to edit this monitor."],
+    ['detector_not_found', 'This monitor is no longer available.'],
+    [
+      'not_target_detector',
+      'This change targets a different monitor than this investigation.',
+    ],
+    ['investigation_archived', 'Archived investigations are read-only.'],
+  ])('says why a %s change cannot apply', (cannotApplyReason, message) => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({canApply: false, cannotApplyReason}),
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).getByRole('button', {name: 'Update monitor'})
+    ).toBeDisabled();
+    expect(getCard()).toHaveTextContent(message);
+  });
+
+  it('checks the change before it is applied', async () => {
+    const dryRun = mockDryRun();
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await waitFor(() => expect(dryRun).toHaveBeenCalled());
+    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeEnabled();
+  });
+
+  it('holds the update when the check finds a problem', async () => {
+    mockDryRun({
+      statusCode: 400,
+      body: {
+        code: 'unsupported_action',
+        detail: "Seer can't change dynamic monitors yet.",
+      },
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(
+      await screen.findByText("Seer can't change dynamic monitors yet.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeDisabled();
+  });
+
+  it('does not check a change the viewer cannot apply', () => {
+    const dryRun = mockDryRun();
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            canApply: false,
+            cannotApplyReason: 'permission_denied',
+          }),
+        ]}
+      />
+    );
+
+    expect(dryRun).not.toHaveBeenCalled();
+  });
+
+  it('has no apply button for advice', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            action: null,
+            canApply: false,
+            cannotApplyReason: 'unsupported_action',
+          }),
+        ]}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', {name: 'Update monitor'})
+    ).not.toBeInTheDocument();
+    expect(getCard()).not.toHaveTextContent("Seer can't apply this kind of change yet.");
   });
 });

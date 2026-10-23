@@ -1,14 +1,19 @@
 import {
+  queryOptions,
   useMutation,
   useQueryClient,
   type UseMutationOptions,
 } from '@tanstack/react-query';
+import {z} from 'zod';
 
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions, selectJson} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {
+  InvestigationActionRequest,
+  InvestigationActionRequestApplyResponse,
   InvestigationCandidate,
   InvestigationBlock,
   InvestigationBlockExecutionStart,
@@ -665,6 +670,118 @@ export function useRunInvestigationBlockMutation(
     },
     onError: async () => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+    },
+  });
+}
+
+const applyErrorSchema = z.object({detail: z.string()});
+
+export type ApplyError = z.infer<typeof applyErrorSchema>;
+
+export function parseApplyError(error: Error): ApplyError | null {
+  const parsed = applyErrorSchema.safeParse(
+    error instanceof RequestError ? error.responseJSON : undefined
+  );
+  return parsed.success ? parsed.data : null;
+}
+
+function getActionRequestApplyUrl(
+  organizationSlug: string,
+  investigationId: string,
+  actionRequestId: string
+) {
+  return getApiUrl(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/apply/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
+        actionRequestId,
+      },
+    }
+  );
+}
+
+export function actionRequestDryRunQueryOptions(
+  organizationSlug: string,
+  investigationId: string,
+  actionRequestId: string,
+  investigationVersion: number | undefined
+) {
+  const url = getActionRequestApplyUrl(
+    organizationSlug,
+    investigationId,
+    actionRequestId
+  );
+  const endpoint = {method: 'POST', data: {dryRun: true}} as const;
+  return queryOptions({
+    queryKey: [url, endpoint, {investigationVersion}] as const,
+    queryFn: () =>
+      apiFetch<InvestigationActionRequestApplyResponse>({queryKey: [url, endpoint]}),
+    select: selectJson,
+    staleTime: 0,
+    retry: false,
+  });
+}
+
+export function useApplyInvestigationActionRequestMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<
+    InvestigationActionRequestApplyResponse,
+    InvestigationActionRequest
+  >
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = getInvestigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+  const orchestrationOptions = investigationOrchestrationQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  function refresh() {
+    void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+    void queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
+  }
+
+  return useMutation({
+    ...options,
+    mutationFn: actionRequest =>
+      fetchMutation<InvestigationActionRequestApplyResponse>({
+        url: getActionRequestApplyUrl(
+          organizationSlug,
+          investigationId,
+          actionRequest.id
+        ),
+        method: 'POST',
+        data: {},
+      }),
+    onSuccess: async (response, variables, onMutateResult, context) => {
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                version: current.json.version + 1,
+                actionRequests: current.json.actionRequests?.map(actionRequest =>
+                  actionRequest.id === response.actionRequest.id
+                    ? response.actionRequest
+                    : actionRequest
+                ),
+              },
+            }
+          : current
+      );
+      refresh();
+      await options?.onSuccess?.(response, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      refresh();
+      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }
