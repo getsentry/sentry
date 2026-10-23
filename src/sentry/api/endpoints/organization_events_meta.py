@@ -1,7 +1,7 @@
 import re
 from typing import TypedDict
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,8 +15,16 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
@@ -85,13 +93,54 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationEventsRelatedIssues",
+        summary="List Issues Related to a Transaction",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="transaction",
+                location="query",
+                required=True,
+                type=str,
+                description="The name of the transaction to find issues for.",
+            ),
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description="An issue search query to further filter the results. Defaults to `is:unresolved`.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsRelatedIssuesResponse", list[BaseGroupSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[BaseGroupSerializerResponse]] | Response[DetailResponse]:
+        """
+        Return up to 5 issues whose events occurred in the given transaction.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

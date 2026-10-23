@@ -15,7 +15,7 @@ from sentry.api.endpoints.organization_trace_meta_types import OrganizationTrace
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_examples import TraceExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, TraceParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -38,14 +38,6 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
-
-TRACE_ID_PATH_PARAM = OpenApiParameter(
-    name="trace_id",
-    location="path",
-    required=True,
-    type=str,
-    description="The ID of the trace, a 32-character hexadecimal string.",
-)
 
 INCLUDE_UPTIME_PARAM = OpenApiParameter(
     name="include_uptime",
@@ -280,7 +272,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         summary="Retrieve Trace Metadata",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            TRACE_ID_PATH_PARAM,
+            TraceParams.TRACE_ID,
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,

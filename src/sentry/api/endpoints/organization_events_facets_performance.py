@@ -1,8 +1,9 @@
 import math
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 
 from django.http import Http404
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,8 +14,22 @@ from sentry import features, tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization_events import EventsResultsWithFieldMetaResponse
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import EventsResponse, SnubaParams
@@ -37,6 +52,45 @@ ALLOWED_AGGREGATE_COLUMNS = {
 
 TAG_ALIASES = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 DEFAULT_TAG_KEY_LIMIT = 5
+
+AGGREGATE_COLUMN_PARAM = OpenApiParameter(
+    name="aggregateColumn",
+    location="query",
+    required=True,
+    type=str,
+    enum=sorted(ALLOWED_AGGREGATE_COLUMNS),
+    description="The column to aggregate and compare tag values by.",
+)
+FACETS_PERFORMANCE_SORT_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    description="The column to order results by, prefixed with `-` for descending order. For example, `-sumdelta`, `-frequency`, `-count`, or `-aggregate`.",
+)
+FACETS_PERFORMANCE_PARAMETERS = [
+    GlobalParams.ORG_ID_OR_SLUG,
+    OrganizationParams.PROJECT,
+    GlobalParams.ENVIRONMENT,
+    GlobalParams.STATS_PERIOD,
+    GlobalParams.START,
+    GlobalParams.END,
+    VisibilityParams.QUERY,
+    AGGREGATE_COLUMN_PARAM,
+    FACETS_PERFORMANCE_SORT_PARAM,
+    CursorQueryParam,
+]
+FACETS_PERFORMANCE_RESPONSES = {
+    400: RESPONSE_BAD_REQUEST,
+    401: RESPONSE_UNAUTHORIZED,
+    403: RESPONSE_FORBIDDEN,
+    404: RESPONSE_NOT_FOUND,
+}
+
+
+class FacetsPerformanceHistogramResponse(TypedDict):
+    tags: EventsResultsWithFieldMetaResponse
+    histogram: EventsResultsWithFieldMetaResponse
 
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsEndpointBase):
@@ -71,9 +125,51 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsEndpoint
         return snuba_params, aggregate_column, filter_query
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
+    @extend_schema(
+        operation_id="listOrganizationEventsFacetsPerformance",
+        summary="List Tag Values Affecting Transaction Performance",
+        parameters=[
+            *FACETS_PERFORMANCE_PARAMETERS,
+            OpenApiParameter(
+                name="tagKey",
+                location="query",
+                required=False,
+                type=str,
+                description="Only return values for this tag key. When omitted, the top value of each tag key is returned.",
+            ),
+            OpenApiParameter(
+                name="allTagKeys",
+                location="query",
+                required=False,
+                type=bool,
+                description="Include tag values that perform better than the average. By default only values that perform worse are returned.",
+            ),
+            OpenApiParameter(
+                name="per_page",
+                location="query",
+                required=False,
+                type=int,
+                description="The number of rows to return. Defaults to 5, maximum is 20.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsFacetsPerformanceResponse",
+                EventsResultsWithFieldMetaResponse,
+            ),
+            **FACETS_PERFORMANCE_RESPONSES,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return tag values of transactions in a single project, ranked by how they affect
+        the average of `aggregateColumn`. Each row includes the tag key and value, its
+        `count`, `frequency`, the `aggregate` for that value, its `comparison` to the overall
+        average, and `sumdelta`, the total difference it contributes.
+        """
         try:
             snuba_params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
@@ -133,6 +229,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
             )
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
@@ -141,7 +238,46 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @extend_schema(
+        operation_id="listOrganizationEventsFacetsPerformanceHistogram",
+        summary="Retrieve a Histogram of a Tag's Top Values",
+        parameters=[
+            *FACETS_PERFORMANCE_PARAMETERS,
+            OpenApiParameter(
+                name="tagKey",
+                location="query",
+                required=True,
+                type=str,
+                description="The tag key to return the top values and histogram for.",
+            ),
+            OpenApiParameter(
+                name="numBucketsPerKey",
+                location="query",
+                required=True,
+                type=int,
+                description="The number of histogram buckets per tag value. `per_page * numBucketsPerKey` cannot exceed 500.",
+            ),
+            OpenApiParameter(
+                name="per_page",
+                location="query",
+                required=False,
+                type=int,
+                description="The number of tag values to return. Defaults to 5, maximum is 50.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsFacetsPerformanceHistogramResponse",
+                FacetsPerformanceHistogramResponse,
+            ),
+            **FACETS_PERFORMANCE_RESPONSES,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return the top values of a tag for transactions in a single project, along with a
+        histogram of `aggregateColumn` for each of those values.
+        """
         try:
             snuba_params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
