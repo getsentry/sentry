@@ -13,7 +13,6 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
     def test_simple(self) -> None:
         organization = self.create_organization()
         alert_rule = self.create_alert_rule(organization=organization)
-        self.create_alert_rule_trigger(alert_rule=alert_rule)
         incident = self.create_incident(
             organization,
             title="Incident #1",
