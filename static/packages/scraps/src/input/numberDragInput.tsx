@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
@@ -5,8 +6,6 @@ import {IconArrow} from '@sentry/icons/arrow';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {clamp} from 'sentry/utils/profiling/colors/clamp';
 
 import type {InputProps} from './input';
 import {InputGroup} from './inputGroup';
@@ -67,7 +66,10 @@ export function NumberDragInput({
       const min = props.min ?? Number.NEGATIVE_INFINITY;
       const max = props.max ?? Number.POSITIVE_INFINITY;
 
-      const value = clamp(Number(inputRef.current.value) + deltaStep, min, max);
+      const value = Math.min(
+        Math.max(Number(inputRef.current.value) + deltaStep, min),
+        max
+      );
       setInputValueAndDispatchChange(inputRef.current, value.toString());
     },
     [axis, props.min, props.max, props.step, shiftKeyMultiplier]
@@ -108,7 +110,10 @@ export function NumberDragInput({
     const step = parseFloat(props.step?.toString() ?? '1');
     const min = props.min ?? Number.NEGATIVE_INFINITY;
     const max = props.max ?? Number.POSITIVE_INFINITY;
-    const newValue = clamp(value + (event.key === 'ArrowUp' ? step : -step), min, max);
+    const newValue = Math.min(
+      Math.max(value + (event.key === 'ArrowUp' ? step : -step), min),
+      max
+    );
     setInputValueAndDispatchChange(inputRef.current, newValue.toString());
   };
 

@@ -1,16 +1,24 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {NumberInput} from '@sentry/scraps/input';
+import {lightTheme} from '@sentry/scraps/theme';
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('NumberInput', () => {
   it('renders input', () => {
-    render(<NumberInput value={5} aria-label="Test" />);
+    render(<NumberInput value={5} aria-label="Test" />, {wrapper: ThemeWrapper});
 
     expect(screen.getByRole('textbox')).toHaveValue('5');
   });
 
   it('responds to key presses', async () => {
-    render(<NumberInput defaultValue={5} aria-label="Test" />);
+    render(<NumberInput defaultValue={5} aria-label="Test" />, {wrapper: ThemeWrapper});
 
     const input = screen.getByRole('textbox');
     await userEvent.type(input, '{ArrowDown}');
@@ -21,7 +29,7 @@ describe('NumberInput', () => {
   });
 
   it('responds to increment/decrement button clicks', async () => {
-    render(<NumberInput defaultValue={5} aria-label="Test" />);
+    render(<NumberInput defaultValue={5} aria-label="Test" />, {wrapper: ThemeWrapper});
 
     const input = screen.getByRole('textbox');
     await userEvent.click(screen.getByRole('button', {name: 'Decrease Test'}));
@@ -32,7 +40,9 @@ describe('NumberInput', () => {
   });
 
   it('forces min/max values', async () => {
-    render(<NumberInput min={0} max={10} defaultValue={5} aria-label="Test" />);
+    render(<NumberInput min={0} max={10} defaultValue={5} aria-label="Test" />, {
+      wrapper: ThemeWrapper,
+    });
 
     const input = screen.getByRole('textbox');
 

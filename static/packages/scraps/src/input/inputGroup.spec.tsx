@@ -1,14 +1,23 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
+import {lightTheme} from '@sentry/scraps/theme';
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('InputGroup', () => {
   it('renders input', () => {
     render(
       <InputGroup>
         <InputGroup.Input value="Search" onChange={() => {}} />
-      </InputGroup>
+      </InputGroup>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -19,7 +28,8 @@ describe('InputGroup', () => {
     render(
       <InputGroup>
         <InputGroup.Input disabled />
-      </InputGroup>
+      </InputGroup>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByRole('textbox')).toBeDisabled();
@@ -32,7 +42,8 @@ describe('InputGroup', () => {
           <Button>Leading Button</Button>
         </InputGroup.LeadingItems>
         <InputGroup.Input />
-      </InputGroup>
+      </InputGroup>,
+      {wrapper: ThemeWrapper}
     );
 
     // Leading button is rendered
@@ -53,7 +64,8 @@ describe('InputGroup', () => {
         <InputGroup.TrailingItems>
           <Button>Trailing Button</Button>
         </InputGroup.TrailingItems>
-      </InputGroup>
+      </InputGroup>,
+      {wrapper: ThemeWrapper}
     );
 
     // Trailing button is rendered
@@ -82,7 +94,7 @@ describe('InputGroup', () => {
     );
 
     try {
-      const {rerender} = render(renderGroup('initial'));
+      const {rerender} = render(renderGroup('initial'), {wrapper: ThemeWrapper});
       expect(offsetWidthSpy).toHaveBeenCalledTimes(1);
 
       rerender(renderGroup('updated'));
@@ -91,4 +103,24 @@ describe('InputGroup', () => {
       offsetWidthSpy.mockRestore();
     }
   });
+});
+
+it('composes a textarea with leading and trailing items', async () => {
+  render(
+    <InputGroup>
+      <InputGroup.LeadingItems>Prefix</InputGroup.LeadingItems>
+      <InputGroup.TextArea aria-label="Description" rows={4} />
+      <InputGroup.TrailingItems>
+        <Button>Clear</Button>
+      </InputGroup.TrailingItems>
+    </InputGroup>,
+    {wrapper: ThemeWrapper}
+  );
+  const textarea = screen.getByRole('textbox', {name: 'Description'});
+  expect(textarea.tagName).toBe('TEXTAREA');
+  expect(textarea).toHaveAttribute('rows', '4');
+  await userEvent.type(textarea, 'Text');
+  expect(textarea).toHaveValue('Text');
+  await userEvent.tab();
+  expect(screen.getByRole('button', {name: 'Clear'})).toHaveFocus();
 });

@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {type Theme} from '@emotion/react';
 
 import {type FormSize, type StrictCSSObject} from '@sentry/scraps/theme';

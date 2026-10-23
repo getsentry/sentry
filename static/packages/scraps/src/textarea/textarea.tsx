@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useCallback, useMemo, useState} from 'react';
 import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autosize';
 import isPropValid from '@emotion/is-prop-valid';
@@ -5,7 +6,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import {inputStyles, type InputStylesProps} from '@sentry/scraps/input/inputStyles';
+// oxlint-disable-next-line import/no-relative-parent-imports -- Avoid the input barrel's InputGroup.TextArea cycle.
+import {inputStyles, type InputStylesProps} from '../input/inputStyles';
 
 export interface TextAreaProps
   extends
