@@ -18,7 +18,7 @@ describe('getOpenPeriodIssuePath', () => {
       ],
     });
 
-    expect(getOpenPeriodIssuePath({organizationSlug: 'org-slug', openPeriod})).toBe(
+    expect(getOpenPeriodIssuePath(openPeriod, 'org-slug')).toBe(
       '/organizations/org-slug/issues/42/events/opened-event/'
     );
   });
@@ -29,7 +29,7 @@ describe('getOpenPeriodIssuePath', () => {
       activities: [GroupOpenPeriodActivityFixture({type: 'opened', eventId: null})],
     });
 
-    expect(getOpenPeriodIssuePath({organizationSlug: 'org-slug', openPeriod})).toBe(
+    expect(getOpenPeriodIssuePath(openPeriod, 'org-slug')).toBe(
       '/organizations/org-slug/issues/42/'
     );
   });

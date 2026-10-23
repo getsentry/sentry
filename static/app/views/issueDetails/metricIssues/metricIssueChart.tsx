@@ -146,10 +146,7 @@ function MetricIssueChartContent({
     onOpenPeriodClick: clickedOpenPeriod =>
       navigate({
         pathname: normalizeUrl(
-          getOpenPeriodIssuePath({
-            organizationSlug: organization.slug,
-            openPeriod: clickedOpenPeriod,
-          })
+          getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug)
         ),
         query: location.query,
       }),
