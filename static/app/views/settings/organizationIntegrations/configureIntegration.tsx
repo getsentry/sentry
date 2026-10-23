@@ -435,7 +435,13 @@ function ConfigureIntegration() {
     },
   });
 
-  const provider = config.providers.find(p => p.key === integration?.provider.key);
+  // The endpoint has been observed returning an empty 200 body, which the API
+  // client resolves as `''`. Guard the provider access so a malformed response
+  // doesn't crash render before the guards below can handle it.
+  const integrationProviderKey = isRecord(integration)
+    ? (integration as Partial<OrganizationIntegration>).provider?.key
+    : undefined;
+  const provider = config.providers.find(p => p.key === integrationProviderKey);
   const {projects} = useProjects();
 
   const [isVerifyingGcp, setIsVerifyingGcp] = useState(false);
@@ -486,6 +492,20 @@ function ConfigureIntegration() {
         <LoadingIndicator />
       </Fragment>
     );
+  }
+
+  if (!integrationProviderKey) {
+    Sentry.withScope(scope => {
+      scope.setTags({providerKey, integrationId});
+      scope.setExtras({
+        integrationType: typeof integration,
+        integrationKeys: isRecord(integration)
+          ? Object.keys(integration).slice(0, 20)
+          : undefined,
+      });
+      Sentry.captureMessage('Integration details response is missing provider', 'error');
+    });
+    return <LoadingError onRetry={refetchIntegration} />;
   }
 
   if (!provider || !integration) {
