@@ -1,7 +1,7 @@
-"""Conservative replay evidence, independent of rendered message text.
+"""Conservative message-history evidence, independent of rendered text.
 
 Only adjacent generations in the same scope are compared. Without stable IDs,
-replay requires either growing input history without a new user message, or
+continuation requires either growing input history without a new user message, or
 an exact prefix containing the previous captured input and response. Comparing
 input history directly accommodates providers that encode assistant output and
 input differently. Equal text and unchanged snapshots alone are not proof.
@@ -75,7 +75,7 @@ def _capture(raw: object, default_role: str) -> tuple[CapturedMessage, ...] | No
                 return None
             encoded = json.dumps(message, sort_keys=True, separators=(",", ":"), allow_nan=False)
         except RecursionError:
-            # Replay evidence is optional; deeply nested metadata must not hide readable content.
+            # History evidence is optional; deeply nested metadata must not hide readable content.
             return None
         identifier = message.get("id")
         result.append(
@@ -104,7 +104,9 @@ def capture_generation(span: TranscriptSpan) -> GenerationCapture:
     )
 
 
-def is_user_replay(current: GenerationCapture, previous: GenerationCapture | None) -> bool:
+def is_user_history_continuation(
+    current: GenerationCapture, previous: GenerationCapture | None
+) -> bool:
     if previous is None or not current.inputs or not previous.inputs:
         return False
     last_user = next(
@@ -134,12 +136,14 @@ def is_user_replay(current: GenerationCapture, previous: GenerationCapture | Non
     return last_user < len(observed) and current.inputs[: len(observed)] == observed
 
 
-def is_assistant_replay(current: GenerationCapture, previous: GenerationCapture | None) -> bool:
+def is_duplicate_assistant_message(
+    current: GenerationCapture, previous: GenerationCapture | None
+) -> bool:
     # A reused response ID does not collapse an answer to a new user turn.
     if (
         current.inputs
         and any(message.role == "user" for message in current.inputs)
-        and not is_user_replay(current, previous)
+        and not is_user_history_continuation(current, previous)
     ):
         return False
     return bool(
