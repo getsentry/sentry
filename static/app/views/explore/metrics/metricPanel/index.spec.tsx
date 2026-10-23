@@ -170,37 +170,47 @@ describe('MetricPanel', () => {
     setupMocks(organization.slug);
   });
 
-  it('renders the metric panel', async () => {
+  it('renders the metric chart with its label and refreshed controls', async () => {
     render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
 
     expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-  });
-
-  it('renders the visualize label badge', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    // The visualize label badge "A" should be present
     expect(await screen.findByText('A')).toBeInTheDocument();
-  });
-
-  it('does not render orientation controls', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-
-    // Orientation controls should NOT be present in the refreshed UI
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table bottom'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
   });
+
+  it.each([
+    new VisualizeEquation('equation|1 + 2'),
+    new VisualizeFunction('count(value,bar,distribution,none)', {
+      chartType: ChartType.HEATMAP,
+    }),
+  ])(
+    'keeps the chart visible without transformation controls for $kind $chartType',
+    async visualize => {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        },
+        additionalWrapper: createWrapper({
+          queryParams: queryParams.replace({aggregateFields: [visualize]}),
+          traceMetric,
+        }),
+      });
+
+      expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-panel-chart-type-select')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add Transformation'})
+      ).not.toBeInTheDocument();
+    }
+  );
 
   describe('dropped data layer', () => {
     function mockDroppedData() {

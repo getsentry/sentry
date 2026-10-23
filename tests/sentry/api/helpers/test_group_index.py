@@ -63,6 +63,9 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.viewer_context import (
+    Actor as ContextActor,
+)
+from sentry.viewer_context import (
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -1968,7 +1971,9 @@ class DeleteGroupsTest(TestCase):
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-        request_context = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
+        request_context = ViewerContext(
+            actor=ContextActor(type=ActorType.USER, actor_id=self.user.id)
+        )
 
         def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
             viewer_context = get_viewer_context()
@@ -1976,7 +1981,7 @@ class DeleteGroupsTest(TestCase):
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
             assert viewer_context.user_id == self.user.id
-            assert viewer_context.actor_type == ActorType.USER
+            assert viewer_context.actor.type == ActorType.USER
 
         mock_delete_seer_grouping_records_by_hash.side_effect = assert_viewer_context
 

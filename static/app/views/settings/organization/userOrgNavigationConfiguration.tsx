@@ -64,7 +64,7 @@ function getAccountNavigationConfiguration(): NavigationSection[] {
         },
         {
           path: `${userSettingsPathPrefix}/authorizations/`,
-          title: t('Authorized Applications'),
+          title: t('Authorized Apps'),
           description: t(
             'Manage third-party applications that have access to your Sentry account'
           ),

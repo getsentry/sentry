@@ -52,6 +52,7 @@ from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -256,9 +257,11 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     if get_viewer_context() is None:
         scope = viewer_context_scope(
             ViewerContext(
+                actor=Actor(
+                    type=ActorType.USER if run.user_id is not None else ActorType.SYSTEM,
+                    actor_id=run.user_id,
+                ),
                 organization_id=run.organization_id,
-                user_id=run.user_id,
-                actor_type=ActorType.USER if run.user_id is not None else ActorType.SYSTEM,
             )
         )
 
