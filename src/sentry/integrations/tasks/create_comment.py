@@ -25,7 +25,6 @@ from sentry.types.activity import ActivityType
     silenced_exceptions=(Integration.DoesNotExist,),
 )
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:
-    # Local import: the mutation service also dispatches this task.
     from sentry.issues.comments import save_external_comment_id
 
     try:

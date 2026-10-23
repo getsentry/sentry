@@ -511,6 +511,7 @@ class ActivityTest(TestCase):
 
         assert produce_snapshot.called
 
+
 class CommentCommitTest(TestCase):
     def test_counter_snapshots_and_notifications_follow_commit(self) -> None:
         group = self.group

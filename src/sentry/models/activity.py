@@ -260,7 +260,6 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value and self.group is not None:
-            # Model.update() emits the Group post_save signal itself.
             self.group.update(num_comments=F("num_comments") + 1)
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
