@@ -93,6 +93,9 @@ def readonly_scopes() -> frozenset[str]:
     return frozenset(settings.SENTRY_READONLY_SCOPES)
 
 
+AGENT_DEFAULT_WRITE_SCOPES = frozenset({"seer:write"})
+
+
 def resolve_minting_principal(
     user: MintingUser, auth: AuthenticatedToken | None
 ) -> MintingPrincipal:
@@ -156,10 +159,14 @@ def compute_token_scopes(
     session_id: str,
     requested_scopes: Iterable[str] | None = None,
 ) -> list[str]:
-    """De-escalation rule: ``caller_scopes ∩ (read-only ∪ approved grants)``, optionally
-    narrowed by ``requested_scopes``. Never exceeds the caller's own authority."""
+    """De-escalation rule: ``caller_scopes ∩ (read-only ∪ default writes ∪ approved grants)``,
+    optionally narrowed by ``requested_scopes``. Never exceeds the caller's own authority."""
     caller = set(caller_scopes)
-    allowed = readonly_scopes() | active_grant_scopes(organization_id, user_id, session_id)
+    allowed = (
+        readonly_scopes()
+        | AGENT_DEFAULT_WRITE_SCOPES
+        | active_grant_scopes(organization_id, user_id, session_id)
+    )
     effective = caller & allowed
     if requested_scopes is not None:
         effective &= set(requested_scopes)

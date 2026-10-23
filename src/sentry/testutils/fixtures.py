@@ -203,6 +203,9 @@ class Fixtures:
     def create_investigation_comment(self, *args, **kwargs):
         return Factories.create_investigation_comment(*args, **kwargs)
 
+    def create_investigation_action_request(self, *args, **kwargs):
+        return Factories.create_investigation_action_request(*args, **kwargs)
+
     def create_investigation_orchestration_run(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_run(*args, **kwargs)
 
@@ -874,6 +877,9 @@ class Fixtures:
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)
+
+    def create_data_condition_alert_rule_trigger(self, *args, **kwargs):
+        return Factories.create_data_condition_alert_rule_trigger(*args, **kwargs)
 
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)

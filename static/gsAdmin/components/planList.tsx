@@ -128,7 +128,6 @@ export function PlanList({
                 const label = isByteCategory(category)
                   ? `${titleCategory} (GB)`
                   : titleCategory;
-                const fieldValue = formModel.getValue(reservedKey);
                 const reservedValue = subscription.categories?.[category]?.reserved;
                 const currentValueDisplay = defined(reservedValue) ? (
                   <CurrentValueText>
@@ -145,7 +144,6 @@ export function PlanList({
                       stacked
                       name={reservedKey}
                       label={label}
-                      value={fieldValue}
                       options={(activePlan.planCategories[category] || []).map(
                         (level: {events: {toLocaleString: () => any}}) => ({
                           label: level.events.toLocaleString(),

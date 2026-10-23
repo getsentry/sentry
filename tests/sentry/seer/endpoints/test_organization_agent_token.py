@@ -51,6 +51,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.superuser import SuperuserAccess
 from sentry.utils import json
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     encode_viewer_context,
@@ -98,17 +99,15 @@ class SuperuserAgentTokenTest(APITestCase):
                 f"{self.path}seer/explorer-chat/", {"query": "List projects"}, format="json"
             )
         assert response.status_code == 200, response.content
-        grant = resolved_contexts[0].superuser
+        grant = resolved_contexts[0].actor.superuser
         assert grant is not None
         return grant
 
     def _mint(self, grant):
         viewer = encode_viewer_context(
             ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=self.employee.id, superuser=grant),
                 organization_id=self.org.id,
-                user_id=self.employee.id,
-                actor_type=ActorType.USER,
-                superuser=grant,
             ),
             key=SECRET,
         )
@@ -279,13 +278,15 @@ class SuperuserAgentTokenTest(APITestCase):
         )
         assert org_context is not None
         with self.feature(FLAG):
-            with viewer_context_scope(ViewerContext(user_id=self.employee.id)):
+            with viewer_context_scope(
+                ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.employee.id))
+            ):
                 access.from_request_org_and_scopes(
                     request=request, rpc_user_org_context=org_context
                 )
                 viewer = get_viewer_context()
                 assert viewer is not None
-                assert viewer.superuser is None
+                assert viewer.actor.superuser is None
 
                 request.superuser.authorize_org(
                     self.org.slug, "for_unit_test", "Testing delegated access"
@@ -295,7 +296,7 @@ class SuperuserAgentTokenTest(APITestCase):
                 )
                 viewer = get_viewer_context()
                 assert viewer is not None
-                grant = viewer.superuser
+                grant = viewer.actor.superuser
             assert grant is not None
             assert self._mint(grant).status_code == 200
 
@@ -661,7 +662,7 @@ class OrganizationAgentTokenTest(APITestCase):
             scope_list=list(scopes),
         )
 
-    def test_mint_defaults_to_readonly(self) -> None:
+    def test_mint_defaults_to_readonly_and_default_writes(self) -> None:
         self.login_as(self.owner)
         with self.feature(FLAG):
             resp = self._mint(sessionId="s1")
@@ -672,7 +673,11 @@ class OrganizationAgentTokenTest(APITestCase):
         assert claims["org"] == self.org.id
         assert claims["sid"] == "s1"
         assert "org:write" not in claims["scopes"]
-        assert set(claims["scopes"]) <= agent_token.readonly_scopes()
+        assert "event:write" not in claims["scopes"]
+        assert "seer:write" in claims["scopes"]
+        assert set(claims["scopes"]) <= (
+            agent_token.readonly_scopes() | agent_token.AGENT_DEFAULT_WRITE_SCOPES
+        )
 
     def test_feature_off_is_not_found(self) -> None:
         self.login_as(self.owner)
@@ -1170,12 +1175,47 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 project=self.project,
                 organization_integration=organization_integration,
             )
+        elif name == "scm_code_mapping":
+            _integration, organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            repo = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=_integration.id,
+            )
+            resource = self.create_code_mapping(
+                project=self.project,
+                repo=repo,
+                organization_integration=organization_integration,
+            )
         elif name == "codeowners":
             resource = self.create_codeowners(
                 project=self.project,
                 code_mapping=self._resource("code_mapping"),
                 raw="",
                 schema={},
+            )
+        elif name == "scm_repository":
+            integration, _organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            resource = self.create_repo(
+                project=self.project,
+                name="permission-matrix/bulk-repo",
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id="123",
+                url="https://github.com/permission-matrix/bulk-repo",
             )
         elif name == "data_forwarder":
             resource = self.create_data_forwarder(
@@ -1384,6 +1424,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return self.project.slug
         if placeholder == "codeowners_id":
             return str(self._resource("codeowners").id)
+        if placeholder == "config_id":
+            return str(self._resource("scm_code_mapping").id)
         if placeholder == "team_id_or_slug":
             if endpoint.endpoint_name == "OrganizationSCIMTeamDetails":
                 return str(self.team.id)
@@ -1513,6 +1555,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         return path
 
     def _query_params(self, endpoint: PublicGetEndpoint | PublicMutationEndpoint) -> dict[str, Any]:
+        if endpoint.endpoint_name == "ProjectStacktraceLinkEndpoint":
+            return {"file": "src/matrix.py", "platform": "python"}
         if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
             return {"channel": "permission-matrix"}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
@@ -1846,12 +1890,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("CustomInboundFilterDetailsEndpoint", "PUT"): {
                 "name": "Updated permission matrix filter",
                 "dataType": "error",
-                "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+                "conditions": [
+                    {"type": "error_message", "operator": "glob", "value": ["TypeError*"]}
+                ],
             },
             ("CustomInboundFiltersEndpoint", "POST"): {
                 "name": "Permission matrix new filter",
                 "dataType": "all",
-                "conditions": [{"type": "release", "value": ["2.*"]}],
+                "conditions": [{"type": "release", "operator": "glob", "value": ["2.*"]}],
             },
             ("DataForwardingDetailsEndpoint", "PUT"): {
                 "provider": "segment",
@@ -1904,6 +1950,30 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "title": "Permission matrix dashboard mutation"
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
+            ("OrganizationCodeMappingDetailsEndpoint", "PUT"): {
+                "repositoryId": self._resource("scm_code_mapping").project_repository.repository_id,
+                "projectId": self.project.id,
+                "stackRoot": "/app/",
+                "sourceRoot": "src/",
+                "defaultBranch": "main",
+            },
+            ("OrganizationCodeMappingsBulkEndpoint", "POST"): {
+                "project": self.project.slug,
+                "repository": self._resource("scm_repository").name,
+                "provider": "github",
+                "defaultBranch": "main",
+                "mappings": [{"stackRoot": "/app/", "sourceRoot": "src/"}],
+            },
+            ("OrganizationCodeMappingsEndpoint", "POST"): {
+                "integrationId": self._resource(
+                    "scm_code_mapping"
+                ).project_repository.repository.integration_id,
+                "repositoryId": self._resource("scm_code_mapping").project_repository.repository_id,
+                "projectId": self.project.id,
+                "stackRoot": "/new-app/",
+                "sourceRoot": "src/new/",
+                "defaultBranch": "main",
+            },
             ("OrganizationDetectorIndexEndpoint", "PUT"): {"enabled": False},
             ("OrganizationGroupSearchViewsEndpoint", "POST"): {
                 "name": "Permission Matrix Issue View",
@@ -1914,6 +1984,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "timeFilters": {"period": "14d"},
             },
             ("OrganizationReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
+            ("OrganizationRepositorySettingsEndpoint", "PUT"): {
+                "repositoryIds": [self._resource("scm_repository").id],
+                "enabledCodeReview": True,
+            },
             ("OrganizationStarredServiceSpansEndpoint", "POST"): {
                 "service_span": "permission-matrix-span",
                 "project_id": self.project.id,
@@ -2101,10 +2175,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if authentication is MatrixAuthentication.VIEWER_CONTEXT:
             viewer_context = encode_viewer_context(
                 ViewerContext(
-                    user_id=self.owner.id,
+                    actor=Actor(type=ActorType.USER, actor_id=self.owner.id),
                     organization_id=self.org.id,
                     project_id=self.project.id,
-                    actor_type=ActorType.USER,
                 ),
                 key=SECRET,
             )
@@ -2134,10 +2207,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         elif authentication is MatrixAuthentication.VIEWER_CONTEXT:
             headers["HTTP_X_VIEWER_CONTEXT"] = encode_viewer_context(
                 ViewerContext(
-                    user_id=self.owner.id,
+                    actor=Actor(type=ActorType.USER, actor_id=self.owner.id),
                     organization_id=self.org.id,
                     project_id=self.project.id,
-                    actor_type=ActorType.USER,
                 ),
                 key=SECRET,
             )

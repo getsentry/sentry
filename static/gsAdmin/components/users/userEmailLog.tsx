@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ResultTable} from 'sentry/components/resultTable';
+import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -105,7 +105,7 @@ export function UserEmailLog({user, Panel}: Props) {
               const date = new Date(entry.created * 1000);
               return (
                 <tr key={index}>
-                  <td>{entry.event}</td>
+                  <ResultTableRowHeader>{entry.event}</ResultTableRowHeader>
                   <td data-label="Email">
                     {entry.email}
                     {entry.event === 'bounce' &&

@@ -8,7 +8,13 @@ from sentry.tasks.seer.delete_seer_grouping_records import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 @django_db_all
@@ -99,10 +105,9 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     def test_seer_call_preserves_viewer_context(self, mock_seer_call: MagicMock) -> None:
         hashes = self._setup_groups_and_hashes(number_of_groups=1)
         expected_context = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
 
         def assert_viewer_context(_project_id: int, _hashes: list[str]) -> None:
@@ -122,10 +127,9 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     ) -> None:
         missing_project_id = self.project.id + 1_000_000_000
         expected_context = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
             project_id=missing_project_id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
 
         def assert_viewer_context(_project_id: int, _hashes: list[str]) -> None:
@@ -146,10 +150,9 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         """This tests the built-in logic of spreading hashes across multiple tasks."""
         batch_size = 5
         expected_context = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
 
         def assert_viewer_context(*_args: object, **_kwargs: object) -> None:

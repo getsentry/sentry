@@ -6,8 +6,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import {formatDroppedShare} from 'sentry/components/droppedData/outcomes';
-import type {DroppedDataBucket, OutcomeVolume} from 'sentry/components/droppedData/types';
+import {formatDroppedShare, outcomeLabel} from 'sentry/components/droppedData/outcomes';
+import type {DroppedDataBucket} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import {getFormat} from 'sentry/utils/dates';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -15,23 +15,6 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 interface Ratio {
   total: string;
   value: string;
-}
-
-function outcomeLabel({outcome}: OutcomeVolume): string {
-  switch (outcome) {
-    case 'rate_limited':
-      return t('Rate Limit Rejected');
-    case 'invalid':
-      return t('Invalid Data Rejected');
-    case 'abuse':
-      return t('Abuse Limit Rejected');
-    case 'cardinality_limited':
-      return t('Cardinality Limit Rejected');
-    case 'client_discard':
-      return t('SDK Data Dropped');
-    default:
-      return t('Other Rejected');
-  }
 }
 
 function formatCountRatio(value: number, total: number): Ratio {
@@ -93,7 +76,7 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
               {bucket.byOutcome.map(outcome => (
                 <VolumeRow
                   key={outcome.outcome}
-                  label={outcomeLabel(outcome)}
+                  label={outcomeLabel(outcome.outcome)}
                   {...formatCountRatio(outcome.count, totalEvents)}
                 />
               ))}
@@ -106,7 +89,7 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
           {formatBucketRange(bucket.start, bucket.end, timezone)}
         </Text>
       </Container>
-      <div className="tooltip-arrow" />
+      <div className="tooltip-arrow arrow-top" />
     </Fragment>
   );
 }

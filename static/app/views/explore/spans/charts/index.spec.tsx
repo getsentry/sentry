@@ -210,11 +210,11 @@ describe('ExploreCharts', () => {
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
 
-      const option = await screen.findByRole('option', {name: 'Dropped Data'});
+      const option = await screen.findByRole('option', {name: 'Dropped Events'});
       expect(option).toHaveAttribute('aria-selected', 'true');
 
       await userEvent.click(option);
-      expect(await screen.findByRole('option', {name: 'Dropped Data'})).toHaveAttribute(
+      expect(await screen.findByRole('option', {name: 'Dropped Events'})).toHaveAttribute(
         'aria-selected',
         'false'
       );

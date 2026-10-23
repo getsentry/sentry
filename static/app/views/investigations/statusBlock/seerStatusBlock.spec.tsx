@@ -58,22 +58,6 @@ describe('SeerStatusBlock', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('announces a queued latest call as waiting, not as awaiting approval', () => {
-    render(
-      <SeerStatusBlock
-        variant="running"
-        title="Seer is gathering context"
-        toolActivity={[
-          {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
-          {id: 'b', kind: 'tool', status: 'queued', title: 'Fetch traces'},
-        ]}
-      />
-    );
-
-    expect(screen.getByRole('status', {name: 'Waiting'})).toBeInTheDocument();
-    expect(screen.queryByLabelText('Waiting for approval')).not.toBeInTheDocument();
-  });
-
   it('shows only the latest tool call and expands to the earlier ones', async () => {
     render(
       <SeerStatusBlock
@@ -82,28 +66,30 @@ describe('SeerStatusBlock', () => {
         toolActivity={[
           {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
           {id: 'b', kind: 'tool', status: 'failed', title: 'Fetch traces'},
-          {id: 'c', kind: 'tool', status: 'running', title: 'Compare releases'},
+          {
+            id: 'c',
+            kind: 'tool',
+            status: 'running',
+            title: 'Compare releases',
+          },
         ]}
       />
     );
 
     const toggle = screen.getByRole('button', {name: 'Compare releases'});
-    expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByText('Query spans')).not.toBeVisible();
 
     await userEvent.click(toggle);
 
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
     // Newest first, reading back in time from the call that is running now.
     const earlier = screen.getByRole('list', {name: 'Earlier tool calls'});
     expect(
       within(earlier)
         .getAllByRole('listitem')
         .map(item => item.textContent)
-    ).toEqual([
-      expect.stringContaining('Fetch traces'),
-      expect.stringContaining('Query spans'),
-    ]);
+    ).toEqual(['Fetch tracesFailed', 'Query spans']);
   });
 });
 

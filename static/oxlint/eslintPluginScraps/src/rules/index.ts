@@ -1,5 +1,6 @@
 import {noCoreImport} from './noCoreImport.ts';
 import {noDoubleDollarInterpolation} from './noDoubleDollarInterpolation.ts';
+import {noManualTable} from './noManualTable.ts';
 import {noRestrictedModuleMocks} from './noRestrictedModuleMocks.ts';
 import {noTokenImport} from './noTokenImport.ts';
 import {preferContainerResponsiveProps} from './preferContainerResponsiveProps.ts';
@@ -14,6 +15,7 @@ import {useSemanticToken} from './useSemanticToken.ts';
 export const rules = {
   'no-core-import': noCoreImport,
   'no-double-dollar-interpolation': noDoubleDollarInterpolation,
+  'no-manual-table': noManualTable,
   'no-restricted-module-mocks': noRestrictedModuleMocks,
   'no-token-import': noTokenImport,
   'prefer-container-responsive-props': preferContainerResponsiveProps,

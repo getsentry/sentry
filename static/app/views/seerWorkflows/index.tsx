@@ -9,6 +9,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Spinner} from '@sentry/scraps/chat';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -74,7 +75,7 @@ function SeerWorkflows() {
   const {mutate: startWorkflowRun, isPending: isStartingWorkflowRun} = useMutation({
     mutationFn: (data: WorkflowRunCreateRequest) =>
       fetchMutation<{runId: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
+        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/runs/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
@@ -97,7 +98,7 @@ function SeerWorkflows() {
   const reportedStrategies = useRef(new Set<string>());
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerWorkflowRun[]>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/',
+      '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
       {
         path: {organizationIdOrSlug: organization.slug},
         staleTime: 0,
@@ -275,12 +276,16 @@ function SeerWorkflows() {
   }, [expandLatest, filteredRuns]);
 
   return (
-    <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Automations')} orgSlug={organization.slug}>
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
           <TopBar.Slot
             name="breadcrumbs"
-            title={{type: 'page-title', label: t('Sentry Workflows')}}
+            title={{
+              type: 'page-title',
+              label: t('Automations'),
+              trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+            }}
           />
           <Flex justify="between" align="center" gap="md" wrap="wrap">
             <Text as="p" variant="muted">

@@ -40,10 +40,8 @@ export function useConfigureReplayMenuItem({
 function getPath(sdkName: string | null | undefined) {
   switch (sdkName) {
     case 'sentry.cocoa':
-    case 'sentry.cocoa.unreal': // Session Replay on iOS builds of Unreal Engine games via the embedded Cocoa SDK
       return 'apple/guides/ios'; // https://docs.sentry.io/platforms/apple/guides/ios/session-replay/
     case 'sentry.java.android':
-    case 'sentry.java.android.unreal': // Session Replay on Android builds of Unreal Engine games via the embedded Java Android SDK
       return 'android'; // https://docs.sentry.io/platforms/android/session-replay/
     case 'sentry.cocoa.flutter':
     case 'sentry.dart.flutter':
@@ -54,6 +52,21 @@ function getPath(sdkName: string | null | undefined) {
     case 'sentry.javascript.react-native':
     case 'sentry.java.android.react-native':
       return 'react-native'; // https://docs.sentry.io/platforms/react-native/session-replay/
+    case 'sentry.native.unreal':
+    case 'sentry.native.xbox.unreal':
+    case 'sentry.cocoa.unreal':
+    case 'sentry.java.android.unreal':
+      return 'unreal'; // https://docs.sentry.io/platforms/unreal/session-replay/
+    case 'sentry.cocoa.kmp':
+    case 'sentry.java.android.kmp':
+      return 'kotlin/guides/kotlin-multiplatform'; // https://docs.sentry.io/platforms/kotlin/guides/kotlin-multiplatform/session-replay/
+    case 'sentry.cocoa.capacitor':
+    case 'sentry.java.android.capacitor':
+      return 'javascript/guides/capacitor'; // https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/
+    case 'sentry.cocoa.dotnet':
+    case 'sentry.java.android.dotnet':
+      // .NET can record replays through the native SDKs but has no Session Replay docs to link to yet.
+      return null;
     default:
       Sentry.captureMessage(`Unknown mobile platform in configure card: ${sdkName}`);
       return null;

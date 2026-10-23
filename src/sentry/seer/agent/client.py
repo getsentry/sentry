@@ -1002,6 +1002,7 @@ class SeerAgentClient:
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
+        allow_force_push: bool = True,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -1015,6 +1016,7 @@ class SeerAgentClient:
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
+            allow_force_push: Overwrite the branch if it has commits Seer didn't push
 
         Returns:
             SeerRunState: Final state with PR info
@@ -1034,6 +1036,7 @@ class SeerAgentClient:
             "type": "create_pr",
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
+            "allow_force_push": allow_force_push,
             # Include an idempotency key in the request so that if
             # the request is retried by anything, it will not create duplicate PRs
             # This is regenerated per attempt to permit retries.
