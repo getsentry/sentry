@@ -435,8 +435,6 @@ class TestDeduplicateRepositories(TestCase):
 
 
 class TestWritePreferencesToSentryDb(TestCase):
-    """Tests for _write_preferences_to_sentry_db via write_preference_to_sentry_db."""
-
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
