@@ -290,6 +290,7 @@ class SearchResolver:
                 event_search.default_config,
                 wildcard_free_text=True,
                 allow_regex=self._allows_regex(),
+                has_filter_value=None,
             ),
             params=self.params.filter_params,
             get_field_type=self.get_field_type,

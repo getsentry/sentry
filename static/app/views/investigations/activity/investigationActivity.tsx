@@ -23,7 +23,7 @@ import {
 } from 'sentry/views/investigations/comments/commentComposer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
-import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
+import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
 import type {
   InvestigationComment,
   InvestigationDetail,

@@ -2,7 +2,9 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
@@ -25,8 +27,10 @@ import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 interface DroppedDataDrawerProps {
@@ -41,6 +45,7 @@ export function DroppedDataDrawer({
   onAskSeer,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
+  const organization = useOrganization();
   const [chartInterval] = useChartInterval();
   const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
@@ -51,6 +56,7 @@ export function DroppedDataDrawer({
   const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
 
   const scopedDroppedEvents = filterDroppedEventsByScope(droppedEvents ?? [], scope);
+  const hasExpectedDrops = scopedDroppedEvents.length < (droppedEvents?.length ?? 0);
   const groups = droppedEventsToOutcomeGroups(
     droppedEvents ?? [],
     acceptedEvents ?? [],
@@ -77,7 +83,14 @@ export function DroppedDataDrawer({
             aria-label={t('Filter dropped events')}
             size="xs"
             value={scope}
-            onChange={setScope}
+            onChange={nextScope => {
+              setScope(nextScope);
+              trackAnalytics('explore.dropped_data.scope_toggled', {
+                organization,
+                dataset,
+                scope: nextScope,
+              });
+            }}
           >
             <SegmentedControl.Item key="contributing">
               {t('Unexpected')}
@@ -98,14 +111,48 @@ export function DroppedDataDrawer({
           <Container padding="xl 2xl">
             <LoadingIndicator />
           </Container>
+        ) : scopedDroppedEvents.length === 0 ? (
+          <Container padding="xl 2xl">
+            {hasExpectedDrops ? (
+              <EmptyState
+                title={t('No unexpected drops.')}
+                description={t(
+                  'All events dropped in this time range were expected, like sampling and inbound filters.'
+                )}
+                action={
+                  <Button size="sm" onClick={() => setScope('all')}>
+                    {t('Show all drops')}
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                title={t('No dropped or filtered events.')}
+                description={t('Nothing was dropped or filtered in this time range.')}
+              />
+            )}
+          </Container>
         ) : (
           <Fragment>
             <Container background="primary" padding="xl 3xl lg">
               <DroppedDataChart
                 droppedEvents={scopedDroppedEvents}
                 colors={outcomeColors}
+                hasAskSeer={onAskSeer !== undefined}
                 selection={outcomeSelection}
-                onSelectionChange={setOutcomeSelection}
+                onSelectionChange={nextSelection => {
+                  for (const [outcome, selected] of Object.entries(nextSelection)) {
+                    if (isOutcomeSelected(outcomeSelection, outcome) !== selected) {
+                      trackAnalytics('explore.dropped_data.legend_outcome_toggled', {
+                        organization,
+                        dataset,
+                        outcome,
+                        selected,
+                      });
+                    }
+                  }
+                  setOutcomeSelection(nextSelection);
+                }}
               />
             </Container>
             <Stack flex="1" gap="2xl" background="secondary" padding="2xl xl">

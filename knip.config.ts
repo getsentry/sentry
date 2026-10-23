@@ -8,8 +8,6 @@ const productionEntryPoints = [
   // Build entry points that are not package entry points.
   'utils/setupStatics.tsx',
   'serviceWorker/worker/worker.ts',
-  // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
-  'utils/reactRouterV6/index.ts',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
@@ -78,7 +76,6 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
-        'react-router-v8', // Knip cannot trace the conditional Rspack package alias.
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'zrender', // used in echarts
