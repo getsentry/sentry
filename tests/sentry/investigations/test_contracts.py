@@ -645,9 +645,16 @@ class _Payload(ActionPayloadSerializer):
         return None if action.get("target") == "advice" else action
 
 
-class _Kind(ActionKind):
+class RecordingKind(ActionKind):
     kind = "test_kind"
     payload_serializer = _Payload
+
+    def __init__(self) -> None:
+        # The requests after_upsert ran for, in order.
+        self.upserted: list[InvestigationActionRequest] = []
+
+    def after_upsert(self, action_request: InvestigationActionRequest) -> None:
+        self.upserted.append(action_request)
 
     def cannot_apply_reasons(
         self,
@@ -666,12 +673,12 @@ def fake_action(target: str = "a") -> dict[str, Any]:
 
 def fake_action_kind() -> Any:
     """Register the test-only kind, for tests of the shared action request code."""
-    return patch.dict(ACTION_KINDS, {"test_kind": _Kind()})
+    return patch.dict(ACTION_KINDS, {"test_kind": RecordingKind()})
 
 
 @pytest.fixture(autouse=True)
 def test_kind() -> Generator[None]:
-    with patch.dict(ACTION_KINDS, {"test_kind": _Kind()}):
+    with patch.dict(ACTION_KINDS, {"test_kind": RecordingKind()}):
         yield
 
 

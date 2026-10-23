@@ -52,7 +52,7 @@ from sentry.investigations.services.orchestration_events import (
 )
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
-from tests.sentry.investigations.test_contracts import fake_action, fake_action_kind
+from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
 
 class SeerRunMirrorMixin:
@@ -2521,12 +2521,13 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.notebook_revision == notebook_revision
 
     def test_the_action_kind_hears_about_new_and_changed_requests(self) -> None:
-        with patch.object(ACTION_KINDS["test_kind"], "after_upsert") as after_upsert:
-            self.deliver_request(1, self.action_request("widen"))
-            self.deliver_request(2, self.action_request("widen"))
-            self.deliver_request(3, self.action_request("widen", action=fake_action("b")))
+        self.deliver_request(1, self.action_request("widen"))
+        self.deliver_request(2, self.action_request("widen"))
+        self.deliver_request(3, self.action_request("widen", action=fake_action("b")))
 
-        assert [call.args[0].action_payload for call in after_upsert.call_args_list] == [
+        kind = ACTION_KINDS["test_kind"]
+        assert isinstance(kind, RecordingKind)
+        assert [request.action_payload for request in kind.upserted] == [
             fake_action(),
             fake_action("b"),
         ]
