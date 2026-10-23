@@ -4,7 +4,7 @@ import {
   DROPPED_DATA_DOCS_URL,
   REASON_INFO,
 } from 'sentry/components/droppedData/reasonInfo';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -32,6 +32,17 @@ const DROPPED_DATA_LABELS: Partial<Record<DiscoverDatasets, string>> = {
 
 export function droppedDataLabel(dataset: DiscoverDatasets): string {
   return DROPPED_DATA_LABELS[dataset] ?? t('Dropped Events');
+}
+
+const DATASET_NOUNS: Partial<Record<DiscoverDatasets, (count: number) => string>> = {
+  errors: count => tn('error', 'errors', count),
+  ourlogs: count => tn('log', 'logs', count),
+  spans: count => tn('span', 'spans', count),
+  tracemetrics: count => tn('metric', 'metrics', count),
+};
+
+export function datasetNoun(dataset: DiscoverDatasets, count: number): string {
+  return DATASET_NOUNS[dataset]?.(count) ?? tn('event', 'events', count);
 }
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {

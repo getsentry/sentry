@@ -4,6 +4,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {
   buildAskSeerPrompt,
+  datasetNoun,
   droppedDataLabel,
   getOutcomeColors,
   reasonDocsUrl,
@@ -20,6 +21,20 @@ describe('droppedDataLabel', () => {
 
   it('falls back to events for other datasets', () => {
     expect(droppedDataLabel(DiscoverDatasets.TRANSACTIONS)).toBe('Dropped Events');
+  });
+});
+
+describe('datasetNoun', () => {
+  it('pluralizes the telemetry type by count', () => {
+    expect(datasetNoun(DiscoverDatasets.SPANS, 1)).toBe('span');
+    expect(datasetNoun(DiscoverDatasets.SPANS, 0)).toBe('spans');
+    expect(datasetNoun(DiscoverDatasets.OURLOGS, 2)).toBe('logs');
+    expect(datasetNoun(DiscoverDatasets.TRACEMETRICS, 2)).toBe('metrics');
+    expect(datasetNoun(DiscoverDatasets.ERRORS, 1)).toBe('error');
+  });
+
+  it('falls back to events for other datasets', () => {
+    expect(datasetNoun(DiscoverDatasets.TRANSACTIONS, 2)).toBe('events');
   });
 });
 

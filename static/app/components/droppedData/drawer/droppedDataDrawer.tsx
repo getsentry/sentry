@@ -139,6 +139,7 @@ export function DroppedDataDrawer({
                   <DroppedDataChart
                     droppedEvents={scopedDroppedEvents}
                     colors={outcomeColors}
+                    dataset={dataset}
                     hasAskSeer={onAskSeer !== undefined}
                     selection={outcomeSelection}
                     onSelectionChange={nextSelection => {
