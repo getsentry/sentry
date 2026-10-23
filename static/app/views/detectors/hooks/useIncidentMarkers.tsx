@@ -140,7 +140,7 @@ function findIncidentPeriodAtPoint(
   return findIncidentPeriodAtTimestamp(incidentPeriods, timestamp);
 }
 
-export function findIncidentPeriodAtTimestamp(
+function findIncidentPeriodAtTimestamp(
   incidentPeriods: IncidentPeriod[],
   timestamp: number
 ): IncidentPeriod | undefined {
