@@ -1,4 +1,5 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -1122,6 +1123,159 @@ describe('MultiQueryModeContent', () => {
         queries:
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
       })
+    );
+  });
+
+  it('edits transformations for one Compare chart and forwards the ordered pipeline', async () => {
+    const {router} = render(<MultiQueryModeContent />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare/',
+          query: {
+            queries: [
+              JSON.stringify({
+                yAxes: ['count(span.duration)'],
+                transformations: ['fill(locf)'],
+              }),
+              JSON.stringify({yAxes: ['avg(span.duration)']}),
+            ],
+          },
+        },
+      },
+    });
+
+    const firstChart = screen.getByTestId('section-visualization-0');
+    const secondChart = screen.getByTestId('section-visualization-1');
+    expect(
+      within(firstChart).getByRole('button', {name: 'Fill method'})
+    ).toHaveTextContent('LOCF');
+    await userEvent.click(
+      within(secondChart).getByRole('button', {name: 'Add Transformation'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Fill'}));
+    await userEvent.click(within(secondChart).getByRole('button', {name: 'Fill method'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Linear'}));
+    await userEvent.click(
+      within(secondChart).getByRole('button', {name: 'Add Transformation'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+    expect(router.location.query.queries).toEqual([
+      expect.stringContaining('"transformations":["fill(locf)"]'),
+      expect.stringContaining('"transformations":["fill(linear)","smooth(sma,3)"]'),
+    ]);
+    expect(
+      within(secondChart).getByRole('button', {name: 'Smoothing method'})
+    ).toHaveTextContent('SMA');
+    await waitFor(() =>
+      expect(eventsTimeSeriesRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: ['avg(span.duration)'],
+            'transformations[0]': ['fill(linear)', 'smooth(sma,3)'],
+          }),
+        })
+      )
+    );
+  });
+
+  it('blocks saves for a transformed later row and restores actions after removal', async () => {
+    const {router} = render(<MultiQueryModeContent />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare/',
+          query: {
+            queries: [
+              JSON.stringify({yAxes: ['count(span.duration)']}),
+              JSON.stringify({
+                yAxes: ['avg(span.duration)'],
+                transformations: ['fill(zero)'],
+              }),
+            ],
+          },
+        },
+      },
+    });
+
+    const firstChart = screen.getByTestId('section-visualization-0');
+    const secondChart = screen.getByTestId('section-visualization-1');
+    expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(
+      within(firstChart).getByRole('button', {name: 'Chart actions'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(
+      within(secondChart).getByRole('button', {name: 'Chart actions'})
+    ).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'New Query'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      within(secondChart).getByRole('button', {name: 'Remove transformation'})
+    );
+    expect(screen.getByRole('button', {name: 'Save'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(
+      within(secondChart).getByRole('button', {name: 'Chart actions'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(router.location.query.queries).toEqual([
+      expect.not.stringContaining('transformations'),
+      expect.not.stringContaining('transformations'),
+    ]);
+  });
+
+  it('hides transformation controls without the flag and keeps stored pipelines safe', async () => {
+    render(<MultiQueryModeContent />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare/',
+          query: {
+            queries: JSON.stringify({
+              yAxes: ['avg(span.duration)'],
+              transformations: ['fill(zero)'],
+            }),
+          },
+        },
+      },
+    });
+
+    expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Chart actions'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Fill method'})).not.toBeInTheDocument();
+    await waitFor(() => expect(eventsTimeSeriesRequest).toHaveBeenCalled());
+    expect(eventsTimeSeriesRequest.mock.calls[0][1].query).toEqual(
+      expect.objectContaining({yAxis: ['avg(span.duration)']})
+    );
+    expect(eventsTimeSeriesRequest.mock.calls[0][1].query).not.toHaveProperty(
+      'transformations[0]'
     );
   });
 

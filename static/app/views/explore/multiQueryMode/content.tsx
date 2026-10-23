@@ -54,6 +54,7 @@ function Content({datePageFilterProps}: ContentProps) {
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMultiQuery();
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
+  const hasTransformations = queries.some(query => query.transformations?.length);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
   const id = decodeScalar(location.query.id);
@@ -165,6 +166,12 @@ function Content({datePageFilterProps}: ContentProps) {
                 {...triggerProps}
                 variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
                 aria-label={t('Save')}
+                disabled={hasTransformations}
+                tooltipProps={
+                  hasTransformations
+                    ? {title: t('Queries with transformations cannot be saved yet.')}
+                    : undefined
+                }
               >
                 {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
               </OverlayTrigger.Button>
