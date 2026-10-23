@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from django.urls import reverse
 from rest_framework import status
 
+from sentry import audit_log
 from sentry.models.apitoken import ApiToken
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
@@ -513,10 +515,10 @@ class OrganizationAuthTokenDetailsOAuthTest(APITestCase):
         )
 
     def oauth_headers(self, scope_list: list[str]) -> dict[str, str]:
-        token = ApiToken.objects.create(
+        self.oauth_token = ApiToken.objects.create(
             user=self.user, application=self.application, scope_list=scope_list
         )
-        return {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
+        return {"HTTP_AUTHORIZATION": f"Bearer {self.oauth_token.token}"}
 
     def test_get(self) -> None:
         response = self.get_success_response(
@@ -536,6 +538,14 @@ class OrganizationAuthTokenDetailsOAuthTest(APITestCase):
         )
         self.org_token.refresh_from_db()
         assert self.org_token.date_deactivated is not None
+
+        entry = AuditLogEntry.objects.get(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("ORGAUTHTOKEN_REMOVE"),
+        )
+        assert entry.target_object == self.org_token.id
+        assert entry.data["application_id"] == self.application.id
+        assert entry.data["api_token_id"] == self.oauth_token.id
 
     def test_delete_requires_org_write_scope(self) -> None:
         self.get_error_response(

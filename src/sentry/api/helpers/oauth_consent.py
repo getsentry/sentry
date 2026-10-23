@@ -98,7 +98,7 @@ _PERMISSION_RESOURCES = (
     ),
     OAuthPermissionResource(
         "tokens",
-        "Organization auth tokens",
+        "CI organization auth tokens",
         ("org:tokens",),
     ),
     OAuthPermissionResource(

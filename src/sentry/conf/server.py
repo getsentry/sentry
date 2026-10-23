@@ -2027,7 +2027,11 @@ SENTRY_SCOPE_SETS = (
     (
         (
             "org:tokens",
-            "Create, list, rename, and revoke organization auth tokens on your behalf.",
+            (
+                "Issue, list, rename, and revoke organization auth tokens with org:ci access, "
+                "such as tokens for release, source map, and debug file uploads. "
+                "Does not allow creating personal tokens."
+            ),
         ),
     ),
     (

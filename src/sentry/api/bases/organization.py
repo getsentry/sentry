@@ -15,6 +15,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from sentry_sdk import traces
 
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
@@ -30,6 +31,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -37,7 +39,7 @@ from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.orgauthtoken import is_org_auth_token_auth
+from sentry.models.orgauthtoken import ORG_AUTH_TOKEN_SCOPES, is_org_auth_token_auth
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
@@ -269,6 +271,14 @@ class OrganizationDetectorPermission(OrganizationPermission):
 
 
 class OrgAuthTokenPermission(OrganizationPermission):
+    """
+    Org auth tokens can be managed from a browser session, or by an OAuth application
+    token (e.g. the Sentry CLI) acting for a member who consented to `org:tokens`.
+
+    Every other token type is rejected: personal tokens cannot hold token-only scopes
+    like `org:tokens`, and org auth / integration tokens must never mint new tokens.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
@@ -278,21 +288,43 @@ class OrgAuthTokenPermission(OrganizationPermission):
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         if request.auth is not None:
-            # OAuth application tokens acting for a user are the only tokens allowed here.
-            # Personal, org auth, and integration tokens must not be able to mint new tokens.
-            if (
-                not is_api_token_auth(request.auth)
-                or request.auth.application_id is None
-                or getattr(request.user, "is_sentry_app", False)
-            ):
+            if not self._is_oauth_application_token(request):
                 return False
-            # Token management needs its own consent scope. Reusing org:ci would let every
-            # existing org:ci grant mint new tokens, and an app only granted org:read could
-            # mint a token that writes releases.
-            if not request.auth.has_scope("org:tokens"):
-                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:tokens"})
+            required_scopes = {"org:tokens"}
+            # A minted token must never hold scopes the issuing token lacks.
+            if request.method == "POST":
+                required_scopes.update(ORG_AUTH_TOKEN_SCOPES)
+            missing_scopes = {
+                scope for scope in required_scopes if not request.auth.has_scope(scope)
+            }
+            if missing_scopes:
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, missing_scopes)
                 return False
         return super().has_permission(request, view)
+
+    @staticmethod
+    def _is_oauth_application_token(request: Request) -> bool:
+        return (
+            isinstance(request.successful_authenticator, UserAuthTokenAuthentication)
+            and is_api_token_auth(request.auth)
+            and request.auth.application_id is not None
+            and not getattr(request.user, "is_sentry_app", False)
+        )
+
+
+def get_issuing_token_audit_log_data(request: Request) -> dict[str, int]:
+    """
+    Record which OAuth application and token managed an org auth token, so tokens minted by
+    a compromised OAuth grant can be traced back to it.
+    """
+    if not is_api_token_auth(request.auth) or request.auth.application_id is None:
+        return {}
+    issuing_token = AuthenticatedToken.from_token(request.auth)
+    assert issuing_token is not None and issuing_token.entity_id is not None
+    return {
+        "application_id": request.auth.application_id,
+        "api_token_id": issuing_token.entity_id,
+    }
 
 
 class OrganizationFlagWebHookSigningSecretPermission(OrganizationPermission):

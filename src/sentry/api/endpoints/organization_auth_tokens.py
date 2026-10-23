@@ -18,13 +18,17 @@ from sentry.api.authentication import (
     UserAuthTokenAuthentication,
 )
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrgAuthTokenPermission,
+    get_issuing_token_audit_log_data,
+)
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_locality_url
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
+from sentry.models.orgauthtoken import MAX_NAME_LENGTH, ORG_AUTH_TOKEN_SCOPES, OrgAuthToken
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -108,7 +112,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         token = OrgAuthToken.objects.create(
             name=name,
             organization_id=organization.id,
-            scope_list=["org:ci"],
+            scope_list=list(ORG_AUTH_TOKEN_SCOPES),
             created_by_id=request.user.id,
             token_last_characters=token_str[-4:],
             token_hashed=token_hashed,
@@ -124,7 +128,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
             organization=organization,
             target_object=token.id,
             event=audit_log.get_event_id("ORGAUTHTOKEN_ADD"),
-            data=token.get_audit_log_data(),
+            data={**token.get_audit_log_data(), **get_issuing_token_audit_log_data(request)},
         )
 
         # Notify all owners of org of new token
