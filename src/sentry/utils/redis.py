@@ -306,11 +306,6 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
     {
         # INFRENG-808: invite request team assignments
         ("sentry.core.endpoints.organization_member_utils.save_team_assignments",),
-        # INFRENG-809: test-only, ApiToken.from_grant inside a transaction in ControlOutboxDrainTest
-        (
-            "sentry.models.apitoken.ApiToken.from_grant",
-            "tests.sentry.hybridcloud.models.test_outbox.ControlOutboxDrainTest.test_reconnects_after_successful_token_replication",
-        ),
         # --------------------------------
         # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
         # --------------------------------
