@@ -1,6 +1,4 @@
 import type {Theme} from '@emotion/react';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 
 import {MarkArea} from 'sentry/components/charts/components/markArea';
@@ -14,20 +12,22 @@ import {
 const BAND_OPACITY = 0.1;
 
 // Static thresholds are a flat y-value, percent thresholds are a line over time
-interface Threshold<Bound> {
+type ThresholdBound = number | SeriesDataUnit[];
+
+interface Threshold<Bound extends ThresholdBound> {
   bound: Bound;
   priority: DetectorPriorityLevel;
   type: DataConditionType;
 }
 
 // Shaded region between two thresholds, open to the chart edge when a side is missing
-interface ThresholdBand<Bound> {
+interface ThresholdBand<Bound extends ThresholdBound> {
   color: string;
   lower?: Bound;
   upper?: Bound;
 }
 
-interface ThresholdBandsOptions<Bound> {
+interface ThresholdBandsOptions<Bound extends ThresholdBound> {
   theme: Theme;
   thresholds: Array<Threshold<Bound>>;
   resolution?: Bound;
@@ -40,7 +40,7 @@ export function getThresholdColor(theme: Theme, priority: DetectorPriorityLevel)
 }
 
 // Split the chart into adjacent non-overlapping bands, from ok to most severe
-function getThresholdBands<Bound>({
+function getThresholdBands<Bound extends ThresholdBound>({
   theme,
   thresholds,
   resolution,
@@ -83,7 +83,7 @@ export function createStaticThresholdBandSeries(
     type: 'line',
     markArea: MarkArea({
       silent: true,
-      itemStyle: {color: color(band.color).alpha(BAND_OPACITY).rgb().string()},
+      itemStyle: {color: band.color, opacity: BAND_OPACITY},
       // Use infinity to clamp the shaded region to the edges of the chart
       data: [[{yAxis: band.lower ?? -Infinity}, {yAxis: band.upper ?? Infinity}]],
     }),
