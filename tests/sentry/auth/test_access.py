@@ -1004,11 +1004,16 @@ class RpcGlobalAccessTest(TestCase):
         with assume_test_silo_mode(SiloMode.CELL, can_be_monolith=False):
             context = organization_service.get_access_context(organization_id=self.org.id)
             assert context is not None
-            with patch.object(
-                organization_service,
-                "get_active_resource_ids",
-                wraps=organization_service.get_active_resource_ids,
-            ) as resources:
+            with (
+                patch(
+                    "sentry.auth.access.get_active_resource_ids",
+                    wraps=access.get_active_resource_ids,
+                ) as resources,
+                patch(
+                    "sentry.hybridcloud.rpc.service.dispatch_remote_call",
+                    side_effect=AssertionError("Unexpected resource RPC"),
+                ) as rpc,
+            ):
                 result = access.from_rpc_auth(self.token, context)
                 assert result.has_project_access(self.project)
                 assert result.has_team_access(self.team)
@@ -1018,6 +1023,7 @@ class RpcGlobalAccessTest(TestCase):
                 assert result.accessible_team_ids == frozenset({self.team.id})
                 assert result.accessible_project_ids == frozenset({self.project.id})
                 resources.assert_called_once_with(organization_id=self.org.id)
+                rpc.assert_not_called()
 
     def test_control_resource_ids_use_one_context_rpc(self) -> None:
         with (

@@ -70,9 +70,9 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteState,
     RpcOrganizationMemberSummary,
     RpcOrganizationProjectSummary,
-    RpcOrganizationResourceIds,
     flags_to_bits,
 )
+from sentry.organizations.services.organization.resources import get_active_resource_ids
 from sentry.organizations.services.organization.serial import (
     serialize_member,
     serialize_organization_summary,
@@ -100,20 +100,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
             ).values_list("id", flat=True)
         )
 
-    def get_active_resource_ids(self, *, organization_id: int) -> RpcOrganizationResourceIds:
-        return RpcOrganizationResourceIds(
-            project_ids=list(
-                Project.objects.filter(
-                    organization_id=organization_id, status=ObjectStatus.ACTIVE
-                ).values_list("id", flat=True)
-            ),
-            team_ids=list(
-                Team.objects.filter(
-                    organization_id=organization_id, status=TeamStatus.ACTIVE
-                ).values_list("id", flat=True)
-            ),
-        )
-
     def get_access_context(
         self,
         *,
@@ -131,7 +117,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             organization=context.organization,
             member=context.member,
             resource_ids=(
-                self.get_active_resource_ids(organization_id=organization_id)
+                get_active_resource_ids(organization_id=organization_id)
                 if include_resource_ids
                 else None
             ),

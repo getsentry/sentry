@@ -30,7 +30,6 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
     RpcOrganizationProjectSummary,
-    RpcOrganizationResourceIds,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcTeam,
@@ -58,12 +57,6 @@ class OrganizationService(RpcService):
     @abstractmethod
     def get_active_project_ids(self, *, organization_id: int, project_ids: list[int]) -> list[int]:
         """Return the supplied IDs that belong to active projects in this organization."""
-        pass
-
-    @cell_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_active_resource_ids(self, *, organization_id: int) -> RpcOrganizationResourceIds:
-        """Return active project and team IDs, including projects without teams."""
         pass
 
     @cell_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)

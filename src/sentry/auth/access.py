@@ -41,6 +41,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.organizations.services.organization.resources import get_active_resource_ids
 from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
@@ -875,7 +876,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
                     t.id for t in context.organization.teams if t.status == TeamStatus.ACTIVE
                 ],
             )
-        return organization_service.get_active_resource_ids(organization_id=context.organization.id)
+        return get_active_resource_ids(organization_id=context.organization.id)
 
     @cached_property
     def accessible_team_ids(self) -> frozenset[int]:
