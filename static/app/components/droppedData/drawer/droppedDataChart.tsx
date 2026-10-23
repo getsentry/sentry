@@ -6,12 +6,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {ChartLegend, type LegendItem} from 'sentry/components/charts/chartLegend';
 import {
-  datasetNoun,
   isOutcomeSelected,
-  outcomeLabel,
   type OutcomeColors,
   type OutcomeSelection,
-} from 'sentry/components/droppedData/outcomes';
+} from 'sentry/components/droppedData/drawer/outcomeColors';
+import {datasetNoun, outcomeLabel} from 'sentry/components/droppedData/outcomes';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';

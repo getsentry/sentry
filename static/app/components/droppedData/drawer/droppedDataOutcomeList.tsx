@@ -14,11 +14,8 @@ import type {
   OutcomeSection,
   ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  formatDroppedShare,
-  reasonDocsUrl,
-  reasonTitle,
-} from 'sentry/components/droppedData/outcomes';
+import {formatDroppedShare} from 'sentry/components/droppedData/outcomes';
+import {reasonDocsUrl, reasonTitle} from 'sentry/components/droppedData/reasonInfo';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 

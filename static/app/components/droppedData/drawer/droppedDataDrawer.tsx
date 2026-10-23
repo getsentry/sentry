@@ -12,17 +12,17 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {
+  getOutcomeColors,
+  isOutcomeSelected,
+  type OutcomeSelection,
+} from 'sentry/components/droppedData/drawer/outcomeColors';
+import {
   droppedEventsToOutcomeGroups,
   filterDroppedEventsByScope,
   type AskSeerHandler,
   type DroppedDataScope,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  droppedAndFilteredLabel,
-  getOutcomeColors,
-  isOutcomeSelected,
-  type OutcomeSelection,
-} from 'sentry/components/droppedData/outcomes';
+import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
