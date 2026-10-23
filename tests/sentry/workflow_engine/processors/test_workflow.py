@@ -1,6 +1,8 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.eventstream.base import GroupState
@@ -9,7 +11,12 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
+from sentry.seer.models.workflow import SeerWorkflowStrategy, SeerWorkflowTriggerBinding
+from sentry.seer.workflows.breached_metrics import (
+    BreachedMetricWorkflow,
+)
 from sentry.services.eventstore.models import GroupEvent
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -21,6 +28,7 @@ from sentry.workflow_engine.defaults.detectors import ensure_default_all_project
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.action import is_action_permitted
 from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
 )
@@ -1373,3 +1381,495 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                 )
             },
         )
+
+
+@with_feature("organizations:seer-automations")
+class TestMetricBreachWorkflow(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.group, self.event, self.group_event = self.create_group_event(
+            group_type_id=MetricIssue.type_id
+        )
+        self.create_detector_group(detector=self.detector, group=self.group)
+        trigger_group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=trigger_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.workflow = self.create_workflow(when_condition_group=trigger_group)
+        self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
+        self.action = self.create_action(type=Action.Type.SEER_WORKFLOW, config={}, data={})
+        action_group, _ = self.create_workflow_action(self.workflow, action=self.action)
+        self.action_filter = self.create_data_condition(
+            condition_group=action_group,
+            type=Condition.ISSUE_TYPE,
+            comparison={"value": MetricIssue.slug},
+            condition_result=True,
+        )
+        self.config = Factories.create_seer_workflow_config(
+            organization=self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            trigger_actions=[self.action],
+        )
+
+    def test_registered_seer_action_requires_automation_feature(self) -> None:
+        with self.feature({"organizations:seer-automations": False}):
+            assert not is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+
+        with self.feature("organizations:seer-automations"):
+            assert is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_evaluated_action_targets_its_bound_config(self, mock_accept: MagicMock) -> None:
+        Factories.create_seer_workflow_config(
+            organization=self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            trigger_actions=[
+                self.create_action(type=Action.Type.SEER_WORKFLOW, config={}, data={})
+            ],
+        )
+
+        with (
+            self.tasks(),
+            CaptureQueriesContext(
+                connections[router.db_for_read(SeerWorkflowTriggerBinding)]
+            ) as queries,
+        ):
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert _triggered_workflow_ids(result) == {self.workflow.id}
+        assert sum("seer_workflowtriggerbinding" in query["sql"] for query in queries) == 1
+        mock_accept.assert_called_once_with(
+            BreachedMetricWorkflow(self.config),
+            self.group,
+            self.group_event,
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
+        )
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_distinct_actions_resolve_bindings_to_the_same_config(
+        self, mock_accept: MagicMock
+    ) -> None:
+        second_action = self.create_action(type=Action.Type.SEER_WORKFLOW, config={}, data={})
+        Factories.create_seer_workflow_trigger_binding(self.config, second_action)
+        self.create_workflow_action(self.workflow, action=second_action)
+
+        with self.tasks():
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert mock_accept.call_count == 2
+        assert {call.args[0].config.id for call in mock_accept.call_args_list} == {self.config.id}
+        assert {
+            call.kwargs["binding"].trigger_action_id for call in mock_accept.call_args_list
+        } == {
+            self.action.id,
+            second_action.id,
+        }
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_shared_action_collapses_two_matching_workflows(self, mock_accept: MagicMock) -> None:
+        other_workflow = self.create_workflow(
+            when_condition_group=self.create_data_condition_group()
+        )
+        self.create_data_condition(
+            condition_group=other_workflow.when_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_detector_workflow(detector=self.detector, workflow=other_workflow)
+        self.create_workflow_action(other_workflow, action=self.action)
+
+        with self.tasks():
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert _triggered_workflow_ids(result) == {self.workflow.id, other_workflow.id}
+        mock_accept.assert_called_once_with(
+            BreachedMetricWorkflow(self.config),
+            self.group,
+            self.group_event,
+            binding=self.action.seer_workflow_binding,
+            workflow_id=min(self.workflow.id, other_workflow.id),
+        )
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_separate_actions_preserve_each_workflow(self, mock_accept: MagicMock) -> None:
+        other_workflow = self.create_workflow(
+            when_condition_group=self.create_data_condition_group()
+        )
+        self.create_data_condition(
+            condition_group=other_workflow.when_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_detector_workflow(detector=self.detector, workflow=other_workflow)
+        _, other_action = self.create_workflow_action(
+            other_workflow, action=self.create_action(type=Action.Type.SEER_WORKFLOW)
+        )
+        other_config = Factories.create_seer_workflow_config(
+            organization=self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            trigger_actions=[other_action],
+        )
+
+        with self.tasks():
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert _triggered_workflow_ids(result) == {self.workflow.id, other_workflow.id}
+        assert mock_accept.call_count == 2
+        mock_accept.assert_has_calls(
+            [
+                call(
+                    BreachedMetricWorkflow(self.config),
+                    self.group,
+                    self.group_event,
+                    binding=self.action.seer_workflow_binding,
+                    workflow_id=self.workflow.id,
+                ),
+                call(
+                    BreachedMetricWorkflow(other_config),
+                    self.group,
+                    self.group_event,
+                    binding=other_action.seer_workflow_binding,
+                    workflow_id=other_workflow.id,
+                ),
+            ],
+            any_order=True,
+        )
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_multiple_detectors_feed_one_workflow_and_automation(
+        self, mock_accept: MagicMock
+    ) -> None:
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        group, _, event = self.create_group_event(group_type_id=MetricIssue.type_id)
+        self.create_detector_group(detector=detector, group=group)
+        self.create_detector_workflow(detector=detector, workflow=self.workflow)
+
+        with self.tasks():
+            first = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+            second = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=event,
+                    group=group,
+                    group_state=GroupState(
+                        id=group.id, is_new=True, is_regression=False, is_new_group_environment=True
+                    ),
+                ),
+                event.datetime,
+                detector=detector,
+            )
+
+        assert _triggered_workflow_ids(first) == {self.workflow.id}
+        assert _triggered_workflow_ids(second) == {self.workflow.id}
+        assert mock_accept.call_count == 2
+        mock_accept.assert_has_calls(
+            [
+                call(
+                    BreachedMetricWorkflow(self.config),
+                    self.group,
+                    self.group_event,
+                    binding=self.action.seer_workflow_binding,
+                    workflow_id=self.workflow.id,
+                ),
+                call(
+                    BreachedMetricWorkflow(self.config),
+                    group,
+                    event,
+                    binding=self.action.seer_workflow_binding,
+                    workflow_id=self.workflow.id,
+                ),
+            ],
+            any_order=True,
+        )
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_unconnected_detector_does_not_inherit_metric_automation(
+        self, mock_accept: MagicMock
+    ) -> None:
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        group, _, event = self.create_group_event(group_type_id=MetricIssue.type_id)
+        self.create_detector_group(detector=detector, group=group)
+
+        with self.tasks():
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=event,
+                    group=group,
+                    group_state=GroupState(
+                        id=group.id, is_new=True, is_regression=False, is_new_group_environment=True
+                    ),
+                ),
+                event.datetime,
+                detector=detector,
+            )
+
+        assert _triggered_workflow_ids(result) == set()
+        mock_accept.assert_not_called()
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_detector_attachment_selects_specialized_automation(
+        self, mock_accept: MagicMock
+    ) -> None:
+        specialized_workflow = self.create_workflow(
+            when_condition_group=self.create_data_condition_group()
+        )
+        self.create_data_condition(
+            condition_group=specialized_workflow.when_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_detector_workflow(detector=self.detector, workflow=specialized_workflow)
+        _, action = self.create_workflow_action(
+            specialized_workflow, action=self.create_action(type=Action.Type.SEER_WORKFLOW)
+        )
+        config = Factories.create_seer_workflow_config(
+            organization=self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            trigger_actions=[action],
+        )
+        self.workflow.detectorworkflow_set.all().delete()
+
+        with self.tasks():
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert _triggered_workflow_ids(result) == {specialized_workflow.id}
+        mock_accept.assert_called_once_with(
+            BreachedMetricWorkflow(config),
+            self.group,
+            self.group_event,
+            binding=action.seer_workflow_binding,
+            workflow_id=specialized_workflow.id,
+        )
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_distinct_bound_configs_both_dispatch(self, mock_accept: MagicMock) -> None:
+        second_action = self.create_action(type=Action.Type.SEER_WORKFLOW, config={}, data={})
+        self.create_workflow_action(self.workflow, action=second_action)
+        second_config = Factories.create_seer_workflow_config(
+            organization=self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            trigger_actions=[second_action],
+        )
+
+        with self.tasks():
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert mock_accept.call_count == 2
+        mock_accept.assert_has_calls(
+            [
+                call(
+                    BreachedMetricWorkflow(self.config),
+                    self.group,
+                    self.group_event,
+                    binding=self.action.seer_workflow_binding,
+                    workflow_id=self.workflow.id,
+                ),
+                call(
+                    BreachedMetricWorkflow(second_config),
+                    self.group,
+                    self.group_event,
+                    binding=second_action.seer_workflow_binding,
+                    workflow_id=self.workflow.id,
+                ),
+            ],
+            any_order=True,
+        )
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_disabled_workflow_does_not_dispatch(self, mock_accept: MagicMock) -> None:
+        self.workflow.update(enabled=False)
+
+        with self.tasks():
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert _triggered_workflow_ids(result) == set()
+        mock_accept.assert_not_called()
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_unrelated_activity_does_not_match_trigger(self, mock_accept: MagicMock) -> None:
+        activity = Activity(
+            group=self.group, project=self.project, type=ActivityType.SET_RESOLVED.value
+        )
+
+        with self.tasks():
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(event=activity, group=self.group),
+                activity.datetime,
+                detector=self.detector,
+            )
+
+        assert _triggered_workflow_ids(result) == set()
+        mock_accept.assert_not_called()
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_action_filter_blocks_dispatch(self, mock_accept: MagicMock) -> None:
+        self.action_filter.update(comparison={"value": ErrorGroupType.slug})
+
+        with self.tasks():
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert _triggered_workflow_ids(result) == {self.workflow.id}
+        mock_accept.assert_not_called()
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_cross_organization_binding_is_ignored(self, mock_accept: MagicMock) -> None:
+        self.config.update(organization=self.create_organization())
+
+        with self.tasks():
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        mock_accept.assert_not_called()
