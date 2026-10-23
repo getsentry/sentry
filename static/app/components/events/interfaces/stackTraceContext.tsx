@@ -5,6 +5,7 @@ import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type DisplayOptions =
   | 'absolute-addresses'
@@ -101,9 +102,15 @@ export function StacktraceContext({
   defaultIsNewestFramesFirst = true,
 }: StackTraceContextOptions) {
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.slug === projectSlug),
+    [projects, projectSlug]
+  );
+  // Shared issue pages have no projects loaded and can't read project details
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
-    {enabled: defined(projectSlug)}
+    {enabled: defined(project)}
   );
   const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
 

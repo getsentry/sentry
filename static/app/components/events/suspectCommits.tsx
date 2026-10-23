@@ -18,7 +18,7 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useCommitters} from 'sentry/utils/useCommitters';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
+import {useProjects} from 'sentry/utils/useProjects';
 
 interface Props {
   eventId: string;
@@ -28,12 +28,13 @@ interface Props {
 
 export function SuspectCommits({group, eventId, projectSlug}: Props) {
   const organization = useOrganization();
-  const project = useProjectFromSlug({organization, projectSlug});
-  const {data} = useCommitters({
-    eventId,
-    projectSlug,
-    group,
-  });
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.slug === projectSlug),
+    [projects, projectSlug]
+  );
+  // Shared issue pages have no projects loaded and can't read committers
+  const {data} = useCommitters({eventId, projectSlug, group}, {enabled: !!project});
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const committers = useMemo(

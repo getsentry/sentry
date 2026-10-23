@@ -7,6 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {SuspectCommits} from './suspectCommits';
@@ -51,16 +52,13 @@ describe('SuspectCommits', () => {
 
   beforeEach(() => {
     jest.mocked(trackAnalytics).mockClear();
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [committers[0]],
       },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [project],
     });
   });
 

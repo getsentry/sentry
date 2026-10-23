@@ -256,7 +256,7 @@ export function Content({
   meta,
   threadId,
 }: Props) {
-  const {projects} = useProjects({slugs: [projectSlug]});
+  const {projects} = useProjects();
 
   const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
     projectSlug,

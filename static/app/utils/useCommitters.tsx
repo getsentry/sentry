@@ -34,7 +34,10 @@ const makeCommittersQueryKey = (
   ),
 ];
 
-export function useCommitters({eventId, projectSlug, group}: UseCommittersProps) {
+export function useCommitters(
+  {eventId, projectSlug, group}: UseCommittersProps,
+  {enabled = true}: {enabled?: boolean} = {}
+) {
   const org = useOrganization();
   const previousGroupId = usePrevious(group.id);
   return useApiQuery<CommittersResponse>(
@@ -42,7 +45,7 @@ export function useCommitters({eventId, projectSlug, group}: UseCommittersProps)
     {
       staleTime: Infinity,
       retry: false,
-      enabled: !!eventId,
+      enabled: enabled && !!eventId,
       placeholderData: previousData => {
         return group.id === previousGroupId ? previousData : undefined;
       },
