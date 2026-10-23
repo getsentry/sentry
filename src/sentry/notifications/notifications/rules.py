@@ -361,6 +361,7 @@ class AlertRuleNotification(ProjectNotification):
                     project_id=self.project.id,
                     provider=provider.name,
                     alert_id=origin.link_id if origin else "",
+                    workflow_id=origin.workflow_id if origin else None,
                     alert_type="issue_alert",
                     external_id=str(recipient.id),
                     notification_uuid=self.notification_uuid,

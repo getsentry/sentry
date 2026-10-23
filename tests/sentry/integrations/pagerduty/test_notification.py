@@ -105,8 +105,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
+        context = create_notification_action_context(self.project_rule)
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=context,
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])
@@ -124,6 +125,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             AlertSentEvent(
                 provider="pagerduty",
                 alert_id=self.project_rule.id,
+                workflow_id=context.origin.workflow_id,
                 alert_type="issue_alert",
                 organization_id=self.organization.id,
                 project_id=event.project_id,
@@ -140,6 +142,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 group_id=event.group_id,
                 notification_uuid=notification_uuid,
                 alert_id=self.project_rule.id,
+                workflow_id=context.origin.workflow_id,
             ),
         )
 

@@ -201,6 +201,7 @@ class BaseNotification(abc.ABC):
 
             try:
                 if event_class := PROVIDER_TO_EVENT_CLASS.get(provider):
+                    workflow_id = self.get_log_params(recipient).get("workflow_id")
                     analytics.record(
                         event_class(
                             organization_id=self.organization.id,
@@ -213,6 +214,7 @@ class BaseNotification(abc.ABC):
                             actor_type=recipient.actor_type,
                             notification_uuid=self.notification_uuid,
                             alert_id=self.alert_id if self.alert_id else None,
+                            workflow_id=workflow_id,
                         )
                     )
             except Exception as e:

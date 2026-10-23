@@ -147,6 +147,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 actor_type="User",
                 group_id=None,
                 user_id=0,
+                workflow_id=self.workflow.id,
             ),
             exclude_fields=[
                 "id",
@@ -164,6 +165,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 project_id=self.project.id,
                 provider="email",
                 alert_id=self.workflow.id,
+                workflow_id=self.workflow.id,
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",
