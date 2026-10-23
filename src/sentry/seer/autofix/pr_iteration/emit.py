@@ -202,6 +202,7 @@ def bootstrap_iteration(
                     "project_id": project_id,
                     "group_id": group_id,
                     "run_id": run_state.run_id,
+                    "iteration_type": identity.type,
                 }
             },
         )
@@ -423,6 +424,7 @@ def record_pr_iteration_blocked(
         log_ctx.info(
             "autofix.pr_iteration.details.emitted",
             event_type="blocked",
+            iteration_type=event.iteration_type,
             outcome=outcome,
             iteration_id=iteration.id,
         )
@@ -556,6 +558,7 @@ def _complete_iteration(
         log_ctx.info(
             "autofix.pr_iteration.details.emitted",
             event_type="completed",
+            iteration_type=event.iteration_type,
             outcome=outcome,
             iteration_id=iteration.id,
         )

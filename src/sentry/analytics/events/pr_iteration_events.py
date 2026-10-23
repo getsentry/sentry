@@ -49,6 +49,9 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     # the values Sentry knows about.
     outcome: str
 
+    # Absent on older buffered rows, which were all Autofix iterations.
+    iteration_type: Literal["autofix", "ask_seer"] = "autofix"
+
     # Every ``AutofixReferrer`` behind the feedback the drain consumed, sorted,
     # deduped and joined with ``,``: ``github.check_suite,github.pr_comment``.
     # ``referrer`` collapses a mixed batch to ``unknown``; this keeps the parts.
@@ -87,6 +90,7 @@ class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
     # How long the batch had been waiting when the gate stopped it.
     duration_ms: int
     outcome: str
+    iteration_type: Literal["autofix", "ask_seer"] = "autofix"
 
 
 analytics.register(AiAutofixPrIterationMissingPermissionsEvent)
