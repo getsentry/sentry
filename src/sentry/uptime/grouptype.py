@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, override
@@ -19,13 +20,17 @@ from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.uptime.utils import build_fingerprint, generate_scheduled_check_times_ms
 from sentry.utils import json, metrics
-from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
+from sentry.workflow_engine.handlers.detector.base import (
+    DetectorEvaluations,
+    DetectorOccurrence,
+    EventData,
+)
 from sentry.workflow_engine.handlers.detector.stateful import (
     DetectorThresholds,
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
@@ -129,16 +134,18 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         return int(data_packet.packet.check_result["scheduled_check_time_ms"])
 
     @override
-    def _evaluate(
-        self, data_packet: DataPacket[UptimePacketValue]
-    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
-        result = super()._evaluate(data_packet)
+    def evaluate(
+        self,
+        data_packet: DataPacket[UptimePacketValue],
+        values: Mapping[DetectorGroupKey, CheckStatus],
+    ) -> DetectorEvaluations:
+        evaluations = super().evaluate(data_packet, values)
 
-        if not result:
-            return result
+        if not evaluations.result:
+            return evaluations
 
         # Uptime does not use stateful detector value grouping
-        evaluation = result[None]
+        evaluation = evaluations.result[None]
 
         uptime_subscription = data_packet.packet.subscription
         metric_tags = data_packet.packet.metric_tags
@@ -197,19 +204,18 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
                 },
             )
 
-        # Reutning an empty dict effectively causes the detector processor to
+        # Returning no evaluations effectively causes the detector processor to
         # bail and not produce an issue occurrence.
         if result_creates_issue and not issue_creation_allowed:
-            return {}
+            return DetectorEvaluations(result={}, tainted=evaluations.tainted)
 
-        return result
+        return evaluations
 
     @override
     def create_occurrence(
         self,
-        _group_evaluation: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[UptimePacketValue],
-        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         result = data_packet.packet.check_result
         uptime_subscription = data_packet.packet.subscription
@@ -253,7 +259,7 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
             level="error",
             culprit="",  # TODO: The url?
             assignee=self.detector.owner,
-            priority=priority,
+            priority=evaluation.priority,
         )
         event_data = build_event_data(result, self.detector)
 
