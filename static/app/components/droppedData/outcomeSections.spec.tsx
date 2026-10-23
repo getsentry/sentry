@@ -133,11 +133,11 @@ describe('droppedEventsToOutcomeGroups', () => {
     expect(intentional[0]!.shareRatio).toBe(0.3);
   });
 
-  it('excludes intentional drops from groups and shares in the contributing scope', () => {
+  it('excludes intentional drops from groups and shares in the unexpected scope', () => {
     const {unintentional, intentional} = droppedEventsToOutcomeGroups(
       scopedDroppedEvents,
       scopedAcceptedEvents,
-      'contributing'
+      'unexpected'
     );
 
     expect(intentional).toEqual([]);
@@ -154,9 +154,9 @@ describe('filterDroppedEventsByScope', () => {
     DroppedEventFixture({reason: 'cors', tags: []}),
   ];
 
-  it('keeps only unintentional drops in the contributing scope', () => {
+  it('keeps only unintentional drops in the unexpected scope', () => {
     expect(
-      filterDroppedEventsByScope(droppedEvents, 'contributing').map(e => e.reason)
+      filterDroppedEventsByScope(droppedEvents, 'unexpected').map(e => e.reason)
     ).toEqual(['queue_overflow']);
   });
 

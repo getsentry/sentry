@@ -52,7 +52,7 @@ export function DroppedDataDrawer({
     interval: interval ?? chartInterval,
   });
 
-  const [scope, setScope] = useState<DroppedDataScope>('contributing');
+  const [scope, setScope] = useState<DroppedDataScope>('unexpected');
   const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
 
   const scopedDroppedEvents = filterDroppedEventsByScope(droppedEvents ?? [], scope);
@@ -92,7 +92,7 @@ export function DroppedDataDrawer({
               });
             }}
           >
-            <SegmentedControl.Item key="contributing">
+            <SegmentedControl.Item key="unexpected">
               {t('Unexpected')}
             </SegmentedControl.Item>
             <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
