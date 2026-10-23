@@ -78,27 +78,4 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
       expect(result.map(({seriesName}) => seriesName)).toEqual(['ios', 'android']);
     });
   });
-
-  it('returns size type and byte unit for every aggregate', () => {
-    const data = {
-      timeSeries: [
-        makeTimeSeries('max(install_size)', []),
-        makeTimeSeries('max(download_size)', []),
-      ],
-    };
-    const query = {
-      ...timeSeriesWidgetQuery,
-      aggregates: ['max(install_size)', 'max(download_size)'],
-      fields: ['max(install_size)', 'max(download_size)'],
-    };
-
-    expect(MobileAppSizeConfig.getSeriesResultType!(data, query)).toEqual({
-      'max(install_size)': 'size',
-      'max(download_size)': 'size',
-    });
-    expect(MobileAppSizeConfig.getSeriesResultUnit!(data, query)).toEqual({
-      'max(install_size)': 'byte',
-      'max(download_size)': 'byte',
-    });
-  });
 });

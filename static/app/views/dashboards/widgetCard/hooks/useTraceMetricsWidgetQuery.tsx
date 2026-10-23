@@ -9,8 +9,6 @@ import {
   getEquationAliasIndex,
   isEquation,
   isEquationAlias,
-  type AggregationOutputType,
-  type DataUnit,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -116,8 +114,6 @@ export function useTraceMetricsSeriesQuery(
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
-    const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
-    const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -133,30 +129,12 @@ export function useTraceMetricsSeriesQuery(
       );
 
       timeseriesResults.push(...transformedResult);
-
-      const resultTypes = traceMetricsResponseTransforms.getSeriesResultType?.(
-        responseData,
-        filteredWidget.queries[requestIndex]!
-      );
-      const resultUnits = traceMetricsResponseTransforms.getSeriesResultUnit?.(
-        responseData,
-        filteredWidget.queries[requestIndex]!
-      );
-
-      if (resultTypes) {
-        Object.assign(timeseriesResultsTypes, resultTypes);
-      }
-      if (resultUnits) {
-        Object.assign(timeseriesResultsUnits, resultUnits);
-      }
     });
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
       ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
