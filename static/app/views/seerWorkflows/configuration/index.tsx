@@ -92,7 +92,7 @@ export default function Automations() {
       title: 'Breached Metrics',
       description:
         'Monitors backend metrics and investigates why certain key metrics were breached.',
-      projectSlugs: ['all'],
+      projectSlugs: ['seer', 'javascript', 'sentry-evals-framework'],
       subtitleOverride: {icon: <IconFire />, text: 'Triggered by metric exceptions'},
       tokensPerMonth: 341_000,
       costPerRun: 0.052,
