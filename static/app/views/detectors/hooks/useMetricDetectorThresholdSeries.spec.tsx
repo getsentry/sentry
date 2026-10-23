@@ -319,7 +319,7 @@ describe('useMetricDetectorThresholdSeries', () => {
       ]);
     });
 
-    it('ends the ok band at a manual percent resolution and draws its line', () => {
+    it('lists lines from most severe to a manual percent resolution and ends the ok band there', () => {
       const comparisonSeries = [
         {
           seriesName: 'Previous count()',
@@ -347,8 +347,8 @@ describe('useMetricDetectorThresholdSeries', () => {
       );
 
       expect(getThresholdLineNames(result.current.additionalSeries)).toEqual([
-        '50% Higher Threshold',
         '100% Higher Threshold',
+        '50% Higher Threshold',
         '25% Higher Resolution Threshold',
       ]);
 
