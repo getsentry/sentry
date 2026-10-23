@@ -25,8 +25,8 @@ from sentry.service_accounts.models import (
     ServiceAccountReplica,
 )
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 

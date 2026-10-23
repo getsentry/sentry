@@ -5,9 +5,9 @@ from sentry.auth import access
 from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.silo import control_silo_test, no_silo_test
 
 

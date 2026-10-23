@@ -14,9 +14,9 @@ from sentry.api.permissions import (
 )
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase, DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 
 
 class PermissionsTest(DRFPermissionTestCase):
