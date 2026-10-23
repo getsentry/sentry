@@ -6,6 +6,7 @@ from unittest import mock
 
 from slack_sdk.web import SlackResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
@@ -195,7 +196,7 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     def test_logs_when_integration_inactive(self, mock_logger: mock.MagicMock) -> None:
         # Mark integration as inactive
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration.update(status=1)  # ObjectStatus.DISABLED
+            self.integration.update(status=ObjectStatus.DISABLED)
 
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
 
