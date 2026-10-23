@@ -1440,6 +1440,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
+    "LIST_SERIALIZER_ERRORS_AS_DICT": False,
 }
 
 
