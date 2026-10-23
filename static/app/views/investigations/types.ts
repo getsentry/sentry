@@ -163,6 +163,7 @@ export type InvestigationQueryOutput = {
 };
 
 export type InvestigationDetail = InvestigationListItem & {
+  actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
   filters?: Record<string, unknown>;
   parameters?: unknown[];
@@ -252,6 +253,55 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'failed'
   | 'cancelled'
 >;
+
+type InvestigationDetectorChangeKey =
+  | 'query'
+  | 'aggregate'
+  | 'environment'
+  | 'timeWindowSeconds'
+  | 'highThreshold'
+  | 'mediumThreshold'
+  | 'resolutionThreshold';
+
+type InvestigationDetectorValues = Partial<
+  Record<InvestigationDetectorChangeKey, number | string | null>
+>;
+
+type InvestigationAction =
+  | {
+      before: InvestigationDetectorValues;
+      changes: InvestigationDetectorValues;
+      detectorId: string;
+      kind: 'update_detector';
+    }
+  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+
+type InvestigationActionRequestAnchor = {
+  blockId: string | null;
+  id: string;
+  type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
+};
+
+export type InvestigationActionRequest = {
+  action: InvestigationAction | null;
+  anchor: InvestigationActionRequestAnchor | null;
+  appliedBy: AvatarUser | null;
+  appliedDetails: Record<string, unknown> | null;
+  dateApplied: string | null;
+  dateCreated: string;
+  error: Record<string, unknown> | null;
+  id: string;
+  impact: string | null;
+  key: string;
+  primary: boolean;
+  rationale: string;
+  reason: string | null;
+  reportRevision: number;
+  state: InvestigationOrchestrationOpenString<
+    'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
+  >;
+  title: string;
+};
 
 type InvestigationOrchestrationError = {
   code: string;

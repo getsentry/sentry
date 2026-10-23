@@ -9,6 +9,7 @@ import {
 import {StoryTopBar} from 'sentry/views/investigations/__stories__/storyTopBar';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
+  InvestigationActionRequestFixture,
   InvestigationBlockExecutionFixture,
   InvestigationBlockFixture,
   InvestigationBreachedMetricDetailFixture,
@@ -43,6 +44,16 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
     revision: 1,
     snapshot: {monitor: {id: '42', name: 'Checkout p95 latency'}},
   },
+  actionRequests: [
+    InvestigationActionRequestFixture({
+      action: {
+        kind: 'update_detector',
+        detectorId: '42',
+        before: {timeWindowSeconds: 300},
+        changes: {timeWindowSeconds: 900},
+      },
+    }),
+  ],
   blocks: [
     InvestigationBlockFixture({
       id: 'completed-summary',
