@@ -48,12 +48,11 @@ class AuthOrganizationConfigEndpoint(Endpoint):
         responses={200: AuthOrganizationConfigSerializer},
     )
     def get(self, request: Request, organization_id_or_slug: str) -> Response:
-        organization_context = organization_service.get_organization_by_slug(
+        organization_context = organization_service.get_access_context_by_slug(
             slug=organization_id_or_slug,
             only_visible=True,
             user_id=request.user.id if request.user.is_authenticated else None,
-            include_projects=False,
-            include_teams=False,
+            include_resource_ids=False,
         )
         if organization_context is None:
             raise NotFound()
