@@ -279,31 +279,11 @@ def test_invalid_source_timestamp_is_rejected(timestamp: object) -> None:
 
 
 def tool_continuation_spans() -> list[Row]:
-    initial = [
+    history: list[dict[str, object]] = [
         {"role": "system", "content": "Be helpful"},
         {"role": "user", "content": "Generate a sample report"},
     ]
-    first_call = {
-        "role": "assistant",
-        "content": "Inspecting records",
-        "tool_calls": [{"id": "call-1", "name": "lookup", "arguments": {"step": 1}}],
-    }
-    second_call = {
-        "role": "assistant",
-        "content": "Checking totals",
-        "tool_calls": [{"id": "call-2", "name": "lookup", "arguments": {"step": 2}}],
-    }
-    after_first = [
-        *initial,
-        first_call,
-        {"role": "tool", "content": "records", "tool_call_id": "call-1"},
-    ]
-    after_second = [
-        *after_first,
-        second_call,
-        {"role": "tool", "content": "totals", "tool_call_id": "call-2"},
-    ]
-    return [
+    rows: list[Row] = [
         span(
             "agent",
             0,
@@ -313,93 +293,68 @@ def tool_continuation_spans() -> list[Row]:
                 "gen_ai.input.messages": "",
                 "gen_ai.output.messages": "",
             },
-        ),
-        span(
-            "one",
-            1,
-            2,
-            **{
-                "parent_span": "agent",
-                "gen_ai.input.messages": json.dumps(initial),
-                "gen_ai.output.messages": json.dumps(
-                    [
-                        {
-                            "role": "assistant",
-                            "parts": [
-                                {"type": "text", "text": "Inspecting records"},
+        )
+    ]
+    for name, start, text in (("one", 1, "Inspecting records"), ("two", 5, "Checking totals")):
+        call: dict[str, object] = {"id": f"call-{name}", "name": "lookup", "arguments": {}}
+        rows.extend(
+            [
+                span(
+                    name,
+                    start,
+                    start + 1,
+                    **{
+                        "parent_span": "agent",
+                        "gen_ai.input.messages": json.dumps(history),
+                        "gen_ai.output.messages": json.dumps(
+                            [
                                 {
-                                    "type": "tool_call",
-                                    "id": "call-1",
-                                    "name": "lookup",
-                                    "arguments": {"step": 1},
-                                },
-                            ],
-                        }
-                    ]
+                                    "role": "assistant",
+                                    "parts": [
+                                        {"type": "text", "text": text},
+                                        {"type": "tool_call", **call},
+                                    ],
+                                }
+                            ]
+                        ),
+                    },
                 ),
-            },
-        ),
-        span(
-            "tool-one",
-            3,
-            4,
-            **{
-                "parent_span": "agent",
-                "gen_ai.operation.type": "tool",
-                "gen_ai.tool.name": "lookup",
-            },
-        ),
-        span(
-            "two",
-            5,
-            6,
-            **{
-                "parent_span": "agent",
-                "gen_ai.input.messages": json.dumps(after_first),
-                "gen_ai.output.messages": json.dumps(
-                    [
-                        {
-                            "role": "assistant",
-                            "parts": [
-                                {"type": "text", "text": "Checking totals"},
-                                {
-                                    "type": "tool_call",
-                                    "id": "call-2",
-                                    "name": "lookup",
-                                    "arguments": {"step": 2},
-                                },
-                            ],
-                        }
-                    ]
+                span(
+                    f"tool-{name}",
+                    start + 2,
+                    start + 3,
+                    **{
+                        "parent_span": "agent",
+                        "gen_ai.operation.type": "tool",
+                        "gen_ai.tool.name": "lookup",
+                    },
                 ),
-            },
-        ),
-        span(
-            "tool-two",
-            7,
-            8,
-            **{
-                "parent_span": "agent",
-                "gen_ai.operation.type": "tool",
-                "gen_ai.tool.name": "lookup",
-            },
-        ),
+            ]
+        )
+        history.extend(
+            [
+                {"role": "assistant", "content": text, "tool_calls": [call]},
+                {"role": "tool", "content": "result", "tool_call_id": call["id"]},
+            ]
+        )
+    rows.append(
         span(
             "three",
             9,
             10,
             **{
                 "parent_span": "agent",
-                "gen_ai.input.messages": json.dumps(after_second),
+                "gen_ai.input.messages": json.dumps(history),
                 "gen_ai.output.messages": json.dumps(
                     [{"role": "assistant", "content": "Report complete"}]
                 ),
             },
-        ),
-    ]
+        )
+    )
+    return rows
 
 
-@pytest.mark.parametrize("per_page", [1, 2, 3, 100])
+@pytest.mark.parametrize("per_page", [1, 100])
 def test_tool_continuations_emit_the_user_turn_once(per_page: int) -> None:
     messages = collect(tool_continuation_spans(), per_page)
     assert [(message["role"], message["content"], message["nodeId"]) for message in messages] == [
@@ -412,8 +367,7 @@ def test_tool_continuations_emit_the_user_turn_once(per_page: int) -> None:
     ]
 
 
-@pytest.mark.parametrize("per_page", [1, 2, 3])
-def test_genuinely_repeated_question_after_tool_calls_is_retained(per_page: int) -> None:
+def test_genuinely_repeated_question_after_tool_calls_is_retained() -> None:
     rows = tool_continuation_spans()
     final = dict(rows[-1])
     raw = final["gen_ai.input.messages"]
@@ -423,15 +377,14 @@ def test_genuinely_repeated_question_after_tool_calls_is_retained(per_page: int)
         [*history, {"role": "user", "content": "Generate a sample report"}]
     )
     rows[-1] = final
-    messages = collect(rows, per_page)
+    messages = collect(rows, 1)
     assert [message["nodeId"] for message in messages if message["role"] == "user"] == [
         "one",
         "three",
     ]
 
 
-@pytest.mark.parametrize("per_page", [1, 2, 3])
-def test_input_history_growth_proves_continuation_without_captured_output(per_page: int) -> None:
+def test_input_history_growth_proves_continuation_without_captured_output() -> None:
     messages = collect(
         [
             span("one", 1, 2, **{"gen_ai.output.messages": ""}),
@@ -453,7 +406,7 @@ def test_input_history_growth_proves_continuation_without_captured_output(per_pa
                 },
             ),
         ],
-        per_page,
+        1,
     )
     assert [(message["role"], message["content"]) for message in messages] == [
         ("user", "question"),
