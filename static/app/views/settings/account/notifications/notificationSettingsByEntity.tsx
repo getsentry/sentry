@@ -1,10 +1,13 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -14,7 +17,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -161,7 +163,7 @@ export function NotificationSettingsByEntity({
               });
             }}
           />
-          <RemoveButtonWrapper>
+          <Container margin="0 xs">
             <Button
               aria-label={t('Delete')}
               size="sm"
@@ -169,7 +171,7 @@ export function NotificationSettingsByEntity({
               icon={<IconDelete />}
               onClick={() => handleRemoveNotificationOption(option.id)}
             />
-          </RemoveButtonWrapper>
+          </Container>
         </Item>
       );
     });
@@ -228,7 +230,7 @@ export function NotificationSettingsByEntity({
       : entityOptions;
 
   return (
-    <MinHeight>
+    <Container minHeight="400px">
       <Panel>
         <StyledPanelHeader>
           {entityType === 'project' ? (
@@ -297,13 +299,9 @@ export function NotificationSettingsByEntity({
           </Fragment>
         )}
       </Panel>
-    </MinHeight>
+    </Container>
   );
 }
-
-const MinHeight = styled('div')`
-  min-height: 400px;
-`;
 
 const StyledPanelHeader = styled(PanelHeader)`
   flex-wrap: wrap;
@@ -329,8 +327,4 @@ const Item = styled('div')`
 
 const ControlItem = styled(Item)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const RemoveButtonWrapper = styled('div')`
-  margin: 0 ${p => p.theme.space.xs};
 `;

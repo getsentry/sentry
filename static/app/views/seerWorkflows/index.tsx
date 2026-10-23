@@ -1,7 +1,15 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {IconBot} from '@sentry/icons/bot';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconUser} from '@sentry/icons/user';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Spinner} from '@sentry/scraps/chat';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -21,15 +29,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconBot,
-  IconCheckmark,
-  IconChevron,
-  IconClose,
-  IconFilter,
-  IconUser,
-  IconWarning,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -76,7 +75,7 @@ function SeerWorkflows() {
   const {mutate: startWorkflowRun, isPending: isStartingWorkflowRun} = useMutation({
     mutationFn: (data: WorkflowRunCreateRequest) =>
       fetchMutation<{runId: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
+        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/runs/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
@@ -99,7 +98,7 @@ function SeerWorkflows() {
   const reportedStrategies = useRef(new Set<string>());
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerWorkflowRun[]>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/',
+      '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
       {
         path: {organizationIdOrSlug: organization.slug},
         staleTime: 0,
@@ -277,12 +276,16 @@ function SeerWorkflows() {
   }, [expandLatest, filteredRuns]);
 
   return (
-    <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Automations')} orgSlug={organization.slug}>
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
           <TopBar.Slot
             name="breadcrumbs"
-            title={{type: 'page-title', label: t('Sentry Workflows')}}
+            title={{
+              type: 'page-title',
+              label: t('Automations'),
+              trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+            }}
           />
           <Flex justify="between" align="center" gap="md" wrap="wrap">
             <Text as="p" variant="muted">

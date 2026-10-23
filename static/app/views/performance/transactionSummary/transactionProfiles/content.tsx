@@ -1,10 +1,11 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
@@ -13,7 +14,6 @@ import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggreg
 import {AggregateFlamegraphSidePanel} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphSidePanel';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -154,7 +154,12 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
         <FlamegraphThemeProvider>
           <FlamegraphProvider>
             <TransactionProfilesContentContainer>
-              <ProfileVisualizationContainer>
+              <Grid
+                height="100%"
+                position="relative"
+                area="visualization"
+                rows="min-content 1fr"
+              >
                 <AggregateFlamegraphToolbar
                   scheduler={scheduler}
                   canvasPoolManager={canvasPoolManager}
@@ -183,7 +188,6 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                       frameFilter={frameFilter}
                       canvasPoolManager={canvasPoolManager}
                       canvasScheduler={scheduler}
-                      withoutBorders
                       profileType={PROFILE_TYPE}
                     />
                   )}
@@ -209,7 +213,7 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                     {t('No profiling data found')}
                   </RequestStateMessageContainer>
                 ) : null}
-              </ProfileVisualizationContainer>
+              </Grid>
               <AggregateFlamegraphSidePanelContainer visible={showSidePanel}>
                 <AggregateFlamegraphSidePanel scheduler={scheduler} />
               </AggregateFlamegraphSidePanelContainer>
@@ -264,7 +268,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
   return (
     <AggregateFlamegraphToolbarContainer>
-      <ViewSelectContainer>
+      <Container minWidth="160px">
         <SegmentedControl
           aria-label={t('View')}
           size="xs"
@@ -276,7 +280,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
           </SegmentedControl.Item>
           <SegmentedControl.Item key="call tree">{t('Call Tree')}</SegmentedControl.Item>
         </SegmentedControl>
-      </ViewSelectContainer>
+      </Container>
       <AggregateFlamegraphSearch
         spans={spans}
         canvasPoolManager={props.canvasPoolManager}
@@ -291,21 +295,17 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         size="xs"
         options={frameSelectOptions}
       />
-      <CollapseExpandButtonContainer>
+      <Container width="28px">
         <CollapseExpandButton
           aria-label={props.expanded ? t('Collapse sidebar') : t('Expande sidebar')}
           size="xs"
           icon={<IconDoubleChevron direction={props.expanded ? 'right' : 'left'} />}
           onClick={() => props.setExpanded(!props.expanded)}
         />
-      </CollapseExpandButtonContainer>
+      </Container>
     </AggregateFlamegraphToolbarContainer>
   );
 }
-
-const CollapseExpandButtonContainer = styled('div')`
-  width: 28px;
-`;
 
 const CollapseExpandButton = styled(Button)`
   width: 28px;
@@ -336,14 +336,6 @@ const TransactionProfilesContentContainer = styled('div')`
   max-height: 85vh;
 `;
 
-const ProfileVisualizationContainer = styled('div')`
-  grid-area: visualization;
-  display: grid;
-  grid-template-rows: min-content 1fr;
-  height: 100%;
-  position: relative;
-`;
-
 const RequestStateMessageContainer = styled('div')`
   position: absolute;
   left: 0;
@@ -368,10 +360,6 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
    */
   height: 41px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const ViewSelectContainer = styled('div')`
-  min-width: 160px;
 `;
 
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`

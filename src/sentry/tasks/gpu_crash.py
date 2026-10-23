@@ -13,6 +13,7 @@ from collections.abc import MutableMapping
 from typing import Any
 
 import sentry_sdk
+from taskbroker_client.constants import CompressionType
 
 from sentry import options
 from sentry.ingest.event_payload import load_event_payload
@@ -51,6 +52,7 @@ def _teapot_circuit_breaker() -> CircuitBreaker:
     namespace=gpu_crash_dump_tasks,
     processing_deadline_duration=120,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def symbolicate_gpu_crash_event(
     cache_key: str | None = None,

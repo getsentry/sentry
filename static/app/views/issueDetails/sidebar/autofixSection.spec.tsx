@@ -34,6 +34,7 @@ function matchesForTab(tab: Tab) {
       pathname: '/organizations/org-slug/issues/1/',
       params: {orgId: 'org-slug', groupId: '1'},
       data: null,
+      loaderData: null,
       handle: {path: TabPaths[tab]},
     },
   ];
@@ -666,6 +667,33 @@ describe('AutofixSection', () => {
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+  });
+
+  it('keeps the start card on screen while a run is starting', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+    const startRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 1},
+      // Never settles, so the start stays in flight for the whole test.
+      asyncDelay: new Promise(() => {}),
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Start Analysis'}));
+
+    await waitFor(() => expect(startRequest).toHaveBeenCalled());
+    expect(screen.getByText('Have Seer...')).toBeInTheDocument();
+    const startButton = screen.getByRole('button', {name: 'Start Analysis'});
+    expect(startButton).toBeDisabled();
+    expect(startButton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
   });
 
   it('pushes autofix data into LLM context when results are available', async () => {

@@ -284,6 +284,11 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
+    "auth.oauth-react-enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -446,6 +451,26 @@ register(
     "cleanup.abort_execution",
     default=False,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
+# default so deletion volume can be measured before anything is removed.
+register(
+    "cleanup.notification-thread.dry-run",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.retention-days",
+    default=90,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.batch-size",
+    default=100,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -713,9 +738,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Desired chunk size for TUS uploads.
+# Desired chunk max size for TUS uploads.
 register(
-    "relay.upload-chunk.size",
+    "relay.upload-max-chunk.size",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -725,6 +750,23 @@ register(
 register(
     "gitlab.webhook-update-on-install.enabled",
     default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
+# checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
+register(
+    "bitbucket_server.webhook.signature-enforcement.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Repair Bitbucket Server repository webhooks that do not have signing secrets.
+register(
+    "bitbucket_server.webhook.secret-repair.enabled",
+    default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1173,6 +1215,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Number of debug-ID rows the artifact-lookup endpoint reads for a debug ID, before it checks
+# which of their bundles belong to the project, instead of joining the bundle, project and
+# debug-ID tables in one query. Debug IDs with more rows than this, such as those of files that
+# many uploads share, still use that query. 0 always uses it. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.debug-id-lookup.max-rows",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
 # debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
 register(
@@ -1498,6 +1551,22 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Conversation classifiers PoC.
+register(
+    "classifiers.conversations.project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum conversations fetched from each project per scan.
+register(
+    "classifiers.conversations.telemetry-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1583,6 +1652,13 @@ register(
 )
 register(
     "issues.action_log.use_db_sequence_for_outbox_identifier",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Stops logging FIRST_SEEN when ingest creates a group.
+register(
+    "issues.action_log.first_seen_on_create.killswitch",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1778,7 +1854,7 @@ register(
 )
 # Suppresses working-cache keys only for events entering in the inline cohort.
 # Keyless events remain inline after rollout changes; keyed events keep writing.
-# Unprocessed backups and cleanup remain in Redis.
+# Unprocessed backups are also passed inline instead of being written to Redis.
 register(
     "store.disable-processing-store",
     type=Bool,
@@ -1848,16 +1924,6 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 register(
     "relay.invalidation-direct-outside-atomic",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
-# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
-# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
-register(
-    "custom-inbound-filters.legacy-filter-stage",
-    default={},
-    type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3402,6 +3468,13 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Invalidate the model cache for rows updated by a queryset update that sends the post update signal
+register(
+    "groups.post-update-invalidates-cache",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -3632,13 +3705,6 @@ register(
 )
 
 # Notification Options - Start
-register(
-    "notifications.issue-alerts.disable-rule-snooze",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(
@@ -3667,6 +3733,14 @@ register(
 # Notifications for general access organizations
 register(
     "notifications.platform-rollout.general-access",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Providers allowed to send each alert source through the notification platform
+register(
+    "notifications.platform.alert-providers",
     type=Dict,
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4356,23 +4430,6 @@ register(
 )
 
 
-# Cells
-
-# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
-register(
-    "provision_organization.override.mapping",
-    type=Dict,
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "provision_organization.override.rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_streak_cap_reached``.
 register(
@@ -4408,14 +4465,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-# When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
-register(
-    "repository.auto-link-by-name-dry-run",
-    default=True,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rolls out the new TaskProducer to the clock_pulse task
 register(
@@ -4608,6 +4657,18 @@ register(
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Number of `ArtifactBundleIndex` rows the source map debugger reads at most to match the frames
+# of an event to the files of its release by URL. When set, it reads once per request the URLs of
+# the release's newest bundles, as many bundles as fit in this many rows and always the newest
+# one, up to this many rows, instead of looking up each URL in the `(url, artifact_bundle_id)`
+# index. Files only found in older bundles, or beyond the rows read, are then reported as not
+# found. 0 keeps the index lookups.
+register(
+    "sourcemaps.source-map-debug.url-match-max-index-rows",
+    default=0,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for token-level remapping of compound Dart exception types.
 register(
@@ -4640,5 +4701,12 @@ register(
     "ingestion-delay.measurement-cache-seconds",
     type=Int,
     default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "integrations.client.disable_retries",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

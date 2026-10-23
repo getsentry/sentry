@@ -16,7 +16,6 @@ import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
-import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -69,27 +68,45 @@ resetMockDate();
 /**
  * Mocks
  */
-// jsdom does not lay out elements. Skip Popper's geometry work and the React
-// updates it schedules; overlay interactions still use the real component code.
-// Positioning tests can opt back in with jest.unmock('react-popper').
-jest.mock('react-popper', () => {
-  const update = () => Promise.resolve({});
-  const forceUpdate = () => {};
-  const usePopper: typeof import('react-popper').usePopper = (
-    _reference,
-    _popper,
-    options = {}
-  ) => ({
-    styles: {
-      popper: {position: options.strategy ?? 'absolute', left: 0, top: 0},
-      arrow: {position: 'absolute'},
-    },
-    attributes: {},
-    state: null,
-    update,
-    forceUpdate,
-  });
-  return {...jest.requireActual('react-popper'), usePopper};
+// jsdom does not lay out elements. Skip Floating UI's geometry work and the
+// React updates it schedules; overlay interactions still use the real component
+// code. Positioning tests can opt back in with jest.unmock('@floating-ui/react-dom').
+jest.mock('@floating-ui/react-dom', () => {
+  const {useState} = jest.requireActual<typeof import('react')>('react');
+  const update = () => {};
+  const useFloating: typeof import('@floating-ui/react-dom').useFloating = ({
+    placement = 'bottom',
+    strategy = 'absolute',
+  } = {}) => {
+    const [refs] = useState(() => {
+      const reference: {current: any} = {current: null};
+      const floating: {current: HTMLElement | null} = {current: null};
+      return {
+        reference,
+        floating,
+        setReference: (node: unknown) => {
+          reference.current = node;
+        },
+        setFloating: (node: HTMLElement | null) => {
+          floating.current = node;
+        },
+      };
+    });
+
+    return {
+      x: 0,
+      y: 0,
+      placement,
+      strategy,
+      middlewareData: {},
+      isPositioned: false,
+      update,
+      refs,
+      elements: {reference: null, floating: null},
+      floatingStyles: {position: strategy, left: 0, top: 0},
+    };
+  };
+  return {...jest.requireActual('@floating-ui/react-dom'), useFloating};
 });
 
 jest.mock('lodash/debounce', () =>
@@ -118,132 +135,6 @@ jest.mock('@sentry-internal/global-search', () => ({
   })),
 }));
 
-jest.mock('@stripe/stripe-js', () => ({
-  loadStripe: jest.fn(() =>
-    Promise.resolve({
-      createToken: jest.fn(() => Promise.resolve({token: {id: 'test-token'}})),
-      confirmCardPayment: jest.fn(() =>
-        Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        })
-      ),
-      confirmCardSetup: jest.fn((secretKey: string) => {
-        if (secretKey === 'ERROR') {
-          return Promise.resolve({error: {message: 'card invalid'}});
-        }
-        return Promise.resolve({
-          error: undefined,
-          setupIntent: {payment_method: 'test-pm'},
-        });
-      }),
-      handleCardAction: jest.fn(() =>
-        Promise.resolve({setupIntent: {payment_method: 'test-pm'}})
-      ),
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
-        })),
-      })),
-    })
-  ),
-}));
-jest.mock('@stripe/react-stripe-js', () => {
-  const {useEffect} = jest.requireActual('react');
-  return {
-    Elements: jest.fn(({children}: {children: any}) => children),
-    AddressElement: jest.fn(({onReady}: any) => {
-      // Simulate AddressElement loading by calling onReady after mount
-      useEffect(() => {
-        if (onReady) {
-          // Use setTimeout to allow initial render assertions to run
-          setTimeout(() => onReady(), 0);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-      return null;
-    }),
-    CardElement: jest.fn(() => null),
-    PaymentElement: jest.fn(({onChange, onReady}: any) => {
-      // Simulate a completed Stripe form by calling onChange and onReady after mount
-      useEffect(() => {
-        // Use setTimeout to allow initial render assertions to run
-        setTimeout(() => {
-          if (onReady) {
-            onReady();
-          }
-          if (onChange) {
-            onChange({complete: true});
-          }
-        }, 0);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-      return null;
-    }),
-    useStripe: jest.fn(() => ({
-      confirmCardPayment: jest.fn(() =>
-        Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        })
-      ),
-      // Used to run a 3D Secure challenge on an intent created with
-      // confirmation_method=manual, which the server then confirms.
-      handleCardAction: jest.fn((clientSecret: string) => {
-        if (clientSecret === 'ERROR') {
-          return Promise.resolve({error: {message: 'authentication failed'}});
-        }
-        // Stripe rejects outright on some failures rather than resolving with
-        // an error, and callers have to survive both.
-        if (clientSecret === 'REJECT') {
-          return Promise.reject(new Error('authentication failed'));
-        }
-        return Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        });
-      }),
-      confirmCardSetup: jest.fn((secretKey: string) => {
-        if (secretKey === 'ERROR') {
-          return Promise.resolve({error: {message: 'card invalid'}});
-        }
-        return Promise.resolve({
-          error: undefined,
-          setupIntent: {payment_method: 'test-pm'},
-        });
-      }),
-      confirmSetup: jest.fn((options: any) => {
-        if (options?.clientSecret === 'ERROR') {
-          return Promise.resolve({error: {message: 'card invalid'}});
-        }
-        return Promise.resolve({
-          error: undefined,
-          setupIntent: {payment_method: 'test-pm'},
-        });
-      }),
-      confirmPayment: jest.fn((options: any) => {
-        if (options?.clientSecret === 'ERROR') {
-          return Promise.resolve({error: {message: 'payment failed'}});
-        }
-        return Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        });
-      }),
-    })),
-    useElements: jest.fn(() => ({
-      getElement: jest.fn(() => ({})),
-      submit: jest.fn(() => Promise.resolve({error: undefined})),
-    })),
-  };
-});
-jest.mock('getsentry/utils/trackMarketingEvent');
-jest.mock('getsentry/utils/trackAmplitudeEvent');
-jest.mock('getsentry/utils/trackReloadEvent');
-jest.mock('getsentry/utils/trackMetric');
-
 jest.mock('sentry/utils/testableWindowLocation', () => ({
   /**
    * Prefer using {@link import('sentry-test/utils').setWindowLocation} to change test location
@@ -257,12 +148,25 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
   },
 }));
 
+// The hooks below reset state only when its module is already loaded. Check
+// require.cache to avoid loading the module and its imports into every spec.
 // Close any open modals before each test
-beforeEach(closeModal);
+beforeEach(() => {
+  if (require.resolve('sentry/stores/modalStore') in require.cache) {
+    jest
+      .requireActual<typeof import('sentry/stores/modalStore')>(
+        'sentry/stores/modalStore'
+      )
+      .ModalStore.closeModal();
+  }
+});
 afterEach(() => {
-  const {toast} =
-    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  act(() => void toast.dismiss());
+  // Toasts are held by sonner, so there are none to dismiss until it is loaded.
+  if (require.resolve('sonner') in require.cache) {
+    const {toast} =
+      jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
+    act(() => void toast.dismiss());
+  }
   resetResizeObservers();
 });
 
@@ -310,7 +214,7 @@ jest.mock('@sentry/react', function sentryReact() {
       set: jest.fn(),
       distribution: jest.fn(),
     },
-    reactRouterV6BrowserTracingIntegration: jest.fn().mockReturnValue({}),
+    reactRouterBrowserTracingIntegration: jest.fn().mockReturnValue({}),
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addEventProcessor: jest.fn(),

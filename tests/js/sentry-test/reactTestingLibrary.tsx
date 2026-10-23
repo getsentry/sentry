@@ -32,7 +32,7 @@ import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
-import {TopBar} from 'sentry/views/navigation/topBar';
+import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 import {initializeOrg} from './initializeOrg';
@@ -124,11 +124,11 @@ interface InitialRouterOptions {
 function TopBarTestSlotOutlets() {
   return createPortal(
     <Fragment>
-      <TopBar.Slot.Outlet name="breadcrumbs">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="title">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="search">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="actions">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="feedback">{p => <div {...p} />}</TopBar.Slot.Outlet>
+      <TopBarSlots.Outlet name="breadcrumbs">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="title">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="search">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="actions">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="feedback">{p => <div {...p} />}</TopBarSlots.Outlet>
     </Fragment>,
     document.body
   );
@@ -146,7 +146,7 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <TopBar.Slot.Provider>
+      <TopBarSlots.Provider>
         <TopBarTestSlotOutlets />
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
@@ -157,7 +157,7 @@ function makeAllTheProviders(options: ProviderOptions) {
             </GlobalAlertProvider>
           </OrganizationContext>
         </LLMContextProvider>
-      </TopBar.Slot.Provider>
+      </TopBarSlots.Provider>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;
@@ -185,7 +185,7 @@ function createRoutesFromConfig(
   children: React.ReactNode,
   config: RouterConfig | undefined
 ): RouteObject[] {
-  // By default react-router 6 catches exceptions and displays the stack
+  // By default React Router catches exceptions and displays the stack
   // trace. For tests we want them to bubble out
   function ErrorBoundary(): React.ReactNode {
     throw useRouteError();
@@ -247,10 +247,6 @@ function makeRouter({
     : childRoutes;
 
   const router = UNSAFE_createRouter({
-    future: {
-      v7_prependBasename: true,
-      v7_relativeSplatPath: true,
-    },
     history,
     routes,
   }).initialize();
@@ -371,10 +367,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  const renderResult = rtl.render(
-    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
-    options
-  );
+  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -384,11 +377,11 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(
-      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
-    );
+    renderResult.rerender(<RouterProvider router={newRouter} />);
     // Force the router to update children
-    rtl.act(() => newRouter.revalidate());
+    rtl.act(() => {
+      newRouter.revalidate();
+    });
   };
 
   const testRouter = new TestRouter(memoryRouter);
@@ -427,7 +420,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
+    return <RouterProvider router={memoryRouter} />;
   }
 
   const {initialProps, ...rest} = options;

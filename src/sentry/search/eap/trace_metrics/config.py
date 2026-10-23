@@ -46,6 +46,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         aggregate_all_metrics = False
         selected_metrics: set[TraceMetric] = set()
         columns: set[str] = set()
+        from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 
         if selected_columns:
             stripped_columns = [column.strip() for column in selected_columns]
@@ -56,7 +57,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
 
         if equations:
             for equation in equations:
-                _, _, terms = parse_arithmetic(equation)
+                _, _, terms = parse_arithmetic(equation, definitions=TRACE_METRICS_DEFINITIONS)
                 for term in terms:
                     columns.add(term)
 

@@ -1,37 +1,33 @@
+import type {ComponentPropsWithRef} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+
+import {Container} from '@sentry/scraps/layout';
 
 import type {Widget} from './types';
 
-export const WidgetWrapper = styled(motion.div, {
-  shouldForwardProp: prop => prop !== 'displayType',
-})<{displayType: Widget['displayType']}>`
-  position: relative;
-  touch-action: manipulation;
+interface WidgetWrapperProps extends ComponentPropsWithRef<typeof motion.div> {
+  displayType: Widget['displayType'];
+}
 
-  ${p => {
-    switch (p.displayType) {
-      case 'big_number':
-        return css`
-          /* 2 cols */
-          grid-area: span 1 / span 2;
-
-          @media (min-width: ${p.theme.breakpoints.sm}) {
-            /* 4 cols */
-            grid-area: span 1 / span 1;
-          }
-
-          @media (min-width: ${p.theme.breakpoints.xl}) {
-            /* 6 and 8 cols */
-            grid-area: span 1 / span 2;
-          }
-        `;
-      default:
-        return css`
-          /* 2, 4, 6 and 8 cols */
-          grid-area: span 2 / span 2;
-        `;
-    }
-  }}
-`;
+export function WidgetWrapper({displayType, ...motionProps}: WidgetWrapperProps) {
+  return (
+    <Container
+      position="relative"
+      area={
+        displayType === 'big_number'
+          ? {
+              zero: 'span 1 / span 2',
+              xl: 'span 1 / span 1',
+              '5xl': 'span 1 / span 2',
+            }
+          : 'span 2 / span 2'
+      }
+      css={css`
+        touch-action: manipulation;
+      `}
+    >
+      {layoutProps => <motion.div {...motionProps} {...layoutProps} />}
+    </Container>
+  );
+}

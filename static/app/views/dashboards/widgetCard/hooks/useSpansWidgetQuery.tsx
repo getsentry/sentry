@@ -1,22 +1,10 @@
 import {useCallback, useMemo} from 'react';
-import {
-  keepPreviousData,
-  queryOptions,
-  useQueries,
-  type UseQueryResult,
-} from '@tanstack/react-query';
+import {queryOptions, useQueries, type UseQueryResult} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
-import type {Series} from 'sentry/types/echarts';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-} from 'sentry/types/organization';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
-import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
   TableData,
@@ -31,18 +19,19 @@ import {
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {encodeSort} from 'sentry/utils/queryString';
-import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
-import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
+import {
+  combineIngestionMeta,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -55,7 +44,6 @@ import {
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
 import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
@@ -65,11 +53,6 @@ import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/comp
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
 
-type SpansSeriesResponse =
-  | EventsStats
-  | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats
-  | EventsTimeSeriesResponse;
 type SpansTableResponse = TableData | EventsTableData;
 
 /**
@@ -100,13 +83,7 @@ function isOrderbyValidForAggregates(
   return false;
 }
 
-function getSkippedConditionalFilterQueryIndexes(
-  queries: Widget['queries'],
-  enabled: boolean
-): number[] {
-  if (!enabled) {
-    return [];
-  }
+function getSkippedConditionalFilterQueryIndexes(queries: Widget['queries']): number[] {
   return queries.flatMap((query, index) =>
     hasNoValidAggregatesForRequest(query.aggregates ?? []) ? [index] : []
   );
@@ -202,10 +179,6 @@ export function useSpansSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-  const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -215,12 +188,8 @@ export function useSpansSeriesQuery(
   );
 
   const skippedConditionalFilterQueryIndexes = useMemo(
-    () =>
-      getSkippedConditionalFilterQueryIndexes(
-        filteredWidget.queries,
-        hasConditionalAggregates
-      ),
-    [filteredWidget.queries, hasConditionalAggregates]
+    () => getSkippedConditionalFilterQueryIndexes(filteredWidget.queries),
+    [filteredWidget.queries]
   );
 
   const allQueriesSkippedForConditionalFilter =
@@ -229,11 +198,8 @@ export function useSpansSeriesQuery(
 
   const seriesRequests = filteredWidget.queries.map((_, queryIndex) => {
     const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
-    const skippedForInvalidConditionalFilter =
-      hasConditionalAggregates && hasNoValidAggregatesForRequest(aggregates);
-    const widgetForRequest = hasConditionalAggregates
-      ? withValidConditionalAggregates(filteredWidget, queryIndex)
-      : filteredWidget;
+    const skippedForInvalidConditionalFilter = hasNoValidAggregatesForRequest(aggregates);
+    const widgetForRequest = withValidConditionalAggregates(filteredWidget, queryIndex);
 
     const requestData = getSeriesRequestData(
       widgetForRequest,
@@ -253,7 +219,6 @@ export function useSpansSeriesQuery(
     return {
       requestData,
       skippedForInvalidConditionalFilter,
-      widgetQuery: widgetForRequest.queries[queryIndex]!,
     };
   });
 
@@ -261,7 +226,7 @@ export function useSpansSeriesQuery(
   // structurally shares `combine` output, so `data` keeps its reference while the
   // responses are unchanged, even when this callback is recreated.
   const combine = useCallback(
-    (results: Array<UseQueryResult<SpansSeriesResponse>>) => {
+    (results: Array<UseQueryResult<EventsTimeSeriesResponse>>) => {
       const combined = combineWidgetQueryResults(results);
       return {
         ...combined,
@@ -274,89 +239,16 @@ export function useSpansSeriesQuery(
   );
 
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequests.map(({requestData, skippedForInvalidConditionalFilter}) => {
-      if (!isEventsTimeseriesEnabled) {
-        // Transform requestData into proper query params
-        const {
-          organization: _org,
-          includeAllArgs: _includeAllArgs,
-          includePrevious: _includePrevious,
-          generatePathname: _generatePathname,
-          period,
-          ...restParams
-        } = requestData;
-
-        const queryParams = {
-          ...restParams,
-          ...(period ? {statsPeriod: period} : {}),
-          excludeOther: restParams.excludeOther ? '1' : undefined,
-          partial: restParams.partial ? '1' : undefined,
-        };
-
-        if (queryParams.start) {
-          queryParams.start = getUtcDateString(queryParams.start);
-        }
-        if (queryParams.end) {
-          queryParams.end = getUtcDateString(queryParams.end);
-        }
-
-        return queryOptions({
-          ...apiOptions.as<SpansSeriesResponse>()(
-            '/organizations/$organizationIdOrSlug/events-stats/',
-            {
-              path: {organizationIdOrSlug: organization.slug},
-              method: 'GET' as const,
-              query: queryParams,
-              staleTime: getWidgetStaleTime(pageFilters),
-            }
-          ),
-          queryFn: (context): Promise<ApiResponse<SpansSeriesResponse>> => {
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    apiFetch<SpansSeriesResponse>(context).then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-            return apiFetch<SpansSeriesResponse>(context);
-          },
-          enabled: enabled && !skippedForInvalidConditionalFilter,
-          retry: false,
-          retryDelay: getRetryDelay,
-          placeholderData: keepPreviousData,
-        });
-      }
-
-      return getTimeseriesWidgetQueryOptions({
+    queries: seriesRequests.map(({requestData, skippedForInvalidConditionalFilter}) =>
+      getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled: enabled && !skippedForInvalidConditionalFilter,
         query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      });
-    }),
-    combine,
-  });
-
-  useEventsTimeseriesSpotCheck({
-    config: SpansConfig,
-    enabled,
-    statsQueryResults: queryResults,
-    organization,
-    pageFilters,
-    widget: filteredWidget,
-    timeSeriesQueries: seriesRequests.map(
-      ({requestData, skippedForInvalidConditionalFilter, widgetQuery}) =>
-        skippedForInvalidConditionalFilter
-          ? undefined
-          : {
-              params:
-                convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-              widgetQuery,
-            }
+      })
     ),
+    combine,
   });
 
   const transformedData = (() => {
@@ -389,7 +281,7 @@ export function useSpansSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
@@ -404,32 +296,26 @@ export function useSpansSeriesQuery(
 
       const responseData = q.data;
 
-      const queryForTransform = (
-        hasConditionalAggregates
-          ? withValidConditionalAggregates(filteredWidget, requestIndex)
-          : filteredWidget
-      ).queries[requestIndex]!;
-
-      const transformedResult = SpansConfig.transformSeries!(
-        responseData,
-        queryForTransform,
-        organization
+      const widgetForTransform = withValidConditionalAggregates(
+        filteredWidget,
+        requestIndex
       );
-      const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
+      const queryForTransform = widgetForTransform.queries[requestIndex]!;
 
-      transformedResult.forEach((result: Series) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
-        timeseriesResults.push(result);
-      });
+      timeseriesResults.push(
+        ...spansResponseTransforms.transformTimeSeries!(
+          responseData,
+          widgetForTransform,
+          requestIndex
+        )
+      );
 
       // Get result types and units from config
-      const resultTypes = SpansConfig.getSeriesResultType?.(
+      const resultTypes = spansResponseTransforms.getSeriesResultType?.(
         responseData,
         queryForTransform
       );
-      const resultUnits = SpansConfig.getSeriesResultUnit?.(
+      const resultUnits = spansResponseTransforms.getSeriesResultUnit?.(
         responseData,
         queryForTransform
       );
@@ -448,6 +334,7 @@ export function useSpansSeriesQuery(
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
+      ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
   })();
@@ -477,9 +364,6 @@ export function useSpansTableQuery(
 
   const {queue} = useWidgetQueryQueue();
 
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
   const filteredWidget = useMemo(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
@@ -487,12 +371,8 @@ export function useSpansTableQuery(
   );
 
   const skippedConditionalFilterQueryIndexes = useMemo(
-    () =>
-      getSkippedConditionalFilterQueryIndexes(
-        filteredWidget.queries,
-        hasConditionalAggregates
-      ),
-    [filteredWidget.queries, hasConditionalAggregates]
+    () => getSkippedConditionalFilterQueryIndexes(filteredWidget.queries),
+    [filteredWidget.queries]
   );
 
   const allQueriesSkippedForConditionalFilter =
@@ -521,10 +401,8 @@ export function useSpansTableQuery(
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
       const skippedForInvalidConditionalFilter =
-        hasConditionalAggregates && hasNoValidAggregatesForRequest(aggregates);
-      const widgetForRequest = hasConditionalAggregates
-        ? withValidConditionalAggregates(filteredWidget, queryIndex)
-        : filteredWidget;
+        hasNoValidAggregatesForRequest(aggregates);
+      const widgetForRequest = withValidConditionalAggregates(filteredWidget, queryIndex);
       const query = widgetForRequest.queries[queryIndex]!;
 
       const eventView = eventViewFromWidget('', query, pageFilters);
@@ -658,14 +536,12 @@ export function useSpansTableQuery(
       }
 
       const responseData = q.data.json;
-      const queryForTransform = (
-        hasConditionalAggregates
-          ? withValidConditionalAggregates(filteredWidget, i)
-          : filteredWidget
-      ).queries[i]!;
+      const queryForTransform = withValidConditionalAggregates(filteredWidget, i).queries[
+        i
+      ]!;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...SpansConfig.transformTable(
+        ...spansResponseTransforms.transformTable(
           responseData,
           queryForTransform,
           organization,
@@ -677,7 +553,9 @@ export function useSpansTableQuery(
       const meta = transformedDataItem.meta;
       const fieldMeta = queryForTransform.fieldMeta;
       if (fieldMeta && meta) {
+        // oxlint-disable-next-line react/todo
         const units = (meta.units ??= {});
+        // oxlint-disable-next-line react/todo
         const fields = (meta.fields ??= {});
         fieldMeta.forEach((m, index) => {
           const field = queryForTransform.fields?.[index];

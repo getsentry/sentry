@@ -136,6 +136,21 @@ export default function AutomationNewSettings() {
     suppressErrorMessage: true,
   });
 
+  const errorContextValue = useMemo(
+    () => ({
+      errors: automationBuilderErrors,
+      setErrors: setAutomationBuilderErrors,
+      removeError,
+      mutationErrors: error?.responseJSON,
+    }),
+    [automationBuilderErrors, setAutomationBuilderErrors, removeError, error]
+  );
+
+  const builderContextValue = useMemo(
+    () => ({state, actions, showTriggerLogicTypeSelector: false}),
+    [state, actions]
+  );
+
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const automationFormData = data as AutomationFormData;
@@ -230,21 +245,8 @@ export default function AutomationNewSettings() {
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
-              <AutomationBuilderErrorContext.Provider
-                value={{
-                  errors: automationBuilderErrors,
-                  setErrors: setAutomationBuilderErrors,
-                  removeError,
-                  mutationErrors: error?.responseJSON,
-                }}
-              >
-                <AutomationBuilderContext.Provider
-                  value={{
-                    state,
-                    actions,
-                    showTriggerLogicTypeSelector: false,
-                  }}
-                >
+              <AutomationBuilderErrorContext.Provider value={errorContextValue}>
+                <AutomationBuilderContext.Provider value={builderContextValue}>
                   <AutomationForm model={model} />
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>

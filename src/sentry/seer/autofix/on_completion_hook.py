@@ -26,7 +26,6 @@ from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     fetch_run_group,
     get_current_step,
-    get_latest_iteration_index,
     resolve_run_group_id,
     should_open_autofix_pr_as_draft,
     trigger_autofix_agent,
@@ -47,6 +46,7 @@ from sentry.seer.autofix.pr_iteration.completion import (
     record_failed_tool_calls,
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
+from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
@@ -105,6 +105,17 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
         )
         .values_list("extras__stopping_point", flat=True)
         .first()
+    )
+
+
+def get_run_stopping_point(
+    organization: Organization, run_id: int, state: SeerRunState
+) -> str | None:
+    """The stopping point the pipeline will continue toward: from the run's metadata,
+    falling back to the Sentry-side run mirror for runs Seer started without it (the
+    autofix feature)."""
+    return (state.metadata or {}).get("stopping_point") or _stopping_point_from_run(
+        organization, run_id
     )
 
 
@@ -527,9 +538,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         # Get pipeline metadata from state, falling back to the Sentry-side run
         # mirror for runs Seer started without it (the autofix feature).
-        raw_stopping_point = (state.metadata or {}).get(
-            "stopping_point"
-        ) or _stopping_point_from_run(organization, run_id)
+        raw_stopping_point = get_run_stopping_point(organization, run_id, state)
         if raw_stopping_point is None:
             stopping_point = None
             reached_stopping_point = True

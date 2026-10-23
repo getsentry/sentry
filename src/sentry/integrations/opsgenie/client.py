@@ -10,9 +10,9 @@ from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_termination_level
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.feature_flags import EventFeatureFlag, get_event_feature_flags
 from sentry.models.group import Group
-from sentry.models.rule import Rule
-from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
@@ -24,6 +24,23 @@ OPSGENIE_DEFAULT_PRIORITY = "P3"
 OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
+
+# Opsgenie/JSM caps the total size of `details`, so keep the flags entry bounded.
+MAX_FEATURE_FLAGS_DETAIL_LENGTH = 4000
+
+
+def format_feature_flags_detail(flags: Sequence[EventFeatureFlag]) -> str | None:
+    """
+    Format feature flags as a single Opsgenie/JSM `details` value, e.g.
+    "new-checkout: true, dark-mode: false", truncated to fit the details limit.
+    """
+    if not flags:
+        return None
+
+    detail = ", ".join(f"{f.flag}: {f.result}" for f in flags)
+    if len(detail) > MAX_FEATURE_FLAGS_DETAIL_LENGTH:
+        detail = detail[: MAX_FEATURE_FLAGS_DETAIL_LENGTH - 3] + "..."
+    return detail
 
 
 class OpsgenieClient(ApiClient):
@@ -46,23 +63,23 @@ class OpsgenieClient(ApiClient):
         path = f"/alerts?limit={limit}"
         return self.get(path=path, headers=self._get_auth_headers())
 
-    def _get_workflow_links(self, group: Group, rules: Sequence[Rule]) -> list[tuple[str, str]]:
+    def _get_workflow_links(
+        self, group: Group, rules: Sequence[NotificationOrigin]
+    ) -> list[tuple[str, str]]:
         """
         Returns (label, url) pairs for each rule that carries a workflow id.
         """
         organization = group.project.organization
         links = []
         for rule in rules:
-            action = rule.data.get("actions", [{}])[0]
-            workflow_id = action.get("workflow_id")
+            workflow_id = rule.workflow_id
             if workflow_id is None:
                 # Test notifications have no backing workflow, so nothing to link to.
-                if action.get("legacy_rule_id") != TEST_NOTIFICATION_ID:
+                if not rule.is_test_notification():
                     logger.warning(
                         "opsgenie.issue_alert.missing_workflow_id",
                         extra={
-                            "rule_id": rule.id,
-                            "legacy_rule_id": action.get("legacy_rule_id"),
+                            "legacy_rule_id": rule.legacy_rule_id,
                             "group_id": group.id,
                             "project_id": group.project_id,
                             "organization_id": organization.id,
@@ -82,12 +99,15 @@ class OpsgenieClient(ApiClient):
     def build_issue_alert_payload(
         self,
         data,
-        rules,
+        rules: Sequence[NotificationOrigin],
         event: Event | GroupEvent,
         group: Group | None,
         priority: OpsgeniePriority | None = "P3",
         notification_uuid: str | None = None,
     ):
+        feature_flags = format_feature_flags_detail(get_event_feature_flags(event))
+        feature_flags_context = {"Feature Flags": feature_flags} if feature_flags else {}
+
         payload = {
             "message": event.message or event.title,
             "source": "Sentry",
@@ -95,6 +115,7 @@ class OpsgenieClient(ApiClient):
             "details": {
                 "Triggering Rules": ", ".join([rule.label for rule in rules]),
                 "Release": data.release,
+                **feature_flags_context,
             },
             "tags": [f"{str(x).replace(',', '')}:{str(y).replace(',', '')}" for x, y in event.tags],
         }
@@ -123,6 +144,7 @@ class OpsgenieClient(ApiClient):
                 "Issue URL": group.get_absolute_url(params=group_params),
                 "Release": data.release,
                 **rule_workflow_context,
+                **feature_flags_context,
             }
         return payload
 

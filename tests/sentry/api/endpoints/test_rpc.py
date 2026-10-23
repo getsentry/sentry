@@ -11,7 +11,12 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.hybridcloud.rpc.service import generate_request_signature
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.testutils.cases import APITestCase
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+)
 
 
 @override_settings(RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
@@ -198,7 +203,7 @@ class RpcServiceEndpointTest(APITestCase):
         assert ctx is not None
         assert ctx.organization_id == organization.id
         assert ctx.user_id == 42
-        assert ctx.actor_type == ActorType.USER
+        assert ctx.actor.type == ActorType.USER
 
     def test_viewer_context_unknown_when_meta_empty(self) -> None:
         """Empty ViewerContext with UNKNOWN actor type when meta has no viewer_context."""
@@ -228,7 +233,7 @@ class RpcServiceEndpointTest(APITestCase):
         assert ctx is not None
         assert ctx.user_id is None
         assert ctx.organization_id is None
-        assert ctx.actor_type == ActorType.UNKNOWN
+        assert ctx.actor.type == ActorType.UNKNOWN
 
     def test_agent_viewer_context_roundtrip_through_meta(self) -> None:
         """Agent ViewerContext set on the sending side arrives on the receiving side."""
@@ -244,7 +249,9 @@ class RpcServiceEndpointTest(APITestCase):
             return original_dispatch(*args, **kwargs)
 
         # Simulate what _send_to_remote_silo builds when ViewerContext is set
-        ctx = ViewerContext(organization_id=organization.id, user_id=42, actor_type=ActorType.AGENT)
+        ctx = ViewerContext(
+            actor=Actor(type=ActorType.AGENT, delegated_user_id=42), organization_id=organization.id
+        )
         path = self._get_path("organization", "get_organization_by_id")
         data = {
             "args": {"id": organization.id},
@@ -263,4 +270,4 @@ class RpcServiceEndpointTest(APITestCase):
         assert restored is not None
         assert restored.organization_id == ctx.organization_id
         assert restored.user_id == ctx.user_id
-        assert restored.actor_type == ctx.actor_type
+        assert restored.actor.type == ctx.actor.type

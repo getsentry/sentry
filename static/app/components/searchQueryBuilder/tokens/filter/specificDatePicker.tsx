@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
+import {IconArrow} from '@sentry/icons/arrow';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,14 +10,13 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 
 import {DatePicker} from 'sentry/components/calendar';
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {Token} from 'sentry/components/searchSyntax/parser';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
 

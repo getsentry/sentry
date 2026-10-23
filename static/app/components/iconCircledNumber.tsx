@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
-
-import {SvgIcon} from 'sentry/icons/svgIcon';
+import {SvgIcon} from '@sentry/icons/svgIcon';
 
 type IconCircledNumberProps = {
   number: number;

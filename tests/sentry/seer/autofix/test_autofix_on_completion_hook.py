@@ -30,7 +30,10 @@ from sentry.seer.autofix.pr_iteration.completion import (
     iteration_log_context,
     pr_iteration_push_outcome,
 )
-from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
+from sentry.seer.autofix.pr_iteration.completion_reactions import (
+    PrCommentSource,
+    react_to_completed_iteration,
+)
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
@@ -43,6 +46,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTrigge
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
@@ -61,7 +65,12 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.utils import json
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    viewer_context_scope,
+)
 
 
 def run_state(
@@ -991,6 +1000,59 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_finished_branch_moved_push_pauses_as_an_error(
+        self, mock_fetch, mock_push, mock_consume, mock_complete
+    ):
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+        state.repo_pr_states["test-repo"] = RepoPRState.parse_obj(
+            {
+                **state.repo_pr_states["test-repo"].dict(),
+                "pr_creation_status": "error",
+                "pr_creation_error_code": "branch_moved",
+                "pr_creation_error": "A different message from Seer.",
+            }
+        )
+        mock_fetch.return_value = state
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert (
+            get_pause_reason(run_id=123, organization_id=self.organization.id)
+            == PauseReason.RUN_ERRORED
+        )
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.PR_CREATION_ERRORED.value
+        )
+        mock_push.assert_not_called()
+        mock_consume.assert_not_called()
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.pause_pr_iteration")
+    def test_another_push_error_does_not_pause_as_branch_moved(self, mock_pause, mock_complete):
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "another_error"
+        repo_state.pr_creation_error = (
+            "This branch has commits Seer didn't push, so Seer did not overwrite them."
+        )
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        mock_pause.assert_not_called()
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.PR_CREATION_ERRORED.value
+        )
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
     def test_a_failed_push_reaches_completion_details_as_that_outcome(
         self, mock_push, mock_complete
@@ -1705,9 +1767,8 @@ class AutofixOnCompletionHookTest(TestCase):
 
         with viewer_context_scope(
             ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=self.user.id),
                 organization_id=self.organization.id,
-                user_id=self.user.id,
-                actor_type=ActorType.USER,
             )
         ):
             AutofixOnCompletionHook.execute(self.organization, 123)
@@ -1829,9 +1890,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
             name="owner/repo",
         )
 
-    def _feedback_metadata(
-        self, sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource]
-    ) -> dict[str, str]:
+    def _feedback_metadata(self, sources: list[PrCommentSource]) -> dict[str, str]:
         return {
             "step": AutofixStep.PR_ITERATION.value,
             "iteration_index": "0",
@@ -1840,7 +1899,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
     def _synced_pr_iteration_block(
         self,
-        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource],
+        sources: list[PrCommentSource],
         repo_name: str = "owner/repo",
         commit_sha: str = "synced-sha",
     ) -> MemoryBlock:
@@ -1877,9 +1936,12 @@ class TestMaybeReactToCompletedIteration(TestCase):
             ),
         )
 
+    def _review_body_source(self) -> GithubPrReviewBodyFeedbackSource:
+        return GithubPrReviewBodyFeedbackSource(review_id=333, body="please rename this")
+
     def _state_with(
         self,
-        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource],
+        sources: list[PrCommentSource],
         *,
         status: str = "completed",
         commit_sha: str = "synced-sha",
@@ -2087,6 +2149,70 @@ class TestMaybeReactToCompletedIteration(TestCase):
         assert mock_react.call_count == 2
         assert all(call.kwargs["reaction"] == "hooray" for call in mock_react.call_args_list)
         mock_delete_eyes.assert_not_called()
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_reacts_hooray_on_review_body(
+        self, mock_react, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._review_body_source()])
+
+        self._run(state)
+
+        mock_review_react.assert_called_once_with(
+            scm, pr_number=7, review_id=333, reaction="hooray"
+        )
+        mock_delete_eyes.assert_called_once_with(scm, pr_number=7, review_id=333)
+        mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=True)
+    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    def test_skips_review_body_eyes_delete_for_rate_limit_sensitive_org(
+        self, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive
+    ):
+        mock_make_scm.return_value = MagicMock()
+        state = self._state_with([self._review_body_source()])
+
+        self._run(state)
+
+        assert mock_review_react.call_args.kwargs["reaction"] == "hooray"
+        mock_delete_eyes.assert_not_called()
+
+    @patch(f"{REACT_PATH}.metrics.incr")
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    def test_skips_review_body_reaction_when_iteration_made_no_changes(
+        self, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive, mock_incr
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._review_body_source()])
+        state.blocks[0].merged_file_patches = []
+
+        self._run(state)
+
+        mock_review_react.assert_not_called()
+        assert self._reaction_outcomes(mock_incr) == ["react_skipped_no_changes"]
+        # :eyes: is still removed from the review body.
+        mock_delete_eyes.assert_called_once_with(scm, pr_number=7, review_id=333)
+
+    @patch(f"{REACT_PATH}._add_review_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    def test_skips_review_body_without_review_id(self, mock_make_scm, mock_review_react):
+        state = self._state_with([GithubPrReviewBodyFeedbackSource(body="no id")])
+
+        self._run(state)
+
+        mock_review_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.metrics.incr")
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)

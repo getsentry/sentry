@@ -22,6 +22,7 @@ describe('buttonTracking', () => {
   const wrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={organization}>
       <RouterProvider
+        useTransitions={false}
         router={createMemoryRouter(
           [
             {
@@ -50,7 +51,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );
@@ -58,6 +58,7 @@ describe('buttonTracking', () => {
   const anonymousWrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={null}>
       <RouterProvider
+        useTransitions={false}
         router={createMemoryRouter(
           [
             {
@@ -68,7 +69,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: ['/auth/login/']}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );

@@ -81,6 +81,7 @@ from sentry.grouping.ingest.utils import (
     is_non_error_type_group,
 )
 from sentry.grouping.variants import BaseVariant
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
@@ -90,7 +91,13 @@ from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    action_context_scope,
+    publish_action,
+)
+from sentry.issues.action_log.types import FirstSeenAction, first_seen_idempotency_key
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -157,7 +164,6 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -449,6 +455,7 @@ class EventManager:
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         attachments: list[CachedAttachment] | None = None,
+        unprocessed: MutableMapping[str, Any] | None = None,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -484,6 +491,7 @@ class EventManager:
             "project_id": project.id,
             "raw": raw,
             "start_time": start_time,
+            "unprocessed": unprocessed,
         }
 
         # After calling _pull_out_data we get some keys in the job like the platform
@@ -1130,12 +1138,23 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         event = job["event"]
         # We only care about `unprocessed` for error events
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
-            unprocessed = event_processing_store.get(
-                cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
-                unprocessed=True,
-            )
+            unprocessed = job.get("unprocessed")
+            unprocessed_source = "inline"
+            if unprocessed is None:
+                # Clean up after `store.enable-inline-payloads` is 1.0 and
+                # `store.disable-processing-store` is `True`
+                unprocessed_source = "processing_store"
+                unprocessed = event_processing_store.get(
+                    cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
+                    unprocessed=True,
+                )
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
+                metrics.incr(
+                    "events.unprocessed_copy.promoted",
+                    tags={"source": unprocessed_source},
+                    sample_rate=1.0,
+                )
 
         if app_feature:
             event_size = 0
@@ -1676,6 +1695,18 @@ def _create_group(
             raise
 
     create_open_period(group=group, start_time=group.first_seen, event_id=event.event_id)
+
+    if not options.get("issues.action_log.first_seen_on_create.killswitch"):
+        # Group creation is on the ingest hot path, so leave the outbox for the periodic
+        # drain rather than flushing on commit.
+        with outbox_context(flush=False):
+            publish_action(
+                FirstSeenAction(first_seen=group.first_seen),
+                source=ActionSource.SYSTEM,
+                group_id=group.id,
+                project=project,
+                idempotency_key=first_seen_idempotency_key(group.id),
+            )
 
     return group
 
@@ -2916,8 +2947,9 @@ def save_transaction_events(
                 )
             except KeyError:
                 continue
-    set_span_attribute("jobs", len(jobs))
-    set_span_attribute("projects", len(projects))
+    span = traces.get_current_span()
+    if span:
+        span.set_attributes({"jobs": len(jobs), "projects": len(projects)})
 
     # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 

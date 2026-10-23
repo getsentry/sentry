@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -65,13 +66,28 @@ const spansBreakdownWidget = {
 
 const selection = PageFiltersFixture();
 
-// Series name format for a grouped SPANS query: "<groupValue> : <aggregate>"
+function makeResult(
+  yAxis: string,
+  groupBy: Array<{key: string; value: string}>,
+  value: number
+): WidgetTimeSeries {
+  const groupName = groupBy.map(group => group.value).join(',');
+  return {
+    queryIndex: 0,
+    widgetQuery: spansBreakdownWidget.queries[0]!,
+    // Series name format for a grouped query: "<groupValue> : <aggregate>"
+    seriesName: `${groupName} : ${yAxis}`,
+    timeSeries: {
+      yAxis,
+      groupBy,
+      values: [{timestamp: 1_000_000, value}],
+      meta: {interval: 300_000, valueType: 'integer', valueUnit: null},
+    },
+  };
+}
+
 const timeseriesResults = [
-  {
-    seriesName: 'my_transaction : count()',
-    data: [{name: 1_000_000, value: 10}],
-    color: '#000',
-  },
+  makeResult('count()', [{key: 'transaction', value: 'my_transaction'}], 10),
 ];
 
 // tableResults must be non-empty to trigger showBreakdownData
@@ -123,6 +139,76 @@ describe('VisualizationWidget breakdown series labels', () => {
     });
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
+  });
+
+  it('keeps the other group by values next to the model name', () => {
+    const modelWidget = {
+      ...spansBreakdownWidget,
+      queries: [
+        {
+          ...spansBreakdownWidget.queries[0]!,
+          fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'gen_ai.generation.error', 'count()'],
+          columns: [SpanFields.GEN_AI_REQUEST_MODEL, 'gen_ai.generation.error'],
+        },
+      ],
+    };
+    jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
+      children({
+        timeseriesResults: [
+          makeResult(
+            'count()',
+            [
+              {key: SpanFields.GEN_AI_REQUEST_MODEL, value: 'gemini-3.7-flash'},
+              {key: 'gen_ai.generation.error', value: 'timed out'},
+            ],
+            4
+          ),
+          makeResult(
+            'count()',
+            [
+              {key: SpanFields.GEN_AI_REQUEST_MODEL, value: 'gemini-3.7-flash'},
+              {key: 'gen_ai.generation.error', value: 'connection refused'},
+            ],
+            1
+          ),
+        ],
+        tableResults: [
+          {
+            title: '',
+            data: [
+              {
+                [SpanFields.GEN_AI_REQUEST_MODEL]: 'gemini-3.7-flash',
+                'gen_ai.generation.error': 'timed out',
+                'count()': 4,
+              },
+              {
+                [SpanFields.GEN_AI_REQUEST_MODEL]: 'gemini-3.7-flash',
+                'gen_ai.generation.error': 'connection refused',
+                'count()': 1,
+              },
+            ],
+            meta: {fields: {}, units: {}},
+          },
+        ],
+        loading: false,
+      })
+    );
+
+    render(<VisualizationWidget widget={modelWidget} selection={selection} />, {
+      organization: OrganizationFixture({features: ['visibility-explore-view']}),
+    });
+
+    expect(screen.getAllByText('gemini-3.7-flash')).toHaveLength(2);
+    expect(screen.getByText(',timed out')).toBeInTheDocument();
+    expect(screen.getByText(',connection refused')).toBeInTheDocument();
+
+    // Explore links filter on every group by value, not just the model
+    const link = screen.getByRole('link', {name: /timed out/});
+    const query = new URLSearchParams(link.getAttribute('href')!.split('?')[1]).get(
+      'query'
+    );
+    expect(query).toContain('gen_ai.request.model:gemini-3.7-flash');
+    expect(query).toContain('gen_ai.generation.error:"timed out"');
   });
 });
 
@@ -213,11 +299,7 @@ describe('VisualizationWidget threshold time windows', () => {
     jest.mocked(WidgetCardDataLoader).mockImplementationOnce(({children}: any) =>
       children({
         timeseriesResults: [
-          {
-            seriesName: 'v1 : sum(session)',
-            data: [{name: 1_000_000, value: 10}],
-            color: '#000',
-          },
+          makeResult('sum(session)', [{key: 'release', value: 'v1'}], 10),
         ],
         timeseriesInterval: '1h',
         loading: false,

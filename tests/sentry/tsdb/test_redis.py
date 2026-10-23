@@ -1,36 +1,14 @@
-from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
-from sentry.tsdb.redis import RedisTSDB, SuppressionWrapper
+from sentry.tsdb.redis import RedisTSDB
 from sentry.utils.dates import to_datetime
 
 
-def test_suppression_wrapper() -> None:
-    @contextmanager
-    def raise_after():
-        yield
-        raise Exception("Boom!")
-
-    with pytest.raises(Exception):
-        with raise_after():
-            pass
-
-    with SuppressionWrapper(raise_after()):
-        pass
-
-    with SuppressionWrapper(raise_after()):
-        raise Exception("should not propagate")
-
-
 class RedisTSDBTest(TestCase):
-    @override_options(
-        {"redis.clusters": {"tsdb": {"hosts": {i - 6: {"db": i} for i in range(6, 9)}}}}
-    )
+    cluster = "default"
+
     def setUp(self) -> None:
         self.db = RedisTSDB(
             rollups=(
@@ -41,15 +19,8 @@ class RedisTSDBTest(TestCase):
                 (ONE_DAY, 30),  # 30 days at 1 day
             ),
             vnodes=64,
-            cluster="tsdb",
+            cluster=self.cluster,
         )
-
-        # the point of this test is to demonstrate behaviour with a multi-host cluster
-        assert len(self.db.cluster.hosts) == 3
-
-    def tearDown(self) -> None:
-        with self.db.cluster.all() as client:
-            client.flushdb()
 
     def test_make_counter_key(self) -> None:
         result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), 1, None)
@@ -143,3 +114,7 @@ class RedisTSDBTest(TestCase):
             TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0
         )
         assert sum_results == {1: 0, 2: 0}
+
+
+class RedisClusterTSDBTest(RedisTSDBTest):
+    cluster = "cluster"

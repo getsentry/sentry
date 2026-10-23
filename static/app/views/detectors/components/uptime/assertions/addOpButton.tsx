@@ -1,3 +1,5 @@
+import type {DistributedOmit} from 'type-fest';
+
 import {
   DropdownMenu,
   type DropdownMenuProps,
@@ -17,12 +19,12 @@ import {
   type UptimeStatusCodeOp,
 } from 'sentry/views/detectors/components/uptime/types';
 
-interface AddOpButtonProps extends Omit<DropdownMenuProps, 'items'> {
+type AddOpButtonProps = Partial<DistributedOmit<DropdownMenuProps, 'items'>> & {
   /**
    * Callback when an operation type is selected
    */
   onAddOp: (op: UptimeOp) => void;
-}
+};
 
 export function AddOpButton({
   onAddOp,

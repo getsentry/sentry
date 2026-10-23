@@ -1,11 +1,13 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSort} from '@sentry/icons/sort';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -16,7 +18,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -397,7 +398,7 @@ export default function IssueViewsList() {
         </TopBar.Slot>
         <Layout.Body>
           <MainTableLayout>
-            <FilterSortBar>
+            <Grid align="center" gap="md" columns="1fr auto">
               <SearchBar
                 defaultQuery={query}
                 onSearch={newQuery => {
@@ -451,7 +452,7 @@ export default function IssueViewsList() {
                   )}
                 </Feature>
               </Flex>
-            </FilterSortBar>
+            </Grid>
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}
@@ -507,13 +508,6 @@ const BannerTitle = styled('div')`
 
 const BannerAddViewButton = styled(Button)`
   align-self: flex-start;
-`;
-
-const FilterSortBar = styled('div')`
-  display: grid;
-  align-items: center;
-  grid-template-columns: 1fr auto;
-  gap: ${p => p.theme.space.md};
 `;
 
 const TableHeading = styled('h2')`

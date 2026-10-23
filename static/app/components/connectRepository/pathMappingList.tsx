@@ -1,16 +1,17 @@
 import {Fragment, useRef, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {withForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMapping} from './pathMapping';
+import {PathMappingEmptyState} from './pathMappingEmptyState';
 import type {PathMappingValue} from './type';
 import {getPathMappingWarnings} from './warnings';
 
@@ -49,18 +50,22 @@ export const PathMappingList = withForm({
     pathMappings: [] as PathMappingValue[],
   },
   props: {} as {
+    allowEmpty?: boolean;
     defaultBranch?: string;
     existingMappings?: RepositoryProjectPathConfig[];
     projectSlug?: string;
     providerKey?: string;
+    repositoryId?: string;
     seededById?: Map<string, RepositoryProjectPathConfig>;
   },
   render: function PathMappingListRender({
     form,
+    allowEmpty,
     providerKey,
     defaultBranch,
     existingMappings,
     projectSlug,
+    repositoryId,
     seededById,
   }) {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
@@ -98,8 +103,8 @@ export const PathMappingList = withForm({
         <form.AppField name="pathMappings" mode="array">
           {field => {
             const handleDelete = (i: number) => {
-              const freshId = nextId();
-              if (form.state.values.pathMappings.length === 1) {
+              if (form.state.values.pathMappings.length === 1 && !allowEmpty) {
+                const freshId = nextId();
                 form.setFieldValue('pathMappings', [newRowValue]);
                 setRowMeta([{id: freshId, isNew: true}]);
                 setOpenId(freshId);
@@ -110,7 +115,7 @@ export const PathMappingList = withForm({
               }
             };
 
-            const handleAddAnother = () => {
+            const handleAdd = () => {
               const id = nextId();
               field.pushValue(newRowValue);
               setRowMeta(prev => [
@@ -123,6 +128,10 @@ export const PathMappingList = withForm({
             return (
               <form.Subscribe selector={state => state.values.pathMappings}>
                 {pathMappings => {
+                  if (pathMappings.length === 0) {
+                    return <PathMappingEmptyState onAdd={handleAdd} />;
+                  }
+
                   const warnings = getPathMappingWarnings(
                     pathMappings,
                     existingMappings,
@@ -145,7 +154,7 @@ export const PathMappingList = withForm({
                             <PathMapping
                               key={meta.id}
                               editing={openId === meta.id}
-                              enableDelete={pathMappings.length > 1}
+                              enableDelete={allowEmpty || pathMappings.length > 1}
                               fields={fields}
                               form={form}
                               isNew={meta.isNew}
@@ -153,6 +162,7 @@ export const PathMappingList = withForm({
                               warning={warnings[i]}
                               providerKey={providerKey}
                               projectSlug={projectSlug}
+                              repositoryId={repositoryId}
                               defaultBranch={defaultBranch}
                               onDelete={() => handleDelete(i)}
                               onExpandToggle={() => toggle(meta.id)}
@@ -168,7 +178,7 @@ export const PathMappingList = withForm({
                           icon={<IconAdd />}
                           disabled={Boolean(addDisabledReason)}
                           tooltipProps={{title: addDisabledReason}}
-                          onClick={handleAddAnother}
+                          onClick={handleAdd}
                         >
                           {t('Add another path')}
                         </Button>

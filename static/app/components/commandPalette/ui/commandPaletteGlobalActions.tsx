@@ -1,5 +1,31 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import {IconAdd} from '@sentry/icons/add';
+import {IconAllProjects} from '@sentry/icons/allProjects';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconCompass} from '@sentry/icons/compass';
+import {IconDashboard} from '@sentry/icons/dashboard';
+import {IconDiscord} from '@sentry/icons/discord';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconGroup} from '@sentry/icons/group';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconLink} from '@sentry/icons/link';
+import {IconList} from '@sentry/icons/list';
+import {IconLock} from '@sentry/icons/lock';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPlay} from '@sentry/icons/play';
+import {IconRepository} from '@sentry/icons/repository';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
+import {IconStar} from '@sentry/icons/star';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
@@ -28,34 +54,6 @@ import {
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
 import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
-import {
-  IconAdd,
-  IconAllProjects,
-  IconBuilding,
-  IconCompass,
-  IconDashboard,
-  IconDiscord,
-  IconDocs,
-  IconFlag,
-  IconGithub,
-  IconGroup,
-  IconGraph,
-  IconIssues,
-  IconLink,
-  IconList,
-  IconLock,
-  IconOpen,
-  IconPlay,
-  IconRepository,
-  IconSearch,
-  IconSeer,
-  IconSettings,
-  IconSiren,
-  IconStar,
-  IconSubscribed,
-  IconTerminal,
-  IconUser,
-} from 'sentry/icons';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
@@ -69,6 +67,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
@@ -811,7 +810,7 @@ export function GlobalCommandPaletteActions() {
             <CMDKAction
               display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
               keywords={[t('superuser')]}
-              onAction={() => openSudo({isSuperuser: true, needsReload: true})}
+              onAction={() => openSudo({accessMode: 'superuser'})}
             />
           )}
           {isActiveSuperuser() && (
@@ -1190,12 +1189,12 @@ export function GlobalCommandPaletteActions() {
       )}
 
       {user.isStaff &&
-        (window.localStorage?.getItem('DEBUG_ANALYTICS') === '1' ? (
+        (localStorageWrapper.getItem('DEBUG_ANALYTICS') === '1' ? (
           <CMDKAction
             display={{label: 'Disable Analytics Debug Mode', icon: <IconOpen />}}
             keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
             onAction={() => {
-              window.localStorage?.setItem('DEBUG_ANALYTICS', '0');
+              localStorageWrapper.setItem('DEBUG_ANALYTICS', '0');
             }}
           />
         ) : (
@@ -1203,7 +1202,7 @@ export function GlobalCommandPaletteActions() {
             display={{label: 'Enable Analytics Debug Mode', icon: <IconOpen />}}
             keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
             onAction={() => {
-              window.localStorage?.setItem('DEBUG_ANALYTICS', '1');
+              localStorageWrapper.setItem('DEBUG_ANALYTICS', '1');
             }}
           />
         ))}

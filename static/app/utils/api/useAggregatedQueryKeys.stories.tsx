@@ -2,12 +2,14 @@ import {Fragment, useCallback, useEffect} from 'react';
 
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
+import type {Team} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
-type CountState = Record<string, undefined | number>;
+type TeamSlugsById = Record<string, undefined | string>;
 
 export default Storybook.story('useAggregatedQueryKeys', story => {
   story('useAggregatedQueryKeys', () => {
@@ -16,28 +18,30 @@ export default Storybook.story('useAggregatedQueryKeys', story => {
     // Get a list of valid teamIds to use as demo aggregation keys.
     const {teams: userTeams} = useUserTeams();
 
-    const cache = useAggregatedQueryKeys<string, CountState>({
+    const cache = useAggregatedQueryKeys<string, TeamSlugsById, Team[]>({
       getQueryOptions: useCallback(
         ids =>
-          apiOptions.as<CountState>()(
-            '/organizations/$organizationIdOrSlug/replay-count/',
-            {
-              path: {organizationIdOrSlug: organization.slug},
-              query: {
-                data_source: 'discover',
-                project: -1,
-                statsPeriod: '14d',
-                query: `issue.id:[${ids.join(',')}]`,
-              },
-              staleTime: 0,
-            }
-          ),
+          apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+            path: {organizationIdOrSlug: organization.slug},
+            query: {
+              // The teams endpoint reads one id per `id:` token, not a list.
+              query: ids.map(id => `id:${id}`).join(' '),
+              detailed: 0,
+            },
+            staleTime: 0,
+          }),
         [organization.slug]
       ),
       onError: useCallback(() => {}, []),
-      responseReducer: useCallback((prevState, response, aggregates) => {
-        const defaults = Object.fromEntries(aggregates.map(id => [id, 0]));
-        return {...defaults, ...prevState, ...response.json};
+      // Other components cache their own /teams/ lists; only fold in the
+      // responses to our id lookups.
+      queryFilter: useCallback((queryKey: readonly unknown[]) => {
+        const search = safeParseQueryKey(queryKey)?.options.query?.query;
+        return typeof search === 'string' && search.startsWith('id:');
+      }, []),
+      responseReducer: useCallback((prevState, response) => {
+        const slugs = Object.fromEntries(response.json.map(team => [team.id, team.slug]));
+        return {...prevState, ...slugs};
       }, []),
     });
 
@@ -60,8 +64,9 @@ export default Storybook.story('useAggregatedQueryKeys', story => {
       <Fragment>
         <p>
           Checkout the network traffic to really understand how this works. We've called{' '}
-          <code>cache.buffer()</code> in two independent places, but those 3 ids were
-          grouped together into one request on the network.
+          <code>cache.buffer()</code> in two independent places, but those 3 team ids were
+          grouped together into one <code>/teams/?query=id:… id:… id:…</code> request on
+          the network.
         </p>
         <StructuredEventData data={cache.data} />
       </Fragment>

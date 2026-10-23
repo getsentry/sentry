@@ -4,11 +4,11 @@ import memoize from 'lodash/memoize';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
+import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
@@ -527,6 +527,7 @@ function buildRoutes(): RouteObject[] {
   };
 
   const projectSettingsChildren: SentryRouteObject[] = [
+    routeHook('routes:project-settings'),
     {
       handle: {
         settingsBreadcrumb: {
@@ -602,6 +603,18 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/attributes/',
+        },
+      },
+      path: 'attributes/',
+      name: t('Attributes'),
+      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+    },
+    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
           switchTo: '/settings/:orgId/projects/:projectId/tags/',
         },
       },
@@ -644,19 +657,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'data-forwarding/',
       redirectTo: '/settings/:orgId/data-forwarding/',
-    },
-    {
-      handle: {
-        settingsBreadcrumb: {
-          type: 'project',
-          to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/seer/',
-        },
-      },
-      path: 'seer/',
-      name: t('Seer'),
-      // eslint-disable-next-line boundaries/dependencies -- TODO: move to getsentry routes
-      component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
     },
     {
       handle: {
@@ -2694,12 +2694,16 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
     {
-      path: 'investigations/',
-      component: make(() => import('sentry/views/investigations')),
+      path: 'saved-formulas/',
+      component: make(() => import('sentry/views/explore/savedFormulas')),
     },
     {
-      path: 'investigations/:investigationId/',
-      component: make(() => import('sentry/views/investigations/detail')),
+      path: 'saved-formulas/new/',
+      component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
+    },
+    {
+      path: 'saved-formulas/:formulaId/',
+      component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
     },
     // Unknown /explore/ subpaths redirect to the default explore view, rather
     // than falling through to the `/:orgId/:projectId/` legacy redirect and
@@ -2724,6 +2728,30 @@ function buildRoutes(): RouteObject[] {
     path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
+  };
+
+  const seerChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      redirectTo: 'automations/',
+    },
+    {
+      path: 'investigations/',
+      component: make(() => import('sentry/views/investigations')),
+    },
+    {
+      path: 'investigations/:investigationId/',
+      component: make(() => import('sentry/views/investigations/detail')),
+    },
+    {
+      path: 'automations/',
+      component: make(() => import('sentry/views/seerWorkflows')),
+    },
+  ];
+  const seerRoutes: SentryRouteObject = {
+    path: '/seer/',
+    withOrgPath: true,
+    children: seerChildren,
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2916,10 +2944,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'autofix/',
       component: make(() => import('sentry/views/seerWorkflows/overview')),
-    },
-    {
-      path: 'autofix/workflows/',
-      component: make(() => import('sentry/views/seerWorkflows')),
     },
     {
       path: 'autofix/recent/',
@@ -3220,6 +3244,7 @@ function buildRoutes(): RouteObject[] {
       domainViewRoutes,
       tracesRoutes,
       exploreRoutes,
+      seerRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
       gettingStartedRoutes,

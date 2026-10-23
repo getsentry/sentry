@@ -4,7 +4,7 @@ description: Components for displaying keyboard shortcuts with automatic platfor
 category: typography
 source: '@sentry/scraps/hotkey'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/hotkey/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/hotkey/index.tsx
   a11y:
     WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
 ---
@@ -13,7 +13,11 @@ import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {InlineCode} from '@sentry/scraps/code';
-import {IconCommand, IconControl, IconShift, IconOption, IconReturn} from 'sentry/icons';
+import {IconCommand} from '@sentry/icons/command';
+import {IconControl} from '@sentry/icons/control';
+import {IconShift} from '@sentry/icons/shift';
+import {IconOption} from '@sentry/icons/option';
+import {IconReturn} from '@sentry/icons/return';
 
 import * as Storybook from 'sentry/stories';
 

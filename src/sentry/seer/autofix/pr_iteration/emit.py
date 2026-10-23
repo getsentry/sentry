@@ -31,7 +31,6 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_iterations, iteration_repos
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
     claim_iteration,
@@ -39,6 +38,10 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     remove_iteration,
     untriggered_iteration,
     update_iteration,
+)
+from sentry.seer.autofix.pr_iteration.iterations import (
+    get_iterations,
+    iteration_repos,
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason
@@ -411,6 +414,12 @@ def record_pr_iteration_blocked(
         # than repeating on every later check of the same outcome.
         update_iteration(iteration, **{BLOCKED_OUTCOMES_DATA_KEY: [*recorded, outcome]})
         analytics.record(event)
+        log_ctx.info(
+            "autofix.pr_iteration.details.emitted",
+            event_type="blocked",
+            outcome=outcome,
+            iteration_id=iteration.id,
+        )
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.blocked_failed")
 
@@ -531,9 +540,18 @@ def _complete_iteration(
             outcome=outcome,
             head_shas=head_shas,
         )
-        if event is None or not remove_iteration(iteration):
+        if event is None:
+            return
+        if not remove_iteration(iteration):
+            log_ctx.info("autofix.pr_iteration.details.skipped", reason="claimed_elsewhere")
             return
 
         analytics.record(event)
+        log_ctx.info(
+            "autofix.pr_iteration.details.emitted",
+            event_type="completed",
+            outcome=outcome,
+            iteration_id=iteration.id,
+        )
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.complete_failed")

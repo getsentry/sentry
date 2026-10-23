@@ -7,12 +7,11 @@ import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {
-  SeerExplorerContextProvider,
-  useSeerExplorerContext,
-} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 async function getSeerExplorerInput() {
   const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
@@ -51,12 +50,14 @@ function tree() {
         <PictureInPictureProvider>
           <GlobalDrawer>
             <SeerExplorerContextProvider>
-              <OpenExplorer />
-              <AskSeerEntryPoint label="ask-widget" prompt="What about this widget?" />
-              <AskSeerEntryPoint
-                label="ask-dashboard"
-                prompt="What about this dashboard?"
-              />
+              <SeerExplorerSidebarLayout>
+                <OpenExplorer />
+                <AskSeerEntryPoint label="ask-widget" prompt="What about this widget?" />
+                <AskSeerEntryPoint
+                  label="ask-dashboard"
+                  prompt="What about this dashboard?"
+                />
+              </SeerExplorerSidebarLayout>
             </SeerExplorerContextProvider>
           </GlobalDrawer>
         </PictureInPictureProvider>

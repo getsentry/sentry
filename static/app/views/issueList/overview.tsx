@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -15,6 +15,7 @@ import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DATE_TIME_KEYS} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -147,6 +148,7 @@ function IssueListOverviewInner({
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const api = useApi();
+  const queryClient = useQueryClient();
   const urlParams = useParams<{viewId?: string}>();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -449,7 +451,9 @@ function IssueListOverviewInner({
             pathname: redirect,
             query: {
               referrer: 'issue-list',
-              ...extractSelectionParameters(location.query),
+              // The issue list's date range may come from pinned filters, let
+              // issue details fall back to its own default instead
+              ...omit(extractSelectionParameters(location.query), DATE_TIME_KEYS),
             },
           }),
           {replace: true}
@@ -491,7 +495,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: data.length, // Can also use newQueryCount for total hits
           organization,
           runId: aiQueryRunId,
@@ -524,7 +527,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: 0,
           organization,
           runId: aiQueryRunId,
@@ -735,6 +737,16 @@ function IssueListOverviewInner({
     }
   };
 
+  const invalidateIssueCounts = () => {
+    queryClient.invalidateQueries({
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
+    });
+  };
+
   const undoAction = async ({
     data,
     groupItems,
@@ -756,6 +768,8 @@ function IssueListOverviewInner({
           id: groupItems.map(group => group.id),
         },
       });
+
+      invalidateIssueCounts();
 
       if (response) {
         // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
@@ -828,6 +842,7 @@ function IssueListOverviewInner({
   };
 
   const onActionTaken = (itemIds: string[], data: IssueUpdateData) => {
+    invalidateIssueCounts();
     const groupItems = itemIds.map(id => GroupStore.get(id)).filter(defined);
 
     if ('status' in data) {
@@ -918,6 +933,9 @@ function IssueListOverviewInner({
   // Visible rows may span a subset of the page-filter selection; keep those
   // separate from the hard selected project filter the agent should scope to.
   const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
+  // Right after a filter change, `groups` may still hold the previous filters' issues.
+  const currentIssuesLoading =
+    issuesLoading || !isEqual(requestParams, previousRequestParams);
 
   useLLMContext({
     contextHint:
@@ -929,6 +947,9 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      (currentIssuesLoading
+        ? 'The list is still loading, so its issues are unknown. '
+        : '') +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
       'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
@@ -937,20 +958,22 @@ function IssueListOverviewInner({
     viewName: groupSearchView?.name,
     query,
     sort,
-    issueCount: queryCount,
+    issueCount: currentIssuesLoading ? null : queryCount,
     ...toLLMContextProjectFields(selectedProjects),
-    displayedProjectSlugs,
+    displayedProjectSlugs: currentIssuesLoading ? null : displayedProjectSlugs,
     environments: selection.environments,
     dateRange: selection.datetime,
-    displayedIssues: [
-      'shortId|title|issueType|level|priority|events|users|firstSeen',
-      ...groups
-        .slice(0, MAX_ITEMS)
-        .map(
-          g =>
-            `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
-        ),
-    ].join('\n'),
+    displayedIssues: currentIssuesLoading
+      ? null
+      : [
+          'shortId|title|issueType|level|priority|events|users|firstSeen',
+          ...groups
+            .slice(0, MAX_ITEMS)
+            .map(
+              g =>
+                `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
+            ),
+        ].join('\n'),
   });
 
   return (
@@ -986,6 +1009,7 @@ function IssueListOverviewInner({
               />
               <IssueListTable
                 selection={selection}
+                sort={sort}
                 query={query}
                 queryCount={modifiedQueryCount}
                 onSelectStatsPeriod={onSelectStatsPeriod}

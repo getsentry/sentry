@@ -2,13 +2,16 @@ import type {ReactNode} from 'react';
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPlay} from '@sentry/icons/play';
 import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -23,9 +26,6 @@ import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/num
 import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
-import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -418,14 +418,14 @@ export const ReplaySelectColumn: ReplayTableColumn = {
     }
     return (
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
-        <CheckboxCellContainer>
+        <Stack justify="center" align="center" gap="xs" position="relative">
           <ListItemSelectCheckbox htmlPrefix="replay-table-select" value={replay.id} />
           {replay.has_viewed ? (
             <Container width="8px" height="8px" />
           ) : (
             <UnreadIndicator />
           )}
-        </CheckboxCellContainer>
+        </Stack>
       </CheckboxClickCapture>
     );
   },
@@ -548,15 +548,6 @@ const CheckboxClickCapture = styled('div')`
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   padding: ${p => p.theme.space.xl};
   margin: -${p => p.theme.space.xl};
-`;
-
-const CheckboxCellContainer = styled('div')`
-  display: flex;
-  position: relative;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const SpanOperationBreakdown = styled('div')`

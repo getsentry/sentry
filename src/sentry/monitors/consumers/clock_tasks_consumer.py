@@ -21,6 +21,7 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import (
     MarkUnknown,
     MonitorsClockTasks,
 )
+from sentry_sdk import traces
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_tasks.check_missed import mark_environment_missing
@@ -28,7 +29,6 @@ from sentry.monitors.clock_tasks.check_timeout import mark_checkin_timeout
 from sentry.monitors.clock_tasks.mark_unknown import mark_checkin_unknown
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.tracing import start_span
 
 MONITORS_CLOCK_TASKS_CODEC: Codec[MonitorsClockTasks] = get_topic_codec(Topic.MONITORS_CLOCK_TASKS)
 
@@ -127,10 +127,11 @@ def process_clock_task_batch(
 
     # Submit task groups for processing. The `wait` is a barrier, offsets must
     # not be committed until every group in the batch has completed.
-    with start_span(
-        op="process_clock_task_batch",
+    traces.new_trace()
+    with traces.start_span(
         name="monitors.clock_tasks_consumer",
-        transaction=True,
+        attributes={"sentry.op": "process_clock_task_batch"},
+        parent_span=None,
     ):
         futures = [
             executor.submit(process_clock_task_group, group) for group in task_mapping.values()

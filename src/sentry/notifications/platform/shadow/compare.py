@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -10,6 +11,7 @@ import orjson
 import sentry_sdk
 from slack_sdk.models.blocks import Block
 
+from sentry.issues.grouptype import NotificationContextField
 from sentry.models.group import Group
 from sentry.notifications.platform.registry import (
     provider_registry,
@@ -18,6 +20,7 @@ from sentry.notifications.platform.registry import (
 )
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.utils import metrics
 from sentry.utils.payload_comparison import ParityChecker, describe_value
 from sentry.workflow_engine.types import ActionInvocation
@@ -102,6 +105,116 @@ def _diff(legacy: Mapping[str, Any], platform: Mapping[str, Any]) -> list[str]:
     return checker.mismatches
 
 
+# Slack issue alerts show live group stats, such as `Events: *12*`, that can change between the
+# legacy render and the platform render.
+_GROUP_STATS = re.compile(
+    "(?P<label>{}): \\*(?P<value>[^*]*)\\*".format(
+        "|".join(
+            re.escape(field)
+            for field in (
+                NotificationContextField.EVENTS,
+                NotificationContextField.USERS_AFFECTED,
+                NotificationContextField.FIRST_SEEN,
+                NotificationContextField.APPROX_START_TIME,
+            )
+        )
+    )
+)
+_DIGITS = re.compile(r"\d+")
+
+
+# `get_context` leaves out the event and user counts while a group has at most one event.
+_COUNT_STAT = re.compile(
+    "(?:{}): \\*".format(
+        "|".join(
+            re.escape(field)
+            for field in (NotificationContextField.EVENTS, NotificationContextField.USERS_AFFECTED)
+        )
+    )
+)
+_STAT_SEPARATOR = "   "
+
+
+def _is_relative_time(value: str) -> bool:
+    """
+    Whether a value is one of `time_since`'s relative times, such as `Just now` or `2 hours ago`.
+    Renders made a second apart can cross a unit, as from `Just now` to `1 minute ago`.
+    """
+    return value in ("Just now", "Yesterday") or value.endswith(" ago")
+
+
+def _mask_group_stats(
+    payload: Mapping[str, Any], *, ignore_counts: bool = False
+) -> Mapping[str, Any]:
+    """
+    Replaces the digits in the group stats of a normalized Slack payload's context blocks, so two
+    renders that differ only by a count or elapsed time compare equal. Labels and non-numeric
+    values are kept, so a stat that is added, dropped, or reworded still shows up as a diff, except
+    for relative first-seen times, which are masked whole. `ignore_counts` also removes the event
+    and user counts, for groups whose count is at the threshold where `get_context` starts showing
+    them.
+    """
+
+    def mask(match: re.Match[str]) -> str:
+        value = match["value"]
+        if match["label"] == NotificationContextField.FIRST_SEEN and _is_relative_time(value):
+            return f"{match['label']}: *relative*"
+        return f"{match['label']}: *{_DIGITS.sub('#', value)}*"
+
+    def mask_text(text: str) -> str:
+        if ignore_counts:
+            text = _STAT_SEPARATOR.join(
+                stat for stat in text.split(_STAT_SEPARATOR) if not _COUNT_STAT.match(stat)
+            )
+        return _GROUP_STATS.sub(mask, text)
+
+    def mask_element(element: Any) -> Any:
+        if isinstance(element, Mapping) and isinstance(element.get("text"), str):
+            return {**element, "text": mask_text(element["text"])}
+        return element
+
+    blocks = [
+        (
+            {**block, "elements": [mask_element(e) for e in block.get("elements", [])]}
+            if isinstance(block, Mapping) and block.get("type") == "context"
+            else block
+        )
+        for block in payload.get("blocks", [])
+    ]
+    return {**payload, "blocks": blocks}
+
+
+def _at_single_event(invocation: ActionInvocation) -> bool:
+    """
+    Whether the invocation's group or its cached copy has at most one event written to the
+    database. Its next events are still in the buffer, so the count each render reads depends on
+    when it reads it, and one render can show the event and user counts while the other leaves
+    them out.
+    """
+    group = invocation.event_data.group
+    try:
+        cached = Group.objects.get_from_cache(id=group.id)
+    except Group.DoesNotExist:
+        return False
+    return min(group.times_seen, cached.times_seen) <= 1
+
+
+def _only_group_stats_differ(
+    invocation: ActionInvocation,
+    provider: NotificationProviderKey,
+    legacy: Mapping[str, Any],
+    platform: Mapping[str, Any],
+) -> bool:
+    if provider not in (NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING):
+        return False
+    if not _diff(_mask_group_stats(legacy), _mask_group_stats(platform)):
+        return True
+    return _at_single_event(invocation) and not _diff(
+        _mask_group_stats(legacy, ignore_counts=True),
+        _mask_group_stats(platform, ignore_counts=True),
+    )
+
+
 def _group_changed(invocation: ActionInvocation) -> bool:
     """
     Whether the group state the issue renderers read has changed since the invocation loaded the
@@ -144,22 +257,32 @@ def _compare_with_platform(
 
     try:
         data = build_data(legacy_render)
-        platform_payload = NotificationService.render_template(
+        platform_payload, _ = NotificationService.render_template(
             data=data, template=template_registry.get(data.source)(), provider=provider
         )
     except Exception as e:
         return _capture_shadow_error(e, ShadowOutcome.PLATFORM_ERROR, source, provider_key)
 
     try:
-        entries = _diff(
-            _normalize(legacy_render.provider, legacy_render.payload),
-            _normalize(provider_key, platform_payload),
+        legacy = _normalize(legacy_render.provider, legacy_render.payload)
+        platform = _normalize(provider_key, platform_payload)
+        entries = _diff(legacy, platform)
+        stats_only = (
+            bool(entries)
+            and source == NotificationSource.ISSUE
+            and _only_group_stats_differ(invocation, provider_key, legacy, platform)
         )
     except Exception as e:
         return _capture_shadow_error(e, ShadowOutcome.COMPARE_ERROR, source, provider_key)
 
     if not entries:
         return ShadowResult(outcome=ShadowOutcome.MATCH)
+    # The group can change after the check above, while the platform renders.
+    if source == NotificationSource.ISSUE and _group_changed(invocation):
+        return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)
+    # Stats drift is the same race `_group_changed` catches, in values it doesn't compare.
+    if stats_only:
+        return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)
     return ShadowResult(outcome=ShadowOutcome.MISMATCH, diff=entries)
 
 
@@ -171,6 +294,44 @@ def _invocation_log_extra(invocation: ActionInvocation) -> dict[str, Any]:
     }
 
 
+def _render_traits(
+    invocation: ActionInvocation, source: NotificationSource, legacy_render: LegacyRender
+) -> dict[str, bool]:
+    """
+    Flags which optional branches the legacy render took, so coverage of branches the variant
+    doesn't name can be read from the logs. Slack issue alert flags are read from the payload
+    itself, since their inputs are expensive to recompute.
+    """
+    traits = {
+        "has_releases": bool(invocation.detector.linked_project.flags.has_releases),
+        "has_chart": legacy_render.chart_url is not None,
+    }
+    if source == NotificationSource.ISSUE and legacy_render.provider in (
+        NotificationProviderKey.SLACK,
+        NotificationProviderKey.SLACK_STAGING,
+    ):
+        blocks = _normalize(legacy_render.provider, legacy_render.payload)["blocks"]
+        context_texts = [
+            element.get("text", "")
+            for block in blocks
+            if block.get("type") == "context"
+            for element in block.get("elements", [])
+        ]
+        buttons = [
+            element
+            for block in blocks
+            if block.get("type") == "actions"
+            for element in block.get("elements", [])
+        ]
+        traits["has_chart"] |= any(block.get("type") == "image" for block in blocks)
+        traits["has_suggested_assignees"] = any("Suggested: " in text for text in context_texts)
+        traits["has_replay_link"] = any("View Replays" in text for text in context_texts)
+        traits["has_autofix_button"] = any(
+            button.get("value") == AutofixStoppingPoint.ROOT_CAUSE for button in buttons
+        )
+    return traits
+
+
 def report(
     invocation: ActionInvocation,
     source: NotificationSource,
@@ -180,8 +341,8 @@ def report(
     build_data: BuildPlatformData,
 ) -> None:
     """
-    Compares the legacy render with the platform's and records the outcome as metrics, logging
-    the diff on a mismatch and the invocation when no legacy render was captured. Never raises.
+    Compares the legacy render with the platform's and records the outcome as a metric and a log
+    line, which also carries the diff on a mismatch. Never raises.
     """
     log_extra: dict[str, Any] = {
         "source": source.value,
@@ -205,24 +366,21 @@ def report(
             sample_rate=1.0,
         )
 
+        result_extra: dict[str, Any] = {
+            **log_extra,
+            **_invocation_log_extra(invocation),
+            "outcome": result.outcome.value,
+        }
         if result.outcome == ShadowOutcome.MISMATCH:
-            logger.info(
-                "notifications.platform.shadow.mismatch",
-                extra={
-                    **log_extra,
-                    **_invocation_log_extra(invocation),
-                    "diff_count": len(result.diff),
-                    "diff": result.diff,
-                },
-            )
+            result_extra["diff_count"] = len(result.diff)
+            result_extra["diff"] = result.diff
         elif result.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED:
-            logger.info(
-                "notifications.platform.shadow.legacy_not_captured",
-                extra={
-                    **log_extra,
-                    **_invocation_log_extra(invocation),
-                    "integration_id": invocation.action.integration_id,
-                },
-            )
+            result_extra["integration_id"] = invocation.action.integration_id
+        if legacy_render is not None:
+            try:
+                result_extra.update(_render_traits(invocation, source, legacy_render))
+            except Exception:
+                logger.exception("notifications.platform.shadow.traits_failed", extra=log_extra)
+        logger.info("notifications.platform.shadow.result", extra=result_extra)
     except Exception:
         logger.exception("notifications.platform.shadow.report_failed", extra=log_extra)

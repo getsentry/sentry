@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {IconProject} from '@sentry/icons/project';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -25,7 +26,6 @@ import {
 } from 'sentry/components/onboarding/scm/useScmProjectDetails';
 import {useScmProviders} from 'sentry/components/onboarding/scm/useScmProviders';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -210,8 +210,8 @@ function ScmCreateProjectWizard({
   );
 
   // Clear state derived from the repository when the repo changes. Platform,
-  // features, and the project-details form are repo-dependent (auto-detection
-  // seeds the platform, which in turn seeds the project name). The restored
+  // features, and the project-details form are all repo-dependent: auto-detection
+  // seeds the platform and the repo name seeds the project name. The restored
   // created project is too: the reuse check skips the repository link, so a
   // new repository must create a new project (mirrors onboarding's
   // clearDerivedState).

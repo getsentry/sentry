@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -13,7 +14,6 @@ import {
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
 import {useApi} from 'sentry/utils/useApi';

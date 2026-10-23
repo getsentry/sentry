@@ -11,7 +11,7 @@ class AuthTest(AcceptanceTestCase):
         self.browser.driver.execute_script(
             "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
         )
-        self.browser.wait_until('[aria-label="Email"]')
+        self.browser.wait_until_clickable('[aria-label="Email"]')
         self.browser.element('[aria-label="Email"]').send_keys(username)
         self.browser.element('[aria-label="Password"]').send_keys(password, Keys.ENTER)
 

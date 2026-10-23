@@ -1,4 +1,6 @@
 import {type CSSProperties, Fragment} from 'react';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -8,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopyId, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

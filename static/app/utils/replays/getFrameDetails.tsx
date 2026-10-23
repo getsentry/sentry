@@ -1,32 +1,31 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconFocus} from '@sentry/icons/focus';
+import {IconHappy} from '@sentry/icons/happy';
+import {IconInfo} from '@sentry/icons/info';
+import {IconInput} from '@sentry/icons/input';
+import {IconKeyDown} from '@sentry/icons/keyDown';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLocation} from '@sentry/icons/location';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconMeh} from '@sentry/icons/meh';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSad} from '@sentry/icons/sad';
+import {IconSort} from '@sentry/icons/sort';
+import {IconTap} from '@sentry/icons/tap';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconWarning} from '@sentry/icons/warning';
+import {IconWifi} from '@sentry/icons/wifi';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {GraphicsVariant} from '@sentry/scraps/theme';
 
 import {CrumbErrorTitle} from 'sentry/components/replays/breadcrumbs/errorTitle';
 import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
-import {
-  IconCursorArrow,
-  IconFire,
-  IconFix,
-  IconFocus,
-  IconHappy,
-  IconInfo,
-  IconInput,
-  IconKeyDown,
-  IconLightning,
-  IconLocation,
-  IconMegaphone,
-  IconMeh,
-  IconRefresh,
-  IconSad,
-  IconSort,
-  IconTap,
-  IconTerminal,
-  IconWarning,
-  IconWifi,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -62,7 +61,6 @@ import {
   isRageClick,
 } from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {GraphicsVariant} from 'sentry/utils/theme';
 import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 
@@ -334,7 +332,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: WebVitalTitle(frame),
+          title: <WebVitalTitle frame={frame} />,
           icon: <IconHappy size="xs" />,
         };
       case 'needs-improvement':
@@ -345,7 +343,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: WebVitalTitle(frame),
+          title: <WebVitalTitle frame={frame} />,
           icon: <IconMeh size="xs" />,
         };
       default:
@@ -356,7 +354,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
             unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: WebVitalTitle(frame),
+          title: <WebVitalTitle frame={frame} />,
           icon: <IconSad size="xs" />,
         };
     }
@@ -466,7 +464,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
 };
 
-const MAPPER_DEFAULT = (frame: any): Details => ({
+// Keep this lowercase. React Compiler treats capitalized functions that create
+// JSX as components, and this one is called from event handlers.
+const defaultMapper = (frame: any): Details => ({
   colorGraphicsToken: 'neutral',
   description: frame.message ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,
@@ -476,11 +476,11 @@ const MAPPER_DEFAULT = (frame: any): Details => ({
 
 export function getFrameDetails(frame: ReplayFrame): Details {
   const key = getFrameOpOrCategory(frame);
-  const fn = MAPPER_FOR_FRAME[key] ?? MAPPER_DEFAULT;
+  const fn = MAPPER_FOR_FRAME[key] ?? defaultMapper;
   try {
     return fn(frame);
   } catch (error) {
-    return MAPPER_DEFAULT(frame);
+    return defaultMapper(frame);
   }
 }
 
@@ -519,7 +519,7 @@ function stringifyNodeAttributes(node: ClickFrameNode | undefined) {
   }`;
 }
 
-function WebVitalTitle(frame: WebVitalFrame) {
+function WebVitalTitle({frame}: {frame: WebVitalFrame}) {
   const vitalDefinition = function () {
     switch (frame.description) {
       case 'cumulative-layout-shift':
