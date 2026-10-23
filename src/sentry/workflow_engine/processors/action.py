@@ -399,7 +399,7 @@ def is_action_permitted(action_type: Action.Type, organization: Organization) ->
     Check if an action type is permitted for an organization.
     """
     handler = action_handler_registry.get(action_type)
-    feature_names = list(handler.required_features)
+    feature_names = [gate.name for gate in handler.required_features]
     if action_type.is_integration():
         integration_features = _get_integration_features(action_type)
         required_org_features = integration_features.intersection(

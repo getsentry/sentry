@@ -20,7 +20,7 @@ from sentry.workflow_engine.processors.action import (
     process_workflow_action_group_statuses,
     update_workflow_action_group_statuses,
 )
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, FeatureGate, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -323,7 +323,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 class TestIsActionPermitted(BaseWorkflowTest):
     def test_non_integration_action_requires_handler_features(self) -> None:
         class GatedActionHandler(ActionHandler):
-            required_features = ("organizations:seer-automations",)
+            required_features = (FeatureGate("organizations:seer-automations"),)
 
         with patch(
             "sentry.workflow_engine.processors.action.action_handler_registry.get",
@@ -337,7 +337,7 @@ class TestIsActionPermitted(BaseWorkflowTest):
 
     def test_integration_requires_handler_and_provider_features(self) -> None:
         class GatedActionHandler(ActionHandler):
-            required_features = ("organizations:seer-automations",)
+            required_features = (FeatureGate("organizations:seer-automations"),)
 
         with (
             patch(

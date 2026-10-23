@@ -167,22 +167,4 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         )
 
     def get_dedup_key(self) -> str:
-        if self.type == Action.Type.SEER_WORKFLOW:
-            return f"{self.type}:{self.id}"
-        key_parts = [self.type]
-        if self.integration_id:
-            key_parts.append(str(self.integration_id))
-
-        if self.config:
-            config = self.config.copy()
-            config.pop("target_display", None)
-            key_parts.append(str(config))
-
-        if self.data:
-            data = self.data.copy()
-            if "dynamic_form_fields" in data:
-                data = data["dynamic_form_fields"]
-
-            key_parts.append(str(data))
-
-        return ":".join(key_parts)
+        return self.get_handler().get_dedup_key(self)
