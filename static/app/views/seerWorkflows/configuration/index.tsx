@@ -81,7 +81,7 @@ export default function Automations() {
     {
       id: 'placeholder-agentic-triage',
       title: 'Agentic Triage',
-      description: 'Automatically triages and fixes the most fixable issues.',
+      description: 'Automatically triage and fix the most fixable issues.',
       projectSlugs: ['all'],
       nextUpdate: getNextUpdate('daily'),
       tokensPerMonth: 85_400_000,
@@ -165,7 +165,7 @@ function SeerAutomationCard({
         <Stack
           gap="lg"
           height="100%"
-          padding="lg"
+          padding="xl"
           border="primary"
           radius="md"
           background="primary"
@@ -191,7 +191,7 @@ function SeerAutomationCard({
             )}
             {description && <Text as="p">{description}</Text>}
           </Stack>
-          <Stack gap="xs">
+          <Stack gap="lg">
             {usage.length > 0 && (
               <Text size="sm" variant="muted">
                 {usage.map((part, index) => (
@@ -203,7 +203,7 @@ function SeerAutomationCard({
               </Text>
             )}
             {projectSlugs[0] === 'all' ? (
-              <Flex align="center" gap="xs">
+              <Flex align="center" gap="sm">
                 <IconAllProjects size="sm" variant="muted" />
                 <Text size="sm" variant="muted">
                   {t('All projects')}
