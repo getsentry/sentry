@@ -1391,6 +1391,8 @@ describe('ProjectFilters', () => {
     ]);
 
     expect(await screen.findByText('Old or odd releases')).toBeInTheDocument();
+    // Every condition must match, so the list joins them with "AND".
+    expect(screen.getAllByText('AND')).toHaveLength(4);
     // A negated list reads with "and": the release must match none of them.
     expect(screen.getByText('does not start with')).toBeInTheDocument();
     expect(screen.getByText('and')).toBeInTheDocument();
