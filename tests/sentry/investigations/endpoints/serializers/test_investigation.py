@@ -7,6 +7,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.auth.access import from_user
 from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
@@ -18,6 +19,7 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestState,
     InvestigationBlockExecutionStatus,
+    InvestigationStatus,
 )
 from sentry.testutils.cases import TestCase
 
@@ -313,9 +315,10 @@ class InvestigationActionRequestSerializationTest(TestCase):
         )
 
     def serialize_requests(self) -> list[dict[str, Any]]:
-        return serialize(self.investigation, self.user, InvestigationDetailsSerializer())[
-            "actionRequests"
-        ]
+        access = from_user(self.user, self.organization)
+        return serialize(
+            self.investigation, self.user, InvestigationDetailsSerializer(access=access)
+        )["actionRequests"]
 
     def test_serializes_an_action_request(self) -> None:
         action_request = self.add_request(
@@ -334,7 +337,11 @@ class InvestigationActionRequestSerializationTest(TestCase):
                 "impact": "Fewer alerts.",
                 "state": "suggested",
                 "reason": None,
-                "action": self.action(),
+                "action": {
+                    **self.action(),
+                    "canApply": False,
+                    "cannotApplyReason": "unsupported_action",
+                },
                 "appliedBy": None,
                 "appliedDetails": None,
                 "dateApplied": None,
@@ -371,7 +378,12 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         assert [row["action"] for row in self.serialize_requests()] == [
             None,
-            {"kind": "seer_task", "prompt": "Add spans"},
+            {
+                "kind": "seer_task",
+                "prompt": "Add spans",
+                "canApply": False,
+                "cannotApplyReason": "unsupported_action",
+            },
         ]
 
     def test_orders_the_newest_report_first_and_omits_superseded_requests(self) -> None:
@@ -424,6 +436,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "detail": {"dataSources": ["Bad window."]},
         }
         assert (withdrawn["state"], withdrawn["reason"]) == ("withdrawn", "The spikes are real.")
+        assert withdrawn["action"]["cannotApplyReason"] == "not_suggested"
 
     def test_shows_no_applier_once_the_user_is_gone(self) -> None:
         self.add_request(
@@ -462,3 +475,33 @@ class InvestigationActionRequestSerializationTest(TestCase):
             assert len(self.serialize_requests()) == 9
 
         assert len(many.captured_queries) == len(one.captured_queries)
+
+    def serialize_for(self, user: Any) -> list[dict[str, Any]]:
+        access = from_user(user, self.organization)
+        return serialize(self.investigation, user, InvestigationDetailsSerializer(access=access))[
+            "actionRequests"
+        ]
+
+    def cannot_apply_reason(self, user: Any = None) -> str | None:
+        return self.serialize_for(user or self.user)[0]["action"]["cannotApplyReason"]
+
+    def test_archived_investigations_cannot_apply(self) -> None:
+        self.add_request()
+        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+
+        assert self.cannot_apply_reason() == "investigation_archived"
+
+    def test_requests_that_are_not_suggested_cannot_apply(self) -> None:
+        self.add_request(state=InvestigationActionRequestState.FAILED)
+
+        assert self.cannot_apply_reason() == "not_suggested"
+
+    def test_unknown_action_kinds_cannot_apply(self) -> None:
+        self.add_request(action={"kind": "seer_task", "prompt": "Add retry spans"})
+
+        assert self.serialize_for(self.user)[0]["action"] == {
+            "kind": "seer_task",
+            "prompt": "Add retry spans",
+            "canApply": False,
+            "cannotApplyReason": "unsupported_action",
+        }

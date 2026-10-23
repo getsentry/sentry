@@ -29,6 +29,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationStatus,
     InvestigationStatus,
 )
+from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     archive_investigation,
@@ -2518,6 +2519,17 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.orchestration_run.refresh_from_db()
         assert self.investigation.version == version
         assert self.orchestration_run.notebook_revision == notebook_revision
+
+    def test_the_action_kind_hears_about_new_and_changed_requests(self) -> None:
+        with patch.object(ACTION_KINDS["test_kind"], "after_upsert") as after_upsert:
+            self.deliver_request(1, self.action_request("widen"))
+            self.deliver_request(2, self.action_request("widen"))
+            self.deliver_request(3, self.action_request("widen", action=fake_action("b")))
+
+        assert [call.args[0].action_payload for call in after_upsert.call_args_list] == [
+            fake_action(),
+            fake_action("b"),
+        ]
 
     def test_a_request_seer_cannot_describe_is_ignored(self) -> None:
         receipt = self.deliver_request(

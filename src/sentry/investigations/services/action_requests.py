@@ -14,6 +14,7 @@ from sentry.investigations.models import (
     InvestigationActionRequestState,
     InvestigationOrchestrationRun,
 )
+from sentry.investigations.services.action_kinds import get_action_kind
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ def upsert_action_request(
     row = InvestigationActionRequest.objects.filter(
         investigation=investigation, key=item["key"]
     ).first()
+    changed = True
     if row is None:
         row = InvestigationActionRequest.objects.create(
             investigation=investigation,
@@ -92,7 +94,9 @@ def upsert_action_request(
             action_payload=action,
             **display,
         )
-    elif row.state != InvestigationActionRequestState.APPLIED:
+    elif row.state == InvestigationActionRequestState.APPLIED:
+        changed = False
+    else:
         update_fields = [*display, "date_updated"]
         for field, value in display.items():
             setattr(row, field, value)
@@ -106,6 +110,8 @@ def upsert_action_request(
         elif row.state == InvestigationActionRequestState.SUPERSEDED and row.error is None:
             row.state = InvestigationActionRequestState.SUGGESTED
             update_fields.append("state")
+        else:
+            changed = False
         row.save(update_fields=update_fields)
 
     if item["primary"]:
@@ -117,6 +123,9 @@ def upsert_action_request(
             )
         if replace_primary:
             _replace_primary(investigation, row)
+    kind = get_action_kind(row.action_kind)
+    if changed and kind is not None and row.state == InvestigationActionRequestState.SUGGESTED:
+        kind.after_upsert(row)
     return row
 
 

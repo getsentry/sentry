@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -8,8 +8,10 @@ from unittest.mock import patch
 
 import orjson
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import ValidationError
 
+from sentry.auth.access import Access
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     MAX_ARTIFACT_BYTES,
@@ -30,8 +32,11 @@ from sentry.investigations.contracts import (
     validate_query_result,
     validate_text_result,
 )
+from sentry.investigations.models import Investigation, InvestigationActionRequest
 from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.investigations.services.action_kinds.base import ActionKind
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
 
 FIXTURE = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v1.json"
@@ -643,6 +648,16 @@ class _Payload(ActionPayloadSerializer):
 class _Kind(ActionKind):
     kind = "test_kind"
     payload_serializer = _Payload
+
+    def cannot_apply_reasons(
+        self,
+        action_requests: Sequence[InvestigationActionRequest],
+        *,
+        investigations: dict[int, Investigation],
+        access: Access | None,
+        user: User | RpcUser | AnonymousUser,
+    ) -> dict[int, str | None]:
+        return {item.id: None for item in action_requests}
 
 
 def fake_action(target: str = "a") -> dict[str, Any]:

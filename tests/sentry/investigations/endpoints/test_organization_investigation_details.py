@@ -302,7 +302,11 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         assert response.status_code == 200
         [serialized] = response.data["actionRequests"]
         assert serialized["id"] == str(action_request.id)
-        assert serialized["action"] == action_request.action_payload
+        assert serialized["action"] == {
+            **action_request.action_payload,
+            "canApply": False,
+            "cannotApplyReason": "unsupported_action",
+        }
 
     def test_metadata_update_persists_and_stale_version_rolls_back(self) -> None:
         created = self.client.post(

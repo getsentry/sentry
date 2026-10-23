@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict, override
@@ -7,11 +8,16 @@ from typing import Any, TypedDict, override
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.auth.access import Access
 from sentry.investigations.models import (
+    Investigation,
     InvestigationActionRequest,
     InvestigationActionRequestAnchorType,
+    InvestigationActionRequestState,
     InvestigationBlock,
+    InvestigationStatus,
 )
+from sentry.investigations.services.action_kinds import get_action_kind
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -59,6 +65,53 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
 class InvestigationActionRequestSerializer(
     Serializer[InvestigationActionRequestSerializerResponse]
 ):
+    def __init__(
+        self,
+        access: Access | None = None,
+        investigations: Sequence[Investigation] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.access = access
+        self.investigations = investigations
+        super().__init__(**kwargs)
+
+    def _cannot_apply_reasons(
+        self,
+        item_list: Sequence[InvestigationActionRequest],
+        user: User | RpcUser | AnonymousUser,
+    ) -> dict[int, str | None]:
+        investigation_ids = {item.investigation_id for item in item_list}
+        investigations = {
+            investigation.id: investigation
+            for investigation in (
+                self.investigations
+                if self.investigations is not None
+                else Investigation.objects.filter(id__in=investigation_ids).select_related(
+                    "organization"
+                )
+            )
+        }
+        reasons: dict[int, str | None] = {}
+        by_kind: dict[str, list[InvestigationActionRequest]] = defaultdict(list)
+        for item in item_list:
+            if investigations[item.investigation_id].status == InvestigationStatus.ARCHIVED:
+                reasons[item.id] = "investigation_archived"
+            elif item.state != InvestigationActionRequestState.SUGGESTED:
+                reasons[item.id] = "not_suggested"
+            elif get_action_kind(item.action_kind) is None:
+                reasons[item.id] = "unsupported_action"
+            else:
+                by_kind[item.action_kind or ""].append(item)
+        for kind_name, items in by_kind.items():
+            kind = get_action_kind(kind_name)
+            assert kind is not None
+            reasons.update(
+                kind.cannot_apply_reasons(
+                    items, investigations=investigations, access=self.access, user=user
+                )
+            )
+        return reasons
+
     def _anchored_block_ids(
         self, item_list: Sequence[InvestigationActionRequest]
     ) -> dict[tuple[int, str], str]:
@@ -86,6 +139,7 @@ class InvestigationActionRequestSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> MutableMapping[InvestigationActionRequest, dict[str, Any]]:
+        reasons = self._cannot_apply_reasons(item_list, user)
         anchored_blocks = self._anchored_block_ids(item_list)
         applier_ids = {item.applied_by_id for item in item_list if item.applied_by_id is not None}
         appliers = (
@@ -100,6 +154,7 @@ class InvestigationActionRequestSerializer(
         )
         return {
             item: {
+                "cannot_apply_reason": reasons.get(item.id, "not_suggested"),
                 "block_id": (
                     anchored_blocks.get((item.investigation_id, item.anchor_id or ""))
                     if item.anchor_type == InvestigationActionRequestAnchorType.BLOCK
@@ -118,6 +173,15 @@ class InvestigationActionRequestSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationActionRequestSerializerResponse:
+        action = (
+            {
+                **obj.action_payload,
+                "canApply": attrs["cannot_apply_reason"] is None,
+                "cannotApplyReason": attrs["cannot_apply_reason"],
+            }
+            if obj.action_payload is not None
+            else None
+        )
         return {
             "id": str(obj.id),
             "key": obj.key,
@@ -133,7 +197,7 @@ class InvestigationActionRequestSerializer(
             "impact": obj.impact,
             "state": obj.state,
             "reason": obj.reason,
-            "action": obj.action_payload,
+            "action": action,
             "appliedBy": attrs["applied_by"],
             "appliedDetails": obj.applied_details,
             "dateApplied": obj.date_applied,
