@@ -573,14 +573,6 @@ class Fixtures:
     def create_integration_external_project(self, *args, **kwargs):
         return Factories.create_integration_external_project(*args, **kwargs)
 
-    def create_incident(self, organization=None, projects=None, *args, **kwargs):
-        if not organization:
-            organization = self.organization
-        if projects is None:
-            projects = [self.project]
-
-        return Factories.create_incident(organization, projects, *args, **kwargs)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
