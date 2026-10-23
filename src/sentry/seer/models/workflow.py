@@ -60,6 +60,11 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccountReplica",
+        on_delete=models.SET_NULL,
+        null=True,
+    )
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
     enabled = models.BooleanField(default=False)
     schedule = models.CharField(
