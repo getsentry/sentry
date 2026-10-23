@@ -488,6 +488,38 @@ def test_projection_accepts_visible_broad_scan_steps() -> None:
     assert result["broadScan"]["toolActivity"][0]["id"] == "step-1"
 
 
+def thought(text: str, before_activity_id: str | None = "call-1") -> dict[str, Any]:
+    return {"id": "thought-1", "text": text, "beforeActivityId": before_activity_id}
+
+
+def test_projection_accepts_the_agent_reasoning_beside_its_calls() -> None:
+    result = validated(
+        OrchestrationProjectionSerializer,
+        projection(
+            broadScan={
+                "status": "running",
+                "toolActivity": [
+                    {"id": "call-1", "title": "Query spans", "kind": "api", "status": "running"}
+                ],
+                "thoughts": [
+                    thought("Compare the incident window with the baseline."),
+                    thought("That settles it.", before_activity_id=None),
+                ],
+            }
+        ),
+    )
+
+    thoughts = result["broadScan"]["thoughts"]
+    assert [entry["beforeActivityId"] for entry in thoughts] == ["call-1", None]
+
+
+def test_projection_rejects_reasoning_past_its_length_cap() -> None:
+    rejects(
+        OrchestrationProjectionSerializer,
+        projection(broadScan={"status": "running", "thoughts": [thought("x" * 1_501)]}),
+    )
+
+
 def test_report_cancellation_may_fence_on_the_first_revision() -> None:
     result = validated(
         OrchestrationProjectionSerializer,

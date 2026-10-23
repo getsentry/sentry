@@ -24,6 +24,7 @@ MAX_POINTS_PER_SERIES = 200
 MAX_ARTIFACT_BYTES = 1024 * 1024
 MAX_MARKDOWN_CHARS = 100_000
 MAX_PROJECTION_BYTES = 512 * 1024
+MAX_THOUGHT_TEXT_CHARS = 1_500
 
 
 def json_byte_size(value: Any) -> int:
@@ -428,6 +429,15 @@ class ToolActivitySerializer(RelaxedContractSerializer):
     status = serializers.ChoiceField(choices=["queued", "running", "completed", "failed"])
 
 
+class ThoughtSerializer(RelaxedContractSerializer):
+    """The agent's reasoning before the calls that follow it in the same phase's tool activity."""
+
+    id = StrictCharField(max_length=128)
+    text = StrictCharField(max_length=MAX_THOUGHT_TEXT_CHARS)
+    # The tool activity entry this reasoning came before; null until a call follows it.
+    beforeActivityId = OptionalStrictCharField(128)
+
+
 class ProjectScopedSerializer(RelaxedContractSerializer):
     projectIds = serializers.ListField(
         child=StrictIntegerField(min_value=1, max_value=I64_MAX),
@@ -538,6 +548,11 @@ class HypothesisSerializer(RelaxedContractSerializer):
         required=False,
         max_length=MAX_TOOL_ACTIVITIES,
     )
+    thoughts = serializers.ListField(
+        child=ThoughtSerializer(),
+        required=False,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
     evidence = serializers.ListField(
         child=EvidenceSerializer(), required=False, max_length=MAX_EVIDENCE_ITEMS
     )
@@ -558,6 +573,12 @@ class BroadScanSerializer(RelaxedContractSerializer):
     error = ProjectionErrorSerializer(required=False, allow_null=True, default=None)
     toolActivity = serializers.ListField(
         child=ToolActivitySerializer(),
+        required=False,
+        default=list,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
+    thoughts = serializers.ListField(
+        child=ThoughtSerializer(),
         required=False,
         default=list,
         max_length=MAX_TOOL_ACTIVITIES,
@@ -603,6 +624,12 @@ class ReportSerializer(RelaxedContractSerializer):
     currentBlockStatus = serializers.ChoiceField(choices=sorted(WORK_STATUSES), required=False)
     currentBlockToolActivity = serializers.ListField(
         child=ToolActivitySerializer(),
+        required=False,
+        default=list,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
+    currentBlockThoughts = serializers.ListField(
+        child=ThoughtSerializer(),
         required=False,
         default=list,
         max_length=MAX_TOOL_ACTIVITIES,
