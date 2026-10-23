@@ -9,18 +9,19 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 GROUP_KEY_TYPES = ("issue", "metric-alert")
 
 
-def backfill_object_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
+def backfill_object(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     NotificationThread = apps.get_model("notifications", "NotificationThread")
 
     threads = NotificationThread.objects.filter(
-        key_type__in=GROUP_KEY_TYPES, object_id__isnull=True
+        key_type__in=GROUP_KEY_TYPES, object_type__isnull=True
     )
     for thread in RangeQuerySetWrapperWithProgressBar(threads):
         group_id = thread.key_data.get("group_id")
         if group_id is None:
             continue
+        thread.object_type = "group"
         thread.object_id = int(group_id)
-        thread.save(update_fields=["object_id"])
+        thread.save(update_fields=["object_type", "object_id"])
 
 
 class Migration(CheckedMigration):
@@ -39,12 +40,12 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("notifications", "0014_add_notificationthread_object_id"),
+        ("notifications", "0014_add_notificationthread_object"),
     ]
 
     operations = [
         migrations.RunPython(
-            backfill_object_id,
+            backfill_object,
             migrations.RunPython.noop,
             hints={"tables": ["notifications_notificationthread"]},
         ),
