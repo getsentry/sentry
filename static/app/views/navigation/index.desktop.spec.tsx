@@ -589,25 +589,31 @@ describe('desktop navigation', () => {
       return screen.getByRole('navigation', {name: 'Primary Navigation'});
     }
 
-    it('shows Seer between Issues and Explore with investigations and open membership', () => {
+    it('shows Seer between Issues and Explore with seer-primary-nav', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'investigations'],
-        openMembership: true,
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'seer-automations'],
       });
 
       const links = within(primaryNav).getAllByRole('link');
       expect(links[0]).toHaveAccessibleName('Issues');
       expect(links[1]).toHaveAccessibleName('Seer');
       expect(links[2]).toHaveAccessibleName('Explore');
-      expect(links[1]).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/seer/investigations/'
-      );
     });
 
-    it('hides Seer with investigations and closed membership', () => {
+    it('hides Seer without seer-primary-nav, even with investigations and automations', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'investigations'],
+        features: [...ALL_AVAILABLE_FEATURES, 'investigations', 'seer-automations'],
+        openMembership: true,
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides Seer with seer-primary-nav but neither investigations nor automations', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
         openMembership: false,
       });
 
@@ -616,20 +622,35 @@ describe('desktop navigation', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('hides Seer without investigations', () => {
+    it('links Seer to automations when automations is enabled', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'seer-automations'],
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'seer-automations'],
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/automations/'
+      );
+    });
+
+    it('links Seer to investigations when automations is disabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
         openMembership: true,
       });
 
-      expect(
-        within(primaryNav).queryByRole('link', {name: 'Seer'})
-      ).not.toBeInTheDocument();
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/investigations/'
+      );
     });
 
     it('marks Seer as active on seer routes', () => {
       const primaryNav = renderSeerNavigation(
-        {features: [...ALL_AVAILABLE_FEATURES, 'investigations'], openMembership: true},
+        {
+          features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+          openMembership: true,
+        },
         '/organizations/org-slug/seer/investigations/investigation-1/'
       );
 

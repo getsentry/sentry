@@ -46,9 +46,12 @@ function normalizeReason(reason: string): string {
   // Reasons like `Sampled:0` or `custom-inbound-filter:foo` carry a dynamic
   // suffix; the registry keys on the bare prefix. Exact keys (`too_large:span`)
   // are matched above, so this only strips genuinely dynamic suffixes.
-  const prefix = reason.slice(0, reason.indexOf(':'));
-  if (reason.includes(':') && REASON_INFO[prefix]) {
-    return prefix;
+  const colonIndex = reason.indexOf(':');
+  if (colonIndex !== -1) {
+    const prefix = reason.slice(0, colonIndex);
+    if (REASON_INFO[prefix]) {
+      return prefix;
+    }
   }
   return reason.endsWith('_usage_exceeded') ? 'usage_exceeded' : reason;
 }

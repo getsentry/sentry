@@ -977,12 +977,20 @@ export function SearchQueryBuilderFreeText({
 
   const isInvalid = Boolean(token.invalid);
 
+  // The empty slot before a leading filter takes no room until it has focus, so
+  // the first row of a wrapped query starts where the later rows do.
+  const isEmptyLeadingSlot =
+    state.collection.getFirstKey() === item.key &&
+    state.collection.getLastKey() !== item.key &&
+    token.value.trim() === '';
+
   return (
     <Row
       {...mergeProps(rowProps, shiftFocusProps)}
       ref={ref}
       tabIndex={-1}
       aria-invalid={isInvalid}
+      data-empty-leading-slot={isEmptyLeadingSlot ? 'true' : undefined}
     >
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
         <SearchQueryBuilderInputInternal
@@ -1005,6 +1013,12 @@ const Row = styled('div')`
 
   &:last-child {
     flex-grow: 1;
+  }
+
+  &[data-empty-leading-slot='true']:not(:focus-within) {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
   }
 
   &[aria-invalid='true'] {
