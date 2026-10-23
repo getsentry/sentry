@@ -1,9 +1,10 @@
 """Conservative replay evidence, independent of rendered message text.
 
 Only adjacent generations in the same scope are compared. Without stable IDs,
-a replay must contain the previous captured input AND its captured response as
-an exact prefix. Equal text, message counts, and truncated snapshots alone are
-not proof. Unknown or lossy shapes deliberately provide no evidence.
+replay requires either growing input history without a new user message, or
+an exact prefix containing the previous captured input and response. Comparing
+input history directly accommodates providers that encode assistant output and
+input differently. Equal text and unchanged snapshots alone are not proof.
 """
 
 import hashlib
@@ -119,11 +120,15 @@ def is_user_replay(current: GenerationCapture, previous: GenerationCapture | Non
     user = current.inputs[last_user]
     if user.identifier and any(message == user for message in previous.inputs):
         return True
+    if previous.finished_at > current.started_at:
+        return False
     if (
-        previous.finished_at > current.started_at
-        or not previous.outputs
-        or any(message.role != "assistant" for message in previous.outputs)
+        len(current.inputs) > len(previous.inputs)
+        and current.inputs[: len(previous.inputs)] == previous.inputs
+        and last_user < len(previous.inputs)
     ):
+        return True
+    if not previous.outputs or any(message.role != "assistant" for message in previous.outputs):
         return False
     observed = previous.inputs + previous.outputs
     return last_user < len(observed) and current.inputs[: len(observed)] == observed
