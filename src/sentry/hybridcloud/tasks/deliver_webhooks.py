@@ -1363,14 +1363,18 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
             headers = orjson.loads(payload.request_headers)
             # We need to send the body as raw bytes to avoid interfering with webhook signatures
             body = payload.request_body.encode("utf-8")
-            # Lets the cell trust that control verified this webhook on arrival. Drop any
-            # copy of the header that came in with the original request.
-            headers.pop(WEBHOOK_DELIVERY_SIGNATURE_HEADER, None)
-            signature = encode_webhook_delivery_signature(
-                payload.request_path, headers.get("Authorization", ""), body
-            )
-            if signature:
-                headers[WEBHOOK_DELIVERY_SIGNATURE_HEADER] = signature
+            if (
+                payload.request_method == "POST"
+                and payload.request_path.partition("?")[0] == "/extensions/jira/issue-updated/"
+            ):
+                # Lets Jira trust that control verified this webhook on arrival. Drop any
+                # copy of the header that came in with the original request.
+                headers.pop(WEBHOOK_DELIVERY_SIGNATURE_HEADER, None)
+                signature = encode_webhook_delivery_signature(
+                    payload.request_path, headers.get("Authorization", ""), body
+                )
+                if signature:
+                    headers[WEBHOOK_DELIVERY_SIGNATURE_HEADER] = signature
             response = client.request(
                 method=payload.request_method,
                 path=payload.request_path,

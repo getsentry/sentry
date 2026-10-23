@@ -8,7 +8,7 @@ import pytest
 import responses
 from django.core.cache import cache
 from django.db import connections
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.utils import timezone
 from requests.exceptions import ConnectionError, ReadTimeout
 
@@ -33,6 +33,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     maybe_trigger_drain,
     schedule_webhook_delivery,
 )
+from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
@@ -988,6 +989,36 @@ def assert_drain_skips_failed_message(provider: str) -> None:
     assert remaining.provider == provider
     assert remaining.attempts == 1
     assert remaining.schedule_for > timezone.now()
+
+
+@pytest.mark.django_db
+@control_silo_test
+@override_settings(SENTRY_SUBNET_SECRET="subnet-secret")
+@responses.activate
+@pytest.mark.parametrize(
+    ("method", "path", "signed"),
+    [
+        ("POST", "/extensions/jira/issue-updated/", True),
+        ("POST", "/extensions/jira/issue-updated/?lic=none", True),
+        ("POST", "/extensions/jira/uninstalled/", False),
+        ("POST", "/extensions/github/webhook/", False),
+        ("GET", "/extensions/jira/issue-updated/", False),
+    ],
+)
+def test_only_jira_issue_updated_delivery_signed(method: str, path: str, signed: bool) -> None:
+    payload = Factories.create_webhook_payload(
+        mailbox_name="jira:123",
+        cell_name="us",
+        request_method=method,
+        request_path=path,
+        request_headers='{"Authorization": "JWT token"}',
+    )
+    responses.add(method, f"http://us.testserver{path}", status=200, body="")
+
+    deliver_webhooks.perform_cell_request(cell_config[0], payload)
+
+    headers = responses.calls[0].request.headers
+    assert (WEBHOOK_DELIVERY_SIGNATURE_HEADER in headers) is signed
 
 
 @control_silo_test
