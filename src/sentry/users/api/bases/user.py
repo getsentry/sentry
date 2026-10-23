@@ -11,6 +11,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import to_valid_int_id
+from sentry.auth import access
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -18,7 +19,6 @@ from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.organizations.services.organization import organization_service
 from sentry.seer import agent_token
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -124,8 +124,8 @@ class OrganizationUserPermission(UserAndStaffPermission):
         organization_id = self._get_single_organization_id(user)
         if organization_id is None:
             return False
-        organization = organization_service.get_organization_by_id(
-            id=organization_id, user_id=request.user.id
+        organization = access.get_organization_access_context(
+            request, organization_id=organization_id
         )
         if not organization:
             return False

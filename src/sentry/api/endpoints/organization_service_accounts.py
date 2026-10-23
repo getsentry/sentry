@@ -127,7 +127,7 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
         access = self.context["access"]
         grantable = set(
             organization_service.get_active_project_ids(
-                organization_id=self.context["organization"].id
+                organization_id=self.context["organization"].id, project_ids=project_ids
             )
         )
         if not access.has_global_access:

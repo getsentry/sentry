@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.auth import access
@@ -111,9 +112,18 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
         sentry_app = self.create_sentry_app(
             name="Tesla App", organization=self.organization, published=True, scopes=("org:write",)
         )
+        self.create_project(organization=self.organization)
 
         acc = access.from_user(self.user, self.organization)
-        result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
+        with (
+            patch(
+                "sentry.organizations.services.organization.serial.serialize_project"
+            ) as projects,
+            patch("sentry.organizations.services.organization.serial.serialize_rpc_team") as teams,
+        ):
+            result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
+        projects.assert_not_called()
+        teams.assert_not_called()
         assert result["clientSecret"] is not None
 
         now = datetime.now()

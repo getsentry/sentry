@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
@@ -15,6 +15,7 @@ from sentry.auth.scope_declaration import (
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import dispatch_remote_call
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -22,7 +23,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import organization_service
-from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -61,11 +61,8 @@ def silo_from_user(
 def silo_from_request(request, organization: Organization | None = None, scopes=None) -> Access:
     rpc_user_org_context = None
     if organization:
-        rpc_user_org_context = organization_service.get_organization_by_id(
-            id=organization.id,
-            user_id=request.user.id,
-            include_projects=False,
-            include_teams=False,
+        rpc_user_org_context = access.get_organization_access_context(
+            request, organization_id=organization.id
         )
     return access.from_request_org_and_scopes(
         request=request, rpc_user_org_context=rpc_user_org_context, scopes=scopes
@@ -961,8 +958,9 @@ class RpcGlobalAccessTest(TestCase):
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(organization=self.org, teams=[])
-        context = organization_service.get_organization_by_id(
-            id=self.org.id, include_projects=False, include_teams=False
+        context = organization_service.get_access_context(
+            organization_id=self.org.id,
+            include_resource_ids=SiloMode.get_current_mode() == SiloMode.CONTROL,
         )
         assert context is not None
         self.context = context
@@ -1002,35 +1000,43 @@ class RpcGlobalAccessTest(TestCase):
         assert not result.has_project_access(self.project)
         assert not result.has_team_access(self.team)
 
-    def test_resource_ids_are_independently_lazy_and_cached(self) -> None:
+    def test_cell_resource_ids_are_lazily_batched(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL, can_be_monolith=False):
+            context = organization_service.get_access_context(organization_id=self.org.id)
+            assert context is not None
+            with patch.object(
+                organization_service,
+                "get_active_resource_ids",
+                wraps=organization_service.get_active_resource_ids,
+            ) as resources:
+                result = access.from_rpc_auth(self.token, context)
+                assert result.has_project_access(self.project)
+                assert result.has_team_access(self.team)
+                resources.assert_not_called()
+
+                assert result.accessible_project_ids == frozenset({self.project.id})
+                assert result.accessible_team_ids == frozenset({self.team.id})
+                assert result.accessible_project_ids == frozenset({self.project.id})
+                resources.assert_called_once_with(organization_id=self.org.id)
+
+    def test_control_resource_ids_use_one_context_rpc(self) -> None:
         with (
-            patch.object(
-                DatabaseBackedOrganizationService,
-                "get_active_project_ids",
-                autospec=True,
-                side_effect=DatabaseBackedOrganizationService.get_active_project_ids,
-            ) as project_ids,
-            patch.object(
-                DatabaseBackedOrganizationService,
-                "get_active_team_ids",
-                autospec=True,
-                side_effect=DatabaseBackedOrganizationService.get_active_team_ids,
-            ) as team_ids,
+            assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False),
+            patch(
+                "sentry.hybridcloud.rpc.service.dispatch_remote_call", wraps=dispatch_remote_call
+            ) as rpc,
         ):
-            result = access.from_rpc_auth(self.token, self.context)
-            assert result.has_project_access(self.project)
-            assert result.has_team_access(self.team)
-            project_ids.assert_not_called()
-            team_ids.assert_not_called()
-
+            context = organization_service.get_access_context(
+                organization_id=self.org.id, include_resource_ids=True
+            )
+            assert context is not None
+            result = access.from_rpc_auth(self.token, context)
             assert result.accessible_project_ids == frozenset({self.project.id})
-            assert result.accessible_project_ids == frozenset({self.project.id})
-            project_ids.assert_called_once_with(ANY, organization_id=self.org.id)
-            team_ids.assert_not_called()
-
             assert result.accessible_team_ids == frozenset({self.team.id})
             assert result.accessible_team_ids == frozenset({self.team.id})
-            team_ids.assert_called_once_with(ANY, organization_id=self.org.id)
+
+        rpc.assert_called_once()
+        assert rpc.call_args.args[1:3] == ("organization", "get_access_context")
 
 
 @all_silo_test

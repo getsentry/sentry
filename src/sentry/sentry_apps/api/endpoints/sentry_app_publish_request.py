@@ -84,7 +84,9 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 {"detail": "Cannot publish a custom integration without an organization"},
                 status=400,
             )
-        organization = organization_service.get_organization_by_id(id=org_mapping.organization_id)
+        organization = organization_service.get_access_context(
+            organization_id=org_mapping.organization_id
+        )
 
         questionnaire_serializer = SentryAppPublishRequestSerializer(data=request.data)
         if not questionnaire_serializer.is_valid():

@@ -178,7 +178,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
     def _filter_queryset_for_user(self, queryset: BaseQuerySet[SentryApp, SentryApp], user_id: int):
         owner_ids = []
         for o in user_service.get_organizations(user_id=user_id, only_visible=True):
-            org_context = organization_service.get_organization_by_id(id=o.id, user_id=user_id)
+            org_context = organization_service.get_access_context(
+                organization_id=o.id, user_id=user_id
+            )
             if org_context and org_context.member and "org:read" in org_context.member.scopes:
                 owner_ids.append(o.id)
 

@@ -30,8 +30,10 @@ from sentry.api.exceptions import (
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
+from sentry.hybridcloud.rpc.service import dispatch_remote_call
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -60,11 +62,6 @@ class MockSuperUser:
     @property
     def is_active(self) -> bool:
         return True
-
-
-class HydratedControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
-    include_organization_projects = True
-    include_organization_teams = True
 
 
 class PermissionBaseTestCase(TestCase):
@@ -545,13 +542,11 @@ class DetermineAccessHydrationTest(TestCase):
     def test_existing_context_is_reused(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
-        context = organization_service.get_organization_by_id(
-            id=org.id, user_id=user.id, include_projects=False, include_teams=False
-        )
+        context = organization_service.get_access_context(organization_id=org.id, user_id=user.id)
         assert context is not None
         request = drf_request_from_request(self.make_request(user=user))
 
-        with mock.patch.object(organization_service, "get_organization_by_id") as get_org:
+        with mock.patch.object(organization_service, "get_access_context") as get_org:
             OrganizationPermission().determine_access(request, context)
 
         get_org.assert_not_called()
@@ -583,6 +578,9 @@ class ControlSiloOrganizationEndpointTest(TestCase):
             mock.patch(
                 "sentry.organizations.services.organization.serial.serialize_rpc_team"
             ) as serialize_team,
+            mock.patch.object(
+                DatabaseBackedOrganizationService, "get_active_resource_ids"
+            ) as resource_ids,
         ):
             _, kwargs = ControlSiloOrganizationEndpoint().convert_args(
                 request, organization_id_or_slug
@@ -590,6 +588,7 @@ class ControlSiloOrganizationEndpointTest(TestCase):
 
         serialize_project.assert_not_called()
         serialize_team.assert_not_called()
+        resource_ids.assert_not_called()
         assert kwargs["organization"].projects == []
         assert kwargs["organization"].teams == []
         assert request.access.has_scope("org:read")
@@ -602,34 +601,31 @@ class ControlSiloOrganizationEndpointTest(TestCase):
     def test_convert_args_omits_projects_and_teams_by_default_for_id(self) -> None:
         self.assert_lightweight_context(self.organization.id)
 
-    def assert_hydrated_context(self, organization_id_or_slug: int | str) -> None:
-        _, kwargs = HydratedControlSiloOrganizationEndpoint().convert_args(
-            self.build_request(), organization_id_or_slug
+    def test_org_token_enumerates_resources_without_additional_rpcs(self) -> None:
+        request = self.build_request()
+        request.user = AnonymousUser()
+        request.auth = AuthenticatedToken(
+            kind="org_auth_token", organization_id=self.organization.id, scopes=["org:read"]
         )
-        assert {p.id for p in kwargs["organization"].projects} == {self.project.id}
-        assert {t.id for t in kwargs["organization"].teams} == {self.team.id}
+        unassigned = self.create_project(organization=self.organization, teams=[])
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False),
+            mock.patch(
+                "sentry.hybridcloud.rpc.service.dispatch_remote_call", wraps=dispatch_remote_call
+            ) as rpc,
+        ):
+            _, kwargs = ControlSiloOrganizationEndpoint().convert_args(
+                request, self.organization.slug
+            )
+            assert request.access.accessible_project_ids == frozenset(
+                {self.project.id, unassigned.id}
+            )
+            assert request.access.accessible_team_ids == frozenset({self.team.id})
 
-    def test_convert_args_can_include_projects_and_teams_for_slug(self) -> None:
-        self.assert_hydrated_context(self.organization.slug)
-
-    def test_convert_args_can_include_projects_and_teams_for_id(self) -> None:
-        self.assert_hydrated_context(self.organization.id)
-
-    def test_convert_args_can_include_only_projects(self) -> None:
-        endpoint = ControlSiloOrganizationEndpoint()
-        endpoint.include_organization_projects = True
-        _, kwargs = endpoint.convert_args(self.build_request(), self.organization.slug)
-
-        assert {p.id for p in kwargs["organization"].projects} == {self.project.id}
-        assert kwargs["organization"].teams == []
-
-    def test_convert_args_can_include_only_teams(self) -> None:
-        endpoint = ControlSiloOrganizationEndpoint()
-        endpoint.include_organization_teams = True
-        _, kwargs = endpoint.convert_args(self.build_request(), self.organization.id)
-
+        rpc.assert_called_once()
+        assert rpc.call_args.args[1:3] == ("organization", "get_access_context")
         assert kwargs["organization"].projects == []
-        assert {t.id for t in kwargs["organization"].teams} == {self.team.id}
+        assert kwargs["organization"].teams == []
 
 
 class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):
