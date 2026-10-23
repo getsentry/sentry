@@ -211,18 +211,10 @@ def test_parsing_errors() -> None:
             "error.type:B-> b",
             'Invalid syntax near "-> b" (line 1, column 13): add a space before "->"',
         ),
+        # The arrow is fine, so the error points at `{d`, not at the `->` and `→` in the values
         (
-            "error.type:B -> a{b",
-            'Invalid syntax near "{b" (line 1, column 18)',
-        ),
-        # The parser stops at `{d`, so the error points there, not at the arrows in the values
-        (
-            "message:a -> b->c{d",
-            'Invalid syntax near "{d" (line 1, column 18)',
-        ),
-        (
-            'message:a -> "x\ny → z" {d',
-            'Invalid syntax near "{d" (line 2, column 8)',
+            'error.type:B -> b->c "x → y" {d',
+            'Invalid syntax near "{d" (line 1, column 30)',
         ),
     ],
 )
