@@ -215,7 +215,7 @@ def test_parsing_errors() -> None:
             "error.type:B -> a{b",
             'Invalid syntax near "{b" (line 1, column 18)',
         ),
-        # Once the parser gets past the arrow, its own position is used
+        # The parser stops at `{d`, so the error points there, not at the arrows in the values
         (
             "message:a -> b->c{d",
             'Invalid syntax near "{d" (line 1, column 18)',
