@@ -125,7 +125,7 @@ def set_list(project: Project, filter_type: str, lines: Sequence[str]) -> None:
 def copy_lists(source: Project, target: Project) -> None:
     """Copies every list, and the name and the active flag of its row, onto ``target``."""
     for filter_type, row in _ROWS.items():
-        set_list(target, filter_type, source.get_option(f"sentry:{filter_type}") or [])
+        set_list(target, filter_type, get_lines(source, filter_type))
         source_row = _get_row(source, row)
         target_row = _get_row(target, row)
         if source_row is not None and target_row is not None:
