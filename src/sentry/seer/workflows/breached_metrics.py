@@ -21,13 +21,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.services.eventstore.models import GroupEvent
-from sentry.workflow_engine.models import (
-    Action,
-    DataConditionGroupAction,
-    DetectorGroup,
-    DetectorWorkflow,
-    Workflow,
-)
+from sentry.workflow_engine.models import Action, DetectorGroup
 
 
 @dataclass(frozen=True)
@@ -82,6 +76,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
         origin: MetricBreachWorkflowOrigin,
     ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
         """Check eligibility, then record one admission decision per issue and config."""
+        if not features.has("organizations:seer-automations", group.organization):
+            return IgnoredMetricBreach("feature_disabled")
         if group.type != MetricIssue.type_id or not isinstance(event, GroupEvent):
             return IgnoredMetricBreach("unsupported_trigger")
         occurrence = event.occurrence
@@ -94,8 +90,6 @@ class BreachedMetricWorkflow(SeerWorkflow):
             or occurrence.event_id != event.event_id
         ):
             return IgnoredMetricBreach("invalid_source")
-        if not features.has("organizations:seer-automations", group.organization):
-            return IgnoredMetricBreach("feature_disabled")
         try:
             trigger = MetricBreachTrigger(
                 event_id=event.event_id,
@@ -132,9 +126,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 trigger_action__type=Action.Type.SEER_WORKFLOW,
                 trigger_action__status=ObjectStatus.ACTIVE,
             ).first()
-            if binding is None or not _workflow_is_valid(
-                group, trigger.detector_id, origin.workflow_id, origin.action_id
-            ):
+            if binding is None:
                 return IgnoredMetricBreach("workflow_unavailable")
             return self._record_run(group, trigger, origin, binding)
 
@@ -160,7 +152,9 @@ class BreachedMetricWorkflow(SeerWorkflow):
             )
         created = run is None
         if run is None:
-            reason = self.admission_rejection_reason()
+            reason: MetricBreachRejectionReason | None = (
+                None if self.has_quota_available() else "quota_exceeded"
+            )
             decided_at = timezone.now()
             run = SeerWorkflowRun.objects.create(
                 organization_id=group.organization.id,
@@ -204,23 +198,3 @@ def _source_is_valid(group: Group, detector_id: int) -> bool:
         detector__project_id=group.project_id,
         detector__status=ObjectStatus.ACTIVE,
     ).exists()
-
-
-def _workflow_is_valid(group: Group, detector_id: int, workflow_id: int, action_id: int) -> bool:
-    return (
-        Workflow.objects.filter(
-            id=workflow_id,
-            organization_id=group.organization.id,
-            enabled=True,
-            status=ObjectStatus.ACTIVE,
-        ).exists()
-        and DetectorWorkflow.objects.filter(
-            detector_id=detector_id, workflow_id=workflow_id
-        ).exists()
-        and DataConditionGroupAction.objects.filter(
-            action_id=action_id,
-            action__type=Action.Type.SEER_WORKFLOW,
-            action__status=ObjectStatus.ACTIVE,
-            condition_group__workflowdataconditiongroup__workflow_id=workflow_id,
-        ).exists()
-    )

@@ -30,7 +30,7 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
-from sentry.workflow_engine.models import Action, DetectorWorkflow
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -319,11 +319,14 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert rejected == IgnoredMetricBreach("invalid_source")
         assert not SeerWorkflowRun.objects.exists()
 
-    def test_ignored_feature_reports_reason(self) -> None:
+    def test_disabled_feature_is_checked_before_source_validation(self) -> None:
+        event = self.breach_event()
+        event.occurrence = None
+
         with self.feature({"organizations:seer-automations": False}):
             rejected = BreachedMetricWorkflow(self.config).accept(
                 self.group,
-                self.breach_event(),
+                event,
                 origin=MetricBreachWorkflowOrigin(
                     workflow_id=self.workflow.id, action_id=self.action.id
                 ),
@@ -344,20 +347,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         )
 
         assert rejected == IgnoredMetricBreach("out_of_scope")
-        assert not SeerWorkflowRun.objects.exists()
-
-    def test_ignored_workflow_reports_reason(self) -> None:
-        self.workflow.update(enabled=False)
-
-        rejected = BreachedMetricWorkflow(self.config).accept(
-            self.group,
-            self.breach_event(),
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
-        )
-
-        assert rejected == IgnoredMetricBreach("workflow_unavailable")
         assert not SeerWorkflowRun.objects.exists()
 
     def test_disabled_configuration_does_not_accept_work(self) -> None:
@@ -411,7 +400,7 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert SeerWorkflowRun.objects.count() == 1
         assert SeerWorkflowRunExecution.objects.get().run_id == run.id
 
-    @mock.patch("sentry.seer.workflows.workflow.SeerWorkflow.admission_rejection_reason")
+    @mock.patch("sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available")
     def test_environment_mismatch_is_ignored_before_admission(
         self, admission: mock.MagicMock
     ) -> None:
@@ -430,7 +419,7 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert not SeerWorkflowRunExecution.objects.exists()
         admission.assert_not_called()
 
-    @mock.patch("sentry.seer.workflows.workflow.SeerWorkflow.admission_rejection_reason")
+    @mock.patch("sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available")
     def test_project_mismatch_is_ignored_before_admission(self, admission: mock.MagicMock) -> None:
         self.config.update(filters={"all_projects": False})
 
@@ -448,8 +437,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         admission.assert_not_called()
 
     @mock.patch(
-        "sentry.seer.workflows.workflow.SeerWorkflow.admission_rejection_reason",
-        return_value="quota_exceeded",
+        "sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available",
+        return_value=False,
     )
     def test_eligible_admission_rejection_records_run_without_execution(
         self, admission: mock.MagicMock
@@ -486,8 +475,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
     def test_rejected_trigger_is_not_readmitted_for_the_same_or_another_event(self) -> None:
         event = self.breach_event()
         with mock.patch(
-            "sentry.seer.workflows.workflow.SeerWorkflow.admission_rejection_reason",
-            return_value="quota_exceeded",
+            "sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available",
+            return_value=False,
         ):
             first = BreachedMetricWorkflow(self.config).accept(
                 self.group,
@@ -498,8 +487,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
             )
 
         with mock.patch(
-            "sentry.seer.workflows.workflow.SeerWorkflow.admission_rejection_reason",
-            return_value=None,
+            "sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available",
+            return_value=True,
         ) as admission:
             replayed = BreachedMetricWorkflow(self.config).accept(
                 self.group,
@@ -552,22 +541,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
 
         assert self.accept(self.breach_event(), config=other) is None
         assert not SeerWorkflowRun.objects.exists()
-
-    def test_disabled_workflow_does_not_accept_work(self) -> None:
-        self.workflow.update(enabled=False)
-
-        assert self.accept(self.breach_event()) is None
-
-    def test_unlinked_detector_does_not_accept_work(self) -> None:
-        DetectorWorkflow.objects.filter(detector=self.detector, workflow=self.workflow).delete()
-
-        assert self.accept(self.breach_event()) is None
-
-    def test_action_not_attached_to_invoking_workflow_does_not_accept_work(self) -> None:
-        self.workflow = self.create_workflow(organization=self.organization)
-        self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
-
-        assert self.accept(self.breach_event()) is None
 
     def accept(
         self,
