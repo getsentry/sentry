@@ -437,7 +437,7 @@ interface AggregateMultiSelectProps {
   value: string[];
 }
 
-function AggregateMultiSelect({
+export function AggregateMultiSelect({
   formulas,
   maxAggregates,
   onChange,

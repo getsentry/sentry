@@ -97,7 +97,7 @@ const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 // Several aggregates over the top groups can share a chart, which can put
 // dozens of series in one tooltip.
-const MAX_TOOLTIP_SERIES = 10;
+export const MAX_TOOLTIP_SERIES = 10;
 
 export function ExploreCharts({
   query,

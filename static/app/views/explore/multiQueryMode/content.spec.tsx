@@ -1,4 +1,5 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -410,6 +411,81 @@ describe('MultiQueryModeContent', () => {
         query: '',
       },
     ]);
+  });
+
+  it('plots aggregates selected together on one chart', async () => {
+    let queries: any;
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-multi-aggregate-charts'],
+      }),
+    });
+
+    const section = await screen.findByTestId('section-visualize-0');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    expect(within(section).getByText('Percentiles')).toBeInTheDocument();
+    expect(within(section).getByText('Stats')).toBeInTheDocument();
+    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p99'}));
+    await waitFor(() =>
+      expect(queries[0].yAxes).toEqual(['p50(span.duration)', 'p99(span.duration)'])
+    );
+    await userEvent.keyboard('{Escape}');
+    expect(within(section).getByRole('button', {name: 'p50 +1'})).toBeInTheDocument();
+
+    // Several aggregates on one chart are always drawn as lines.
+    expect((await screen.findByText('Line')).closest('button')).toBeDisabled();
+
+    // The field applies to every aggregate on the chart.
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await waitFor(() =>
+      expect(queries[0].yAxes).toEqual(['p50(span.self_time)', 'p99(span.self_time)'])
+    );
+    expect(queries[0].fields).toEqual(['id', 'span.self_time', 'timestamp']);
+
+    // Aggregates outside the percentiles and stats are picked one at a time.
+    await userEvent.click(within(section).getByRole('button', {name: 'p50 +1'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'sum'}));
+    await waitFor(() => expect(queries[0].yAxes).toEqual(['sum(span.self_time)']));
+    // A single aggregate gets its default chart type back.
+    expect(await screen.findByRole('button', {name: 'Bar'})).toBeEnabled();
+  });
+
+  it('resets the aggregates when the selection is cleared', async () => {
+    let queries: any;
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-multi-aggregate-charts'],
+      }),
+    });
+
+    const section = await screen.findByTestId('section-visualize-0');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
+    await waitFor(() =>
+      expect(queries[0].yAxes).toEqual(['p50(span.duration)', 'p75(span.duration)'])
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+    await waitFor(() => expect(queries[0].yAxes).toEqual(['count(span.duration)']));
   });
 
   it('updates visualization and outdated sorts', async () => {

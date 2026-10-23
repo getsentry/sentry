@@ -21,7 +21,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartInfosPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -31,8 +34,12 @@ import {
   useUpdateQueryAtIndex,
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {
+  EXPLORE_CHART_TYPE_OPTIONS,
+  MAX_TOOLTIP_SERIES,
+} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {
   combineConfidenceForSeries,
   getFirstSamplingWarning,
@@ -59,6 +66,10 @@ export function MultiQueryModeChart({
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
 
+  const organization = useOrganization();
+  const multiAggregateCharts = hasMultiAggregateCharts(organization);
+  const isCombinedChart = multiAggregateCharts && yAxes.length > 1;
+
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
   const formattedYAxes = yAxes.map(yaxis => {
@@ -68,7 +79,12 @@ export function MultiQueryModeChart({
 
   const updateChartType = useUpdateQueryAtIndex(index);
 
-  const chartType = queryParts.chartType ?? determineDefaultChartType(yAxes);
+  // Several aggregates on one chart only read well as lines; stacked areas or
+  // bars would add up values that don't sum. The selected chart type stays in
+  // the URL so it comes back once the chart is down to one aggregate.
+  const chartType = isCombinedChart
+    ? ChartType.LINE
+    : (queryParts.chartType ?? determineDefaultChartType(yAxes));
 
   const visualizationType =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
@@ -90,8 +106,22 @@ export function MultiQueryModeChart({
     };
   }, [chartType, isTopN, timeseriesResult, yAxes]);
 
-  const organization = useOrganization();
-  const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
+  // One chart info per aggregate, so grouped series are labelled with the
+  // aggregate they belong to when several share the chart.
+  const chartInfos: ChartInfo[] = useMemo(
+    () =>
+      yAxes.map(yAxis => ({
+        ...chartInfo,
+        series: timeseriesResult.data[yAxis] ?? [],
+        yAxis,
+      })),
+    [chartInfo, timeseriesResult, yAxes]
+  );
+  const plottables = useChartInfosPlottables(chartInfos);
+
+  const {addToDashboard} = useAddCompareQueryToDashboard(
+    isCombinedChart ? {...queryParts, chartType} : queryParts
+  );
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
 
@@ -176,9 +206,14 @@ export function MultiQueryModeChart({
       Actions={[
         <Tooltip
           key="visualization"
-          title={t('Type of chart displayed in this visualization (ex. line)')}
+          title={
+            isCombinedChart
+              ? t('Charts with multiple aggregates are always displayed as line charts')
+              : t('Type of chart displayed in this visualization (ex. line)')
+          }
         >
           <CompactSelect
+            disabled={isCombinedChart}
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}
@@ -234,7 +269,13 @@ export function MultiQueryModeChart({
         ),
       ]}
       revealActions="always"
-      Visualization={<ChartVisualization chartInfo={chartInfo} />}
+      Visualization={
+        <ChartVisualization
+          chartInfo={chartInfo}
+          plottables={isCombinedChart ? plottables : undefined}
+          tooltipLimit={multiAggregateCharts ? MAX_TOOLTIP_SERIES : undefined}
+        />
+      }
       Footer={
         <ConfidenceFooter
           sampleCount={chartInfo.sampleCount}
