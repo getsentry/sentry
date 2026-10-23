@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import random
 import signal
+import threading
 import time
 from multiprocessing.synchronize import Event
 from typing import Any
@@ -264,39 +265,50 @@ def _run_taskworker_with_autoreload(**options: Any) -> None:
 
     # The worker registers signal handlers, so it must own the main thread of
     # its own process. watchfiles restarts that process with SIGINT on change.
-    configured = multiprocessing.get_context("spawn").Event()
+    ready = multiprocessing.get_context("spawn").Event()
     watchfiles.run_process(
         os.path.dirname(sentry.__file__),
         discover_configs()[0],
         target=_run_reloaded_taskworker,
-        kwargs={"configured": configured, **options},
-        callback=lambda _: _wait_for_reloaded_taskworker(configured),
+        kwargs={"ready": ready, **options},
+        callback=lambda _: _wait_for_reloaded_taskworker(ready),
         watch_filter=watchfiles.PythonFilter(),
     )
 
 
-def _wait_for_reloaded_taskworker(configured: Event) -> None:
-    # A SIGINT during startup prints a KeyboardInterrupt traceback, so let the
-    # worker finish configuring before watchfiles restarts it.
-    while not configured.wait(timeout=0.1):
+def _wait_for_reloaded_taskworker(ready: Event) -> None:
+    # A SIGINT before the worker registers its handler skips the shutdown that
+    # stops its children, which are then orphaned when watchfiles kills it.
+    # So hold off restarting until the handler is in place.
+    while not ready.wait(timeout=0.1):
         if not multiprocessing.active_children():
             break
-    configured.clear()
+    ready.clear()
 
 
-def _run_reloaded_taskworker(configured: Event, **options: Any) -> None:
+def _run_reloaded_taskworker(ready: Event, **options: Any) -> None:
     # Runs in a fresh spawned process, which has to configure Sentry again.
     from sentry.runner import configure
 
-    try:
-        configure()
-    finally:
-        configured.set()
+    threading.Thread(
+        target=_set_when_sigint_handled,
+        args=(ready, signal.getsignal(signal.SIGINT)),
+        daemon=True,
+    ).start()
+    configure()
     try:
         run_taskworker(**options)
     except KeyboardInterrupt:
-        # The restart arrived before the worker registered its SIGINT handler.
+        # A Ctrl-C arrived before the worker registered its SIGINT handler.
         pass
+
+
+def _set_when_sigint_handled(ready: Event, initial_handler: Any) -> None:
+    # The worker registers its handler deep inside start(), with no hook to
+    # tell us, so watch for it to replace the initial one.
+    while signal.getsignal(signal.SIGINT) is initial_handler:
+        time.sleep(0.05)
+    ready.set()
 
 
 def run_taskworker(
