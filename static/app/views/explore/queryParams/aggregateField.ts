@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 
+import {defined} from 'sentry/utils/defined';
 import {decodeList} from 'sentry/utils/queryString';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -28,8 +29,8 @@ export function serializeAggregateField(
 }
 
 /**
- * Serializes aggregate fields, merging adjacent visualizes that share a chart
- * group into a single entry so the group is preserved.
+ * Serializes aggregate fields, merging the visualizes that share a chart group
+ * into a single entry so the group is preserved.
  */
 export function serializeAggregateFields(
   aggregateFields: readonly AggregateField[]
@@ -42,7 +43,7 @@ export function serializeAggregateFields(
     pendingVisualizes = [];
   };
 
-  for (const aggregateField of aggregateFields) {
+  for (const aggregateField of gatherChartGroups(aggregateFields)) {
     if (isVisualize(aggregateField)) {
       pendingVisualizes.push(aggregateField);
     } else {
@@ -53,6 +54,37 @@ export function serializeAggregateFields(
   flushVisualizes();
 
   return serialized;
+}
+
+/**
+ * A chart group can only be written as one entry, so its members must be
+ * adjacent. Editing a member out of the middle of a group, e.g. in the table
+ * editor, leaves the others apart. Moving them back next to the first member
+ * keeps them on one chart instead of splitting them into a chart each.
+ */
+function gatherChartGroups(aggregateFields: readonly AggregateField[]): AggregateField[] {
+  const gathered: AggregateField[] = [];
+  const seenChartGroups = new Set<string>();
+
+  for (const aggregateField of aggregateFields) {
+    if (!isVisualize(aggregateField) || !defined(aggregateField.chartGroup)) {
+      gathered.push(aggregateField);
+      continue;
+    }
+
+    const {chartGroup} = aggregateField;
+    if (seenChartGroups.has(chartGroup)) {
+      continue;
+    }
+    seenChartGroups.add(chartGroup);
+    gathered.push(
+      ...aggregateFields.filter(
+        field => isVisualize(field) && field.chartGroup === chartGroup
+      )
+    );
+  }
+
+  return gathered;
 }
 
 export function getAggregateFieldsFromLocation(
