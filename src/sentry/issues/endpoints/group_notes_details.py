@@ -69,7 +69,6 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
 
-        record_activity_read(activity_read_endpoint(request), ActivityReadResult.ACTIVITY)
         return Response(status=204)
 
     @extend_schema(
