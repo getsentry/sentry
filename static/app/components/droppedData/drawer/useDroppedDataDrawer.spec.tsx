@@ -88,6 +88,7 @@ describe('useDroppedDataDrawer', () => {
 
   afterEach(() => {
     PageFiltersStore.reset();
+    localStorage.clear();
   });
 
   it('adds the drawer to the URL when opened and removes it when closed', async () => {
@@ -128,6 +129,57 @@ describe('useDroppedDataDrawer', () => {
     ).toBeInTheDocument();
   });
 
+  it('points to the docs instead of Seer when Seer Explorer is disabled', async () => {
+    mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByText(
+        /Each reason links to docs with explanations and common fixes/
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Use Seer/)).not.toBeInTheDocument();
+  });
+
+  it('mentions Seer when Seer Explorer is enabled', async () => {
+    const seerOrganization = OrganizationFixture({
+      openMembership: true,
+      hideAiFeatures: false,
+      features: ['explore-data-fidelity-annotations', 'seer-explorer'],
+    });
+    mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization: seerOrganization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByText(/Use Seer to understand what each category means/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Each reason links to docs/)).not.toBeInTheDocument();
+  });
+
+  it('uses the singular heading for one dropped event', async () => {
+    mockDroppedData(1, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByRole('heading', {name: '1 dropped and filtered event'})
+    ).toBeInTheDocument();
+  });
+
   it('shows an error with retry when the request fails', async () => {
     const failedRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,
@@ -164,6 +216,24 @@ describe('useDroppedDataDrawer', () => {
     });
 
     expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
+  });
+
+  it('restores the width the drawer was resized to', async () => {
+    mockDroppedData(10, '14d');
+    localStorage.setItem('drawer-width:dropped-data-drawer', '70');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
+
+    const drawer = screen.getByRole('complementary', {
+      name: 'Dropped and Filtered Events',
+    });
+    expect(drawer.style.getPropertyValue('--drawer-width')).toBe('70%');
   });
 
   it('does not open from the URL param when disabled', async () => {
@@ -344,7 +414,7 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
       expect(screen.getByText('10%')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filters'}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'explore.dropped_data.legend_outcome_toggled',
@@ -354,7 +424,7 @@ describe('useDroppedDataDrawer', () => {
           selected: false,
         })
       );
-      expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Inbound Filters'})).not.toBeChecked();
       expect(screen.getByText('10 dropped and filtered events')).toBeInTheDocument();
       expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
@@ -385,7 +455,7 @@ describe('useDroppedDataDrawer', () => {
       expect(isAfter(expectedHeading, 'Dropped by before send')).toBe(false);
       expect(isAfter(expectedHeading, 'Dropped by ignored spans')).toBe(true);
 
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filters'}));
 
       expect(screen.getByRole('heading', {name: 'Unexpected Drops'})).toBeInTheDocument();
       expect(
@@ -408,7 +478,7 @@ describe('useDroppedDataDrawer', () => {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Client Discard'}));
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filters'}));
 
       expect(screen.getByText('0 dropped and filtered events')).toBeInTheDocument();
       expect(screen.getByText('No outcomes selected.')).toBeInTheDocument();
@@ -447,7 +517,7 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.getByRole('radio', {name: 'Unexpected'})).toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'Client Discard'})).toBeInTheDocument();
       expect(
-        screen.queryByRole('checkbox', {name: 'Inbound Filter'})
+        screen.queryByRole('checkbox', {name: 'Inbound Filters'})
       ).not.toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
       expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
@@ -473,7 +543,7 @@ describe('useDroppedDataDrawer', () => {
       await userEvent.click(screen.getByRole('radio', {name: 'All'}));
 
       expect(screen.getByText('40 dropped and filtered events')).toBeInTheDocument();
-      expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', {name: 'Inbound Filters'})).toBeInTheDocument();
       expect(screen.getByRole('heading', {name: 'Expected Drops'})).toBeInTheDocument();
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
       // 10 unintentional drops out of 60 accepted + 40 dropped.
@@ -491,6 +561,74 @@ describe('useDroppedDataDrawer', () => {
       expect(
         screen.queryByRole('heading', {name: 'Expected Drops'})
       ).not.toBeInTheDocument();
+    });
+
+    it('explains when every drop is expected and offers to show them', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-dropped/`,
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents: [
+            DroppedEventFixture({
+              outcome: 'filtered',
+              reason: 'ignore_spans',
+              count: 30,
+              tags: ['intentional'],
+            }),
+          ],
+          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+        },
+      });
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(
+        await screen.findByRole('heading', {name: 'No unexpected drops.'})
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show all drops'}));
+
+      expect(screen.getByRole('radio', {name: 'All'})).toBeChecked();
+      expect(screen.getByText('30 dropped and filtered events')).toBeInTheDocument();
+      expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'No unexpected drops.'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows a plain empty state when nothing was dropped', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-dropped/`,
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents: [],
+          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+        },
+      });
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(
+        await screen.findByRole('heading', {name: 'No dropped or filtered events.'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Show all drops'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', {name: 'All'}));
+
+      expect(
+        screen.getByRole('heading', {name: 'No dropped or filtered events.'})
+      ).toBeInTheDocument();
     });
 
     it('keeps contributing shares when a legend outcome is deselected', async () => {

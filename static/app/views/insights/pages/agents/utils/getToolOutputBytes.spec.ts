@@ -29,6 +29,14 @@ describe('getToolOutputBytesFromAttributes', () => {
     }
   );
 
+  it.each([null, '', 'abc', -1])('ignores an unusable reported size %p', size => {
+    const attributes: Record<string, string | number | null> = {
+      'gen_ai.tool.call.result.size': size,
+      'gen_ai.tool.call.result': 'abc',
+    };
+    expect(getToolOutputBytesFromAttributes(key => attributes[key])).toBe(3);
+  });
+
   it('prefers the standard result over the legacy output', () => {
     const attributes: Record<string, string> = {
       'gen_ai.tool.call.result': 'abc',

@@ -49,7 +49,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.ingest.legacy_filter_lists import set_list
+from sentry.ingest.legacy_filter_lists import clean_lines, set_list
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -1257,7 +1257,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.RELEASES,
-                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
+                        clean_lines(
+                            FilterTypes.RELEASES,
+                            options[f"filters:{FilterTypes.RELEASES}"].split("\n"),
+                        ),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
@@ -1266,9 +1269,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.ERROR_MESSAGES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.ERROR_MESSAGES,
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1282,9 +1285,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.LOG_MESSAGES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.LOG_MESSAGES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.LOG_MESSAGES,
+                            options[f"filters:{FilterTypes.LOG_MESSAGES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1298,9 +1301,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.TRACE_METRIC_NAMES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.TRACE_METRIC_NAMES,
+                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"].split("\n"),
                         ),
                     )
                 else:

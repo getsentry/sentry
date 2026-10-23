@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
@@ -102,6 +103,7 @@ function getVisualizationTypeDisabledReason(
 interface MetricsGraphProps {
   actions: React.ReactNode;
   timeseriesResult: SortedTimeSeries;
+  footerActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -109,6 +111,7 @@ interface MetricsGraphProps {
 export function MetricsGraph({
   timeseriesResult,
   actions,
+  footerActions,
   isMetricOptionsEmpty,
   title,
 }: MetricsGraphProps) {
@@ -128,6 +131,7 @@ export function MetricsGraph({
       visualizes={visualizes}
       timeseriesResult={timeseriesResult}
       actions={actions}
+      footerActions={footerActions}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
       title={title}
     />
@@ -139,6 +143,7 @@ interface GraphProps {
   timeseriesResult: SortedTimeSeries;
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
+  footerActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -148,6 +153,7 @@ function Graph({
   visualize,
   visualizes,
   actions,
+  footerActions,
   isMetricOptionsEmpty,
   title,
 }: GraphProps) {
@@ -315,13 +321,18 @@ function Graph({
           ) : undefined
         }
         Footer={
-          showChart ? (
-            <ConfidenceFooter
-              chartInfo={chartInfo}
-              isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
-              hasUserQuery={!!userQuery}
-              rawMetricCounts={rawMetricCounts}
-            />
+          showChart || footerActions ? (
+            <Flex align="center" justify="between" gap="sm" wrap="wrap">
+              {showChart ? (
+                <ConfidenceFooter
+                  chartInfo={chartInfo}
+                  isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
+                  hasUserQuery={!!userQuery}
+                  rawMetricCounts={rawMetricCounts}
+                />
+              ) : null}
+              {footerActions}
+            </Flex>
           ) : undefined
         }
         height={height}

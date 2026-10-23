@@ -30,9 +30,11 @@ import {
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
+  InvestigationActionRequestFixture,
   InvestigationAgenticDetailFixture,
   InvestigationCommentFixture,
   InvestigationDetailFixture,
+  InvestigationMetricSourceFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
 } from 'sentry/views/investigations/fixtures';
@@ -93,9 +95,9 @@ function renderView(
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+        pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
       },
-      route: '/organizations/:orgId/explore/investigations/:investigationId/',
+      route: '/organizations/:orgId/seer/investigations/:investigationId/',
     },
   });
 
@@ -201,11 +203,7 @@ describe('Investigation detail', () => {
       url: detailUrl,
       body: InvestigationDetailFixture({
         sourceType: 'metric_open_period',
-        source: {
-          type: 'metric_open_period',
-          ref: {groupId: '123', openPeriodId: '456'},
-          snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
-        },
+        source: InvestigationMetricSourceFixture(),
       }),
     });
 
@@ -224,6 +222,7 @@ describe('Investigation detail', () => {
         source: {
           type: 'metric_open_period',
           ref: {groupId: '123', openPeriodId: '456'},
+          revision: null,
         },
       }),
     });
@@ -279,6 +278,338 @@ describe('Investigation detail', () => {
     expect(
       details.compareDocumentPosition(screen.getByTestId('investigation-block-block-1'))
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('renders the suggested next step between the summary and the details', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        summary: 'Errors rose across releases',
+        summaryDescription: 'All active releases increased together.',
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+
+    renderView();
+
+    const nextStep = await screen.findByRole('region', {
+      name: 'Recommended action',
+    });
+    expect(
+      screen.getByTestId('investigation-summary').compareDocumentPosition(nextStep)
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      nextStep.compareDocumentPosition(
+        screen.getByRole('heading', {level: 2, name: 'Investigation details'})
+      )
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('holds the next step placeholder until the investigation has its request', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: {
+          phase: 'metadata',
+          status: 'processing',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 5,
+        },
+        actionRequests: [],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'metadata',
+        status: 'processing',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          status: 'completed',
+          nextStep: {status: 'generating', error: null},
+        },
+      }),
+    });
+
+    const {queryClient} = renderView();
+
+    expect(
+      await screen.findByRole('region', {name: 'Recommended action'})
+    ).toHaveAttribute('aria-busy', 'true');
+
+    let finishDetails!: () => void;
+    const detailsResponse = new Promise<void>(resolve => {
+      finishDetails = resolve;
+    });
+    const detailsRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: {
+          phase: 'completed',
+          status: 'completed',
+          heartbeatAt: '2026-08-27T11:07:30Z',
+          notebookRevision: 6,
+        },
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+      asyncDelay: detailsResponse,
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'completed',
+        status: 'completed',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          status: 'completed',
+          nextStep: {status: 'completed', error: null},
+        },
+      }),
+    });
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          'investigation-1'
+        ).queryKey,
+      })
+    );
+
+    await waitFor(() => expect(detailsRequest).toHaveBeenCalled());
+    expect(screen.getByRole('region', {name: 'Recommended action'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+
+    await act(async () => {
+      finishDetails();
+      await detailsResponse;
+    });
+
+    expect(await screen.findByText(/Widen the interval/)).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Recommended action'})).not.toHaveAttribute(
+      'aria-busy'
+    );
+  });
+
+  it('refetches the investigation when the first next step is ahead of it', async () => {
+    const finishedRun = {
+      phase: 'completed',
+      status: 'completed',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    } as const;
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: finishedRun,
+        actionRequests: [],
+      }),
+    });
+    let finishOrchestration!: () => void;
+    const orchestrationResponse = new Promise<void>(resolve => {
+      finishOrchestration = resolve;
+    });
+    const orchestrationRequest = MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'completed',
+        status: 'completed',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          status: 'completed',
+          nextStep: {status: 'completed', error: null},
+        },
+      }),
+      asyncDelay: orchestrationResponse,
+    });
+
+    renderView();
+
+    await waitFor(() => expect(orchestrationRequest).toHaveBeenCalled());
+    let finishDetails!: () => void;
+    const detailsResponse = new Promise<void>(resolve => {
+      finishDetails = resolve;
+    });
+    const detailsRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: finishedRun,
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+      asyncDelay: detailsResponse,
+    });
+    await act(async () => {
+      finishOrchestration();
+      await orchestrationResponse;
+    });
+
+    await waitFor(() => expect(detailsRequest).toHaveBeenCalled());
+    expect(screen.getByRole('region', {name: 'Recommended action'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+
+    await act(async () => {
+      finishDetails();
+      await detailsResponse;
+    });
+
+    expect(await screen.findByText(/Widen the interval/)).toBeInTheDocument();
+  });
+
+  it('drops the next step placeholder when Seer suggests nothing', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: {
+          phase: 'completed',
+          status: 'completed',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 5,
+        },
+        actionRequests: [],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'metadata',
+        status: 'processing',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          status: 'completed',
+          nextStep: {status: 'generating', error: null},
+        },
+      }),
+    });
+
+    const {queryClient} = renderView();
+
+    expect(
+      await screen.findByRole('region', {name: 'Recommended action'})
+    ).toHaveAttribute('aria-busy', 'true');
+
+    const detailsRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: {
+          phase: 'completed',
+          status: 'completed',
+          heartbeatAt: '2026-08-27T11:07:30Z',
+          notebookRevision: 6,
+        },
+        actionRequests: [],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'completed',
+        status: 'completed',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          status: 'completed',
+          nextStep: {status: 'completed', error: null},
+        },
+      }),
+    });
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          'investigation-1'
+        ).queryKey,
+      })
+    );
+
+    await waitFor(() => expect(detailsRequest).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('region', {name: 'Recommended action'})
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it('shows the new recommended action after a finished run writes a new report', async () => {
+    const finishedRun = {
+      phase: 'completed',
+      status: 'completed',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    } as const;
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: finishedRun,
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'completed',
+        status: 'completed',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          status: 'completed',
+          nextStep: {status: 'completed', error: null},
+        },
+      }),
+    });
+
+    const {queryClient} = renderView();
+
+    expect(
+      await screen.findByRole('region', {name: 'Recommended action'})
+    ).toHaveTextContent('Widen the interval.');
+
+    // Accepting a hypothesis made Seer write report 3, then suggest a new next step.
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        orchestration: finishedRun,
+        actionRequests: [
+          InvestigationActionRequestFixture({state: 'superseded'}),
+          InvestigationActionRequestFixture({
+            id: '320',
+            key: 'raise-threshold',
+            reportRevision: 3,
+            title: 'Raise the threshold',
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'completed',
+        status: 'completed',
+        report: {
+          ...InvestigationOrchestrationFixture().report,
+          status: 'completed',
+          revision: 3,
+          nextStep: {status: 'completed', error: null},
+        },
+      }),
+    });
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          'investigation-1'
+        ).queryKey,
+      })
+    );
+
+    expect(await screen.findByText(/Raise the threshold/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', {name: 'Recommended action'})
+    ).not.toHaveTextContent('Widen the interval');
   });
 
   it('leaves out the investigation details heading without a summary', async () => {
@@ -1254,7 +1585,7 @@ describe('Investigation detail', () => {
     expect(screen.queryByText('Secret query-generation prompt')).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Investigations'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/investigations/'
+      '/organizations/org-slug/seer/investigations/'
     );
     expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
       investigation.title
@@ -2219,7 +2550,7 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        '/organizations/org-slug/explore/investigations/investigation-2/'
+        '/organizations/org-slug/seer/investigations/investigation-2/'
       )
     );
   });
@@ -2246,7 +2577,7 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/explore/investigations/investigation-1/`
+        `${window.location.origin}/seer/investigations/investigation-1/`
       )
     );
   });
@@ -2329,7 +2660,7 @@ describe('Investigation detail', () => {
       });
       await waitFor(() =>
         expect(router.location.pathname).toBe(
-          '/organizations/org-slug/explore/investigations/'
+          '/organizations/org-slug/seer/investigations/'
         )
       );
       await act(() => jest.advanceTimersByTimeAsync(600));

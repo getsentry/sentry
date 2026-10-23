@@ -25,7 +25,7 @@ function datasetLabel(dataset: DiscoverDatasets): string {
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
   [Outcome.CLIENT_DISCARD]: t('Client Discard'),
-  [Outcome.FILTERED]: t('Inbound Filter'),
+  [Outcome.FILTERED]: t('Inbound Filters'),
   [Outcome.INVALID]: t('Invalid or Malformed'),
   [Outcome.RATE_LIMITED]: t('Rate Limited'),
   [Outcome.ABUSE]: t('Abuse Limit'),
