@@ -80,7 +80,7 @@ class InternalRpcServiceEndpoint(Endpoint):
                 raise ParseError from e
 
         # Observe what the caller actually sent, not the empty default we fall back to.
-        # `vc` is always non-None (defaulted to ViewerContext()), so observing inside
+        # `vc` is always non-None (defaulted to ViewerContext(actor=Actor(type=ActorType.UNKNOWN))), so observing inside
         # the scope below would always see actor_type=unknown and never trigger the
         # missing-VC signal.
         observe_viewer_context_propagation(

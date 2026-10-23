@@ -58,7 +58,7 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         assert response.data["scopes"] == ["event:read", "project:read"]
         returned = decode_viewer_context(response.data["viewerContext"])
         assert returned.organization_id == self.organization.id
-        assert returned.user_id is None
+        assert returned.actor.actor_id is None
 
     def test_missing_account_returns_404(self) -> None:
         response = self._post(service_account_id=self.service_account.id + 1)

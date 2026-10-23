@@ -9,7 +9,7 @@ import logging
 import time
 from collections.abc import Generator, Mapping
 from random import random
-from typing import Any, Literal, NamedTuple
+from typing import Any, NamedTuple
 
 import jwt as pyjwt
 import sentry_sdk
@@ -89,70 +89,15 @@ class Actor:
         )
 
 
-@dataclasses.dataclass(frozen=True, init=False)
+@dataclasses.dataclass(frozen=True)
 class ViewerContext:
     """Caller identity and organization/project scope for the current unit of work."""
 
     actor: Actor
     organization_id: int | None = None
     project_id: int | None = None
-    # GetSentry still passes token through replace(); credentials are ignored.
-    token: None = dataclasses.field(default=None, repr=False)
 
-    def __init__(
-        self,
-        actor: Actor | None = None,
-        organization_id: int | None = None,
-        project_id: int | None = None,
-        *,
-        user_id: int | None = None,
-        actor_type: ActorType = ActorType.UNKNOWN,
-        token: object | None = None,
-    ) -> None:
-        # Keep current GetSentry callers working until its actor migration deploys.
-        if actor is None:
-            actor = Actor(
-                type=(
-                    ActorType.USER
-                    if user_id is not None and actor_type != ActorType.AGENT
-                    else actor_type
-                ),
-                actor_id=user_id if actor_type != ActorType.AGENT else None,
-                delegated_user_id=user_id if actor_type == ActorType.AGENT else None,
-            )
-        object.__setattr__(self, "actor", actor)
-        object.__setattr__(self, "organization_id", organization_id)
-        object.__setattr__(self, "project_id", project_id)
-
-    @property
-    def user_id(self) -> int | None:
-        """Legacy human identity; a service-account ID is never a user ID."""
-        if self.actor.type == ActorType.USER:
-            return self.actor.actor_id
-        if self.actor.type == ActorType.AGENT:
-            return self.actor.delegated_user_id
-        return None
-
-    def _legacy_serialize(self) -> dict[str, Any]:
-        """Keep existing producers on V1 until both services' readers deploy."""
-        if self.actor.type == ActorType.SERVICE_ACCOUNT or (
-            self.actor.type != ActorType.USER and self.actor.actor_id is not None
-        ):
-            raise ValueError("V1 cannot represent this actor's identity")
-        result: dict[str, Any] = {"actor_type": self.actor.type.value}
-        if self.organization_id is not None:
-            result["organization_id"] = self.organization_id
-        if self.project_id is not None:
-            result["project_id"] = self.project_id
-        if self.user_id is not None:
-            result["user_id"] = self.user_id
-        if self.actor.superuser is not None:
-            result["superuser"] = self.actor.superuser.dict()
-        return result
-
-    def serialize(self, *, version: Literal[1, 2] = 2) -> dict[str, Any]:
-        if version == 1:
-            return self._legacy_serialize()
+    def serialize(self) -> dict[str, Any]:
         result: dict[str, Any] = {"version": 2, "actor": self.actor.serialize()}
         if self.organization_id is not None:
             result["organization_id"] = self.organization_id
@@ -164,40 +109,12 @@ class ViewerContext:
     def deserialize(cls, data: dict[str, Any]) -> ViewerContext:
         if not isinstance(data, dict):
             raise ValueError("Viewer context must be an object")
-        version = data.get("version", 1)
-        if type(version) is not int or version not in (1, 2):
-            raise ValueError("Unsupported viewer context version")
-        if version == 1:
-            return cls._legacy_deserialize(data)
+        if type(data.get("version")) is not int or data["version"] != 2:
+            raise ValueError("Expected a V2 viewer context")
         if {"user_id", "actor_type", "superuser", "token"}.intersection(data):
             raise ValueError("V2 contexts cannot carry V1 identity or credentials")
         return cls(
             actor=Actor.deserialize(data.get("actor")),
-            organization_id=data.get("organization_id"),
-            project_id=data.get("project_id"),
-        )
-
-    @classmethod
-    def _legacy_deserialize(cls, data: dict[str, Any]) -> ViewerContext:
-        if "actor" in data:
-            raise ValueError("Invalid V1 viewer context")
-        try:
-            actor_type = ActorType(data.get("actor_type", "unknown"))
-        except ValueError:
-            actor_type = ActorType.UNKNOWN
-        superuser = data.get("superuser")
-        user_id = data.get("user_id")
-        if actor_type == ActorType.USER and user_id is None:
-            actor_type = ActorType.UNKNOWN
-        elif user_id is not None and actor_type != ActorType.AGENT:
-            actor_type = ActorType.USER
-        return cls(
-            actor=Actor(
-                type=actor_type,
-                actor_id=user_id if actor_type == ActorType.USER else None,
-                delegated_user_id=user_id if actor_type == ActorType.AGENT else None,
-                superuser=SuperuserAccess.parse_obj(superuser) if superuser is not None else None,
-            ),
             organization_id=data.get("organization_id"),
             project_id=data.get("project_id"),
         )
@@ -220,6 +137,23 @@ def viewer_context_scope(ctx: ViewerContext) -> Generator[None]:
 def get_viewer_context() -> ViewerContext | None:
     """Return the current ``ViewerContext``, or ``None`` if not set."""
     return _viewer_context_var.get()
+
+
+def get_acting_user_id(ctx: ViewerContext | None) -> int | None:
+    """Return the human user *ctx* acts as, or ``None``.
+
+    A user actor acts as itself and an agent acts for its delegating user. Other
+    actor types never resolve to a user, so a stray ``delegated_user_id`` on them
+    cannot grant user identity.
+    """
+    if ctx is None:
+        return None
+    actor = ctx.actor
+    if actor.type == ActorType.USER:
+        return actor.actor_id
+    if actor.type == ActorType.AGENT:
+        return actor.delegated_user_id
+    return None
 
 
 def observe_viewer_context_propagation(
@@ -256,7 +190,7 @@ def observe_viewer_context_propagation(
         has_org = False
     else:
         actor_type = ctx.actor.type.value
-        has_user = ctx.actor.type == ActorType.USER or ctx.actor.delegated_user_id is not None
+        has_user = get_acting_user_id(ctx) is not None
         has_org = ctx.organization_id is not None
 
     # Fixed tags layered on top of extras so callers can't accidentally swap
@@ -295,14 +229,12 @@ def set_viewer_context_superuser(
     ctx = get_viewer_context()
     if ctx is None:
         return
-    actor = ctx.actor
-    human_id = actor.actor_id if actor.type == ActorType.USER else actor.delegated_user_id
-    if human_id == user_id:
+    if get_acting_user_id(ctx) == user_id:
         _viewer_context_var.set(
             dataclasses.replace(
                 ctx,
                 organization_id=organization_id,
-                actor=dataclasses.replace(actor, superuser=superuser),
+                actor=dataclasses.replace(ctx.actor, superuser=superuser),
             )
         )
 
