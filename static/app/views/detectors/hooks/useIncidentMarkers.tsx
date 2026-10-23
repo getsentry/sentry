@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
   CustomSeriesRenderItem,
+  ElementEvent,
   GridComponentOption,
   MarkLineComponentOption,
   TooltipComponentFormatterCallbackParams,
@@ -12,18 +13,14 @@ import type {
 
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {
-  EChartChartReadyHandler,
-  EChartClickHandler,
-  EChartMouseOutHandler,
-  EChartMouseOverHandler,
-  ECharts,
-} from 'sentry/types/echarts';
+import type {EChartChartReadyHandler, ECharts} from 'sentry/types/echarts';
 
 const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
-const INCIDENT_MARKER_AREA_SERIES_ID = '__incident_marker_area__';
 const INCIDENT_MARKER_PERSISTENT_AREA_SERIES_ID = '__incident_marker_area_persistent__';
 const INCIDENT_MARKER_HEIGHT = 6;
+const INCIDENT_MARKER_PADDING_Y = 4;
+const INCIDENT_MARKER_AREA_HEIGHT =
+  INCIDENT_MARKER_HEIGHT + INCIDENT_MARKER_PADDING_Y + 2;
 
 // Default X-axis configuration (when incidents are hidden)
 const DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG = {
@@ -105,6 +102,38 @@ const getPriorityColor = ({
 }) => {
   return priority === 'medium' ? theme.colors.yellow400 : theme.colors.red400;
 };
+
+function findIncidentPeriodAtPoint(
+  chart: ECharts,
+  incidentPeriods: IncidentPeriod[],
+  point: [number, number],
+  seriesId: string
+): IncidentPeriod | undefined {
+  if (!incidentPeriods.length) {
+    return undefined;
+  }
+
+  const [x, y] = point;
+
+  const isWithinHoverArea =
+    chart.containPixel({seriesId}, [x, y]) ||
+    chart.containPixel({seriesId}, [x, y - INCIDENT_MARKER_AREA_HEIGHT]);
+
+  if (!isWithinHoverArea) {
+    return undefined;
+  }
+
+  const [timestamp] = chart.convertFromPixel({seriesId}, point);
+
+  if (timestamp === undefined) {
+    return undefined;
+  }
+
+  // Use find last because later markers are drawn on top of earlier ones where they overlap
+  return incidentPeriods.findLast(
+    period => period.start <= timestamp && timestamp <= period.end
+  );
+}
 
 /**
  * Creates a custom series that renders incident highlights underneath the main chart
@@ -192,21 +221,45 @@ function createIncidentMarkerSeries({
       theme,
     });
 
+    // Spans the main chart for the incident's time period and only becomes
+    // visible while the marker is in its emphasis state
+    const periodHighlightShape = {
+      x: clippedStartX,
+      y: coordSys.y ?? 0,
+      width: Math.max(clippedEndX - clippedStartX, 0),
+      height: coordSys.height ?? 0,
+    };
+
     return {
-      type: 'rect',
-      transition: ['shape'],
-      shape,
-      style: {
-        fill:
-          dataItem.type === 'trigger-interval'
-            ? {
-                svgElement: makeStripeBackgroundSvgNode(color),
-                svgWidth: 2,
-                svgHeight: INCIDENT_MARKER_HEIGHT,
-              }
-            : color,
-        opacity: 1,
-      },
+      type: 'group',
+      children: [
+        {
+          type: 'rect',
+          transition: ['shape'],
+          shape,
+          style: {
+            fill:
+              dataItem.type === 'trigger-interval'
+                ? {
+                    svgElement: makeStripeBackgroundSvgNode(color),
+                    svgWidth: 2,
+                    svgHeight: INCIDENT_MARKER_HEIGHT,
+                  }
+                : color,
+            opacity: 1,
+          },
+        },
+        {
+          type: 'rect',
+          silent: true,
+          // Drawn beneath the data so it doesn't tint the line or its hovered symbol
+          z2: -1,
+          shape: periodHighlightShape,
+          style: {fill: color, opacity: 0},
+          // The fill is repeated so ECharts doesn't apply its default color lift
+          emphasis: {style: {fill: color, opacity: 0.2}},
+        },
+      ],
     };
   };
 
@@ -291,7 +344,7 @@ interface UseIncidentMarkersProps {
    */
   highlightedIncidentId?: string;
   markLineTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
-  onClick?: (context: {item: 'line' | 'bubble'; period: IncidentPeriod}) => void;
+  onClick?: (context: {period: IncidentPeriod}) => void;
   seriesId?: string;
   /**
    * Provide a custom tooltip for the series
@@ -342,18 +395,15 @@ export function useIncidentMarkers({
     latestOnClickRef.current = onClick;
   }, [incidentPeriods, onClick]);
 
-  const markerPadding = 2;
-  const totalMarkerPaddingY = markerPadding * 2; // 2px padding on top and bottom
-
   // X-axis configuration for when incidents are shown (moves axis down to make space)
   const incidentMarkerXAxis = useMemo(
     () => ({
       // configure `axisLine` and `offset` to move axis line below 0 so that
       // incidents sit between bottom of the main chart and the axis line
       axisLine: {onZero: false},
-      offset: INCIDENT_MARKER_HEIGHT + totalMarkerPaddingY - 1,
+      offset: INCIDENT_MARKER_HEIGHT + INCIDENT_MARKER_PADDING_Y - 1,
     }),
-    [totalMarkerPaddingY]
+    []
   );
 
   // Hidden Y-axis for incident bubbles
@@ -382,129 +432,88 @@ export function useIncidentMarkers({
 
     return {
       // Moves bottom of grid "up" to make space for incident bubbles
-      bottom: INCIDENT_MARKER_HEIGHT + totalMarkerPaddingY + 2,
+      bottom: INCIDENT_MARKER_AREA_HEIGHT,
     };
-  }, [incidentPeriods.length, totalMarkerPaddingY]);
+  }, [incidentPeriods.length]);
 
   // Chart ref handler
   const onChartReady = useCallback<EChartChartReadyHandler>(
     echartsInstance => {
       chartRef.current = echartsInstance;
 
-      const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
-        if (
-          params.seriesId !== seriesId ||
-          !echartsInstance ||
-          params.componentType !== 'series'
-        ) {
-          return;
-        }
+      const zr = echartsInstance.getZr();
 
-        const data = params.data as IncidentPeriod;
+      let highlightedIncidentPeriod: IncidentPeriod | undefined;
 
-        // Create an empty series that has a `markArea` which highlights the
-        // incident time period on the main chart so users can visualize the
-        // time block that has the incident.
-        const customSeries: CustomSeriesOption = {
-          id: INCIDENT_MARKER_AREA_SERIES_ID,
-          type: 'custom',
-          renderItem: () => null,
-          markArea: {
-            itemStyle: {
-              color: getPriorityColor({
-                priority: data.priority,
-                theme,
-              }),
-              opacity: 0.2,
-            },
-            data: [
-              [
-                {
-                  xAxis: data.start,
-                },
-                {
-                  xAxis: data.end,
-                },
-              ],
-            ],
-          },
-        };
-        echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
-      };
-
-      const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
-        if (
-          params.seriesId !== seriesId ||
-          !echartsInstance ||
-          params.componentType !== 'series'
-        ) {
-          return;
-        }
-
-        // Clear the `markArea` that was drawn during mouse over
-        echartsInstance.setOption(
-          {
-            series: [{id: INCIDENT_MARKER_AREA_SERIES_ID, markArea: {data: []}}],
-          },
-          {
-            lazyUpdate: true,
-          }
+      const findIncidentPeriodAtEvent = (event: ElementEvent) =>
+        findIncidentPeriodAtPoint(
+          echartsInstance,
+          latestIncidentPeriodsRef.current,
+          [event.offsetX, event.offsetY],
+          seriesId
         );
+
+      // Puts the incident's marker into its emphasis state, which reveals the
+      // highlight it draws over the main chart. Updating the chart options
+      // instead would re-render every series and drop the hovered data point's symbol.
+      const highlightIncidentPeriod = (incidentPeriod: IncidentPeriod) => {
+        echartsInstance.dispatchAction({
+          type: 'highlight',
+          seriesId,
+          dataIndex: latestIncidentPeriodsRef.current.indexOf(incidentPeriod),
+        });
       };
 
-      const handleClick = (params: Parameters<EChartClickHandler>[0]) => {
-        const latestOnClick = latestOnClickRef.current;
+      const clearHighlightedIncidentPeriod = () => {
+        echartsInstance.dispatchAction({type: 'downplay', seriesId});
+      };
 
-        if (!echartsInstance || !latestOnClick) {
-          return;
+      const handleMouseMove = (event: ElementEvent) => {
+        const hoveredIncidentPeriod = findIncidentPeriodAtEvent(event);
+
+        if (hoveredIncidentPeriod !== highlightedIncidentPeriod) {
+          highlightedIncidentPeriod = hoveredIncidentPeriod;
+
+          clearHighlightedIncidentPeriod();
+
+          if (hoveredIncidentPeriod) {
+            highlightIncidentPeriod(hoveredIncidentPeriod);
+          }
         }
 
-        // Click on the incident rectangle ("bubble")
-        if (params.componentType === 'series' && params.seriesId === seriesId) {
-          const datum = params.data as IncidentPeriod;
-          if (datum) {
-            latestOnClick({item: 'bubble', period: datum});
-          }
-          return;
-        }
-
-        // Click on the incident start markLine
-        if (params.componentType === 'markLine' && params.seriesId === seriesId) {
-          type MarkLineDatum = {xAxis?: number};
-          const datum = params.data as MarkLineDatum;
-          const start = typeof datum?.xAxis === 'number' ? datum.xAxis : undefined;
-          // Use findLast to handle overlapping incidents properly
-          const period =
-            start === undefined
-              ? undefined
-              : latestIncidentPeriodsRef.current.findLast(
-                  incidentPeriod => incidentPeriod.start === start
-                );
-          if (period) {
-            latestOnClick({item: 'line', period});
-          }
+        if (hoveredIncidentPeriod && latestOnClickRef.current) {
+          // The zoom brush sets a crosshair cursor in its own mousemove handler,
+          // which runs after this one
+          queueMicrotask(() => zr.setCursorStyle('pointer'));
         }
       };
 
-      if (echartsInstance) {
-        // @ts-expect-error not sure what type echarts is expecting here
-        echartsInstance.on('mouseover', handleMouseOver);
-        // @ts-expect-error not sure what type echarts is expecting here
-        echartsInstance.on('mouseout', handleMouseOut);
-        // @ts-expect-error not sure what type echarts is expecting here
-        echartsInstance.on('click', handleClick);
-      }
+      const handleGlobalOut = () => {
+        highlightedIncidentPeriod = undefined;
+
+        clearHighlightedIncidentPeriod();
+      };
+
+      // zrender skips clicks that end a drag, so drag-to-zoom still works
+      const handleClick = (event: ElementEvent) => {
+        const clickedIncidentPeriod = findIncidentPeriodAtEvent(event);
+
+        if (clickedIncidentPeriod) {
+          latestOnClickRef.current?.({period: clickedIncidentPeriod});
+        }
+      };
+
+      zr.on('mousemove', handleMouseMove);
+      zr.on('globalout', handleGlobalOut);
+      zr.on('click', handleClick);
 
       return () => {
-        if (!echartsInstance) {
-          return;
-        }
-        echartsInstance.off('mouseover', handleMouseOver);
-        echartsInstance.off('mouseout', handleMouseOut);
-        echartsInstance.off('click', handleClick);
+        zr.off('mousemove', handleMouseMove);
+        zr.off('globalout', handleGlobalOut);
+        zr.off('click', handleClick);
       };
     },
-    [seriesId, theme]
+    [seriesId]
   );
 
   const incidentMarkerSeries = useMemo(() => {
