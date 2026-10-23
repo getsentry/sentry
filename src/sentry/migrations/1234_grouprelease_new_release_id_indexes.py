@@ -13,7 +13,7 @@ INDEX_NAME = "sentry_grouprelease_new_release_id"
 
 
 # A killed CONCURRENTLY build leaves an INVALID index that IF NOT EXISTS would keep.
-def drop_invalid_indexes(apps: StateApps | None, schema_editor: BaseDatabaseSchemaEditor) -> None:
+def drop_invalid_indexes(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     for name in (UNIQUE_INDEX_NAME, INDEX_NAME):
         with schema_editor.connection.cursor() as cursor:
             cursor.execute(
