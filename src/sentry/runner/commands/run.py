@@ -256,7 +256,7 @@ def taskworker(autoreload: bool, **options: Any) -> None:
             discover_configs()[0],
             target=_run_reloaded_taskworker,
             kwargs={"configured": configured, **options},
-            callback=lambda changes: _wait_for_reloaded_taskworker(configured),
+            callback=lambda _: _wait_for_reloaded_taskworker(configured),
             watch_filter=watchfiles.PythonFilter(),
         )
     else:
