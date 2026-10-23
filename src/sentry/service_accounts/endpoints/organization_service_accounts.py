@@ -1,7 +1,7 @@
 """Service account management APIs.
 
 These run in control, next to the `ServiceAccount` table. The viewer-context endpoint
-runs in the cell and reads accounts through the cached `get_service_account` RPC.
+runs in the cell and reads the account's `ServiceAccountReplica`.
 """
 
 from __future__ import annotations
@@ -428,7 +428,7 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             serialize(service_account, request.user, serializer=ServiceAccountSerializer())
         )
         service_account_id = service_account.id
-        # The account's outbox clears the cell cache. Its project rows go with it.
+        # The tombstone cascade removes the cell replica. The project rows go with the account.
         service_account.delete()
         self.create_audit_entry(
             request,

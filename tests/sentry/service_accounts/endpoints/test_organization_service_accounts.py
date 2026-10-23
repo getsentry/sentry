@@ -5,19 +5,23 @@ from django.urls import reverse
 from rest_framework.request import Request
 
 from sentry import audit_log
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.service_accounts.endpoints.organization_service_accounts import (
     OrganizationServiceAccountDetailsEndpoint,
 )
-from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
-from sentry.service_accounts.services.service_account.service import get_service_account
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProject,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FEATURE_FLAG = "organizations:service-accounts"
-CLEAR_KEY = "sentry.receivers.outbox.control.cell_caching_service.clear_key"
 
 
 def project_ids_for(service_account: ServiceAccount) -> list[int]:
@@ -466,22 +470,24 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
                 status_code=403,
             )
 
-    def test_update_clears_cell_cache(self) -> None:
-        with (
-            mock.patch(CLEAR_KEY) as clear_key,
-            self.feature(FEATURE_FLAG),
-            outbox_runner(),
-        ):
+    def test_update_replicates_to_cell(self) -> None:
+        with self.feature(FEATURE_FLAG), outbox_runner():
             self.get_success_response(
                 self.organization.slug,
                 self.service_account.id,
                 method="put",
+                scopes=["org:read"],
                 projectIds=[self.projects[1].id],
             )
 
-        clear_key.assert_called_once_with(
-            key=get_service_account.key_from(self.service_account.id), cell_name=mock.ANY
-        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            replica = ServiceAccountReplica.objects.get(service_account_id=self.service_account.id)
+            assert replica.scope_list == ["org:read"]
+            assert list(
+                ServiceAccountProjectReplica.objects.filter(service_account=replica).values_list(
+                    "project_id", flat=True
+                )
+            ) == [self.projects[1].id]
 
     def test_delete(self) -> None:
         service_account_id = self.service_account.id
@@ -512,18 +518,16 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
 
         assert ServiceAccount.objects.filter(id=self.service_account.id).exists()
 
-    def test_delete_clears_cell_cache(self) -> None:
+    def test_delete_removes_cell_replica(self) -> None:
         service_account_id = self.service_account.id
 
-        with (
-            mock.patch(CLEAR_KEY) as clear_key,
-            self.feature(FEATURE_FLAG),
-            outbox_runner(),
-        ):
+        with self.feature(FEATURE_FLAG), outbox_runner():
             self.get_success_response(
                 self.organization.slug, service_account_id, method="delete", status_code=204
             )
 
-        clear_key.assert_called_once_with(
-            key=get_service_account.key_from(service_account_id), cell_name=mock.ANY
-        )
+        with self.tasks(), assume_test_silo_mode(SiloMode.CELL):
+            schedule_hybrid_cloud_foreign_key_jobs()
+            assert not ServiceAccountReplica.objects.filter(
+                service_account_id=service_account_id
+            ).exists()
