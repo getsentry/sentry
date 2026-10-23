@@ -21,11 +21,11 @@ class AiAutofixPrIterationMissingPermissionsEvent(analytics.Event):
 
 @analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.completed")
 class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
-    """One batch of PR feedback turned into one agent run, emitted when it ends.
+    """One batch of PR feedback, emitted when it ends or cannot start an agent.
 
     Accumulated on a ``SeerRunPrIteration`` row from the first queued feedback
-    item and flushed here. An iteration that never reaches its completion hook
-    is not recorded.
+    item and flushed by the completion hook or an explicit terminal drain
+    outcome. ``consumer_not_implemented`` means no agent was started.
     """
 
     iteration_id: int
