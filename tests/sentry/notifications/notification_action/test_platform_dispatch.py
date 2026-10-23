@@ -12,7 +12,10 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.models.notificationthread import NotificationThread
+from sentry.notifications.models.notificationthread import (
+    NotificationThread,
+    NotificationThreadObjectType,
+)
 from sentry.notifications.notification_action.issue_alert_registry import (
     DiscordIssueAlertHandler,
     SlackIssueAlertHandler,
@@ -139,6 +142,7 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         assert follow_up["reply_broadcast"] is True
 
         thread = NotificationThread.objects.get()
+        assert thread.object_type == NotificationThreadObjectType.GROUP
         assert thread.object_id == self.event_data.group.id
         assert thread.key_data["group_id"] == self.event_data.group.id
 
@@ -311,6 +315,7 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
         assert follow_up["reply_broadcast"] is True
 
         thread = NotificationThread.objects.get()
+        assert thread.object_type == NotificationThreadObjectType.GROUP
         assert thread.object_id == self.group.id
         assert thread.key_data["group_id"] == self.group.id
 

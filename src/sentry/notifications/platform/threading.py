@@ -9,7 +9,10 @@ import pydantic
 from django.db import router, transaction
 
 from sentry.notifications.models.notificationrecord import NotificationRecord
-from sentry.notifications.models.notificationthread import NotificationThread
+from sentry.notifications.models.notificationthread import (
+    NotificationThread,
+    NotificationThreadObjectType,
+)
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.utils import json
 
@@ -29,12 +32,15 @@ class ThreadKey(pydantic.BaseModel):
     e.g. for NOA: {"action_id": ..., "group_id": ..., "open_period_start": ...}
     """
 
+    object_type: NotificationThreadObjectType | None = None
+    """
+    The kind of object this thread is about (e.g. GROUP for issue and metric alerts). Stored with
+    object_id so every thread for an object can be found without the full key. Not part of the
+    thread key hash.
+    """
+
     object_id: int | None = None
-    """
-    The ID of the object this thread is about (e.g. the group ID for issue and metric alerts),
-    interpreted by key_type. Stored so every thread for an object can be found without the
-    full key. Not part of the thread key hash.
-    """
+    """The ID of the object this thread is about, interpreted by object_type."""
 
     class Config:
         frozen = True
@@ -99,7 +105,8 @@ class ThreadingConfig(ThreadingLookup):
     # Optional provider-specific metadata
     provider_data: dict[str, Any] | None
 
-    # The ID of the object this thread is about (see ThreadKey.object_id)
+    # The object this thread is about (see ThreadKey.object_type and ThreadKey.object_id)
+    object_type: NotRequired[NotificationThreadObjectType | None]
     object_id: NotRequired[int | None]
 
 
@@ -173,6 +180,7 @@ class ThreadingService:
                     "thread_identifier": threading_config["thread_identifier"],
                     "key_type": threading_config["key_type"],
                     "key_data": threading_config["key_data"],
+                    "object_type": threading_config.get("object_type"),
                     "object_id": threading_config.get("object_id"),
                     "provider_data": threading_config["provider_data"] or {},
                 },

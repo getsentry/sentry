@@ -19,6 +19,7 @@ from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.notifications.models.notificationthread import NotificationThreadObjectType
 from sentry.notifications.platform.threading import ThreadingService
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.utils.open_period import open_period_start_for_group
@@ -275,6 +276,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                     "target_id": "C1234567890",
                     "thread_identifier": thread_ts,
                     "provider_data": None,
+                    "object_type": NotificationThreadObjectType.GROUP,
                     "object_id": group.id,
                 },
                 external_message_id=thread_ts,
