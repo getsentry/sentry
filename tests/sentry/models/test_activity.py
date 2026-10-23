@@ -8,9 +8,9 @@ from django.db import connections, router, transaction
 
 from sentry.event_manager import EventManager
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.attributes import Operation
 from sentry.issues.comments import create_comment, delete_comment
 from sentry.models.activity import Activity
-from sentry.models.group import Group
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -489,23 +489,6 @@ class ActivityTest(TestCase):
 
 
 class CommentCommitTest(TestCase):
-    def test_queryset_counter_snapshot_follows_commit(self) -> None:
-        group = self.group
-        with (
-            override_options({"groups.enable-post-update-signal": True}),
-            patch("sentry.issues.attributes.bulk_send_snapshot_values") as snapshot,
-        ):
-            with transaction.atomic(using=router.db_for_write(Group)):
-                Group.objects.filter(id=group.id).update(num_comments=1)
-                snapshot.assert_not_called()
-            snapshot.assert_called_once_with([group.id], None)
-            snapshot.reset_mock()
-            with pytest.raises(RuntimeError, match="rollback"):
-                with transaction.atomic(using=router.db_for_write(Group)):
-                    Group.objects.filter(id=group.id).update(num_comments=2)
-                    raise RuntimeError("rollback")
-            snapshot.assert_not_called()
-
     def test_counter_snapshots_and_notifications_follow_commit(self) -> None:
         group = self.group
         user = self.user
@@ -513,6 +496,7 @@ class CommentCommitTest(TestCase):
             with (
                 override_options({"groups.enable-post-update-signal": post_update_enabled}),
                 patch("sentry.issues.attributes.bulk_send_snapshot_values") as snapshot,
+                patch("sentry.issues.attributes._log_group_attributes_changed") as log_change,
                 patch("sentry.tasks.activity.send_activity_notifications.delay") as notification,
                 self.captureOnCommitCallbacks(execute=True),
             ):
@@ -530,6 +514,7 @@ class CommentCommitTest(TestCase):
                         raise RuntimeError("rollback")
                 snapshot.assert_not_called()
                 notification.assert_not_called()
+                log_change.reset_mock()
                 with transaction.atomic(using=router.db_for_write(Activity)):
                     note = create_comment(
                         group=group,
@@ -543,6 +528,7 @@ class CommentCommitTest(TestCase):
                     notification.assert_not_called()
             snapshot.assert_called_once_with([group.id], None)
             notification.assert_called_once_with(note.id)
+            log_change.assert_called_once_with(Operation.UPDATED, "group", "num_comments")
 
 
 @with_feature({"projects:issue-action-log-write-to-db": False})

@@ -227,6 +227,7 @@ def _bulk_retrieve_snapshot_values(
 def post_save_log_group_attributes_changed(instance, sender, created, *args, **kwargs) -> None:
     try:
         if set(kwargs.get("update_fields") or ()) == {"num_comments"}:
+            _log_group_attributes_changed(Operation.UPDATED, "group", "num_comments")
             transaction.on_commit(
                 partial(safe_execute, bulk_send_snapshot_values, [instance.id], None),
                 using=router.db_for_write(Group),
@@ -246,12 +247,7 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
 def post_update_group(sender, updated_fields, model_ids, *args, **kwargs) -> None:
     try:
         updated_fields = process_update_fields(updated_fields)
-        if updated_fields == {"num_comments"}:
-            transaction.on_commit(
-                partial(safe_execute, bulk_send_snapshot_values, list(model_ids), None),
-                using=router.db_for_write(Group),
-            )
-        elif updated_fields:
+        if updated_fields:
             bulk_send_snapshot_values(model_ids, None)
     except Exception:
         logger.exception("failed to log group attributes after group_owner updated")
