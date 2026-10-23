@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
 import type {OrganizationSummaryWithLocality} from 'sentry/views/setupWizard/types';
@@ -31,10 +32,6 @@ import {useUpdateWizardCache} from 'sentry/views/setupWizard/utils/useUpdateWiza
 import {WaitingForWizardToConnect} from 'sentry/views/setupWizard/waitingForWizardToConnect';
 
 const CREATE_PROJECT_VALUE = 'create-new-project';
-
-const urlParams = new URLSearchParams(location.search);
-const platformParam = urlParams.get('project_platform');
-const orgSlugParam = urlParams.get('org_slug');
 
 type WizardFormValues = {
   newProjectName: string;
@@ -62,7 +59,10 @@ function getOrgDisplayName(organization: OrganizationSummary) {
   return organization.name || organization.slug;
 }
 
-function getInitialOrgId(organizations: OrganizationSummary[]) {
+function getInitialOrgId(
+  organizations: OrganizationSummary[],
+  orgSlugParam: string | null
+) {
   if (organizations.length === 1) {
     return organizations[0]!.id;
   }
@@ -90,6 +90,10 @@ export function WizardProjectSelection({
   hash: string;
   organizations: OrganizationSummaryWithLocality[];
 }) {
+  const {query} = useLocation();
+  const platformParam =
+    typeof query.project_platform === 'string' ? query.project_platform : null;
+  const orgSlugParam = typeof query.org_slug === 'string' ? query.org_slug : null;
   const [search, setSearch] = useState('');
 
   const [debouncedSearch] = useDebouncedValue(search, {wait: 300});
@@ -98,7 +102,7 @@ export function WizardProjectSelection({
   const createProjectMutation = useCreateProjectFromWizard();
 
   const defaultValues: WizardFormValues = {
-    organizationId: getInitialOrgId(organizations),
+    organizationId: getInitialOrgId(organizations, orgSlugParam),
     projectId: null,
     newProjectName: platformParam || '',
     newProjectPlatform: platformParam || null,

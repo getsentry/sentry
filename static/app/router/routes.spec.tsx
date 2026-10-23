@@ -93,6 +93,20 @@ function getRedirectTarget(routes: RouteObject[], url: string): string | undefin
 
 describe('buildRoutes()', () => {
   it.each([false, true])(
+    'matches wizard sessions outside organization context (customer domain: %s)',
+    customerDomain => {
+      jest
+        .spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get')
+        .mockReturnValue(customerDomain);
+
+      expect(
+        getMatchedPaths(buildRoutes(), '/account/settings/wizard/session-hash/').filter(
+          path => path !== '(layout)'
+        )
+      ).toEqual(['/', '/account/settings/wizard/:wizardHash/']);
+    }
+  );
+  it.each([false, true])(
     'composes settings breadcrumbs from matched routes (customer domain: %s)',
     customerDomain => {
       jest
