@@ -834,7 +834,7 @@ Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
 Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 
 With the `logs` dataset, a string attribute can also be matched against a regular expression written as `key://pattern//`, and excluded with `!key://pattern//`.
-Patterns use [RE2 syntax](https://github.com/google/re2/wiki/Syntax), match anywhere in the value unless anchored with `^` or `$`, are case sensitive unless they start with `(?i)`, and are limited to 64 characters.
+Patterns use [RE2 syntax](https://github.com/google/re2/wiki/Syntax), match anywhere in the value unless anchored with `^` or `$`, are case sensitive unless they start with `(?i)`, and are limited to 64 characters. A query can contain up to 16 regular expressions.
 To search for a literal value that starts with `//`, quote it: `key:"//value"`.
 See [regular expressions](/concepts/search/#regular-expressions-logs-only) for more details.
 
@@ -1238,6 +1238,15 @@ class ReplayParams:
         description="""The ID of the replay deletion job you'd like to retrieve.""",
     )
 
+    FIELD = OpenApiParameter(
+        name="field",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="""A field to include in the response. Repeat to include several fields. Omit to return all fields.""",
+    )
+
 
 class NotificationParams:
     TRIGGER_TYPE = OpenApiParameter(
@@ -1495,4 +1504,61 @@ Available fields are:
 - `recentlyViewed`
 - `myqueries`
         """,
+    )
+
+
+class InvestigationParams:
+    BLOCK_ID = OpenApiParameter(
+        name="block_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an active block in this investigation.",
+    )
+    COMMENT_ID = OpenApiParameter(
+        name="comment_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of a comment in this investigation.",
+    )
+    EXECUTION_ID = OpenApiParameter(
+        name="execution_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an execution belonging to this block.",
+    )
+    INVESTIGATION_ID = OpenApiParameter(
+        name="investigation_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an investigation in this organization.",
+    )
+    CURSOR = OpenApiParameter(
+        name="cursor",
+        location="query",
+        type=str,
+        description="Pagination cursor from the previous response's Link header.",
+    )
+    PER_PAGE = OpenApiParameter(
+        name="per_page",
+        location="query",
+        type=int,
+        description="Maximum results per page, up to 100. Defaults to 100.",
+    )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        type=str,
+        description="Case-insensitive substring to match against investigation titles.",
+    )
+    STATUS = OpenApiParameter(
+        name="status",
+        location="query",
+        type=str,
+        enum=["active", "archived"],
+        default="active",
+        description="Return investigations with this status. Defaults to active.",
     )

@@ -98,9 +98,14 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
 
   /**
+   * Disables drag-to-zoom, so zooming never updates the URL or page filters.
+   */
+  disableZoom?: boolean;
+
+  /**
    * Dropped-data annotations rendered as a severity band between the plot and
-   * the x-axis line. The band is hidden when `visible` is false or no bucket has
-   * dropped data. `onClick` is called with the clicked bucket.
+   * the x-axis line. The band is hidden when no bucket has enough dropped data to
+   * highlight. `onClick` is called when the band is clicked.
    */
   droppedData?: DroppedDataProps;
 
@@ -161,6 +166,13 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Default: `auto`
    */
   showYAxis?: 'auto' | 'never';
+
+  /**
+   * Maximum number of series listed in the tooltip. When set, series are
+   * listed from the highest value to the lowest with zero values last, and the
+   * rest are summarized as "+X more".
+   */
+  tooltipLimit?: number;
 
   /**
    * Truncate the legend's "+n more" menu labels to the width the legend row
@@ -226,6 +238,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     onChartReady: onChartReadyZoom,
     ...chartZoomProps
   } = useChartZoom({
+    disabled: props.disableZoom,
     saveOnZoom: true,
   });
 
@@ -402,6 +415,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         );
       },
       renderSeriesDetails: props.renderTooltipSeriesDetails,
+      limit: props.tooltipLimit,
       truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);

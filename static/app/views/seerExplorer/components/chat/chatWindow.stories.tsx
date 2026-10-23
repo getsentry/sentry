@@ -177,7 +177,6 @@ const ANSWER: Block = {
   loading: false,
 };
 
-// An answer that ends in a block embed, the case the trailing embed space exists for.
 const ANSWER_ENDING_IN_EMBED: Block = {
   id: 'assistant-dsn',
   message: {
@@ -372,12 +371,38 @@ export default Storybook.story('ChatWindow', story => {
   story('Answer actions', () => (
     <Fragment>
       <p>
-        Hover the answer to reveal its actions: thumbs up, thumbs down, and copy. They
-        float over the bottom-right corner of the answer, so when an answer ends in a
-        block embed (here a DSN), the answer leaves space below the embed for them. Tool
-        results in the thinking block have no actions, so they leave none.
+        Hover the answer to reveal its actions: thumbs up, thumbs down, and copy. They sit
+        in a row below the answer, including when it ends in a block embed (here a DSN).
+        Their space stays reserved while hidden so hovering does not shift the
+        conversation.
       </p>
       <ChatWindow session={ANSWER_ENDING_IN_EMBED_SESSION} />
+    </Fragment>
+  ));
+
+  story('Answer actions with inline code', () => (
+    <Fragment>
+      <p>
+        A compact answer below a thinking block ends with a long URL in inline code. Hover
+        to reveal the actions below the message without covering the final line.
+      </p>
+      <ChatWindow
+        session={{
+          ...COMPLETED_SESSION,
+          blocks: [
+            USER_QUESTION,
+            SEARCH_SPANS,
+            {
+              ...ANSWER,
+              message: {
+                role: 'assistant',
+                content:
+                  '`https://example.com/organizations/org-slug/explore/traces/?query=span.op%3Adb%20span.description%3ASELECT&field=count%28%29&sort=-count%28%29&statsPeriod=24h`',
+              },
+            },
+          ],
+        }}
+      />
     </Fragment>
   ));
 

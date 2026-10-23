@@ -8,6 +8,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationConclusionTemplate,
     SeerInvestigationError,
     SeerInvestigationErrorTemplate,
     SeerInvestigationStarted,
@@ -175,6 +176,19 @@ class SeerInvestigationStatusTemplateTest(TestCase):
 
         assert rendered.subject == "Investigating FCP on organization login pages"
         assert len(rendered.body) == len(template.example_data.hypotheses)
+        (action,) = rendered.actions
+        assert action.label == "View full investigation"
+        assert action.link == template.example_data.investigation_url
+
+
+class SeerInvestigationConclusionTemplateTest(TestCase):
+    def test_render_example(self) -> None:
+        template = SeerInvestigationConclusionTemplate()
+
+        rendered = template.render_example()
+
+        assert rendered.subject == "Seer investigation conclusion"
+        assert len(rendered.body) == len(template.example_data.sections)
         (action,) = rendered.actions
         assert action.label == "View full investigation"
         assert action.link == template.example_data.investigation_url

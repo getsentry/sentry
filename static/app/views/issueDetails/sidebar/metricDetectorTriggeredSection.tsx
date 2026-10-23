@@ -67,7 +67,7 @@ import {
   investigationOrchestrationQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
+import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/block';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
@@ -76,6 +76,7 @@ import type {
   InvestigationOrchestration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
+import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -701,20 +702,14 @@ function SeerInvestigationSection({
           .queryKey,
         {json: launchedInvestigation, headers: {}}
       );
-      navigate(
-        normalizeUrl(
-          `/organizations/${organization.slug}/explore/investigations/${launchedInvestigation.id}/`
-        )
-      );
+      navigate(getInvestigationPath(organization.slug, launchedInvestigation.id));
     },
     onError: () => addErrorMessage(t('Unable to launch investigation.')),
   });
 
   const investigationPath =
     candidate?.status === 'view'
-      ? normalizeUrl(
-          `/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`
-        )
+      ? getInvestigationPath(organization.slug, candidate.investigationId)
       : null;
 
   if (

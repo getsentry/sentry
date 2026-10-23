@@ -11,6 +11,7 @@ from __future__ import annotations
 import contextlib
 import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
 import logging
+from datetime import datetime
 from typing import Any, assert_never, cast
 
 from django.db import IntegrityError, router, transaction
@@ -49,9 +50,11 @@ from sentry.seer.agent.monitoring_providers import get_monitoring_provider_conne
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
+from sentry.service_accounts.services.service_account import service_account_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -200,10 +203,21 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.PROJECT_UPDATE)
-def process_project_updates(object_identifier: int, **kwds: Any):
+def process_project_updates(
+    object_identifier: int, shard_identifier: int, payload: Any, **kwds: Any
+):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
-    proj
+    if not payload or "transferred_at" not in payload:
+        return
+    # Written by a transfer out of the shard's org. The project may have moved again since,
+    # so its current org alone doesn't say which links the transfer revoked.
+    service_account_service.remove_project_links_after_transfer(
+        project_id=proj.id,
+        organization_id=proj.organization_id,
+        previous_organization_id=shard_identifier,
+        transferred_at=datetime.fromisoformat(payload["transferred_at"]),
+    )
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
@@ -256,9 +270,11 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     if get_viewer_context() is None:
         scope = viewer_context_scope(
             ViewerContext(
+                actor=Actor(
+                    type=ActorType.USER if run.user_id is not None else ActorType.SYSTEM,
+                    actor_id=run.user_id,
+                ),
                 organization_id=run.organization_id,
-                user_id=run.user_id,
-                actor_type=ActorType.USER if run.user_id is not None else ActorType.SYSTEM,
             )
         )
 

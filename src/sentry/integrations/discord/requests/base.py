@@ -172,13 +172,13 @@ class DiscordRequest:
         except InvalidSignature:
             self._info(
                 "discord.authorize.auth.invalid.signature",
-                {**self.logging_data, "signature": signature, "timestamp": timestamp, "body": body},
+                {**self.logging_data, "signature": signature, "timestamp": timestamp},
             )
             raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
         except ValueError:
             self._info(
                 "discord.authorize.auth.value.error",
-                {**self.logging_data, "signature": signature, "timestamp": timestamp, "body": body},
+                {**self.logging_data, "signature": signature, "timestamp": timestamp},
             )
             raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 

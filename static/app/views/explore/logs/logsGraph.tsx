@@ -25,6 +25,7 @@ import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useIsShortViewport} from 'sentry/utils/useIsShortViewport';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -54,6 +55,7 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSearch,
@@ -63,7 +65,11 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualize, type Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  isVisualizeFunction,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
@@ -177,7 +183,11 @@ function Graph({
     const series =
       withholdData || !hasValidConditionalFilter
         ? []
-        : (timeseriesResult.data[aggregate] ?? []);
+        : getTimeSeriesForQuery(
+            timeseriesResult.data,
+            aggregate,
+            isVisualizeFunction(visualize) ? visualize.transformations : []
+          );
     const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     const resultForChart = (
@@ -216,7 +226,7 @@ function Graph({
     tableIsPending,
     timeseriesResult,
     topEventsLimit,
-    visualize.chartType,
+    visualize,
   ]);
 
   const plottables = useChartVisualizationPlottables(chartInfo);
@@ -257,6 +267,7 @@ function Graph({
     <Fragment>
       {canShowDroppedData ? (
         <DroppedDataLayerControl
+          dataset={DiscoverDatasets.OURLOGS}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />
@@ -330,6 +341,7 @@ function Graph({
             droppedData={
               showDroppedDataBand
                 ? {
+                    dataset: DiscoverDatasets.OURLOGS,
                     droppedEvents,
                     acceptedEvents,
                     onClick: openDroppedDataDrawer,
@@ -362,6 +374,7 @@ function Graph({
 function ContextMenu({interval, visualize}: {interval: string; visualize: Visualize}) {
   const location = useLocation();
   const organization = useOrganization();
+  const hasTransformations = useQueryParamsHasTransformations();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
@@ -491,6 +504,12 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
+          disabled={hasTransformations}
+          tooltipProps={
+            hasTransformations
+              ? {title: t('Queries with transformations cannot be saved yet.')}
+              : undefined
+          }
         />
       )}
       position="bottom-end"

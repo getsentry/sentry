@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -236,6 +236,7 @@ function droppedDataTooltipOption(
 ): CustomSeriesOption['tooltip'] {
   return {
     trigger: 'item',
+    position: 'bottom',
     formatter: params => {
       if (!isChartHovered(chartRef.current)) {
         return '';
@@ -293,7 +294,7 @@ export function useDroppedDataBand({
   const renderToString = useRenderToString();
   const userTimezone = useTimezone();
   const timezone = utc ? 'UTC' : userTimezone;
-  const {acceptedEvents, droppedEvents} = droppedData ?? {};
+  const {acceptedEvents, dataset, droppedEvents} = droppedData ?? {};
 
   const buckets = useMemo(
     () =>
@@ -304,25 +305,36 @@ export function useDroppedDataBand({
   );
   const isVisible = buckets.some(isHighlighted);
 
-  const renderTooltip = useCallback(
-    (bucket: DroppedDataBucket) =>
-      renderToString(<DroppedDataTooltip bucket={bucket} timezone={timezone} />),
-    [renderToString, timezone]
-  );
-
   const droppedDataSeries = useMemo(
     () =>
-      isVisible
+      isVisible && defined(dataset)
         ? createDroppedDataSeries({
             bandOffset,
             buckets,
             chartRef,
-            renderTooltip,
+            renderTooltip: bucket =>
+              renderToString(
+                <DroppedDataTooltip
+                  bucket={bucket}
+                  dataset={dataset}
+                  timezone={timezone}
+                />
+              ),
             theme,
             yAxisIndex,
           })
         : null,
-    [bandOffset, buckets, chartRef, isVisible, renderTooltip, theme, yAxisIndex]
+    [
+      bandOffset,
+      buckets,
+      chartRef,
+      dataset,
+      isVisible,
+      renderToString,
+      theme,
+      timezone,
+      yAxisIndex,
+    ]
   );
 
   return {

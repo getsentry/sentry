@@ -5,15 +5,11 @@ import trimStart from 'lodash/trimStart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {
-  isAggregateField,
-  type AggregationOutputType,
-  type DataUnit,
-} from 'sentry/utils/discover/fields';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -22,6 +18,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -49,9 +46,7 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
   totalIssuesCount?: string;
 };
 
@@ -61,15 +56,14 @@ export type GenericWidgetQueriesResult = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  ingestion?: IngestionMeta;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
-  timeseriesResults?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
   totalCount?: string;
 };
 
@@ -101,7 +95,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
-    timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   samplingMode?: SamplingMode;
   // Optional selection override - if not provided, usePageFilters hook will be used
@@ -289,8 +282,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
       // Call onDataFetched with transformed results
       onDataFetched?.({
         timeseriesResults: (hookResults as any).timeseriesResults,
-        timeseriesResultsTypes: (hookResults as any).timeseriesResultsTypes,
-        timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
       });
     } else {
       // Collect any results from afterFetchTableData callbacks

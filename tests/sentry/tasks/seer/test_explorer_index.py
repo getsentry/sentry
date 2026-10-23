@@ -403,7 +403,7 @@ class TestRunExplorerIndexForProjects(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context.organization_id == 100
-        assert viewer_context.actor_type == ActorType.SYSTEM
+        assert viewer_context.actor.type == ActorType.SYSTEM
         assert get_viewer_context() is None
 
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
@@ -418,5 +418,5 @@ class TestRunExplorerIndexForProjects(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context.organization_id is None
-        assert viewer_context.actor_type == ActorType.SYSTEM
+        assert viewer_context.actor.type == ActorType.SYSTEM
         assert get_viewer_context() is None

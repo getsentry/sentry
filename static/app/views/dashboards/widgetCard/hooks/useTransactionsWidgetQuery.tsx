@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -22,6 +21,7 @@ import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {transactionsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/transactionsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -33,6 +33,7 @@ import {
   combineWidgetQueryResults,
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TransactionsSeriesResponse =
@@ -153,7 +154,7 @@ export function useTransactionsSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -162,16 +163,18 @@ export function useTransactionsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = transactionsResponseTransforms.transformSeries!(
-        responseData,
-        filteredWidget.queries[requestIndex]!,
-        organization
+      const transformedResult = transformMultipleWidgetSeriesToTimeSeries(
+        transactionsResponseTransforms.transformSeries!(
+          responseData,
+          filteredWidget.queries[requestIndex]!,
+          organization
+        ),
+        filteredWidget,
+        requestIndex
       );
 
       // Maintain color consistency
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
 
     return {

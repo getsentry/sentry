@@ -408,7 +408,6 @@ export class Results extends Component<Props, State> {
         trackAiQueryOutcome({
           dataset: 'errors',
           mode,
-          referrer: 'errors',
           resultCount: totals,
           organization,
           runId: aiQueryRunId,
@@ -420,7 +419,6 @@ export class Results extends Component<Props, State> {
         trackAiQueryOutcome({
           dataset: 'errors',
           mode,
-          referrer: 'errors',
           resultCount: 0,
           organization,
           runId: aiQueryRunId,
@@ -911,7 +909,7 @@ function TransactionsDatasetDeprecationBanner({
         datetime: {
           start: savedQuery.exploreQuery.start ?? null,
           end: savedQuery.exploreQuery.end ?? null,
-          period: savedQuery.exploreQuery.range ?? null,
+          period: savedQuery.exploreQuery.statsPeriod ?? null,
           utc: selection.datetime.utc ?? null,
         },
       },

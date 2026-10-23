@@ -940,9 +940,9 @@ export function measurementType(field: string): MeasurementType {
   return FieldValueType.NUMBER;
 }
 
-const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;
+const AGGREGATE_PATTERN = /^(formula\.[^()]+|\w+)\((.*)\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-export const AGGREGATE_BASE = /(\w+)\((.*)\)/g;
+export const AGGREGATE_BASE = /(formula\.[^()]+|\w+)\((.*)\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
