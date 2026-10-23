@@ -1050,7 +1050,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             insert_index=3,
             user=ANY,
             enable_bash_mode=False,
-            actor_user_id=None,
+            actor_user_id=self.user.id,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")

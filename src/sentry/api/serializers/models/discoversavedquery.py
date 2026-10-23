@@ -60,7 +60,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
         query_keys = [
             "environment",
             "query",
-            "range",
+            "statsPeriod",
             "start",
             "end",
             "interval",
@@ -79,9 +79,9 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             if query.query.get(key) is not None:
                 data[key] = query.query[key]
 
-        # Saved queries store the period as `range`. Return it as `statsPeriod` too.
-        if data.get("range") is not None:
-            data["statsPeriod"] = data["range"]
+        # Older rows stored the relative period as `range`.
+        if data.get("statsPeriod") is None and query.query.get("range") is not None:
+            data["statsPeriod"] = query.query["range"]
 
         # expire queries that are beyond the retention period
         if "start" in query.query:

@@ -661,6 +661,10 @@ class Endpoint(APIView):
                 attributes={"sentry.op": "base.paginate.on_results"},
             ):
                 results = on_results(cursor_result.results)
+            # Skip None items as that generally isn't comformant with API
+            # specs, and None often points to serialization failures.
+            if isinstance(results, list):
+                results = [item for item in results if item is not None]
         else:
             results = cursor_result.results
 

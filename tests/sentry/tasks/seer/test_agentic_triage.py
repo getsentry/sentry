@@ -747,8 +747,10 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
             first_run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
             second_run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
 
+        assert first_run_id is not None
         assert first_run_id == second_run_id
         assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
+        assert SeerWorkflowRun.objects.get(id=first_run_id).trigger_key == "2024-07-22T22:00"
         assert mock_execute.call_count == 2
 
     def test_completed_schedule_id_returns_same_run_without_quota(self) -> None:
@@ -819,7 +821,7 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
             run_agentic_triage_for_org(org.id)
 
         assert (
-            SeerWorkflowRun.objects.filter(organization=org, schedule_id__isnull=True).count() == 2
+            SeerWorkflowRun.objects.filter(organization=org, trigger_key__isnull=True).count() == 2
         )
 
     def test_no_eligible_projects(self) -> None:

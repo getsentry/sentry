@@ -163,11 +163,17 @@ export type InvestigationQueryOutput = {
 };
 
 export type InvestigationDetail = InvestigationListItem & {
+  actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
   filters?: Record<string, unknown>;
   parameters?: unknown[];
   projectIds?: number[];
-  source?: Record<string, unknown>;
+  source?: {
+    ref: Record<string, unknown>;
+    revision: number | null;
+    type: string;
+    snapshot?: Record<string, unknown>;
+  };
   template?: {key: string; version: number} | null;
 };
 
@@ -252,6 +258,57 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'failed'
   | 'cancelled'
 >;
+
+export type InvestigationDetectorChangeKey =
+  | 'query'
+  | 'aggregate'
+  | 'environment'
+  | 'timeWindowSeconds'
+  | 'highThreshold'
+  | 'mediumThreshold'
+  | 'resolutionThreshold';
+
+type InvestigationDetectorValues = Partial<
+  Record<InvestigationDetectorChangeKey, number | string | null>
+>;
+
+export type InvestigationUpdateDetectorAction = {
+  before: InvestigationDetectorValues;
+  changes: InvestigationDetectorValues;
+  detectorId: string;
+  kind: 'update_detector';
+};
+
+type InvestigationAction =
+  | InvestigationUpdateDetectorAction
+  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+
+type InvestigationActionRequestAnchor = {
+  blockId: string | null;
+  id: string;
+  type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
+};
+
+export type InvestigationActionRequest = {
+  action: InvestigationAction | null;
+  anchor: InvestigationActionRequestAnchor | null;
+  appliedBy: AvatarUser | null;
+  appliedDetails: Record<string, unknown> | null;
+  dateApplied: string | null;
+  dateCreated: string;
+  error: Record<string, unknown> | null;
+  id: string;
+  impact: string | null;
+  key: string;
+  primary: boolean;
+  rationale: string;
+  reason: string | null;
+  reportRevision: number;
+  state: InvestigationOrchestrationOpenString<
+    'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
+  >;
+  title: string;
+};
 
 type InvestigationOrchestrationError = {
   code: string;
@@ -369,6 +426,13 @@ type InvestigationOrchestrationReport = {
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
   currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
+  nextStep?: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationOpenString<
+      'not_started' | 'generating' | 'completed' | 'failed'
+    >;
+    automaticRetryCount?: number;
+  } | null;
   suggestedHypotheses?: Array<{
     statement: string;
     rationale?: string | null;

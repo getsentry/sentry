@@ -156,9 +156,7 @@ export function useIssuesSeriesQuery(
         requestIndex
       );
 
-      transformedResult.forEach((result, resultIndex) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
 
     return {

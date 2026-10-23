@@ -52,7 +52,7 @@ class AuthOrganizationConfigEndpoint(Endpoint):
             slug=organization_id_or_slug,
             only_visible=True,
             user_id=request.user.id if request.user.is_authenticated else None,
-            include_resource_ids=access.should_prefetch_organization_resources(request),
+            include_resource_ids=False,
         )
         if organization_context is None:
             raise NotFound()

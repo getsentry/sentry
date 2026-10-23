@@ -36,8 +36,8 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         )
         organization_ids = []
         for o in organizations:
-            org_context = organization_service.get_organization_by_id(
-                id=o.id, user_id=request.user.id
+            org_context = organization_service.get_access_context(
+                organization_id=o.id, user_id=request.user.id
             )
             if org_context and org_context.member and "org:read" in org_context.member.scopes:
                 organization_ids.append(o.id)
