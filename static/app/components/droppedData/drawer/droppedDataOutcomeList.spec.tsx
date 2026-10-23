@@ -3,7 +3,7 @@ import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
-import {droppedEventsToOutcomeGroups} from 'sentry/components/droppedData/drawer/outcomeSections';
+import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
 import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 
@@ -18,9 +18,7 @@ function OutcomeList({
 }) {
   return (
     <DroppedDataOutcomeList
-      sections={
-        droppedEventsToOutcomeGroups(droppedEvents, acceptedEvents, 'all').unintentional
-      }
+      sections={droppedEventsToOutcomeSections(droppedEvents, acceptedEvents)}
       onAskSeer={onAskSeer}
     />
   );

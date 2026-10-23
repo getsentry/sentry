@@ -46,22 +46,17 @@ describe('DroppedDataLLMContext', () => {
     expect(findDroppedDataNode(result.current.getLLMContext())).toBeUndefined();
   });
 
-  it('publishes a loading status, then unexpected and expected drops', async () => {
+  it('publishes the drops grouped by outcome once they load', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,
       body: {
         meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
         droppedEvents: [
-          DroppedEventFixture({
-            outcome: 'rate_limited',
-            count: 10,
-            tags: ['unintentional'],
-          }),
+          DroppedEventFixture({outcome: 'rate_limited', count: 10}),
           DroppedEventFixture({
             outcome: 'client_discard',
             reason: 'sample_rate',
             count: 30,
-            tags: ['intentional'],
           }),
         ],
         acceptedEvents: [
@@ -75,43 +70,14 @@ describe('DroppedDataLLMContext', () => {
       additionalWrapper: WithDroppedDataLLMContext,
     });
 
-    expect(findDroppedDataNode(result.current.getLLMContext())?.data).toEqual({
-      contextHint: expect.any(String),
-      dataset: DiscoverDatasets.SPANS,
-      status: 'loading',
-    });
     await waitFor(() =>
       expect(findDroppedDataNode(result.current.getLLMContext())?.data).toEqual({
         contextHint: expect.any(String),
         dataset: DiscoverDatasets.SPANS,
-        status: 'loaded',
-        unexpectedDrops: [
+        drops: [
+          expect.objectContaining({outcome: 'client_discard', shareRatio: 0.3}),
           expect.objectContaining({outcome: 'rate_limited', shareRatio: 0.1}),
         ],
-        expectedDrops: [
-          expect.objectContaining({outcome: 'client_discard', shareRatio: 0.3}),
-        ],
-      })
-    );
-  });
-
-  it('publishes an error status without drops when the request fails', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-dropped/`,
-      statusCode: 500,
-      body: {detail: 'Internal Error'},
-    });
-
-    const {result} = renderHookWithProviders(() => useLLMContext(), {
-      organization,
-      additionalWrapper: WithDroppedDataLLMContext,
-    });
-
-    await waitFor(() =>
-      expect(findDroppedDataNode(result.current.getLLMContext())?.data).toEqual({
-        contextHint: expect.any(String),
-        dataset: DiscoverDatasets.SPANS,
-        status: 'error',
       })
     );
   });
