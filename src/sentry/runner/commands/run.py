@@ -245,12 +245,12 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 )
 @log_options()
 @configuration
-def taskworker(autoreload: bool, **options: Any) -> None:
+def taskworker(**options: Any) -> None:
     """
     Run a taskworker worker
     """
     os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
-    if autoreload:
+    if options.pop("autoreload"):
         _run_taskworker_with_autoreload(**options)
     else:
         run_taskworker(**options)
