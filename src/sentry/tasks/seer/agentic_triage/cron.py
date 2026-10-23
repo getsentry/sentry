@@ -268,7 +268,7 @@ def _prepare_scheduled_run(
     run, created = SeerWorkflowRun.objects.get_or_create(
         organization=organization,
         workflow_config=workflow_config,
-        schedule_id=schedule_id,
+        trigger_key=schedule_id,
         defaults={"extras": extras},
     )
     if created:
@@ -354,7 +354,7 @@ def run_agentic_triage_for_org(
         existing_run = SeerWorkflowRun.objects.filter(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
-            schedule_id=schedule_id,
+            trigger_key=schedule_id,
         ).first()
         # Without quota, only completed runs or runs with persisted executions can continue.
         if existing_run is None or (

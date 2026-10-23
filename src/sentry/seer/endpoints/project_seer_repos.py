@@ -27,7 +27,6 @@ from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.seer.autofix.utils import (
     add_seer_project_repos,
-    get_seer_project_repo,
     get_token_based_billing_project_repos,
     get_token_based_billing_repos,
     is_seer_token_based_billing_onboarding_enabled,
@@ -73,7 +72,8 @@ class ProjectRepoResponse(TypedDict):
 
 def _serialize_project_repo(project_repo: ProjectRepository) -> ProjectRepoResponse:
     repo = project_repo.repository
-    seer_project_repo = get_seer_project_repo(project_repo)
+    # getattr since accessing a missing one-to-one raises RelatedObjectDoesNotExist.
+    seer_project_repo = getattr(project_repo, "seerprojectrepository", None)
     name_parts = repo.name.split("/", 1)
     owner = name_parts[0] if len(name_parts) > 1 else ""
     name = name_parts[1] if len(name_parts) > 1 else repo.name
