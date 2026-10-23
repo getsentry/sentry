@@ -13,7 +13,13 @@ describe('SeerWorkflows', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    try {
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('hides the monitor scan trigger when its flag is disabled', async () => {
