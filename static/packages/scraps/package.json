@@ -199,45 +199,9 @@
       "types": "./dist/table/index.d.ts",
       "import": "./dist/table/index.js"
     },
-    "./table/table": {
-      "types": "./dist/table/table.d.ts",
-      "import": "./dist/table/table.js"
-    },
-    "./table/styles": {
-      "types": "./dist/table/styles.d.ts",
-      "import": "./dist/table/styles.js"
-    },
-    "./table/sortableHeaderCell": {
-      "types": "./dist/table/sortableHeaderCell.d.ts",
-      "import": "./dist/table/sortableHeaderCell.js"
-    },
-    "./table/useColumnResize": {
-      "types": "./dist/table/useColumnResize.d.ts",
-      "import": "./dist/table/useColumnResize.js"
-    },
-    "./table/useObservedColumnSize": {
-      "types": "./dist/table/useObservedColumnSize.d.ts",
-      "import": "./dist/table/useObservedColumnSize.js"
-    },
     "./dragHandle": {
       "types": "./dist/dragHandle/index.d.ts",
       "import": "./dist/dragHandle/index.js"
-    },
-    "./dragHandle/dragHandle": {
-      "types": "./dist/dragHandle/dragHandle.d.ts",
-      "import": "./dist/dragHandle/dragHandle.js"
-    },
-    "./dragHandle/useDragMove": {
-      "types": "./dist/dragHandle/useDragMove.d.ts",
-      "import": "./dist/dragHandle/useDragMove.js"
-    },
-    "./dragHandle/useDragSeparator": {
-      "types": "./dist/dragHandle/useDragSeparator.d.ts",
-      "import": "./dist/dragHandle/useDragSeparator.js"
-    },
-    "./dragHandle/setDocumentDragging": {
-      "types": "./dist/dragHandle/setDocumentDragging.d.ts",
-      "import": "./dist/dragHandle/setDocumentDragging.js"
     }
   },
   "publishConfig": {

@@ -5,8 +5,6 @@ import {act, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {useDragMove} from '@sentry/scraps/dragHandle';
-import {useColumnResize} from '@sentry/scraps/table/useColumnResize';
-import {useObservedColumnSize} from '@sentry/scraps/table/useObservedColumnSize';
 import {lightTheme} from '@sentry/scraps/theme';
 
 import {dragHandle} from '../../test/dragMove';
@@ -15,6 +13,9 @@ import {
   resetResizeObservers,
   triggerResizeObservers,
 } from '../../test/resizeObserver';
+
+import {useColumnResize} from './useColumnResize';
+import {useObservedColumnSize} from './useObservedColumnSize';
 
 interface HandleProps {
   columnIndex: number;

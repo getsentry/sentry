@@ -3,12 +3,17 @@ export {
   COL_WIDTH_UNDEFINED,
   Table,
   type TableColumnConfig,
+  type TableProps,
   useTableElement,
 } from './table';
-
-/**
- * @TODO: these should probably be private to scraps
- */
+export {
+  COLUMN_ALIGN_JUSTIFY,
+  getAriaSort,
+  HeaderCellContent,
+  SortableHeaderCell,
+  type ColumnAlign,
+  type SortDirection,
+} from './sortableHeaderCell';
 export {
   emptyCellStyle,
   fullWidthCellStyle,

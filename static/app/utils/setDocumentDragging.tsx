@@ -1,1 +1,1 @@
-export {setDocumentDragging} from '@sentry/scraps/dragHandle/setDocumentDragging';
+export {setDocumentDragging} from '@sentry/scraps/dragHandle';
