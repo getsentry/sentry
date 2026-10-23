@@ -7,21 +7,155 @@ from typing import Any
 from uuid import UUID
 
 from django.db import router, transaction
+from django.db.models import QuerySet
 from django.utils import timezone
+from pydantic import BaseModel
 
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.schemas import WorkflowResult, WorkflowResultError, WorkflowRunExtras
+from sentry.seer.workflows.schemas import (
+    WorkflowResult,
+    WorkflowResultError,
+    WorkflowRunError,
+    WorkflowRunExtras,
+    WorkflowRunSnapshot,
+)
+from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = {"complete", "partial", "failed"}
+
+
+def get_or_create_workflow_run(
+    *,
+    organization_id: int,
+    workflow_config_id: int,
+    trigger_key: str,
+    inputs: BaseModel,
+) -> tuple[SeerWorkflowRun, bool]:
+    """Record an invocation once; retries keep its original configuration and inputs."""
+    if not trigger_key or len(trigger_key) > 256:
+        raise ValueError("Trigger keys must contain between 1 and 256 characters")
+
+    using = router.db_for_write(SeerWorkflowRun)
+    runs = SeerWorkflowRun.objects.using(using).filter(
+        organization_id=organization_id,
+        workflow_config_id=workflow_config_id,
+        trigger_key=trigger_key,
+    )
+    existing = runs.first()
+    if existing is not None:
+        return existing, False
+
+    with transaction.atomic(using):
+        config = SeerWorkflowConfig.objects.select_for_update().get(
+            id=workflow_config_id, organization_id=organization_id
+        )
+        existing = runs.first()
+        if existing is not None:
+            return existing, False
+
+        snapshot = WorkflowRunSnapshot(
+            config_version=config.version,
+            strategy=SeerWorkflowStrategy(config.strategy),
+            filters=config.filters,
+            project_ids=tuple(SeerWorkflow(config).get_project_ids()),
+            output_policy=config.output_policy,
+            inputs=json.loads(inputs.json()),
+        )
+        run = SeerWorkflowRun.objects.using(using).create(
+            organization_id=organization_id,
+            workflow_config=config,
+            trigger_key=trigger_key,
+            status=SeerWorkflowRunStatus.RUNNING,
+            date_started=timezone.now(),
+            snapshot=json.loads(snapshot.json()),
+        )
+    return run, True
+
+
+def complete_workflow_run(
+    *,
+    organization_id: int,
+    workflow_run_id: int,
+    error: WorkflowRunError | None = None,
+) -> SeerWorkflowRun:
+    """Finish a run that has no executions, including selection failure or no-work success."""
+    with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+        run = SeerWorkflowRun.objects.select_for_update().get(
+            id=workflow_run_id, organization_id=organization_id, trigger_key__isnull=False
+        )
+        if run.date_completed is not None:
+            return run
+
+        if run.executions.exists():
+            raise ValueError("Finish the run's executions with complete_workflow_execution")
+        run.status = SeerWorkflowRunStatus.FAILED if error else SeerWorkflowRunStatus.COMPLETE
+        run.error = error.dict() if error else None
+        run.date_completed = timezone.now()
+        run.save(update_fields=["status", "error", "date_completed", "date_updated"])
+    return run
+
+
+def complete_workflow_execution(
+    *,
+    organization_id: int,
+    workflow_execution_id: int,
+    error: WorkflowRunError | None = None,
+) -> SeerWorkflowRunExecution:
+    """Finish one execution and finalize the run after all executions have finished.
+
+    Create the complete execution plan before dispatching any work. Lock the parent first
+    so simultaneous callbacks cannot both miss the other execution's completion.
+    """
+    with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+        execution = SeerWorkflowRunExecution.objects.get(
+            id=workflow_execution_id, run__organization_id=organization_id
+        )
+        run = SeerWorkflowRun.objects.select_for_update().get(
+            id=execution.run_id, organization_id=organization_id
+        )
+        execution.refresh_from_db()
+        if execution.date_completed is not None:
+            return execution
+        execution.status = (
+            SeerWorkflowExecutionStatus.FAILED if error else SeerWorkflowExecutionStatus.COMPLETE
+        )
+        execution.error = error.dict() if error else None
+        execution.date_completed = timezone.now()
+        execution.save(update_fields=["status", "error", "date_completed", "date_updated"])
+
+        unfinished = run.executions.exclude(
+            status__in=[SeerWorkflowExecutionStatus.COMPLETE, SeerWorkflowExecutionStatus.FAILED]
+        ).exists()
+        if run.date_completed is None and not unfinished:
+            failed = run.executions.filter(status=SeerWorkflowExecutionStatus.FAILED).first()
+            run.status = SeerWorkflowRunStatus.FAILED if failed else SeerWorkflowRunStatus.COMPLETE
+            run.error = failed.error if failed else None
+            run.date_completed = execution.date_completed
+            run.save(update_fields=["status", "error", "date_completed", "date_updated"])
+    return execution
+
+
+def get_workflow_runs(
+    *,
+    organization_id: int,
+    workflow_config_id: int | None = None,
+) -> QuerySet[SeerWorkflowRun]:
+    runs = SeerWorkflowRun.objects.filter(organization_id=organization_id)
+    if workflow_config_id is not None:
+        runs = runs.filter(workflow_config_id=workflow_config_id)
+    return runs.order_by("-date_added", "-id")
 
 
 def create_workflow_run(

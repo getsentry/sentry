@@ -145,6 +145,19 @@ class SeerWorkflowTriggerBinding(DefaultFieldsModel):
     __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
 
 
+class SeerWorkflowRunStatus(models.TextChoices):
+    RUNNING = "running"
+    COMPLETE = "complete"
+    FAILED = "failed"
+    REJECTED = "rejected"
+
+
+class SeerWorkflowExecutionStatus(models.TextChoices):
+    RUNNING = "running"
+    COMPLETE = "complete"
+    FAILED = "failed"
+
+
 @cell_silo_model
 class SeerWorkflowRun(DefaultFieldsModel):
     """Records each workflow invocation for an organization.
@@ -157,11 +170,18 @@ class SeerWorkflowRun(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     workflow_config = FlexibleForeignKey(
-        "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
+        "seer.SeerWorkflowConfig", on_delete=models.CASCADE, null=True
     )
     # Cron window (e.g. 2024-07-22T22:00) or event identity (e.g. issue_created:123).
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
+    # Null for historical runs that have not adopted the shared lifecycle.
+    status = models.CharField(max_length=16, choices=SeerWorkflowRunStatus.choices, null=True)
+    date_started = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(null=True)
+    # Immutable settings and inputs, in the shape of WorkflowRunSnapshot.
+    snapshot = models.JSONField(null=True)
+    # Structured failures, in the shape of WorkflowRunError.
+    error = models.JSONField(null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
@@ -199,6 +219,9 @@ class SeerWorkflowRunExecution(DefaultFieldsModel):
     seer_run = models.OneToOneField(
         "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="workflow_execution"
     )
+    status = models.CharField(max_length=16, choices=SeerWorkflowExecutionStatus.choices, null=True)
+    date_completed = models.DateTimeField(null=True)
+    error = models.JSONField(null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

@@ -13,8 +13,10 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
 )
@@ -139,9 +141,12 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert run.extras["trigger"] == trigger
         assert trigger["evidence"]["value"] == 180
         assert run.extras["config_version"] == self.config.version
-        assert run.extras["status"] == "complete"
+        assert run.status == SeerWorkflowRunStatus.COMPLETE
         assert run.date_completed is not None
-        assert run.executions.get().extras == {"status": "complete", "result": "noop"}
+        execution = run.executions.get()
+        assert execution.status == SeerWorkflowExecutionStatus.COMPLETE
+        assert execution.date_completed is not None
+        assert execution.extras == {"result": "noop"}
         stored = MetricBreachRunExtras.parse_obj(run.extras)
         assert event.occurrence is not None
         assert stored.trigger.observed_at == event.occurrence.detection_time
@@ -279,6 +284,10 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
                 workflow_id=self.workflow.id,
             )
         assert isinstance(first, RejectedMetricBreach)
+        assert first.run.status == SeerWorkflowRunStatus.REJECTED
+        assert first.run.date_started is None
+        assert first.run.date_completed is not None
+        assert "status" not in first.run.extras
         assert isinstance(replayed, RejectedMetricBreach)
         assert replayed.created is False
         assert replayed.run.id == first.run.id

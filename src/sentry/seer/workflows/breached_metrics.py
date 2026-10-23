@@ -14,9 +14,11 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowExecutionStatus,
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
 )
@@ -75,14 +77,12 @@ class MetricBreachAdmission(BaseModel):
 
 
 class MetricBreachRunExtras(BaseModel):
-    status: Literal["complete", "rejected"]
     config_version: int
     admission: MetricBreachAdmission
     trigger: MetricBreachTrigger
 
 
 class MetricBreachExecutionExtras(BaseModel):
-    status: Literal["complete"] = "complete"
     result: Literal["noop"] = "noop"
 
 
@@ -179,7 +179,10 @@ class BreachedMetricWorkflow(SeerWorkflow):
             workflow_config=config,
             trigger_key=trigger_key,
         ).first()
-        if run is not None and run.extras.get("status") == "rejected":
+        if run is not None and (
+            run.status == SeerWorkflowRunStatus.REJECTED
+            or (run.status is None and run.extras.get("status") == "rejected")
+        ):
             return RejectedMetricBreach(
                 run=run,
                 reason=run.extras["admission"]["reason"],
@@ -192,7 +195,6 @@ class BreachedMetricWorkflow(SeerWorkflow):
             )
             decided_at = timezone.now()
             extras = MetricBreachRunExtras(
-                status="rejected" if reason is not None else "complete",
                 config_version=config.version,
                 admission=MetricBreachAdmission(
                     status="rejected" if reason is not None else "accepted",
@@ -205,6 +207,10 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 organization_id=group.organization.id,
                 workflow_config=config,
                 trigger_key=trigger_key,
+                status=(
+                    SeerWorkflowRunStatus.REJECTED if reason else SeerWorkflowRunStatus.COMPLETE
+                ),
+                date_started=None if reason else decided_at,
                 date_completed=decided_at,
                 extras=json.loads(extras.json()),
             )
@@ -212,6 +218,9 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 return RejectedMetricBreach(run=run, reason=reason, created=True)
             # TODO(telkins): Replace this no-op execution with investigation dispatch.
             SeerWorkflowRunExecution.objects.create(
-                run=run, extras=MetricBreachExecutionExtras().dict()
+                run=run,
+                status=SeerWorkflowExecutionStatus.COMPLETE,
+                date_completed=decided_at,
+                extras=MetricBreachExecutionExtras().dict(),
             )
         return AcceptedMetricBreach(run=run, created=created)
