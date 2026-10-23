@@ -52,7 +52,39 @@ describe('NextStepCard', () => {
       'The 5 minute window fires on single deploy spikes that recover within a minute.'
     );
     expect(card).toHaveTextContent('Would have suppressed 4 of the last 5 alerts.');
+    expect(card).toHaveTextContent(
+      'IntervalCurrent value: 5 minutes → , suggested value: 15 minutes'
+    );
     expect(card).not.toHaveTextContent('Instrument checkout retries');
+  });
+
+  it('describes cleared filters, all environments and thresholds', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            action: {
+              kind: 'update_detector',
+              detectorId: '789',
+              before: {query: '', environment: 'production', highThreshold: 1200},
+              changes: {query: 'level:error', environment: null, highThreshold: 1500},
+            },
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent(
+      'QueryCurrent value: No filter → , suggested value: level:error'
+    );
+    expect(card).toHaveTextContent(
+      'EnvironmentCurrent value: production → , suggested value: All environments'
+    );
+    expect(card).toHaveTextContent(
+      'High thresholdCurrent value: 1200 → , suggested value: 1500'
+    );
   });
 
   it('renders advice without an action as text only', () => {
@@ -71,6 +103,7 @@ describe('NextStepCard', () => {
 
     expect(getCard()).toHaveTextContent('Instrument checkout retries.');
     expect(getCard()).toHaveTextContent('Confirms the timeout cause next time.');
+    expect(within(getCard()).queryByText('Interval')).not.toBeInTheDocument();
   });
 
   it('does not add a period after closing punctuation', () => {
@@ -182,6 +215,7 @@ describe('NextStepCard', () => {
     );
     expect(card).not.toHaveTextContent('The 5 minute window fires');
     expect(card).not.toHaveTextContent('Would have suppressed');
+    expect(within(card).queryByText('Interval')).not.toBeInTheDocument();
   });
 
   it('collapses a withdrawn request without a reason to its title', () => {

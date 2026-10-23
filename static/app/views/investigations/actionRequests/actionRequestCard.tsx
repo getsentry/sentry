@@ -4,6 +4,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
+import {ActionRequestDetails} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
 import type {InvestigationActionRequest} from 'sentry/views/investigations/types';
 
@@ -53,11 +54,7 @@ export function ActionRequestCard({actionRequest, heading}: ActionRequestCardPro
           rationale: actionRequest.rationale,
         })}
       </Text>
-      {actionRequest.impact ? (
-        <Text as="p" size="md" density="comfortable">
-          {actionRequest.impact}
-        </Text>
-      ) : null}
+      <ActionRequestDetails actionRequest={actionRequest} />
     </Stack>
   );
 }
