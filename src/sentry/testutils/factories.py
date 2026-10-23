@@ -2994,13 +2994,15 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_incident_group_open_period(
-        incident: Incident,
         group_open_period: GroupOpenPeriod,
+        *,
+        incident_id: int,
+        incident_identifier: int,
         **kwargs,
     ) -> IncidentGroupOpenPeriod:
         return IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
+            incident_id=incident_id,
+            incident_identifier=incident_identifier,
             group_open_period=group_open_period,
             **kwargs,
         )

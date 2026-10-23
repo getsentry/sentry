@@ -63,7 +63,7 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         )
         return out
 
-    def test_simple(self) -> None:
+    def test_historical_mapping_without_incident_row(self) -> None:
         serialized_incident = serialize(
             self.group_open_period, self.user, WorkflowEngineIncidentSerializer()
         )
