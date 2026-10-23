@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0043_drop_seerprojectrepository_enabled
 
-sentry: 1234_grouprelease_new_release_id_indexes
+sentry: 1235_grouprelease_new_release_id_not_null
 
 service_accounts: 0002_add_cell_replicas
 
