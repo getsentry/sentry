@@ -10,7 +10,7 @@ its region's Sentry.
 
 It reads the account's cell replica. Disabling an account fails the next call
 once its outbox replicates; deleting one does once the tombstone cascade removes
-the replica. Until ViewerContext has a service-account actor, the returned
+the replica. Until this endpoint issues a service-account actor, the returned
 ViewerContext is still Seer's org-only one, so swapping it in changes nothing yet.
 """
 
