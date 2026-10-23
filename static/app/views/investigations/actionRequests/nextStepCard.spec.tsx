@@ -1,7 +1,28 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
-import {InvestigationActionRequestFixture} from 'sentry/views/investigations/fixtures';
+import {
+  InvestigationActionRequestFixture,
+  InvestigationOrchestrationFixture,
+} from 'sentry/views/investigations/fixtures';
+import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+
+const completedRun = InvestigationOrchestrationFixture({
+  phase: 'completed',
+  status: 'completed',
+});
+
+function runWith(
+  nextStep: NonNullable<InvestigationOrchestration['report']['nextStep']>,
+  overrides: Partial<InvestigationOrchestration> = {},
+  report: Partial<InvestigationOrchestration['report']> = {}
+) {
+  return InvestigationOrchestrationFixture({
+    ...completedRun,
+    ...overrides,
+    report: {...completedRun.report, ...report, nextStep},
+  });
+}
 
 function getCard() {
   return screen.getByRole('region', {name: 'Recommended action'});
@@ -11,6 +32,7 @@ describe('NextStepCard', () => {
   it('renders the primary request', () => {
     render(
       <NextStepCard
+        orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
             id: '313',
@@ -36,6 +58,7 @@ describe('NextStepCard', () => {
   it('renders advice without an action as text only', () => {
     render(
       <NextStepCard
+        orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
             title: 'Instrument checkout retries',
@@ -53,6 +76,7 @@ describe('NextStepCard', () => {
   it('does not add a period after closing punctuation', () => {
     render(
       <NextStepCard
+        orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
             title: 'Widen the interval (to 15 minutes).',
@@ -67,6 +91,7 @@ describe('NextStepCard', () => {
   it('renders nothing without a primary request', () => {
     render(
       <NextStepCard
+        orchestration={completedRun}
         actionRequests={[InvestigationActionRequestFixture({primary: false})]}
       />
     );
@@ -79,6 +104,7 @@ describe('NextStepCard', () => {
   it('only shows a primary from the newest report', () => {
     render(
       <NextStepCard
+        orchestration={runWith({status: 'completed', error: null}, {}, {revision: 3})}
         actionRequests={[
           InvestigationActionRequestFixture({
             id: '314',
@@ -104,6 +130,7 @@ describe('NextStepCard', () => {
   it('renders nothing for a state it does not know', () => {
     render(
       <NextStepCard
+        orchestration={completedRun}
         actionRequests={[InvestigationActionRequestFixture({state: 'archived'})]}
       />
     );
@@ -116,6 +143,7 @@ describe('NextStepCard', () => {
   it('renders text from Seer as plain text', () => {
     render(
       <NextStepCard
+        orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
             title: '**Widen** [the interval](https://example.com)',
@@ -138,6 +166,7 @@ describe('NextStepCard', () => {
   it('collapses a request Seer withdrew to its reason', () => {
     render(
       <NextStepCard
+        orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
             state: 'withdrawn',
@@ -158,6 +187,7 @@ describe('NextStepCard', () => {
   it('collapses a withdrawn request without a reason to its title', () => {
     render(
       <NextStepCard
+        orchestration={completedRun}
         actionRequests={[InvestigationActionRequestFixture({state: 'withdrawn'})]}
       />
     );
@@ -165,5 +195,150 @@ describe('NextStepCard', () => {
     expect(getCard()).toHaveTextContent(
       'Seer no longer recommends “Widen the interval”.'
     );
+  });
+
+  it('holds space while the next step generates', () => {
+    render(
+      <NextStepCard
+        actionRequests={[]}
+        orchestration={runWith(
+          {status: 'generating', error: null},
+          {phase: 'metadata', status: 'processing'}
+        )}
+      />
+    );
+
+    expect(getCard()).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('holds space before the next step starts', () => {
+    render(
+      <NextStepCard
+        actionRequests={[]}
+        orchestration={runWith(
+          {status: 'not_started', error: null},
+          {phase: 'metadata', status: 'processing'}
+        )}
+      />
+    );
+
+    expect(getCard()).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('holds space for a completed next step until its request arrives', () => {
+    render(
+      <NextStepCard
+        actionRequests={[]}
+        actionRequestsStale
+        orchestration={runWith({status: 'completed', error: null})}
+      />
+    );
+
+    expect(getCard()).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('renders nothing for a completed next step that suggested nothing', () => {
+    render(
+      <NextStepCard
+        actionRequests={[]}
+        orchestration={runWith({status: 'completed', error: null})}
+      />
+    );
+
+    expect(
+      screen.queryByRole('region', {name: 'Recommended action'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders nothing while the run is loading', () => {
+    render(
+      <NextStepCard
+        actionRequests={[InvestigationActionRequestFixture()]}
+        orchestration={undefined}
+        orchestrationLoading
+      />
+    );
+
+    expect(
+      screen.queryByRole('region', {name: 'Recommended action'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the newest primary over one Seer withdrew', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            id: '311',
+            key: 'old-primary',
+            state: 'withdrawn',
+            title: 'Raise the threshold',
+            reason: 'The spikes are real breaches.',
+          }),
+          InvestigationActionRequestFixture(),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent('Widen the interval.');
+    expect(getCard()).not.toHaveTextContent('no longer recommends');
+  });
+
+  it('holds space for a new next step over a withdrawn one', () => {
+    render(
+      <NextStepCard
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            reportRevision: 1,
+            state: 'withdrawn',
+            reason: 'The spikes are real breaches.',
+          }),
+        ]}
+        orchestration={runWith(
+          {status: 'generating', error: null},
+          {phase: 'metadata', status: 'processing'}
+        )}
+      />
+    );
+
+    expect(getCard()).toHaveAttribute('aria-busy', 'true');
+    expect(getCard()).not.toHaveTextContent('no longer recommends');
+  });
+
+  it('explains a next step that failed', () => {
+    render(
+      <NextStepCard
+        actionRequests={[]}
+        orchestration={runWith({status: 'failed', error: null})}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      'Seer could not suggest a next step for this investigation.'
+    );
+  });
+
+  it('hides an old primary while a new report is written', () => {
+    render(
+      <NextStepCard
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            reportRevision: 2,
+            state: 'withdrawn',
+            reason: 'The spikes are real breaches.',
+          }),
+        ]}
+        orchestration={runWith(
+          {status: 'not_started', error: null},
+          {phase: 'reporting', status: 'processing'},
+          {status: 'composing', revision: 3}
+        )}
+      />
+    );
+
+    expect(
+      screen.queryByRole('region', {name: 'Recommended action'})
+    ).not.toBeInTheDocument();
   });
 });

@@ -5,8 +5,14 @@ import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
-import {InvestigationActionRequestFixture} from 'sentry/views/investigations/fixtures';
-import type {InvestigationActionRequest} from 'sentry/views/investigations/types';
+import {
+  InvestigationActionRequestFixture,
+  InvestigationOrchestrationFixture,
+} from 'sentry/views/investigations/fixtures';
+import type {
+  InvestigationActionRequest,
+  InvestigationOrchestration,
+} from 'sentry/views/investigations/types';
 
 const intervalChange = InvestigationActionRequestFixture({
   title: 'Change the monitor’s interval from 1 minute to 10 minutes',
@@ -16,10 +22,32 @@ const intervalChange = InvestigationActionRequestFixture({
     'Last 30 days with these settings: 1 issue instead of 15, and the Sep 12 slowdown still caught.',
 });
 
-function CardStory({actionRequests}: {actionRequests: InvestigationActionRequest[]}) {
+const completedRun = InvestigationOrchestrationFixture({
+  phase: 'completed',
+  status: 'completed',
+});
+
+function runWith(
+  status: 'generating' | 'failed',
+  overrides: Partial<InvestigationOrchestration> = {}
+) {
+  return InvestigationOrchestrationFixture({
+    ...completedRun,
+    ...overrides,
+    report: {...completedRun.report, nextStep: {status, error: null}},
+  });
+}
+
+function CardStory({
+  actionRequests,
+  orchestration = completedRun,
+}: {
+  actionRequests: InvestigationActionRequest[];
+  orchestration?: InvestigationOrchestration;
+}) {
   return (
     <Container maxWidth="960px">
-      <NextStepCard actionRequests={actionRequests} />
+      <NextStepCard actionRequests={actionRequests} orchestration={orchestration} />
     </Container>
   );
 }
@@ -64,5 +92,16 @@ export default Storybook.story('Investigations — Recommended Action', story =>
         },
       ]}
     />
+  ));
+
+  story('Generating', () => (
+    <CardStory
+      actionRequests={[]}
+      orchestration={runWith('generating', {phase: 'metadata', status: 'processing'})}
+    />
+  ));
+
+  story('Failed', () => (
+    <CardStory actionRequests={[]} orchestration={runWith('failed')} />
   ));
 });
