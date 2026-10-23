@@ -267,6 +267,7 @@ function Graph({
     <Fragment>
       {canShowDroppedData ? (
         <DroppedDataLayerControl
+          dataset={DiscoverDatasets.OURLOGS}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />
@@ -340,6 +341,7 @@ function Graph({
             droppedData={
               showDroppedDataBand
                 ? {
+                    dataset: DiscoverDatasets.OURLOGS,
                     droppedEvents,
                     acceptedEvents,
                     onClick: openDroppedDataDrawer,
