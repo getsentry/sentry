@@ -55,6 +55,7 @@ class FileCheckResult(StrEnum):
 
     FOUND = "found"
     NOT_FOUND = "not_found"
+    BAD_REQUEST = "bad_request"
     CLIENT_MISCONFIGURED = "client_misconfigured"
     CLIENT_UNAVAILABLE = "client_unavailable"
     EMPTY_RESPONSE = "empty_response"
@@ -337,7 +338,11 @@ class RepositoryIntegration(
             except ApiError as e:
                 if e.code in (404, 400):
                     lifecycle.record_halt(e)
-                    return FileCheckResult.NOT_FOUND
+                    # The integration proxy also answers a 400 when the identity is invalid,
+                    # so only a 404 means the file is missing
+                    return (
+                        FileCheckResult.NOT_FOUND if e.code == 404 else FileCheckResult.BAD_REQUEST
+                    )
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 # It involves decomposing this logic
                 #  {"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}"

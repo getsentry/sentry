@@ -754,8 +754,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation, repo = self._stacktrace_link_installation()
         unauthorized_url = f"{self.base_url}/repos/{repo.name}/contents/a.py?ref=master"
         forbidden_url = f"{self.base_url}/repos/{repo.name}/contents/b.py?ref=master"
+        # The integration proxy answers a 400 when the identity is invalid
+        bad_request_url = f"{self.base_url}/repos/{repo.name}/contents/c.py?ref=master"
         responses.add(responses.HEAD, unauthorized_url, status=401)
         responses.add(responses.HEAD, forbidden_url, status=403)
+        responses.add(responses.HEAD, bad_request_url, status=400)
 
         assert installation.get_stacktrace_link(repo, "a.py", "master", None) is None
         assert installation.get_stacktrace_link(repo, "a.py", "master", None) is None
@@ -763,8 +766,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
             installation.get_stacktrace_link(repo, "b.py", "master", None)
         with pytest.raises(ApiForbiddenError):
             installation.get_stacktrace_link(repo, "b.py", "master", None)
+        assert installation.get_stacktrace_link(repo, "c.py", "master", None) is None
+        assert installation.get_stacktrace_link(repo, "c.py", "master", None) is None
         responses.assert_call_count(unauthorized_url, 2)
         responses.assert_call_count(forbidden_url, 2)
+        responses.assert_call_count(bad_request_url, 2)
 
     @responses.activate
     def test_get_stacktrace_link_cache_disabled(self) -> None:
