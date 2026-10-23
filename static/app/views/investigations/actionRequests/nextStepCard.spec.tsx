@@ -5,7 +5,41 @@ import {
   InvestigationActionRequestFixture,
   InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
-import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+import type {
+  InvestigationDetail,
+  InvestigationOrchestration,
+  InvestigationUpdateDetectorAction,
+} from 'sentry/views/investigations/types';
+
+const latencyMonitor = {
+  id: '789',
+  name: 'Cart p95 latency',
+  aggregate: 'p95(span.duration)',
+  query: 'transaction:/api/cart',
+  environment: 'production',
+  detectionType: 'static',
+  comparisonDeltaSeconds: null,
+  conditions: [
+    {type: 'gt', comparison: 800, result: 75},
+    {type: 'lte', comparison: 800, result: 0},
+  ],
+};
+
+function sourceWith(monitor: Record<string, unknown> = latencyMonitor) {
+  return {
+    type: 'metric_open_period',
+    ref: {groupId: '123', openPeriodId: '456'},
+    revision: null,
+    snapshot: {monitor, project: {id: '1', slug: 'checkout-api'}},
+  } satisfies InvestigationDetail['source'];
+}
+
+function changeOf(
+  before: InvestigationUpdateDetectorAction['before'],
+  changes: InvestigationUpdateDetectorAction['changes']
+): InvestigationUpdateDetectorAction {
+  return {kind: 'update_detector', detectorId: '789', before, changes};
+}
 
 const completedRun = InvestigationOrchestrationFixture({
   phase: 'completed',
@@ -374,5 +408,270 @@ describe('NextStepCard', () => {
     expect(
       screen.queryByRole('region', {name: 'Recommended action'})
     ).not.toBeInTheDocument();
+  });
+
+  it('names the monitor and what it measures', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    const card = getCard();
+    expect(within(card).getByText('Cart p95 latency')).toBeInTheDocument();
+    expect(within(card).getByText('checkout-api • production')).toBeInTheDocument();
+    expect(
+      within(card).getByText('p95(span.duration) • transaction:/api/cart')
+    ).toBeInTheDocument();
+    expect(card).toHaveTextContent('Opens an issueAbove 800ms');
+  });
+
+  it('formats static thresholds with the aggregate unit', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            action: changeOf(
+              {highThreshold: 650, resolutionThreshold: 650},
+              {highThreshold: 800, resolutionThreshold: 800}
+            ),
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent(
+      'High thresholdCurrent value: 650ms → , suggested value: 800ms'
+    );
+    expect(card).toHaveTextContent(
+      'Resolution thresholdCurrent value: 650ms → , suggested value: 800ms'
+    );
+    expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
+  });
+
+  it('formats each threshold with its own aggregate unit', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            action: changeOf(
+              {aggregate: 'p95(span.duration)', highThreshold: 800},
+              {aggregate: 'count()', highThreshold: 50}
+            ),
+          }),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      'High thresholdCurrent value: 800ms → , suggested value: 50'
+    );
+    expect(getCard()).not.toHaveTextContent('50ms');
+  });
+
+  it('does not describe the opening condition when the aggregate changes', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            action: changeOf(
+              {aggregate: 'p95(span.duration)'},
+              {aggregate: 'p99(span.duration)'}
+            ),
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent(
+      'AggregateCurrent value: p95(span.duration) → , suggested value: p99(span.duration)'
+    );
+    expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
+  });
+
+  it('formats percent thresholds like the monitor page', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({
+          ...latencyMonitor,
+          detectionType: 'percent',
+          comparisonDeltaSeconds: 3600,
+          conditions: [{type: 'gt', comparison: 110, result: 75}],
+        })}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            action: changeOf({highThreshold: 110}, {highThreshold: 60}),
+          }),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      'High thresholdCurrent value: 10% higher → , suggested value: 40% lower'
+    );
+  });
+
+  it('describes the condition that opens an issue for a percent monitor', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({
+          ...latencyMonitor,
+          detectionType: 'percent',
+          comparisonDeltaSeconds: 3600,
+          conditions: [
+            {type: 'gt', comparison: 125, result: 75},
+            {type: 'gt', comparison: 110, result: 50},
+          ],
+        })}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(
+      within(getCard()).getByText('10% higher than the previous 1 hour')
+    ).toBeInTheDocument();
+  });
+
+  it('describes the opening condition from a snapshot without a detection type', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({...latencyMonitor, detectionType: undefined})}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent('Opens an issueAbove 800ms');
+  });
+
+  it('reads a percent monitor from a snapshot without a detection type', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({
+          ...latencyMonitor,
+          detectionType: undefined,
+          comparisonDeltaSeconds: 3600,
+          conditions: [{type: 'gt', comparison: 110, result: 75}],
+        })}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(
+      within(getCard()).getByText('10% higher than the previous 1 hour')
+    ).toBeInTheDocument();
+  });
+
+  it('names the monitor without an opening condition for a dynamic monitor', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({
+          ...latencyMonitor,
+          detectionType: 'dynamic',
+          conditions: [
+            {
+              type: 'anomaly_detection',
+              comparison: {sensitivity: 'medium', seasonality: 'auto', threshold_type: 0},
+              result: 75,
+            },
+          ],
+        })}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    const card = getCard();
+    expect(within(card).getByText('Cart p95 latency')).toBeInTheDocument();
+    expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
+  });
+
+  it('skips a condition type it does not know', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({
+          ...latencyMonitor,
+          conditions: [{type: 'between', comparison: 800, result: 75}],
+        })}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    const card = getCard();
+    expect(within(card).getByText('Cart p95 latency')).toBeInTheDocument();
+    expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
+  });
+
+  it('leaves out monitor details when the snapshot does not parse', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({id: '789', name: 'Another monitor'})}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    const card = getCard();
+    expect(within(card).getByText('Monitor')).toBeInTheDocument();
+    expect(card).not.toHaveTextContent('Another monitor');
+    expect(within(card).queryByText('Opens an issue')).not.toBeInTheDocument();
+    expect(card).toHaveTextContent('15 minutes');
+  });
+
+  it('leaves out a different monitor than the one the suggestion changes', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith({...latencyMonitor, id: '42', name: 'Another monitor'})}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    const card = getCard();
+    expect(within(card).getByText('Monitor')).toBeInTheDocument();
+    expect(card).not.toHaveTextContent('Another monitor');
+  });
+
+  it('shows query and environment changes in place of what they replace', () => {
+    render(
+      <NextStepCard
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            title: 'Exclude handled errors',
+            action: changeOf(
+              {query: 'transaction:/api/cart', environment: 'production'},
+              {query: 'transaction:/api/cart !error.handled:true', environment: null}
+            ),
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(within(card).getByText('checkout-api')).toBeInTheDocument();
+    expect(card).toHaveTextContent(
+      'QueryCurrent value: transaction:/api/cart → , suggested value: transaction:/api/cart !error.handled:true'
+    );
+    expect(card).toHaveTextContent(
+      'EnvironmentCurrent value: production → , suggested value: All environments'
+    );
+    expect(card).toHaveTextContent('Measuresp95(span.duration)');
+    expect(card).not.toHaveTextContent('p95(span.duration) • transaction:/api/cart');
   });
 });

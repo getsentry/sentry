@@ -6,14 +6,22 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {tct} from 'sentry/locale';
 import {ActionRequestDetails} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
-import type {InvestigationActionRequest} from 'sentry/views/investigations/types';
+import type {
+  InvestigationActionRequest,
+  InvestigationDetail,
+} from 'sentry/views/investigations/types';
 
 type ActionRequestCardProps = {
   actionRequest: InvestigationActionRequest;
   heading?: string;
+  source?: InvestigationDetail['source'];
 };
 
-export function ActionRequestCard({actionRequest, heading}: ActionRequestCardProps) {
+export function ActionRequestCard({
+  actionRequest,
+  heading,
+  source,
+}: ActionRequestCardProps) {
   const headingId = useId();
 
   if (actionRequest.state !== 'suggested' && actionRequest.state !== 'withdrawn') {
@@ -54,7 +62,7 @@ export function ActionRequestCard({actionRequest, heading}: ActionRequestCardPro
           rationale: actionRequest.rationale,
         })}
       </Text>
-      <ActionRequestDetails actionRequest={actionRequest} />
+      <ActionRequestDetails actionRequest={actionRequest} source={source} />
     </Stack>
   );
 }

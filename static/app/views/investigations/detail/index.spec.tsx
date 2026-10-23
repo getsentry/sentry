@@ -34,6 +34,7 @@ import {
   InvestigationAgenticDetailFixture,
   InvestigationCommentFixture,
   InvestigationDetailFixture,
+  InvestigationMetricSourceFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
 } from 'sentry/views/investigations/fixtures';
@@ -202,11 +203,7 @@ describe('Investigation detail', () => {
       url: detailUrl,
       body: InvestigationDetailFixture({
         sourceType: 'metric_open_period',
-        source: {
-          type: 'metric_open_period',
-          ref: {groupId: '123', openPeriodId: '456'},
-          snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
-        },
+        source: InvestigationMetricSourceFixture(),
       }),
     });
 
@@ -225,6 +222,7 @@ describe('Investigation detail', () => {
         source: {
           type: 'metric_open_period',
           ref: {groupId: '123', openPeriodId: '456'},
+          revision: null,
         },
       }),
     });

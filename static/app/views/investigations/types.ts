@@ -168,7 +168,12 @@ export type InvestigationDetail = InvestigationListItem & {
   filters?: Record<string, unknown>;
   parameters?: unknown[];
   projectIds?: number[];
-  source?: Record<string, unknown>;
+  source?: {
+    ref: Record<string, unknown>;
+    revision: number | null;
+    type: string;
+    snapshot?: Record<string, unknown>;
+  };
   template?: {key: string; version: number} | null;
 };
 
