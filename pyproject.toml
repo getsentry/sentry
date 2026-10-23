@@ -327,7 +327,7 @@ filterwarnings = [
 
   # DRF 3.18 deprecated the list-based ListSerializer error format; we keep it until
   # callers handle the dict format (removed in DRF 3.20).
-  "ignore:The list-based error format for `ListSerializer` is deprecated.*:rest_framework.deprecation.RemovedInDRF320Warning",
+  "ignore:The list-based error format for `ListSerializer` is deprecated.*:PendingDeprecationWarning",
 ]
 looponfailroots = ["src", "tests"]
 
