@@ -2,7 +2,9 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
@@ -54,6 +56,7 @@ export function DroppedDataDrawer({
   const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
 
   const scopedDroppedEvents = filterDroppedEventsByScope(droppedEvents ?? [], scope);
+  const hasExpectedDrops = scopedDroppedEvents.length < (droppedEvents?.length ?? 0);
   const groups = droppedEventsToOutcomeGroups(
     droppedEvents ?? [],
     acceptedEvents ?? [],
@@ -108,12 +111,34 @@ export function DroppedDataDrawer({
           <Container padding="xl 2xl">
             <LoadingIndicator />
           </Container>
+        ) : scopedDroppedEvents.length === 0 ? (
+          <Container padding="xl 2xl">
+            {hasExpectedDrops ? (
+              <EmptyState
+                title={t('No unexpected drops.')}
+                description={t(
+                  'All events dropped in this time range were expected, like sampling and inbound filters.'
+                )}
+                action={
+                  <Button size="sm" onClick={() => setScope('all')}>
+                    {t('Show all drops')}
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                title={t('No dropped or filtered events.')}
+                description={t('Nothing was dropped or filtered in this time range.')}
+              />
+            )}
+          </Container>
         ) : (
           <Fragment>
             <Container background="primary" padding="xl 3xl lg">
               <DroppedDataChart
                 droppedEvents={scopedDroppedEvents}
                 colors={outcomeColors}
+                hasAskSeer={onAskSeer !== undefined}
                 selection={outcomeSelection}
                 onSelectionChange={nextSelection => {
                   for (const [outcome, selected] of Object.entries(nextSelection)) {

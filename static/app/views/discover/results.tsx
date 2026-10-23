@@ -408,7 +408,6 @@ export class Results extends Component<Props, State> {
         trackAiQueryOutcome({
           dataset: 'errors',
           mode,
-          referrer: 'errors',
           resultCount: totals,
           organization,
           runId: aiQueryRunId,
@@ -420,7 +419,6 @@ export class Results extends Component<Props, State> {
         trackAiQueryOutcome({
           dataset: 'errors',
           mode,
-          referrer: 'errors',
           resultCount: 0,
           organization,
           runId: aiQueryRunId,

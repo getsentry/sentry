@@ -33,7 +33,7 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         self.incident_identifier = str(self.incident_group_open_period.incident_identifier)
         self.expected["eventTypes"] = sorted(
             SnubaQueryEventType.EventType(et.type).name.lower()
-            for et in SnubaQueryEventType.objects.filter(snuba_query=self.alert_rule.snuba_query)
+            for et in SnubaQueryEventType.objects.filter(snuba_query=self.snuba_query)
         )
         self.expected["snooze"] = False
         self.incident_expected = {

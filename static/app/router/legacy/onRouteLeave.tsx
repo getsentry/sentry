@@ -1,16 +1,16 @@
 import {unstable_usePrompt, type Location} from 'react-router';
 
-type ReactRouterV6RouteLeaveCallback = (state: {
+type LegacyRouteLeaveCallback = (state: {
   currentLocation: Location;
   nextLocation: Location;
 }) => boolean;
 
-interface OnRouteLeaveProps {
+interface LegacyOnRouteLeaveProps {
   message: string;
-  when: ReactRouterV6RouteLeaveCallback;
+  when: LegacyRouteLeaveCallback;
 }
 
-export function OnRouteLeave(props: OnRouteLeaveProps) {
+export function LegacyOnRouteLeave(props: LegacyOnRouteLeaveProps) {
   unstable_usePrompt({
     message: props.message,
     when: state =>
