@@ -12,6 +12,7 @@ from sentry.viewer_context import (
     Actor,
     ActorType,
     ViewerContext,
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
     set_viewer_context_organization,
@@ -341,3 +342,21 @@ def test_actor_id_distinguishes_actor_types_and_delegates():
     assert service_account.id == (ActorType.SERVICE_ACCOUNT, 7)
     assert agent.id == (ActorType.AGENT, 7)
     assert len({user.id, service_account.id, agent.id}) == 3
+
+
+@pytest.mark.parametrize(
+    ("actor", "expected"),
+    [
+        (Actor(type=ActorType.USER, actor_id=7), 7),
+        (Actor(type=ActorType.AGENT, actor_id=90, delegated_user_id=7), 7),
+        (Actor(type=ActorType.AGENT, actor_id=90), None),
+        (Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7, delegated_user_id=8), None),
+        (Actor(type=ActorType.SYSTEM, delegated_user_id=8), None),
+    ],
+)
+def test_get_acting_user_id(actor, expected):
+    assert get_acting_user_id(ViewerContext(actor=actor)) == expected
+
+
+def test_get_acting_user_id_without_context():
+    assert get_acting_user_id(None) is None

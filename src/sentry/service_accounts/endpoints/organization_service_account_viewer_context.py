@@ -47,6 +47,7 @@ from sentry.viewer_context import (
     ActorType,
     ViewerContext,
     encode_viewer_context,
+    get_acting_user_id,
 )
 
 
@@ -66,9 +67,11 @@ class SeerSystemViewerContextPermission(BasePermission):
         vc = getattr(request, "_seer_rpc_viewer_context", None)
         if vc is None:
             return False
-        actor = vc.actor
-        user_id = actor.actor_id if actor.type == ActorType.USER else actor.delegated_user_id
-        return user_id is None and vc.organization_id == obj.id
+        return (
+            get_acting_user_id(vc) is None
+            and vc.actor.delegated_user_id is None
+            and vc.organization_id == obj.id
+        )
 
 
 @cell_silo_endpoint

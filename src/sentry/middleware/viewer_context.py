@@ -14,6 +14,7 @@ from sentry.viewer_context import (
     Actor,
     ActorType,
     ViewerContext,
+    get_acting_user_id,
     viewer_context_from_header,
     viewer_context_scope,
 )
@@ -50,10 +51,7 @@ def ViewerContextMiddleware(
 
         if jwt_ctx is not None and is_user_from_viewer_context(request):
             ctx = jwt_ctx
-        elif jwt_ctx is not None and (
-            request_ctx.actor.type == ActorType.USER
-            or request_ctx.actor.delegated_user_id is not None
-        ):
+        elif jwt_ctx is not None and get_acting_user_id(request_ctx) is not None:
             # Direct user or agent authentication is authoritative when both are present.
             if (
                 jwt_ctx.organization_id is not None

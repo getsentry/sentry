@@ -74,7 +74,7 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import get_acting_user_id, get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
@@ -187,21 +187,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         cls._record_triggered(organization, run_id, group)
-        viewer_context = get_viewer_context()
-        if viewer_context is not None:
-            actor = viewer_context.actor
-            actor_user_id = (
-                actor.actor_id if actor.type == ActorType.USER else actor.delegated_user_id
-            )
-        else:
-            actor_user_id = None
         cls._send_step_webhook(
             organization,
             run_id,
             state,
             group,
             fallback_referrer=run_referrer,
-            actor_user_id=actor_user_id,
+            actor_user_id=get_acting_user_id(get_viewer_context()),
         )
         cls._maybe_continue_pipeline(
             organization, run_id, state, group, fallback_referrer=run_referrer
@@ -235,21 +227,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             organization, group, state, cls._format_code_changes_payload
         )
         if iteration_fields is not None:
-            viewer_context = get_viewer_context()
-            if viewer_context is not None:
-                actor = viewer_context.actor
-                actor_user_id = (
-                    actor.actor_id if actor.type == ActorType.USER else actor.delegated_user_id
-                )
-            else:
-                actor_user_id = None
             cls._send_step_webhook(
                 organization,
                 run_id,
                 state,
                 group,
                 fallback_referrer=run_referrer,
-                actor_user_id=actor_user_id,
+                actor_user_id=get_acting_user_id(get_viewer_context()),
                 iteration_fields=iteration_fields,
             )
 

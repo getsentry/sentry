@@ -139,6 +139,23 @@ def get_viewer_context() -> ViewerContext | None:
     return _viewer_context_var.get()
 
 
+def get_acting_user_id(ctx: ViewerContext | None) -> int | None:
+    """Return the human user *ctx* acts as, or ``None``.
+
+    A user actor acts as itself and an agent acts for its delegating user. Other
+    actor types never resolve to a user, so a stray ``delegated_user_id`` on them
+    cannot grant user identity.
+    """
+    if ctx is None:
+        return None
+    actor = ctx.actor
+    if actor.type == ActorType.USER:
+        return actor.actor_id
+    if actor.type == ActorType.AGENT:
+        return actor.delegated_user_id
+    return None
+
+
 def observe_viewer_context_propagation(
     point: str,
     *,
@@ -173,7 +190,7 @@ def observe_viewer_context_propagation(
         has_org = False
     else:
         actor_type = ctx.actor.type.value
-        has_user = ctx.actor.type == ActorType.USER or ctx.actor.delegated_user_id is not None
+        has_user = get_acting_user_id(ctx) is not None
         has_org = ctx.organization_id is not None
 
     # Fixed tags layered on top of extras so callers can't accidentally swap
@@ -212,14 +229,12 @@ def set_viewer_context_superuser(
     ctx = get_viewer_context()
     if ctx is None:
         return
-    actor = ctx.actor
-    human_id = actor.actor_id if actor.type == ActorType.USER else actor.delegated_user_id
-    if human_id == user_id:
+    if get_acting_user_id(ctx) == user_id:
         _viewer_context_var.set(
             dataclasses.replace(
                 ctx,
                 organization_id=organization_id,
-                actor=dataclasses.replace(actor, superuser=superuser),
+                actor=dataclasses.replace(ctx.actor, superuser=superuser),
             )
         )
 

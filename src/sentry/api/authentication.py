@@ -971,8 +971,8 @@ class ViewerContextAuthentication(BaseAuthentication):
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         from sentry.viewer_context import (
-            ActorType,
             _get_verification_keys,
+            get_acting_user_id,
             viewer_context_from_header,
         )
 
@@ -983,13 +983,8 @@ class ViewerContextAuthentication(BaseAuthentication):
         verification_keys = _get_verification_keys()
         vc = viewer_context_from_header(header)
 
-        if vc is not None:
-            actor = vc.actor
-            user_id = actor.actor_id if actor.type == ActorType.USER else actor.delegated_user_id
-            superuser = actor.superuser
-        else:
-            user_id = None
-            superuser = None
+        user_id = get_acting_user_id(vc)
+        superuser = vc.actor.superuser if vc is not None else None
 
         if vc is None or user_id is None:
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
