@@ -242,7 +242,11 @@ class GroupNotesDetailsTest(APITestCase):
         )
 
         put_url = f"{post_url}{comment_id}/"
-        response = self.client.put(put_url, format="json", data={"text": "updated text"})
+        response = self.client.put(
+            put_url,
+            format="json",
+            data={"text": "updated text", "mentions": [f"user:{self.user.id}"]},
+        )
         assert response.status_code == 200, response.content
 
         assert response.data["id"] == comment_id
@@ -259,6 +263,9 @@ class GroupNotesDetailsTest(APITestCase):
         # the edit references the original COMMENT entry by its GALE id and carries the new text
         assert edit_entry.data["comment_id"] == original_entry.id
         assert edit_entry.data["text"] == "updated text"
+        assert edit_entry.data["mentions"] == [
+            {"id": self.user.id, "actor_type": "User", "slug": None}
+        ]
 
         # the original COMMENT entry is left untouched
         original_entry.refresh_from_db()

@@ -57,6 +57,11 @@ def create_comment(
     source: str,
     from_email: bool = False,
 ) -> Activity | None:
+    """Create a comment, preserving the existing inbound-email policy.
+
+    Email deduplicates within the project without a time limit and skips subscriptions,
+    integration sync, and the comment_created signal. Activity notifications still run.
+    """
     duplicates = Activity.objects.filter(
         group=group, type=ActivityType.NOTE.value, user_id=user.id, data=data
     )

@@ -1,6 +1,8 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from sentry.models.activity import Activity
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.tasks.email import process_inbound_email
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
@@ -34,12 +36,25 @@ class ProcessInboundEmailTest(TestCase):
 
     def test_simple(self) -> None:
         group = self.create_group()
+        integration = self.create_integration(
+            organization=group.organization, provider="example", external_id="123456"
+        )
+        self.create_integration_external_issue(group=group, integration=integration, key="APP-123")
 
-        process_inbound_email(mailfrom=self.user.email, group_id=group.id, payload="hello world!")
+        with (
+            patch("sentry.issues.comments.create_external_comment.apply_async") as sync_comment,
+            patch("sentry.issues.comments.comment_created.send_robust") as comment_created,
+        ):
+            process_inbound_email(
+                mailfrom=self.user.email, group_id=group.id, payload="hello world!"
+            )
 
         activity = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
         assert activity.user_id == self.user.id
         assert activity.data["text"] == "hello world!"
+        assert not GroupSubscription.objects.filter(group=group, user_id=self.user.id).exists()
+        sync_comment.assert_not_called()
+        comment_created.assert_not_called()
 
     def test_handle_unknown_address(self) -> None:
         group = self.create_group()

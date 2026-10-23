@@ -23,7 +23,7 @@ from sentry.issues.action_log.read_metrics import (
     record_activity_read,
 )
 from sentry.issues.action_log.request import resolve_action_source
-from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.action_log.types import GroupActionType, SentryActorRef
 from sentry.issues.comments import delete_comment, update_comment
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
@@ -132,7 +132,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             payload = serializer.validated_data
             # TODO: adding mentions to a note doesn't send notifications. Should it?
             # Remove mentions as they shouldn't go into the database
-            mentions = payload.pop("mentions", [])
+            mentions = [SentryActorRef(**mention.dict()) for mention in payload.pop("mentions", [])]
 
             # The Activity fetched above is what signals whether the note exists.
             # When the activity flag is on the GALE is authoritative for existence,
