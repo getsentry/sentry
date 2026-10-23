@@ -16,13 +16,13 @@ import {
   isOutcomeSelected,
   type OutcomeSelection,
 } from 'sentry/components/droppedData/drawer/outcomeColors';
+import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import {
   droppedEventsToOutcomeGroups,
   filterDroppedEventsByScope,
   type AskSeerHandler,
   type DroppedDataScope,
-} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
+} from 'sentry/components/droppedData/outcomeSections';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
