@@ -266,14 +266,19 @@ def _run_taskworker_with_autoreload(**options: Any) -> None:
     # The worker registers signal handlers, so it must own the main thread of
     # its own process. watchfiles restarts that process with SIGINT on change.
     ready = multiprocessing.get_context("spawn").Event()
-    watchfiles.run_process(
-        os.path.dirname(sentry.__file__),
-        discover_configs()[0],
-        target=_run_reloaded_taskworker,
-        kwargs={"ready": ready, **options},
-        callback=lambda _: _wait_for_reloaded_taskworker(ready),
-        watch_filter=watchfiles.PythonFilter(),
-    )
+    try:
+        watchfiles.run_process(
+            os.path.dirname(sentry.__file__),
+            discover_configs()[0],
+            target=_run_reloaded_taskworker,
+            kwargs={"ready": ready, **options},
+            callback=lambda _: _wait_for_reloaded_taskworker(ready),
+            watch_filter=watchfiles.PythonFilter(),
+        )
+    except KeyboardInterrupt:
+        # Stopped while waiting on a restart. watchfiles has already stopped
+        # the worker on its way out.
+        pass
 
 
 def _wait_for_reloaded_taskworker(ready: Event) -> None:
@@ -295,12 +300,13 @@ def _run_reloaded_taskworker(ready: Event, **options: Any) -> None:
         args=(ready, signal.getsignal(signal.SIGINT)),
         daemon=True,
     ).start()
-    configure()
     try:
+        configure()
         run_taskworker(**options)
     except KeyboardInterrupt:
         # A Ctrl-C arrived before the worker registered its SIGINT handler.
-        pass
+        # Ignore the second SIGINT watchfiles sends while we exit.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def _set_when_sigint_handled(ready: Event, initial_handler: Any) -> None:
