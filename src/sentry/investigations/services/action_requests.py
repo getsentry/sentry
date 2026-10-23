@@ -3,9 +3,13 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 
+from django.db import router, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
+from rest_framework import status
+from rest_framework.request import Request
 
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.investigations.contracts import ActionRequestItem
 from sentry.investigations.models import (
     Investigation,
@@ -14,7 +18,14 @@ from sentry.investigations.models import (
     InvestigationActionRequestState,
     InvestigationOrchestrationRun,
 )
-from sentry.investigations.services.action_kinds import get_action_kind
+from sentry.investigations.services.action_kinds import get_action_kind, shared_cannot_apply_reason
+from sentry.investigations.services.action_kinds.base import (
+    ApplyContext,
+    ApplyResult,
+    CannotApplyReason,
+    apply_error,
+    unsupported_action,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -214,3 +225,119 @@ def supersede_block_action_requests(investigation: Investigation, block_keys: Se
             anchor_id__in=block_keys,
         )
     )
+
+
+def _not_suggested_error(action_request: InvestigationActionRequest) -> ApplyResult:
+    if action_request.state == InvestigationActionRequestState.APPLIED:
+        return apply_error(
+            action_request,
+            status.HTTP_409_CONFLICT,
+            "This action was already applied.",
+            "already_applied",
+        )
+    if action_request.state == InvestigationActionRequestState.WITHDRAWN:
+        return apply_error(
+            action_request,
+            status.HTTP_409_CONFLICT,
+            "Seer no longer suggests this.",
+            "withdrawn",
+            reason=action_request.reason,
+        )
+    return apply_error(
+        action_request,
+        status.HTTP_409_CONFLICT,
+        "This action can no longer be applied.",
+        "not_suggested",
+    )
+
+
+def _apply(
+    *,
+    investigation: Investigation,
+    action_request_id: str,
+    request: Request,
+    actor_id: int,
+    dry_run: bool,
+) -> ApplyResult:
+    investigations = Investigation.objects.select_related("organization")
+    runs = InvestigationOrchestrationRun.objects.all()
+    action_requests = InvestigationActionRequest.objects.all()
+    if not dry_run:
+        investigations = investigations.select_for_update(of=("self",))
+        runs = runs.select_for_update()
+        action_requests = action_requests.select_for_update()
+
+    locked = investigations.get(id=investigation.id)
+    try:
+        run = runs.get(investigation=locked)
+    except InvestigationOrchestrationRun.DoesNotExist:
+        raise ResourceDoesNotExist
+    try:
+        action_request = action_requests.get(id=action_request_id, investigation=locked)
+    except (InvestigationActionRequest.DoesNotExist, ValueError):
+        raise ResourceDoesNotExist
+
+    match shared_cannot_apply_reason(locked, action_request):
+        case CannotApplyReason.INVESTIGATION_ARCHIVED:
+            return apply_error(
+                action_request,
+                status.HTTP_400_BAD_REQUEST,
+                "Archived investigations are read-only.",
+                CannotApplyReason.INVESTIGATION_ARCHIVED,
+            )
+        case CannotApplyReason.NOT_SUGGESTED:
+            return _not_suggested_error(action_request)
+        case CannotApplyReason.UNSUPPORTED_ACTION:
+            return unsupported_action(action_request)
+    kind = get_action_kind(action_request.action_kind)
+    assert kind is not None
+    # The same check that decides canApply guards the endpoint, so a kind can't forget it.
+    reason = kind.cannot_apply_reasons(
+        [action_request],
+        investigations={locked.id: locked},
+        access=request.access,
+        user=request.user,
+    ).get(action_request.id, CannotApplyReason.UNSUPPORTED_ACTION)
+    if reason is not None:
+        return apply_error(
+            action_request,
+            status.HTTP_403_FORBIDDEN
+            if reason == CannotApplyReason.PERMISSION_DENIED
+            else status.HTTP_409_CONFLICT,
+            "This action can't be applied.",
+            reason,
+        )
+    context = ApplyContext(
+        investigation=locked,
+        run=run,
+        action_request=action_request,
+        request=request,
+        actor_id=actor_id,
+    )
+    if dry_run:
+        return kind.check(context) or ApplyResult(action_request=action_request)
+    return kind.apply(context)
+
+
+def apply_action_request(
+    *,
+    investigation: Investigation,
+    action_request_id: str,
+    request: Request,
+    actor_id: int,
+    dry_run: bool = False,
+) -> ApplyResult:
+    """Apply a suggested action as the requesting user. A dry run only says whether it would
+    work, and doesn't take locks or change anything.
+
+    If an error updates the row, it's returned instead of raised, so the update still commits.
+    """
+
+    with transaction.atomic(using=router.db_for_write(InvestigationActionRequest)):
+        return _apply(
+            investigation=investigation,
+            action_request_id=action_request_id,
+            request=request,
+            actor_id=actor_id,
+            dry_run=dry_run,
+        )
