@@ -578,8 +578,9 @@ class ControlSiloOrganizationEndpointTest(TestCase):
             mock.patch(
                 "sentry.organizations.services.organization.serial.serialize_rpc_team"
             ) as serialize_team,
-            mock.patch.object(
-                DatabaseBackedOrganizationService, "get_active_resource_ids"
+            mock.patch(
+                "sentry.organizations.services.organization.impl.get_active_resource_ids",
+                side_effect=AssertionError("Unexpected organization-wide resource lookup"),
             ) as resource_ids,
         ):
             _, kwargs = ControlSiloOrganizationEndpoint().convert_args(

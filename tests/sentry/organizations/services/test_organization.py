@@ -34,9 +34,13 @@ class ActiveOrganizationResourcesTest(TestCase):
         self.create_team(organization=org, status=TeamStatus.PENDING_DELETION)
         self.create_team(organization=org, status=TeamStatus.DELETION_IN_PROGRESS)
 
-        resources = organization_service.get_active_resource_ids(organization_id=org.id)
-        assert set(resources.project_ids) == {project.id, unassigned.id}
-        assert resources.team_ids == [team.id]
+        context = organization_service.get_access_context(
+            organization_id=org.id, include_resource_ids=True
+        )
+        assert context is not None
+        assert context.resource_ids is not None
+        assert set(context.resource_ids.project_ids) == {project.id, unassigned.id}
+        assert context.resource_ids.team_ids == [team.id]
 
     def test_validate_supplied_project_ids(self) -> None:
         org = self.create_organization()
@@ -77,7 +81,8 @@ class ActiveOrganizationResourcesTest(TestCase):
                 "sentry.organizations.services.organization.serial.serialize_rpc_team"
             ) as teams,
             mock.patch(
-                "sentry.organizations.services.organization.impl.DatabaseBackedOrganizationService.get_active_resource_ids"
+                "sentry.organizations.services.organization.impl.get_active_resource_ids",
+                side_effect=AssertionError("Unexpected organization-wide resource lookup"),
             ) as resources,
         ):
             context = organization_service.get_access_context(
