@@ -15,6 +15,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
 )
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.tasks.seer.pr_iteration import (
     _add_comment_reaction,
@@ -213,7 +214,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         _, kwargs = mock_enqueue.call_args
         assert kwargs["run_id"] == 67890
         assert kwargs["organization_id"] == self.organization.id
-        assert kwargs["group_id"] == self.group.id
+        assert kwargs["identity"] == AutofixIterationIdentity(group_id=self.group.id)
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
         assert kwargs["feedback"].text == "fix it"
         assert kwargs["actor_user_id"] == self.user.id

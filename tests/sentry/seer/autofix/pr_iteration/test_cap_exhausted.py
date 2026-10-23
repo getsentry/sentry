@@ -10,6 +10,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GithubCheckSuiteEvent,
 )
 from sentry.seer.autofix.pr_iteration.constants import CAP_ASSIGN_FLAG
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
@@ -74,7 +75,10 @@ class AssignUserForExhaustedCapTest(TestCase):
             },
         )
         return CheckSuiteAutofixRun(
-            repository=self.repo, run_state=run_state, pr_id=555, group_id=1
+            repository=self.repo,
+            run_state=run_state,
+            pr_id=555,
+            identity=AutofixIterationIdentity(group_id=1),
         )
 
     def _marker(self) -> dict | None:

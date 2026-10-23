@@ -16,6 +16,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     record_pr_iteration_failure_reason,
     trigger_pr_iteration_details,
 )
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.sweep import (
     STALE_DETAILS_AGE,
@@ -65,7 +66,7 @@ class SweepStalePrIterationsTest(TestCase):
             logger=MagicMock(),
             run_state=_run_state(),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
 
     def _trigger(self, *, trigger_source: str | None = "feedback") -> int | None:

@@ -28,6 +28,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     READY_FOR_REVIEW_EXTRA,
     GreenCheckSuiteContext,
 )
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
@@ -78,9 +79,13 @@ def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
     from sentry.seer.autofix.pr_ready_for_review import emit_pr_ready_for_review
 
     resolved = ctx.resolved
+    identity = resolved.autofix_run.identity
+    if not isinstance(identity, AutofixIterationIdentity):
+        # This signal updates the issue UI; Ask Seer has no issue to notify.
+        return
     try:
         group = Group.objects.get(
-            id=resolved.autofix_run.group_id,
+            id=identity.group_id,
             project__organization_id=resolved.organization.id,
         )
         emit_pr_ready_for_review(

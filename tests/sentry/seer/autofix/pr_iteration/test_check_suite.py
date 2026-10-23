@@ -36,6 +36,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener,
     process_check_suite_event,
@@ -359,14 +360,16 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         mock_enqueue.assert_not_called()
 
+    @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
-    def test_skips_run_missing_group_id(
+    def test_ignores_ask_seer_run_without_opt_in(
         self,
         mock_resolve: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
         state = self._agent_state()
@@ -377,6 +380,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
 
     @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
     @patch(TRIGGER_CONSUME_PATH, return_value=TriggerDecision(task=None, reason="hard_cap_reached"))
@@ -748,7 +752,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         resolved.organization = self.organization
         resolved.event.check_suite.head_sha = "abc"
         resolved.autofix_run.run_state = self._run_state()
-        resolved.autofix_run.group_id = self.group.id
+        resolved.autofix_run.identity = AutofixIterationIdentity(group_id=self.group.id)
         resolved.log_extra = {"run_id": 67890}
         return resolved
 
@@ -766,7 +770,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         )
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
             feedback=Feedback(source=source),
             referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
         )
@@ -1035,7 +1039,10 @@ class ShouldDeferPrIterationTest(TestCase):
             event=event,
             organization=self.organization,
             autofix_run=CheckSuiteAutofixRun(
-                repository=self.repo, run_state=run_state, pr_id=1, group_id=1
+                repository=self.repo,
+                run_state=run_state,
+                pr_id=1,
+                identity=AutofixIterationIdentity(group_id=1),
             ),
             seer_run=self.seer_run,
             repo_name="owner/repo",
@@ -1275,6 +1282,7 @@ def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         status="completed",
         updated_at="2024-01-01T00:00:00Z",
         repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+        metadata={"group_id": 1},
     )
 
 
@@ -1285,7 +1293,7 @@ def _autofix_run(
         repository=MagicMock(organization_id=1, id=2),
         run_state=_run_state(blocks=blocks or []),
         pr_id=1,
-        group_id=group_id,
+        identity=AutofixIterationIdentity(group_id=group_id),
     )
 
 

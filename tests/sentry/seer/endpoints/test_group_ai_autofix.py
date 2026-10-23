@@ -24,6 +24,7 @@ from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -405,7 +406,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_peek.return_value = [
             QueuedAutofixFeedback(
                 organization_id=self.organization.id,
-                group_id=group.id,
+                identity=AutofixIterationIdentity(group_id=group.id),
                 feedback=feedback,
                 referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             )
@@ -1325,7 +1326,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
         mock_enqueue.assert_called_once()
         assert mock_enqueue.call_args.kwargs["run_id"] == 123
-        assert mock_enqueue.call_args.kwargs["group_id"] == group.id
+        assert mock_enqueue.call_args.kwargs["identity"] == AutofixIterationIdentity(
+            group_id=group.id
+        )
         assert mock_enqueue.call_args.kwargs["actor_user_id"] == self.user.id
         mock_consume.assert_called_once()
         assert mock_consume.call_args.kwargs["run_id"] == 123
@@ -1714,7 +1717,7 @@ class GroupAutofixConditionalGetTest(APITestCase):
     def _queued_feedback(self) -> QueuedAutofixFeedback:
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
             feedback=Feedback(
                 source=UserUIFeedbackSource(user_id=self.user.id, user_feedback="go")
             ),

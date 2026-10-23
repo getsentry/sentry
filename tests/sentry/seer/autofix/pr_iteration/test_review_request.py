@@ -15,6 +15,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     REVIEWER_CANDIDATES_EXTRA,
@@ -146,7 +147,10 @@ class RequestReviewFromContextTest(TestCase):
             },
         )
         return CheckSuiteAutofixRun(
-            repository=self.repo, run_state=run_state, pr_id=555, group_id=1
+            repository=self.repo,
+            run_state=run_state,
+            pr_id=555,
+            identity=AutofixIterationIdentity(group_id=1),
         )
 
     def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict | None:
@@ -557,7 +561,10 @@ class RequestReviewFromCandidatesTest(TestCase):
             },
         )
         return CheckSuiteAutofixRun(
-            repository=self.repo, run_state=run_state, pr_id=555, group_id=1
+            repository=self.repo,
+            run_state=run_state,
+            pr_id=555,
+            identity=AutofixIterationIdentity(group_id=1),
         )
 
     def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict | None:

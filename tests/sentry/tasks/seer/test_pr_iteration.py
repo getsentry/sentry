@@ -43,6 +43,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.pr_iteration.logs import (
     LogCtxIteration,
@@ -200,7 +201,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         _, kwargs = mock_enqueue.call_args
         assert kwargs["run_id"] == 67890
         assert kwargs["organization_id"] == self.organization.id
-        assert kwargs["group_id"] == self.group.id
+        assert kwargs["identity"] == AutofixIterationIdentity(group_id=self.group.id)
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
         assert kwargs["run_state"] is agent_state
         assert kwargs["feedback"].text == "fix it"
@@ -872,7 +873,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     ) -> QueuedAutofixFeedback:
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
             feedback=feedback,
             referrer=referrer,
             actor_user_id=actor_user_id,
@@ -943,7 +944,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             repository=MagicMock(organization_id=self.organization.id, id=2),
             run_state=self._state(),
             pr_id=99,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
         with patch(
             "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite.resolve_check_suite_autofix_run",
@@ -1112,7 +1113,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
         enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext.for_run(
@@ -1124,7 +1125,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             ),
             run_id=67890,
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
             feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
             referrer=AutofixReferrer.WEB,
             run_state=self._state(),
@@ -1569,7 +1570,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             ),
             run_id=67890,
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
             feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback=text)),
             referrer=AutofixReferrer.WEB,
             run_state=self._state(),
@@ -1592,7 +1593,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
         self._enqueue_ui_feedback("fix it")
 
@@ -2221,7 +2222,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
 
     def _stale_feedback(self) -> tuple[Feedback, MemoryBlock]:
@@ -2516,7 +2517,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -2690,7 +2691,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
 
         self._trigger(decision=TriggerDecision(task=None, reason="stale_head"))
@@ -2708,7 +2709,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             logger=MagicMock(),
             run_state=self._state(),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
 
         decision = self._trigger()
@@ -2786,7 +2787,7 @@ class SweepPrIterationDetailsTest(TestCase):
                 run_id=67890, blocks=[], status="completed", updated_at="2024-01-01T00:00:00Z"
             ),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
         SeerRunPrIteration.objects.update(date_updated=timezone.now() - timedelta(days=2))
 

@@ -172,7 +172,7 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
                 logger=logger,
                 run_state=run_state,
                 organization_id=resolved.organization.id,
-                group_id=resolved.autofix_run.group_id,
+                identity=resolved.autofix_run.identity,
                 create=False,
             )
             # Peek the queue for parked check-suite feedback on this head, then
@@ -264,7 +264,7 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
             logger=logger,
             run_state=agent_state,
             organization_id=organization_id,
-            group_id=autofix_run.group_id,
+            identity=autofix_run.identity,
         )
 
         # Report failures here so they are searchable under the PR-iteration
@@ -275,7 +275,7 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
                 log_ctx=log_ctx,
                 run_id=agent_state.run_id,
                 organization_id=organization_id,
-                group_id=autofix_run.group_id,
+                identity=autofix_run.identity,
                 feedback=feedback,
                 referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
                 run_state=agent_state,

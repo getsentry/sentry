@@ -39,6 +39,7 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     untriggered_iteration,
     update_iteration,
 )
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity, IterationIdentity
 from sentry.seer.autofix.pr_iteration.iterations import (
     get_iterations,
     iteration_repos,
@@ -160,7 +161,7 @@ def bootstrap_iteration(
     logger: logging.Logger,
     run_state: SeerRunState,
     organization_id: int,
-    group_id: int,
+    identity: IterationIdentity,
     create: bool = True,
 ) -> PrIterationLogContext:
     """The untriggered iteration this work belongs to, opened if needed, named in logs.
@@ -175,14 +176,19 @@ def bootstrap_iteration(
     if seer_run is None:
         raise ValueError(f"No SeerRun for run {run_state.run_id} in organization {organization_id}")
 
+    group_id = identity.group_id if isinstance(identity, AutofixIterationIdentity) else None
     if create:
-        project_id = (
-            Group.objects.filter(id=group_id, project__organization_id=organization_id)
-            .values_list("project_id", flat=True)
-            .first()
-        )
-        if project_id is None:
-            raise ValueError(f"No group {group_id} in organization {organization_id}")
+        # Ask Seer runs have no issue or project context. Still open a row so
+        # feedback from SCM has the same iteration identity and deduplication.
+        project_id = None
+        if isinstance(identity, AutofixIterationIdentity):
+            project_id = (
+                Group.objects.filter(id=identity.group_id, project__organization_id=organization_id)
+                .values_list("project_id", flat=True)
+                .first()
+            )
+            if project_id is None:
+                raise ValueError(f"No group {group_id} in organization {organization_id}")
 
         # A partial unique constraint allows one waiting row for each run, so a
         # racing opener gets the winner's row rather than a second one. The data

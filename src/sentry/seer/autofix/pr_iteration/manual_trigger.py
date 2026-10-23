@@ -23,6 +23,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, get_pause_reason
 from sentry.seer.autofix.pr_iteration.queue import enqueue_autofix_feedback
 from sentry.seer.endpoints.utils import SEER_PERMISSION_DENIED
@@ -98,14 +99,14 @@ def handle_ui_feedback(
         logger=logger,
         run_state=run_state,
         organization_id=group.organization.id,
-        group_id=group.id,
+        identity=AutofixIterationIdentity(group_id=group.id),
     )
 
     enqueue_autofix_feedback(
         log_ctx=log_ctx,
         run_id=run_id,
         organization_id=group.organization.id,
-        group_id=group.id,
+        identity=AutofixIterationIdentity(group_id=group.id),
         feedback=feedback,
         referrer=referrer,
         run_state=run_state,

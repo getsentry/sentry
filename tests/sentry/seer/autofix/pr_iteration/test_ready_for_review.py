@@ -14,6 +14,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.autofix.pr_ready_for_review import (
@@ -225,7 +226,10 @@ class MarkReadyForReviewTest(TestCase):
             },
         )
         return CheckSuiteAutofixRun(
-            repository=self.repo, run_state=run_state, pr_id=555, group_id=group_id
+            repository=self.repo,
+            run_state=run_state,
+            pr_id=555,
+            identity=AutofixIterationIdentity(group_id=group_id),
         )
 
     def _marker(self) -> dict | None:

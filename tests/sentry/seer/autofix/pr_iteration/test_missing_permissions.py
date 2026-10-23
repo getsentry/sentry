@@ -28,6 +28,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     MISSING_PERMISSIONS_EXTRA,
@@ -215,7 +216,7 @@ class BlockIterationForMissingPermissionsTest(TestCase):
             logger=logging.getLogger(MODULE),
             run_state=_state(getsentry__sentry=7),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
 
     @freeze_time("2024-01-01 00:00:00")

@@ -50,6 +50,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
     get_pause_reason,
@@ -1078,7 +1079,7 @@ class TestFailedRunCompletionHook(TestCase):
             logger=MagicMock(),
             run_state=run_state(),
             organization_id=self.organization.id,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
         )
         iteration_id = trigger_pr_iteration_details(
             log_ctx=MagicMock(),
