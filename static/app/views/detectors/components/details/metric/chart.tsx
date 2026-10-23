@@ -677,12 +677,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
       openPeriods,
       onOpenPeriodClick: clickedOpenPeriod =>
         navigate(
-          normalizeUrl(
-            getOpenPeriodIssuePath({
-              organizationSlug: organization.slug,
-              openPeriod: clickedOpenPeriod,
-            })
-          )
+          normalizeUrl(getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug))
         ),
       height: CHART_HEIGHT,
       ...dateParams,
