@@ -331,14 +331,14 @@ def deduplicate_repositories(
     return deduplicated
 
 
-def write_preference_to_sentry_db(project: Project, preference: SeerProjectPreference) -> None:
+def write_preference_to_sentry_db(preference: SeerProjectPreference) -> None:
     """Write a single Seer project preference to ProjectOption and SeerProjectRepository.
     Replaces the project's existing SeerProjectRepository rows.
     TODO(AIML-2753): Add support for writing autofix_automation_tuning"""
     with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
         # Only delete SeerProjectRepository for active repos.
         SeerProjectRepository.objects.filter(
-            project_repository__project_id=project.id,
+            project_repository__project_id=preference.project_id,
             project_repository__repository__status=ObjectStatus.ACTIVE,
         ).delete()
 
@@ -366,8 +366,8 @@ def write_preference_to_sentry_db(project: Project, preference: SeerProjectPrefe
                     "SeerRepoDefinition missing repository_id at write time",
                     level="error",
                     extras={
-                        "project_id": project.id,
-                        "organization_id": project.organization_id,
+                        "project_id": preference.project_id,
+                        "organization_id": preference.organization_id,
                         "external_id": repo_def.external_id,
                     },
                 )
@@ -393,7 +393,7 @@ def write_preference_to_sentry_db(project: Project, preference: SeerProjectPrefe
         if project_repos_to_create:
             for repository_id, spr in project_repos_to_create:
                 spr.project_repository, _ = ProjectRepository.objects.get_or_create_with_source(
-                    project_id=project.id,
+                    project_id=preference.project_id,
                     repository_id=repository_id,
                     source=ProjectRepositorySource.SEER_PREFERENCE,
                 )
@@ -431,7 +431,7 @@ def write_preference_to_sentry_db(project: Project, preference: SeerProjectPrefe
         else:
             update["agent"] = AutomationCodingAgent.SEER
 
-        update_seer_project_settings([project.id], update)
+        update_seer_project_settings([preference.project_id], update)
 
 
 def clear_preference_automation_handoff(project: Project) -> None:

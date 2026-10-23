@@ -460,7 +460,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             ),
         )
 
-        write_preference_to_sentry_db(self.project, preference)
+        write_preference_to_sentry_db(preference)
 
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
         assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
@@ -480,7 +480,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             organization_id=self.organization.id, project_id=self.project.id, repositories=[]
         )
 
-        write_preference_to_sentry_db(self.project, preference)
+        write_preference_to_sentry_db(preference)
 
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
@@ -517,7 +517,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             ],
         )
 
-        write_preference_to_sentry_db(self.project, preference)
+        write_preference_to_sentry_db(preference)
 
         seer_repo = SeerProjectRepository.objects.get(project_repository__project=self.project)
         assert seer_repo.project_repository.repository_id == self.repo.id
@@ -558,7 +558,7 @@ class TestWritePreferencesToSentryDb(TestCase):
                 ),
             ],
         )
-        write_preference_to_sentry_db(self.project, preference_to_replace)
+        write_preference_to_sentry_db(preference_to_replace)
 
         assert (
             SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
@@ -591,7 +591,7 @@ class TestWritePreferencesToSentryDb(TestCase):
                 ),
             ],
         )
-        write_preference_to_sentry_db(self.project, new_preference)
+        write_preference_to_sentry_db(new_preference)
 
         repos = SeerProjectRepository.objects.filter(project_repository__project=self.project)
         assert len(repos) == 1
@@ -634,7 +634,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             ],
         )
 
-        write_preference_to_sentry_db(self.project, preference)
+        write_preference_to_sentry_db(preference)
 
         repos = SeerProjectRepository.objects.filter(
             project_repository__project=self.project
@@ -677,7 +677,7 @@ class TestWritePreferencesToSentryDb(TestCase):
                 ),
             ],
         )
-        write_preference_to_sentry_db(self.project, new_preference)
+        write_preference_to_sentry_db(new_preference)
 
         project_repos = SeerProjectRepository.objects.filter(
             project_repository__project=self.project
@@ -715,7 +715,7 @@ class TestWritePreferencesToSentryDb(TestCase):
                 ),
             ],
         )
-        write_preference_to_sentry_db(self.project, new_preference)
+        write_preference_to_sentry_db(new_preference)
 
         repos = list(SeerProjectRepository.objects.filter(project_repository__project=self.project))
         assert len(repos) == 1
