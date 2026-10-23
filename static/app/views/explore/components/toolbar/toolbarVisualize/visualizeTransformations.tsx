@@ -32,14 +32,38 @@ const KIND_OPTIONS: Array<SelectOption<Transformation['kind']>> = [
   {value: 'smooth', label: t('Smooth')},
 ];
 const FILL_OPTIONS: Array<SelectOption<FillMethod>> = [
-  {value: 'zero', label: t('Zero')},
-  {value: 'locf', label: t('LOCF')},
-  {value: 'linear', label: t('Linear')},
+  {
+    value: 'zero',
+    label: t('Zero'),
+    details: t('Fills missing values with zero.'),
+  },
+  {
+    value: 'locf',
+    label: t('LOCF'),
+    details: t('Last observation carried forward. Fills gaps with the last known value.'),
+  },
+  {
+    value: 'linear',
+    label: t('Linear'),
+    details: t('Fills gaps along a straight line between known values.'),
+  },
 ];
 const SMOOTH_OPTIONS: Array<SelectOption<SmoothMethod>> = [
-  {value: 'sma', label: t('SMA')},
-  {value: 'ema', label: t('EMA')},
-  {value: 'asap', label: t('ASAP')},
+  {
+    value: 'sma',
+    label: t('SMA'),
+    details: t('Simple moving average. Gives equal weight to values in the window.'),
+  },
+  {
+    value: 'ema',
+    label: t('EMA'),
+    details: t('Exponential moving average. Gives more weight to recent values.'),
+  },
+  {
+    value: 'asap',
+    label: t('ASAP'),
+    details: t('Automatically chooses a smoothing window to reduce noise.'),
+  },
 ];
 const WINDOW_OPTIONS = Array.from({length: 10}, (_, index) => ({
   value: index + 1,
@@ -309,6 +333,7 @@ function TransformationRow({
               {transformation.kind === 'fill' ? (
                 <CompactSelect
                   options={FILL_OPTIONS}
+                  menuWidth={320}
                   value={transformation.method}
                   trigger={props => (
                     <OverlayTrigger.Button {...props} aria-label={t('Fill method')} />
@@ -328,6 +353,7 @@ function TransformationRow({
               ) : (
                 <CompactSelect
                   options={SMOOTH_OPTIONS}
+                  menuWidth={320}
                   value={transformation.method}
                   trigger={props => (
                     <OverlayTrigger.Button
