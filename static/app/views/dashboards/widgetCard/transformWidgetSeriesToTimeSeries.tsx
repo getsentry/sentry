@@ -1,6 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   SERIES_NAME_PART_DELIMITER,
   SERIES_QUERY_DELIMITER,
@@ -19,9 +18,7 @@ import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widge
 export function transformMultipleWidgetSeriesToTimeSeries(
   series: Series[],
   widget: Widget,
-  queryIndex: number,
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>,
-  timeseriesResultsUnits?: Record<string, DataUnit>
+  queryIndex: number
 ): WidgetTimeSeries[] {
   const widgetQuery = widget.queries[queryIndex];
   if (!widgetQuery) {
@@ -36,9 +33,7 @@ export function transformMultipleWidgetSeriesToTimeSeries(
         : item.seriesName;
       const transformed = transformWidgetSeriesToTimeSeries(
         {...item, seriesName},
-        widget,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits
+        widget
       );
       return transformed
         ? {queryIndex, widgetQuery, seriesName, timeSeries: transformed.timeSeries}
@@ -60,9 +55,7 @@ interface TransformedSeries {
  */
 export function transformWidgetSeriesToTimeSeries(
   series: Series,
-  widget: Widget,
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>,
-  timeseriesResultsUnits?: Record<string, DataUnit>
+  widget: Widget
 ): TransformedSeries | null {
   const firstQuery = widget.queries[0];
   if (!firstQuery) {
@@ -124,8 +117,8 @@ export function transformWidgetSeriesToTimeSeries(
 
   const timeSeries = transformLegacySeriesToTimeSeries(
     effectiveSeries,
-    timeseriesResultsTypes,
-    timeseriesResultsUnits,
+    undefined,
+    undefined,
     columns,
     yAxis
   );
