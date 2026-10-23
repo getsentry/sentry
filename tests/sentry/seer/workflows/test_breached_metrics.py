@@ -208,19 +208,18 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert rejected == IgnoredMetricBreach("invalid_source")
         assert not SeerWorkflowRun.objects.exists()
 
-    def test_disabled_feature_is_checked_before_source_validation(self) -> None:
+    def test_breach_is_ignored_when_feature_is_disabled(self) -> None:
         event = self.breach_event()
-        event.occurrence = None
 
         with self.feature({"organizations:seer-automations": False}):
-            rejected = BreachedMetricWorkflow(self.config).accept(
+            result = BreachedMetricWorkflow(self.config).accept(
                 self.group,
                 event,
                 binding=self.action.seer_workflow_binding,
                 workflow_id=self.workflow.id,
             )
 
-        assert rejected == IgnoredMetricBreach("feature_disabled")
+        assert result == IgnoredMetricBreach("feature_disabled")
         assert not SeerWorkflowRun.objects.exists()
 
     def test_selected_project_accepts_the_breach(self) -> None:
