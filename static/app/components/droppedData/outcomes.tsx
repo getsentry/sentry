@@ -4,7 +4,7 @@ import {
   DROPPED_DATA_DOCS_URL,
   REASON_INFO,
 } from 'sentry/components/droppedData/reasonInfo';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -21,6 +21,39 @@ const DATASET_LABELS: Partial<Record<DiscoverDatasets, string>> = {
 
 function datasetLabel(dataset: DiscoverDatasets): string {
   return DATASET_LABELS[dataset] ?? dataset;
+}
+
+interface TelemetryName {
+  noun: (count: number) => string;
+  title: string;
+}
+
+const TELEMETRY_NAMES: Partial<Record<DiscoverDatasets, TelemetryName>> = {
+  errors: {title: t('Errors'), noun: count => tn('error', 'errors', count)},
+  ourlogs: {title: t('Logs'), noun: count => tn('log', 'logs', count)},
+  spans: {title: t('Spans'), noun: count => tn('span', 'spans', count)},
+  tracemetrics: {title: t('Metrics'), noun: count => tn('metric', 'metrics', count)},
+};
+
+const DEFAULT_TELEMETRY_NAME: TelemetryName = {
+  title: t('Events'),
+  noun: count => tn('event', 'events', count),
+};
+
+function telemetryName(dataset: DiscoverDatasets): TelemetryName {
+  return TELEMETRY_NAMES[dataset] ?? DEFAULT_TELEMETRY_NAME;
+}
+
+export function droppedDataLabel(dataset: DiscoverDatasets): string {
+  return t('Dropped %s', telemetryName(dataset).title);
+}
+
+export function droppedAndFilteredLabel(dataset: DiscoverDatasets): string {
+  return t('Dropped and Filtered %s', telemetryName(dataset).title);
+}
+
+export function datasetNoun(dataset: DiscoverDatasets, count: number): string {
+  return telemetryName(dataset).noun(count);
 }
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
@@ -46,9 +79,12 @@ function normalizeReason(reason: string): string {
   // Reasons like `Sampled:0` or `custom-inbound-filter:foo` carry a dynamic
   // suffix; the registry keys on the bare prefix. Exact keys (`too_large:span`)
   // are matched above, so this only strips genuinely dynamic suffixes.
-  const prefix = reason.slice(0, reason.indexOf(':'));
-  if (reason.includes(':') && REASON_INFO[prefix]) {
-    return prefix;
+  const colonIndex = reason.indexOf(':');
+  if (colonIndex !== -1) {
+    const prefix = reason.slice(0, colonIndex);
+    if (REASON_INFO[prefix]) {
+      return prefix;
+    }
   }
   return reason.endsWith('_usage_exceeded') ? 'usage_exceeded' : reason;
 }

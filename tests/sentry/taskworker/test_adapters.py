@@ -101,8 +101,8 @@ class TestViewerContextHook:
 
         payload = orjson.loads(headers["sentry-viewer-context"])
         assert payload["organization_id"] == 42
-        assert payload["user_id"] == 7
-        assert payload["actor_type"] == "user"
+        assert payload["version"] == 2
+        assert payload["actor"] == {"type": "user", "id": 7}
 
     def test_on_dispatch_without_context(self) -> None:
         hook = ViewerContextHook()
@@ -121,7 +121,7 @@ class TestViewerContextHook:
         payload = orjson.loads(headers["sentry-viewer-context"])
         assert payload["organization_id"] == 42
         assert "user_id" not in payload
-        assert payload["actor_type"] == "system"
+        assert payload["actor"] == {"type": "system"}
 
     def test_on_execute_restores_context(self) -> None:
         hook = ViewerContextHook()
