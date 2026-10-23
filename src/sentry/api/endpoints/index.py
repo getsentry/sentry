@@ -22,7 +22,8 @@ class IndexEndpoint(Endpoint):
             user = None
 
         if request.auth:
-            auth = {"scopes": request.auth.get_scopes()}
+            get_stored_scopes = getattr(request.auth, "get_stored_scopes", request.auth.get_scopes)
+            auth = {"scopes": get_stored_scopes()}
         else:
             auth = None
 

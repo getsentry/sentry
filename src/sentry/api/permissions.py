@@ -18,10 +18,7 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
-from sentry.auth.deprecated_scope_translation import (
-    record_deprecated_scope_translation,
-    translate_deprecated_scopes,
-)
+from sentry.auth.deprecated_scope_translation import record_deprecated_scope_translation
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -172,9 +169,13 @@ class ScopedPermission(BasePermission):
 
         assert request.method is not None
         allowed_scopes = set(self.scope_map.get(request.method, []))
-        token_scopes = request.auth.get_scopes()
-        record_deprecated_scope_translation(token_scopes, tags={"endpoint": type(view).__name__})
-        current_scopes = translate_deprecated_scopes(token_scopes)
+        # Only AuthenticatedToken translates deprecated scopes; raw token models passed
+        # through the internal API client report their stored scopes from get_scopes().
+        get_stored_scopes = getattr(request.auth, "get_stored_scopes", request.auth.get_scopes)
+        record_deprecated_scope_translation(
+            get_stored_scopes(), tags={"endpoint": type(view).__name__}
+        )
+        current_scopes = request.auth.get_scopes()
         if any(s in allowed_scopes for s in current_scopes):
             return True
         if allowed_scopes:

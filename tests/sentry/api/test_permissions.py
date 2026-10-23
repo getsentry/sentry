@@ -15,6 +15,7 @@ from sentry.api.permissions import (
     SuperuserPermission,
     _least_privileged_scope,
 )
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import APITestCase, DRFPermissionTestCase
@@ -192,7 +193,8 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
         self.organization = self.create_organization(owner=self.user)
 
     def _token_request(self, scopes):
-        token = self.create_user_auth_token(user=self.user, scope_list=list(scopes))
+        # Requests authenticated with a token carry an AuthenticatedToken.
+        token = AuthenticatedToken(kind="api_token", scopes=list(scopes), user_id=self.user.id)
         return self.make_request(user=self.user, auth=token, method="GET")
 
     @patch("sentry.auth.deprecated_scope_translation.metrics")
@@ -212,8 +214,15 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
 
     @patch("sentry.auth.deprecated_scope_translation.metrics")
     def test_translation_not_recorded_when_granular_scopes_already_held(self, mock_metrics) -> None:
-        # dashboard:delete expands to every dashboard scope via the scope hierarchy.
-        request = self._token_request(["org:read", "dashboard:delete"])
+        request = self._token_request(
+            [
+                "org:read",
+                "dashboard:read",
+                "dashboard:create",
+                "dashboard:write",
+                "dashboard:delete",
+            ]
+        )
         assert self.permission.has_permission(request, APIView())
         mock_metrics.incr.assert_not_called()
 

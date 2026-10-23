@@ -12,6 +12,7 @@ from sentry.auth.scope_declaration import (
     bind_endpoint_scope_declaration,
     update_permission_scope_declaration,
 )
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -533,10 +534,11 @@ class FromUserTest(AccessFactoryTestCase):
         self.create_member(organization=organization, user=user)
 
         request = self.make_request(user=user)
+        token_scopes = AuthenticatedToken(kind="api_token", scopes=["org:read"]).get_scopes()
 
         results = [
-            self.from_user(user, organization, scopes=["org:read"]),
-            self.from_request(request, organization, scopes=["org:read"]),
+            self.from_user(user, organization, scopes=token_scopes),
+            self.from_request(request, organization, scopes=token_scopes),
         ]
 
         for result in results:
@@ -554,30 +556,15 @@ class FromUserTest(AccessFactoryTestCase):
         self.create_member(organization=organization, user=user)
 
         request = self.make_request(user=user)
+        token_scopes = AuthenticatedToken(kind="api_token", scopes=["org:read"]).get_scopes()
 
         results = [
-            self.from_user(user, organization, scopes=["org:read"]),
-            self.from_request(request, organization, scopes=["org:read"]),
+            self.from_user(user, organization, scopes=token_scopes),
+            self.from_request(request, organization, scopes=token_scopes),
         ]
 
         for result in results:
             assert result.has_scope("org:read")
-            assert not result.has_scope("dashboard:read")
-
-    @with_feature("organizations:granular-permission-scopes")
-    def test_token_without_deprecated_scope_not_translated(self) -> None:
-        organization = self.create_organization()
-        user = self.create_user()
-        self.create_member(organization=organization, user=user)
-
-        request = self.make_request(user=user)
-
-        results = [
-            self.from_user(user, organization, scopes=["project:read"]),
-            self.from_request(request, organization, scopes=["project:read"]),
-        ]
-
-        for result in results:
             assert not result.has_scope("dashboard:read")
 
 

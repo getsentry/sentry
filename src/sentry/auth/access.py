@@ -229,7 +229,7 @@ def _intersect_member_and_token_scopes(
     if token_scopes is None:
         return member_scopes
 
-    token_scopes = translate_deprecated_scopes(token_scopes)
+    token_scopes = frozenset(token_scopes)
     token_only_scopes = token_scopes & settings.SENTRY_TOKEN_ONLY_SCOPES
 
     return (token_scopes & member_scopes) | token_only_scopes
@@ -494,7 +494,7 @@ class RpcBackedAccess(Access):
     @cached_property
     def scopes(self) -> frozenset[str]:
         if self.rpc_user_organization_context.member is None:
-            return translate_deprecated_scopes(self.scopes_upper_bound or [])
+            return frozenset(self.scopes_upper_bound or [])
 
         if self.scopes_upper_bound is None:
             return frozenset(self.rpc_user_organization_context.member.scopes)
@@ -1433,7 +1433,7 @@ def from_superuser_access(
         auth_state=RpcAuthState(
             sso_state=RpcMemberSsoState(is_valid=True, is_required=False), permissions=[]
         ),
-        scopes=scopes & translate_deprecated_scopes(auth.get_scopes()),
+        scopes=scopes & set(auth.get_scopes()),
     )
 
 
