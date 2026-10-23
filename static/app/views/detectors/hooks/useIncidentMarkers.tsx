@@ -138,7 +138,7 @@ function findClickedIncidentPeriod(
   return undefined;
 }
 
-export function findIncidentPeriodAtTimestamp(
+function findIncidentPeriodAtTimestamp(
   incidentPeriods: IncidentPeriod[],
   timestamp: number
 ): IncidentPeriod | undefined {
