@@ -349,7 +349,7 @@ class HasProjectConnectedReposTestMixin(BaseTestCase):
         assert has_project_connected_repos(self.organization, self.project) is True
 
 
-class TestHasProjectConnectedRepos(HasProjectConnectedReposTestMixin, TestCase):
+class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposTestMixin, TestCase):
     def test_returns_false_when_repo_has_no_seer_config(self) -> None:
         repo = self.create_repo(
             project=self.project,
@@ -1297,7 +1297,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.repositories[0].name == "test-repo"
 
 
-class TestReadPreferenceFromSentryDb(ReadPreferenceFromSentryDbTestMixin, TestCase):
+class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbTestMixin, TestCase):
     def test_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo)
 
@@ -1471,7 +1471,9 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
         assert len(result[self.project2.id].repositories) == 0
 
 
-class TestBulkReadPreferencesFromSentryDb(BulkReadPreferencesFromSentryDbTestMixin, TestCase):
+class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(
+    BulkReadPreferencesFromSentryDbTestMixin, TestCase
+):
     def test_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project1, repository=self.repo)
 
