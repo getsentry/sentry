@@ -29,11 +29,13 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import (
     all_silo_test,
     assume_test_silo_mode,
     assume_test_silo_mode_of,
+    cell_silo_test,
     no_silo_test,
 )
 from sentry.types.superuser import SuperuserAccess
@@ -1119,7 +1121,7 @@ class RpcGlobalAccessTest(TestCase):
         assert rpc.call_args.args[1:3] == ("organization", "get_access_context")
 
 
-@all_silo_test
+@cell_silo_test(include_monolith_run=True)
 class FromDelegatedSuperuserTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1137,20 +1139,11 @@ class FromDelegatedSuperuserTest(TestCase):
 
     def test_access_omits_full_organization_resources(self) -> None:
         other_project = self.create_project(organization=self.create_organization())
-        with (
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as serialize_project,
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team"
-            ) as serialize_team,
-        ):
+        with assert_no_organization_resource_hydration():
             result = access.from_auth(self.token, self.org)
             assert result.accessible_project_ids == frozenset({self.project.id})
             assert result.accessible_team_ids == frozenset({self.team.id})
 
-        serialize_project.assert_not_called()
-        serialize_team.assert_not_called()
         assert result.has_scope("org:read")
         assert not result.has_scope("org:write")
         assert not result.has_scope("team:read")

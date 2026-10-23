@@ -1380,7 +1380,6 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
         context = organization_service.get_access_context(
             organization_id=organization.id,
             user_id=auth.user_id,
-            include_resource_ids=SiloMode.get_current_mode() == SiloMode.CONTROL,
         )
         return from_superuser_access(auth, context) if context is not None else DEFAULT
     if is_system_auth(auth):

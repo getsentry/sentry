@@ -15,6 +15,7 @@ from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 from sentry.organizations.services.organization.service import organization_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 
 
@@ -74,12 +75,7 @@ class ActiveOrganizationResourcesTest(TestCase):
         project = self.create_project(organization=org, teams=[team])
         self.create_project(organization=org)
         with (
-            mock.patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as projects,
-            mock.patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team"
-            ) as teams,
+            assert_no_organization_resource_hydration(),
             mock.patch(
                 "sentry.organizations.services.organization.impl.get_active_resource_ids",
                 side_effect=AssertionError("Unexpected organization-wide resource lookup"),
@@ -88,8 +84,6 @@ class ActiveOrganizationResourcesTest(TestCase):
             context = organization_service.get_access_context(
                 organization_id=org.id, user_id=self.user.id
             )
-        projects.assert_not_called()
-        teams.assert_not_called()
         resources.assert_not_called()
         assert context is not None
         assert context.organization.id == org.id
