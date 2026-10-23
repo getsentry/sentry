@@ -535,20 +535,12 @@ def get_token_based_billing_project_repos(
     )
 
 
-def get_seer_project_repo(project_repo: ProjectRepository) -> SeerProjectRepository | None:
-    """Avoid raising RelatedObjectDoesNotExist when ProjectRepository has no SeerProjectRepository."""
-    return getattr(project_repo, "seerprojectrepository", None)
-
-
-def build_repo_definition_from_project_repo(
-    project_repo: ProjectRepository,
+def build_seer_repo_definition(
+    repo: Repository, seer_project_repo: SeerProjectRepository | None
 ) -> SeerRepoDefinition | None:
-    """Build a SeerRepoDefinition from a ProjectRepository and its optional per-repo Seer config.
+    """Build a SeerRepoDefinition from a Repository and its optional per-repo Seer config.
 
     Returns None if Repository name is invalid."""
-    repo = project_repo.repository
-    seer_project_repo = get_seer_project_repo(project_repo)
-
     repo_name_sections = get_repo_url_path(repo).split("/")
     if len(repo_name_sections) < 2:
         sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
@@ -581,7 +573,10 @@ def _get_repo_definitions_by_project(
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     if is_seer_token_based_billing_onboarding_enabled(organization):
         for project_repo in get_token_based_billing_project_repos(organization, project_ids):
-            repo_def = build_repo_definition_from_project_repo(project_repo)
+            # getattr since accessing a missing one-to-one raises RelatedObjectDoesNotExist.
+            repo_def = build_seer_repo_definition(
+                project_repo.repository, getattr(project_repo, "seerprojectrepository", None)
+            )
             if repo_def is not None:
                 repo_definitions_by_project[project_repo.project_id].append(repo_def)
     else:
@@ -593,7 +588,9 @@ def _get_repo_definitions_by_project(
             .select_related("project_repository", "project_repository__repository")
             .prefetch_related("branch_overrides")
         ):
-            repo_def = build_repo_definition_from_project_repo(seer_project_repo.project_repository)
+            repo_def = build_seer_repo_definition(
+                seer_project_repo.project_repository.repository, seer_project_repo
+            )
             if repo_def is not None:
                 repo_definitions_by_project[seer_project_repo.project_repository.project_id].append(
                     repo_def
