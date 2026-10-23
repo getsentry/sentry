@@ -231,8 +231,13 @@ export function useMetricDetectorThresholdSeries({
         ? createPercentResolutionSeries(comparisonSeries, resolution)
         : undefined;
 
+      // Tooltip rows follow series order: most severe threshold first, resolution last
+      const thresholdLinesBySeverity = thresholdLines.toSorted(
+        (a, b) => b.priority - a.priority
+      );
+
       const visibleLines = [
-        ...thresholdLines.map(({priority, series}) => ({
+        ...thresholdLinesBySeverity.map(({priority, series}) => ({
           series,
           lineColor: getThresholdColor(theme, priority),
         })),
