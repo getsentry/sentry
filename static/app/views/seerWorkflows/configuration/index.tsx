@@ -6,7 +6,6 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -22,10 +21,7 @@ import type {
   SeerWorkflowConfigsResponse,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
-import {
-  getAutomationsPath,
-  useAutomationsEnabled,
-} from 'sentry/views/seerWorkflows/utils';
+import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
 /**
  * The narrowest a card may get before the grid drops to fewer columns per row.
@@ -139,7 +135,6 @@ function AutomationCard({
   tokensPerMonth,
   costPerRun,
 }: AutomationCardProps) {
-  const organization = useOrganization();
   const usage = [
     tokensPerMonth === undefined
       ? null
@@ -160,73 +155,73 @@ function AutomationCard({
 
   return (
     <Container as="li" display="grid">
-      {/* TODO(aliu): Disabled until each automation has its own page */}
-      <Link to={getAutomationsPath(organization.slug)} disabled>
-        <Stack
-          gap="lg"
-          height="100%"
-          padding="xl"
-          border="primary"
-          radius="md"
-          background="primary"
-        >
-          <Stack gap="lg" flex="1">
-            <Heading as="h3" size="md">
-              {title}
-            </Heading>
-            {subtitleOverride ? (
+      {/* TODO(aliu): Link to the automation's page once it exists */}
+      <Stack
+        gap="lg"
+        height="100%"
+        padding="xl"
+        border="primary"
+        radius="md"
+        background="primary"
+      >
+        <Stack gap="lg" flex="1">
+          <Heading as="h3" size="md">
+            {title}
+          </Heading>
+          {subtitleOverride ? (
+            <Flex>
+              <Tag variant="muted" icon={subtitleOverride.icon}>
+                {subtitleOverride.text}
+              </Tag>
+            </Flex>
+          ) : (
+            nextUpdate && (
               <Flex>
-                <Tag variant="muted" icon={subtitleOverride.icon}>
-                  {subtitleOverride.text}
+                <Tag variant="muted" icon={<IconClock />}>
+                  {tct('Next run [time]', {
+                    time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
+                  })}
                 </Tag>
               </Flex>
-            ) : (
-              nextUpdate && (
-                <Flex>
-                  <Tag variant="muted" icon={<IconClock />}>
-                    {tct('Next run [time]', {time: <TimeSince date={nextUpdate} />})}
-                  </Tag>
-                </Flex>
-              )
-            )}
-            {description && <Text as="p">{description}</Text>}
-          </Stack>
-          <Stack gap="lg">
-            {usage.length > 0 && (
-              <Text size="sm" variant="muted">
-                {usage.map((part, index) => (
-                  <Fragment key={index}>
-                    {index > 0 && ' | '}
-                    {part}
-                  </Fragment>
-                ))}
-              </Text>
-            )}
-            {projectSlugs[0] === 'all' ? (
-              <Flex align="center" gap="sm">
-                <IconAllProjects size="sm" variant="muted" />
-                <Text size="sm" variant="muted">
-                  {t('All projects')}
-                </Text>
-              </Flex>
-            ) : projectSlugs.length === 0 ? (
-              <Text size="sm" variant="muted">
-                {t('No projects')}
-              </Text>
-            ) : (
-              <Flex align="center" gap="sm">
-                <ProjectList projectSlugs={projectSlugs} />
-                {/* TODO(aliu): Limit the length of this list */}
-                <Container flex="1" minWidth={0}>
-                  <Text size="sm" variant="muted">
-                    {projectSlugs.join(', ')}
-                  </Text>
-                </Container>
-              </Flex>
-            )}
-          </Stack>
+            )
+          )}
+          {description && <Text as="p">{description}</Text>}
         </Stack>
-      </Link>
+        <Stack gap="lg">
+          {usage.length > 0 && (
+            <Text size="sm" variant="muted">
+              {usage.map((part, index) => (
+                <Fragment key={index}>
+                  {index > 0 && ' | '}
+                  {part}
+                </Fragment>
+              ))}
+            </Text>
+          )}
+          {projectSlugs[0] === 'all' ? (
+            <Flex align="center" gap="sm">
+              <IconAllProjects size="sm" variant="muted" />
+              <Text size="sm" variant="muted">
+                {t('All projects')}
+              </Text>
+            </Flex>
+          ) : projectSlugs.length === 0 ? (
+            <Text size="sm" variant="muted">
+              {t('No projects')}
+            </Text>
+          ) : (
+            <Flex align="center" gap="sm">
+              <ProjectList projectSlugs={projectSlugs} />
+              {/* TODO(aliu): Limit the length of this list */}
+              <Container flex="1" minWidth={0}>
+                <Text size="sm" variant="muted">
+                  {projectSlugs.join(', ')}
+                </Text>
+              </Container>
+            </Flex>
+          )}
+        </Stack>
+      </Stack>
     </Container>
   );
 }
