@@ -147,7 +147,6 @@ function getMobileItems(replayRecord: ReplayRecord | undefined): MenuItemProps[]
       platform: replayRecord?.platform,
       sdk_version: replayRecord?.sdk.version,
       os_name: replayRecord?.os.name,
-      url: window.location.href,
     });
   }
   const path = sdkName ? getPath(sdkName) : null;

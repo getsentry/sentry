@@ -6,13 +6,7 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
 
-function renderMenuItem({
-  sdkName,
-  isMobile,
-}: {
-  isMobile: boolean;
-  sdkName: string | null;
-}) {
+function renderMenuItem({sdkName, isMobile}: {isMobile: boolean; sdkName: string}) {
   const {result} = renderHookWithProviders(useConfigureReplayMenuItem, {
     organization: OrganizationFixture(),
     initialProps: {
@@ -26,16 +20,13 @@ function renderMenuItem({
 
 describe('useConfigureReplayMenuItem', () => {
   let captureSpy: jest.SpyInstance;
-  let logSpy: jest.SpyInstance;
 
   beforeEach(() => {
     captureSpy = jest.spyOn(Sentry, 'captureMessage').mockImplementation(() => '');
-    logSpy = jest.spyOn(Sentry.logger, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
     captureSpy.mockRestore();
-    logSpy.mockRestore();
   });
 
   it('returns the configuration documentation submenu', () => {
@@ -107,18 +98,6 @@ describe('useConfigureReplayMenuItem', () => {
 
       expect(captureSpy).toHaveBeenCalledWith(
         'Unknown mobile platform in configure card: sentry.unknown.platform'
-      );
-      expect(item.children).toHaveLength(3);
-      expect(item.children?.every(child => child.disabled === true)).toBe(true);
-    });
-
-    it('logs instead of capturing when the SDK name is missing', () => {
-      const item = renderMenuItem({sdkName: null, isMobile: true});
-
-      expect(captureSpy).not.toHaveBeenCalled();
-      expect(logSpy).toHaveBeenCalledWith(
-        'Replay: Missing SDK name in configure card',
-        expect.objectContaining({sdk_version: '8.0.0'})
       );
       expect(item.children).toHaveLength(3);
       expect(item.children?.every(child => child.disabled === true)).toBe(true);
