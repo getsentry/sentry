@@ -44,6 +44,9 @@ def timezone_context(tz: str):
         time.tzset()
 
 
+# Snowflake org and project ids repeat when two tests start in the same second, so reset Snuba
+# rather than read back a previous test's rows for "our" project.
+@pytest.mark.usefixtures("reset_snuba")
 class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self) -> None:
         event = self.store_event(

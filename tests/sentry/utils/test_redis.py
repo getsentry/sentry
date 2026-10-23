@@ -232,14 +232,25 @@ class TransactionCheckingRedisTest(SentryTestCase):
             "sentry.new_code.create_monitor",
         )
 
-        assert _matches_redis_transaction_lock_ratchet((*acquire, *project_save))
-        assert _matches_redis_transaction_lock_ratchet((*release, *project_save))
-        assert _matches_redis_transaction_lock_ratchet(monitor_from_mockdata)
-        assert not _matches_redis_transaction_lock_ratchet(nested_lock)
-        assert not _matches_redis_transaction_lock_ratchet(not_a_lock)
-        assert not _matches_redis_transaction_lock_ratchet(locked_check)
-        assert not _matches_redis_transaction_lock_ratchet(monitor_from_new_code)
-        assert not _matches_redis_transaction_lock_ratchet(acquire)
+        # Example entries so that the test does not depend on the real allowlist
+        allowlist = frozenset(
+            {
+                ("sentry.models.project.Project.save",),
+                (
+                    "sentry.monitors.models.Monitor.save",
+                    "sentry.utils.mockdata.core.create_monitor",
+                ),
+            }
+        )
+
+        assert _matches_redis_transaction_lock_ratchet((*acquire, *project_save), allowlist)
+        assert _matches_redis_transaction_lock_ratchet((*release, *project_save), allowlist)
+        assert _matches_redis_transaction_lock_ratchet(monitor_from_mockdata, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(nested_lock, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(not_a_lock, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(locked_check, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(monitor_from_new_code, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(acquire, allowlist)
 
     def test_transaction_callers_include_application_frames_until_test_harness(self) -> None:
         def outer_caller() -> tuple[str, ...]:

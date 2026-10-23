@@ -18,7 +18,6 @@ testable_modified: &testable_modified
 testable_rules_changed: &testable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
-  - added|deleted|modified: 'build-utils/react-router{,.test}.ts'
   - added|deleted|modified: '.github/workflows/scripts/jest-test-config.sh'
   - added|deleted|modified: 'tests/js/jest.config.mjs'
   - added|deleted|modified: 'tests/js/jest.config.ci.mjs'
@@ -46,7 +45,7 @@ frontend_all: &frontend_all
   - *typecheckable_rules_changed
   - added|deleted|modified: 'pnpm-lock.yaml'
   - added|deleted|modified: 'pnpm-workspace.yaml'
-  - added|modified: 'oxlint.config.ts'
+  - added|modified: 'oxlint.*.ts'
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs,pegjs}'
   - added|modified: 'static/**/*.{less,yml,md,mdx}'
   - added|modified: 'static/**/!(oxlint-suppressions).json'
@@ -87,7 +86,6 @@ backend_dependencies: &backend_dependencies
 
 backend_build_changes: &backend_build_changes
   - '.github/workflows/backend.yml'
-  - '.github/actions/collect-test-data/**'
   - '.pre-commit-config.yaml'
   - 'Makefile'
   - 'pyproject.toml'
@@ -151,7 +149,6 @@ acceptance: &acceptance
   - *frontend_all
   - *backend_all
   - '.github/workflows/acceptance.yml'
-  - '.github/actions/collect-test-data/**'
 
 # Used in `getsentry-dispatch.js` to decide whether to run getsentry's
 # acceptance suite against a sentry PR. Scoped to gsApp and gsAdmin
@@ -177,6 +174,7 @@ migrations_added:
 # Migration tests only exercise migrations, so PRs only run them when these change.
 migration_tests:
   - '.github/workflows/backend.yml'
+  - '.github/workflows/scripts/migration-test-db.py'
   - 'Makefile'
   - 'src/**/migrations/**'
   - 'tests/**/migrations/**'

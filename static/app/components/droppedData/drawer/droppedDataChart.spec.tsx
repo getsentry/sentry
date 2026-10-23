@@ -1,6 +1,54 @@
+import type {ECharts} from 'echarts';
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {droppedEventsToSeries} from './droppedDataChart';
+import {act, render} from 'sentry-test/reactTestingLibrary';
+
+import {BaseChart} from 'sentry/components/charts/baseChart';
+import type {EChartDataZoomHandler} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {DroppedDataChart, droppedEventsToSeries} from './droppedDataChart';
+
+jest.mock('sentry/components/charts/baseChart', () => ({
+  BaseChart: jest.fn(() => null),
+}));
+
+describe('DroppedDataChart', () => {
+  it('does not zoom or change the time range', () => {
+    const {router} = render(
+      <DroppedDataChart
+        droppedEvents={[DroppedEventFixture({outcome: 'filtered', count: 5})]}
+        colors={{filtered: '#000'}}
+        dataset={DiscoverDatasets.SPANS}
+        hasAskSeer={false}
+        selection={{}}
+        onSelectionChange={jest.fn()}
+      />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/explore/traces/', query: {statsPeriod: '14d'}},
+        },
+      }
+    );
+
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props.toolBox).toEqual({});
+
+    act(() => {
+      props.onDataZoom?.(
+        {
+          type: 'datazoom',
+          start: 0,
+          end: 100,
+          batch: [{startValue: 0, endValue: 600_000}],
+        } as Parameters<EChartDataZoomHandler>[0],
+        {} as ECharts
+      );
+    });
+
+    expect(router.location.query).toEqual({statsPeriod: '14d'});
+  });
+});
 
 describe('droppedEventsToSeries', () => {
   it('returns an empty object for no events', () => {
@@ -25,7 +73,7 @@ describe('droppedEventsToSeries', () => {
 
     expect(Object.values(series).map(s => s.yAxis)).toEqual([
       'Client Discard',
-      'Inbound Filter',
+      'Inbound Filters',
       'Invalid or Malformed',
     ]);
   });

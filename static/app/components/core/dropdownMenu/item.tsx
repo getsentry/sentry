@@ -4,19 +4,19 @@ import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './context';
 
-export interface MenuItemProps extends MenuListItemProps {
+export interface MenuItemProps extends ListItemProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -45,11 +45,13 @@ export interface MenuItemProps extends MenuListItemProps {
    * from the selection manager.
    */
   hidden?: boolean;
+  /** Shows a selection checkmark and reserves its space when false. */
+  isSelected?: boolean;
   /**
    * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
    * to enable search & keyboard select.
    */
-  label?: MenuListItemProps['label'];
+  label?: ListItemProps['label'];
   /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
@@ -61,7 +63,13 @@ export interface MenuItemProps extends MenuListItemProps {
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
    */
-  submenu?: boolean | {position?: UseOverlayProps['position']; title?: string};
+  submenu?:
+    | boolean
+    | {
+        position?: UseOverlayProps['position'];
+        search?: {placeholder?: string};
+        title?: string;
+      };
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
@@ -128,6 +136,8 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     onAction,
     to,
     label,
+    isSelected,
+    leadingItems,
     submenu,
     trailingItems,
     externalHref,
@@ -247,10 +257,27 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const itemLabel = node.rendered ?? label;
 
   return (
-    <MenuListItem
+    <ListItem
       ref={ref}
       as={renderAs}
       label={itemLabel}
+      leadingItems={
+        isSelected === undefined
+          ? leadingItems
+          : itemState => (
+              <Fragment>
+                <IconCheckmark
+                  size="md"
+                  variant="accent"
+                  aria-hidden
+                  visibility={isSelected ? 'visible' : 'hidden'}
+                />
+                {typeof leadingItems === 'function'
+                  ? leadingItems(itemState)
+                  : leadingItems}
+              </Fragment>
+            )
+      }
       disabled={isDisabled}
       isFocused={isFocused}
       innerWrapProps={{
@@ -288,7 +315,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
         isSubmenu ? (
           <Fragment>
             {trailingItems as React.ReactNode}
-            <IconChevron size="xs" direction="right" aria-hidden="true" />
+            <IconChevron size="md" direction="right" aria-hidden="true" />
           </Fragment>
         ) : (
           trailingItems

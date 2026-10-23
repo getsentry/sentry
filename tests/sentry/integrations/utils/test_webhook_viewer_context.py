@@ -12,9 +12,8 @@ class WebhookViewerContextTest(TestCase):
             ctx = get_viewer_context()
             assert ctx is not None
             assert ctx.organization_id == 42
-            assert ctx.actor_type == ActorType.INTEGRATION
+            assert ctx.actor.type == ActorType.INTEGRATION
             assert ctx.user_id is None
-            assert ctx.token is None
 
         assert get_viewer_context() is None
 

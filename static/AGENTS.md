@@ -18,7 +18,9 @@
 - `rsbuild.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `oxlint.config.ts`: Oxlint configuration
+- `oxlint.base.ts`: Shared Oxlint rules used by root and package configs
 - `stylelint.config.js`: CSS/styling linting
+- `stylelint.base.js`: Shared Stylelint rules used by root and package configs
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
 - **Stores**: `static/app/stores/{store}Store.tsx`
@@ -30,17 +32,11 @@
 ### Routing
 
 - Routes defined in `static/app/router/routes.tsx`
-- Local development and deploy previews run React Router V8. Production remains
-  on V6. Application tests and typechecks run against both versions; set
-  `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run `test-ci` or `typecheck` against one.
-  `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
-- Use V8 import paths: import router APIs and types from `react-router`, and
-  `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
-  runtime through `static/app/utils/reactRouterV6` in V6 builds.
-- Only the compatibility modules may import `react-router-dom` or
-  `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
-  Use Sentry's version-neutral router tracing integration and wrapper. Keep the
-  Nuqs V6 adapter import; V8 builds and tests alias it to the V8 adapter.
+- Builds, tests, and typechecks use React Router V8.
+- Import router APIs and types from `react-router`, and `RouterProvider` from
+  `react-router/dom`. Use the Nuqs adapter from `nuqs/adapters/react-router/v8`.
+- Keep using Sentry's routing helpers where required. Use Sentry's
+  `reactRouterBrowserTracingIntegration` and `wrapCreateBrowserRouter`.
 - Lazy load route components when possible
 
 ### Frontend API Calls
@@ -56,9 +52,13 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
+`Menu` from `@sentry/scraps/menu` is an internal presentation primitive for shared controls. In product UI, use `DropdownMenu` for actions, `CompactSelect` for choices, or the form system's `field.Select` for form fields. Use `Menu` directly only when implementing those shared controls.
+
 ## Linting
 
-Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. Each workspace's `oxlint-suppressions.json` uses project-relative paths and caps existing debt per file and rule. Missing files mean empty budgets. Successful fixes lower counts automatically. Run `pnpm run lint:js --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
+Icons and Scraps own their lint configs and run native Oxlint and Stylelint. Root lint commands and prek route selected files to their owning packages. For file-scoped CSS checks, the root invokes Stylelint directly in each package to avoid its full-scan glob. Use `pnpm run lint:suppressions` at the root for suppression maintenance across all workspaces.
+
+Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. Each workspace's `oxlint-suppressions.json` uses project-relative paths and caps existing debt per file and rule. Missing or empty files mean empty budgets. Successful fixes lower counts automatically. Run `pnpm run lint:suppressions --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
 
 ## Refs
 

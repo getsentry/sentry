@@ -119,12 +119,19 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  negated = false
 ) {
+  // A negated filter always reads as "is not", so skip the default comparison
+  const filterText = getInitialFilterText(
+    key,
+    getFieldDefinition(key),
+    negated ? TermOperator.DEFAULT : undefined
+  );
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key))
+    negated ? `!${filterText}` : filterText
   );
 }
 
@@ -867,19 +874,17 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (
-            parsedText?.some(textToken => {
-              if (textToken.type !== Token.FILTER) {
-                return false;
-              }
-              if (textToken.negated) {
-                return `!${textToken.key.text}` === filterValue;
-              }
-              return textToken.key.text === filterValue;
-            })
-          ) {
+          const typedFilter = parsedText?.find(
+            (textToken): textToken is TokenResult<Token.FILTER> =>
+              textToken.type === Token.FILTER &&
+              `${textToken.negated ? '!' : ''}${textToken.key.text}` === filterValue
+          );
+
+          if (typedFilter) {
+            // The key text leaves out the `!`, so `!key:` gets the same field
+            // definition as `key:`
             const filterKey = resolveFilterKey({
-              key: filterValue,
+              key: typedFilter.key.text,
               filterKeys,
               getSuggestedFilterKey,
               loadedItems: sortedFilteredItems,
@@ -894,7 +899,8 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition
+                getFieldDefinition,
+                typedFilter.negated
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
@@ -971,12 +977,20 @@ export function SearchQueryBuilderFreeText({
 
   const isInvalid = Boolean(token.invalid);
 
+  // The empty slot before a leading filter takes no room until it has focus, so
+  // the first row of a wrapped query starts where the later rows do.
+  const isEmptyLeadingSlot =
+    state.collection.getFirstKey() === item.key &&
+    state.collection.getLastKey() !== item.key &&
+    token.value.trim() === '';
+
   return (
     <Row
       {...mergeProps(rowProps, shiftFocusProps)}
       ref={ref}
       tabIndex={-1}
       aria-invalid={isInvalid}
+      data-empty-leading-slot={isEmptyLeadingSlot ? 'true' : undefined}
     >
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
         <SearchQueryBuilderInputInternal
@@ -999,6 +1013,12 @@ const Row = styled('div')`
 
   &:last-child {
     flex-grow: 1;
+  }
+
+  &[data-empty-leading-slot='true']:not(:focus-within) {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
   }
 
   &[aria-invalid='true'] {

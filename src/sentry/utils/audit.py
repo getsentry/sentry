@@ -101,7 +101,7 @@ def create_audit_entry_from_user(
 
     if agent_delegation is None:
         viewer_context = get_viewer_context()
-        if viewer_context is not None and viewer_context.actor_type == ActorType.AGENT:
+        if viewer_context is not None and viewer_context.actor.type == ActorType.AGENT:
             agent_delegation = SEER_AGENT_DELEGATION
 
     data = dict(data)

@@ -17,6 +17,7 @@ class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
     DUPLICATE_MONITORS = "duplicate_monitors"
     AGENTIC_TRIAGE_V2 = "agentic_triage_v2"
+    BREACHED_METRIC_INVESTIGATION = "breached_metric_investigation"
 
 
 # Strategies with one config per organization, found or created by get_or_create_for_strategy.
@@ -26,7 +27,9 @@ SEER_LEGACY_WORKFLOW_STRATEGIES = frozenset(
 )
 
 # Strategies with any number of configs per organization. Each config is looked up by its id.
-SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset({SeerWorkflowStrategy.AGENTIC_TRIAGE_V2})
+SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
+    {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
+)
 
 
 class SeerWorkflowConfigExtras(BaseModel):
@@ -57,7 +60,7 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     sentry.seer.workflows.workflow.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
@@ -107,7 +110,7 @@ class SeerWorkflowConfig(DefaultFieldsModel):
 class SeerWorkflowConfigProject(DefaultFieldsModel):
     """One selected project of a config whose filters do not select all projects."""
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
@@ -125,6 +128,24 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
 
 
 @cell_silo_model
+class SeerWorkflowTriggerBinding(DefaultFieldsModel):
+    """Connect a WFE Action to an automation; a config may have multiple bindings."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    workflow_config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
+    trigger_action = models.OneToOneField(
+        "workflow_engine.Action", on_delete=models.CASCADE, related_name="seer_workflow_binding"
+    )
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_workflowtriggerbinding"
+
+    __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
+
+
+@cell_silo_model
 class SeerWorkflowRun(DefaultFieldsModel):
     """Records each workflow invocation for an organization.
 
@@ -138,9 +159,8 @@ class SeerWorkflowRun(DefaultFieldsModel):
     workflow_config = FlexibleForeignKey(
         "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
     )
-    # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM), nullable for
-    # manual and historical runs.
-    schedule_id = models.CharField(max_length=256, null=True)
+    # Cron window (e.g. 2024-07-22T22:00) or event identity (e.g. issue_created:123).
+    trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     date_completed = models.DateTimeField(null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
@@ -154,10 +174,10 @@ class SeerWorkflowRun(DefaultFieldsModel):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["organization", "workflow_config", "schedule_id"],
-                condition=models.Q(schedule_id__isnull=False),
+                fields=["organization", "workflow_config", "trigger_key"],
+                condition=models.Q(trigger_key__isnull=False),
                 name="seer_nightshiftrun_unique_org_config_schedule",
-            )
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "workflow_config_id", "date_added")

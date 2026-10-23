@@ -15,6 +15,7 @@ import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DATE_TIME_KEYS} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -450,7 +451,9 @@ function IssueListOverviewInner({
             pathname: redirect,
             query: {
               referrer: 'issue-list',
-              ...extractSelectionParameters(location.query),
+              // The issue list's date range may come from pinned filters, let
+              // issue details fall back to its own default instead
+              ...omit(extractSelectionParameters(location.query), DATE_TIME_KEYS),
             },
           }),
           {replace: true}
@@ -492,7 +495,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: data.length, // Can also use newQueryCount for total hits
           organization,
           runId: aiQueryRunId,
@@ -525,7 +527,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: 0,
           organization,
           runId: aiQueryRunId,
@@ -1008,6 +1009,7 @@ function IssueListOverviewInner({
               />
               <IssueListTable
                 selection={selection}
+                sort={sort}
                 query={query}
                 queryCount={modifiedQueryCount}
                 onSelectStatsPeriod={onSelectStatsPeriod}

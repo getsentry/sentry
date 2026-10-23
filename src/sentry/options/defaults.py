@@ -448,6 +448,26 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
+# default so deletion volume can be measured before anything is removed.
+register(
+    "cleanup.notification-thread.dry-run",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.retention-days",
+    default=90,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.batch-size",
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Symbol server
 register(
@@ -733,6 +753,14 @@ register(
 # checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(
     "bitbucket_server.webhook.signature-enforcement.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Repair Bitbucket Server repository webhooks that do not have signing secrets.
+register(
+    "bitbucket_server.webhook.secret-repair.enabled",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1518,6 +1546,22 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Conversation classifiers PoC.
+register(
+    "classifiers.conversations.project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum conversations fetched from each project per scan.
+register(
+    "classifiers.conversations.telemetry-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1875,16 +1919,6 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 register(
     "relay.invalidation-direct-outside-atomic",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
-# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
-# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
-register(
-    "custom-inbound-filters.legacy-filter-stage",
-    default={},
-    type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
