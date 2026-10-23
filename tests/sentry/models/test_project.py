@@ -15,7 +15,7 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.organizationmember import OrganizationMember
@@ -1090,6 +1090,25 @@ class CopyProjectSettingsTest(TestCase):
         assert row.legacy_filter == "release-version"
         assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
         self.assert_settings_copied(project)
+
+    def test_copy_keeps_the_name_and_the_active_flag_of_a_list_row(self) -> None:
+        self.other_project.update_option("sentry:releases", ["1.*"])
+        self.create_project_custom_inbound_filter(
+            project=self.other_project,
+            name="Old builds",
+            active=False,
+            data_type="all",
+            conditions=[{"type": "release", "operator": "glob", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        project = self.create_project(fire_project_created=True)
+
+        assert project.copy_settings_from(self.other_project.id)
+
+        row = CustomInboundFilter.objects.get(project_id=project.id)
+        assert row.name == "Old builds"
+        assert row.active is False
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
 
 
 @control_silo_test

@@ -122,6 +122,16 @@ def set_list(project: Project, filter_type: str, lines: Sequence[str]) -> None:
         _set_row(project, _ROWS[filter_type], lines)
 
 
+def copy_lists(source: Project, target: Project) -> None:
+    """Copies every list, and the name and the active flag of its row, onto ``target``."""
+    for filter_type, row in _ROWS.items():
+        set_list(target, filter_type, source.get_option(f"sentry:{filter_type}") or [])
+        source_row = _get_row(source, row)
+        target_row = _get_row(target, row)
+        if source_row is not None and target_row is not None:
+            target_row.update(name=source_row.name, active=source_row.active)
+
+
 def _set_row(project: Project, row: _Row, lines: list[str]) -> None:
     existing = _get_row(project, row)
 
