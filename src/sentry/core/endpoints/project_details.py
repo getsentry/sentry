@@ -339,6 +339,10 @@ E.g. `['release', 'environment']`""",
         allow_null=True,
         help_text="Custom symbol sources, as a JSON string, to use when symbolicating events.",
     )
+    enableNativeSourceServerMapping = serializers.BooleanField(
+        required=False,
+        help_text="Apply source server (srcsrv) information from native debug files to symbolicated frames.",
+    )
     scrubIPAddresses = serializers.BooleanField(
         required=False,
         help_text="Discard client IP addresses rather than storing them on events.",
@@ -940,6 +944,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
+                ]
+        if result.get("enableNativeSourceServerMapping") is not None:
+            if project.update_option(
+                "sentry:enable_native_source_server_mapping",
+                result["enableNativeSourceServerMapping"],
+            ):
+                changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
+                    "enableNativeSourceServerMapping"
                 ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
