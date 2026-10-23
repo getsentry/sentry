@@ -452,15 +452,12 @@ class RepositoryIntegration(
         cache_enabled = options.get("integrations.stacktrace-link.file-check-cache.enabled")
         digest = md5_text(ref, "\x00", filepath).hexdigest()
         cache_key = f"stacktrace-link:file-check:{self.model.id}:{repo.id}:{digest}"
-        cached = cache.get(cache_key) if cache_enabled else None
-        if cached is not None:
-            cache_status = "hit"
-        else:
-            cache_status = "miss" if cache_enabled else "disabled"
-
+        cache_status = "miss" if cache_enabled else "disabled"
         outcome = "raised"
         try:
+            cached = cache.get(cache_key) if cache_enabled else None
             if cached is not None:
+                cache_status = "hit"
                 result = FileCheckResult(cached)
             else:
                 result = self.check_file_result(repo, filepath, ref)

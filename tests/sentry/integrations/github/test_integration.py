@@ -745,6 +745,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.assert_call_count(commit_url, 1)
         responses.assert_call_count(branch_url, 2)
 
+        with freeze_time(datetime.now(timezone.utc) + timedelta(days=8)):
+            installation.get_stacktrace_link(repo, "README.md", "master", commit)
+        responses.assert_call_count(commit_url, 2)
+
     @responses.activate
     def test_get_stacktrace_link_does_not_cache_failed_checks(self) -> None:
         installation, repo = self._stacktrace_link_installation()
@@ -814,6 +818,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ("version", "commit", "hit", "not_found"),
             ("default", "branch", "hit", "found"),
         ]
+        assert mock_logger.info.call_count == 2
         mock_logger.info.assert_called_with(
             "stacktrace_link.file_checks",
             extra={

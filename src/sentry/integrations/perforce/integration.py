@@ -255,7 +255,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
             branch: Branch/stream name (optional)
 
         Returns:
-            FOUND if the file exists, NOT_FOUND if it doesn't, ERROR if it couldn't be checked
+            FOUND if the file exists, otherwise why it wasn't found
 
         Raises:
             ApiUnauthorized: For authentication failures (should be shown to user)
@@ -263,9 +263,11 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         """
         try:
             client = self.get_client()
-            # Use client's check_file to verify file exists on P4 server
+            # Use client's check_file to verify file exists on P4 server.
+            # It returns None for a missing file and for P4 errors alike, so
+            # this can't be cached as not found.
             if client.check_file(repo, filepath, branch) is None:
-                return FileCheckResult.NOT_FOUND
+                return FileCheckResult.EMPTY_RESPONSE
             return FileCheckResult.FOUND
         except (ApiUnauthorized, IntegrationError):
             # Re-raise auth/config errors so they're visible to users
@@ -276,6 +278,15 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         except Exception:
             # Any other failure means the file couldn't be checked
             return FileCheckResult.ERROR
+
+    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
+        """
+        Returns the link to the file if it exists, otherwise `None`. Unlike the base
+        implementation, absolute depot paths (//depot/...) keep their leading slashes.
+        """
+        if self.check_file_result(repo, filepath, branch) is FileCheckResult.FOUND:
+            return self.format_source_url(repo, filepath, branch)
+        return None
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         """
