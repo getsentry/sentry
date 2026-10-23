@@ -993,6 +993,7 @@ def assert_drain_skips_failed_message(provider: str) -> None:
 
 @pytest.mark.django_db(databases=["default", "control"])
 @control_silo_test
+@override_cells(cell_config)
 @override_settings(SENTRY_SUBNET_SECRET="subnet-secret")
 @responses.activate
 @pytest.mark.parametrize(
