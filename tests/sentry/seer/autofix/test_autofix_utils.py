@@ -418,18 +418,6 @@ class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposTest
 
         assert has_project_connected_repos(self.organization, self.project) is True
 
-    def test_returns_false_when_only_seer_disabled_repos(self) -> None:
-        repo = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            integration_id=self.integration.id,
-            external_id="123",
-            name="owner/repo",
-        )
-        self.create_seer_project_repository(project=self.project, repository=repo, enabled=False)
-
-        assert has_project_connected_repos(self.organization, self.project) is False
-
     def test_returns_false_when_project_inactive(self) -> None:
         repo = self.create_repo(
             project=self.project,
@@ -1050,16 +1038,6 @@ class TestGetTokenBasedBillingProjectRepos(TestCase):
             list(get_token_based_billing_project_repos(self.organization, [self.project.id]))
         ) == {configured, unconfigured}
 
-    def test_excludes_repos_disabled_for_seer(self) -> None:
-        enabled = self._create_project_repo("owner/enabled")
-        SeerProjectRepository.objects.create(project_repository=enabled, enabled=True)
-        disabled = self._create_project_repo("owner/disabled")
-        SeerProjectRepository.objects.create(project_repository=disabled, enabled=False)
-
-        assert list(
-            get_token_based_billing_project_repos(self.organization, [self.project.id])
-        ) == [enabled]
-
     def test_excludes_inactive_repos(self) -> None:
         project_repo = self._create_project_repo("owner/repo")
         project_repo.repository.status = ObjectStatus.DISABLED
@@ -1388,15 +1366,6 @@ class TestReadPreferenceFromSentryDbTokenBasedBilling(
         assert result.repositories[0].instructions is None
         assert result.repositories[0].branch_overrides == []
 
-    def test_excludes_repos_disabled_for_seer(self) -> None:
-        self.create_seer_project_repository(project=self.project, repository=self.repo)
-        self.create_seer_project_repository(
-            project=self.project, repository=self.repo2, enabled=False
-        )
-
-        result = read_preference_from_sentry_db(self.project)
-        assert [r.name for r in result.repositories] == ["test-repo"]
-
 
 class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
     def setUp(self):
@@ -1572,15 +1541,6 @@ class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(
         assert [(r.name, r.branch_name) for r in result[self.project1.id].repositories] == [
             ("test-repo", None)
         ]
-
-    def test_excludes_repos_disabled_for_seer(self) -> None:
-        self.create_seer_project_repository(project=self.project1, repository=self.repo)
-        self.create_seer_project_repository(
-            project=self.project1, repository=self.repo2, enabled=False
-        )
-
-        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
-        assert [r.name for r in result[self.project1.id].repositories] == ["test-repo"]
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):

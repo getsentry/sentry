@@ -530,7 +530,6 @@ def get_token_based_billing_project_repos(
             repository__external_id__isnull=False,
         )
         .exclude(repository__external_id="")
-        .exclude(seerprojectrepository__enabled=False)
         .select_related("repository", "seerprojectrepository")
         .prefetch_related("seerprojectrepository__branch_overrides")
     )
@@ -1027,7 +1026,7 @@ def is_seer_token_billed_enabled(organization: Organization) -> bool:
 
 
 def is_seer_token_based_billing_onboarding_enabled(organization: Organization) -> bool:
-    """Check if a project's Seer repos come from its linked repos (token-based billing)."""
+    """Check if Seer onboarding changes for token-based billing apply to this organization."""
     return features.has(
         "organizations:seer-token-based-billing-onboarding", organization
     ) and is_seer_token_billed_enabled(organization)
