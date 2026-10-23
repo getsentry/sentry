@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.auth.access import from_user
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
@@ -23,6 +24,7 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
 
@@ -343,8 +345,8 @@ class InvestigationActionRequestSerializationTest(TestCase):
                 "state": "suggested",
                 "reason": None,
                 "action": self.action(),
-                "canApply": False,
-                "cannotApplyReason": "unsupported_action",
+                "canApply": True,
+                "cannotApplyReason": None,
                 "appliedBy": None,
                 "appliedDetails": None,
                 "dateApplied": None,
@@ -486,6 +488,13 @@ class InvestigationActionRequestSerializationTest(TestCase):
     def cannot_apply_reason(self, user: Any = None) -> str | None:
         return self.serialize_for(user or self.user)[0]["cannotApplyReason"]
 
+    def test_an_editor_can_apply_a_suggestion(self) -> None:
+        self.add_request()
+
+        (serialized,) = self.serialize_for(self.user)
+        assert serialized["action"] == self.action()
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
+
     def test_archived_investigations_cannot_apply(self) -> None:
         self.add_request()
         self.investigation.update(status=InvestigationStatus.ARCHIVED)
@@ -529,3 +538,60 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         assert (serialized["canApply"], serialized["cannotApplyReason"]) == (False, "no_access")
         assert kind.checked == []
+
+    def test_dynamic_monitors_cannot_apply(self) -> None:
+        self.add_request()
+        self.detector.update(config={"detection_type": "dynamic"})
+
+        assert self.cannot_apply_reason() == "unsupported_action"
+
+    def test_only_the_source_detector_can_be_changed(self) -> None:
+        other = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.add_request(action=self.action(detectorId=str(other.id)))
+
+        assert self.cannot_apply_reason() == "not_target_detector"
+
+    def test_missing_detectors_cannot_apply(self) -> None:
+        self.add_request()
+        self.detector.update(status=ObjectStatus.PENDING_DELETION)
+
+        assert self.cannot_apply_reason() == "detector_not_found"
+
+    def test_detectors_in_other_organizations_cannot_apply(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        foreign = self.create_detector(project=other_project, type=MetricIssue.slug)
+        self.investigation.orchestration_run.update(
+            source={"type": "breached_metric", "detectorId": str(foreign.id)}
+        )
+        self.add_request(action=self.action(detectorId=str(foreign.id)))
+
+        assert self.cannot_apply_reason() == "detector_not_found"
+
+    def test_users_who_cannot_edit_the_detector_cannot_apply(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.add_request()
+
+        assert self.cannot_apply_reason(member) == "permission_denied"
+
+    @with_feature("organizations:team-roles")
+    def test_query_count_does_not_grow_with_suggestions(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        team = self.create_team(organization=self.organization)
+        self.project.add_team(team)
+        self.create_team_membership(team=team, user=member, role="admin")
+        self.add_request()
+        with CaptureQueriesContext(connection) as one:
+            assert self.serialize_for(member)[0]["canApply"] is True
+
+        self.add_request("second")
+        self.add_request("third")
+        for index in range(5):
+            self.add_request(f"applied-{index}", state=InvestigationActionRequestState.APPLIED)
+        with CaptureQueriesContext(connection) as many:
+            assert len(self.serialize_for(member)) == 8
+
+        assert len(many.captured_queries) == len(one.captured_queries)
