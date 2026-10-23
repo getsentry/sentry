@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataTooltip} from 'sentry/components/droppedData/band/droppedDataTooltip';
 import {groupIntoBuckets} from 'sentry/components/droppedData/buckets';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const START = Date.UTC(2024, 0, 12, 15, 0);
@@ -15,8 +15,8 @@ function ExampleDroppedDataTooltip({
   accepted = [],
   dataset = DiscoverDatasets.SPANS,
 }: {
-  dropped: DroppedEventsBucket[];
-  accepted?: DroppedEventsBucket[];
+  dropped: OutcomeRow[];
+  accepted?: OutcomeRow[];
   dataset?: DiscoverDatasets;
 }) {
   const [bucket] = groupIntoBuckets(dropped, accepted);
