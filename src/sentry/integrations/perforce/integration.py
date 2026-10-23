@@ -277,17 +277,6 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
             # Any other failure means the file couldn't be checked
             return FileCheckResult.ERROR
 
-    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
-        """
-        Check if a file exists in the Perforce depot and return the URL.
-
-        Unlike the base implementation, absolute depot paths (//depot/...) keep their
-        leading slashes in the URL.
-        """
-        if self.check_file_result(repo, filepath, branch) is FileCheckResult.FOUND:
-            return self.format_source_url(repo, filepath, branch)
-        return None
-
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         """
         Format source URL for stacktrace linking.

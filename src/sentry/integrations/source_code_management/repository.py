@@ -423,9 +423,6 @@ class RepositoryIntegration(
 
                 scope.set_tag("stacktrace_link.used_version", False)
                 scope.set_attribute("stacktrace_link.used_version", False)
-                # Checking the same ref again can't change the answer
-                if version and version == default:
-                    return None
                 result = self._check_stacktrace_file(repo, filepath, default, "default", log_extra)
                 if result is not FileCheckResult.FOUND:
                     return None
@@ -453,60 +450,49 @@ class RepositoryIntegration(
         """
         ref_type = "commit" if COMMIT_SHA_RE.fullmatch(ref) else "branch"
         cache_enabled = options.get("integrations.stacktrace-link.file-check-cache.enabled")
-        cache_key = (
-            f"stacktrace-link:file-check:{self.model.id}:{repo.id}:"
-            f"{md5_text(ref, filepath).hexdigest()}"
-        )
-        tags = {"provider": self.integration_name, "check": check, "ref_type": ref_type}
-
+        digest = md5_text(ref, "\x00", filepath).hexdigest()
+        cache_key = f"stacktrace-link:file-check:{self.model.id}:{repo.id}:{digest}"
         cached = cache.get(cache_key) if cache_enabled else None
         if cached is not None:
-            result = FileCheckResult(cached)
             cache_status = "hit"
         else:
             cache_status = "miss" if cache_enabled else "disabled"
-            try:
-                result = self.check_file_result(repo, filepath, ref)
-            except Exception as e:
-                metrics.incr(
-                    FILE_CHECK_METRIC,
-                    tags={**tags, "cache": cache_status, "result": "raised"},
-                    sample_rate=1.0,
-                )
-                log_extra.update(
-                    {
-                        f"{check}_ref_type": ref_type,
-                        f"{check}_cache": cache_status,
-                        f"{check}_result": "raised",
-                        f"{check}_error": type(e).__name__,
-                    }
-                )
-                raise
 
-            if cache_enabled and result in (FileCheckResult.FOUND, FileCheckResult.NOT_FOUND):
-                cache.set(
-                    cache_key,
-                    result.value,
-                    (
+        outcome = "raised"
+        try:
+            if cached is not None:
+                result = FileCheckResult(cached)
+            else:
+                result = self.check_file_result(repo, filepath, ref)
+                if cache_enabled and result in (FileCheckResult.FOUND, FileCheckResult.NOT_FOUND):
+                    cache.set(
+                        cache_key,
+                        result.value,
                         FILE_CHECK_FOUND_AT_COMMIT_CACHE_SECONDS
                         if result is FileCheckResult.FOUND and ref_type == "commit"
-                        else FILE_CHECK_CACHE_SECONDS
-                    ),
-                )
-
-        metrics.incr(
-            FILE_CHECK_METRIC,
-            tags={**tags, "cache": cache_status, "result": result.value},
-            sample_rate=1.0,
-        )
-        log_extra.update(
-            {
-                f"{check}_ref_type": ref_type,
-                f"{check}_cache": cache_status,
-                f"{check}_result": result.value,
-            }
-        )
-        return result
+                        else FILE_CHECK_CACHE_SECONDS,
+                    )
+            outcome = result.value
+            return result
+        finally:
+            metrics.incr(
+                FILE_CHECK_METRIC,
+                tags={
+                    "provider": self.integration_name,
+                    "check": check,
+                    "ref_type": ref_type,
+                    "cache": cache_status,
+                    "result": outcome,
+                },
+                sample_rate=1.0,
+            )
+            log_extra.update(
+                {
+                    f"{check}_ref_type": ref_type,
+                    f"{check}_cache": cache_status,
+                    f"{check}_result": outcome,
+                }
+            )
 
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None

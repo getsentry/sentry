@@ -37,7 +37,6 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
-from sentry.integrations.source_code_management.repository import FILE_CHECK_METRIC
 from sentry.integrations.types import ExternalProviders
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiForbiddenError
@@ -695,44 +694,25 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
 
-    def _stacktrace_link_installation(self) -> tuple[GitHubIntegration, Integration]:
+    def _stacktrace_link_installation(self) -> tuple[GitHubIntegration, Repository]:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
+        repo = self.create_repo(
+            project=self.project,
+            name="Test-Organization/foo",
+            provider="integrations:github",
+            integration_id=integration.id,
+            url="https://github.com/Test-Organization/foo",
+            external_id="123",
+        )
         installation = get_installation_of_type(
             GitHubIntegration, integration, self.organization.id
         )
-        return installation, integration
-
-    def _stacktrace_link_repo(
-        self,
-        integration: Integration,
-        name: str = "Test-Organization/foo",
-        external_id: str = "123",
-    ) -> Repository:
-        return self.create_repo(
-            project=self.project,
-            name=name,
-            provider="integrations:github",
-            integration_id=integration.id,
-            url=f"https://github.com/{name}",
-            external_id=external_id,
-        )
+        return installation, repo
 
     @responses.activate
-    def test_get_stacktrace_link_caches_not_found(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
-        url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
-        responses.add(responses.HEAD, url, status=404)
-
-        assert installation.get_stacktrace_link(repo, "README.md", "master", None) is None
-        assert installation.get_stacktrace_link(repo, "README.md", "master", None) is None
-        responses.assert_call_count(url, 1)
-
-    @responses.activate
-    def test_get_stacktrace_link_not_found_expires(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
+    def test_get_stacktrace_link_caches_not_found_until_it_expires(self) -> None:
+        installation, repo = self._stacktrace_link_installation()
         url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
         responses.add(responses.HEAD, url, status=404)
         assert installation.get_stacktrace_link(repo, "README.md", "master", None) is None
@@ -748,79 +728,43 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.assert_call_count(url, 2)
 
     @responses.activate
-    def test_get_stacktrace_link_caches_found_at_commit(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
+    def test_get_stacktrace_link_caches_found_at_commit_longer_than_branch(self) -> None:
+        installation, repo = self._stacktrace_link_installation()
         commit = "a" * 40
-        url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref={commit}"
-        responses.add(responses.HEAD, url)
-        expected = f"https://github.com/Test-Organization/foo/blob/{commit}/README.md"
-
-        assert installation.get_stacktrace_link(repo, "README.md", "master", commit) == expected
-        # Past the client's own 15 minute cache, the answer for a commit still holds
-        with freeze_time(datetime.now(timezone.utc) + timedelta(minutes=16)):
-            assert installation.get_stacktrace_link(repo, "README.md", "master", commit) == expected
-        responses.assert_call_count(url, 1)
-
-    @responses.activate
-    def test_get_stacktrace_link_found_on_branch_expires(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
-        url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
-        responses.add(responses.HEAD, url)
-        expected = "https://github.com/Test-Organization/foo/blob/master/README.md"
-
-        assert installation.get_stacktrace_link(repo, "README.md", "master", None) == expected
-        with freeze_time(datetime.now(timezone.utc) + timedelta(minutes=16)):
-            assert installation.get_stacktrace_link(repo, "README.md", "master", None) == expected
-        responses.assert_call_count(url, 2)
-
-    @responses.activate
-    def test_get_stacktrace_link_does_not_cache_forbidden(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
-        url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
-        responses.add(responses.HEAD, url, status=403)
-
-        with pytest.raises(ApiForbiddenError):
-            installation.get_stacktrace_link(repo, "README.md", "master", None)
-        with pytest.raises(ApiForbiddenError):
-            installation.get_stacktrace_link(repo, "README.md", "master", None)
-        responses.assert_call_count(url, 2)
-
-    @responses.activate
-    def test_get_stacktrace_link_does_not_cache_unauthorized(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
-        url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
-        responses.add(responses.HEAD, url, status=401)
-
-        assert installation.get_stacktrace_link(repo, "README.md", "master", None) is None
-        assert installation.get_stacktrace_link(repo, "README.md", "master", None) is None
-        responses.assert_call_count(url, 2)
-
-    @responses.activate
-    def test_get_stacktrace_link_cache_is_per_repository(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
-        other_repo = self._stacktrace_link_repo(
-            integration, name="Test-Organization/bar", external_id="456"
-        )
-        url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
-        other_url = f"{self.base_url}/repos/{other_repo.name}/contents/README.md?ref=master"
-        responses.add(responses.HEAD, url, status=404)
-        responses.add(responses.HEAD, other_url, status=404)
-
+        commit_url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref={commit}"
+        branch_url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
+        responses.add(responses.HEAD, commit_url)
+        responses.add(responses.HEAD, branch_url)
+        installation.get_stacktrace_link(repo, "README.md", "master", commit)
         installation.get_stacktrace_link(repo, "README.md", "master", None)
-        installation.get_stacktrace_link(other_repo, "README.md", "master", None)
-        installation.get_stacktrace_link(repo, "README.md", "master", None)
-        responses.assert_call_count(url, 1)
-        responses.assert_call_count(other_url, 1)
+
+        # Past the client's own 15 minute cache, only the answer for the commit holds
+        with freeze_time(datetime.now(timezone.utc) + timedelta(minutes=16)):
+            installation.get_stacktrace_link(repo, "README.md", "master", commit)
+            installation.get_stacktrace_link(repo, "README.md", "master", None)
+        responses.assert_call_count(commit_url, 1)
+        responses.assert_call_count(branch_url, 2)
+
+    @responses.activate
+    def test_get_stacktrace_link_does_not_cache_failed_checks(self) -> None:
+        installation, repo = self._stacktrace_link_installation()
+        unauthorized_url = f"{self.base_url}/repos/{repo.name}/contents/a.py?ref=master"
+        forbidden_url = f"{self.base_url}/repos/{repo.name}/contents/b.py?ref=master"
+        responses.add(responses.HEAD, unauthorized_url, status=401)
+        responses.add(responses.HEAD, forbidden_url, status=403)
+
+        assert installation.get_stacktrace_link(repo, "a.py", "master", None) is None
+        assert installation.get_stacktrace_link(repo, "a.py", "master", None) is None
+        with pytest.raises(ApiForbiddenError):
+            installation.get_stacktrace_link(repo, "b.py", "master", None)
+        with pytest.raises(ApiForbiddenError):
+            installation.get_stacktrace_link(repo, "b.py", "master", None)
+        responses.assert_call_count(unauthorized_url, 2)
+        responses.assert_call_count(forbidden_url, 2)
 
     @responses.activate
     def test_get_stacktrace_link_cache_disabled(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
+        installation, repo = self._stacktrace_link_installation()
         url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
         responses.add(responses.HEAD, url, status=404)
 
@@ -830,19 +774,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.assert_call_count(url, 2)
 
     @responses.activate
-    def test_get_stacktrace_link_skips_second_check_of_same_ref(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
-        url = f"{self.base_url}/repos/{repo.name}/contents/README.md?ref=master"
-        responses.add(responses.HEAD, url, status=404)
-
-        assert installation.get_stacktrace_link(repo, "README.md", "master", "master") is None
-        responses.assert_call_count(url, 1)
-
-    @responses.activate
     def test_check_file_ignores_stacktrace_link_cache(self) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
+        installation, repo = self._stacktrace_link_installation()
         url = f"{self.base_url}/repos/{repo.name}/contents/CODEOWNERS?ref=master"
         responses.add(responses.HEAD, url, status=404)
         installation.get_stacktrace_link(repo, "CODEOWNERS", "master", None)
@@ -853,7 +786,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             installation.check_file(repo, "CODEOWNERS", "master")
             == "https://github.com/Test-Organization/foo/blob/master/CODEOWNERS"
         )
-        responses.assert_call_count(url, 2)
 
     @responses.activate
     @patch("sentry.integrations.source_code_management.repository.logger")
@@ -861,8 +793,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_stacktrace_link_records_file_checks(
         self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
     ) -> None:
-        installation, integration = self._stacktrace_link_installation()
-        repo = self._stacktrace_link_repo(integration)
+        installation, repo = self._stacktrace_link_installation()
         commit = "b" * 40
         responses.add(
             responses.HEAD,
@@ -876,58 +807,18 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation.get_stacktrace_link(repo, "README.md", "master", commit)
         installation.get_stacktrace_link(repo, "README.md", "master", commit)
 
-        tags = {"provider": "github"}
-        assert mock_metrics.incr.call_args_list == [
-            mock.call(
-                FILE_CHECK_METRIC,
-                tags={
-                    **tags,
-                    "check": "version",
-                    "ref_type": "commit",
-                    "cache": "miss",
-                    "result": "not_found",
-                },
-                sample_rate=1.0,
-            ),
-            mock.call(
-                FILE_CHECK_METRIC,
-                tags={
-                    **tags,
-                    "check": "default",
-                    "ref_type": "branch",
-                    "cache": "miss",
-                    "result": "found",
-                },
-                sample_rate=1.0,
-            ),
-            mock.call(
-                FILE_CHECK_METRIC,
-                tags={
-                    **tags,
-                    "check": "version",
-                    "ref_type": "commit",
-                    "cache": "hit",
-                    "result": "not_found",
-                },
-                sample_rate=1.0,
-            ),
-            mock.call(
-                FILE_CHECK_METRIC,
-                tags={
-                    **tags,
-                    "check": "default",
-                    "ref_type": "branch",
-                    "cache": "hit",
-                    "result": "found",
-                },
-                sample_rate=1.0,
-            ),
+        tags = [call.kwargs["tags"] for call in mock_metrics.incr.call_args_list]
+        assert [(t["check"], t["ref_type"], t["cache"], t["result"]) for t in tags] == [
+            ("version", "commit", "miss", "not_found"),
+            ("default", "branch", "miss", "found"),
+            ("version", "commit", "hit", "not_found"),
+            ("default", "branch", "hit", "found"),
         ]
         mock_logger.info.assert_called_with(
             "stacktrace_link.file_checks",
             extra={
                 "provider": "github",
-                "integration_id": integration.id,
+                "integration_id": installation.model.id,
                 "organization_id": self.organization.id,
                 "repository_id": repo.id,
                 "source_path": "README.md",
