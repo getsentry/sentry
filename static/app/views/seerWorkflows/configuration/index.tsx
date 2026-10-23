@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {IconAllProjects} from '@sentry/icons/allProjects';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
@@ -165,7 +166,7 @@ function AutomationCard({
   return (
     <Container as="li" display="grid">
       {/* TODO(aliu): Link to the automation's page once it exists */}
-      <Stack
+      <CardStack
         gap="lg"
         height="100%"
         padding="xl"
@@ -239,10 +240,16 @@ function AutomationCard({
             </Flex>
           )}
         </Stack>
-      </Stack>
+      </CardStack>
     </Container>
   );
 }
+
+const CardStack = styled(Stack)`
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+`;
 
 /**
  * When an automation with this schedule next runs. "daily" is the only supported
