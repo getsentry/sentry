@@ -72,6 +72,11 @@ import type {
   InvestigationDetail,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -340,7 +345,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         exact: true,
       });
       addSuccessMessage(t('Investigation deleted.'));
-      navigate(`/organizations/${organization.slug}/explore/investigations/`);
+      navigate(getInvestigationsPath(organization.slug));
     },
     onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
@@ -448,7 +453,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             {
               type: 'link',
               label: t('Investigations'),
-              to: `/organizations/${organization.slug}/explore/investigations/`,
+              to: getInvestigationsPath(organization.slug),
               leadingGraphic: <IconStack size="md" />,
             },
           ]}
@@ -682,12 +687,6 @@ function isTitleGenerationActive(status: string | null | undefined) {
   return status === 'pending' || status === 'running';
 }
 
-function getInvestigationPath(organizationSlug: string, investigationId: string) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
-  );
-}
-
 function getRecord(value: unknown, key: string): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') {
     return null;
@@ -764,6 +763,7 @@ const MetaDivider = styled('span')`
 
 export default function InvestigationDetailView() {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const {investigationId} = useParams<{investigationId: string}>();
 
   return (
@@ -773,7 +773,7 @@ export default function InvestigationDetailView() {
         features="organizations:investigations"
         renderDisabled={() => <FeatureDisabledPage />}
       >
-        {organization.openMembership ? (
+        {investigationsEnabled ? (
           <InvestigationBootstrapPage investigationId={investigationId} />
         ) : (
           <ClosedMembershipPage />

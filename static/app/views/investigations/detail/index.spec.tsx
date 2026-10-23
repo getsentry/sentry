@@ -94,9 +94,9 @@ function renderView(
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+        pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
       },
-      route: '/organizations/:orgId/explore/investigations/:investigationId/',
+      route: '/organizations/:orgId/seer/investigations/:investigationId/',
     },
   });
 
@@ -1587,7 +1587,7 @@ describe('Investigation detail', () => {
     expect(screen.queryByText('Secret query-generation prompt')).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Investigations'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/investigations/'
+      '/organizations/org-slug/seer/investigations/'
     );
     expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
       investigation.title
@@ -2552,7 +2552,7 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        '/organizations/org-slug/explore/investigations/investigation-2/'
+        '/organizations/org-slug/seer/investigations/investigation-2/'
       )
     );
   });
@@ -2579,7 +2579,7 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/explore/investigations/investigation-1/`
+        `${window.location.origin}/seer/investigations/investigation-1/`
       )
     );
   });
@@ -2662,7 +2662,7 @@ describe('Investigation detail', () => {
       });
       await waitFor(() =>
         expect(router.location.pathname).toBe(
-          '/organizations/org-slug/explore/investigations/'
+          '/organizations/org-slug/seer/investigations/'
         )
       );
       await act(() => jest.advanceTimersByTimeAsync(600));
