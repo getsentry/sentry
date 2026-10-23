@@ -87,6 +87,28 @@ function mockConversation(
   return request;
 }
 
+function mockTranscriptPage(content: string, cursor?: string, nextCursor?: string) {
+  const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+  return MockApiClient.addMockResponse({
+    url,
+    match: [MockApiClient.matchQuery({view: 'transcript', cursor})],
+    headers: nextCursor
+      ? {
+          Link: `<${url}?cursor=${nextCursor}>; rel="next"; results="true"; cursor="${nextCursor}"`,
+        }
+      : undefined,
+    body: {
+      conversationId: CONVERSATION_ID,
+      title: null,
+      complete: nextCursor === undefined,
+      sourceSpanCount: 1,
+      transcript: [
+        {id: content, role: 'assistant', content, timestamp: 1000, nodeId: 'span-a'},
+      ],
+    },
+  });
+}
+
 function renderView(
   props: Partial<React.ComponentProps<typeof ConversationViewContent>> = {}
 ) {
@@ -164,6 +186,82 @@ describe('ConversationViewContent', () => {
     ).not.toBeInTheDocument();
     expect(backend).toHaveBeenCalledTimes(1);
     expect(detailPane()).not.toBeInTheDocument();
+  });
+
+  it('loads and combines backend message pages using transcript cursors', async () => {
+    const first = mockTranscriptPage('Backend page one', undefined, 't2');
+    const second = mockTranscriptPage('Backend page two', 't2', 't3');
+    const third = mockTranscriptPage('Backend page three', 't3', 't4');
+    const fourth = mockTranscriptPage('Backend page four', 't4');
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID, projects: [1]}}
+        activeTab="transcript"
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['gen-ai-conversations-backend-transcript'],
+        }),
+      }
+    );
+    expect(await screen.findByText('Backend page four')).toBeInTheDocument();
+    expect(screen.getByText('Backend page one')).toBeInTheDocument();
+    expect(screen.getByText('Backend page two')).toBeInTheDocument();
+    expect(screen.getByText('Backend page three')).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load conversation')).not.toBeInTheDocument();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(third).toHaveBeenCalledTimes(1);
+    expect(fourth).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({view: 'transcript', cursor: 't2', project: [1]}),
+      })
+    );
+  });
+
+  it('shows an error when a later backend page fails', async () => {
+    mockTranscriptPage('Backend page one', undefined, 't2');
+    const next = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      match: [MockApiClient.matchQuery({view: 'transcript', cursor: 't2'})],
+      statusCode: 503,
+      body: {detail: 'Unable to read transcript context'},
+    });
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['gen-ai-conversations-backend-transcript'],
+        }),
+      }
+    );
+    expect(await screen.findByText('Failed to load conversation')).toBeInTheDocument();
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('First answer')).not.toBeInTheDocument();
+  });
+
+  it('rejects a repeated transcript cursor instead of fetching forever', async () => {
+    const first = mockTranscriptPage('Backend page one', undefined, 't2');
+    const next = mockTranscriptPage('Backend page two', 't2', 't2');
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['gen-ai-conversations-backend-transcript'],
+        }),
+      }
+    );
+    expect(await screen.findByText('Failed to load conversation')).toBeInTheDocument();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledTimes(1);
   });
 
   it('does not request a backend transcript without the feature', async () => {

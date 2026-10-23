@@ -177,13 +177,7 @@ export function ConversationViewContent({
   const isDetailLoading =
     hasUnresolvedSelection && (isLoading || canAutoFetchNextPage || isFetchingNextPage);
 
-  if (
-    error ||
-    (isTranscript &&
-      useBackendTranscript &&
-      (transcript.isError ||
-        (transcript.data !== undefined && !transcript.data.complete)))
-  ) {
+  if (error || (isTranscript && useBackendTranscript && transcript.isError)) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 

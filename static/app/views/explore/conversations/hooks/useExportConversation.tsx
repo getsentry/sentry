@@ -21,7 +21,11 @@ import {
   getConversationQueryOptions,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
-import {getConversationTranscriptQueryOptions} from 'sentry/views/explore/conversations/hooks/useConversationTranscript';
+import {
+  getConversationTranscriptFromPages,
+  getConversationTranscriptQueryOptions,
+  MAX_TRANSCRIPT_PAGES,
+} from 'sentry/views/explore/conversations/hooks/useConversationTranscript';
 import {
   extractMessagesFromNodes,
   messagesToMarkdown,
@@ -67,33 +71,48 @@ export function useExportConversation(
           conversation,
           selection
         );
-        const cachedTranscript = queryClient.getQueryData(backendOptions.queryKey);
-        if (cachedTranscript?.json.complete) {
+        const cachedTranscript = getConversationTranscriptFromPages(
+          queryClient.getQueryData(backendOptions.queryKey)
+        );
+        if (cachedTranscript?.complete) {
           await deliver({
-            markdown: messagesToMarkdown(cachedTranscript.json.transcript),
-            title: cachedTranscript.json.title,
+            markdown: messagesToMarkdown(cachedTranscript.transcript),
+            title: cachedTranscript.title,
           });
           return;
         }
         setIsExporting(true);
+        const observer = new InfiniteQueryObserver(queryClient, backendOptions);
         try {
-          const result = await queryClient.fetchQuery(backendOptions);
-          if (!result.json.complete) {
-            setIsExporting(false);
+          let result = observer.getCurrentResult();
+          while (!result.data || result.hasNextPage) {
+            if ((result.data?.pages.length ?? 0) >= MAX_TRANSCRIPT_PAGES) {
+              break;
+            }
+            result = await observer.fetchNextPage({
+              throwOnError: true,
+              cancelRefetch: false,
+            });
+          }
+          observer.destroy();
+          setIsExporting(false);
+          const transcript = getConversationTranscriptFromPages(result.data);
+          if (!transcript?.complete) {
             addErrorMessage(t('Failed to export transcript'));
             return;
           }
           await deliver({
-            markdown: messagesToMarkdown(result.json.transcript),
-            title: result.json.title,
+            markdown: messagesToMarkdown(transcript.transcript),
+            title: transcript.title,
           });
         } catch (error) {
+          observer.destroy();
+          setIsExporting(false);
           if (!(error instanceof CancelledError)) {
             Sentry.captureException(error);
             addErrorMessage(t('Failed to export transcript'));
           }
         }
-        setIsExporting(false);
         return;
       }
       const options = getConversationQueryOptions(organization, conversation, selection);
