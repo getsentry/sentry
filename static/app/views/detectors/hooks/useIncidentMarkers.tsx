@@ -473,6 +473,7 @@ export function useIncidentMarkers({
           type MarkLineDatum = {xAxis?: number};
           const datum = params.data as MarkLineDatum;
           const start = typeof datum?.xAxis === 'number' ? datum.xAxis : undefined;
+          // Use findLast to handle overlapping incidents properly
           const period =
             start === undefined
               ? undefined
