@@ -248,19 +248,23 @@ def taskworker(autoreload: bool, **options: Any) -> None:
     """
     os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
     if autoreload:
-        # The worker registers signal handlers, so it must own the main thread of
-        # its own process. watchfiles restarts that process with SIGINT on change.
-        configured = multiprocessing.get_context("spawn").Event()
-        watchfiles.run_process(
-            os.path.dirname(sentry.__file__),
-            discover_configs()[0],
-            target=_run_reloaded_taskworker,
-            kwargs={"configured": configured, **options},
-            callback=lambda _: _wait_for_reloaded_taskworker(configured),
-            watch_filter=watchfiles.PythonFilter(),
-        )
+        _run_taskworker_with_autoreload(**options)
     else:
         run_taskworker(**options)
+
+
+def _run_taskworker_with_autoreload(**options: Any) -> None:
+    # The worker registers signal handlers, so it must own the main thread of
+    # its own process. watchfiles restarts that process with SIGINT on change.
+    configured = multiprocessing.get_context("spawn").Event()
+    watchfiles.run_process(
+        os.path.dirname(sentry.__file__),
+        discover_configs()[0],
+        target=_run_reloaded_taskworker,
+        kwargs={"configured": configured, **options},
+        callback=lambda _: _wait_for_reloaded_taskworker(configured),
+        watch_filter=watchfiles.PythonFilter(),
+    )
 
 
 def _wait_for_reloaded_taskworker(configured: Event) -> None:
