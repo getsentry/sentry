@@ -4,6 +4,11 @@ import sentry.db.models.fields.bounded
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
+
+# Matches the generated names django makes
+NOT_NULL_ID = "sentry_commit_new_repository_id_a9e403a0_notnull"
+INDEX_ID = "sentry_comm_new_rep_002dfe_idx"
 
 
 class Migration(CheckedMigration):
@@ -26,10 +31,25 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
+        # If the migration dies/is killed we need to cleanup on the retry.
+        SafeRunSQL(
+            f'DROP INDEX CONCURRENTLY IF EXISTS "{INDEX_ID}"',
+            reverse_sql=migrations.RunSQL.noop,
+            hints={"tables": ["sentry_commit"]},
+            # The drop waits for open transactions, which can outlast the timeout.
+            use_statement_timeout=False,
+        ),
         migrations.AlterField(
             model_name="commit",
             name="new_repository_id",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+        ),
+        SafeRunSQL(
+            f'ALTER TABLE "sentry_commit" DROP CONSTRAINT IF EXISTS "{NOT_NULL_ID}"',
+            reverse_sql=migrations.RunSQL.noop,
+            hints={"tables": ["sentry_commit"]},
+            # The drop waits for open transactions, which can outlast the timeout.
+            use_statement_timeout=False,
         ),
         migrations.AlterUniqueTogether(
             name="commit",
