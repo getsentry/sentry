@@ -1,9 +1,9 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ConfidenceFooter as LogsConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
@@ -13,12 +13,11 @@ import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {useWidgetRawCounts} from './hooks/useWidgetRawCounts';
-import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type Props = {
   loading: boolean;
-  series: Array<Series & {fieldName?: string}>;
-  timeseriesResults: GenericWidgetQueriesResult['timeseriesResults'];
+  series: TimeSeries[];
+  timeseriesResults: WidgetTimeSeries[] | undefined;
   widget: Widget;
   yAxis: string;
   confidence?: Confidence;
@@ -40,8 +39,8 @@ export function WidgetCardConfidenceFooter({
 }: Props) {
   const {selection} = usePageFilters();
   const rawCounts = useWidgetRawCounts({selection, widget});
-  const hasOtherSeries = timeseriesResults?.some(({seriesName}) =>
-    seriesName?.match(/.* : Other$|^Other$/)
+  const hasOtherSeries = timeseriesResults?.some(
+    ({timeSeries}) => timeSeries.meta.isOther
   );
 
   // All queries share the same aggregates, so queries[0] is representative.
@@ -123,47 +122,13 @@ export function WidgetCardConfidenceFooter({
 }
 
 function toFooterTimeSeries(
-  series: Array<Series & {fieldName?: string}>,
+  series: TimeSeries[],
   dataScanned?: 'full' | 'partial'
 ): TimeSeries[] {
-  return series.map((seriesEntry, seriesIndex) => {
-    const values = seriesEntry.data.map((datum, pointIndex) => {
-      const samplingDatum = datum as SeriesDataUnit & {
-        confidence?: Confidence;
-        sampleCount?: number | null;
-        sampleRate?: number | null;
-      };
-
-      const numericTimestamp =
-        typeof samplingDatum.name === 'number'
-          ? samplingDatum.name
-          : new Date(samplingDatum.name).getTime();
-
-      return {
-        timestamp: Number.isFinite(numericTimestamp)
-          ? numericTimestamp
-          : seriesIndex * 1000 + pointIndex,
-        value: samplingDatum.value,
-        confidence: samplingDatum.confidence,
-        sampleCount: samplingDatum.sampleCount,
-        sampleRate: samplingDatum.sampleRate,
-      };
-    });
-
-    const interval =
-      values.length >= 2 ? Math.max(0, values[1]!.timestamp - values[0]!.timestamp) : 0;
-
-    return {
-      yAxis: seriesEntry.seriesName,
-      values,
-      meta: {
-        interval,
-        valueType: 'number',
-        valueUnit: null,
-        dataScanned,
-      },
-    };
-  });
+  return series.map(item => ({
+    ...item,
+    meta: {...item.meta, dataScanned: dataScanned ?? item.meta.dataScanned},
+  }));
 }
 
 function hasSeriesSamplingMetadata(series: TimeSeries[]) {

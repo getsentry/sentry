@@ -127,7 +127,7 @@ class ViewerContextHook:
         if raw:
             try:
                 ctx = ViewerContext.deserialize(orjson.loads(raw))
-            except (orjson.JSONDecodeError, TypeError, KeyError, AttributeError):
+            except (ValueError, TypeError, KeyError, AttributeError):
                 logger.exception("Failed to deserialize viewer context header")
         # Only `expected=True` when dispatch actually sent the header. That distinguishes
         # the noise case (system task with no VC, header genuinely absent) from the bug

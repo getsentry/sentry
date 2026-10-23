@@ -22,6 +22,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {ExtraDescription} from './extraDescription';
 
@@ -212,7 +213,7 @@ export function invalidateIssueQueries({
   organizationSlug: string;
   queryClient: QueryClient;
 }) {
-  if (itemIds?.length) {
+  if (itemIds !== undefined) {
     for (const itemId of itemIds) {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organizationSlug}/issues/${itemId}/`],
@@ -250,6 +251,7 @@ export async function performBulkUpdate({
   organizationSlug,
   query,
   selection,
+  sort,
   onSuccess,
 }: {
   api: Client;
@@ -258,6 +260,7 @@ export async function performBulkUpdate({
   organizationSlug: string;
   query: string;
   selection: PageFilters;
+  sort: IssueSortOptions;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
   const projectConstraints = {
@@ -272,6 +275,7 @@ export async function performBulkUpdate({
       itemIds,
       data,
       query,
+      sort,
       environment: selection.environments,
       failSilently: true,
       ...projectConstraints,

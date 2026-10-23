@@ -9,6 +9,7 @@ import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEve
 import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
 import {type WidgetQuery} from 'sentry/views/dashboards/types';
+import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 
@@ -45,7 +46,7 @@ function formatMetricsTimeseriesLabel({
 
 export const traceMetricsResponseTransforms: Pick<
   DatasetConfig<EventsTimeSeriesResponse, EventsTableData>,
-  'transformTable' | 'transformSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
+  'transformTable' | 'transformTimeSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
 > = {
   transformTable: (data, widgetQuery) => {
     const transformedData = transformEventsResponseToTable(data, widgetQuery);
@@ -64,25 +65,11 @@ export const traceMetricsResponseTransforms: Pick<
     }
     return transformedData;
   },
-  transformSeries: (data, widgetQuery) => {
-    return data.timeSeries.map(timeSeries => {
-      // The function should always be defined when dealing with a successful
-      // time series response
-      return {
-        data: timeSeries.values.map(value => ({
-          name: value.timestamp,
-          value: value.value ?? 0,
-        })),
-
-        seriesName: formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        }),
-        timeSeries,
-        ingestion: data.meta?.ingestion,
-      };
-    });
-  },
+  transformTimeSeries: (data, widget, queryIndex) =>
+    transformTimeSeriesResponse(data, widget, queryIndex, {
+      getSeriesName: (timeSeries, widgetQuery) =>
+        formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
+    }),
   getSeriesResultType(data, _widgetQuery) {
     return data.timeSeries.reduce<Record<string, AggregationOutputType>>(
       (acc, timeSeries) => {

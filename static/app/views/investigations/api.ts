@@ -61,6 +61,8 @@ export function getInvestigationDetailQueryOptions(
   );
 }
 
+export const INVESTIGATION_COMMENTS_PAGE_SIZE = 100;
+
 /** Newest first. Without `blockId`, page-level and block comments together. */
 export function investigationCommentsQueryOptions({
   organizationSlug,
@@ -75,7 +77,7 @@ export function investigationCommentsQueryOptions({
     '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/',
     {
       path: {organizationIdOrSlug: organizationSlug, investigationId},
-      query: {blockId, per_page: 100},
+      query: {blockId, per_page: INVESTIGATION_COMMENTS_PAGE_SIZE},
       staleTime: 0,
     }
   );
@@ -473,7 +475,7 @@ export function useLaunchInvestigationMutation(
         method: 'POST',
         // No `templateKey`: the metric snapshot is enough for the server to
         // build an agentic run, which is what gives this investigation
-        // hypotheses instead of a fixed sequence of notebook cells. The
+        // hypotheses instead of a fixed sequence of notebook blocks. The
         // candidates endpoint matches agentic and template lineage keys alike,
         // so an already-investigated breach still resolves to "View".
         data: {source},

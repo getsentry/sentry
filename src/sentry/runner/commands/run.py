@@ -15,7 +15,12 @@ from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    viewer_context_scope,
+)
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 logger = logging.getLogger("sentry.runner.commands.run")
@@ -37,7 +42,7 @@ def _address_validate(
 
 
 def _tick_taskworker_scheduler(runner: ScheduleRunner) -> float:
-    with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
+    with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
         return runner.tick()
 
 

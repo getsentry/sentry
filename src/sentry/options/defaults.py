@@ -284,6 +284,11 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
+    "auth.oauth-react-enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -446,6 +451,26 @@ register(
     "cleanup.abort_execution",
     default=False,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
+# default so deletion volume can be measured before anything is removed.
+register(
+    "cleanup.notification-thread.dry-run",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.retention-days",
+    default=90,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.batch-size",
+    default=100,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -733,6 +758,14 @@ register(
 # checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(
     "bitbucket_server.webhook.signature-enforcement.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Repair Bitbucket Server repository webhooks that do not have signing secrets.
+register(
+    "bitbucket_server.webhook.secret-repair.enabled",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3429,6 +3462,13 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Invalidate the model cache for rows updated by a queryset update that sends the post update signal
+register(
+    "groups.post-update-invalidates-cache",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -4384,23 +4424,6 @@ register(
 )
 
 
-# Cells
-
-# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
-register(
-    "provision_organization.override.mapping",
-    type=Dict,
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "provision_organization.override.rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_streak_cap_reached``.
 register(
@@ -4436,14 +4459,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-# When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
-register(
-    "repository.auto-link-by-name-dry-run",
-    default=True,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rolls out the new TaskProducer to the clock_pulse task
 register(

@@ -251,7 +251,7 @@ def _translate_discover_query_field_to_explore_query_schema(
         "environment": query.get("environment", []),
         "start": query.get("start", None),
         "end": query.get("end", None),
-        "range": query.get("range", None),
+        "statsPeriod": query.get("range", None),
         "interval": interval,
         "query": query_list,
     }

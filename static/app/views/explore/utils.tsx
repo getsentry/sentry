@@ -193,7 +193,7 @@ function getExploreUrlFromSavedQueryUrl({
       selection: {
         datetime: {
           end: savedQuery.end ?? null,
-          period: savedQuery.range ?? null,
+          period: savedQuery.statsPeriod ?? null,
           start: savedQuery.start ?? null,
           utc: null,
         },
@@ -219,7 +219,7 @@ function getExploreUrlFromSavedQueryUrl({
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },
@@ -635,7 +635,8 @@ function getConversationsUrlFromSavedQueryUrl({
     environment: savedQuery.environment,
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
-    statsPeriod: savedQuery.range,
+    statsPeriod: savedQuery.statsPeriod,
+    errorsOnly: savedQuery.errorsOnly ? true : undefined,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -664,7 +665,7 @@ function getReplayUrlFromSavedQueryUrl({
     environment: savedQuery.environment,
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
-    statsPeriod: savedQuery.range,
+    statsPeriod: savedQuery.statsPeriod,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -706,6 +707,7 @@ export const ATTRIBUTE_VALUE_TYPES: Record<
   float: FieldValueType.NUMBER,
   int: FieldValueType.INTEGER,
   str: FieldValueType.STRING,
+  array: FieldValueType.ARRAY,
 };
 
 /**

@@ -1,10 +1,12 @@
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import InvestigationsView, {InvestigationsPage} from 'sentry/views/investigations';
 import {InvestigationListItemFixture} from 'sentry/views/investigations/fixtures';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+import {RouteError} from 'sentry/views/routeError';
 
+import {CrashReportPreviewButton} from './__stories__/crashReportPreviewButton';
 import {InvestigationFixtureApi} from './__stories__/investigationFixtureApi';
 
 const realisticInvestigations = [
@@ -90,14 +92,18 @@ export default Storybook.story('Investigations — List', story => {
   ));
 
   story('Error', () => (
-    <InvestigationFixtureApi
-      organizationSlug="storybook-investigations-list-error"
-      mode="error"
-    >
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
-        <InvestigationsPage />
-      </Container>
-    </InvestigationFixtureApi>
+    <Stack gap="md" align="start">
+      <CrashReportPreviewButton />
+      <Stack
+        minHeight="420px"
+        width="100%"
+        padding="2xl 3xl"
+        border="primary"
+        radius="md"
+      >
+        <RouteError />
+      </Stack>
+    </Stack>
   ));
 
   story('Feature unavailable', () => (
