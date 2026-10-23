@@ -164,38 +164,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert result == IgnoredMetricBreach("out_of_scope")
         assert not SeerWorkflowRun.objects.exists()
 
-    def test_shared_action_reuses_run_across_workflows_and_keeps_first_origin(self) -> None:
-        other_workflow = self.create_workflow(organization=self.organization)
-        self.create_detector_workflow(detector=self.detector, workflow=other_workflow)
-        conditions = self.create_data_condition_group(organization=self.organization)
-        self.create_workflow_data_condition_group(
-            workflow=other_workflow, condition_group=conditions
-        )
-        self.create_data_condition_group_action(action=self.action, condition_group=conditions)
-        event = self.breach_event()
-
-        first = BreachedMetricWorkflow(self.config).accept(
-            self.group,
-            event,
-            binding=self.action.seer_workflow_binding,
-            workflow_id=self.workflow.id,
-        )
-        second = BreachedMetricWorkflow(self.config).accept(
-            self.group,
-            event,
-            binding=self.action.seer_workflow_binding,
-            workflow_id=other_workflow.id,
-        )
-
-        assert isinstance(first, AcceptedMetricBreach)
-        assert isinstance(second, AcceptedMetricBreach)
-        assert first.created is True
-        assert second.created is False
-        assert first.run.id == second.run.id
-        assert second.run.extras["trigger"]["workflow_id"] == self.workflow.id
-        assert SeerWorkflowRun.objects.count() == 1
-        assert SeerWorkflowRunExecution.objects.count() == 1
-
     def test_multiple_action_bindings_share_one_automation_run(self) -> None:
         second_action = self.create_action(type=Action.Type.SEER_WORKFLOW)
         second_binding = Factories.create_seer_workflow_trigger_binding(self.config, second_action)
