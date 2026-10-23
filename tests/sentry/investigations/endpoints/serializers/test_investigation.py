@@ -458,6 +458,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             state=InvestigationActionRequestState.APPLIED,
             applied_by_id=self.user.id,
             date_applied=timezone.now(),
+            applied_details={"fields": ["highThreshold"]},
         )
         self.add_request("connect", action={"kind": "connect_telemetry", "provider": "datadog"})
         with CaptureQueriesContext(connection) as one:
@@ -470,6 +471,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             state=InvestigationActionRequestState.APPLIED,
             applied_by_id=other.id,
             date_applied=timezone.now(),
+            applied_details={"fields": ["highThreshold"]},
         )
         self.add_request("connect-gcp", action={"kind": "connect_telemetry", "provider": "gcp"})
         for index in range(3):
