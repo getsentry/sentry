@@ -24,7 +24,6 @@ import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -676,9 +675,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
       detector,
       openPeriods,
       onOpenPeriodClick: clickedOpenPeriod =>
-        navigate(
-          normalizeUrl(getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug))
-        ),
+        navigate(getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug)),
       height: CHART_HEIGHT,
       ...dateParams,
     }
