@@ -4,6 +4,7 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.logs import (
     LogCtxIteration,
     PrIterationLogContext,
@@ -50,7 +51,7 @@ class PausePrIterationTest(TestCase):
             ),
             run_id=run_id,
             organization_id=self.organization.id,
-            group_id=1,
+            identity=AutofixIterationIdentity(group_id=1),
             feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
             run_state=run_state,

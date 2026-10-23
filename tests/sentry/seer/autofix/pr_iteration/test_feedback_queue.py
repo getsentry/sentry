@@ -9,6 +9,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.logs import (
     LogCtxIteration,
     PrIterationLogContext,
@@ -73,7 +74,7 @@ def _autofix_run(*, run_state: SeerRunState | None = None) -> CheckSuiteAutofixR
         repository=MagicMock(organization_id=1, id=2),
         run_state=run_state or _run_state(),
         pr_id=99,
-        group_id=1,
+        identity=AutofixIterationIdentity(group_id=1),
     )
 
 
@@ -109,7 +110,7 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
             ),
             run_id=run_id,
             organization_id=self.organization.id,
-            group_id=1,
+            identity=AutofixIterationIdentity(group_id=1),
             feedback=feedback,
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
             run_state=state,
@@ -220,6 +221,34 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert queued[0].feedback.source._autofix_run is None
         assert "autofix_run" not in queued[0].feedback.source.dict()
         mock_resolve.assert_not_called()
+
+    def test_parses_legacy_feedback_identity(self) -> None:
+        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
+        raw = json.dumps(
+            {
+                "organization_id": self.organization.id,
+                "group_id": 42,
+                "feedback": json.loads(feedback.json()),
+                "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+            }
+        )
+
+        item = _parse_queued_item(raw)
+
+        assert item is not None
+        assert item.identity == AutofixIterationIdentity(group_id=42)
+        assert item.feedback == feedback
+
+    def test_retains_flat_group_id_for_older_workers(self) -> None:
+        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
+
+        with patch(f"{QUEUE_PATH}.redis_clusters") as mock_redis:
+            self._enqueue(run_id=4242, feedback=feedback)
+
+        pipe = mock_redis.get.return_value.pipeline.return_value.__enter__.return_value
+        payload = json.loads(pipe.rpush.call_args.args[1])
+        assert payload["group_id"] == 1
+        assert payload["identity"] == {"type": "autofix", "group_id": 1}
 
     def test_pop_drains_the_queue(self) -> None:
         first = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="first"))

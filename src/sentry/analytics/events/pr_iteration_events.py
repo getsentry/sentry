@@ -31,8 +31,8 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     iteration_id: int
 
     organization_id: int
-    project_id: int
-    group_id: int
+    project_id: int | None
+    group_id: int | None
     run_id: int
     referrer: str | None
 
@@ -80,8 +80,8 @@ class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
     iteration_id: int
 
     organization_id: int
-    project_id: int
-    group_id: int
+    project_id: int | None
+    group_id: int | None
     run_id: int
 
     # How long the batch had been waiting when the gate stopped it.

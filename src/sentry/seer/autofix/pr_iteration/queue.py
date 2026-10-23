@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, root_validator
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, feedback_kind
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity, IterationIdentity
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -21,10 +23,22 @@ _REDIS_CLUSTER = "default"
 
 class QueuedAutofixFeedback(BaseModel):
     organization_id: int
-    group_id: int
+    identity: IterationIdentity
     feedback: Feedback
     referrer: AutofixReferrer
     actor_user_id: int | None = None
+
+    @root_validator(pre=True)
+    def migrate_legacy_identity(cls, values: dict[str, Any]) -> dict[str, Any]:
+        # Feedback queued before identities were introduced can outlive a deploy.
+        if "identity" not in values:
+            group_id = values.pop("group_id", None)
+            values["identity"] = (
+                {"type": "autofix", "group_id": group_id}
+                if group_id is not None
+                else {"type": "ask_seer"}
+            )
+        return values
 
 
 def _feedback_queue_key(run_id: int) -> str:
@@ -36,7 +50,7 @@ def enqueue_autofix_feedback(
     log_ctx: PrIterationLogContext,
     run_id: int,
     organization_id: int,
-    group_id: int,
+    identity: IterationIdentity,
     feedback: Feedback,
     referrer: AutofixReferrer,
     run_state: SeerRunState,
@@ -52,16 +66,21 @@ def enqueue_autofix_feedback(
     """
     item = QueuedAutofixFeedback(
         organization_id=organization_id,
-        group_id=group_id,
+        identity=identity,
         feedback=feedback,
         referrer=referrer,
         actor_user_id=actor_user_id,
     )
 
+    payload = json.loads(item.json())
+    if isinstance(identity, AutofixIterationIdentity):
+        # Older workers still require the flat group ID during rolling deploys.
+        payload["group_id"] = identity.group_id
+
     redis = redis_clusters.get(_REDIS_CLUSTER)
     key = _feedback_queue_key(run_id)
     with redis.pipeline() as pipe:
-        pipe.rpush(key, item.json())
+        pipe.rpush(key, json.dumps(payload))
         pipe.expire(key, _QUEUE_TTL_SECONDS)
         pipe.execute()
 

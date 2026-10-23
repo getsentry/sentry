@@ -45,6 +45,11 @@ from sentry.seer.autofix.pr_iteration.constants import (
     PR_ITERATION_PROVIDER,
     REVIEW_REQUEST_FLAG,
 )
+from sentry.seer.autofix.pr_iteration.identity import (
+    AutofixIterationIdentity,
+    IterationIdentity,
+    iteration_identity_from_run,
+)
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun
@@ -216,7 +221,7 @@ class CheckSuiteAutofixRun:
     repository: Repository
     run_state: SeerRunState
     pr_id: int
-    group_id: int
+    identity: IterationIdentity
 
 
 @traces.trace
@@ -226,7 +231,7 @@ def resolve_check_suite_autofix_run(
     """Find the Autofix run for this check suite's PR(s).
 
     Assumes one Autofix run <-> PR in Sentry. Tries each PR x candidate org until
-    Seer returns a run with ``repo_pr_states`` and a ``group_id``; if several
+    Seer returns a run with ``repo_pr_states``; if several
     match, logs a warning and returns the first. Callers that already resolved
     (or filtered) the candidate repos can pass ``repositories`` to restrict the
     search.
@@ -283,17 +288,8 @@ def resolve_check_suite_autofix_run(
 
             if state is None or not state.repo_pr_states:
                 continue
-
-            group_id = state.metadata.get("group_id") if state.metadata else None
-            if not group_id:
-                logger.warning(
-                    "autofix.pr_iteration.check_suite.missing_group_id",
-                    extra={
-                        "organization_id": candidate.organization_id,
-                        "pr_id": pr_id,
-                        "run_id": state.run_id,
-                    },
-                )
+            identity = iteration_identity_from_run(state, candidate.organization_id)
+            if identity is None:
                 continue
 
             matches.append(
@@ -301,7 +297,7 @@ def resolve_check_suite_autofix_run(
                     repository=candidate,
                     run_state=state,
                     pr_id=pr_id,
-                    group_id=group_id,
+                    identity=identity,
                 )
             )
 
@@ -323,7 +319,9 @@ def resolve_check_suite_autofix_run(
     set_pr_iteration_attributes(
         run_id=run.run_state.run_id,
         organization_id=run.repository.organization_id,
-        group_id=run.group_id,
+        group_id=(
+            run.identity.group_id if isinstance(run.identity, AutofixIterationIdentity) else None
+        ),
     )
     return run
 

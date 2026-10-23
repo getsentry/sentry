@@ -175,7 +175,7 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
         organization=resolved.organization,
         repository=resolved.autofix_run.repository,
         seer_run=resolved.seer_run,
-        group_id=resolved.autofix_run.group_id,
+        identity=resolved.autofix_run.identity,
         scm=ctx.scm,
         pr_number=resolved.pr_number,
         exclude_logins={pr_author} if pr_author else (),

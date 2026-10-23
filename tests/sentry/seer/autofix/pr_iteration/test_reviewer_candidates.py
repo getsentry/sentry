@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.models.groupowner import GroupOwnerType
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     MAX_CANDIDATES,
     REVIEWER_CANDIDATES_EXTRA,
@@ -75,7 +76,7 @@ class CollectReviewerCandidatesTest(TestCase):
             organization=self.organization,
             repository=self.repo,
             seer_run=self.seer_run,
-            group_id=self.group.id,
+            identity=AutofixIterationIdentity(group_id=self.group.id),
             scm=scm,
             pr_number=PR_NUMBER,
             log_extra={},

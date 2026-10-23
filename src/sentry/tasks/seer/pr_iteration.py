@@ -89,6 +89,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.identity import (
+    AutofixIterationIdentity,
+    IterationIdentity,
+    iteration_identity_from_run,
+)
 from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
@@ -405,7 +410,7 @@ def comment_on_missing_permissions(
             logger=logger,
             run_state=state,
             organization_id=organization_id,
-            group_id=group_id,
+            identity=AutofixIterationIdentity(group_id=group_id),
             create=False,
         ),
     )
@@ -1201,6 +1206,7 @@ _COMMENT_TRIGGER_COUNTED_OUTCOMES = frozenset(
 
 class ResolvedPrCommentRun(NamedTuple):
     agent_state: SeerRunState
+    identity: IterationIdentity
     scm: SourceCodeManager
     actor_user: RpcUser | None
 
@@ -1304,8 +1310,21 @@ def _resolve_run_for_pr_comment(
         )
         return PrCommentRunOutcome.NO_RUN
 
+    identity = iteration_identity_from_run(agent_state, organization_id)
+    if identity is None:
+        # An unrelated run must not cause comments, reactions, or queued work.
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.not_enabled",
+            extra={
+                "organization_id": organization_id,
+                "run_id": agent_state.run_id,
+                "command": command,
+            },
+        )
+        return PrCommentRunOutcome.INELIGIBLE_RUN
+
     if not agent_state.repo_pr_states:
-        # Found a Seer run for this PR, but it wasn't created by Autofix
+        # Found a Seer run for this PR, but it has no agent-managed PR state
         # (coding-agent handoff is the main case).
         logger.info(
             "autofix.pr_iteration.comment_trigger.ineligible_run",
@@ -1345,7 +1364,9 @@ def _resolve_run_for_pr_comment(
         username=github_username,
         external_id=external_id,
     )
-    return ResolvedPrCommentRun(agent_state=agent_state, scm=scm, actor_user=actor_user)
+    return ResolvedPrCommentRun(
+        agent_state=agent_state, identity=identity, scm=scm, actor_user=actor_user
+    )
 
 
 # When a Seer lookup gets a server error (during a deploy, say), tasks that
@@ -1473,21 +1494,19 @@ def _trigger_pr_iteration_from_comment(
         )
         return None
 
-    group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
-    if group_id is None:
-        raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
+    identity = resolved.identity
 
     log_ctx = bootstrap_iteration(
         logger=logger,
         run_state=agent_state,
         organization_id=organization_id,
-        group_id=group_id,
+        identity=identity,
     )
     enqueue_autofix_feedback(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
-        group_id=group_id,
+        identity=identity,
         feedback=feedback_obj,
         referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         run_state=agent_state,
@@ -1895,6 +1914,14 @@ def _trigger_pr_iteration_from_review(
         )
         return None
 
+    identity = iteration_identity_from_run(agent_state, organization_id)
+    if identity is None:
+        logger.info(
+            "autofix.pr_iteration.review_trigger.not_enabled",
+            extra={**log_extra, "run_id": agent_state.run_id},
+        )
+        return None
+
     # Bots skip the write-access gate: a bot account is never a repo collaborator.
     # An unauthenticated delivery can forge the bot flag, so it stays gated.
     actor_user: RpcUser | None = None
@@ -1958,22 +1985,18 @@ def _trigger_pr_iteration_from_review(
         logger.info("autofix.pr_iteration.review_trigger.no_feedback", extra=log_extra)
         return None
 
-    group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
-    if group_id is None:
-        raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
-
     log_ctx = bootstrap_iteration(
         logger=logger,
         run_state=agent_state,
         organization_id=organization_id,
-        group_id=group_id,
+        identity=identity,
     )
     for feedback_obj in feedback_items:
         enqueue_autofix_feedback(
             log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
-            group_id=group_id,
+            identity=identity,
             feedback=feedback_obj,
             referrer=AutofixReferrer.GITHUB_PR_REVIEW,
             run_state=agent_state,

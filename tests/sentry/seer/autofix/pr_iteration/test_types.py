@@ -34,6 +34,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -71,7 +72,7 @@ def _autofix_run(*, repo: MagicMock | None = None) -> CheckSuiteAutofixRun:
         repository=repo or MagicMock(organization_id=1, id=2),
         run_state=_run_state(),
         pr_id=1,
-        group_id=1,
+        identity=AutofixIterationIdentity(group_id=1),
     )
 
 

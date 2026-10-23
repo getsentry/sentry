@@ -2,6 +2,9 @@
 
 from sentry.integrations.types import IntegrationProviderSlug
 
+# PR iteration on PRs an Ask Seer chat opened, which have no issue.
+AD_HOC_FLAG = "organizations:ask-seer-pr-iteration"
+
 # Draft-on-create, CI-green undraft, and review-request. Undraft requires
 # ``MarkPullRequestDraftStateProtocol`` which is GitHub-only today; other SCM
 # providers skip as unsupported until they grow that capability.

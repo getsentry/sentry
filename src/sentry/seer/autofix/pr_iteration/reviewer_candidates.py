@@ -50,6 +50,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
+from sentry.seer.autofix.pr_iteration.identity import AutofixIterationIdentity, IterationIdentity
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.seer.utils import get_github_username_for_user
@@ -118,7 +119,7 @@ def collect_reviewer_candidates(
     organization: Organization,
     repository: Repository,
     seer_run: SeerRun,
-    group_id: int,
+    identity: IterationIdentity,
     scm: SourceCodeManager,
     pr_number: int,
     exclude_logins: Collection[str] = (),
@@ -172,7 +173,11 @@ def collect_reviewer_candidates(
     fallback_sources: list[tuple[str, Callable[[], list[str]]]] = [
         (
             SOURCE_SUSPECT_COMMIT_AUTHOR,
-            lambda: _suspect_commit_author_logins(organization, group_id),
+            lambda: (
+                _suspect_commit_author_logins(organization, identity.group_id)
+                if isinstance(identity, AutofixIterationIdentity)
+                else []
+            ),
         ),
         (SOURCE_CODE_OWNER, lambda: _code_owner_logins(repository, changed_files)),
         (SOURCE_RECENT_COMMITTER, lambda: _recent_committer_logins(scm, changed_files, log_extra)),
