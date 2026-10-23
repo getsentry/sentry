@@ -11,10 +11,10 @@ from sentry.organizations.services.organization.impl import DatabaseBackedOrgani
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 

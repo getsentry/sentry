@@ -40,9 +40,9 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user

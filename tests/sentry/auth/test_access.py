@@ -26,10 +26,10 @@ from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.resources import get_active_resource_ids
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import (
     all_silo_test,
