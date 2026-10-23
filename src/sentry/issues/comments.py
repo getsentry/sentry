@@ -1,5 +1,3 @@
-"""Mutations of issue comments stored as Activity NOTE rows."""
-
 import logging
 from datetime import timedelta
 from typing import Any
@@ -57,7 +55,8 @@ def create_comment(
     source: str,
     from_email: bool = False,
 ) -> Activity | None:
-    """Create a comment, preserving the existing inbound-email policy.
+    """
+    Create a comment, preserving the existing inbound-email policy.
 
     Email deduplicates within the project without a time limit and skips subscriptions,
     integration sync, and the comment_created signal. Activity notifications still run.
