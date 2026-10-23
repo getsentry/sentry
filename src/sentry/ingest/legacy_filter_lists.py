@@ -24,7 +24,6 @@ from dataclasses import dataclass
 from django.db import router, transaction
 
 from sentry import features
-from sentry.ingest.inbound_filters import FilterTypes
 from sentry.models.custominboundfilter import (
     ConditionType,
     CustomInboundFilter,
@@ -34,12 +33,17 @@ from sentry.models.custominboundfilter import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
-V2_FLAG = "organizations:inbound-filters-v2"
+
+class FilterTypes:
+    ERROR_MESSAGES = "error_messages"
+    RELEASES = "releases"
+    LOG_MESSAGES = "log_messages"
+    TRACE_METRIC_NAMES = "trace_metric_names"
 
 
 def has_inbound_filters_v2(organization: Organization) -> bool:
     """With the feature, the lists of the organization are read from their rows."""
-    return features.has(V2_FLAG, organization)
+    return features.has("organizations:inbound-filters-v2", organization)
 
 
 @dataclass(frozen=True)
@@ -48,7 +52,6 @@ class _Row:
     name: str
     data_type: DataType
     condition_type: ConditionType
-    # The project details API always lowercased the lines of this list.
     case_insensitive: bool = False
 
 

@@ -1,6 +1,5 @@
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.ingest.legacy_filter_lists import (
-    V2_FLAG,
     clean_lines,
     get_applied_lines,
     get_lines,
@@ -87,7 +86,7 @@ def test_served_legacy_filters_is_empty_without_the_feature(default_organization
 
 
 @django_db_all
-@with_feature(V2_FLAG)
+@with_feature("organizations:inbound-filters-v2")
 def test_the_feature_serves_every_list_of_the_org(default_organization) -> None:
     assert served_legacy_filters(default_organization) == [
         "release-version",
@@ -98,7 +97,7 @@ def test_the_feature_serves_every_list_of_the_org(default_organization) -> None:
 
 
 @django_db_all
-@with_feature(V2_FLAG)
+@with_feature("organizations:inbound-filters-v2")
 def test_v2_reads_the_row(default_project, factories) -> None:
     default_project.update_option("sentry:releases", ["stale"])
     factories.create_project_custom_inbound_filter(
@@ -136,7 +135,7 @@ def test_without_the_feature_reads_the_option(default_project, factories) -> Non
 
 
 @django_db_all
-@with_feature(V2_FLAG)
+@with_feature("organizations:inbound-filters-v2")
 def test_v2_reads_an_empty_list_without_a_row(default_project) -> None:
     default_project.update_option("sentry:releases", ["stale"])
 
@@ -146,7 +145,7 @@ def test_v2_reads_an_empty_list_without_a_row(default_project) -> None:
 
 
 @django_db_all
-@with_feature(V2_FLAG)
+@with_feature("organizations:inbound-filters-v2")
 def test_v2_applies_nothing_while_the_row_is_switched_off(default_project, factories) -> None:
     factories.create_project_custom_inbound_filter(
         default_project,
