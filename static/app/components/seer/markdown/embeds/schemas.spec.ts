@@ -46,12 +46,7 @@ describe('seerEmbedsToJsonSchemas', () => {
                     data: {
                       items: {
                         properties: {
-                          x: {
-                            anyOf: [
-                              {type: 'string', pattern: expect.any(String)},
-                              {type: 'string', pattern: expect.any(String)},
-                            ],
-                          },
+                          x: {type: 'string', pattern: expect.any(String)},
                         },
                       },
                     },
@@ -133,21 +128,6 @@ describe('SEER_EMBED_SCHEMAS charts', () => {
             },
           ],
         }).success
-      ).toBe(true);
-    }
-  );
-});
-
-describe('SEER_EMBED_SCHEMAS timestamps', () => {
-  it.each(['2026-09-11T10:02Z', '2026-09-11T10:02+02:00'])(
-    'accepts minute-precision timestamp %s',
-    timestamp => {
-      expect(
-        SEER_EMBED_SCHEMAS.replay.schema.safeParse({id: 'abc', eventTimestamp: timestamp})
-          .success
-      ).toBe(true);
-      expect(
-        SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({start: timestamp}).success
       ).toBe(true);
     }
   );

@@ -74,29 +74,6 @@ function describeExpectation(issue: z.core.$ZodIssue): string {
   }
 }
 
-/**
- * A union whose variants all fail the same way, like the two timestamp
- * precisions, reports that failure instead of a bare "Invalid input".
- */
-function unwrapUnion(issue: z.core.$ZodIssue): z.core.$ZodIssue {
-  if (issue.code !== 'invalid_union') {
-    return issue;
-  }
-  const variants = issue.errors.map(errors =>
-    errors.length === 1 ? errors[0] : undefined
-  );
-  const [first] = variants;
-  if (
-    !first ||
-    variants.some(
-      variant => !variant || describeExpectation(variant) !== describeExpectation(first)
-    )
-  ) {
-    return issue;
-  }
-  return {...first, path: [...issue.path, ...first.path]};
-}
-
 /** `trace_id`, `TraceId` and `trace-id` all normalize to `traceid`. */
 function normalizeKey(key: string): string {
   return key.replace(/[_-]/g, '').toLowerCase();
@@ -111,9 +88,8 @@ export function describeInvalidEmbed(
   name: string,
   schema: z.ZodType,
   data: unknown,
-  rawIssues: readonly z.core.$ZodIssue[]
+  issues: readonly z.core.$ZodIssue[]
 ): InvalidEmbedReport {
-  const issues = rawIssues.map(unwrapUnion);
   const isRecord = typeof data === 'object' && data !== null && !Array.isArray(data);
   const receivedKeys = isRecord ? Object.keys(data) : [];
   const shape = 'shape' in schema ? (schema.shape as Record<string, unknown>) : null;

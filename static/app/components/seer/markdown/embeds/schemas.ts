@@ -2,20 +2,11 @@ import {z} from 'zod';
 
 import {API_ACCESS_SCOPES} from 'sentry/constants/apiAccessScopes';
 
-// Zod requires seconds once a timestamp has `Z` or an offset. Both timestamp
-// schemas also take minute precision (`10:02Z`) so embeds that validated
-// before still render.
-const isoTimestampSchema = z.union([
-  z.iso.datetime({offset: true}),
-  z.iso.datetime({offset: true, precision: -1}),
-]);
+const isoTimestampSchema = z.iso.datetime({offset: true});
 
 // Sentry URLs carry page filter times with no offset (`start=2026-09-11T10:02:00`)
 // and every consumer reads them as UTC, so the agent copies that form back.
-const pageFilterTimestampSchema = z.union([
-  z.iso.datetime({offset: true, local: true}),
-  z.iso.datetime({offset: true, local: true, precision: -1}),
-]);
+const pageFilterTimestampSchema = z.iso.datetime({offset: true, local: true});
 
 const chartSeriesDataSchema = z
   .array(
