@@ -306,8 +306,8 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       swc-plugin-component-annotate:
-        specifier: 1.18.0
-        version: 1.18.0
+        specifier: 1.18.4
+        version: 1.18.4
       ts-checker-rspack-plugin:
         specifier: 1.7.1
         version: 1.7.1(@rspack/core@2.2.8(@swc/helpers@0.5.23))(@typescript/typescript6@6.0.2)
@@ -8789,8 +8789,8 @@ packages:
   svg-tags@1.0.0:
     resolution: {integrity: sha512-ovssysQTa+luh7A5Weu3Rta6FJlFBBbInjOh722LIt6klpU2/HtdUbszju/G4devcvk8PGt7FCLv5wftu3THUA==}
 
-  swc-plugin-component-annotate@1.18.0:
-    resolution: {integrity: sha512-haLdgKD2a4ur5U/WVhkyVoDK+UXXKVbHsiAt+m4agnhJEUCfZCH2sCl/1oplFFBKf1MRL8XLXziWo9/HhNTnGw==}
+  swc-plugin-component-annotate@1.18.4:
+    resolution: {integrity: sha512-+X3AvJ6kxMwpYcdyXfN2R8gIzTe/YV2kEXUph1Ro5vG0CRQeRGn8OJAzIBVqeFp8WPEyFNUPaa7k7cuWGjStwA==}
 
   synckit@0.11.13:
     resolution: {integrity: sha512-eNRKgb3z66Yp3D2CixVujOUvXLFUTij/zVnV8KRyvFdQwpz7I5DS8UfRkTeLzb64u+dkzDSdelE24izu+zSSUg==}
@@ -17322,7 +17322,7 @@ snapshots:
 
   svg-tags@1.0.0: {}
 
-  swc-plugin-component-annotate@1.18.0: {}
+  swc-plugin-component-annotate@1.18.4: {}
 
   synckit@0.11.13:
     dependencies:
