@@ -44,6 +44,7 @@ from sentry.organizations.services.organization.impl import DatabaseBackedOrgani
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -519,12 +520,7 @@ class DetermineAccessHydrationTest(TestCase):
                 autospec=True,
                 side_effect=DatabaseBackedOrganizationService.get_organization_by_id,
             ) as get_org,
-            mock.patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as serialize_project,
-            mock.patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team"
-            ) as serialize_team,
+            assert_no_organization_resource_hydration(),
         ):
             OrganizationPermission().determine_access(request, org)
 
@@ -533,8 +529,6 @@ class DetermineAccessHydrationTest(TestCase):
         assert get_org.call_args.kwargs["user_id"] == user.id
         assert get_org.call_args.kwargs["include_projects"] is False
         assert get_org.call_args.kwargs["include_teams"] is False
-        serialize_project.assert_not_called()
-        serialize_team.assert_not_called()
         assert request.access.accessible_team_ids == frozenset({team.id})
         assert request.access.accessible_project_ids == frozenset({project.id})
         assert not request.access.has_team_access(other_team)
@@ -573,12 +567,7 @@ class ControlSiloOrganizationEndpointTest(TestCase):
     def assert_lightweight_context(self, organization_id_or_slug: int | str) -> None:
         request = self.build_request()
         with (
-            mock.patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as serialize_project,
-            mock.patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team"
-            ) as serialize_team,
+            assert_no_organization_resource_hydration(),
             mock.patch(
                 "sentry.organizations.services.organization.impl.get_active_resource_ids",
                 side_effect=AssertionError("Unexpected organization-wide resource lookup"),
@@ -588,8 +577,6 @@ class ControlSiloOrganizationEndpointTest(TestCase):
                 request, organization_id_or_slug
             )
 
-        serialize_project.assert_not_called()
-        serialize_team.assert_not_called()
         resource_ids.assert_not_called()
         assert kwargs["organization"].projects == []
         assert kwargs["organization"].teams == []

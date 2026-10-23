@@ -1,5 +1,3 @@
-from collections.abc import Iterator
-from contextlib import contextmanager
 from typing import Any
 from unittest import mock
 
@@ -28,25 +26,11 @@ from sentry.service_accounts.models import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FEATURE_FLAG = "organizations:service-accounts"
-
-
-@contextmanager
-def no_full_organization_hydration() -> Iterator[None]:
-    with (
-        mock.patch(
-            "sentry.organizations.services.organization.serial.serialize_project",
-            side_effect=AssertionError("Unexpected project hydration"),
-        ),
-        mock.patch(
-            "sentry.organizations.services.organization.serial.serialize_rpc_team",
-            side_effect=AssertionError("Unexpected team hydration"),
-        ),
-    ):
-        yield
 
 
 def project_ids_for(service_account: ServiceAccount) -> list[int]:
@@ -68,7 +52,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
     def test_flag_off_returns_404(self) -> None:
         self.create_project(organization=self.organization)
         with (
-            no_full_organization_hydration(),
+            assert_no_organization_resource_hydration(),
             mock.patch.object(
                 organization_service,
                 "get_active_project_ids",
@@ -94,7 +78,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
 
         with (
             self.feature(FEATURE_FLAG),
-            no_full_organization_hydration(),
+            assert_no_organization_resource_hydration(),
             mock.patch.object(
                 organization_service,
                 "get_active_project_ids",
@@ -295,7 +279,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             with (
                 self.subTest(identifier=identifier),
                 self.feature(FEATURE_FLAG),
-                no_full_organization_hydration(),
+                assert_no_organization_resource_hydration(),
             ):
                 response = self.get_success_response(
                     identifier,
@@ -495,7 +479,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             with (
                 self.subTest(identifier=identifier),
                 self.feature(FEATURE_FLAG),
-                no_full_organization_hydration(),
+                assert_no_organization_resource_hydration(),
             ):
                 response = self.get_success_response(
                     identifier,

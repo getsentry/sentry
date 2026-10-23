@@ -14,6 +14,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
@@ -113,12 +114,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.create_project(organization=self.org)
         self.create_team(organization=self.org)
         with (
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as serialize_project,
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team"
-            ) as serialize_team,
+            assert_no_organization_resource_hydration(),
             patch.object(
                 DatabaseBackedOrganizationService,
                 "get_access_context",
@@ -134,9 +130,6 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         )
         get_summary_by_slug.assert_not_called()
         get_summary_by_id.assert_not_called()
-
-        serialize_project.assert_not_called()
-        serialize_team.assert_not_called()
 
         assert response.data == [
             {

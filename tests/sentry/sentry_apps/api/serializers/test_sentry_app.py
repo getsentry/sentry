@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.auth import access
@@ -8,6 +7,7 @@ from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.organizations import assert_no_organization_resource_hydration
 from sentry.testutils.silo import control_silo_test, no_silo_test
 
 
@@ -115,15 +115,8 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
         self.create_project(organization=self.organization)
 
         acc = access.from_user(self.user, self.organization)
-        with (
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as projects,
-            patch("sentry.organizations.services.organization.serial.serialize_rpc_team") as teams,
-        ):
+        with assert_no_organization_resource_hydration():
             result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
-        projects.assert_not_called()
-        teams.assert_not_called()
         assert result["clientSecret"] is not None
 
         now = datetime.now()
