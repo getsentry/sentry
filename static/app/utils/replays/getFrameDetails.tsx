@@ -226,14 +226,14 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
   'ui.swipe': (frame: SwipeFrame) => ({
     colorGraphicsToken: 'accent',
-    description: toDescription(frame.data),
+    description: frame.data,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Swipe',
     icon: <IconTap size="xs" />,
   }),
   'ui.scroll': (frame: ScrollFrame) => ({
     colorGraphicsToken: 'accent',
-    description: toDescription(frame.data),
+    description: frame.data,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Scroll',
     icon: <IconTap size="xs" />,
@@ -464,21 +464,15 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
 };
 
-// Safely convert an unknown value to something React can render.
-// Plain objects cannot be React children and will cause a render crash, so
-// serialize them to a JSON string instead.
-function toDescription(value: unknown): ReactNode {
-  if (value !== null && typeof value === 'object') {
-    return JSON.stringify(value);
-  }
-  return (value as ReactNode) ?? '';
-}
-
 // Keep this lowercase. React Compiler treats capitalized functions that create
 // JSX as components, and this one is called from event handlers.
 const defaultMapper = (frame: any): Details => ({
   colorGraphicsToken: 'neutral',
-  description: toDescription(frame.message ?? frame.data),
+  // frame.message may be a non-string object at runtime (e.g. a malformed frame).
+  // The ?? operator only guards null/undefined, so we guard with typeof first.
+  // Passing a plain object is fine: BreadcrumbItem routes it to BreadcrumbStructuredData
+  // which renders it as an interactive inspector via StructuredEventData.
+  description: (typeof frame.message === 'string' ? frame.message : undefined) ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,
   title: toTitleCase(defaultTitle(frame)),
   icon: <IconTerminal size="xs" />,

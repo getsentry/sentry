@@ -22,24 +22,7 @@ describe('getFrameDetails', () => {
   });
 
   describe('defaultMapper (unknown frame types)', () => {
-    it('serializes a plain-object frame.data to a string when message is absent', () => {
-      // A frame whose category has no specific mapper, so defaultMapper is used.
-      // frame.data is a plain object — this must not crash React rendering.
-      const frame: any = {
-        op: 'unknown.custom',
-        category: 'unknown.custom',
-        timestamp: new Date('2024-01-01T00:00:00Z').getTime() / 1000,
-        offsetMs: 0,
-        timestampMs: 0,
-        message: undefined,
-        data: {type: 'foo', level: 'info', offsetMs: 0},
-      };
-      const {description} = getFrameDetails(frame);
-      // Must be a string, not a plain object, so React can render it safely
-      expect(typeof description).toBe('string');
-    });
-
-    it('prefers frame.message over frame.data when both are present', () => {
+    it('uses frame.message when it is a string', () => {
       const frame: any = {
         op: 'unknown.custom',
         category: 'unknown.custom',
@@ -49,8 +32,26 @@ describe('getFrameDetails', () => {
         message: 'hello',
         data: {type: 'foo'},
       };
-      const {description} = getFrameDetails(frame);
-      expect(description).toBe('hello');
+      expect(getFrameDetails(frame).description).toBe('hello');
+    });
+
+    it('falls back to frame.data when frame.message is a non-string object', () => {
+      // frame.message could be a non-string at runtime (malformed frame data).
+      // ?? only guards null/undefined, so without a typeof check the whole frame
+      // object could become the description. We guard with typeof so the plain
+      // object falls through to frame.data instead.
+      const dataPayload = {type: 'foo', level: 'info', offsetMs: 0};
+      const frame: any = {
+        op: 'unknown.custom',
+        category: 'unknown.custom',
+        timestamp: new Date('2024-01-01T00:00:00Z').getTime() / 1000,
+        offsetMs: 0,
+        timestampMs: 0,
+        message: {nested: 'object'}, // non-string at runtime
+        data: dataPayload,
+      };
+      // Should fall back to frame.data, not use the non-string frame.message
+      expect(getFrameDetails(frame).description).toBe(dataPayload);
     });
 
     it('returns empty string when both message and data are absent', () => {
@@ -63,8 +64,7 @@ describe('getFrameDetails', () => {
         message: undefined,
         data: undefined,
       };
-      const {description} = getFrameDetails(frame);
-      expect(description).toBe('');
+      expect(getFrameDetails(frame).description).toBe('');
     });
   });
 });
