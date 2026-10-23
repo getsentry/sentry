@@ -114,10 +114,6 @@ export const useSeerExplorer = () => {
   const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
   const timezone = useTimezone();
-  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
-    'seer-explorer.override.ctx-eng',
-    true
-  );
   type CodeModeValue = 'off' | 'on' | 'only';
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
     useLocalStorageState<CodeModeValue>(
@@ -264,7 +260,6 @@ export const useSeerExplorer = () => {
       orgSlug: string;
       overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
-      overrideCtxEngEnable: boolean;
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       /** The pending prompt this send took from chat state, put back if it fails. */
@@ -294,7 +289,6 @@ export const useSeerExplorer = () => {
           page_name: params.pageName,
           page_location: params.pageLocation,
           sent_at: params.sentAt,
-          override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
           chat_prompt: params.chatPrompt?.text,
@@ -568,7 +562,7 @@ export const useSeerExplorer = () => {
 
       const {snapshot, screenshot} = capturePageContext({
         route: pageName,
-        allowStructured: overrideCtxEngEnable,
+        allowStructured: true,
       });
 
       trackAnalytics('seer.explorer.message_sent', {
@@ -633,7 +627,6 @@ export const useSeerExplorer = () => {
         ],
         screenshot,
         overrideBashModeEnabled,
-        overrideCtxEngEnable,
         overrideCodeModeEnable,
       });
     },
@@ -646,7 +639,6 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
-      overrideCtxEngEnable,
       overrideCodeModeEnable,
       pendingChatPrompt,
       sendMessageMutate,
@@ -837,8 +829,6 @@ export const useSeerExplorer = () => {
     createPR,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
   };

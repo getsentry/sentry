@@ -1,3 +1,5 @@
+import type {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils/defined';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   SERIES_NAME_PART_DELIMITER,
@@ -6,9 +8,44 @@ import {
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
-import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
+import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
+
+/**
+ * Helper wrapper around `transformWidgetSeriesToTimeSeries` operating on an array of Series.
+ */
+export function transformMultipleWidgetSeriesToTimeSeries(
+  series: Series[],
+  widget: Widget,
+  queryIndex: number,
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>,
+  timeseriesResultsUnits?: Record<string, DataUnit>
+): WidgetTimeSeries[] {
+  const widgetQuery = widget.queries[queryIndex];
+  if (!widgetQuery) {
+    return [];
+  }
+  const queryPrefix = getSeriesQueryPrefix(widgetQuery, widget);
+
+  return series
+    .map(item => {
+      const seriesName = queryPrefix
+        ? `${queryPrefix}${SERIES_QUERY_DELIMITER}${item.seriesName}`
+        : item.seriesName;
+      const transformed = transformWidgetSeriesToTimeSeries(
+        {...item, seriesName},
+        widget,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits
+      );
+      return transformed
+        ? {queryIndex, widgetQuery, seriesName, timeSeries: transformed.timeSeries}
+        : null;
+    })
+    .filter(defined);
+}
 
 interface TransformedSeries {
   label: string;
@@ -22,7 +59,7 @@ interface TransformedSeries {
  * query configuration, and computes a display label that matches the chart legend.
  */
 export function transformWidgetSeriesToTimeSeries(
-  series: WidgetSeries,
+  series: Series,
   widget: Widget,
   timeseriesResultsTypes?: Record<string, AggregationOutputType>,
   timeseriesResultsUnits?: Record<string, DataUnit>
@@ -31,10 +68,7 @@ export function transformWidgetSeriesToTimeSeries(
   if (!firstQuery) {
     return null;
   }
-  const aggregates = firstQuery?.aggregates ?? [];
-  const columns = firstQuery?.columns ?? [];
-
-  const seriesName = series.seriesName ?? aggregates[0] ?? '';
+  const seriesName = series.seriesName ?? firstQuery.aggregates[0] ?? '';
 
   // The query prefix (alias or conditions) is separated by ' > ' from the
   // rest of the series name. This is set by transformEventsResponseToSeries
@@ -65,12 +99,18 @@ export function transformWidgetSeriesToTimeSeries(
     widget.queries.find(({name}) => name && queryName === name) ??
     widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ??
     firstQuery;
-  const effectiveQueryName = queryName ?? (widgetQuery?.name || undefined);
-
-  // Pass the unprefixed series name so transformLegacySeriesToTimeSeries
-  // doesn't misinterpret the query prefix as a group-by value.
-  const effectiveSeries =
-    queryDelimiterIndex >= 0 ? {...series, seriesName: unprefixedName} : series;
+  const {aggregates, columns} = widgetQuery;
+  const aliasPrefix = widgetQuery.name
+    ? `${widgetQuery.name}${SERIES_NAME_PART_DELIMITER}`
+    : undefined;
+  // Remove only the prefix: a group value may equal the query's alias.
+  const effectiveSeriesName =
+    queryDelimiterIndex >= 0
+      ? unprefixedName
+      : aliasPrefix && seriesName.startsWith(aliasPrefix)
+        ? seriesName.slice(aliasPrefix.length)
+        : seriesName;
+  const effectiveSeries = {...series, seriesName: effectiveSeriesName};
 
   const yAxis =
     aggregates.find(aggregate => {
@@ -82,45 +122,17 @@ export function transformWidgetSeriesToTimeSeries(
     aggregates[0] ??
     '';
 
-  const timeSeriesFromLegacySeries = transformLegacySeriesToTimeSeries(
+  const timeSeries = transformLegacySeriesToTimeSeries(
     effectiveSeries,
     timeseriesResultsTypes,
     timeseriesResultsUnits,
     columns,
-    yAxis,
-    effectiveQueryName
+    yAxis
   );
 
-  if (!timeSeriesFromLegacySeries) {
+  if (!timeSeries) {
     return null;
   }
-
-  // If there exists a timeSeries payload, we merge it with the
-  // legacy series, since timeSeries carries metadata that the
-  // legacy series does not. ie incomplete buckets, etc.
-  const originalGroupBy = series.timeSeries?.groupBy;
-  const timeSeries: TimeSeries = series.timeSeries
-    ? {
-        ...timeSeriesFromLegacySeries,
-        // The group by parsed from the series name loses nulls and arrays, so use the
-        // response's when its keys are the widget's columns (table matching relies on them)
-        groupBy:
-          originalGroupBy && originalGroupBy.every(({key}) => columns.includes(key))
-            ? originalGroupBy
-            : timeSeriesFromLegacySeries.groupBy,
-        values: series.timeSeries.values.map(item => ({
-          ...item,
-          value: item.value ?? 0,
-        })),
-        meta: {
-          ...series.timeSeries.meta,
-          // Use the widget's value type and unit, not the response, since some datasets
-          // override them (e.g., mobile app size is always bytes)
-          valueType: timeSeriesFromLegacySeries.meta.valueType,
-          valueUnit: timeSeriesFromLegacySeries.meta.valueUnit,
-        },
-      }
-    : timeSeriesFromLegacySeries;
 
   const label = formatTimeSeriesLabelForWidgetQuery(timeSeries, widget, widgetQuery);
 

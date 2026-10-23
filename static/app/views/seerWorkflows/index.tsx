@@ -9,6 +9,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Spinner} from '@sentry/scraps/chat';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -275,12 +276,16 @@ function SeerWorkflows() {
   }, [expandLatest, filteredRuns]);
 
   return (
-    <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Automations')} orgSlug={organization.slug}>
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
           <TopBar.Slot
             name="breadcrumbs"
-            title={{type: 'page-title', label: t('Sentry Workflows')}}
+            title={{
+              type: 'page-title',
+              label: t('Automations'),
+              trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+            }}
           />
           <Flex justify="between" align="center" gap="md" wrap="wrap">
             <Text as="p" variant="muted">

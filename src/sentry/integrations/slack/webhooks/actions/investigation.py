@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.requests.action import SlackActionRequest
+from sentry.investigations.access import INVESTIGATION_SCOPES
 from sentry.investigations.endpoints.base import organization_project_ids
 from sentry.investigations.services import (
     InvestigationSourceNotFound,
@@ -28,7 +29,6 @@ from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
-INVESTIGATION_SCOPES = frozenset({"org:read", "org:write", "org:admin"})
 INVESTIGATION_UNAVAILABLE_MESSAGE = "Seer can't start an investigation for this alert."
 INVESTIGATION_NOT_MEMBER_MESSAGE = (
     "You must be a member of the *{org_name}* Sentry organization to start a Seer investigation."
@@ -138,7 +138,12 @@ def handle_seer_investigation_start(
     if not SeerInvestigationOperator.has_access(
         organization=organization, entrypoint_key=SeerEntrypointKey.SLACK
     ):
-        log_unavailable(InvestigationUnavailableReason.NO_ACCESS)
+        # Open membership is part of the operator's check; keep it a separate reason.
+        log_unavailable(
+            InvestigationUnavailableReason.NO_ACCESS
+            if organization.flags.allow_joinleave
+            else InvestigationUnavailableReason.CLOSED_MEMBERSHIP
+        )
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 
     member = OrganizationMember.objects.filter(
@@ -150,9 +155,6 @@ def handle_seer_investigation_start(
         return _respond_ephemeral(
             INVESTIGATION_NOT_MEMBER_MESSAGE.format(org_name=organization.name)
         )
-    if not organization.flags.allow_joinleave:
-        log_unavailable(InvestigationUnavailableReason.CLOSED_MEMBERSHIP)
-        return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
     # Matches InvestigationPermission, so a role like billing can't start a run it can't open.
     if not member.get_scopes() & INVESTIGATION_SCOPES:
         log_unavailable(InvestigationUnavailableReason.MISSING_SCOPE)

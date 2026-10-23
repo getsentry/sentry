@@ -385,7 +385,6 @@
     "tests/sentry/db/models/fields/test_bounded.py": 0.0,
     "tests/sentry/db/models/fields/test_hybrid_cloud_foreign_key.py": 0.0,
     "tests/sentry/db/models/fields/test_jsonfield.py": 0.2,
-    "tests/sentry/db/models/fields/test_picklefield.py": 0.1,
     "tests/sentry/db/models/fields/test_slug.py": 0.4,
     "tests/sentry/db/models/manager/test_base_query_set.py": 2.8,
     "tests/sentry/db/models/test_base.py": 0.0,
