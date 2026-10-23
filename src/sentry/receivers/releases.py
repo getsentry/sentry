@@ -45,7 +45,12 @@ from sentry.types.activity import ActivityType
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.cache import cache
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -223,10 +228,9 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                         with (
                             viewer_context_scope(
                                 ViewerContext(
+                                    actor=Actor(type=ActorType.USER, actor_id=acting_user.id),
                                     organization_id=group.project.organization_id,
                                     project_id=group.project_id,
-                                    user_id=acting_user.id,
-                                    actor_type=ActorType.USER,
                                 )
                             ),
                             action_context_scope(
@@ -330,10 +334,9 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                     with (
                         viewer_context_scope(
                             ViewerContext(
+                                actor=Actor(type=ActorType.USER, actor_id=acting_user.id),
                                 organization_id=group.project.organization_id,
                                 project_id=group.project_id,
-                                user_id=acting_user.id,
-                                actor_type=ActorType.USER,
                             )
                         ),
                         action_context_scope(

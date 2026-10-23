@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
-import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
+import type {AskSeerHandler} from 'sentry/components/droppedData/drawer/outcomeSections';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 
 function OutcomeList({
@@ -14,7 +14,7 @@ function OutcomeList({
 }: {
   acceptedEvents: DroppedEventsBucket[];
   droppedEvents: DroppedEventsBucket[];
-  onAskSeer?: (row: ReasonRow) => void;
+  onAskSeer?: AskSeerHandler;
 }) {
   return (
     <DroppedDataOutcomeList

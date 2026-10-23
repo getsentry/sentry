@@ -231,7 +231,7 @@ function WidgetCard(props: Props) {
   }
 
   const hasSessionDuration = widget.queries.some(query =>
-    query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+    (query.aggregates ?? []).some(aggregate => aggregate.includes('session.duration'))
   );
 
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({

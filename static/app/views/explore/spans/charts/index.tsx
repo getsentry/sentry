@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -40,7 +41,10 @@ import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContex
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeFunction,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
@@ -206,7 +210,11 @@ function Chart({
 
   const chartInfo: ChartInfo = useMemo(() => {
     const isTopN = defined(topEvents) && topEvents > 0;
-    const series = timeseriesResult.data[visualize.yAxis] ?? [];
+    const series = getTimeSeriesForQuery(
+      timeseriesResult.data,
+      visualize.yAxis,
+      isVisualizeFunction(visualize) ? visualize.transformations : []
+    );
 
     let confidenceSeries = series;
 
@@ -216,7 +224,11 @@ function Chart({
     // When this happens, we override it with the sampling meta
     // data from the DEFAULT_VISUALIZATION.
     if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
-      confidenceSeries = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
+      confidenceSeries = getTimeSeriesForQuery(
+        timeseriesResult.data,
+        DEFAULT_VISUALIZATION,
+        []
+      );
       samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
     }
 

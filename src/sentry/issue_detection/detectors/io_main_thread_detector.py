@@ -5,8 +5,8 @@ import logging
 from collections import defaultdict
 from typing import Any
 
+from sentry_ophio.proguard import ProguardMapper
 from sentry_sdk import traces
-from symbolic.proguard import ProguardMapper
 
 from sentry.issues.grouptype import (
     GroupType,

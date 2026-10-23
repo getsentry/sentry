@@ -113,7 +113,8 @@ function makeSection(
 }
 
 function makeAutofix(
-  queuedFeedback: RawFeedback[] = []
+  queuedFeedback: RawFeedback[] = [],
+  runStateOverrides: Partial<ExplorerAutofixState> = {}
 ): ReturnType<typeof useExplorerAutofix> {
   const runState: ExplorerAutofixState = {
     run_id: 123,
@@ -121,6 +122,7 @@ function makeAutofix(
     status: 'completed',
     updated_at: '2026-07-20T00:00:00Z',
     queued_feedback: queuedFeedback,
+    ...runStateOverrides,
   };
 
   return {
@@ -320,6 +322,47 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           </FeatureWrapper>
         </StatusExample>
       </Stack>
+    );
+  });
+
+  story('Push refused to protect newer PR commits', () => {
+    const user = useUser();
+    return (
+      <FeatureWrapper>
+        <Text size="sm" variant="muted">
+          The latest feedback failed because pushing would require a force push over newer
+          PR commits. Hover over the red error icon for the explanation. Earlier feedback
+          keeps its pushed checkmark, and further iteration is paused.
+        </Text>
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofix([], {
+            pr_iteration_paused: true,
+            repo_pr_states: {
+              'org/repo': {
+                repo_name: 'org/repo',
+                branch_name: 'seer/fix-null-user',
+                commit_sha: 'earlier-pushed-commit',
+                pr_number: 42,
+                pr_id: 42,
+                pr_url: 'https://github.com/org/repo/pull/42',
+                title: 'Guard against a null user',
+                pr_creation_status: 'error',
+                pr_creation_error_code: 'branch_moved',
+                pr_creation_error:
+                  "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
+              },
+            },
+          })}
+          section={makeSection('completed', [
+            makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+            makeFeedbackBlock(
+              1,
+              userUiFeedback('Add a regression test for an unauthenticated request', user)
+            ),
+          ])}
+        />
+      </FeatureWrapper>
     );
   });
 

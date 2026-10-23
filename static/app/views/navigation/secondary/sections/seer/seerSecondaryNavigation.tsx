@@ -11,20 +11,31 @@ import {
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 
 function SeerSecondaryNavigationImpl() {
   const organization = useOrganization();
   const investigationsEnabled = useInvestigationsEnabled();
+  const automationsEnabled = useAutomationsEnabled();
   const investigationsPath = getInvestigationsPath(organization.slug);
+  const automationsPath = getAutomationsPath(organization.slug);
 
   useLLMContext({
     contextHint: 'The Seer secondary nav panel.',
-    navItems: investigationsEnabled
-      ? [{label: 'Investigations', badge: 'alpha', to: investigationsPath}]
-      : [],
+    navItems: [
+      ...(automationsEnabled
+        ? [{label: 'Automations', badge: 'alpha', to: automationsPath}]
+        : []),
+      ...(investigationsEnabled
+        ? [{label: 'Investigations', badge: 'alpha', to: investigationsPath}]
+        : []),
+    ],
   });
 
-  if (!investigationsEnabled) {
+  if (!investigationsEnabled && !automationsEnabled) {
     return null;
   }
 
@@ -34,15 +45,28 @@ function SeerSecondaryNavigationImpl() {
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="seer-main">
           <SecondaryNavigation.List>
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={investigationsPath}
-                analyticsItemName="seer_investigations"
-                trailingItems={<FeatureBadge type="alpha" />}
-              >
-                {t('Investigations')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
+            {automationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={automationsPath}
+                  analyticsItemName="seer_automations"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Automations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
+            {investigationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={investigationsPath}
+                  analyticsItemName="seer_investigations"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Investigations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
       </SecondaryNavigation.Body>

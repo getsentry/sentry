@@ -4,7 +4,10 @@ import type {TraceItemDataset} from 'sentry/views/explore/types';
 
 type TransformationAnalyticsContext = {
   organization: Organization;
-  traceItemDataset: TraceItemDataset.SPANS | TraceItemDataset.LOGS;
+  traceItemDataset:
+    | TraceItemDataset.SPANS
+    | TraceItemDataset.LOGS
+    | TraceItemDataset.TRACEMETRICS;
   transformation_index: number;
 };
 

@@ -60,6 +60,64 @@ describe('ExploreSecondaryNavigation', () => {
     expect(screen.queryByText('Investigations')).not.toBeInTheDocument();
   });
 
+  function renderExploreNavigation(features: string[]) {
+    const {organization: seerOrganization} = initializeOrg({
+      organization: {
+        features: ['performance-view', 'visibility-explore-view', ...features],
+        openMembership: true,
+      },
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: seerOrganization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
+        },
+      }
+    );
+  }
+
+  it('shows Automations above Investigations without seer-primary-nav', () => {
+    renderExploreNavigation(['investigations', 'seer-automations']);
+
+    const automations = screen.getByRole('link', {name: /Automations/});
+    const investigations = screen.getByRole('link', {name: /Investigations/});
+    expect(automations).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/'
+    );
+    expect(investigations).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/investigations/'
+    );
+    expect(screen.getAllByLabelText('alpha')).toHaveLength(2);
+    expect(
+      automations.compareDocumentPosition(investigations) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('hides the Seer tabs when seer-primary-nav is enabled', () => {
+    renderExploreNavigation(['investigations', 'seer-automations', 'seer-primary-nav']);
+
+    expect(screen.queryByRole('link', {name: /Automations/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Investigations/})).not.toBeInTheDocument();
+  });
+
+  it('only shows Seer tabs whose features are enabled', () => {
+    renderExploreNavigation(['seer-automations']);
+
+    expect(screen.getByRole('link', {name: /Automations/})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Investigations/})).not.toBeInTheDocument();
+  });
+
   it('marks Releases as active on preprod pages', () => {
     render(
       <PrimaryNavigationContextProvider>
