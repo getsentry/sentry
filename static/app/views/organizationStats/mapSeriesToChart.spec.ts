@@ -277,4 +277,109 @@ describe('mapSeriesToChart func', () => {
       },
     ]);
   });
+
+  describe('client discards for byte categories', () => {
+    const intervals = ['2021-01-01T00:00:00Z', '2021-01-02T00:00:00Z'];
+    const acceptedBytes = {
+      by: {outcome: 'accepted', category: 'log_byte'},
+      totals: {'sum(quantity)': 3000},
+      series: {'sum(quantity)': [1000, 2000]},
+    };
+    const acceptedCount = {
+      by: {outcome: 'accepted', category: 'log_item'},
+      totals: {'sum(quantity)': 30},
+      series: {'sum(quantity)': [10, 20]},
+    };
+    const clientDiscardCount = {
+      by: {outcome: 'client_discard', reason: 'queue_overflow', category: 'log_item'},
+      totals: {'sum(quantity)': 1_500_000},
+      series: {'sum(quantity)': [500_000, 1_000_000]},
+    };
+
+    it('charts client discards in bytes and lists counts in the tooltip', () => {
+      const mappedSeries = mapSeriesToChart({
+        orgStats: {
+          start: intervals[0]!,
+          end: intervals[1]!,
+          intervals,
+          groups: [
+            acceptedBytes,
+            acceptedCount,
+            clientDiscardCount,
+            {
+              by: {
+                outcome: 'client_discard',
+                reason: 'queue_overflow',
+                category: 'log_byte',
+              },
+              totals: {'sum(quantity)': 500},
+              series: {'sum(quantity)': [200, 300]},
+            },
+          ],
+        },
+        chartDateInterval: '1d',
+        chartDateUtc: true,
+        dataCategory: DataCategory.LOG_BYTE,
+        endpointQuery: {},
+      });
+
+      expect(mappedSeries.clientDiscardCountCategory).toBeUndefined();
+      expect(mappedSeries.cardStats.accepted).toBe('3 kB');
+      expect(mappedSeries.cardStats.clientDiscard).toBe('500 B');
+      expect(mappedSeries.chartStats.clientDiscard).toEqual([
+        {value: [expect.any(String), 200]},
+        {value: [expect.any(String), 300]},
+      ]);
+      expect(mappedSeries.chartSubLabels).toEqual([
+        {
+          parentLabel: 'Client Discard',
+          label: 'Queue Overflow',
+          data: [
+            {name: intervals[0], value: 200},
+            {name: intervals[1], value: 300},
+          ],
+        },
+        {
+          parentLabel: 'Client Discard',
+          label: 'Queue Overflow (Count)',
+          data: [
+            {name: intervals[0], value: 500_000},
+            {name: intervals[1], value: 1_000_000},
+          ],
+          excludeFromTotal: true,
+          valueFormatter: expect.any(Function),
+        },
+      ]);
+    });
+
+    it('charts client discards in counts if there are none in bytes', () => {
+      const mappedSeries = mapSeriesToChart({
+        orgStats: {
+          start: intervals[0]!,
+          end: intervals[1]!,
+          intervals,
+          groups: [acceptedBytes, acceptedCount, clientDiscardCount],
+        },
+        chartDateInterval: '1d',
+        chartDateUtc: true,
+        dataCategory: DataCategory.LOG_BYTE,
+        endpointQuery: {},
+      });
+
+      expect(mappedSeries.clientDiscardCountCategory).toBe(DataCategory.LOG_ITEM);
+      expect(mappedSeries.cardStats.accepted).toBe('3 kB');
+      expect(mappedSeries.cardStats.clientDiscard).toBe('1.5M logs');
+      expect(mappedSeries.chartStats.clientDiscard).toEqual([
+        {value: [expect.any(String), 500_000]},
+        {value: [expect.any(String), 1_000_000]},
+      ]);
+      expect(mappedSeries.chartSubLabels).toEqual([
+        expect.objectContaining({
+          parentLabel: 'Client Discard',
+          label: 'Queue Overflow (Count)',
+          excludeFromTotal: true,
+        }),
+      ]);
+    });
+  });
 });

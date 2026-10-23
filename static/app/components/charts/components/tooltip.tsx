@@ -103,6 +103,15 @@ export type TooltipSubLabel = {
   data: DataPoint[];
   label: string;
   parentLabel: string;
+  /**
+   * If true the sub-label's values are not added to the tooltip total, e.g. when
+   * they are in a different unit than the chart.
+   */
+  excludeFromTotal?: boolean;
+  /**
+   * Formats the sub-label's values. Defaults to the tooltip's `valueFormatter`.
+   */
+  valueFormatter?: (value: number) => string;
 };
 
 export type FormatterOptions = Pick<
@@ -281,10 +290,12 @@ export function getFormatter({
             labelWithSubLabels.push(
               `<div><span class="tooltip-label tooltip-label-indent"><strong>${
                 subLabel.label
-              }</strong></span> ${valueFormatter(serieValue)}</div>`
+              }</strong></span> ${(subLabel.valueFormatter ?? valueFormatter)(serieValue)}</div>`
             );
 
-            acc.total = acc.total + serieValue;
+            if (!subLabel.excludeFromTotal) {
+              acc.total = acc.total + serieValue;
+            }
           }
 
           acc.series.push(labelWithSubLabels.join(''));

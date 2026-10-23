@@ -3,15 +3,35 @@ import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {t, tn} from 'sentry/locale';
 import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 
-import {getDateFromMoment} from './usageChart/utils';
+import {getDateFromMoment, getTooltipFormatter} from './usageChart/utils';
 import {getReasonGroupName} from './getReasonGroupName';
 import type {UsageSeries, UsageStat} from './types';
 import type {ChartStats} from './usageChart';
 import {SeriesTypes} from './usageChart';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
+
+/**
+ * Not every SDK reports client discards for byte categories, but all of them
+ * report the number of discarded items. For these byte categories, we also query
+ * the item count category to show those client discards.
+ */
+export const CLIENT_DISCARD_COUNT_CATEGORIES = [
+  {
+    bytes: DATA_CATEGORY_INFO.log_byte,
+    count: DATA_CATEGORY_INFO.log_item,
+    countUnit: (count: number) => tn('log', 'logs', count),
+  },
+  {
+    bytes: DATA_CATEGORY_INFO.trace_metric_byte,
+    count: DATA_CATEGORY_INFO.trace_metric,
+    countUnit: (count: number) => tn('application metric', 'application metrics', count),
+  },
+];
 
 export function mapSeriesToChart({
   orgStats,
@@ -37,6 +57,11 @@ export function mapSeriesToChart({
   };
   chartStats: ChartStats;
   chartSubLabels: TooltipSubLabel[];
+  /**
+   * Set when the client discard series holds item counts of this category
+   * instead of values of `dataCategory`.
+   */
+  clientDiscardCountCategory?: DataCategory;
   dataError?: Error;
 } {
   const cardStats = {
@@ -62,6 +87,14 @@ export function mapSeriesToChart({
   if (!orgStats) {
     return {cardStats, chartStats, chartSubLabels};
   }
+
+  const clientDiscardCountInfo = CLIENT_DISCARD_COUNT_CATEGORIES.find(
+    ({bytes}) => bytes.plural === dataCategory
+  );
+  const countCategory = clientDiscardCountInfo?.count;
+  const clientDiscardCounts = orgStats.intervals.map(() => 0);
+  let clientDiscardCountTotal = 0;
+  const clientDiscardCountSubLabels: TooltipSubLabel[] = [];
 
   try {
     const usageStats: UsageStat[] = orgStats.intervals.map(interval => {
@@ -100,12 +133,20 @@ export function mapSeriesToChart({
         return;
       }
 
+      // We only need client discards from the item count category
+      const isClientDiscardCount = countCategory && category === countCategory.name;
+      if (isClientDiscardCount && outcome !== Outcome.CLIENT_DISCARD) {
+        return;
+      }
+
       // For spans, we additionally query for `span_indexed` data
       // to get the `accepted_stored` count
       if (category === 'span_indexed') {
         if (outcome === Outcome.ACCEPTED) {
           countAcceptedStored += group.totals['sum(quantity)']!;
         }
+      } else if (isClientDiscardCount) {
+        clientDiscardCountTotal += group.totals['sum(quantity)']!;
       } else {
         if (outcome !== Outcome.CLIENT_DISCARD) {
           count.total += group.totals['sum(quantity)']!;
@@ -123,13 +164,16 @@ export function mapSeriesToChart({
 
         const strigfiedReason = String(group.by.reason ?? '');
         const reason = getReasonGroupName(outcome!, strigfiedReason);
+        const reasonLabel = startCase(reason.replace(/-|_/g, ' '));
 
         // Function to handle chart sub-label updates
         const updateChartSubLabels = (
           parentLabel: SeriesTypes,
-          label = startCase(reason.replace(/-|_/g, ' '))
+          label = reasonLabel,
+          subLabels = chartSubLabels,
+          subLabelOptions?: Pick<TooltipSubLabel, 'excludeFromTotal' | 'valueFormatter'>
         ) => {
-          const existingSubLabel = chartSubLabels.find(
+          const existingSubLabel = subLabels.find(
             subLabel => subLabel.label === label && subLabel.parentLabel === parentLabel
           );
 
@@ -143,10 +187,11 @@ export function mapSeriesToChart({
               existingSubLabel.data.push(dataObject);
             }
           } else {
-            chartSubLabels.push({
+            subLabels.push({
               parentLabel,
               label,
               data: [dataObject],
+              ...subLabelOptions,
             });
           }
         };
@@ -175,8 +220,21 @@ export function mapSeriesToChart({
             updateChartSubLabels(SeriesTypes.RATE_LIMITED);
             break;
           case Outcome.CLIENT_DISCARD:
-            usageStats[i]!.clientDiscard += stat;
-            updateChartSubLabels(SeriesTypes.CLIENT_DISCARD);
+            if (isClientDiscardCount) {
+              clientDiscardCounts[i]! += stat;
+              updateChartSubLabels(
+                SeriesTypes.CLIENT_DISCARD,
+                t('%s (Count)', reasonLabel),
+                clientDiscardCountSubLabels,
+                {
+                  excludeFromTotal: true,
+                  valueFormatter: getTooltipFormatter(countCategory.plural),
+                }
+              );
+            } else {
+              usageStats[i]!.clientDiscard += stat;
+              updateChartSubLabels(SeriesTypes.CLIENT_DISCARD);
+            }
             break;
           case Outcome.INVALID:
             usageStats[i]!.invalid += stat;
@@ -197,7 +255,18 @@ export function mapSeriesToChart({
       countAcceptedStored > 0 &&
       countAcceptedStored !== count[Outcome.ACCEPTED];
 
-    usageStats.forEach(stat => {
+    // Chart client discards in item counts only if there are none in the selected category
+    const chartedClientDiscardCountInfo =
+      count[Outcome.CLIENT_DISCARD] === 0 && clientDiscardCountTotal > 0
+        ? clientDiscardCountInfo
+        : undefined;
+    const clientDiscardCountCategory = chartedClientDiscardCountInfo?.count.plural;
+
+    usageStats.forEach((stat, i) => {
+      if (clientDiscardCountCategory) {
+        stat.clientDiscard = clientDiscardCounts[i]!;
+      }
+
       stat.total = [
         stat.accepted,
         stat.filtered,
@@ -229,6 +298,8 @@ export function mapSeriesToChart({
         subLabel => subLabel.parentLabel !== SeriesTypes.ACCEPTED
       );
     }
+
+    chartSubLabels.push(...clientDiscardCountSubLabels);
 
     return {
       cardStats: {
@@ -264,14 +335,22 @@ export function mapSeriesToChart({
           dataCategory,
           getFormatUsageOptions(dataCategory)
         ),
-        clientDiscard: formatUsageWithUnits(
-          count[Outcome.CLIENT_DISCARD],
-          dataCategory,
-          getFormatUsageOptions(dataCategory)
-        ),
+        // Spell out the unit, so the count can't be mistaken for a size
+        clientDiscard: chartedClientDiscardCountInfo
+          ? `${formatUsageWithUnits(
+              clientDiscardCountTotal,
+              chartedClientDiscardCountInfo.count.plural,
+              getFormatUsageOptions(chartedClientDiscardCountInfo.count.plural)
+            )} ${chartedClientDiscardCountInfo.countUnit(clientDiscardCountTotal)}`
+          : formatUsageWithUnits(
+              count[Outcome.CLIENT_DISCARD],
+              dataCategory,
+              getFormatUsageOptions(dataCategory)
+            ),
       },
       chartStats,
       chartSubLabels,
+      clientDiscardCountCategory,
     };
   } catch (err) {
     Sentry.withScope(scope => {

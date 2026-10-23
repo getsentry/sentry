@@ -44,7 +44,7 @@ import {
   FORMAT_DATETIME_HOURLY_24H,
   getTooltipFormatter,
 } from './usageChart/utils';
-import {mapSeriesToChart} from './mapSeriesToChart';
+import {CLIENT_DISCARD_COUNT_CATEGORIES, mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
 import {
@@ -76,6 +76,7 @@ type ChartData = {
   chartStats: ChartStats;
   chartSubLabels: TooltipSubLabel[];
   chartTransform: ChartDataTransform;
+  clientDiscardCountCategory?: DataCategory;
   dataError?: Error;
 };
 
@@ -114,6 +115,14 @@ export function getEndpointQuery({
     category.push('span_indexed');
   }
 
+  const clientDiscardCountCategory = CLIENT_DISCARD_COUNT_CATEGORIES.find(
+    ({bytes}) => bytes.name === dataCategoryApiName
+  )?.count;
+  if (clientDiscardCountCategory) {
+    groupBy.push('category');
+    category.push(clientDiscardCountCategory.name);
+  }
+
   return {
     ...queryDatetime,
     interval: getSeriesApiInterval(dataDatetime),
@@ -146,6 +155,7 @@ export function getChartProps({
     | 'chartDateTimezoneDisplay'
     | 'chartDateEndDisplay'
     | 'cardStats'
+    | 'clientDiscardCountCategory'
   >;
   dataCategory: DataCategory;
   error: Error | null;
@@ -255,7 +265,13 @@ export function getChartProps({
       subLabels: chartData.chartSubLabels,
       skipZeroValuedSubLabels: true,
       trigger: 'axis',
-      valueFormatter: getTooltipFormatter(dataCategory),
+      valueFormatter: (value: number, seriesName?: string) =>
+        getTooltipFormatter(
+          seriesName === SeriesTypes.CLIENT_DISCARD &&
+            chartData.clientDiscardCountCategory
+            ? chartData.clientDiscardCountCategory
+            : dataCategory
+        )(value),
     },
     legendSelected: {[SeriesTypes.CLIENT_DISCARD]: !!clientDiscard},
     onLegendSelectChanged: ({name, selected}) => {
