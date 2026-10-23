@@ -304,21 +304,6 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
 # wrapped by this check, so these stayed hidden until default locks moved to RedisClusterLockBackend.
 _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
     {
-        # INFRENG-805: slug locks in Project, Team, Organization and Monitor save
-        ("sentry.models.organization.Organization.save",),
-        ("sentry.models.project.Project.save",),
-        ("sentry.models.team.Team.save",),
-        (
-            "sentry.monitors.models.Monitor.save",
-            "sentry.utils.mockdata.core.create_monitor",
-        ),
-        # INFRENG-808: invite request team assignments
-        ("sentry.core.endpoints.organization_member_utils.save_team_assignments",),
-        # INFRENG-809: test-only, ApiToken.from_grant inside a transaction in ControlOutboxDrainTest
-        (
-            "sentry.models.apitoken.ApiToken.from_grant",
-            "tests.sentry.hybridcloud.models.test_outbox.ControlOutboxDrainTest.test_reconnects_after_successful_token_replication",
-        ),
         # --------------------------------
         # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
         # --------------------------------
@@ -433,7 +418,10 @@ _REDIS_LOCK_BACKEND_CALLERS = (
 _REDIS_LOCK_INTERNAL_PREFIXES = ("sentry.utils.locking.", "sentry.utils.retries.", "contextlib.")
 
 
-def _matches_redis_transaction_lock_ratchet(callers: tuple[str, ...]) -> bool:
+def _matches_redis_transaction_lock_ratchet(
+    callers: tuple[str, ...],
+    allowlist: frozenset[tuple[str, ...]] = _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET,
+) -> bool:
     if not callers or callers[0] not in _REDIS_LOCK_BACKEND_CALLERS:
         return False
     owner_index = 0
@@ -444,7 +432,7 @@ def _matches_redis_transaction_lock_ratchet(callers: tuple[str, ...]) -> bool:
     if owner_index == len(callers):
         return False
     owner = callers[owner_index]
-    for owner_signature, *signature in _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET:
+    for owner_signature, *signature in allowlist:
         if owner_signature != owner:
             continue
         remaining_callers = iter(callers[owner_index + 1 :])

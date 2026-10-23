@@ -517,8 +517,8 @@ class TestGetProxyHeaders(TestCase):
             issuer="sentry",
         )
         assert decoded["organization_id"] == 42
-        assert decoded["user_id"] == 7
-        assert decoded["actor_type"] == "user"
+        assert decoded["version"] == 2
+        assert decoded["actor"] == {"type": "user", "id": 7}
         # Standard JWT claims present
         assert "iat" in decoded
         assert "exp" in decoded

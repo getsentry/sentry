@@ -150,7 +150,7 @@ class ViewerContext:
             result["superuser"] = self.actor.superuser.dict()
         return result
 
-    def serialize(self, *, version: Literal[1, 2] = 1) -> dict[str, Any]:
+    def serialize(self, *, version: Literal[1, 2] = 2) -> dict[str, Any]:
         if version == 1:
             return self._legacy_serialize()
         result: dict[str, Any] = {"version": 2, "actor": self.actor.serialize()}

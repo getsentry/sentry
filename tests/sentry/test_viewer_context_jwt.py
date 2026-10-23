@@ -136,7 +136,7 @@ class TestEncodeViewerContext(TestCase):
         with freeze_time(timezone.now() + timedelta(minutes=4)):
             propagated = encode_viewer_context(decode_viewer_context(token))
         claims = pyjwt.decode(propagated, options={"verify_signature": False})
-        assert claims["superuser"] == {"expires_at": deadline}
+        assert claims["actor"]["superuser"] == {"expires_at": deadline}
         assert claims["exp"] == deadline
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
