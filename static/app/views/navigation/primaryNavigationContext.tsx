@@ -26,10 +26,18 @@ type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   group: NavigationGroup;
   pattern: RegExp;
+  /** Only apply the override when the organization lacks this feature */
+  unlessFeature?: string;
 }> = [
   {
     group: 'explore',
     pattern: /(?:^|\/)seer\/investigation\/[^/]+\/?$/,
+  },
+  // Seer pages linked from Explore until the Seer primary nav ships.
+  {
+    group: 'explore',
+    pattern: /(?:^|\/)seer\/(?:investigations|automations)\/?$/,
+    unlessFeature: 'seer-primary-nav',
   },
 ];
 
@@ -108,8 +116,11 @@ const getPrimaryRoutePath = (path: string): string | undefined => {
 
 function useActiveNavigationGroup(): NavigationGroup {
   const location = useLocation();
-  const routeOverride = PRIMARY_NAVIGATION_ROUTE_OVERRIDES.find(({pattern}) =>
-    pattern.test(location.pathname)
+  const organization = useOrganization({allowNull: true});
+  const routeOverride = PRIMARY_NAVIGATION_ROUTE_OVERRIDES.find(
+    ({pattern, unlessFeature}) =>
+      pattern.test(location.pathname) &&
+      !(unlessFeature && organization?.features.includes(unlessFeature))
   );
   if (routeOverride) {
     return routeOverride.group;
