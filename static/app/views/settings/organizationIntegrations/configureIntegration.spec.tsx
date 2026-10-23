@@ -168,6 +168,22 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
   });
 
+  it('shows a retryable error when the integration response is empty', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/config/integrations/`,
+      body: {providers: [GitHubIntegrationProviderFixture()]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/${integrationId}/`,
+      body: '',
+    });
+
+    renderConfigure('vercel');
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
   it('hides the Settings tab when there is no settings content', async () => {
     mockRequests(
       OrganizationIntegrationsFixture({
