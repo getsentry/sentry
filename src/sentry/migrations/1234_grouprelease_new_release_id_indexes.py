@@ -5,8 +5,9 @@ from django.db.migrations.state import StateApps
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
-# Kept out of Django state: after the swap, release_id's unique_together and db_index describe them.
-# A bare index, because the swap's ADD CONSTRAINT ... USING INDEX refuses a constraint-owned one.
+# Twins of release_id's indexes, for a later migration that swaps the two columns by rename.
+# Kept out of Django state: after the rename, release_id's unique_together and db_index cover them.
+# A bare index: that migration's ADD CONSTRAINT ... USING INDEX refuses a constraint-owned one.
 UNIQUE_INDEX_NAME = "sentry_grouprelease_group_id_new_release_id_environment_uniq"
 INDEX_NAME = "sentry_grouprelease_new_release_id"
 
@@ -24,7 +25,7 @@ def drop_invalid_indexes(apps: StateApps | None, schema_editor: BaseDatabaseSche
         is_valid = row[0]
         if is_valid:
             continue
-        # The drop waits for open transactions, which can outlast the timeout.
+        # Left at 0: the drop waits on open transactions, and the builds below run untimed too.
         schema_editor.execute("SET statement_timeout TO 0")
         schema_editor.execute(f'DROP INDEX CONCURRENTLY IF EXISTS "{name}"')
 

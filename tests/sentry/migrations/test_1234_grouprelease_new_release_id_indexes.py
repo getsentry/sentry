@@ -54,6 +54,7 @@ class GroupReleaseNewReleaseIdIndexesTest(TestMigrations):
         assert unique_after[0] == unique_oid
         assert plain_after[0] == plain_oid
 
+        # Stands in for an interrupted CONCURRENTLY build.
         with connection.cursor() as cursor:
             cursor.execute(
                 "UPDATE pg_index SET indisvalid = false WHERE indexrelid = to_regclass(%s)",
@@ -70,3 +71,6 @@ class GroupReleaseNewReleaseIdIndexesTest(TestMigrations):
 
         with connection.schema_editor(atomic=False) as editor:
             migration.drop_invalid_indexes(None, editor)
+
+        plain_after = fetch_index(migration.INDEX_NAME)
+        assert plain_after[0] == plain_oid
