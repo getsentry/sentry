@@ -375,6 +375,7 @@ function Chart({
               droppedData={
                 showDroppedDataBand
                   ? {
+                      dataset,
                       droppedEvents,
                       acceptedEvents,
                       onClick: openDroppedDataDrawer,

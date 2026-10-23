@@ -341,6 +341,7 @@ function Graph({
             droppedData={
               showDroppedDataBand
                 ? {
+                    dataset: DiscoverDatasets.OURLOGS,
                     droppedEvents,
                     acceptedEvents,
                     onClick: openDroppedDataDrawer,

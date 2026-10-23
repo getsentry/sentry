@@ -16,13 +16,17 @@ import {
 } from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 
 describe('useDroppedDataBand', () => {
   it('returns an empty band when there are no dropped events', () => {
     const {result} = renderHookWithProviders(() =>
-      useDroppedDataBand({chartRef, droppedData: {droppedEvents: []}})
+      useDroppedDataBand({
+        chartRef,
+        droppedData: {dataset: DiscoverDatasets.SPANS, droppedEvents: []},
+      })
     );
 
     expect(result.current.droppedDataSeries).toBeNull();
@@ -42,7 +46,10 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedData: {droppedEvents: [DroppedEventFixture({count: 10})]},
+        droppedData: {
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [DroppedEventFixture({count: 10})],
+        },
       })
     );
 
@@ -57,6 +64,7 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [DroppedEventFixture({count: 10, tags: ['intentional']})],
         },
       })
@@ -70,6 +78,7 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [
             DroppedEventFixture({start: 0, count: 0}),
             DroppedEventFixture({start: 60_000, count: 1}),
@@ -95,6 +104,7 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [DroppedEventFixture({start: 0, count: 0})],
           acceptedEvents: [DroppedEventFixture({start: 0, count: 100})],
         },
@@ -110,6 +120,7 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [DroppedEventFixture({start: 0, count: 1})],
           acceptedEvents: [DroppedEventFixture({start: 0, count: 1999})],
         },
@@ -125,6 +136,7 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [],
           acceptedEvents: [DroppedEventFixture({count: 8000})],
         },
@@ -138,7 +150,10 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedData: {droppedEvents: [DroppedEventFixture({count: 10})]},
+        droppedData: {
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [DroppedEventFixture({count: 10})],
+        },
       })
     );
 
@@ -152,6 +167,7 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [
             DroppedEventFixture({start: 0, end: 60_000, count: 10}),
             DroppedEventFixture({start: 0, end: 60_000, count: 5, reason: 'quota'}),
@@ -214,7 +230,11 @@ describe('useDroppedDataBand', () => {
       const {result} = renderHookWithProviders(() =>
         useDroppedDataBand({
           chartRef,
-          droppedData: {droppedEvents: dropped, acceptedEvents: accepted},
+          droppedData: {
+            dataset: DiscoverDatasets.SPANS,
+            droppedEvents: dropped,
+            acceptedEvents: accepted,
+          },
         })
       );
 
