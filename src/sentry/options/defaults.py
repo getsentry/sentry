@@ -1521,11 +1521,12 @@ register(
 
 # Conversation classifiers PoC.
 register(
-    "classifiers.conversations.organization-ids",
+    "classifiers.conversations.project-ids",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Maximum conversations fetched from each project per scan.
 register(
     "classifiers.conversations.telemetry-limit",
     type=Int,

@@ -1156,6 +1156,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
         "schedule": crontab("0", "*", "*", "*", "*"),
     },
+    "telemetry-classifiers-conversations": {
+        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_conversation_classifiers",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         "schedule": crontab("0", "0", "*", "*", "*"),
