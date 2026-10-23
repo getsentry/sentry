@@ -485,14 +485,14 @@ function SmoothingSettings({
           gap="xs"
         >
           <Text size="sm" wrap="nowrap">
-            {t('Smoothing Factor')}
+            {t('Smoothing Weight')}
           </Text>
           <CompactSelect
             options={FACTOR_OPTIONS}
             value={transformation.factor}
             clearable
             trigger={props => (
-              <OverlayTrigger.Button {...props} aria-label={t('Smoothing Factor')}>
+              <OverlayTrigger.Button {...props} aria-label={t('Smoothing Weight')}>
                 {transformation.factor === undefined ? t('Auto') : props.children}
               </OverlayTrigger.Button>
             )}
