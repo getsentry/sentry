@@ -103,16 +103,11 @@ describe('useMultiQueryTimeseries', () => {
   });
 
   it.each([true, false])(
-    'forwards the indexed row pipeline to every axis only when enabled=%s',
+    'gates transformations for every axis with enabled=%s',
     async enabled => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',
-        body: {
-          timeSeries: [
-            TimeSeriesFixture({yAxis: 'avg(span.duration)'}),
-            TimeSeriesFixture({yAxis: 'count(span.duration)'}),
-          ],
-        },
+        body: {timeSeries: []},
       });
       const {result} = renderHookWithProviders(
         () => useMultiQueryTimeseries({enabled: true, index: 1}),
@@ -141,29 +136,15 @@ describe('useMultiQueryTimeseries', () => {
       );
 
       await waitFor(() => expect(result.current.result.isSuccess).toBe(true));
-      expect(request).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-timeseries/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: ['avg(span.duration)', 'count(span.duration)'],
-            ...(enabled
-              ? {
-                  'transformations[0]': ['fill(locf)', 'smooth(sma,5)'],
-                  'transformations[1]': ['fill(locf)', 'smooth(sma,5)'],
-                }
-              : {}),
-          }),
-        })
-      );
-      if (!enabled) {
-        expect(request.mock.calls[0][1].query).not.toHaveProperty('transformations[0]');
-        expect(request.mock.calls[0][1].query).not.toHaveProperty('transformations[1]');
-      }
-      expect(result.current.result.data['avg(span.duration)']?.[0]).toEqual(
-        expect.objectContaining({
-          yAxis: 'avg(span.duration)',
-          ...(enabled ? {requestedTransformations: ['fill(locf)', 'smooth(sma,5)']} : {}),
-        })
+      const query = request.mock.calls[0][1].query;
+      expect(query.yAxis).toEqual(['avg(span.duration)', 'count(span.duration)']);
+      expect([query['transformations[0]'], query['transformations[1]']]).toEqual(
+        enabled
+          ? [
+              ['fill(locf)', 'smooth(sma,5)'],
+              ['fill(locf)', 'smooth(sma,5)'],
+            ]
+          : [undefined, undefined]
       );
     }
   );

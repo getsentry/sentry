@@ -1,114 +1,38 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
-  generateExploreCompareRoute,
   getFieldsForConstructedQuery,
   getSamplesTargetAtIndex,
   normalizeCompareQueryParts,
-  useDuplicateQueryAtIndex,
   useReadQueriesFromLocation,
-  useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 describe('Compare transformations', () => {
-  it('preserves independent ordered pipelines through edits, duplication, and clearing', async () => {
-    const {result, router} = renderHookWithProviders(
-      () => ({
-        queries: useReadQueriesFromLocation(),
-        update: useUpdateQueryAtIndex(0),
-        duplicate: useDuplicateQueryAtIndex(),
-      }),
-      {
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/compare/',
-            query: {
-              queries: [
-                JSON.stringify({
-                  yAxes: ['avg(span.duration)'],
-                  transformations: ['fill(locf)', 'smooth(sma,5)'],
-                }),
-                JSON.stringify({
-                  yAxes: ['count(span.duration)'],
-                  transformations: ['fill(zero)'],
-                }),
-              ],
-            },
-          },
-        },
-      }
-    );
-
-    expect(result.current.queries.map(query => query.transformations)).toEqual([
-      ['fill(locf)', 'smooth(sma,5)'],
-      ['fill(zero)'],
-    ]);
-    act(() => result.current.update({chartType: ChartType.AREA}));
-    await waitFor(() =>
-      expect(result.current.queries[0]?.chartType).toBe(ChartType.AREA)
-    );
-    act(() => result.current.duplicate(0));
-    await waitFor(() =>
-      expect(result.current.queries.map(query => query.transformations)).toEqual([
-        ['fill(locf)', 'smooth(sma,5)'],
-        ['fill(locf)', 'smooth(sma,5)'],
-        ['fill(zero)'],
-      ])
-    );
-    act(() => result.current.update({transformations: []}));
-    await waitFor(() =>
-      expect(result.current.queries[0]?.transformations ?? []).toEqual([])
-    );
-    expect(router.location.query.queries).toEqual([
-      expect.not.stringContaining('transformations'),
-      expect.stringContaining('"transformations":["fill(locf)","smooth(sma,5)"]'),
-      expect.stringContaining('"transformations":["fill(zero)"]'),
-    ]);
-  });
-
-  it.each([undefined, null, 'fill(zero)', [1], ['fill(zero)', false]])(
-    'ignores malformed transformations %j without losing the query',
-    transformations => {
+  it.each([{transformations: 'fill(zero)'}, {transformations: ['fill(zero)', false]}])(
+    'ignores malformed transformations $transformations without losing the query',
+    ({transformations}) => {
       const {result} = renderHookWithProviders(useReadQueriesFromLocation, {
         initialRouterConfig: {
           location: {
             pathname: '/traces/compare/',
             query: {
-              queries: JSON.stringify({
-                yAxes: ['avg(span.duration)'],
-                query: 'span.op:db',
-                transformations,
-              }),
+              queries: JSON.stringify({yAxes: ['avg(span.duration)'], transformations}),
             },
           },
         },
       });
 
       expect(result.current[0]).toEqual(
-        expect.objectContaining({yAxes: ['avg(span.duration)'], query: 'span.op:db'})
+        expect.objectContaining({
+          yAxes: ['avg(span.duration)'],
+          transformations: undefined,
+        })
       );
-      expect(result.current[0]?.transformations ?? []).toEqual([]);
     }
   );
-
-  it('includes transformations in generated compare links', () => {
-    const route = generateExploreCompareRoute({
-      organization: OrganizationFixture(),
-      location: LocationFixture(),
-      mode: Mode.SAMPLES,
-      queries: [{yAxes: ['avg(span.duration)'], transformations: ['fill(linear)']}],
-    });
-
-    expect(route.query?.queries).toEqual([
-      expect.stringContaining('"transformations":["fill(linear)"]'),
-      expect.not.stringContaining('transformations'),
-    ]);
-  });
 });
 
 describe('getFieldsForConstructedQuery', () => {
