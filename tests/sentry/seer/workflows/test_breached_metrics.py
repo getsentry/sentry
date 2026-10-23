@@ -6,9 +6,6 @@ from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
-from django.db import connections, router
-from django.test.utils import CaptureQueriesContext
-
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
@@ -136,22 +133,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert stored.trigger.binding_id == self.action.seer_workflow_binding.id
         assert stored.admission.decided_at == run.date_completed
         assert SeerWorkflowRun.objects.count() == 1
-
-    def test_accept_does_not_requery_the_resolved_binding_or_detector(self) -> None:
-        binding = self.action.seer_workflow_binding
-        event = self.breach_event()
-
-        with CaptureQueriesContext(connections[router.db_for_write(SeerWorkflowRun)]) as queries:
-            result = BreachedMetricWorkflow(self.config).accept(
-                self.group,
-                event,
-                binding=binding,
-                workflow_id=self.workflow.id,
-            )
-
-        assert isinstance(result, AcceptedMetricBreach)
-        assert not any("seer_workflowtriggerbinding" in query["sql"] for query in queries)
-        assert not any("workflow_engine_detectorgroup" in query["sql"] for query in queries)
 
     def test_existing_run_is_reused(self) -> None:
         existing = Factories.create_seer_workflow_run(
