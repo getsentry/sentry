@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {type Theme} from '@emotion/react';
 import {IconInfo} from '@sentry/icons/info';
 import {IconWarning} from '@sentry/icons/warning';
@@ -301,6 +301,17 @@ export function useMetricDetectorChart({
     ]);
   }, [chartSeries, end, openPeriods, snubaQuery.timeWindow]);
 
+  const handleIncidentMarkerClick = useCallback(
+    (context: {period: IncidentPeriod}) => {
+      const clickedOpenPeriod = openPeriods.find(({id}) => id === context.period.id);
+
+      if (clickedOpenPeriod) {
+        onOpenPeriodClick?.(clickedOpenPeriod);
+      }
+    },
+    [openPeriods, onOpenPeriodClick]
+  );
+
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
     highlightedIncidentId: highlightedOpenPeriodId,
@@ -309,13 +320,7 @@ export function useMetricDetectorChart({
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
     seriesTooltip: incidentSeriesTooltip,
     markLineTooltip: incidentMarklineTooltip,
-    onClick: context => {
-      const clickedOpenPeriod = openPeriods.find(({id}) => id === context.period.id);
-
-      if (clickedOpenPeriod) {
-        onOpenPeriodClick?.(clickedOpenPeriod);
-      }
-    },
+    onClick: handleIncidentMarkerClick,
   });
 
   const chartZoomProps = useChartZoom({
@@ -670,12 +675,17 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     ...dateParams,
   });
 
+  const navigateToOpenPeriodIssue = useCallback(
+    (clickedOpenPeriod: GroupOpenPeriod) =>
+      navigate(getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug)),
+    [navigate, organization.slug]
+  );
+
   const {chartProps, isLoading, error, isAnomalyThresholdCutOff} = useMetricDetectorChart(
     {
       detector,
       openPeriods,
-      onOpenPeriodClick: clickedOpenPeriod =>
-        navigate(getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug)),
+      onOpenPeriodClick: navigateToOpenPeriodIssue,
       height: CHART_HEIGHT,
       ...dateParams,
     }

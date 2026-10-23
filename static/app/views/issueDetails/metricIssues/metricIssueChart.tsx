@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -134,6 +134,15 @@ function MetricIssueChartContent({
       intervalSeconds,
     });
 
+  const navigateToOpenPeriodIssue = useCallback(
+    (clickedOpenPeriod: GroupOpenPeriod) =>
+      navigate({
+        pathname: getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug),
+        query: location.query,
+      }),
+    [navigate, organization.slug, location.query]
+  );
+
   const {
     chartProps,
     isLoading,
@@ -142,11 +151,7 @@ function MetricIssueChartContent({
     detector,
     openPeriods,
     highlightedOpenPeriodId: openPeriod?.id,
-    onOpenPeriodClick: clickedOpenPeriod =>
-      navigate({
-        pathname: getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug),
-        query: location.query,
-      }),
+    onOpenPeriodClick: navigateToOpenPeriodIssue,
     height: CHART_HEIGHT,
     enabled: !isOpenPeriodPending,
     ...cappedDateTimeParams,
