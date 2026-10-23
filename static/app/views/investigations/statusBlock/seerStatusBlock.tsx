@@ -14,8 +14,15 @@ import {
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
+import {
+  isCall,
+  isThought,
+  type SeerStatusActivity,
+} from 'sentry/views/investigations/statusBlock/statusActivity';
 import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
+import {ThinkingProse} from 'sentry/views/seerExplorer/components/chat/responseGroup';
 
 /**
  * Where an agentic run has got to, as one line the viewer can read without
@@ -97,10 +104,23 @@ function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCal
 }
 
 /**
+ * Whether there is a call on both sides of the entry at `index`. Reasoning
+ * between calls is set apart with extra space, as in the agent's thinking block;
+ * reasoning at either end stays tight against the edge.
+ */
+function isBetweenCalls(toolActivity: SeerStatusActivity[], index: number) {
+  return (
+    toolActivity.slice(0, index).some(isCall) &&
+    toolActivity.slice(index + 1).some(isCall)
+  );
+}
+
+/**
  * What the agent is doing, drawn as the Seer agent's own thinking block: the
- * latest call is the live title, every call behind the current phase is listed
- * inside in the order it ran, and the run's clock sits on the right. It opens
- * while the run works, as the agent's does, and the viewer can fold it away.
+ * latest call is the live title, the agent's reasoning and every call behind the
+ * current phase are listed inside in the order they happened, and the run's clock
+ * sits on the right. It opens while the run works, as the agent's does, and the
+ * viewer can fold it away.
  *
  * Before any call has landed the title is "Thinking", as the agent's is before
  * its first tool runs, so the block holds its place through phases that make no
@@ -111,28 +131,39 @@ function SeerThinking({
   toolActivity,
 }: {
   startTime?: Date;
-  toolActivity?: InvestigationToolActivity[];
+  toolActivity?: SeerStatusActivity[];
 }) {
   // Without the run's own start, the clock counts from when the block appeared,
   // as the agent's does for a response that has only just begun.
   const [appearedAt] = useState(() => new Date());
-  const latest = toolActivity?.[toolActivity.length - 1];
+  // Reasoning never titles the block, as in the agent's: the title says what the
+  // agent is doing, and stays a call.
+  const latestCall = toolActivity?.findLast(isCall);
 
   return (
     <Container data-test-id="seer-status-block-thinking">
       <ThinkingBlock
-        title={latest?.title ?? t('Thinking')}
+        title={latestCall?.title ?? t('Thinking')}
         startTime={startTime ?? appearedAt}
       >
         {toolActivity?.length
-          ? toolActivity.map(activity => (
-              <MessageRow key={activity.id} from="assistant" density="compact">
-                <ToolCall
-                  title={activity.title}
-                  status={getToolCallStatus(activity.status)}
-                />
-              </MessageRow>
-            ))
+          ? toolActivity.map((activity, index) =>
+              isThought(activity) ? (
+                <ThinkingProse
+                  key={activity.id}
+                  data-spaced={isBetweenCalls(toolActivity, index)}
+                >
+                  <SeerMarkdown raw={activity.text} />
+                </ThinkingProse>
+              ) : (
+                <MessageRow key={activity.id} from="assistant" density="compact">
+                  <ToolCall
+                    title={activity.title}
+                    status={getToolCallStatus(activity.status)}
+                  />
+                </MessageRow>
+              )
+            )
           : null}
       </ThinkingBlock>
     </Container>
@@ -178,12 +209,12 @@ type SeerStatusBlockProps = {
    */
   startTime?: Date;
   /**
-   * The tool calls behind the current phase, latest last. A running block shows
-   * them in a thinking block like the Seer agent's, with the latest as its
-   * title. Only a running block draws them — once a run stops they are history,
-   * not status.
+   * The tool calls behind the current phase, and the agent's reasoning between
+   * them, latest last. A running block shows them in a thinking block like the
+   * Seer agent's, with the latest call as its title. Only a running block draws
+   * them — once a run stops they are history, not status.
    */
-  toolActivity?: InvestigationToolActivity[];
+  toolActivity?: SeerStatusActivity[];
   /**
    * A control on the right edge of the block, such as a link to open the
    * investigation. Unlike `action`, it is not a request for input.

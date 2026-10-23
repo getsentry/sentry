@@ -171,8 +171,10 @@ export default Storybook.story('Investigations — Seer status block', story => 
         report block being written. They fill the thinking block the way the Seer agent
         fills its own: the latest call becomes the live title, and every call is listed
         inside in the order it ran, each drawn with the same <code>ToolCall</code>. The
-        block is open while the run works and the viewer can fold it away. A stopped run
-        draws no thinking block, since its last calls are history, not status.
+        agent's reasoning sits between the calls it led to, drawn as prose rather than as
+        calls, and never becomes the title. The block is open while the run works and the
+        viewer can fold it away. A stopped run draws no thinking block, since its last
+        calls are history, not status.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <Stack gap="xl">
@@ -197,6 +199,11 @@ export default Storybook.story('Investigations — Seer status block', story => 
             startTime={startedAgo(101.5)}
             toolActivity={[
               {
+                id: 'thought-1',
+                kind: 'thought',
+                text: 'If the cache is the cause, slow requests should line up with misses. I should compare the hit rate with p95 response time over the incident window.',
+              },
+              {
                 id: 'tool-1',
                 kind: 'tool',
                 status: 'completed',
@@ -207,6 +214,11 @@ export default Storybook.story('Investigations — Seer status block', story => 
                 kind: 'api',
                 status: 'failed',
                 title: 'Fetched identity-provider spans',
+              },
+              {
+                id: 'thought-2',
+                kind: 'thought',
+                text: 'The hit rate barely moved, so misses alone do not explain it.\n\nThe identity-provider spans failed to load, so I will look at Redis itself: if a few hot keys are slow, latency should cluster by key prefix.',
               },
               {
                 id: 'tool-3',

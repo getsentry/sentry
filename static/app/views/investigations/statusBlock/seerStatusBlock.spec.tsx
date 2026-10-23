@@ -67,6 +67,37 @@ describe('SeerStatusBlock', () => {
     expect(screen.getByText('Query spans')).not.toBeVisible();
   });
 
+  it("shows the agent's reasoning between its calls, in the order they happened", () => {
+    render(
+      <SeerStatusBlock
+        variant="running"
+        title="Seer is gathering context"
+        toolActivity={[
+          {id: 'r1', kind: 'thought', text: 'Start with the error spans.'},
+          {id: 'a', kind: 'api', status: 'completed', title: 'Query spans'},
+          {
+            id: 'r2',
+            kind: 'thought',
+            text: 'The baseline looks backwards.\n\nCheck the environment filter.',
+          },
+        ]}
+      />
+    );
+
+    const thinking = screen.getByTestId('seer-status-block-thinking');
+    // Reasoning came last, but the block is still titled by what the agent did.
+    expect(
+      within(thinking).getByRole('button', {name: /Query spans/})
+    ).toBeInTheDocument();
+    const first = within(thinking).getByText('Start with the error spans.');
+    const call = within(thinking).getAllByText('Query spans').at(-1)!;
+    const second = within(thinking).getByText('Check the environment filter.');
+    expect(first.compareDocumentPosition(call)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(call.compareDocumentPosition(second)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    // Reasoning is prose, not a call, so only the call carries a status glyph.
+    expect(within(thinking).getAllByLabelText('Succeeded')).toHaveLength(1);
+  });
+
   it('announces a queued call as waiting, not as awaiting approval', () => {
     render(
       <SeerStatusBlock
@@ -377,6 +408,100 @@ describe('getSeerStatusBlock', () => {
       projection.report.currentBlockToolActivity = [activity('last')];
 
       expect(getSeerStatusBlock(projection)?.toolActivity).toBeUndefined();
+    });
+
+    // Seer keeps reasoning beside the calls, each thought naming the call it
+    // came before, so older code that only knows the calls keeps working.
+    it("puts each phase's reasoning back before the call it came before", () => {
+      const projection = InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'broad_scan',
+      });
+      projection.broadScan.toolActivity = [activity('a'), activity('b', 'running')];
+      projection.broadScan.thoughts = [
+        {id: 'before-a', text: 'Start here.', beforeActivityId: 'a'},
+        {id: 'before-b', text: 'Then this.', beforeActivityId: 'b'},
+        {id: 'latest', text: 'Waiting on the call.', beforeActivityId: null},
+        {id: 'stale', text: 'Its call is gone.', beforeActivityId: 'dropped'},
+      ];
+
+      expect(getSeerStatusBlock(projection)?.toolActivity?.map(a => a.id)).toEqual([
+        'before-a',
+        'a',
+        'before-b',
+        'b',
+        'latest',
+      ]);
+    });
+
+    // Moving a running call last must not part it from the reasoning that led
+    // to it.
+    it('keeps reasoning with its call across parallel hypotheses', () => {
+      const block = getSeerStatusBlock(
+        InvestigationOrchestrationFixture({
+          status: 'processing',
+          phase: 'investigating',
+          hypotheses: [
+            InvestigationHypothesisFixture({
+              id: 'first',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('a-done'), activity('a-running', 'running')],
+              thoughts: [
+                {id: 'a-why', text: 'Why a.', beforeActivityId: 'a-done'},
+                {id: 'a-next', text: 'Then this.', beforeActivityId: 'a-running'},
+              ],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'second',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('b-done')],
+              thoughts: [{id: 'b-why', text: 'Why b.', beforeActivityId: 'b-done'}],
+            }),
+          ],
+        })
+      );
+
+      expect(block?.toolActivity?.map(a => a.id)).toEqual([
+        'a-why',
+        'a-done',
+        'b-why',
+        'b-done',
+        'a-next',
+        'a-running',
+      ]);
+    });
+
+    // One hypothesis's current reasoning must not read as what led to another's
+    // running call.
+    it("puts reasoning no call has followed after every hypothesis's calls", () => {
+      const block = getSeerStatusBlock(
+        InvestigationOrchestrationFixture({
+          status: 'processing',
+          phase: 'investigating',
+          hypotheses: [
+            InvestigationHypothesisFixture({
+              id: 'first',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('a-done')],
+              thoughts: [{id: 'a-now', text: 'Weighing a.', beforeActivityId: null}],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'second',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('b-done'), activity('b-running', 'running')],
+              thoughts: [{id: 'b-next', text: 'Then b.', beforeActivityId: 'b-running'}],
+            }),
+          ],
+        })
+      );
+
+      expect(block?.toolActivity?.map(a => a.id)).toEqual([
+        'a-done',
+        'b-done',
+        'b-next',
+        'b-running',
+        'a-now',
+      ]);
     });
 
     it('omits the list when there are no calls', () => {
