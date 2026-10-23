@@ -13,7 +13,6 @@ import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -145,9 +144,7 @@ function MetricIssueChartContent({
     highlightedOpenPeriodId: openPeriod?.id,
     onOpenPeriodClick: clickedOpenPeriod =>
       navigate({
-        pathname: normalizeUrl(
-          getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug)
-        ),
+        pathname: getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug),
         query: location.query,
       }),
     height: CHART_HEIGHT,
