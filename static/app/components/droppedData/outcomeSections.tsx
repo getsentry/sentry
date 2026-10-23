@@ -31,7 +31,7 @@ export interface OutcomeGroups {
   unintentional: OutcomeSection[];
 }
 
-export type DroppedDataScope = 'contributing' | 'all';
+export type DroppedDataScope = 'unexpected' | 'all';
 
 function isUnintentional(event: OutcomeRow): boolean {
   return event.tags.includes('unintentional');

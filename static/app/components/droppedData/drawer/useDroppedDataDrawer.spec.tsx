@@ -631,7 +631,7 @@ describe('useDroppedDataDrawer', () => {
       ).toBeInTheDocument();
     });
 
-    it('keeps contributing shares when a legend outcome is deselected', async () => {
+    it('keeps unexpected shares when a legend outcome is deselected', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-dropped/`,
         body: {
