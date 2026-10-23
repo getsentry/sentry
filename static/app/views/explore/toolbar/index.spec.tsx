@@ -1535,6 +1535,41 @@ describe('ExploreToolbar', () => {
     );
   });
 
+  it('preserves each chart transformation pipeline when entering Compare', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['explore-interpolation-and-smoothing'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            aggregateField: [
+              JSON.stringify({
+                yAxes: ['avg(span.duration)'],
+                transformations: ['fill(locf)', 'smooth(sma,5)'],
+              }),
+              JSON.stringify({
+                yAxes: ['count(span.duration)'],
+                transformations: ['fill(zero)'],
+              }),
+            ],
+          },
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Compare'}));
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/traces/compare/'
+    );
+    expect(router.location.query.queries).toEqual([
+      expect.stringContaining('"transformations":["fill(locf)","smooth(sma,5)"]'),
+      expect.stringContaining('"transformations":["fill(zero)"]'),
+    ]);
+  });
+
   it('opens the right alert', async () => {
     function Component() {
       return <ExploreToolbar />;

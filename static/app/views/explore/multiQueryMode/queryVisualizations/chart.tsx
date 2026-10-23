@@ -6,6 +6,7 @@ import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -24,6 +25,10 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -33,6 +38,7 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   combineConfidenceForSeries,
   getFirstSamplingWarning,
@@ -66,7 +72,7 @@ export function MultiQueryModeChart({
     return func ? prettifyParsedFunction(func) : undefined;
   });
 
-  const updateChartType = useUpdateQueryAtIndex(index);
+  const updateQuery = useUpdateQueryAtIndex(index);
 
   const chartType = queryParts.chartType ?? determineDefaultChartType(yAxes);
 
@@ -91,6 +97,15 @@ export function MultiQueryModeChart({
   }, [chartType, isTopN, timeseriesResult, yAxes]);
 
   const organization = useOrganization();
+  const transformations = queryParts.transformations ?? [];
+  const hasTransformations = transformations.length > 0;
+  const showTransformationControls = organization.features.includes(
+    'explore-interpolation-and-smoothing'
+  );
+
+  function handleTransformationsChange(updatedTransformations: readonly string[]) {
+    updateQuery({transformations: updatedTransformations});
+  }
   const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
@@ -168,84 +183,112 @@ export function MultiQueryModeChart({
   });
 
   return (
-    <Widget
-      key={index}
-      height={CHART_HEIGHT}
-      Title={Title}
-      TitleBadges={TitleBadges}
-      Actions={[
-        <Tooltip
-          key="visualization"
-          title={t('Type of chart displayed in this visualization (ex. line)')}
-        >
-          <CompactSelect
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                icon={<IconGraph type={visualizationType} />}
-                variant="transparent"
-                showChevron={false}
-                size="xs"
+    <Stack minWidth="0" border="primary" radius="md" background="primary">
+      <Widget
+        key={index}
+        height={CHART_HEIGHT}
+        borderless
+        Title={Title}
+        TitleBadges={TitleBadges}
+        Actions={[
+          <Tooltip
+            key="visualization"
+            title={t('Type of chart displayed in this visualization (ex. line)')}
+          >
+            <CompactSelect
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={<IconGraph type={visualizationType} />}
+                  variant="transparent"
+                  showChevron={false}
+                  size="xs"
+                />
+              )}
+              value={chartType}
+              menuTitle={t('Type')}
+              options={EXPLORE_CHART_TYPE_OPTIONS}
+              onChange={option => {
+                updateQuery({chartType: option.value});
+              }}
+            />
+          </Tooltip>,
+          <Tooltip
+            key="interval"
+            title={t('Time interval displayed in this visualization (ex. 5m)')}
+          >
+            <CompactSelect
+              value={interval}
+              onChange={({value}) => setInterval(value)}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={<IconClock />}
+                  variant="transparent"
+                  showChevron={false}
+                  size="xs"
+                />
+              )}
+              menuTitle="Interval"
+              options={intervalOptions}
+            />
+          </Tooltip>,
+          items && (
+            <DropdownMenu
+              key="contextMenu"
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="xs"
+                  variant="transparent"
+                  icon={<IconEllipsis />}
+                  aria-label={t('Chart actions')}
+                  disabled={hasTransformations}
+                  tooltipProps={
+                    hasTransformations
+                      ? {title: t('Queries with transformations cannot be saved yet.')}
+                      : undefined
+                  }
+                />
+              )}
+              position="bottom-end"
+              items={items}
+            />
+          ),
+        ]}
+        revealActions="always"
+        Visualization={<ChartVisualization chartInfo={chartInfo} />}
+        Footer={
+          <Flex align="center" justify="between" gap="sm" wrap="wrap">
+            <ConfidenceFooter
+              sampleCount={chartInfo.sampleCount}
+              isLoading={chartInfo.timeseriesResult?.isPending || false}
+              isSampled={chartInfo.isSampled}
+              confidence={chartInfo.confidence}
+              topEvents={isTopN ? chartInfo.series.length : undefined}
+              dataScanned={chartInfo.dataScanned}
+            />
+            {showTransformationControls ? (
+              <AddTransformationButton
+                traceItemDataset={TraceItemDataset.SPANS}
+                transformations={transformations}
+                onChange={handleTransformationsChange}
               />
-            )}
-            value={chartType}
-            menuTitle={t('Type')}
-            options={EXPLORE_CHART_TYPE_OPTIONS}
-            onChange={option => {
-              updateChartType({chartType: option.value});
-            }}
+            ) : null}
+          </Flex>
+        }
+      />
+      {showTransformationControls && hasTransformations ? (
+        <Container padding="xl" paddingTop="0" paddingBottom="md">
+          <VisualizeTransformationRows
+            traceItemDataset={TraceItemDataset.SPANS}
+            transformations={transformations}
+            layout="inline"
+            onChange={handleTransformationsChange}
           />
-        </Tooltip>,
-        <Tooltip
-          key="interval"
-          title={t('Time interval displayed in this visualization (ex. 5m)')}
-        >
-          <CompactSelect
-            value={interval}
-            onChange={({value}) => setInterval(value)}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                icon={<IconClock />}
-                variant="transparent"
-                showChevron={false}
-                size="xs"
-              />
-            )}
-            menuTitle="Interval"
-            options={intervalOptions}
-          />
-        </Tooltip>,
-        items && (
-          <DropdownMenu
-            key="contextMenu"
-            trigger={triggerProps => (
-              <OverlayTrigger.IconButton
-                {...triggerProps}
-                size="xs"
-                variant="transparent"
-                icon={<IconEllipsis />}
-                aria-label={t('Chart actions')}
-              />
-            )}
-            position="bottom-end"
-            items={items}
-          />
-        ),
-      ]}
-      revealActions="always"
-      Visualization={<ChartVisualization chartInfo={chartInfo} />}
-      Footer={
-        <ConfidenceFooter
-          sampleCount={chartInfo.sampleCount}
-          isLoading={chartInfo.timeseriesResult?.isPending || false}
-          isSampled={chartInfo.isSampled}
-          confidence={chartInfo.confidence}
-          topEvents={isTopN ? chartInfo.series.length : undefined}
-          dataScanned={chartInfo.dataScanned}
-        />
-      }
-    />
+        </Container>
+      ) : null}
+    </Stack>
   );
 }
 

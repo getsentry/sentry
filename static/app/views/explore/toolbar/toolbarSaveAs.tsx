@@ -335,6 +335,7 @@ export function ToolbarSaveAs() {
               sortBys,
               yAxes: [visual.yAxis],
               chartType: visual.chartType,
+              transformations: visual.transformations,
               caseInsensitive: caseInsensitive ? '1' : undefined,
             })),
           })}

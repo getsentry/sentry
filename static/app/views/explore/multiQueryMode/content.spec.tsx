@@ -1,4 +1,5 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -1124,6 +1125,108 @@ describe('MultiQueryModeContent', () => {
       })
     );
   });
+
+  it('edits one chart pipeline and restores save actions after clearing it', async () => {
+    const {router} = render(<MultiQueryModeContent />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare/',
+          query: {
+            queries: [
+              JSON.stringify({yAxes: ['count(span.duration)']}),
+              JSON.stringify({
+                yAxes: ['avg(span.duration)'],
+                transformations: ['fill(locf)'],
+              }),
+            ],
+          },
+        },
+      },
+    });
+
+    const firstChart = screen.getByTestId('section-visualization-0');
+    const secondChart = screen.getByTestId('section-visualization-1');
+    expect(
+      within(secondChart).getByRole('button', {name: 'Fill method'})
+    ).toHaveTextContent('LOCF');
+    expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(
+      within(firstChart).getByRole('button', {name: 'Chart actions'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(
+      within(secondChart).getByRole('button', {name: 'Chart actions'})
+    ).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.click(
+      within(secondChart).getByRole('button', {name: 'Add Transformation'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    expect(router.location.query.queries).toEqual([
+      expect.not.stringContaining('transformations'),
+      expect.stringContaining('"transformations":["fill(locf)","smooth(sma,3)"]'),
+    ]);
+
+    await userEvent.click(
+      within(secondChart).getAllByRole('button', {name: 'Remove transformation'})[0]!
+    );
+    await userEvent.click(
+      within(secondChart).getByRole('button', {name: 'Remove transformation'})
+    );
+    expect(router.location.query.queries).toEqual([
+      expect.not.stringContaining('transformations'),
+      expect.not.stringContaining('transformations'),
+    ]);
+    expect(screen.getByRole('button', {name: 'Save'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(
+      within(secondChart).getByRole('button', {name: 'Chart actions'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it.each([false, true])(
+    'gates transformation controls with enabled=%s',
+    async enabled => {
+      render(<MultiQueryModeContent />, {
+        organization: OrganizationFixture({
+          ...organization,
+          features: enabled
+            ? [...organization.features, 'explore-interpolation-and-smoothing']
+            : organization.features,
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/compare/',
+            query: {
+              queries: JSON.stringify({
+                yAxes: ['avg(span.duration)'],
+                transformations: ['fill(zero)'],
+              }),
+            },
+          },
+        },
+      });
+
+      expect(screen.queryAllByRole('button', {name: 'Add Transformation'})).toHaveLength(
+        enabled ? 1 : 0
+      );
+      expect(screen.queryAllByRole('button', {name: 'Fill method'})).toHaveLength(
+        enabled ? 1 : 0
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+      ).not.toBeInTheDocument();
+    }
+  );
 
   it('renders a save query button', async () => {
     render(<MultiQueryModeContent />, {

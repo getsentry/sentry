@@ -1,11 +1,39 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+
 import {
   getFieldsForConstructedQuery,
   getSamplesTargetAtIndex,
   normalizeCompareQueryParts,
+  useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+describe('Compare transformations', () => {
+  it.each([{transformations: 'fill(zero)'}, {transformations: ['fill(zero)', false]}])(
+    'ignores malformed transformations $transformations without losing the query',
+    ({transformations}) => {
+      const {result} = renderHookWithProviders(useReadQueriesFromLocation, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/compare/',
+            query: {
+              queries: JSON.stringify({yAxes: ['avg(span.duration)'], transformations}),
+            },
+          },
+        },
+      });
+
+      expect(result.current[0]).toEqual(
+        expect.objectContaining({
+          yAxes: ['avg(span.duration)'],
+          transformations: undefined,
+        })
+      );
+    }
+  );
+});
 
 describe('getFieldsForConstructedQuery', () => {
   it('uses the measure argument from plain aggregates', () => {
