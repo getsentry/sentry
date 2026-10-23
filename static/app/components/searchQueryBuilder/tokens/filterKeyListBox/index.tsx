@@ -295,7 +295,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
       {showDetailsPane ? (
         <DetailsPane>
           {focusedKey ? (
-            <KeyDescription size="md" tag={focusedKey} />
+            <KeyDescription linksAsText size="md" tag={focusedKey} />
           ) : (
             <EmptyState>
               <div>

@@ -1,10 +1,12 @@
-import {useEffect, useId, useRef} from 'react';
+import {useId, useState} from 'react';
 import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {autoUpdate, hide, offset, useFloating} from '@floating-ui/react-dom';
-import {mergeRefs} from '@react-aria/utils';
+import {FocusScope, getFocusableTreeWalker} from '@react-aria/focus';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {IconSearch} from '@sentry/icons/search';
 
 import {InputGroup} from '@sentry/scraps/input';
@@ -18,6 +20,7 @@ import {Text} from '@sentry/scraps/text';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 /** Container for a menu header, with a divider below it. */
 export function MenuHeaderLayout(props: FlexProps) {
@@ -321,6 +324,7 @@ interface OtherProps<T extends React.ElementType> {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: {as?: 'div' | 'p'; id?: string};
+  onDetailsHoverChange?: (isHovered: boolean, event: React.PointerEvent) => void;
 }
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
@@ -345,24 +349,80 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   labelProps = {},
   detailsProps = {},
   showDetailsInOverlay = false,
+  onDetailsHoverChange,
   tooltip,
   tooltipOptions,
   ref,
   ...props
 }: MenuListItemProps<T>) {
-  const itemRef = useRef<HTMLElement>(null);
+  const [itemElement, setItemElement] = useState<HTMLElement | null>(null);
+  const [returnFocusTarget, setReturnFocusTarget] = useState<HTMLElement | null>(null);
   const labelId = useId();
   const detailId = useId();
   const hasInlineDetails = Boolean(details && !showDetailsInOverlay);
+  const [detailsElement, setDetailsElement] = useState<HTMLElement | null>(null);
+  const [isDetailsHovered, setIsDetailsHovered] = useState(false);
+  const [hasFocusInDetails, setHasFocusInDetails] = useState(false);
+  const isDetailsActive = isDetailsHovered || hasFocusInDetails;
+  const showOverlayDetails =
+    showDetailsInOverlay && Boolean(details) && (isFocused || isDetailsActive);
+
+  const detailsContain = (target: EventTarget | null) =>
+    target instanceof Node && Boolean(detailsElement?.contains(target));
+
+  const itemProps = mergeProps(
+    {'aria-describedby': details ? detailId : undefined},
+    props,
+    {
+      onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+        if (
+          e.key === 'ArrowRight' &&
+          e.target === e.currentTarget &&
+          focusMenuItemDetails(e.currentTarget)
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      onFocus: (e: React.FocusEvent<HTMLElement>) => {
+        if (detailsContain(e.target)) {
+          e.stopPropagation();
+          if (
+            !detailsContain(e.relatedTarget) &&
+            e.relatedTarget instanceof HTMLElement
+          ) {
+            setReturnFocusTarget(e.relatedTarget);
+          }
+          setHasFocusInDetails(true);
+        }
+      },
+      onBlur: (e: React.FocusEvent<HTMLElement>) => {
+        if (detailsContain(e.target)) {
+          e.stopPropagation();
+        }
+        setHasFocusInDetails(detailsContain(e.relatedTarget));
+      },
+    }
+  );
+
+  const returnFocus = () => {
+    const target = returnFocusTarget?.isConnected ? returnFocusTarget : itemElement;
+    setReturnFocusTarget(null);
+    target?.focus();
+  };
 
   return (
     <MenuItemWrap
       aria-disabled={disabled}
       aria-labelledby={labelId}
-      aria-describedby={detailId}
       as={as ?? 'li'}
-      ref={mergeRefs(ref, itemRef) as React.RefCallback<HTMLElement>}
-      {...props}
+      ref={
+        mergeRefs(ref, (element: HTMLElement | null) =>
+          setItemElement(element)
+        ) as React.RefCallback<HTMLElement>
+      }
+      data-menu-item-details-id={showDetailsInOverlay ? detailId : undefined}
+      {...itemProps}
     >
       <Tooltip
         skipWrapper
@@ -388,7 +448,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           {...innerWrapProps}
         >
           <StyledInteractionStateLayer
-            isHovered={isFocused}
+            isHovered={isFocused || isDetailsActive}
             isPressed={isPressed}
             higherOpacity={priority !== 'default'}
           />
@@ -455,8 +515,24 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           </StyledContentWrap>
         </StyledInnerWrap>
       </Tooltip>
-      {showDetailsInOverlay && details && isFocused && (
-        <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
+      {showOverlayDetails && (
+        <DetailsOverlay
+          size={size}
+          id={detailId}
+          itemElement={itemElement}
+          labelId={labelId}
+          ref={setDetailsElement}
+          hasFocusWithin={hasFocusInDetails}
+          onReturnFocus={returnFocus}
+          onPointerEnter={e => {
+            setIsDetailsHovered(true);
+            onDetailsHoverChange?.(true, e);
+          }}
+          onPointerLeave={e => {
+            setIsDetailsHovered(false);
+            onDetailsHoverChange?.(false, e);
+          }}
+        >
           {typeof details === 'function'
             ? details({disabled, isFocused, isSelected})
             : details}
@@ -473,35 +549,107 @@ const DETAILS_MIDDLEWARE = [
   hide(),
 ];
 
+/** Moves focus into a menu item's overlay details, returning whether it could. */
+export function focusMenuItemDetails(item: Element | null): boolean {
+  const detailsId = item?.getAttribute('data-menu-item-details-id');
+  const detailsElement = detailsId ? document.getElementById(detailsId) : null;
+  const firstFocusable = detailsElement
+    ? getFocusableTreeWalker(detailsElement, {tabbable: true}).nextNode()
+    : null;
+
+  if (!(firstFocusable instanceof HTMLElement)) {
+    return false;
+  }
+
+  firstFocusable.focus();
+  return true;
+}
+
+function getTabbableElements(root: HTMLElement): HTMLElement[] {
+  const walker = getFocusableTreeWalker(root, {tabbable: true});
+  const elements: HTMLElement[] = [];
+  let node = walker.nextNode();
+  while (node) {
+    if (node instanceof HTMLElement) {
+      elements.push(node);
+    }
+    node = walker.nextNode();
+  }
+  return elements;
+}
+
+interface DetailsOverlayProps {
+  children: React.ReactNode;
+  hasFocusWithin: boolean;
+  id: string;
+  itemElement: HTMLElement | null;
+  labelId: string;
+  onPointerEnter: (event: React.PointerEvent) => void;
+  onPointerLeave: (event: React.PointerEvent) => void;
+  onReturnFocus: () => void;
+  ref: (element: HTMLDivElement | null) => void;
+  size: MenuListItemProps['size'];
+}
+
 /** Shows item details beside the focused item when overlay details are enabled. */
 function DetailsOverlay({
   children,
-  size,
+  hasFocusWithin,
   id,
-  itemRef,
-}: {
-  children: React.ReactNode;
-  id: string;
-  itemRef: React.RefObject<HTMLElement | null>;
-  size: MenuListItemProps['size'];
-}) {
+  itemElement,
+  labelId,
+  onPointerEnter,
+  onPointerLeave,
+  onReturnFocus,
+  ref,
+  size,
+}: DetailsOverlayProps) {
   const theme = useTheme();
+  const {t} = useTranslation();
+  const [contentElement, setContentElement] = useState<HTMLDivElement | null>(null);
+  const [isInteractive, setIsInteractive] = useState(false);
   const {
-    refs: {setReference, setFloating},
+    refs: {setFloating},
     floatingStyles,
     middlewareData,
   } = useFloating({
+    elements: {reference: itemElement},
     placement: 'right-start',
     strategy: 'fixed',
     middleware: DETAILS_MIDDLEWARE,
     whileElementsMounted: autoUpdate,
   });
 
-  // The menu item attaches its ref after this overlay's refs and layout effects
-  // run, so read it once the commit is done
-  useEffect(() => {
-    setReference(itemRef.current);
-  }, [itemRef, setReference]);
+  const onContentElement = (element: HTMLDivElement | null) => {
+    setContentElement(element);
+    if (element) {
+      setIsInteractive(getTabbableElements(element).length > 0);
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      e.stopPropagation();
+      onReturnFocus();
+      return;
+    }
+
+    if (e.key === 'Tab' && contentElement) {
+      e.preventDefault();
+      e.stopPropagation();
+      const tabbables = getTabbableElements(contentElement);
+      const index = tabbables.indexOf(e.target as HTMLElement);
+      const next = e.shiftKey
+        ? tabbables[index <= 0 ? tabbables.length - 1 : index - 1]
+        : tabbables[(index + 1) % tabbables.length];
+      next?.focus();
+    }
+  };
+
+  if (!itemElement) {
+    return null;
+  }
 
   return createPortal(
     <StyledPositionWrapper
@@ -510,14 +658,34 @@ function DetailsOverlay({
       zIndex={theme.zIndex.tooltip}
       style={floatingStyles}
     >
-      <StyledOverlay id={id} role="tooltip" placement="right-start" size={size}>
-        {children}
-      </StyledOverlay>
+      <FocusScope>
+        <StyledOverlay
+          id={id}
+          ref={mergeRefs<HTMLDivElement>(ref, onContentElement)}
+          role={isInteractive ? 'dialog' : 'tooltip'}
+          aria-labelledby={
+            isInteractive
+              ? (itemElement.getAttribute('aria-labelledby') ?? labelId)
+              : undefined
+          }
+          placement="right-start"
+          size={size}
+          data-menu-item-details
+          onKeyDown={onKeyDown}
+          onPointerEnter={onPointerEnter}
+          onPointerLeave={onPointerLeave}
+        >
+          {children}
+          {isInteractive && !hasFocusWithin ? (
+            <VisuallyHidden>
+              {t('Press Right Arrow to interact with details.')}
+            </VisuallyHidden>
+          ) : null}
+        </StyledOverlay>
+      </FocusScope>
     </StyledPositionWrapper>,
-    // Safari will clip the overlay if it is inside a scrollable container, even though it is positioned fixed.
-    // See https://bugs.webkit.org/show_bug.cgi?id=160953
-    // To work around this, we append the overlay to the body
-    document.body
+    // Not inside the scrolling menu: https://bugs.webkit.org/show_bug.cgi?id=160953
+    itemElement.closest('[data-overlay-root]') ?? document.body
   );
 }
 

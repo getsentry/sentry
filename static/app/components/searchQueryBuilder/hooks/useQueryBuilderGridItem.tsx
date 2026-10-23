@@ -143,6 +143,10 @@ export function useQueryBuilderGridItem(
         return;
       }
 
+      if ((e.target as Element).closest('[data-menu-item-details]')) {
+        return;
+      }
+
       const walker = getFocusableTreeWalker(e.currentTarget, {
         wrap: false,
         accept: node => node.tagName === 'BUTTON',
