@@ -31,37 +31,9 @@ function ExampleForm({onSubmit}: {onSubmit?: (value: {name: string}) => void}) {
   );
 }
 
-describe('DisplayField', () => {
+describe('form presentation integration', () => {
   afterEach(() => {
     jest.restoreAllMocks();
-  });
-
-  it('renders a description list without a form provider', () => {
-    render(
-      <DisplayField.Row label="Created" hintText="When the key was created.">
-        January 1, 2025
-      </DisplayField.Row>
-    );
-
-    const term = screen.getByRole('term');
-    const definition = screen.getByRole('definition');
-    expect(term).toHaveTextContent('Created');
-    expect(term).toHaveTextContent('When the key was created.');
-    expect(definition).toHaveTextContent('January 1, 2025');
-    expect(term.closest('dl')).toBe(definition.parentElement);
-  });
-
-  it('places the hint after the value in the stack layout', () => {
-    render(
-      <DisplayField.Stack label="Created" hintText="When the key was created.">
-        January 1, 2025
-      </DisplayField.Stack>
-    );
-
-    expect(screen.getByRole('term')).toHaveTextContent(/^Created$/);
-    expect(screen.getByRole('definition')).toHaveTextContent(
-      'January 1, 2025When the key was created.'
-    );
   });
 
   it('stacks at the same container breakpoint as bound form fields', () => {

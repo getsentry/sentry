@@ -5,7 +5,15 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconWarning} from '@sentry/icons/warning';
 
-import {fadeOut, pulse} from 'sentry/styles/animations';
+const fadeOut = keyframes`
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+`;
+
+const pulse = keyframes`
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.15, 1.15); }
+`;
 
 const spin = keyframes`
   0% {
@@ -31,7 +39,7 @@ export const Checkmark = styled(IconCheckmark)`
 `;
 
 export const Warning = styled(IconWarning)`
-  animation: ${() => pulse(1.15)} 1s ease infinite;
+  animation: ${pulse} 1s ease infinite;
 `;
 
 const RequiredIndicatorBase = styled('div')`

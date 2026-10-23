@@ -1,4 +1,4 @@
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {useFieldContext} from './formContext';
 
 export const useFieldId = () => {
   const field = useFieldContext();

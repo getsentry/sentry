@@ -23,6 +23,10 @@
       "types": "./dist/theme/index.d.ts",
       "import": "./dist/theme/index.js"
     },
+    "./formPresentation": {
+      "types": "./dist/formPresentation/index.d.ts",
+      "import": "./dist/formPresentation/index.js"
+    },
     "./tokens": {
       "types": "./dist/tokens/index.d.ts",
       "import": "./dist/tokens/index.js"
@@ -243,6 +247,7 @@
     "@rslib/core": "1.0.3",
     "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
+    "@tanstack/react-form": "1.28.6",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
@@ -260,6 +265,7 @@
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
+    "@tanstack/react-form": "^1.28.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

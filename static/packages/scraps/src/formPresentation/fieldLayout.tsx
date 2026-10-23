@@ -1,8 +1,10 @@
-import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import type * as React from 'react';
+
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {BaseLayout, LayoutLabel} from './base';
+import {useFieldContext} from './formContext';
+import {FieldMeta} from './meta';
 import {useStackedLayout} from './useStackedLayout';
 
 interface LayoutProps {
