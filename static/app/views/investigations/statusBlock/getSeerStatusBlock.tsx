@@ -72,12 +72,19 @@ const IN_FLIGHT_RANK: Partial<Record<InvestigationToolActivity['status'], number
 };
 
 /**
+ * Reasoning no call has followed yet is what an agent is doing now, so it sorts
+ * after every call. Sorted with the running calls instead, one hypothesis's
+ * reasoning could land just before another's running call and read as what led
+ * to it.
+ */
+const CURRENT_REASONING_RANK = (IN_FLIGHT_RANK.running ?? 0) + 1;
+
+/**
  * Each entry of one list paired with where it sorts. Reasoning sorts with the
- * call it led to, so sorting never parts the two; reasoning no call has followed
- * yet is what the agent is doing now, so it sorts with the running calls.
+ * call it led to, so sorting never parts the two.
  */
 function rankEntries(activity: SeerStatusActivity[]) {
-  let nextCallRank = IN_FLIGHT_RANK.running ?? 0;
+  let nextCallRank = CURRENT_REASONING_RANK;
   return [...activity]
     .reverse()
     .map(entry => {
