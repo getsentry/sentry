@@ -23,6 +23,46 @@
       "types": "./dist/theme/index.d.ts",
       "import": "./dist/theme/index.js"
     },
+    "./form/displayField": {
+      "types": "./dist/form/displayField.d.ts",
+      "import": "./dist/form/displayField.js"
+    },
+    "./form/formContext": {
+      "types": "./dist/form/formContext.d.ts",
+      "import": "./dist/form/formContext.js"
+    },
+    "./form/autoSaveContext": {
+      "types": "./dist/form/autoSaveContext.d.ts",
+      "import": "./dist/form/autoSaveContext.js"
+    },
+    "./form/icons": {
+      "types": "./dist/form/icons.d.ts",
+      "import": "./dist/form/icons.js"
+    },
+    "./form/layout/base": {
+      "types": "./dist/form/layout/base.d.ts",
+      "import": "./dist/form/layout/base.js"
+    },
+    "./form/layout": {
+      "types": "./dist/form/layout/index.d.ts",
+      "import": "./dist/form/layout/index.js"
+    },
+    "./form/layout/useStackedLayout": {
+      "types": "./dist/form/layout/useStackedLayout.d.ts",
+      "import": "./dist/form/layout/useStackedLayout.js"
+    },
+    "./form/field/meta": {
+      "types": "./dist/form/field/meta.d.ts",
+      "import": "./dist/form/field/meta.js"
+    },
+    "./form/field/fieldIds": {
+      "types": "./dist/form/field/fieldIds.d.ts",
+      "import": "./dist/form/field/fieldIds.js"
+    },
+    "./form/field/groupContext": {
+      "types": "./dist/form/field/groupContext.d.ts",
+      "import": "./dist/form/field/groupContext.js"
+    },
     "./tokens": {
       "types": "./dist/tokens/index.d.ts",
       "import": "./dist/tokens/index.js"
@@ -230,6 +270,7 @@
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
+    "@tanstack/react-form": "1.28.6",
     "@types/react": "19.3.0",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
