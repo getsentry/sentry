@@ -53,18 +53,21 @@ flowchart TD
    detectors) and returns `DetectorEvaluations`, with at most one `DetectorEvaluation` per
    group. Build each evaluation with a named constructor so its outcome is explicit:
 
-   | Outcome                    | Constructor                                                                      | Platform behavior                                                                 |
-   | -------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-   | Create an issue            | `DetectorEvaluation.create_issue(group_key, priority, trigger_group_evaluation)` | Calls `create_occurrence` and builds the `IssueOccurrence`.                       |
-   | Deliver a result you built | `evaluation.with_result(result)`                                                 | Delivers the `IssueOccurrence` or `StatusChangeMessage` as-is.                    |
-   | Nothing to do              | `DetectorEvaluation.ok(group_key, trigger_group_evaluation)`, or omit the group  | Drops the evaluation; subclasses such as `StatefulDetectorHandler` can act on it. |
+   | Outcome       | Constructor                                                                      | Platform behavior                                                                 |
+   | ------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+   | Triggered     | `DetectorEvaluation.create_issue(group_key, priority, trigger_group_evaluation)` | Calls `create_occurrence` and sets the built `IssueOccurrence` as the result.     |
+   | Already built | `evaluation.with_result(result)`                                                 | Keeps the `IssueOccurrence` or `StatusChangeMessage` as-is.                       |
+   | Nothing to do | `DetectorEvaluation.ok(group_key, trigger_group_evaluation)`, or omit the group  | Drops the evaluation; subclasses such as `StatefulDetectorHandler` can act on it. |
 
    `create_issue` rejects an `OK` priority, and `with_result` requires a result, so an
-   evaluation cannot be both an issue and a no-op.
+   evaluation cannot be both triggered and a no-op.
 
 3. `create_occurrence` is called for every `create_issue` evaluation. The base handler turns
    the returned `DetectorOccurrence` into an `IssueOccurrence` with the workflow engine
    evidence, fingerprint, and event data.
+4. `process_detectors` passes every evaluation with a result to the handler's `on_complete`,
+   which decides what to do with it. The default, `DetectorOutcome.ISSUE_PLATFORM`, sends the
+   occurrence or status change to the Issue Platform.
 
 Inherit it directly for detectors that do not decide with a data condition group. Their
 evidence has empty `conditions`; omit `trigger_group_evaluation` from the constructor.

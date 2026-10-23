@@ -54,20 +54,23 @@ class DetectorEvaluation(
     Detector handlers SHOULD build evaluations with the named constructors, which state the
     intended outcome and keep `triggered`, `priority`, and `result` consistent:
 
-    - `DetectorEvaluation.create_issue(...)`: create an issue at a non-OK priority. The
-      handler calls `create_occurrence` and sets the `IssueOccurrence` as the result.
-    - `evaluation.with_result(...)`: deliver an `IssueOccurrence` or `StatusChangeMessage`
-      that was already built, e.g. a resolution from a stateful detector.
+    - `DetectorEvaluation.create_issue(...)`: the group triggered at a non-OK priority. The
+      detector handler calls `create_occurrence` and sets the built `IssueOccurrence` as the result.
+    - `evaluation.with_result(...)`: carry an `IssueOccurrence` or `StatusChangeMessage` that
+      was already built, e.g. a resolution from a stateful detector. It is kept as-is.
     - `DetectorEvaluation.ok(...)`: the group evaluated as OK. It carries no result, so it is
       dropped unless a subclass acts on it.
+
+    Evaluations with a result are passed to the detector handler's `on_complete`, which decides
+    what to do with them. The default, `DetectorOutcome.ISSUE_PLATFORM`, sends them to the Issue Platform.
 
     Properties
     - priority: DetectorPriorityLevel - The resulting priority for the detector
 
     Inherited properties
-    - result: DetectorResult - The information to send to the issue platforms Kafka topic,
-        either a new issue (IssueOccurrence) or an update to an existing issue (StatusChangeMessage).
-        None when there is nothing to deliver yet: a `create_issue` evaluation before its occurrence is built,
+    - result: DetectorResult - An occurrence (IssueOccurrence) or a status change for an existing issue
+        (StatusChangeMessage), passed to the detector handler's `on_complete`.
+        None when there is no result yet: a `create_issue` evaluation before its occurrence is built,
         or an `ok` evaluation that no handler turned into a resolution.
     - data: DetectorEvaluationData - This data includes the group key (DetectorGroupKey), the evaluation of the Detector
         triggers (DataConditionGroupEvaluation), and the event data (dict) that triggered the detector evaluation.
@@ -86,16 +89,14 @@ class DetectorEvaluation(
         trigger_group_evaluation: DataConditionGroupEvaluation | None = None,
     ) -> Self:
         """
-        The group should create an issue at `priority`. The detector handler calls
-        `create_occurrence` and sets the resulting `IssueOccurrence` as the result.
+        The group triggered at `priority`. The detector handler calls `create_occurrence` and
+        sets the built `IssueOccurrence` as the result.
 
         `trigger_group_evaluation` is the condition group evaluation that decided the
         priority, or None for detectors that do not evaluate one.
         """
         if priority == DetectorPriorityLevel.OK:
-            raise ValueError(
-                "An OK priority cannot create an issue; use `DetectorEvaluation.ok` instead"
-            )
+            raise ValueError("An OK priority cannot trigger; use `DetectorEvaluation.ok` instead")
 
         return cls(
             result=None,
@@ -138,7 +139,7 @@ class DetectorEvaluation(
     ) -> Self:
         """
         Returns a copy of this evaluation carrying an already built result, which the detector
-        handler delivers as-is. `event_data` replaces the evaluation's event data when given.
+        handler keeps as-is. `event_data` replaces the evaluation's event data when given.
         """
         return replace(
             self,

@@ -155,13 +155,15 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         Return at most one `DetectorEvaluation` per group key in `values`, built with its named
         constructors so the outcome is explicit:
 
-        1. Create an issue: `DetectorEvaluation.create_issue(group_key, priority, trigger_group_evaluation)`.
-           The platform calls `create_occurrence` and builds the `IssueOccurrence`.
-        2. Deliver a result you already built: `evaluation.with_result(result)`, where `result` is an
-           `IssueOccurrence` or `StatusChangeMessage`. It is delivered as-is, e.g. a resolution from a
-           stateful detector.
+        1. Triggered: `DetectorEvaluation.create_issue(group_key, priority, trigger_group_evaluation)`.
+           The platform calls `create_occurrence` and sets the built `IssueOccurrence` as the result.
+        2. Already built: `evaluation.with_result(result)`, where `result` is an `IssueOccurrence` or
+           `StatusChangeMessage`, e.g. a resolution from a stateful detector. It is kept as-is.
         3. Nothing to do: leave the group out, or return `DetectorEvaluation.ok(group_key, ...)`.
            OK evaluations carry no result and are dropped, unless a subclass acts on them.
+
+        Every evaluation with a result is then passed to the handler's `on_complete`, which decides
+        what to do with it. The default, `DetectorOutcome.ISSUE_PLATFORM`, sends it to the Issue Platform.
         """
         pass
 
