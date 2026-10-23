@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {IconAllProjects} from '@sentry/icons/allProjects';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
+import {IconSentry} from '@sentry/icons/sentry';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -165,9 +166,12 @@ function AutomationCard({
         background="primary"
       >
         <Stack gap="lg" flex="1">
-          <Heading as="h3" size="md">
-            {title}
-          </Heading>
+          <Flex align="center" gap="lg">
+            <Heading as="h3" size="md">
+              {title}
+            </Heading>
+            <IconSentry size="xs" variant="muted" />
+          </Flex>
           {subtitleOverride ? (
             <Flex>
               <Tag variant="muted" icon={subtitleOverride.icon}>
