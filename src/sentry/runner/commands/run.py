@@ -11,14 +11,11 @@ from typing import Any
 
 import click
 import taskbroker_client.constants as taskworker_constants
-import watchfiles
 from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-import sentry
 from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
-from sentry.runner.settings import discover_configs
 from sentry.utils.kafka import run_processor_with_signals
 from sentry.viewer_context import (
     Actor,
@@ -259,6 +256,12 @@ def taskworker(autoreload: bool, **options: Any) -> None:
 
 
 def _run_taskworker_with_autoreload(**options: Any) -> None:
+    # watchfiles pulls in anyio, which CLI startup must not import.
+    import watchfiles
+
+    import sentry
+    from sentry.runner.settings import discover_configs
+
     # The worker registers signal handlers, so it must own the main thread of
     # its own process. watchfiles restarts that process with SIGINT on change.
     configured = multiprocessing.get_context("spawn").Event()
