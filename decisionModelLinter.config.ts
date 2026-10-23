@@ -336,18 +336,24 @@ const security = {
   },
 } satisfies Suite;
 
+const productNames = ['Sentry', 'Seer', 'Session Replay', 'Error Monitoring'];
+const acronyms = ['API', 'SDK'];
+
 // Proposed sentence-case guidance for copy review; the MDX currently requires title case.
 const voice = {
-  files: ['static/app/**/*.ts', 'static/app/**/*.tsx'],
+  files: ['static/app/**/*.ts*'],
   ignores: [
-    '**/*.spec.*',
-    '**/*.test.*',
-    '**/*.stories.*',
-    '**/tests/**',
-    '**/__tests__/**',
-    '**/fixtures/**',
-    '**/__fixtures__/**',
-    '**/testutils/**',
+    ...['spec', 'test', 'stories', 'd', 'figma'].map(kind => `**/*.${kind}.ts*`),
+    ...[
+      '*tests*',
+      '*fixtures*',
+      '*stories*',
+      'testutils',
+      'dist',
+      'vendor',
+      '.types',
+      '.artifacts',
+    ].map(directory => `**/${directory}/**`),
   ],
   threshold: 0.7,
   unchecked: 'warn',
@@ -357,8 +363,7 @@ const voice = {
   },
   rules: {
     usesTitleCaseInUiCopy: {
-      prompt:
-        'Does any translated UI heading, title, button, label, or table/chart label incorrectly capitalize a common word after the first word? Sentence case is required, including chart axes, legends, sidebar items, form labels, and default widget titles. Capitalize the first word and preserve proper nouns, product names such as Sentry, Seer, Session Replay and Error Monitoring, and acronyms such as API and SDK. Examples: Last seen, Save as, Errors and outages, Most frozen frames, Set up Session Replay. Check both tn text arguments and imported aliases as well as t and tct. A single offending literal is enough. Ignore body prose, search keywords, code, and interpolation placeholders.',
+      prompt: `Does any UI heading, title, button, label, or table/chart label incorrectly capitalize a common word after the first word? Sentence case is required, including chart axes, legends, sidebar items, form labels, and default widget titles. Capitalize the first word and preserve proper nouns, product names (${productNames.join(', ')}), and acronyms (${acronyms.join(', ')}). Examples: "Last seen", "Save as", "Errors and outages", "Most frozen frames". A single offending literal is enough. Body prose does not count.`,
       values: [
         {
           value: 'TRUE',
@@ -376,16 +381,14 @@ const voice = {
     },
     miscapitalizesProductName: {
       threshold: 0.6,
-      prompt:
-        'Does translated user-facing prose contain a product name that matches sentry, seer, session replay, or error monitoring IGNORING letter case, but whose actual capitalization differs from the required spellings Sentry, Seer, Session Replay, or Error Monitoring? Compare names case-insensitively first, then check capitalization. Lowercase and ALL-CAPS variants both count as violations when they name the product. Check t, tct, both tn arguments, and imported aliases. Text outside tct code markers is prose. Ignore package names, paths, code, search keywords, and generic uses of session or replay.',
+      prompt: `Does user-facing prose contain a product name that matches an entry in this canonical list IGNORING letter case, but differs in capitalization: ${productNames.join(', ')}? Compare names case-insensitively first, then check capitalization. Lowercase and ALL-CAPS variants both count as violations when they name the product. Text outside tct code markers is prose. Generic uses of "session" or "replay" do not count.`,
       values: [
         {
           value: 'TRUE',
           description:
-            'At least one prose product mention matches a canonical name ignoring case, but differs in capitalization. This includes lowercase sentry or seer, uppercase SENTRY or SEER, and prose outside tct code markers.',
+            'At least one prose product mention matches a canonical name ignoring case, but differs in capitalization. This includes lowercase or ALL-CAPS variants and prose outside tct code markers.',
           severity: 'warn',
-          report:
-            'Use the approved product spelling, such as Sentry, Seer, or Session Replay. Preserve package names and identifiers.',
+          report: `Use the approved product spelling: ${productNames.join(', ')}. Preserve package names and identifiers.`,
         },
         {
           value: 'FALSE',
@@ -396,7 +399,7 @@ const voice = {
     },
     directsFrustrationAtUser: {
       prompt:
-        'Does translated UI copy direct frustration, ridicule, contempt, or a judgment about competence at the user? Flag insults or scolding, not ordinary second-person instructions. Neutral explanations of permissions, invalid input, configuration mistakes, or responsibility do not count. You do not have permission and Check your connection are neutral. Empathetic humor about the situation, Sentry itself, missing pages, or slow loading does not count as user-directed frustration. Do not flag all humor or all uses of you.',
+        'Does UI copy direct frustration, ridicule, contempt, or a judgment about competence at the user? Flag insults or scolding, not ordinary second-person instructions. Neutral explanations of permissions, invalid input, configuration mistakes, or responsibility do not count. "You do not have permission" and "Check your connection" are neutral. Empathetic humor about the situation, the product itself, missing pages, or slow loading does not count as user-directed frustration. Do not flag all humor or all uses of "you".',
       values: [
         {
           value: 'TRUE',
