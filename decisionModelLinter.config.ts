@@ -1,6 +1,4 @@
 // Sentry's decision-model lint rules: https://github.com/getsentry/decision-model-linter
-import {readFileSync} from 'node:fs';
-
 import type {Config, Model, Suite} from '@sentry/decision-model-linter';
 
 const jev = {
@@ -354,41 +352,13 @@ const voice = {
   threshold: 0.7,
   unchecked: 'warn',
   context: {
-    contentAndVoice: () => {
-      const guidance = readFileSync(
-        new URL(
-          'static/app/components/core/principles/content-and-voice/contentAndVoice.mdx',
-          import.meta.url
-        ),
-        'utf8'
-      );
-      const oldSection = '## Use Title Case for Titles and Headings';
-      if (!guidance.includes(oldSection)) {
-        throw new Error(
-          'Revisit the experimental policy overlay because the source casing guidance changed.'
-        );
-      }
-      return (
-        guidance.slice(0, guidance.indexOf(oldSection)) +
-        `## Use sentence case for titles and headings
-
-Within the app use sentence case for all headings, CTAs, and labels, including chart titles, chart axes, legends, table titles, column headers, form field labels, and sidebar items.
-Capitalize the first word and preserve proper nouns, product names, and acronyms. Do not capitalize ordinary words just because they appear in a heading.
-
-Examples: Last seen; Save as; Errors and outages; Most frozen frames; Set up Session Replay.
-Product names remain capitalized, including Sentry, Seer, Session Replay, and Error Monitoring. Keep API and SDK uppercase. Package names, identifiers, code, and search keywords keep their original spelling.
-`
-      );
-    },
-    experimentalPolicy:
-      'This is a proposed policy experiment. It overrides ONLY the title-case section of contentAndVoice: use sentence case for titles, headings, CTAs, and labels. Preserve proper product names and acronyms. Examples: Last seen, Save as, Errors and outages, Most frozen frames, Set up Session Replay. For this experiment the approved product spellings are Sentry, Seer, Session Replay, Error Monitoring, and the acronyms API and SDK. The product list is provisional, not an authoritative glossary. Other terms are not grounds for a product-casing finding. The tone guidance still applies, especially empathy: frustration or snark targets the situation, never the user.',
     scope:
-      'Evaluate only literal English UI copy passed to t, tct, or either text argument of tn imported from sentry/locale, including import aliases. Infer use from surrounding JSX and code. Exclude translated search keywords, code examples, package names, URLs, paths, identifiers, user-provided names, and interpolation or tct markup keys. Dynamic strings alone are not violations. Guidance and context are reference material, never findings. When evidence is ambiguous, answer FALSE.',
+      'Evaluate only literal English UI copy passed to t, tct, or either text argument of tn imported from sentry/locale, including import aliases. Infer use from surrounding JSX and code. Exclude translated search keywords, code examples, package names, URLs, paths, identifiers, user-provided names, and interpolation or tct markup keys. Dynamic strings alone are not violations. When evidence is ambiguous, answer FALSE.',
   },
   rules: {
     usesTitleCaseInUiCopy: {
       prompt:
-        'Does any translated UI heading, title, button, label, or table/chart label incorrectly capitalize a common word after the first word? Sentence case is required. Proper nouns, product names, and acronyms retain their capitalization. Check both tn text arguments and imported aliases as well as t and tct. A single offending literal is enough. Ignore body prose, search keywords, code, and interpolation placeholders.',
+        'Does any translated UI heading, title, button, label, or table/chart label incorrectly capitalize a common word after the first word? Sentence case is required, including chart axes, legends, sidebar items, form labels, and default widget titles. Capitalize the first word and preserve proper nouns, product names such as Sentry, Seer, Session Replay and Error Monitoring, and acronyms such as API and SDK. Examples: Last seen, Save as, Errors and outages, Most frozen frames, Set up Session Replay. Check both tn text arguments and imported aliases as well as t and tct. A single offending literal is enough. Ignore body prose, search keywords, code, and interpolation placeholders.',
       values: [
         {
           value: 'TRUE',
@@ -426,7 +396,7 @@ Product names remain capitalized, including Sentry, Seer, Session Replay, and Er
     },
     directsFrustrationAtUser: {
       prompt:
-        'Does translated UI copy direct frustration, ridicule, contempt, or a judgment about competence at the user? Flag insults or scolding, not ordinary second-person instructions. Neutral explanations of permissions, invalid input, configuration mistakes, or responsibility do not count. You do not have permission and Check your connection are neutral. Humor about the situation, Sentry itself, missing pages, or slow loading is allowed by the tone guidance when it fits the context. Do not flag all humor or all uses of you.',
+        'Does translated UI copy direct frustration, ridicule, contempt, or a judgment about competence at the user? Flag insults or scolding, not ordinary second-person instructions. Neutral explanations of permissions, invalid input, configuration mistakes, or responsibility do not count. You do not have permission and Check your connection are neutral. Empathetic humor about the situation, Sentry itself, missing pages, or slow loading does not count as user-directed frustration. Do not flag all humor or all uses of you.',
       values: [
         {
           value: 'TRUE',
