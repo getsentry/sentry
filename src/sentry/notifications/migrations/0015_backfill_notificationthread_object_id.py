@@ -19,7 +19,8 @@ def backfill_object_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor)
         group_id = thread.key_data.get("group_id")
         if group_id is None:
             continue
-        NotificationThread.objects.filter(id=thread.id).update(object_id=int(group_id))
+        thread.object_id = int(group_id)
+        thread.save(update_fields=["object_id"])
 
 
 class Migration(CheckedMigration):
