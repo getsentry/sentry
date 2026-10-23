@@ -32,7 +32,7 @@ const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   // Seer pages linked from Explore until the Seer primary nav ships.
   {
     group: 'explore',
-    pattern: /(?:^|\/)seer\/(?:investigations|automations|investigation\/[^/]+)\/?$/,
+    pattern: /(?:^|\/)seer\/(?:automations|investigations(?:\/[^/]+)?)\/?$/,
     unlessFeature: 'seer-primary-nav',
   },
 ];
