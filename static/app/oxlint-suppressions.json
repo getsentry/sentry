@@ -648,11 +648,6 @@
       "count": 1
     }
   },
-  "components/groupPreviewTooltip/stackTracePreview.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "components/guidedSteps/guidedSteps.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
@@ -1394,11 +1389,6 @@
     }
   },
   "components/stackTrace/exceptionGroup.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "components/stackTrace/frame/actions/chevron.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }

@@ -316,7 +316,7 @@ function IssuePreviewContent() {
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
           {summary && <IssuePreviewSummary summary={summary} />}
-          {event && hasEventStackTrace(event, group) && (
+          {event && hasEventStackTrace(event, group, organization) && (
             <Container key={event.id}>
               <ErrorBoundary mini>
                 <EventStackTrace event={event} group={group} projectSlug={project.slug} />
