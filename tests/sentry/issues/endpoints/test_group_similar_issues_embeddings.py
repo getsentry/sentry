@@ -224,7 +224,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert viewer_context.organization_id == self.org.id
         assert viewer_context.project_id == self.project.id
         assert viewer_context.user_id == self.user.id
-        assert viewer_context.actor_type == ActorType.USER
+        assert viewer_context.actor.type == ActorType.USER
 
         assert self.similar_event.group_id is not None
         assert response.data == self.get_expected_response(
@@ -461,7 +461,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             assert viewer_context.organization_id == self.project.organization_id
             assert viewer_context.project_id == self.project.id
             assert viewer_context.user_id == self.user.id
-            assert viewer_context.actor_type == ActorType.USER
+            assert viewer_context.actor.type == ActorType.USER
 
         mock_seer_deletion_request.delay.side_effect = assert_viewer_context
 

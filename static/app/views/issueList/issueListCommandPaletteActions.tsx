@@ -404,6 +404,7 @@ export function IssueListCommandPaletteActions({
           query={query}
           queryCount={queryCount}
           selection={selection}
+          sort={sort}
           onActionTaken={onActionTaken}
         />
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />

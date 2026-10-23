@@ -67,7 +67,7 @@ class DeletePendingGroupsTest(TestCase):
                 assert viewer_context is not None
                 assert viewer_context.organization_id == project.organization_id
                 assert viewer_context.project_id == project.id
-                assert viewer_context.actor_type == ActorType.SYSTEM
+                assert viewer_context.actor.type == ActorType.SYSTEM
 
             mock_delete_task.side_effect = assert_viewer_context
             delete_pending_groups()

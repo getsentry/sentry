@@ -6762,6 +6762,27 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('showAllFilterValues', () => {
+    it('lists every selected value instead of a count', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          showAllFilterValues
+          initialQuery="browser.name:[one,two,three,four,five]"
+        />
+      );
+
+      const valueButton = await screen.findByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+      for (const value of ['one', 'two', 'three', 'four', 'five']) {
+        expect(within(valueButton).getByText(value)).toBeInTheDocument();
+      }
+      expect(within(valueButton).queryByText(/^\+\d+$/)).not.toBeInTheDocument();
+      expect(within(valueButton).getAllByText('or')).toHaveLength(4);
+    });
+  });
+
   describe('highlightUnsupportedFilters', () => {
     it('should mark unsupported filters as invalid', async () => {
       render(

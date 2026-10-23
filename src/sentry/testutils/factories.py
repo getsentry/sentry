@@ -261,6 +261,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -3014,6 +3015,16 @@ class Factories:
 
         return ActionAlertRuleTriggerAction.objects.create(
             action=action, alert_rule_trigger_action_id=alert_rule_trigger_action_id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_data_condition_alert_rule_trigger(
+        data_condition: DataCondition,
+        alert_rule_trigger_id: int,
+    ) -> DataConditionAlertRuleTrigger:
+        return DataConditionAlertRuleTrigger.objects.create(
+            data_condition=data_condition, alert_rule_trigger_id=alert_rule_trigger_id
         )
 
     @staticmethod

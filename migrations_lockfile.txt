@@ -33,7 +33,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0039_breached_metric_automation
+seer: 0041_breached_metric_automation
 
 sentry: 1232_backfill_commit_new_repository_id
 

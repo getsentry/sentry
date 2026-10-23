@@ -10,6 +10,7 @@ import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -22,12 +23,18 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  useDatasetFormulas,
+  type SavedFormula,
+} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
@@ -44,6 +51,11 @@ import {
   buildConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  buildFormulaYAxis,
+  findFormula,
+  getFormulaColumnFunction,
+} from 'sentry/views/explore/utils/formulaAggregate';
 import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
@@ -58,6 +70,8 @@ export function ToolbarVisualize({
   setVisualizes,
   visualizes,
 }: ToolbarVisualizeProps) {
+  const formulas = useDatasetFormulas('spans');
+
   const addChart = useCallback(() => {
     const newVisualizes = [
       ...visualizes,
@@ -133,7 +147,11 @@ export function ToolbarVisualize({
             return isVisualizeEquation(visualize) ? (
               <VisualizeEquationInput key={column.uniqueId} {...rowProps} />
             ) : (
-              <ToolbarVisualizeItem key={column.uniqueId} {...rowProps} />
+              <ToolbarVisualizeItem
+                key={column.uniqueId}
+                {...rowProps}
+                formulas={formulas}
+              />
             );
           })}
           <ToolbarFooter>
@@ -165,12 +183,14 @@ interface VisualizeDropdownProps {
 
 function ToolbarVisualizeItem({
   dragColumnId,
+  formulas,
   label,
   onDelete,
   deleteLabel,
   onReplace,
   visualize,
-}: VisualizeDropdownProps) {
+}: VisualizeDropdownProps & {formulas: readonly SavedFormula[]}) {
+  const organization = useOrganization();
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
@@ -204,12 +224,16 @@ function ToolbarVisualizeItem({
     () => parseConditionalAggregate(visualize.yAxis),
     [visualize.yAxis]
   );
+  const formula = findFormula(formulas, parsedFunction?.name);
 
   const fieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
-    parsedFunction,
+    parsedFunction:
+      formula && parsedFunction
+        ? getFormulaColumnFunction(formula, parsedFunction)
+        : parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
 
@@ -217,43 +241,54 @@ function ToolbarVisualizeItem({
 
   const onChangeAggregate = useCallback(
     (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        const yAxis = updateVisualizeAggregate({
-          newAggregate: option.value,
-          oldAggregate: parsedFunction?.name,
-          oldArguments: parsedFunction?.arguments,
-        });
-        onReplace(
-          visualize.replace({
-            yAxis: supportsConditionalAggregateFilter(option.value)
-              ? applyConditionalFilter(yAxis, filter)
-              : yAxis,
-          })
-        );
+      if (typeof option.value !== 'string') {
+        return;
       }
+      const newFormula = findFormula(formulas, option.value);
+      if (newFormula) {
+        const formulaYAxis = buildFormulaYAxis(newFormula, DEFAULT_VISUALIZATION_FIELD);
+        if (formulaYAxis) {
+          onReplace(visualize.replace({yAxis: formulaYAxis}));
+        }
+        return;
+      }
+      // Formula arguments don't map onto built in aggregates, so switch as if from the default.
+      const previous = formula
+        ? parseConditionalAggregate(DEFAULT_VISUALIZATION)
+        : parsedFunction;
+      const yAxis = updateVisualizeAggregate({
+        newAggregate: option.value,
+        oldAggregate: previous?.name,
+        oldArguments: previous?.arguments,
+      });
+      onReplace(
+        visualize.replace({
+          yAxis: supportsConditionalAggregateFilter(option.value)
+            ? applyConditionalFilter(yAxis, filter)
+            : yAxis,
+        })
+      );
     },
-    [filter, onReplace, parsedFunction, visualize]
+    [filter, formula, formulas, onReplace, parsedFunction, visualize]
   );
 
   const onChangeArgument = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        let args = cloneDeep(parsedFunction?.arguments);
-        if (args) {
-          args[index] = option.value;
-        } else {
-          args = [option.value];
-        }
-        onReplace(
-          visualize.replace({
-            yAxis: buildConditionalAggregate({
-              name: parsedFunction?.name ?? '',
-              arguments: args,
-              filter,
-            }),
-          })
-        );
+    (index: number, value: string) => {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = value;
+      } else {
+        args = [value];
       }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction?.name ?? '',
+            arguments: args,
+            filter,
+          }),
+        })
+      );
     },
     [filter, onReplace, parsedFunction, visualize]
   );
@@ -285,6 +320,8 @@ function ToolbarVisualizeItem({
       dragColumnId={dragColumnId}
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
+      formulaDefaultColumn={DEFAULT_VISUALIZATION_FIELD}
+      formulas={formulas}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
@@ -294,6 +331,16 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
+      transformationControls={
+        organization.features.includes('explore-interpolation-and-smoothing') &&
+        isVisualizeFunction(visualize) ? (
+          <VisualizeTransformations
+            traceItemDataset={TraceItemDataset.SPANS}
+            transformations={visualize.transformations}
+            onChange={transformations => onReplace(visualize.replace({transformations}))}
+          />
+        ) : undefined
+      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar

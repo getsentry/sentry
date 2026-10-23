@@ -122,7 +122,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         )
         assert viewer_context.organization_id == self.organization.id
         assert viewer_context.user_id == self.user.id
-        assert viewer_context.actor_type == ActorType.USER
+        assert viewer_context.actor.type == ActorType.USER
 
         assert mock_seer_request.call_count == 1
         assert resp.data == seer_return_value["timeseries"]
