@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
@@ -27,7 +27,12 @@ from sentry.api.helpers.oauth_authorize.transactions import (
     prune_authorization_transactions,
     save_authorization_transaction,
 )
-from sentry.api.helpers.oauth_consent import get_organization_options, has_existing_consent
+from sentry.api.helpers.oauth_consent import (
+    InvalidScopeSelection,
+    get_organization_options,
+    has_existing_consent,
+    select_granted_scopes,
+)
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.oauth_consent import (
@@ -199,8 +204,21 @@ class OAuthAuthorizeEndpoint(Endpoint):
                 client_id=authorization.application.client_id,
             )
 
+        try:
+            granted_scopes = select_granted_scopes(authorization.scopes, decision["scopes"])
+        except InvalidScopeSelection as exc:
+            raise authorization_error(
+                response_type=authorization.response_type,
+                redirect_uri=authorization.redirect_uri,
+                name="invalid_scope",
+                state=authorization.state,
+                client_id=authorization.application.client_id,
+            ) from exc
+
         return self.redirect_response(
             approve_authorization(
-                authorization, request.user.id, decision["selected_organization_id"]
+                replace(authorization, scopes=granted_scopes),
+                request.user.id,
+                decision["selected_organization_id"],
             )
         )

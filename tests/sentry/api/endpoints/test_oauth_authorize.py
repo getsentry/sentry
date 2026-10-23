@@ -390,3 +390,68 @@ class OAuthAuthorizePostTest(APITestCase):
 
         grant = ApiGrant.objects.get(application=self.application, user=self.user)
         assert parse_qs(urlsplit(response.data["redirectUrl"]).query)["code"] == [grant.code]
+
+    def test_selected_scopes_narrow_grant_and_token(self) -> None:
+        transaction = self.prepare(scope="project:read project:write org:read")
+        response = self.get_success_response(
+            transactionId=transaction, op="approve", scopes=["project:read", "org:read"]
+        )
+        code = parse_qs(urlsplit(response.data["redirectUrl"]).query)["code"][0]
+        grant = ApiGrant.objects.get(application=self.application, user=self.user)
+        assert grant.scope_list == ["project:read", "org:read"]
+        authorization = ApiAuthorization.objects.get(application=self.application, user=self.user)
+        assert set(authorization.scope_list) == {"project:read", "org:read"}
+
+        exchanged = self.client.post(
+            reverse("sentry-oauth-token"),
+            {
+                "grant_type": "authorization_code",
+                "client_id": self.application.client_id,
+                "client_secret": self.application.client_secret,
+                "code": code,
+                "redirect_uri": self.application.get_default_redirect_uri(),
+            },
+            format="multipart",
+        )
+        assert exchanged.status_code == 200
+        assert exchanged.json()["scope"] == "org:read project:read"
+
+    def test_selected_scopes_narrow_implicit_token(self) -> None:
+        transaction = self.prepare(response_type="token", scope="project:read project:write")
+        response = self.get_success_response(
+            transactionId=transaction, op="approve", scopes=["project:read"]
+        )
+        token = ApiToken.objects.get(application=self.application, user=self.user)
+        assert token.scope_list == ["project:read"]
+        fragment = parse_qs(urlsplit(response.data["redirectUrl"]).fragment)
+        assert fragment["scope"] == ["project:read"]
+
+    def test_narrowed_consent_prompts_for_full_request(self) -> None:
+        transaction = self.prepare(scope="project:read project:write")
+        self.get_success_response(transactionId=transaction, op="approve", scopes=["project:read"])
+        consent = self.get_success_response(method="get", **self.query)
+        assert consent.data["hasExistingConsent"] is True
+        consent = self.get_success_response(
+            method="get", **{**self.query, "scope": "project:read project:write"}
+        )
+        assert consent.data["hasExistingConsent"] is False
+
+    def test_unrequested_selected_scope(self) -> None:
+        transaction = self.prepare()
+        response = self.get_success_response(
+            transactionId=transaction, op="approve", scopes=["project:read", "project:write"]
+        )
+        assert parse_qs(urlsplit(response.data["redirectUrl"]).query) == {
+            "error": ["invalid_scope"],
+            "state": [self.query["state"]],
+        }
+        assert not ApiGrant.objects.filter(application=self.application).exists()
+        assert not ApiAuthorization.objects.filter(application=self.application).exists()
+
+    def test_unknown_selected_scope_preserves_transaction(self) -> None:
+        transaction = self.prepare()
+        self.get_error_response(
+            transactionId=transaction, op="approve", scopes=["not:a-scope"], status_code=400
+        )
+        self.get_success_response(transactionId=transaction, op="approve")
+        assert ApiGrant.objects.get(application=self.application).scope_list == ["project:read"]
