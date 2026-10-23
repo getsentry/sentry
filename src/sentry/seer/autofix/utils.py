@@ -455,28 +455,6 @@ def write_preference_to_sentry_db(project: Project, preference: SeerProjectPrefe
     _write_preferences_to_sentry_db([(project, preference)])
 
 
-def bulk_write_preferences_to_sentry_db(
-    projects: list[Project], preferences: list[SeerProjectPreference]
-) -> None:
-    """Write multiple Seer project preferences using bulk operations.
-    TODO(AIML-2753): Add support for writing autofix_automation_tuning
-    """
-    projects_by_id = {p.id: p for p in projects}
-
-    project_preferences: list[tuple[Project, SeerProjectPreference]] = []
-    for pref in preferences:
-        project = projects_by_id.get(pref.project_id)
-        if project is None:
-            logger.warning(
-                "seer.write_preferences.project_not_found",
-                extra={"project_id": pref.project_id, "organization_id": pref.organization_id},
-            )
-            continue
-        project_preferences.append((project, pref))
-
-    _write_preferences_to_sentry_db(project_preferences)
-
-
 def clear_preference_automation_handoff(project: Project) -> None:
     """Atomically clear a project's automation handoff settings."""
     ProjectOption.objects.filter(
