@@ -21,7 +21,6 @@ from sentry.workflow_engine.caches.data_source import (
 from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -120,7 +119,8 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     evaluated by the detector.
 
     Subclasses implement `extract_value`, `evaluate`, and `create_occurrence`. The platform
-    composes them in `_evaluate`, and builds the issue occurrence for every triggered evaluation.
+    composes them in `_evaluate`, and builds the issue occurrence for every evaluation that
+    `evaluate` returned from `DetectorEvaluation.create_issue`.
     """
 
     def __init__(self, detector: Detector):
@@ -149,12 +149,19 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
     ) -> DetectorEvaluations:
         """
-        Decides the outcome for each group's extracted value. Ungrouped detectors receive a single value keyed by `None`.
+        Decides the outcome for each group's extracted value. Ungrouped detectors receive a single
+        value keyed by `None`.
 
-        Return a triggered `DetectorEvaluation` with `result=None` for each group that should create an issue;
-        the platform will call `create_occurrence` and build the `IssueOccurrence` for it. An evaluation that
-        already carries a result, like a `StatusChangeMessage`, is returned as-is. Evaluations that are neither
-        triggered nor carry a result have no outcome and are dropped.
+        Return at most one `DetectorEvaluation` per group key in `values`, built with its named
+        constructors so the outcome is explicit:
+
+        1. Create an issue: `DetectorEvaluation.create_issue(group_key, priority, trigger_group_evaluation)`.
+           The platform calls `create_occurrence` and builds the `IssueOccurrence`.
+        2. Deliver a result you already built: `evaluation.with_result(result)`, where `result` is an
+           `IssueOccurrence` or `StatusChangeMessage`. It is delivered as-is, e.g. a resolution from a
+           stateful detector.
+        3. Nothing to do: leave the group out, or return `DetectorEvaluation.ok(group_key, ...)`.
+           OK evaluations carry no result and are dropped, unless a subclass acts on them.
         """
         pass
 
@@ -212,7 +219,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         Life-cycle:
         - extract_value
         - evaluate, skipped when there are no groups to evaluate
-        - create_occurrence, for each triggered evaluation without a result
+        - create_occurrence, for each `DetectorEvaluation.create_issue` evaluation
 
         Once this is complete, `process_detectors` will use `on_complete` to determine
         where to deliver / how to handle the results.
@@ -232,12 +239,18 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
             results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
             for group_key, evaluation in evaluations.result.items():
-                if evaluation.result is not None:
-                    results[group_key] = evaluation
-                elif evaluation.triggered:
+                if evaluation.needs_occurrence:
+                    if group_key not in values:
+                        raise ValueError(
+                            f"Detector {self.detector.id} `evaluate` returned group key "
+                            f"{group_key!r}, which is not one of the extracted values"
+                        )
+
                     results[group_key] = self._create_occurrence(
                         evaluation, data_packet, values[group_key]
                     )
+                elif evaluation.result is not None:
+                    results[group_key] = evaluation
         except Exception:
             tags["result"] = "failure"
 
@@ -295,17 +308,14 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
             project_id=self.detector.project_id,
             status=evaluation.priority,
             additional_evidence_data=dataclasses.asdict(evidence_data),
-            fingerprint=fingerprint or self.get_issue_fingerprint(group_key),
+            fingerprint=(
+                fingerprint if fingerprint is not None else self.get_issue_fingerprint(group_key)
+            ),
         )
 
-        return dataclasses.replace(
-            evaluation,
-            result=issue_occurrence,
-            data=DetectorEvaluationData(
-                group_key=group_key,
-                trigger_group_evaluation=evaluation.data["trigger_group_evaluation"],
-                event_data=self._build_event_data(event_data, issue_occurrence),
-            ),
+        return evaluation.with_result(
+            issue_occurrence,
+            event_data=self._build_event_data(event_data, issue_occurrence),
         )
 
     def _build_detector_evidence(

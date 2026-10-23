@@ -419,16 +419,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         self, mock_produce_occurrence_to_kafka: MagicMock
     ) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
-        evaluation = DetectorEvaluation(
-            result=None,
-            data={
-                "group_key": None,
-                "trigger_group_evaluation": build_mock_group_evaluation(),
-                "event_data": None,
-            },
-            triggered=False,
-            priority=DetectorPriorityLevel.OK,
-        )
+        evaluation = DetectorEvaluation.ok(None, build_mock_group_evaluation())
 
         DetectorOutcome.ISSUE_PLATFORM.dispatch(detector, evaluation)
         mock_produce_occurrence_to_kafka.assert_not_called()

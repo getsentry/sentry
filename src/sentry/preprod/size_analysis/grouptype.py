@@ -27,7 +27,6 @@ from sentry.workflow_engine.processors import DataConditionGroupEvaluation, Dete
 from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
@@ -228,19 +227,12 @@ class PreprodSizeAnalysisDetectorHandler(
         values: Mapping[DetectorGroupKey, SizeAnalysisEvaluation],
     ) -> DetectorEvaluations:
         evaluation, priority = self._evaluate_conditions(values[None])
-        if evaluation is None or priority is None:
+        if evaluation is None or priority is None or priority == DetectorPriorityLevel.OK:
             return DetectorEvaluations(result={}, tainted=False)
 
-        detector_evaluation = DetectorEvaluation(
-            result=None,
-            data=DetectorEvaluationData(
-                group_key=None,
-                trigger_group_evaluation=evaluation,
-                event_data=None,
-            ),
-            triggered=True,
-            priority=priority,
-        )
+        # Size analysis builds its own occurrence, rather than the platform's, so the
+        # fingerprint is unique per occurrence and no workflow engine evidence is added.
+        detector_evaluation = DetectorEvaluation.create_issue(None, priority, evaluation)
         detector_occurrence, event_data = self.create_occurrence(detector_evaluation, data_packet)
         occurrence = detector_occurrence.to_issue_occurrence(
             occurrence_id=event_data["event_id"],
@@ -250,16 +242,7 @@ class PreprodSizeAnalysisDetectorHandler(
             additional_evidence_data={},
             fingerprint=[uuid4().hex],
         )
-        result = DetectorEvaluation(
-            result=occurrence,
-            data=DetectorEvaluationData(
-                group_key=None,
-                trigger_group_evaluation=evaluation,
-                event_data=event_data,
-            ),
-            triggered=True,
-            priority=priority,
-        )
+        result = detector_evaluation.with_result(occurrence, event_data=event_data)
         return DetectorEvaluations(result={None: result}, tainted=False)
 
     def _evaluate_conditions(

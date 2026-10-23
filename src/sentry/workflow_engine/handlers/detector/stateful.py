@@ -25,7 +25,6 @@ from sentry.workflow_engine.handlers.detector.base import (
 from sentry.workflow_engine.handlers.detector.condition import DetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -566,26 +565,20 @@ class StatefulDetectorHandler(
         evaluation_value: DataPacketEvaluationType,
         activation_id: int | None = None,
     ) -> DetectorEvaluation:
-        evaluation = DetectorEvaluation(
-            result=None,
-            data=DetectorEvaluationData(
-                group_key=group_key,
-                trigger_group_evaluation=group_evaluation,
-                event_data=None,
-            ),
-            triggered=new_priority != DetectorPriorityLevel.OK,
-            priority=new_priority,
-        )
         fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
 
         if new_priority == DetectorPriorityLevel.OK:
+            evaluation = DetectorEvaluation.ok(group_key, group_evaluation)
             resolve_message = self._create_resolve_message(
                 evaluation, data_packet, evaluation_value, fingerprint
             )
-            return dataclasses.replace(evaluation, result=resolve_message)
+            return evaluation.with_result(resolve_message)
 
         return self._create_occurrence(
-            evaluation, data_packet, evaluation_value, fingerprint=fingerprint
+            DetectorEvaluation.create_issue(group_key, new_priority, group_evaluation),
+            data_packet,
+            evaluation_value,
+            fingerprint=fingerprint,
         )
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:

@@ -50,16 +50,24 @@ flowchart TD
 1. `extract_value` returns one value, or `DetectorGroupValues` mapping group key to value. An
    empty `DetectorGroupValues` means there is nothing to evaluate, and `evaluate` is skipped.
 2. `evaluate(data_packet, values)` receives the values keyed by group (`None` for ungrouped
-   detectors) and returns `DetectorEvaluations`. Return a triggered
-   `DetectorEvaluation` with `result=None` for each group that should create an issue. An
-   evaluation that already carries a result, like a `StatusChangeMessage`, is passed through
-   unchanged. Evaluations that are neither triggered nor carry a result are dropped.
-3. `create_occurrence` is called for every triggered evaluation without a result. The base
-   handler turns the returned `DetectorOccurrence` into an `IssueOccurrence` with the
-   workflow engine evidence, fingerprint, and event data.
+   detectors) and returns `DetectorEvaluations`, with at most one `DetectorEvaluation` per
+   group. Build each evaluation with a named constructor so its outcome is explicit:
+
+   | Outcome                    | Constructor                                                                      | Platform behavior                                                                 |
+   | -------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+   | Create an issue            | `DetectorEvaluation.create_issue(group_key, priority, trigger_group_evaluation)` | Calls `create_occurrence` and builds the `IssueOccurrence`.                       |
+   | Deliver a result you built | `evaluation.with_result(result)`                                                 | Delivers the `IssueOccurrence` or `StatusChangeMessage` as-is.                    |
+   | Nothing to do              | `DetectorEvaluation.ok(group_key, trigger_group_evaluation)`, or omit the group  | Drops the evaluation; subclasses such as `StatefulDetectorHandler` can act on it. |
+
+   `create_issue` rejects an `OK` priority, and `with_result` requires a result, so an
+   evaluation cannot be both an issue and a no-op.
+
+3. `create_occurrence` is called for every `create_issue` evaluation. The base handler turns
+   the returned `DetectorOccurrence` into an `IssueOccurrence` with the workflow engine
+   evidence, fingerprint, and event data.
 
 Inherit it directly for detectors that do not decide with a data condition group. Their
-evidence has empty `conditions`; set `trigger_group_evaluation=None` on the evaluation data.
+evidence has empty `conditions`; omit `trigger_group_evaluation` from the constructor.
 
 [`ErrorDetectorHandler`](../../grouping/grouptype.py) is a placeholder that associates error issues
 with a detector. Its `extract_value` returns an empty `DetectorGroupValues`, so it never evaluates or creates occurrences.
@@ -83,12 +91,15 @@ flowchart TD
     Missing -->|No| Matched{Conditions matched?}
     Matched -->|No| Skip
     Matched -->|Yes| Priority{Selected priority is OK?}
-    Priority -->|Yes| None[Untriggered evaluation; dropped by the platform]
-    Priority -->|No| Occurrence[create_occurrence and build IssueOccurrence]
+    Priority -->|Yes| None[DetectorEvaluation.ok; dropped by the platform]
+    Priority -->|No| Occurrence[DetectorEvaluation.create_issue; create_occurrence builds the IssueOccurrence]
 ```
 
 Override these hooks to adjust the evaluation. The identifier and fingerprint hooks belong to
-`BaseDetectorHandler`, so they apply to every handler:
+`BaseDetectorHandler` and apply when the platform builds the occurrence for a `create_issue`
+evaluation. `StatefulDetectorHandler` overrides `get_event_id` and `get_occurrence_id`, and
+fingerprints with `build_occurrence_fingerprint` instead of `get_issue_fingerprint`. Handlers
+that build their own result with `with_result` use none of them.
 
 | Hook                    | Default                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------ |

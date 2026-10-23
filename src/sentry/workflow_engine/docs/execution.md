@@ -56,8 +56,8 @@ same after detector selection.
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
 registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler.
 `_evaluate` normalizes the output of `extract_value` to group key and value pairs, passes them to `evaluate`, and calls
-`create_occurrence` for every triggered evaluation that does not already carry a result. An empty `DetectorGroupValues`
-skips `evaluate`, and evaluations that are neither triggered nor carry a result are dropped.
+`create_occurrence` for every `DetectorEvaluation.create_issue` evaluation. Evaluations built with `with_result` are
+delivered as-is, and `DetectorEvaluation.ok` evaluations are dropped. An empty `DetectorGroupValues` skips `evaluate`.
 
 One packet can produce:
 

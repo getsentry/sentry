@@ -3,6 +3,8 @@ from typing import Any
 from unittest import mock
 from uuid import UUID
 
+import pytest
+
 from sentry.deletions.base import ModelRelation
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -30,7 +32,6 @@ from sentry.workflow_engine.processors import (
     DataConditionGroupEvaluation,
     DetectorEvaluation,
 )
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
 from sentry.workflow_engine.types import (
     ConditionError,
@@ -255,6 +256,56 @@ class MockGroupedEventIdDetectorHandler(MockGroupedDetectorHandler):
         return detector_occurrence, event_data
 
 
+class MockUnconditionedDetectorHandler(BaseDetectorHandler[dict[str, Any], int]):
+    """Decides in code rather than with a data condition group."""
+
+    threshold = 5
+
+    def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
+        return data_packet.packet["value"]
+
+    def evaluate(
+        self,
+        data_packet: DataPacket[dict[str, Any]],
+        values: Mapping[DetectorGroupKey, int],
+    ) -> DetectorEvaluations:
+        return DetectorEvaluations(
+            result={
+                group_key: (
+                    DetectorEvaluation.create_issue(group_key, DetectorPriorityLevel.HIGH)
+                    if value > self.threshold
+                    else DetectorEvaluation.ok(group_key)
+                )
+                for group_key, value in values.items()
+            },
+            tainted=False,
+        )
+
+    def create_occurrence(
+        self,
+        evaluation: DetectorEvaluation,
+        data_packet: DataPacket[dict[str, Any]],
+    ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+        value = self.extract_value(data_packet)
+        return build_mock_occurrence_and_event(self, value, PriorityLevel(evaluation.priority))
+
+
+class MockUnknownGroupKeyDetectorHandler(MockUnconditionedDetectorHandler):
+    """Returns an issue for a group key that `extract_value` never produced."""
+
+    def evaluate(
+        self,
+        data_packet: DataPacket[dict[str, Any]],
+        values: Mapping[DetectorGroupKey, int],
+    ) -> DetectorEvaluations:
+        return DetectorEvaluations(
+            result={
+                "unknown": DetectorEvaluation.create_issue("unknown", DetectorPriorityLevel.HIGH)
+            },
+            tainted=False,
+        )
+
+
 class BaseDetectorHandlerTest(BaseGroupTypeTest):
     __test__ = Abstract(__module__, __qualname__)
 
@@ -284,15 +335,8 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             ) -> DetectorEvaluations:
                 return DetectorEvaluations(
                     result={
-                        None: DetectorEvaluation(
-                            result=None,
-                            data=DetectorEvaluationData(
-                                group_key=None,
-                                trigger_group_evaluation=build_mock_group_evaluation(),
-                                event_data=None,
-                            ),
-                            triggered=True,
-                            priority=DetectorPriorityLevel.HIGH,
+                        None: DetectorEvaluation.create_issue(
+                            None, DetectorPriorityLevel.HIGH, build_mock_group_evaluation()
                         )
                     },
                     tainted=False,
@@ -326,16 +370,9 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
                 return DetectorEvaluations(
                     result={
-                        None: DetectorEvaluation(
-                            result=status_change,
-                            data=DetectorEvaluationData(
-                                group_key=None,
-                                trigger_group_evaluation=build_mock_group_evaluation(),
-                                event_data=None,
-                            ),
-                            triggered=True,
-                            priority=DetectorPriorityLevel.HIGH,
-                        )
+                        None: DetectorEvaluation.create_issue(
+                            None, DetectorPriorityLevel.HIGH, build_mock_group_evaluation()
+                        ).with_result(status_change)
                     },
                     tainted=False,
                 )
@@ -1061,3 +1098,49 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
         mock_logger.exception.assert_called_once_with(
             "Failed to serialize data source definition when building workflow engine evidence data"
         )
+
+
+class TestBaseDetectorHandlerWithoutConditionGroup(BaseGroupTypeTest):
+    """
+    Covers detectors that inherit BaseDetectorHandler directly and create issues without
+    evaluating a data condition group.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        class UnconditionedGroupType(GroupType):
+            type_id = 8
+            slug = "unconditioned_handler"
+            description = "unconditioned handler"
+            category = GroupCategory.METRIC.value
+
+        @detector_settings_registry.register(UnconditionedGroupType.slug)
+        class UnconditionedDetectorSettings(DetectorSettings):
+            handler = MockUnconditionedDetectorHandler
+
+        self.detector = self.create_detector(project=self.project, type=UnconditionedGroupType.slug)
+        self.handler = MockUnconditionedDetectorHandler(self.detector)
+
+    def packet(self, value: int) -> DataPacket[dict[str, Any]]:
+        return DataPacket(source_id=str(self.detector.id), packet={"value": value})
+
+    def test_detector_creates_an_occurrence_without_a_condition_group(self) -> None:
+        evaluation = self.handler._evaluate(self.packet(10))[None]
+        occurrence = evaluation.result
+
+        assert isinstance(occurrence, IssueOccurrence)
+        assert occurrence.evidence_data["conditions"] == []
+        assert occurrence.evidence_data["value"] == 10
+        assert occurrence.fingerprint == [f"detector:{self.detector.id}"]
+        assert evaluation.data["trigger_group_evaluation"] is None
+        assert evaluation.to_artifact().trigger_evaluation is None
+
+    def test_detector_drops_ok_evaluations(self) -> None:
+        assert self.handler._evaluate(self.packet(1)) == {}
+
+    def test_detector_rejects_an_issue_for_a_group_it_did_not_extract(self) -> None:
+        handler = MockUnknownGroupKeyDetectorHandler(self.detector)
+
+        with pytest.raises(ValueError):
+            handler._evaluate(self.packet(10))

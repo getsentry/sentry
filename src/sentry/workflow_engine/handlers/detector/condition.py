@@ -11,7 +11,6 @@ from sentry.workflow_engine.handlers.detector.base import (
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -22,10 +21,16 @@ logger = logging.getLogger(__name__)
 
 class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationType]):
     """
-    Base implementation class for detectors that rely on data condition groups to make decisions
+    Handler for detectors whose thresholds are stored as `DataCondition`s.
 
-    This is the recommended handler: customize detection by registering conditions on the detector's
-    trigger condition group, rather than overriding `evaluate`.
+    The default `evaluate` checks each extracted value against the conditions on
+    `detector.workflow_condition_group` and picks the highest priority that matched.
+    Subclasses only implement `extract_value` and `create_occurrence`.
+
+    Prefer adding conditions over overriding `evaluate`: conditions can be changed per
+    detector without a deploy, and the default handles priorities and evidence for you.
+    It returns OK evaluations without a result, which the platform drops; subclasses such
+    as `StatefulDetectorHandler` turn them into resolutions.
     """
 
     def __init__(self, detector: Detector):
@@ -85,16 +90,12 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             if not trigger_evaluation.triggered:
                 continue
 
-            results[group_key] = DetectorEvaluation(
-                result=None,
-                data=DetectorEvaluationData(
-                    group_key=group_key,
-                    trigger_group_evaluation=trigger_evaluation,
-                    event_data=None,
-                ),
-                triggered=priority != DetectorPriorityLevel.OK,
-                priority=priority,
-            )
+            if priority == DetectorPriorityLevel.OK:
+                results[group_key] = DetectorEvaluation.ok(group_key, trigger_evaluation)
+            else:
+                results[group_key] = DetectorEvaluation.create_issue(
+                    group_key, priority, trigger_evaluation
+                )
 
         return DetectorEvaluations(result=results, tainted=tainted)
 
