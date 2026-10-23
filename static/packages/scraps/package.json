@@ -131,6 +131,10 @@
       "types": "./dist/radio/index.d.ts",
       "import": "./dist/radio/index.js"
     },
+    "./toggleCard": {
+      "types": "./dist/toggleCard/index.d.ts",
+      "import": "./dist/toggleCard/index.js"
+    },
     "./statusIndicator": {
       "types": "./dist/statusIndicator/index.d.ts",
       "import": "./dist/statusIndicator/index.js"
