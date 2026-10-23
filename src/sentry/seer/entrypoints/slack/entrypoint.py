@@ -33,7 +33,7 @@ from sentry.notifications.platform.tracking import (
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.agent.client_models import PendingUserInput
+from sentry.seer.agent.client_models import PendingUserInput, SeerRunState
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
@@ -637,13 +637,17 @@ class SlackAgentEntrypoint(
     @staticmethod
     def on_agent_update(
         cache_payload: SlackAgentCachePayload,
-        summary: str | None,
         run_id: int,
-        pending_user_input: PendingUserInput | None = None,
+        state: SeerRunState,
     ) -> None:
         organization_id = cache_payload["organization_id"]
         integration_id = cache_payload["integration_id"]
         thread = cache_payload["thread"]
+        pending_user_input = state.pending_user_input
+        # Only the latest turn's answer; never fall back to an earlier turn's.
+        turns = state.get_turns()
+        answer = turns[-1].answer if turns else None
+        summary = answer.message.content if answer else None
         approval = _agent_write_approval(pending_user_input)
         if approval:
             input_id, scopes = approval
@@ -914,7 +918,7 @@ class SlackInvestigationEntrypoint(
             if data is None:
                 return True
             try:
-                sent = send_thread_update(
+                message_ts = send_thread_update(
                     install=install,
                     thread=SlackThreadDetails(
                         thread_ts=cache_payload["thread_ts"], channel_id=cache_payload["channel_id"]
@@ -924,9 +928,10 @@ class SlackInvestigationEntrypoint(
             except IntegrationError as e:
                 lifecycle.record_halt(halt_reason=e)
                 return False
-            if not sent:
+            if message_ts is None:
                 lifecycle.record_halt(halt_reason="conclusion_not_sent")
-            return sent
+                return False
+            return True
 
 
 def _record_status_sent(*, data: SeerInvestigationStatus, links: set[NotificationLink]) -> None:

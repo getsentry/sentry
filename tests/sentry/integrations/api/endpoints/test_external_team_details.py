@@ -21,6 +21,16 @@ class ExternalTeamDetailsTest(APITestCase):
         )
         assert not ExternalActor.objects.filter(id=str(self.external_team.id)).exists()
 
+    def test_invalid_external_team_id(self) -> None:
+        for external_team_id in ("abc", "99999999999999999999"):
+            self.get_error_response(
+                self.organization.slug,
+                self.team.slug,
+                external_team_id,
+                method="delete",
+                status_code=404,
+            )
+
     def test_basic_update(self) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             data = {"externalName": "@getsentry/growth"}

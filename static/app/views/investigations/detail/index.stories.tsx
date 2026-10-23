@@ -9,6 +9,7 @@ import {
 import {StoryTopBar} from 'sentry/views/investigations/__stories__/storyTopBar';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
+  InvestigationActionRequestFixture,
   InvestigationBlockExecutionFixture,
   InvestigationBlockFixture,
   InvestigationBreachedMetricDetailFixture,
@@ -17,6 +18,7 @@ import {
   InvestigationOrchestrationFixture,
   InvestigationAwaitingInputExecutionFixture,
   InvestigationExecutionDetailFixture,
+  InvestigationMetricSourceFixture,
   InvestigationQueryOutputFixture,
   InvestigationRunningDetailFixture,
   InvestigationTitleGenerationFixture,
@@ -38,11 +40,29 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
     'The p95 increase begins four minutes after the deploy and appears in every production region.\nThe strongest signal is exhausted database connections in payments-api.',
   template: {key: 'breached_metric', version: 1},
   source: {
-    type: 'metric_open_period',
+    ...InvestigationMetricSourceFixture({
+      id: '42',
+      name: 'Checkout p95 latency',
+      aggregate: 'p95(span.duration)',
+      environment: 'production',
+      conditions: [
+        {type: 'gt', comparison: 800, result: 75},
+        {type: 'lte', comparison: 800, result: 0},
+      ],
+    }),
     ref: {groupId: 'metric-alert-42', openPeriodId: 'open-period-17'},
     revision: 1,
-    snapshot: {monitor: {id: '42', name: 'Checkout p95 latency'}},
   },
+  actionRequests: [
+    InvestigationActionRequestFixture({
+      action: {
+        kind: 'update_detector',
+        detectorId: '42',
+        before: {timeWindowSeconds: 300},
+        changes: {timeWindowSeconds: 900},
+      },
+    }),
+  ],
   blocks: [
     InvestigationBlockFixture({
       id: 'completed-summary',
@@ -362,7 +382,7 @@ const awaitingInputInvestigation = InvestigationDetailFixture({
   sourceType: 'manual',
   blocks: [
     InvestigationBlockFixture({
-      id: 'awaiting-input-cell',
+      id: 'awaiting-input-block',
       title: 'Compare the lag spike',
       content: '',
       outputStatus: 'awaiting_input',
@@ -442,6 +462,50 @@ const archivedInvestigation = InvestigationDetailFixture({
   dateUpdated: '2026-08-27T15:44:00Z',
   blocks: [],
   template: {key: 'breached_metric', version: 1},
+});
+
+// An agentic run that has only just started: Seer is still scanning, so there
+// are no hypotheses yet and the status block shows the calls behind the scan.
+// The activity feed stays hidden until the run stops.
+const gatheringContextInvestigation = InvestigationDetailFixture({
+  id: 'gathering-context-investigation',
+  title: 'New breached metrics investigation',
+  status: 'active',
+  sourceType: 'metric_open_period',
+  template: {key: 'breached_metric', version: 1},
+  orchestration: {
+    phase: 'broad_scan',
+    status: 'processing',
+    heartbeatAt: '2026-10-19T22:34:00Z',
+    notebookRevision: 1,
+  },
+  blocks: [],
+});
+
+const gatheringContextOrchestration = InvestigationOrchestrationFixture({
+  investigationId: gatheringContextInvestigation.id,
+  phase: 'broad_scan',
+  status: 'processing',
+  broadScan: {
+    status: 'running',
+    summary: null,
+    toolActivity: [
+      {
+        id: 'gathering-releases',
+        kind: 'tool',
+        status: 'completed',
+        title: 'Listing project releases',
+      },
+      {
+        id: 'gathering-spans',
+        kind: 'tool',
+        status: 'running',
+        title: 'Querying spans for transaction:sentry.tasks.relay.build_project_config',
+      },
+    ],
+    error: null,
+  },
+  hypotheses: [],
 });
 
 export default Storybook.story('Investigations — Detail', story => {
@@ -532,7 +596,7 @@ export default Storybook.story('Investigations — Detail', story => {
     </InvestigationFixtureApi>
   ));
 
-  story('Cells Seer is still writing', () => (
+  story('Blocks Seer is still writing', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-skeleton"
       details={[skeletonInvestigation]}
@@ -578,6 +642,18 @@ export default Storybook.story('Investigations — Detail', story => {
     </InvestigationFixtureApi>
   ));
 
+  story('Agentic run gathering context', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-gathering-context"
+      details={[gatheringContextInvestigation]}
+      orchestration={{[gatheringContextInvestigation.id]: gatheringContextOrchestration}}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={gatheringContextInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
   story('Agentic run awaiting input before any hypotheses', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-awaiting-input-run"
@@ -603,7 +679,7 @@ export default Storybook.story('Investigations — Detail', story => {
       details={[awaitingInputInvestigation]}
       executions={{
         [investigationExecutionFixtureKey(
-          'awaiting-input-cell',
+          'awaiting-input-block',
           awaitingInputExecutionId
         )]: InvestigationAwaitingInputExecutionFixture({
           id: awaitingInputExecutionId,

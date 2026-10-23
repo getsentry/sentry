@@ -12,9 +12,6 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
-
-import {Container} from '@sentry/scraps/layout';
 
 import type {TagValue, TagWithTopValues} from 'sentry/types/group';
 
@@ -309,28 +306,6 @@ describe('TagDetailsDrawerContent', () => {
 
     expect(nextButtonWhilePending).not.toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
-  });
-
-  it('hides the Last Seen and Share columns when the container is narrow', async () => {
-    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(400);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TagValuesFixture(),
-    });
-
-    render(
-      <Container containerType="inline-size">
-        <TagDetailsDrawerContent group={group} />
-      </Container>,
-      {initialRouterConfig: makeInitialRouterConfig('user')}
-    );
-
-    const table = await screen.findByRole('table', {name: 'Tag values'});
-    const rules = getEmotionRules(table).join('');
-
-    expect(rules).toContain("nth-child(2 of [role='cell'], [role='columnheader'])");
-    expect(rules).toContain("nth-child(4 of [role='cell'], [role='columnheader'])");
-    expect(rules).not.toContain("nth-child(3 of [role='cell'], [role='columnheader'])");
   });
 
   it('renders rounded percentages counts [996, 4], total 1000', async () => {

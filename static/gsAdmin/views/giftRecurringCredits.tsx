@@ -39,6 +39,9 @@ const GIFTABLE_CATEGORIES = new Set([
   'log_byte',
   'seer_user',
   'trace_metric_byte',
+  'monitor_seat',
+  'uptime',
+  'size_analysis',
 ]);
 
 const MAX_BILLING_PERIODS = 60;
