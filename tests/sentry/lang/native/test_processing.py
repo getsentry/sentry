@@ -13,6 +13,7 @@ import pytest
 
 from sentry.lang.native.processing import (
     ELECTRON_FIRST_MODULE_REWRITE_RULES,
+    _merge_frame,
     _merge_image,
     get_frames_for_symbolication,
     get_native_symbolication_functions,
@@ -162,6 +163,12 @@ def test_merge_symbolicator_image_remove_unknown_arch() -> None:
         "unwind_status": "found",
         "instruction_addr": 0xFEEBEE,
     }
+
+
+def test_merge_frame_file_revision() -> None:
+    new_frame: dict[str, Any] = {}
+    _merge_frame(new_frame, {"file_revision": "12345"})
+    assert new_frame["file_revision"] == "12345"
 
 
 @pytest.mark.parametrize(
