@@ -231,6 +231,19 @@ function Graph({
     }
 
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
+    const groups = Object.values(
+      Object.groupBy(
+        rawSeries.filter(s => !s.meta.isOther),
+        s => JSON.stringify(s.groupBy ?? [])
+      )
+    );
+    if (isTopEvents) {
+      samplingMeta.sampleCount = groups.reduce(
+        (total, group) =>
+          total + determineSeriesSampleCountAndIsSampled(group ?? [], false).sampleCount,
+        0
+      );
+    }
 
     return {
       chartType: visualize.chartType,
@@ -242,7 +255,7 @@ function Graph({
       isSampled: samplingMeta.isSampled,
       sampleCount: samplingMeta.sampleCount,
       samplingMode: undefined,
-      topEvents: isTopEvents ? series.filter(s => !s.meta.isOther).length : undefined,
+      topEvents: isTopEvents ? groups.length : undefined,
     };
   }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit, visualizes]);
 
