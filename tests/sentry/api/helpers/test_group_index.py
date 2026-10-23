@@ -33,6 +33,7 @@ from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.issue_search import parse_search_query
@@ -62,6 +63,9 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.viewer_context import (
+    Actor as ContextActor,
+)
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -920,11 +924,7 @@ class UpdateGroupsTest(TestCase):
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         with (
             action_log_activity_enabled(),
-            patch.object(
-                GroupActionLogEntry.objects,
-                "user_visible",
-                return_value=GroupActionLogEntry.objects.none(),
-            ),
+            outbox_context(flush=False),
             self.assertLogs(
                 "sentry.api.serializers.models.groupactionlogentry", level="INFO"
             ) as logs,
@@ -935,8 +935,8 @@ class UpdateGroupsTest(TestCase):
             record.message == "issues.action_log.activity_read.not_found" for record in logs.records
         )
         assert response is not None
-        # the log read is patched to return nothing, so anything here came from Activity
-        assert "activity" in response.data
+        assert not GroupActionLogEntry.objects.filter(group_id=group.id).exists()
+        assert "set_resolved_in_release" in [item["type"] for item in response.data["activity"]]
 
     def test_resolve_in_next_release_ignores_action_log_when_disabled(self) -> None:
         # With the gate closed the log may cover only part of this project's history,
@@ -1968,7 +1968,9 @@ class DeleteGroupsTest(TestCase):
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-        request_context = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
+        request_context = ViewerContext(
+            actor=ContextActor(type=ActorType.USER, actor_id=self.user.id)
+        )
 
         def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
             viewer_context = get_viewer_context()
@@ -1976,7 +1978,7 @@ class DeleteGroupsTest(TestCase):
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
             assert viewer_context.user_id == self.user.id
-            assert viewer_context.actor_type == ActorType.USER
+            assert viewer_context.actor.type == ActorType.USER
 
         mock_delete_seer_grouping_records_by_hash.side_effect = assert_viewer_context
 

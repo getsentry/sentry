@@ -18,6 +18,8 @@ from sentry.hybridcloud.rpc.service import (
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import (
+    Actor,
+    ActorType,
     ViewerContext,
     observe_viewer_context_propagation,
     viewer_context_scope,
@@ -69,7 +71,7 @@ class InternalRpcServiceEndpoint(Endpoint):
 
         meta = request.data.get("meta") or {}
         vc_data = meta.get("viewer_context")
-        vc = ViewerContext()
+        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
         if vc_data:
             try:
                 vc = ViewerContext.deserialize(vc_data)

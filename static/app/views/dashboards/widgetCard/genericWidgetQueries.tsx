@@ -5,14 +5,9 @@ import trimStart from 'lodash/trimStart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {
-  isAggregateField,
-  type AggregationOutputType,
-  type DataUnit,
-} from 'sentry/utils/discover/fields';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -51,10 +46,7 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  // TODO: Narrow to WidgetTimeSeries[] once every widget query hook returns it
-  timeseriesResults?: Array<Series | WidgetTimeSeries>;
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
   totalIssuesCount?: string;
 };
 
@@ -71,10 +63,7 @@ export type GenericWidgetQueriesResult = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
-  // TODO: Narrow to WidgetTimeSeries[] once every widget query hook returns it
-  timeseriesResults?: Array<Series | WidgetTimeSeries>;
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
   totalCount?: string;
 };
 
@@ -106,7 +95,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
-    timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   samplingMode?: SamplingMode;
   // Optional selection override - if not provided, usePageFilters hook will be used
@@ -294,8 +282,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
       // Call onDataFetched with transformed results
       onDataFetched?.({
         timeseriesResults: (hookResults as any).timeseriesResults,
-        timeseriesResultsTypes: (hookResults as any).timeseriesResultsTypes,
-        timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
       });
     } else {
       // Collect any results from afterFetchTableData callbacks

@@ -67,6 +67,8 @@ def get_group_substatus_text(group: Group) -> str:
         return "Regressed issue"
     elif group.substatus == GroupSubStatus.ONGOING:
         return "Ongoing issue"
+    elif group.substatus == GroupSubStatus.ESCALATING:
+        return "Escalating issue"
     return "New Alert"
 
 

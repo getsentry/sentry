@@ -167,9 +167,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         requestIndex
       );
 
-      transformedResult.forEach((result, resultIndex) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
 
     // Memoize raw data to prevent unnecessary rerenders

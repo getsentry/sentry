@@ -174,9 +174,7 @@ export function useTransactionsSeriesQuery(
       );
 
       // Maintain color consistency
-      transformedResult.forEach((result, resultIndex) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
 
     return {

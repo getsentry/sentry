@@ -268,6 +268,15 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
 
         assert [block["type"] for block in blocks] == ["section", "context"]
 
+    @with_feature(["organizations:investigations", "organizations:investigations-slack"])
+    def test_send_alert_closed_membership_has_no_investigation_button(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
+
+        assert [block["type"] for block in blocks] == ["section", "context"]
+
     @with_feature("organizations:investigations")
     def test_send_alert_without_slack_flag_has_no_investigation_button(self) -> None:
         blocks = self._send_platform_alert_and_get_blocks(self._invocation())

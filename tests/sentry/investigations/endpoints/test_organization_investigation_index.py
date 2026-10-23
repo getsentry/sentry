@@ -34,7 +34,12 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+)
 
 FEATURE = "organizations:investigations"
 
@@ -199,9 +204,8 @@ class OrganizationInvestigationIndexTest(APITestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
         synchronize_projection.assert_called_once()
         dispatch_commands.assert_called_once_with(run.id)

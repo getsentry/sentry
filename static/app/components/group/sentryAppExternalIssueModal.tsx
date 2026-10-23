@@ -13,7 +13,6 @@ import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integ
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 interface OpenSentryAppIssueModalProps extends Omit<
   Props,
@@ -35,13 +34,6 @@ export const openSentryAppIssueModal = ({
     external_issue_provider: sentryAppComponent.sentryApp.slug,
     external_issue_type: 'sentry_app',
   });
-  recordInteraction(
-    sentryAppComponent.sentryApp.slug,
-    'sentry_app_component_interacted',
-    {
-      componentType: 'issue-link',
-    }
-  );
 
   openModal(
     deps => (

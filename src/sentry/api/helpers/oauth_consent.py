@@ -97,6 +97,11 @@ _PERMISSION_RESOURCES = (
         ("org:ci",),
     ),
     OAuthPermissionResource(
+        "tokens",
+        "CI organization auth tokens",
+        ("org:tokens",),
+    ),
+    OAuthPermissionResource(
         "integrations",
         "Organization integrations",
         ("org:integrations",),
