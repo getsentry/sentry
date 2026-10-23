@@ -318,6 +318,46 @@ describe('useMetricDetectorThresholdSeries', () => {
         {data: [[1609459200000, 200]], origin: 'end', stack: undefined},
       ]);
     });
+
+    it('ends the ok band at a manual percent resolution and draws its line', () => {
+      const comparisonSeries = [
+        {
+          seriesName: 'Previous count()',
+          data: [{name: 1609459200000, value: 100}],
+        },
+      ];
+
+      const conditions = makeConditions([
+        {comparison: 200, conditionResult: DetectorPriorityLevel.HIGH},
+        {comparison: 150, conditionResult: DetectorPriorityLevel.MEDIUM},
+        {
+          type: DataConditionType.LESS_OR_EQUAL,
+          comparison: 125,
+          conditionResult: DetectorPriorityLevel.OK,
+        },
+      ]);
+
+      const {result} = renderHookWithProviders(() =>
+        useMetricDetectorThresholdSeries({
+          conditions,
+          detectionType: 'percent',
+          aggregate: 'count()',
+          comparisonSeries,
+        })
+      );
+
+      expect(getThresholdLineNames(result.current.additionalSeries)).toEqual([
+        '50% Higher Threshold',
+        '100% Higher Threshold',
+        '25% Higher Resolution Threshold',
+      ]);
+
+      const okBand = result.current.additionalSeries.find(
+        series => series.areaStyle?.origin === 'start'
+      );
+
+      expect(okBand?.data).toEqual([[1609459200000, 125]]);
+    });
   });
 
   it('returns empty series when conditions are undefined', () => {

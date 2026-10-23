@@ -70,6 +70,23 @@ function createPercentThresholdSeries(
   };
 }
 
+function createPercentResolutionSeries(
+  comparisonSeries: Series[],
+  resolution: {type: DataConditionType; value: number}
+): Series {
+  // Resolving at or below a threshold means the alert fires above it
+  const isAbove = [DataConditionType.LESS, DataConditionType.LESS_OR_EQUAL].includes(
+    resolution.type
+  );
+
+  return createPercentThresholdSeries(
+    comparisonSeries,
+    resolution.value,
+    isAbove,
+    `${resolution.value}% ${isAbove ? 'Higher' : 'Lower'} Resolution Threshold`
+  );
+}
+
 /**
  * Normalizes percentage threshold values to 0-1 scale for consistent display.
  * - SESSIONS_OPERATIONS percentages (crash_free_rate, crash_rate, anr_rate, etc.) store values as percentages (5 for 5%)
@@ -185,6 +202,11 @@ export function useMetricDetectorThresholdSeries({
     );
     const additional: LineSeriesOption[] = [];
 
+    // Resolution is considered "automatic" when it equals any alert threshold value
+    const isResolutionManual = Boolean(
+      resolution && !thresholds.some(threshold => threshold.value === resolution.value)
+    );
+
     if (detectionType === 'percent') {
       if (comparisonSeries.length === 0 || thresholds.length === 0) {
         return {maxValue: undefined, additionalSeries: additional};
@@ -205,10 +227,22 @@ export function useMetricDetectorThresholdSeries({
         };
       });
 
-      const percentThresholdSeries = thresholdLines.map(({priority, series}) => {
-        const lineColor = getThresholdColor(theme, priority);
+      const resolutionLine = resolution
+        ? createPercentResolutionSeries(comparisonSeries, resolution)
+        : undefined;
 
-        return createLineSeries({
+      const visibleLines = [
+        ...thresholdLines.map(({priority, series}) => ({
+          series,
+          lineColor: getThresholdColor(theme, priority),
+        })),
+        ...(resolutionLine && isResolutionManual
+          ? [{series: resolutionLine, lineColor: theme.colors.green400}]
+          : []),
+      ];
+
+      const percentThresholdSeries = visibleLines.map(({series, lineColor}) =>
+        createLineSeries({
           name: series.seriesName,
           data: series.data.map(({name, value}) => [name, value]),
           lineStyle: {
@@ -221,18 +255,19 @@ export function useMetricDetectorThresholdSeries({
           animationThreshold: 1,
           animationDuration: 0,
           symbol: 'none', // Hide data point markers
-        });
-      });
+        })
+      );
 
       const percentThresholdBands = createPercentThresholdBandSeries({
         theme,
         thresholds: thresholdLines.map(line => ({...line, bound: line.series.data})),
+        resolution: resolutionLine?.data,
       });
 
       additional.push(...percentThresholdSeries, ...percentThresholdBands);
 
       // Calculate maxValue from threshold data points (similar to static thresholds)
-      const thresholdValues = thresholdLines.flatMap(({series}) =>
+      const thresholdValues = visibleLines.flatMap(({series}) =>
         series.data.map(point => point.value)
       );
 
@@ -256,10 +291,6 @@ export function useMetricDetectorThresholdSeries({
       });
       additional.push(...thresholdSeries);
 
-      // Resolution is considered "automatic" when it equals any alert threshold value
-      const isResolutionManual = Boolean(
-        resolution && !thresholds.some(threshold => threshold.value === resolution.value)
-      );
       if (resolution && isResolutionManual) {
         // Resolution value is normalized to correct scale via normalizePercentageThreshold()
         const displayResolution = resolution.value;
