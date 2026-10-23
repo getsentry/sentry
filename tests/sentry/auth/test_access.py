@@ -526,6 +526,60 @@ class FromUserTest(AccessFactoryTestCase):
             assert result.scopes == frozenset({"org:read", "org:ci"})
             assert not result.has_scope("project:read")
 
+    @with_feature("organizations:granular-permission-scopes")
+    def test_deprecated_token_scope_translated_to_granular_scopes(self) -> None:
+        organization = self.create_organization()
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        request = self.make_request(user=user)
+
+        results = [
+            self.from_user(user, organization, scopes=["org:read"]),
+            self.from_request(request, organization, scopes=["org:read"]),
+        ]
+
+        for result in results:
+            assert result.has_scope("org:read")
+            assert result.has_scope("dashboard:read")
+            assert result.has_scope("dashboard:create")
+            assert result.has_scope("dashboard:write")
+            assert result.has_scope("dashboard:delete")
+
+    def test_deprecated_token_scope_translation_capped_by_role(self) -> None:
+        # Without granular roles the member holds no dashboard scopes, so the
+        # translated scopes are dropped by the member/token intersection.
+        organization = self.create_organization()
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        request = self.make_request(user=user)
+
+        results = [
+            self.from_user(user, organization, scopes=["org:read"]),
+            self.from_request(request, organization, scopes=["org:read"]),
+        ]
+
+        for result in results:
+            assert result.has_scope("org:read")
+            assert not result.has_scope("dashboard:read")
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_token_without_deprecated_scope_not_translated(self) -> None:
+        organization = self.create_organization()
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        request = self.make_request(user=user)
+
+        results = [
+            self.from_user(user, organization, scopes=["project:read"]),
+            self.from_request(request, organization, scopes=["project:read"]),
+        ]
+
+        for result in results:
+            assert not result.has_scope("dashboard:read")
+
 
 @all_silo_test
 class FromRequestTest(AccessFactoryTestCase):
