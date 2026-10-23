@@ -41,6 +41,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
+    organization_service,
 )
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
@@ -50,6 +51,7 @@ from sentry.service_accounts.models import (
 )
 
 FEATURE_FLAG = "organizations:service-accounts"
+MAX_PROJECT_IDS_PER_REQUEST = 1000
 
 DUPLICATE_NAME_ERROR = "A service account with this name already exists."
 
@@ -144,6 +146,7 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
     )
     projectIds = serializers.ListField(
         child=serializers.IntegerField(),
+        max_length=MAX_PROJECT_IDS_PER_REQUEST,
         required=False,
         allow_null=True,
         help_text=(
@@ -159,15 +162,25 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
         if not project_ids:
             return []
         access = self.context["access"]
-        grantable = {project.id for project in self.context["organization"].projects}
-        if not access.has_global_access:
-            grantable &= access.accessible_project_ids
-        ungrantable = set(project_ids) - grantable
+        requested = set(project_ids)
+        candidates = (
+            requested if access.has_global_access else requested & access.accessible_project_ids
+        )
+        grantable = (
+            set(
+                organization_service.get_active_project_ids(
+                    organization_id=self.context["organization"].id, project_ids=sorted(candidates)
+                )
+            )
+            if candidates
+            else set()
+        )
+        ungrantable = requested - grantable
         if ungrantable:
             raise serializers.ValidationError(
                 f"You can't grant access to projects: {', '.join(map(str, sorted(ungrantable)))}"
             )
-        return sorted(set(project_ids))
+        return sorted(requested)
 
     def validate_scopes(self, scopes: list[str]) -> list[str]:
         ungrantable = set(scopes) - self.context["access"].scopes

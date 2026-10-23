@@ -31,6 +31,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth import access
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -335,13 +336,6 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
-    # Control silo endpoints fetch the organization over RPC from the cell silo.
-    # Including projects/teams serializes every row into the response body, which is
-    # expensive for large organizations. Set these to False when the endpoint does not
-    # need them.
-    include_organization_projects: bool = True
-    include_organization_teams: bool = True
-
     def convert_args(
         self,
         request: Request,
@@ -368,21 +362,15 @@ class ControlSiloOrganizationEndpoint(Endpoint):
                 raise ResourceDoesNotExist
 
         if str(organization_id_or_slug).isdecimal():
-            # It is ok that `get_organization_by_id` doesn't check for visibility as we
-            # don't check the visibility in `get_organization_by_slug` either (only_active=False).
-            organization_context = organization_service.get_organization_by_id(
-                id=int(organization_id_or_slug),
-                user_id=request.user.id,
-                include_projects=self.include_organization_projects,
-                include_teams=self.include_organization_teams,
+            organization_context = access.get_organization_access_context(
+                request, organization_id=int(organization_id_or_slug)
             )
         else:
-            organization_context = organization_service.get_organization_by_slug(
+            organization_context = organization_service.get_access_context_by_slug(
                 slug=str(organization_id_or_slug),
                 only_visible=False,
                 user_id=request.user.id,
-                include_projects=self.include_organization_projects,
-                include_teams=self.include_organization_teams,
+                include_resource_ids=access.should_prefetch_organization_resources(request),
             )
         if organization_context is None:
             raise ResourceDoesNotExist
