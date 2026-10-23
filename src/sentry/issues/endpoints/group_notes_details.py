@@ -11,7 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.activity import ActivitySerializerResponse
+from sentry.api.serializers.models.activity import ActivitySerializerResponse, serialize_group_notes
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT
@@ -27,7 +27,7 @@ from sentry.issues.action_log.read_metrics import (
     record_activity_read,
 )
 from sentry.issues.action_log.request import resolve_action_source
-from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
+from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction, GroupActionType
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -83,6 +83,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         # Activity alone and preserve the pre-existing behavior.
         original_comment_log_action = GroupActionLogEntry.objects.filter(
             group_id=group.id,
+            type=GroupActionType.COMMENT.value,
             idempotency_key=activity_action_idempotency_key(note),
         ).first()
         endpoint = activity_read_endpoint(request)
@@ -173,6 +174,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # on the Activity alone and preserve the pre-existing behavior.
             original_comment_log_action = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
+                type=GroupActionType.COMMENT.value,
                 idempotency_key=activity_action_idempotency_key(note),
             ).first()
             endpoint = activity_read_endpoint(request)
@@ -224,14 +226,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             )
 
             if serve_from_log and original_comment_log_action is not None:
-                # Edits append a COMMENT_EDIT rather than updating the COMMENT.
-                # Return the original entry's identity with the fresh text;
-                # commentId remains the reference for subsequent edits/deletes.
-                original_comment_log_action.data = {
-                    **original_comment_log_action.data,
-                    "text": payload.get("text"),
-                }
-                return Response(serialize(original_comment_log_action, request.user), status=200)
+                return Response(serialize_group_notes(group, [note], request.user)[0], status=200)
 
             return Response(serialize(note, request.user), status=200)
 
