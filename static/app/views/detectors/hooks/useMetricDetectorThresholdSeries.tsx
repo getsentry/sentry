@@ -21,9 +21,10 @@ import {
   createStaticThresholdBandSeries,
   getThresholdBands,
   type ThresholdBand,
+  type ThresholdBound,
 } from 'sentry/views/detectors/utils/thresholdBands';
 
-function getThresholdColor(theme: Theme, priority: DetectorPriorityLevel) {
+function getThresholdColor(theme: Theme, priority: DetectorPriorityLevel): string {
   return priority === DetectorPriorityLevel.HIGH
     ? theme.colors.red400
     : theme.colors.yellow400;
@@ -35,7 +36,7 @@ function sortThresholdsBySeverity<Threshold extends {priority: DetectorPriorityL
   return thresholds.toSorted((a, b) => a.priority - b.priority);
 }
 
-function createPriorityThresholdBands<Bound>({
+function createPriorityThresholdBands<Bound extends ThresholdBound>({
   resolution,
   theme,
   thresholds,

@@ -8,26 +8,29 @@ import type {SeriesDataUnit} from 'sentry/types/echarts';
 
 const BAND_OPACITY = 0.1;
 
-interface ThresholdBoundary<Bound> {
+// Static thresholds are a flat y-value, percent thresholds are a line over time
+export type ThresholdBound = number | SeriesDataUnit[];
+
+interface ThresholdBoundary<Bound extends ThresholdBound> {
   bound: Bound;
   color: string;
 }
 
 // Shaded region between two thresholds
-export interface ThresholdBand<Bound> {
+export interface ThresholdBand<Bound extends ThresholdBound> {
   color: string;
   lower?: Bound;
   upper?: Bound;
 }
 
-interface GetThresholdBandsOptions<Bound> {
+interface GetThresholdBandsOptions<Bound extends ThresholdBound> {
   alertBoundaries: Array<ThresholdBoundary<Bound>>;
   isAbove: boolean;
   okBoundary: ThresholdBoundary<Bound>;
 }
 
 // Split the chart into adjacent non-overlapping bands
-export function getThresholdBands<Bound>({
+export function getThresholdBands<Bound extends ThresholdBound>({
   alertBoundaries,
   isAbove,
   okBoundary,
