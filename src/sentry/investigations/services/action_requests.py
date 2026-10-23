@@ -61,9 +61,7 @@ def _replace_primary(investigation: Investigation, row: InvestigationActionReque
 
 
 def _after_upsert(rows: Sequence[InvestigationActionRequest]) -> None:
-    """Run each kind's hook for the requests Seer just created or changed, once the event has
-    settled, so only requests that are still suggested get it.
-    """
+    """Call after_upsert for the requests that are still suggested."""
 
     if not rows:
         return

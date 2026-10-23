@@ -652,7 +652,7 @@ class RecordingKind(ActionKind):
     def __init__(self) -> None:
         # The requests after_upsert ran for, in order.
         self.upserted: list[InvestigationActionRequest] = []
-        # What each cannot_apply_reasons call got: request ids, investigation ids, access, user.
+        # The arguments from each cannot_apply_reasons call.
         self.checked: list[tuple[list[int], list[int], Access, User | RpcUser | AnonymousUser]] = []
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:

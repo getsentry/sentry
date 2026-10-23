@@ -40,7 +40,6 @@ class ActionKind(abc.ABC):
         return {item.id: CannotApplyReason.UNSUPPORTED_ACTION for item in action_requests}
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
-        """Runs after Seer creates or changes a request, inside the same transaction. It only
-        runs for requests that are still suggested once the event is handled, so a request that
-        lost to another primary in the same snapshot is never seen here.
+        """Runs when Seer creates or changes a request, in the same transaction. Only requests
+        that are still suggested once the whole event is handled get it.
         """
