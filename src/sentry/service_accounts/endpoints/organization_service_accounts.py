@@ -1,23 +1,23 @@
-"""Service account APIs.
+"""Service account management APIs.
 
-Every endpoint here is a mock: it validates input and returns canned data with the
-final response shape, but persists nothing. They exist so consumers (Seer first) can
-integrate against the contract while the real implementation is built behind it.
+These run in control, next to the `ServiceAccount` table. The viewer-context endpoint
+runs in the cell and reads the account's `ServiceAccountReplica`.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from datetime import UTC, datetime
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, NotRequired, TypedDict, cast
 
-from django.conf import settings
+from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -26,7 +26,8 @@ from sentry.api.bases.organization import (
     OrganizationPermission,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -36,20 +37,21 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+from sentry.service_accounts.models import (
+    GRANTABLE_SCOPES,
+    MAX_NAME_LENGTH,
+    ServiceAccount,
+    ServiceAccountProject,
+)
 
 FEATURE_FLAG = "organizations:service-accounts"
 
-_MOCK_DATE_CREATED = datetime(2025, 1, 1, tzinfo=UTC)
-_MOCK_SERVICE_ACCOUNT_ID = "1"
-_MOCK_SERVICE_ACCOUNT_NAME = "seer-autofix"
-MOCK_SERVICE_ACCOUNT_SCOPES = ["event:read", "org:read", "project:read"]
-
-# OIDC scopes describe a human login, so a service account can't hold them.
-GRANTABLE_SCOPES = sorted(settings.SENTRY_SCOPES - {"openid", "profile", "email"})
+DUPLICATE_NAME_ERROR = "A service account with this name already exists."
 
 SERVICE_ACCOUNT_ID = OpenApiParameter(
     name="service_account_id",
@@ -83,27 +85,60 @@ class ServiceAccountUpdateRequestData(TypedDict, total=False):
     isActive: bool
 
 
-def _mock_service_account(
-    service_account_id: str = _MOCK_SERVICE_ACCOUNT_ID,
-    name: str = _MOCK_SERVICE_ACCOUNT_NAME,
-    scopes: list[str] | None = None,
-    project_ids: Sequence[int] = (),
-    is_active: bool = True,
-) -> ServiceAccountResponse:
+class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
+    def get_attrs(
+        self, item_list: Sequence[ServiceAccount], user: Any, **kwargs: Any
+    ) -> dict[ServiceAccount, dict[str, Any]]:
+        project_ids: defaultdict[int, list[int]] = defaultdict(list)
+        for service_account_id, project_id in ServiceAccountProject.objects.filter(
+            service_account_id__in=[item.id for item in item_list]
+        ).values_list("service_account_id", "project_id"):
+            project_ids[service_account_id].append(project_id)
+        return {item: {"project_ids": sorted(project_ids[item.id])} for item in item_list}
+
+    def serialize(
+        self, obj: ServiceAccount, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> ServiceAccountResponse:
+        return {
+            "id": str(obj.id),
+            "name": obj.name,
+            "scopes": sorted(obj.scope_list),
+            "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
+            "isActive": obj.is_active,
+            "dateCreated": obj.date_added,
+        }
+
+
+def _audit_log_data(response: ServiceAccountResponse) -> dict[str, Any]:
     return {
-        "id": service_account_id,
-        "name": name,
-        "scopes": scopes if scopes is not None else MOCK_SERVICE_ACCOUNT_SCOPES,
-        "projectIds": [str(project_id) for project_id in project_ids],
-        "isActive": is_active,
-        "dateCreated": _MOCK_DATE_CREATED,
+        "name": response["name"],
+        "scopes": response["scopes"],
+        "project_ids": response["projectIds"],
+        "is_active": response["isActive"],
     }
 
 
+def _replace_projects(service_account: ServiceAccount, project_ids: Sequence[int]) -> None:
+    existing = set()
+    # Delete links one at a time: a queryset delete wouldn't write the account's outbox.
+    for link in ServiceAccountProject.objects.filter(service_account=service_account):
+        if link.project_id in project_ids:
+            existing.add(link.project_id)
+        else:
+            link.delete()
+    ServiceAccountProject.objects.bulk_create(
+        ServiceAccountProject(service_account=service_account, project_id=project_id)
+        for project_id in project_ids
+        if project_id not in existing
+    )
+
+
 class ServiceAccountCreateSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, help_text="The name of the service account.")
+    name = serializers.CharField(
+        max_length=MAX_NAME_LENGTH, help_text="The name of the service account."
+    )
     scopes = serializers.ListField(
-        child=serializers.ChoiceField(choices=GRANTABLE_SCOPES),
+        child=serializers.ChoiceField(choices=sorted(GRANTABLE_SCOPES)),
         allow_empty=False,
         help_text="Scopes granted to the service account. You can only grant scopes you have.",
     )
@@ -145,10 +180,10 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
 
 class ServiceAccountUpdateSerializer(ServiceAccountCreateSerializer):
     name = serializers.CharField(
-        max_length=64, required=False, help_text="The name of the service account."
+        max_length=MAX_NAME_LENGTH, required=False, help_text="The name of the service account."
     )
     scopes = serializers.ListField(
-        child=serializers.ChoiceField(choices=GRANTABLE_SCOPES),
+        child=serializers.ChoiceField(choices=sorted(GRANTABLE_SCOPES)),
         allow_empty=False,
         required=False,
         help_text="Scopes granted to the service account. You can only grant scopes you have.",
@@ -202,11 +237,13 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
     ) -> Response:
-        service_accounts = [_mock_service_account()]
         return self.paginate(
             request=request,
-            paginator=GenericOffsetPaginator(
-                data_fn=lambda offset, limit: service_accounts[offset : offset + limit]
+            queryset=ServiceAccount.objects.filter(organization_id=organization.id),
+            order_by="id",
+            paginator_cls=OffsetPaginator,
+            on_results=lambda results: serialize(
+                results, request.user, serializer=ServiceAccountSerializer()
             ),
         )
 
@@ -236,15 +273,33 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
         data = cast(ServiceAccountCreateRequestData, serializer.validated_data)
-        return Response(
-            _mock_service_account(
-                name=data["name"],
-                scopes=data["scopes"],
-                project_ids=data.get("projectIds") or (),
-                is_active=data.get("isActive", True),
-            ),
-            status=201,
+
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
+                service_account = ServiceAccount.objects.create(
+                    organization_id=organization.id,
+                    name=data["name"],
+                    scope_list=data["scopes"],
+                    is_active=data.get("isActive", True),
+                    created_by_id=request.user.id,
+                )
+                ServiceAccountProject.objects.bulk_create(
+                    ServiceAccountProject(service_account=service_account, project_id=project_id)
+                    for project_id in data.get("projectIds") or ()
+                )
+        except IntegrityError:
+            # The (organization_id, name) unique constraint is the duplicate name check.
+            return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
+
+        response = serialize(service_account, request.user, serializer=ServiceAccountSerializer())
+        self.create_audit_entry(
+            request,
+            organization=organization,
+            target_object=service_account.id,
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_ADD"),
+            data=_audit_log_data(response),
         )
+        return Response(response, status=201)
 
 
 @control_silo_endpoint
@@ -254,6 +309,19 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         "PUT": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
+
+    def convert_args(
+        self, request: Request, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        try:
+            kwargs["service_account"] = ServiceAccount.objects.get(
+                organization_id=kwargs["organization"].id,
+                id=kwargs.pop("service_account_id"),
+            )
+        except ServiceAccount.DoesNotExist:
+            raise ResourceDoesNotExist
+        return args, kwargs
 
     @extend_schema(
         operation_id="Retrieve a Service Account",
@@ -272,9 +340,11 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         request: Request,
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
-        service_account_id: str,
+        service_account: ServiceAccount,
     ) -> Response:
-        return Response(_mock_service_account(service_account_id=service_account_id))
+        return Response(
+            serialize(service_account, request.user, serializer=ServiceAccountSerializer())
+        )
 
     @extend_schema(
         operation_id="Update a Service Account",
@@ -295,7 +365,7 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         request: Request,
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
-        service_account_id: str,
+        service_account: ServiceAccount,
     ) -> Response:
         serializer = ServiceAccountUpdateSerializer(
             data=request.data,
@@ -305,15 +375,37 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
         data = cast(ServiceAccountUpdateRequestData, serializer.validated_data)
-        return Response(
-            _mock_service_account(
-                service_account_id=service_account_id,
-                name=data.get("name", _MOCK_SERVICE_ACCOUNT_NAME),
-                scopes=data.get("scopes"),
-                project_ids=data.get("projectIds") or (),
-                is_active=data.get("isActive", True),
-            )
+
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
+                service_account = ServiceAccount.objects.select_for_update().get(
+                    id=service_account.id
+                )
+                if "name" in data:
+                    service_account.name = data["name"]
+                if "scopes" in data:
+                    service_account.scope_list = data["scopes"]
+                if "isActive" in data:
+                    service_account.is_active = data["isActive"]
+                if "projectIds" in data:
+                    _replace_projects(service_account, data["projectIds"] or [])
+                service_account.save()
+        except ServiceAccount.DoesNotExist:
+            # Deleted by another request after convert_args loaded it.
+            raise ResourceDoesNotExist
+        except IntegrityError:
+            # The (organization_id, name) unique constraint is the duplicate name check.
+            return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
+
+        response = serialize(service_account, request.user, serializer=ServiceAccountSerializer())
+        self.create_audit_entry(
+            request,
+            organization=organization,
+            target_object=service_account.id,
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT"),
+            data=_audit_log_data(response),
         )
+        return Response(response)
 
     @extend_schema(
         operation_id="Delete a Service Account",
@@ -330,6 +422,19 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         request: Request,
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
-        service_account_id: str,
+        service_account: ServiceAccount,
     ) -> Response:
+        audit_data = _audit_log_data(
+            serialize(service_account, request.user, serializer=ServiceAccountSerializer())
+        )
+        service_account_id = service_account.id
+        # The tombstone cascade removes the cell replica. The project rows go with the account.
+        service_account.delete()
+        self.create_audit_entry(
+            request,
+            organization=organization,
+            target_object=service_account_id,
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"),
+            data=audit_data,
+        )
         return Response(status=204)
