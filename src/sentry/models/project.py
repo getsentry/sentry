@@ -861,10 +861,9 @@ class Project(Model):
 
                 options = ProjectOption.objects.get_all_values(project=project)
                 for key, value in options.items():
-                    if key in legacy_filter_lists.OPTION_KEYS:
-                        legacy_filter_lists.set_list(self, key.removeprefix("sentry:"), value)
-                    else:
+                    if key not in legacy_filter_lists.OPTION_KEYS:
                         self.update_option(key, value)
+                legacy_filter_lists.copy_lists(project, self)
 
         except IntegrityError as e:
             logging.exception(

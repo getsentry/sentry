@@ -136,7 +136,12 @@ def handle_seer_investigation_start(
     if not SeerInvestigationOperator.has_access(
         organization=organization, entrypoint_key=SeerEntrypointKey.SLACK
     ):
-        log_unavailable(InvestigationUnavailableReason.NO_ACCESS)
+        # Open membership is part of the operator's check; keep it a separate reason.
+        log_unavailable(
+            InvestigationUnavailableReason.NO_ACCESS
+            if organization.flags.allow_joinleave
+            else InvestigationUnavailableReason.CLOSED_MEMBERSHIP
+        )
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 
     member = OrganizationMember.objects.filter(
@@ -148,10 +153,6 @@ def handle_seer_investigation_start(
         return _respond_ephemeral(
             INVESTIGATION_NOT_MEMBER_MESSAGE.format(org_name=organization.name)
         )
-    if not organization.flags.allow_joinleave:
-        log_unavailable(InvestigationUnavailableReason.CLOSED_MEMBERSHIP)
-        return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
-
     try:
         source = _get_investigation_source(slack_request)
     except InvestigationActionError as e:

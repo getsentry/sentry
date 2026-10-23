@@ -13,6 +13,8 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 from sentry.viewer_context import (
+    Actor,
+    ActorType,
     ViewerContext,
     encode_viewer_context,
     get_viewer_context,
@@ -62,7 +64,7 @@ def _resolve_viewer_context(
 
     Converts the legacy SeerViewerContext into a ViewerContext, then merges
     with the contextvar. Explicit non-None fields win. On disagreement,
-    logs a warning and strips the token for safety.
+    logs a warning and strips actor elevation for safety.
     """
     vc = get_viewer_context()
 
@@ -71,17 +73,15 @@ def _resolve_viewer_context(
     if explicit is None:
         return vc
 
-    explicit_vc = ViewerContext(
-        organization_id=explicit.get("organization_id"),
-        user_id=explicit.get("user_id"),
-    )
+    explicit_org_id = explicit.get("organization_id")
+    explicit_user_id = explicit.get("user_id")
 
     if vc is None:
         logger.warning(
             "seer.viewer_context_not_set",
             extra={
-                "explicit_org_id": explicit_vc.organization_id,
-                "explicit_user_id": explicit_vc.user_id,
+                "explicit_org_id": explicit_org_id,
+                "explicit_user_id": explicit_user_id,
                 "endpoint": endpoint,
             },
         )
@@ -89,39 +89,50 @@ def _resolve_viewer_context(
             "seer.viewer_context_resolution",
             tags={"outcome": "contextvar_missing", "endpoint": endpoint or "unknown"},
         )
-        return explicit_vc
+        return ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=explicit_user_id)
+            if explicit_user_id is not None
+            else Actor(type=ActorType.UNKNOWN),
+            organization_id=explicit_org_id,
+        )
 
     has_mismatch = False
     org_id = vc.organization_id
-    user_id = vc.user_id
+    user_id = vc.actor.actor_id if vc.actor.type == ActorType.USER else vc.actor.delegated_user_id
+    actor = vc.actor
 
-    if explicit_vc.organization_id is not None:
-        if org_id is not None and org_id != explicit_vc.organization_id:
+    if explicit_org_id is not None:
+        if org_id is not None and org_id != explicit_org_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
                     "field": "organization_id",
                     "contextvar": org_id,
-                    "explicit": explicit_vc.organization_id,
+                    "explicit": explicit_org_id,
                     "endpoint": endpoint,
                 },
             )
             has_mismatch = True
-        org_id = explicit_vc.organization_id
+        org_id = explicit_org_id
 
-    if explicit_vc.user_id is not None:
-        if user_id is not None and user_id != explicit_vc.user_id:
+    if explicit_user_id is not None:
+        if user_id is not None and user_id != explicit_user_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
                     "field": "user_id",
                     "contextvar": user_id,
-                    "explicit": explicit_vc.user_id,
+                    "explicit": explicit_user_id,
                     "endpoint": endpoint,
                 },
             )
             has_mismatch = True
-        user_id = explicit_vc.user_id
+        if actor.type == ActorType.USER:
+            actor = replace(actor, actor_id=explicit_user_id)
+        elif actor.type == ActorType.AGENT:
+            actor = replace(actor, delegated_user_id=explicit_user_id)
+        else:
+            actor = Actor(type=ActorType.USER, actor_id=explicit_user_id)
 
     metrics.incr(
         "seer.viewer_context_resolution",
@@ -136,12 +147,10 @@ def _resolve_viewer_context(
         return replace(
             vc,
             organization_id=org_id,
-            user_id=user_id,
+            actor=replace(actor, superuser=None),
             project_id=None,
-            token=None,
-            superuser=None,
         )
-    return replace(vc, organization_id=org_id, user_id=user_id)
+    return replace(vc, organization_id=org_id, actor=actor)
 
 
 @traces.trace

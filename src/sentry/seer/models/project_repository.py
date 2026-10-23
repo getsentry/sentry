@@ -17,11 +17,10 @@ class SeerProjectRepository(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Global
 
-    project_repository = FlexibleForeignKey(
-        "sentry.ProjectRepository", on_delete=models.CASCADE, unique=True
-    )
+    project_repository = models.OneToOneField("sentry.ProjectRepository", on_delete=models.CASCADE)
     branch_name = models.TextField(null=True, blank=True)
     instructions = models.TextField(null=True, blank=True)
+    enabled = models.BooleanField(db_default=True)  # Opt-out toggle for token-based billing.
 
     class Meta:
         app_label = "seer"

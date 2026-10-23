@@ -5,12 +5,12 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableResponse
+from snuba_sdk import Function
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_events_trace import count_performance_issues
 from sentry.api.endpoints.organization_trace_meta_types import OrganizationTraceMetaResponse
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -28,6 +28,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
@@ -36,6 +37,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+MAX_TRACE_SIZE: int = 100
 
 TRACE_ID_PATH_PARAM = OpenApiParameter(
     name="trace_id",
@@ -66,6 +68,54 @@ def extract_uptime_count(uptime_result: list[TraceItemTableResponse]) -> int:
 
     first_column = first_result.column_values[0]
     return len(first_column.results) if first_column.results else 0
+
+
+def count_performance_issues(
+    trace_id: str,
+    params: SnubaParams,
+    query_source: QuerySource | None = QuerySource.SENTRY_BACKEND,
+) -> int:
+    transaction_query = DiscoverQueryBuilder(
+        Dataset.IssuePlatform,
+        params={},
+        snuba_params=params,
+        query=f"trace:{trace_id}",
+        selected_columns=[],
+        limit=MAX_TRACE_SIZE,
+    )
+    transaction_query.columns.append(Function("count()", alias="total_groups"))
+    count = transaction_query.run_query(
+        referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
+        query_source=query_source,
+    )
+    snuba_count = count["data"][0].get("total_groups", 0)
+    performance_issues_count = snuba_count
+
+    callsite = "api.trace.count_performance_issues"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_count = count_occurrences_grouped_by_trace_ids(
+            snuba_params=params,
+            trace_ids=[trace_id],
+            referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        ).get(trace_id, 0)
+        performance_issues_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count,
+            eap_count,
+            callsite,
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    params.organization.id if params.organization is not None else None
+                ),
+                "project_ids": [project.id for project in params.projects],
+                "start": params.start.isoformat() if params.start else None,
+                "end": params.end.isoformat() if params.end else None,
+            },
+        )
+
+    return performance_issues_count
 
 
 def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> int:

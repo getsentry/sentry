@@ -304,8 +304,6 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
 # wrapped by this check, so these stayed hidden until default locks moved to RedisClusterLockBackend.
 _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
     {
-        # INFRENG-807: grant lock in GrantExchanger.run
-        ("sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger.run",),
         # INFRENG-808: invite request team assignments
         ("sentry.core.endpoints.organization_member_utils.save_team_assignments",),
         # INFRENG-809: test-only, ApiToken.from_grant inside a transaction in ControlOutboxDrainTest
