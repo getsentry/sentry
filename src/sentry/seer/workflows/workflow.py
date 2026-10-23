@@ -86,6 +86,7 @@ class SeerWorkflow:
 
     def has_quota_available(self) -> bool:
         """Allow runs until automation quota enforcement is implemented."""
+        # TODO(telkins): Enforce automation quota before accepting a new run.
         return True
 
     def get_project_ids(self) -> list[int]:
@@ -116,6 +117,11 @@ class SeerWorkflow:
             config = SeerWorkflowConfig.objects.select_for_update().get(
                 id=self.config.id, organization_id=self.config.organization_id
             )
+            if (
+                config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+                and not all_projects
+            ):
+                raise ValueError("Breached metric projects are selected by connecting monitors")
             valid_project_ids = set(
                 Project.objects.filter(
                     organization_id=config.organization_id, id__in=project_ids

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
@@ -13,6 +14,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
@@ -85,6 +87,26 @@ class MetricBreachExecutionExtras(BaseModel):
 
 
 class BreachedMetricWorkflow(SeerWorkflow):
+    @classmethod
+    def create(
+        cls,
+        organization_id: int,
+        *,
+        enabled: bool = False,
+        environments: Sequence[str] = (),
+    ) -> BreachedMetricWorkflow:
+        """Create an automation whose project coverage comes from connected monitors."""
+        # TODO(telkins): Wire automation creation into the API/UI using this method.
+        # TODO(telkins): Connect existing default Error Spike monitors when seeding the
+        # default automation, and connect new projects' default monitors as they are created.
+        config = SeerWorkflowConfig.objects.create(
+            organization_id=organization_id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=enabled,
+            filters=SeerWorkflowFilters(all_projects=True, environments=list(environments)).dict(),
+        )
+        return cls(config)
+
     def accept(
         self,
         group: Group,
@@ -188,7 +210,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             )
             if reason is not None:
                 return RejectedMetricBreach(run=run, reason=reason, created=True)
-            # Investigation dispatch will replace this explicit no-op execution.
+            # TODO(telkins): Replace this no-op execution with investigation dispatch.
             SeerWorkflowRunExecution.objects.create(
                 run=run, extras=MetricBreachExecutionExtras().dict()
             )
