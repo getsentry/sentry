@@ -1,22 +1,39 @@
 from __future__ import annotations
 
-import contextlib
-import contextvars
 import dataclasses
-import enum
-import hashlib
 import logging
-import time
-from collections.abc import Generator, Mapping
+from collections.abc import Mapping
 from random import random
-from typing import Any, NamedTuple
+from typing import Any
 
-import jwt as pyjwt
 import sentry_sdk
 from django.conf import settings
+from sentry_viewercontext import (
+    Actor,
+    ActorId,
+    ActorType,
+    SuperuserAccess,
+    ViewerContext,
+    decode_jwt,
+    encode_jwt,
+    get_viewer_context,
+    is_jwt,
+    key_id,
+    viewer_context_scope,
+    viewer_context_var,
+)
 
 from sentry.silo.base import SiloMode
-from sentry.types.superuser import SUPERUSER_ACCESS_TTL, SuperuserAccess
+
+__all__ = [
+    "Actor",
+    "ActorId",
+    "ActorType",
+    "SuperuserAccess",
+    "ViewerContext",
+    "get_viewer_context",
+    "viewer_context_scope",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +41,7 @@ logger = logging.getLogger(__name__)
 # "caller passed None" from "caller didn't pass ctx".
 _OBSERVE_USE_CONTEXTVAR: Any = object()
 
-_viewer_context_var: contextvars.ContextVar[ViewerContext | None] = contextvars.ContextVar(
-    "viewer_context", default=None
-)
+_viewer_context_var = viewer_context_var
 
 """
 ViewerContext is an object propagated across codebase (and crossing service boundary) to deliver
@@ -37,106 +52,6 @@ This can be global, limited to an organization, or particular user.
 The proposal for this project alongside needs and specific considerations can be found in:
 https://www.notion.so/sentry/RFC-Unified-ViewerContext-via-ContextVar-32f8b10e4b5d81988625cb5787035e02
 """
-
-
-class ActorType(enum.StrEnum):
-    USER = "user"
-    SERVICE_ACCOUNT = "service_account"
-    SYSTEM = "system"
-    INTEGRATION = "integration"
-    AGENT = "agent"
-    UNKNOWN = "unknown"
-
-
-class ActorId(NamedTuple):
-    type: ActorType
-    id: int | None
-
-
-@dataclasses.dataclass(frozen=True)
-class Actor:
-    """Typed caller identity, separate from any human delegating its work."""
-
-    type: ActorType
-    actor_id: int | None = None
-    delegated_user_id: int | None = None
-    superuser: SuperuserAccess | None = dataclasses.field(default=None, repr=False)
-
-    @property
-    def id(self) -> ActorId:
-        return ActorId(self.type, self.actor_id)
-
-    def serialize(self) -> dict[str, Any]:
-        result: dict[str, Any] = {"type": self.type.value}
-        if self.actor_id is not None:
-            result["id"] = self.actor_id
-        if self.delegated_user_id is not None:
-            result["delegated_user_id"] = self.delegated_user_id
-        if self.superuser is not None:
-            result["superuser"] = self.superuser.dict()
-        return result
-
-    @classmethod
-    def deserialize(cls, data: Any) -> Actor:
-        if not isinstance(data, dict) or "type" not in data:
-            raise ValueError("Actor must be an object with a type")
-        superuser = data.get("superuser")
-        return cls(
-            type=ActorType(data["type"]),
-            actor_id=data.get("id"),
-            delegated_user_id=data.get("delegated_user_id"),
-            superuser=SuperuserAccess.parse_obj(superuser) if superuser is not None else None,
-        )
-
-
-@dataclasses.dataclass(frozen=True)
-class ViewerContext:
-    """Caller identity and organization/project scope for the current unit of work."""
-
-    actor: Actor
-    organization_id: int | None = None
-    project_id: int | None = None
-
-    def serialize(self) -> dict[str, Any]:
-        result: dict[str, Any] = {"version": 2, "actor": self.actor.serialize()}
-        if self.organization_id is not None:
-            result["organization_id"] = self.organization_id
-        if self.project_id is not None:
-            result["project_id"] = self.project_id
-        return result
-
-    @classmethod
-    def deserialize(cls, data: dict[str, Any]) -> ViewerContext:
-        if not isinstance(data, dict):
-            raise ValueError("Viewer context must be an object")
-        if type(data.get("version")) is not int or data["version"] != 2:
-            raise ValueError("Expected a V2 viewer context")
-        if {"user_id", "actor_type", "superuser", "token"}.intersection(data):
-            raise ValueError("V2 contexts cannot carry V1 identity or credentials")
-        return cls(
-            actor=Actor.deserialize(data.get("actor")),
-            organization_id=data.get("organization_id"),
-            project_id=data.get("project_id"),
-        )
-
-
-@contextlib.contextmanager
-def viewer_context_scope(ctx: ViewerContext) -> Generator[None]:
-    """Enter a viewer context for the duration of a unit of work.
-
-    Always use this instead of raw ``_viewer_context_var.set()`` —
-    it guarantees cleanup via ``reset(token)`` even on exceptions.
-    """
-    tok = _viewer_context_var.set(ctx)
-    try:
-        yield
-    finally:
-        _viewer_context_var.reset(tok)
-
-
-def get_viewer_context() -> ViewerContext | None:
-    """Return the current ``ViewerContext``, or ``None`` if not set."""
-    return _viewer_context_var.get()
 
 
 def get_acting_user_id(ctx: ViewerContext | None) -> int | None:
@@ -271,19 +186,6 @@ def set_viewer_context_project(project_id: int) -> None:
 # JWT encoding / decoding for cross-service propagation
 # ---------------------------------------------------------------------------
 
-_JWT_STANDARD_CLAIMS = frozenset({"iat", "exp", "iss", "aud", "nbf", "jti", "sub"})
-# JWT header field identifying which key was used for signing (RFC 7515 §4.1.4).
-_JWT_KEY_ID_HEADER = "kid"
-
-
-def _key_id(key: str) -> str:
-    """Short stable identifier for a key (first 8 hex chars of SHA-256).
-
-    Embedded as ``kid`` in the JWT header so the receiver can look up the
-    correct verification key without trying every key it knows about.
-    """
-    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
-
 
 def _get_signing_key(key: str | None = None) -> str:
     """Return the key to use for JWT signing.
@@ -312,7 +214,7 @@ def _get_verification_keys() -> dict[str, str]:
 
     seer_secret = getattr(settings, "SEER_API_SHARED_SECRET", "")
     if seer_secret:
-        keys[_key_id(seer_secret)] = seer_secret
+        keys[key_id(seer_secret)] = seer_secret
 
     return keys
 
@@ -324,34 +226,13 @@ def encode_viewer_context(
     ttl: int | None = None,
 ) -> str:
     """Encode a :class:`ViewerContext` as a signed HS256 JWT."""
-    secret = _get_signing_key(key)
-
     if ttl is None:
         ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
-
-    now = time.time()
-    expires_at = now + ttl
-    superuser = viewer_context.actor.superuser
-    if superuser is not None:
-        expires_at = min(
-            expires_at,
-            now + SUPERUSER_ACCESS_TTL.total_seconds(),
-            superuser.expires_at,
-        )
-    payload: dict[str, Any] = {
-        **viewer_context.serialize(),
-        "iat": now,
-        "exp": expires_at,
-        "iss": "sentry",
-    }
     if viewer_context.organization_id is not None and _organization_is_early_adopter(
         viewer_context.organization_id
     ):
-        payload["organization_is_early_adopter"] = True
-
-    return pyjwt.encode(
-        payload, secret, algorithm="HS256", headers={_JWT_KEY_ID_HEADER: _key_id(secret)}
-    )
+        viewer_context = dataclasses.replace(viewer_context, organization_is_early_adopter=True)
+    return encode_jwt(viewer_context, key=_get_signing_key(key), ttl=ttl)
 
 
 def _organization_is_early_adopter(organization_id: int) -> bool:
@@ -381,31 +262,13 @@ def decode_viewer_context(
 ) -> ViewerContext:
     """Decode and verify an HS256 JWT into a :class:`ViewerContext`.
 
-    When *key* is provided it is used directly.  Otherwise all keys
-    from ``_get_verification_keys()`` are tried, kid-matched key first.
+    When *key* is provided it is used directly.  Otherwise the key matching the
+    token's ``kid`` among ``_get_verification_keys()`` is used.
     """
-    if key is not None:
-        secret = key
-    else:
-        keys_by_kid = _get_verification_keys()
-        if not keys_by_kid:
-            raise ValueError("No verification keys available.")
-
-        kid = pyjwt.get_unverified_header(token).get(_JWT_KEY_ID_HEADER)
-        secret = keys_by_kid.get(kid, "") if kid else ""
-        if not secret:
-            raise pyjwt.exceptions.InvalidKeyError(f"No verification key matches kid={kid!r}")
-
-    claims = pyjwt.decode(
-        token,
-        secret,
-        algorithms=["HS256"],
-        options={"require": ["iat", "exp", "iss"]},
-        issuer="sentry",
-        leeway=leeway,
-    )
-    vc_data = {ck: cv for ck, cv in claims.items() if ck not in _JWT_STANDARD_CLAIMS}
-    return ViewerContext.deserialize(vc_data)
+    keys = [key] if key is not None else list(_get_verification_keys().values())
+    if not keys:
+        raise ValueError("No verification keys available.")
+    return decode_jwt(token, keys=keys, leeway=leeway)
 
 
 def viewer_context_from_header(
@@ -423,13 +286,4 @@ def viewer_context_from_header(
 
 
 def is_jwt_viewer_context(header_value: str) -> bool:
-    """Check whether the header value is a JWT by attempting to read its header.
-
-    Uses PyJWT's own parser — raises ``DecodeError`` on anything that
-    isn't a valid JWT structure (raw JSON, empty string, etc.).
-    """
-    try:
-        pyjwt.get_unverified_header(header_value)
-        return True
-    except pyjwt.exceptions.DecodeError:
-        return False
+    return is_jwt(header_value)

@@ -49,6 +49,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.types.superuser import from_viewer_context_superuser
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -984,7 +985,7 @@ class ViewerContextAuthentication(BaseAuthentication):
         vc = viewer_context_from_header(header)
 
         user_id = get_acting_user_id(vc)
-        superuser = vc.actor.superuser if vc is not None else None
+        superuser = from_viewer_context_superuser(vc.actor.superuser) if vc is not None else None
 
         if vc is None or user_id is None:
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
