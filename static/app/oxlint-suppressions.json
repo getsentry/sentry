@@ -1290,7 +1290,7 @@
   },
   "components/searchQueryBuilder/tokens/filter/valueCombobox.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 6
+      "count": 5
     }
   },
   "components/searchQueryBuilder/tokens/filter/valueListBox.tsx": {
