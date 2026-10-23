@@ -1655,6 +1655,41 @@ describe('ExploreToolbar', () => {
     );
   });
 
+  it('keeps aggregates that share a chart together when comparing queries', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-multi-aggregate-charts'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            aggregateField: [
+              JSON.stringify({yAxes: ['p50(span.duration)', 'p99(span.duration)']}),
+              JSON.stringify({yAxes: ['count(span.duration)']}),
+            ],
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByText(/Compare Queries/));
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/traces/compare/'
+    );
+    const compareQueries = (router.location.query.queries as string[]).map(query =>
+      JSON.parse(query)
+    );
+    expect(compareQueries.map(query => query.yAxes)).toEqual([
+      ['p50(span.duration)', 'p99(span.duration)'],
+      ['count(span.duration)'],
+    ]);
+  });
+
   it('opens the right alert', async () => {
     function Component() {
       return <ExploreToolbar />;

@@ -10,7 +10,11 @@ import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  updateVisualizeAggregate,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
@@ -22,6 +26,9 @@ import {
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {MAX_VISUALIZES} from 'sentry/views/explore/queryParams/visualize';
+import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
+import {AggregateMultiSelect} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
@@ -31,6 +38,7 @@ type Props = {
 };
 
 export function VisualizeSection({query, index}: Props) {
+  const organization = useOrganization();
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
@@ -46,6 +54,47 @@ export function VisualizeSection({query, index}: Props) {
   });
 
   const updateYAxis = useUpdateQueryAtIndex(index);
+
+  const multiAggregateCharts = hasMultiAggregateCharts(organization);
+
+  const selectedAggregates = useMemo(
+    () =>
+      query.yAxes
+        .map(yAxis => parseFunction(yAxis)?.name)
+        .filter((name): name is string => defined(name)),
+    [query.yAxes]
+  );
+
+  const onChangeAggregates = (newAggregates: string[]) => {
+    // Clearing the selection falls back to the default aggregate, like the
+    // Traces Explore toolbar, so a chart always plots something.
+    const aggregates = newAggregates.length
+      ? newAggregates
+      : [DEFAULT_VISUALIZATION_AGGREGATE];
+    updateYAxis({
+      yAxes: aggregates.map(aggregate =>
+        updateVisualizeAggregate({
+          newAggregate: aggregate,
+          oldAggregate: parsedFunction?.name,
+          oldArguments: parsedFunction?.arguments,
+        })
+      ),
+    });
+  };
+
+  const onChangeField = (newField: string) => {
+    if (!multiAggregateCharts) {
+      updateYAxis({yAxes: [`${parsedFunction!.name}(${newField})`]});
+      return;
+    }
+    // Every aggregate on the chart shares the field.
+    updateYAxis({
+      yAxes: query.yAxes.map(yAxis => {
+        const parsed = parseFunction(yAxis);
+        return parsed ? `${parsed.name}(${newField})` : yAxis;
+      }),
+    });
+  };
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -70,18 +119,27 @@ export function VisualizeSection({query, index}: Props) {
       </SectionHeader>
       <Fragment>
         <StyledPageFilterBar>
-          <CompactSelect
-            options={aggregateOptions}
-            value={parsedFunction?.name ?? ''}
-            onChange={newAggregate => {
-              const newYAxis = updateVisualizeAggregate({
-                newAggregate: newAggregate.value,
-                oldAggregate: parsedFunction!.name,
-                oldArguments: parsedFunction!.arguments,
-              });
-              updateYAxis({yAxes: [newYAxis]});
-            }}
-          />
+          {multiAggregateCharts ? (
+            <AggregateMultiSelect
+              formulas={[]}
+              maxAggregates={MAX_VISUALIZES}
+              onChange={onChangeAggregates}
+              value={selectedAggregates}
+            />
+          ) : (
+            <CompactSelect
+              options={aggregateOptions}
+              value={parsedFunction?.name ?? ''}
+              onChange={newAggregate => {
+                const newYAxis = updateVisualizeAggregate({
+                  newAggregate: newAggregate.value,
+                  oldAggregate: parsedFunction!.name,
+                  oldArguments: parsedFunction!.arguments,
+                });
+                updateYAxis({yAxes: [newYAxis]});
+              }}
+            />
+          )}
           <CompactSelect
             search={{
               highlight: true,
@@ -95,10 +153,7 @@ export function VisualizeSection({query, index}: Props) {
             }}
             options={options}
             value={parsedFunction?.arguments?.[0] ?? ''}
-            onChange={newField => {
-              const newYAxis = `${parsedFunction!.name}(${newField.value})`;
-              updateYAxis({yAxes: [newYAxis]});
-            }}
+            onChange={newField => onChangeField(newField.value)}
             disabled={options.length === 1}
           />
         </StyledPageFilterBar>

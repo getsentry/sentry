@@ -48,9 +48,11 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
+  groupVisualizes,
   isVisualizeFunction,
   serializeVisualizes,
 } from 'sentry/views/explore/queryParams/visualize';
+import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   hasConditionalAggregateFilter,
@@ -287,7 +289,12 @@ export function ToolbarSaveAs() {
     return null;
   }
 
-  const canCompareQueries = visualizeFunctions.length >= 2;
+  // Each chart becomes a compare query. Aggregates that share a chart stay
+  // together as one query, which plots them on one chart as well.
+  const compareCharts = hasMultiAggregateCharts(organization)
+    ? groupVisualizes(visualizeFunctions).map(group => group.visualizes)
+    : visualizeFunctions.map(visualize => [visualize]);
+  const canCompareQueries = compareCharts.length >= 2;
 
   return (
     <SaveStyledToolbarSection data-test-id="section-save-as">
@@ -328,12 +335,12 @@ export function ToolbarSaveAs() {
             organization,
             mode,
             location,
-            queries: visualizeFunctions.map(visual => ({
+            queries: compareCharts.map(chart => ({
               query,
               groupBys,
               sortBys,
-              yAxes: [visual.yAxis],
-              chartType: visual.chartType,
+              yAxes: chart.map(visual => visual.yAxis),
+              chartType: chart[0]!.chartType,
               caseInsensitive: caseInsensitive ? '1' : undefined,
             })),
           })}
