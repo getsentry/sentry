@@ -250,8 +250,13 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   const cost = generationNode
     ? getNumberAttr(generationNode, SpanFields.GEN_AI_COST_TOTAL_TOKENS) || undefined
     : undefined;
+  const isStandaloneTool = message.toolCalls?.some(
+    tool => tool.nodeId === message.nodeId
+  );
+  // A standalone tool event already renders its duration on the tool row.
   const hasMeta =
-    cost !== undefined || (message.duration !== undefined && message.duration > 0);
+    !isStandaloneTool &&
+    (cost !== undefined || (message.duration !== undefined && message.duration > 0));
   const meta = <AssistantMeta cost={cost} duration={message.duration} />;
 
   const handleClick = () => {
