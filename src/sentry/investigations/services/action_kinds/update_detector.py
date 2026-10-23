@@ -6,14 +6,21 @@ from dataclasses import dataclass
 from typing import Any, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework import serializers
+from django.db import router, transaction
+from rest_framework import serializers, status
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.auth.access import Access
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.incidents.endpoints.serializers.query_subscription import SnubaQuerySerializer
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.metric_issue_detector import (
+    TRANSACTION_UPDATES_DISABLED,
+    MetricIssueDetectorValidator,
+    fetch_snuba_query,
+)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.investigations.contracts import (
     ActionPayloadSerializer,
@@ -25,13 +32,19 @@ from sentry.investigations.contracts import (
 from sentry.investigations.models import (
     Investigation,
     InvestigationActionRequest,
+    InvestigationActionRequestState,
     InvestigationOrchestrationRun,
 )
 from sentry.investigations.services.action_kinds.base import (
     ActionKind,
+    ApplyContext,
+    ApplyResult,
     CannotApplyReason,
     SettingValue,
+    apply_error,
+    mark_applied,
 )
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.snuba.models import SnubaQuery
 from sentry.users.models.user import User
@@ -39,6 +52,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.endpoints.organization_detector_details import (
     check_metric_detector_allowed,
 )
+from sentry.workflow_engine.endpoints.organization_detector_index import get_detector_validator
 from sentry.workflow_engine.endpoints.serializers.data_condition_serializer import (
     DataConditionSerializer,
 )
@@ -329,6 +343,40 @@ def _action_detector_id(action_request: InvestigationActionRequest) -> int:
     return int(action_request.action_payload["detectorId"])
 
 
+def _error_messages(errors: object) -> list[str]:
+    if isinstance(errors, dict):
+        return [message for value in errors.values() for message in _error_messages(value)]
+    if isinstance(errors, list):
+        return [message for value in errors for message in _error_messages(value)]
+    return [str(errors)]
+
+
+def _validation_errors(
+    validator: MetricIssueDetectorValidator,
+    detector: Detector,
+    snuba_query: SnubaQuery,
+    environment: SettingValue,
+) -> dict[str, Any] | list[Any] | None:
+    # The validator creates environments it doesn't know, like the monitor form does. A
+    # suggestion shouldn't add one, so an unknown name is just invalid.
+    if (
+        environment is not None
+        and not Environment.objects.filter(
+            organization_id=detector.linked_project.organization_id,
+            name=environment,
+            projects=detector.linked_project,
+        ).exists()
+    ):
+        return {"environment": [f"The project has no {environment} environment."]}
+    if not validator.is_valid():
+        return validator.errors
+    # The validator only checks this when it saves, so a dry run has to ask for it.
+    data_sources = validator.validated_data.get("data_sources")
+    if data_sources and validator.is_editing_transaction_dataset(snuba_query, data_sources[0]):
+        return {"dataSources": [TRANSACTION_UPDATES_DISABLED]}
+    return None
+
+
 class UpdateDetectorKind(ActionKind):
     kind = UPDATE_DETECTOR_ACTION
     payload_serializer = UpdateDetectorActionSerializer
@@ -375,3 +423,95 @@ class UpdateDetectorKind(ActionKind):
                 )
             reasons[item.id] = detector_reasons[key]
         return reasons
+
+    def check(self, context: ApplyContext) -> ApplyResult | None:
+        return self._apply(context, dry_run=True)
+
+    def apply(self, context: ApplyContext) -> ApplyResult:
+        return self._apply(context, dry_run=False) or ApplyResult(
+            action_request=context.action_request
+        )
+
+    def _apply(self, context: ApplyContext, *, dry_run: bool) -> ApplyResult | None:
+        action_request = context.action_request
+        action = action_request.action_payload
+        assert action is not None
+        detector_id = int(action["detectorId"])
+        detector = target_detectors(context.investigation.organization_id, [detector_id]).get(
+            detector_id
+        )
+        snuba_query = fetch_snuba_query(detector) if detector is not None else None
+        if detector is None or snuba_query is None:
+            raise ResourceDoesNotExist
+
+        state = DetectorState.load(detector, snuba_query)
+        current = state.values()
+        moved = {
+            key: current.get(key)
+            for key, value in action["before"].items()
+            if current.get(key) != value
+        }
+        if moved:
+            if not dry_run:
+                # Keep the error on the row, so Seer sending the same suggestion again can't
+                # bring it back.
+                action_request.update(
+                    state=InvestigationActionRequestState.SUPERSEDED,
+                    error={"code": "stale", "current": moved},
+                )
+            return apply_error(
+                action_request,
+                status.HTTP_409_CONFLICT,
+                "The monitor changed since this was suggested.",
+                "stale",
+                current=moved,
+            )
+
+        changes = action["changes"]
+        validator = get_detector_validator(
+            context.request,
+            detector.linked_project,
+            detector.group_type.slug,
+            detector,
+            partial=True,
+            data=state.update(changes),
+        )
+        assert isinstance(validator, MetricIssueDetectorValidator)
+        errors = _validation_errors(validator, detector, snuba_query, changes.get("environment"))
+        if errors is None and not dry_run:
+            try:
+                # If the save fails partway, undo the monitor changes but keep the failure we
+                # record below.
+                with transaction.atomic(router.db_for_write(Detector)):
+                    validator.save()
+            except serializers.ValidationError as error:
+                errors = convert_dict_key_case(
+                    serializers.as_serializer_error(error), snake_to_camel_case
+                )
+        if errors is not None:
+            if not dry_run:
+                action_request.update(
+                    state=InvestigationActionRequestState.FAILED,
+                    error={"code": "validation_failed", "messages": _error_messages(errors)},
+                )
+            return apply_error(
+                action_request,
+                status.HTTP_400_BAD_REQUEST,
+                "The monitor change was not valid.",
+                "validation_failed",
+                errors=errors,
+                messages=_error_messages(errors),
+            )
+        if dry_run:
+            return None
+
+        mark_applied(
+            action_request,
+            context.actor_id,
+            {
+                "detectorId": str(detector.id),
+                "detectorName": detector.name,
+                "fields": [key for key in DetectorChangesSerializer().fields if key in changes],
+            },
+        )
+        return None
