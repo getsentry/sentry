@@ -103,8 +103,7 @@ export function NativeFrame({
   const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||
     frame.absPath === '<asynchronous suspension>';
-  const {displayOptions, stackView, hasScmSourceContext, collapseAll} =
-    useStacktraceContext();
+  const {displayOptions, stackView, hasScmSourceContext} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
   const debugMetaSearch = useOptionalDebugMetaSearch();
@@ -148,7 +147,7 @@ export function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(() => !collapseAll && isFirstInAppFrame);
+  const [expanded, setExpanded] = useState(() => isFirstInAppFrame);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);

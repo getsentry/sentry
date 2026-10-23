@@ -6,7 +6,7 @@ from django.test.utils import CaptureQueriesContext
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log.read_metrics import ActivityReadResult
-from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.action_log.types import CommentAction, GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -276,10 +276,21 @@ class GroupNoteTest(APITestCase):
             idempotency_key=activity_action_idempotency_key(note),
             source="mcp:claude-code",
         )
+        new_note = self.create_group_activity(
+            group=group, type=ActivityType.NOTE.value, data={"text": "new comment"}
+        )
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": new_note.id},
+            idempotency_key=activity_action_idempotency_key(new_note),
+            source="api",
+        )
         # The same key in another group must not supply this note's source.
         self.create_group_action_log_entry(
             group=self.create_group(),
             type=GroupActionType.COMMENT,
+            data={"comment_id": app_note.id},
             idempotency_key=activity_action_idempotency_key(app_note),
             source="api",
         )
@@ -290,7 +301,7 @@ class GroupNoteTest(APITestCase):
         with action_log_activity_enabled():
             response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        assert len(response.data) == 3
         rows = {row["commentId"]: row for row in response.data}
         result = rows[str(note.id)]
         assert result["id"] == str(note.id)
@@ -303,6 +314,9 @@ class GroupNoteTest(APITestCase):
             "comment_id": note.id,
         }
         assert result["source"] == "mcp:claude-code"
+        assert rows[str(new_note.id)]["id"] == str(new_note.id)
+        assert rows[str(new_note.id)]["data"]["text"] == "new comment"
+        assert rows[str(new_note.id)]["source"] == "api"
         assert rows[str(app_note.id)]["sentry_app"]["id"] == str(app.id)
         assert rows[str(app_note.id)]["source"] is None
 
@@ -423,7 +437,7 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 400, response.content
 
     @action_log_activity_enabled()
-    def test_returns_gale(self) -> None:
+    def test_returns_activity_with_gale_source(self) -> None:
         group = self.group
 
         self.login_as(user=self.user)
@@ -445,13 +459,37 @@ class GroupNoteCreateTest(APITestCase):
             group_id=group.id, type=GroupActionType.COMMENT.value
         )
 
-        assert response.data["id"] == str(entry.id)
+        assert response.data["id"] == str(activity.id)
+        assert entry.data["comment_id"] == activity.id
         assert response.data["commentId"] == str(activity.id)
         assert response.data["type"] == "note"
         assert response.data["source"] == "mcp:claude-code"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["data"]["text"] == "hello world"
         assert response.data["data"]["comment_id"] == activity.id
+
+    @action_log_activity_enabled()
+    def test_returns_activity_for_body_free_creation(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+        # Simulate the creation format produced by a newer server/backfill worker.
+        with patch(
+            "sentry.models.activity.activity_to_action",
+            side_effect=lambda activity: CommentAction(comment_id=activity.id),
+        ):
+            response = self.client.post(
+                f"/api/0/issues/{group.id}/comments/",
+                data={"text": "new format"},
+                format="json",
+                HTTP_USER_AGENT="sentry-mcp/1.0",
+                HTTP_X_SENTRY_MCP_CLIENT_FAMILY="claude-code",
+            )
+        assert response.status_code == 201, response.content
+        note = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
+        assert response.data["id"] == response.data["commentId"] == str(note.id)
+        assert response.data["type"] == "note"
+        assert response.data["data"] == {"text": "new format", "comment_id": note.id}
+        assert response.data["source"] == "mcp:claude-code"
 
     def test_with_mentions(self) -> None:
         user_not_on_team = self.create_user(email="hello@meow.com")

@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0041_remove_seerprojectrepository_enabled"),
+        ("seer", "0042_breached_metric_automation"),
     ]
 
     operations = [
