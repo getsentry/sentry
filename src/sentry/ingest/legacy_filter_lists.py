@@ -37,8 +37,8 @@ from sentry.models.project import Project
 V2_FLAG = "organizations:inbound-filters-v2"
 
 
-def reads_rows(organization: Organization) -> bool:
-    """Whether the lists of this organization are read from their rows."""
+def has_inbound_filters_v2(organization: Organization) -> bool:
+    """With the feature, the lists of the organization are read from their rows."""
     return features.has(V2_FLAG, organization)
 
 
@@ -87,7 +87,7 @@ def filter_type_of(legacy_filter: str) -> str:
 
 def served_legacy_filters(organization: Organization) -> list[str]:
     """The ``legacy_filter`` ids of the rows the custom inbound filter API serves."""
-    return LEGACY_FILTERS if reads_rows(organization) else []
+    return LEGACY_FILTERS if has_inbound_filters_v2(organization) else []
 
 
 def clean_lines(filter_type: str, lines: Iterable[str]) -> list[str]:
@@ -151,14 +151,14 @@ def _row_lines(row: CustomInboundFilter | None) -> list[str]:
 
 def get_lines(project: Project, filter_type: str) -> list[str]:
     """The stored lines of one list, from the store the organization reads."""
-    if reads_rows(project.organization):
+    if has_inbound_filters_v2(project.organization):
         return _row_lines(_get_row(project, _ROWS[filter_type]))
     return project.get_option(f"sentry:{filter_type}") or []
 
 
 def get_applied_lines(project: Project, filter_type: str) -> list[str]:
     """The lines Relay enforces: none while the user has the row switched off."""
-    if reads_rows(project.organization):
+    if has_inbound_filters_v2(project.organization):
         row = _get_row(project, _ROWS[filter_type])
         return _row_lines(row) if row is not None and row.active else []
     return project.get_option(f"sentry:{filter_type}") or []
@@ -173,7 +173,7 @@ def read_rows(projects: Sequence[Project]) -> dict[int, dict[str, list[str]]]:
     by_project: dict[int, dict[str, list[str]]] = {
         project.id: {filter_type: [] for filter_type in _ROWS}
         for project in projects
-        if reads_rows(project.organization)
+        if has_inbound_filters_v2(project.organization)
     }
     if not by_project:
         return by_project
