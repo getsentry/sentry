@@ -68,7 +68,7 @@
     "@rsdoctor/core": "2.0.0",
     "@rspack/core": "2.2.8",
     "@rspack/plugin-react-refresh": "2.0.2",
-    "@sentry/conventions": "^0.27.0",
+    "@sentry/conventions": "^0.29.0",
     "@sentry/sqlish": "1.0.1",
     "@sentry/webpack-plugin": "5.4.1",
     "@swc/plugin-emotion": "19.0.0",
