@@ -98,7 +98,7 @@ def test_internal_spans_and_events_are_typed_records() -> None:
     assert transcript.build_transcript([row]) == [event.message for event in events]
 
 
-def test_replay_serialization_recursion_disables_evidence() -> None:
+def test_message_signature_recursion_disables_history_evidence() -> None:
     span = TranscriptSpan(
         "span-1", {"gen_ai.input.messages": "question", "gen_ai.output.messages": "answer"}
     )

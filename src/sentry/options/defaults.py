@@ -284,11 +284,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
-    "auth.oauth-react-enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -1551,6 +1546,22 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Conversation classifiers PoC.
+register(
+    "classifiers.conversations.project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum conversations fetched from each project per scan.
+register(
+    "classifiers.conversations.telemetry-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.night_shift.enable",
     type=Bool,
