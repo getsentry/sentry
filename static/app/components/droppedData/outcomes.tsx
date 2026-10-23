@@ -34,6 +34,17 @@ export function droppedDataLabel(dataset: DiscoverDatasets): string {
   return DROPPED_DATA_LABELS[dataset] ?? t('Dropped Events');
 }
 
+const DROPPED_AND_FILTERED_LABELS: Partial<Record<DiscoverDatasets, string>> = {
+  errors: t('Dropped and Filtered Errors'),
+  ourlogs: t('Dropped and Filtered Logs'),
+  spans: t('Dropped and Filtered Spans'),
+  tracemetrics: t('Dropped and Filtered Metrics'),
+};
+
+export function droppedAndFilteredLabel(dataset: DiscoverDatasets): string {
+  return DROPPED_AND_FILTERED_LABELS[dataset] ?? t('Dropped and Filtered Events');
+}
+
 const DATASET_NOUNS: Partial<Record<DiscoverDatasets, (count: number) => string>> = {
   errors: count => tn('error', 'errors', count),
   ourlogs: count => tn('log', 'logs', count),

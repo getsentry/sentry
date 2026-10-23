@@ -5,6 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   buildAskSeerPrompt,
   datasetNoun,
+  droppedAndFilteredLabel,
   droppedDataLabel,
   getOutcomeColors,
   reasonDocsUrl,
@@ -21,6 +22,29 @@ describe('droppedDataLabel', () => {
 
   it('falls back to events for other datasets', () => {
     expect(droppedDataLabel(DiscoverDatasets.TRANSACTIONS)).toBe('Dropped Events');
+  });
+});
+
+describe('droppedAndFilteredLabel', () => {
+  it('names the telemetry type', () => {
+    expect(droppedAndFilteredLabel(DiscoverDatasets.SPANS)).toBe(
+      'Dropped and Filtered Spans'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.OURLOGS)).toBe(
+      'Dropped and Filtered Logs'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.TRACEMETRICS)).toBe(
+      'Dropped and Filtered Metrics'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.ERRORS)).toBe(
+      'Dropped and Filtered Errors'
+    );
+  });
+
+  it('falls back to events for other datasets', () => {
+    expect(droppedAndFilteredLabel(DiscoverDatasets.TRANSACTIONS)).toBe(
+      'Dropped and Filtered Events'
+    );
   });
 });
 

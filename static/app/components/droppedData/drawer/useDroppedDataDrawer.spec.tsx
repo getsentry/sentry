@@ -108,7 +108,7 @@ describe('useDroppedDataDrawer', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide('Dropped and Filtered Events');
+    await waitForDrawerToHide('Dropped and Filtered Spans');
     await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
   });
 
@@ -231,7 +231,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
 
     const drawer = screen.getByRole('complementary', {
-      name: 'Dropped and Filtered Events',
+      name: 'Dropped and Filtered Spans',
     });
     expect(drawer.style.getPropertyValue('--drawer-width')).toBe('70%');
   });
@@ -250,7 +250,7 @@ describe('useDroppedDataDrawer', () => {
       await screen.findByRole('button', {name: 'Open dropped data'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('complementary', {name: 'Dropped and Filtered Events'})
+      screen.queryByRole('complementary', {name: 'Dropped and Filtered Spans'})
     ).not.toBeInTheDocument();
     expect(droppedDataRequest).not.toHaveBeenCalled();
   });
@@ -273,7 +273,7 @@ describe('useDroppedDataDrawer', () => {
 
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
     expect(
-      screen.getAllByRole('complementary', {name: 'Dropped and Filtered Events'})
+      screen.getAllByRole('complementary', {name: 'Dropped and Filtered Spans'})
     ).toHaveLength(1);
   });
 
@@ -289,7 +289,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
 
     router.navigate(-1);
-    await waitForDrawerToHide('Dropped and Filtered Events');
+    await waitForDrawerToHide('Dropped and Filtered Spans');
   });
 
   it('reopens when navigating forward', async () => {
@@ -304,11 +304,11 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
 
     router.navigate(-1);
-    await waitForDrawerToHide('Dropped and Filtered Events');
+    await waitForDrawerToHide('Dropped and Filtered Spans');
 
     router.navigate(1);
     expect(
-      await screen.findByRole('complementary', {name: 'Dropped and Filtered Events'})
+      await screen.findByRole('complementary', {name: 'Dropped and Filtered Spans'})
     ).toBeInTheDocument();
     expect(router.location.query.droppedData).toBe('true');
   });
@@ -369,7 +369,7 @@ describe('useDroppedDataDrawer', () => {
       )
     );
     expect(
-      screen.getByRole('complementary', {name: 'Dropped and Filtered Events'})
+      screen.getByRole('complementary', {name: 'Dropped and Filtered Spans'})
     ).toBeInTheDocument();
   });
 
@@ -385,7 +385,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
 
     router.navigate('/issues/');
-    await waitForDrawerToHide('Dropped and Filtered Events');
+    await waitForDrawerToHide('Dropped and Filtered Spans');
   });
 
   describe('legend filtering', () => {

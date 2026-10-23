@@ -18,6 +18,7 @@ import {
   type DroppedDataScope,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
+  droppedAndFilteredLabel,
   getOutcomeColors,
   isOutcomeSelected,
   type OutcomeSelection,
@@ -77,7 +78,7 @@ export function DroppedDataDrawer({
     <Fragment>
       <DrawerHeader>
         <Flex flex="1" align="center" justify="between" gap="md" paddingRight="lg">
-          <Text size="md">{t('Dropped and Filtered Events')}</Text>
+          <Text size="md">{droppedAndFilteredLabel(dataset)}</Text>
           <SegmentedControl
             aria-label={t('Filter dropped events')}
             size="xs"
