@@ -6,6 +6,9 @@ from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
@@ -20,7 +23,7 @@ from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
     BreachedMetricWorkflow,
     IgnoredMetricBreach,
-    MetricBreachWorkflowOrigin,
+    MetricBreachRunExtras,
     RejectedMetricBreach,
 )
 from sentry.services.eventstore.models import GroupEvent
@@ -127,7 +130,28 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert run.extras["status"] == "complete"
         assert run.date_completed is not None
         assert run.executions.get().extras == {"status": "complete", "result": "noop"}
+        stored = MetricBreachRunExtras.parse_obj(run.extras)
+        assert event.occurrence is not None
+        assert stored.trigger.observed_at == event.occurrence.detection_time
+        assert stored.trigger.binding_id == self.action.seer_workflow_binding.id
+        assert stored.admission.decided_at == run.date_completed
         assert SeerWorkflowRun.objects.count() == 1
+
+    def test_accept_does_not_requery_the_resolved_binding_or_detector(self) -> None:
+        binding = self.action.seer_workflow_binding
+        event = self.breach_event()
+
+        with CaptureQueriesContext(connections[router.db_for_write(SeerWorkflowRun)]) as queries:
+            result = BreachedMetricWorkflow(self.config).accept(
+                self.group,
+                event,
+                binding=binding,
+                workflow_id=self.workflow.id,
+            )
+
+        assert isinstance(result, AcceptedMetricBreach)
+        assert not any("seer_workflowtriggerbinding" in query["sql"] for query in queries)
+        assert not any("workflow_engine_detectorgroup" in query["sql"] for query in queries)
 
     def test_existing_run_is_reused(self) -> None:
         existing = Factories.create_seer_workflow_run(
@@ -152,7 +176,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         result = workflow.accept(
             self.group,
             self.breach_event(),
-            origin=MetricBreachWorkflowOrigin(self.workflow.id, self.action.id),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert result == IgnoredMetricBreach("out_of_scope")
@@ -176,7 +201,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         second = BreachedMetricWorkflow(config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(self.workflow.id, action.id),
+            binding=action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert first is not None
@@ -198,16 +224,14 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         first = BreachedMetricWorkflow(self.config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
         second = BreachedMetricWorkflow(self.config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=other_workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=other_workflow.id,
         )
 
         assert isinstance(first, AcceptedMetricBreach)
@@ -235,7 +259,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         second = BreachedMetricWorkflow(self.config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(second_workflow.id, second_action.id),
+            binding=second_action.seer_workflow_binding,
+            workflow_id=second_workflow.id,
         )
 
         assert first is not None
@@ -253,16 +278,14 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         accepted = BreachedMetricWorkflow(self.config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
         replayed = BreachedMetricWorkflow(self.config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert isinstance(accepted, AcceptedMetricBreach)
@@ -279,9 +302,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         rejected = BreachedMetricWorkflow(self.config).accept(
             self.group,
             self.breach_event(),
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert rejected == IgnoredMetricBreach("configuration_unavailable")
@@ -295,9 +317,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         rejected = BreachedMetricWorkflow(self.config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert rejected == IgnoredMetricBreach("unsupported_trigger")
@@ -311,9 +332,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         rejected = BreachedMetricWorkflow(self.config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert rejected == IgnoredMetricBreach("invalid_source")
@@ -327,9 +347,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
             rejected = BreachedMetricWorkflow(self.config).accept(
                 self.group,
                 event,
-                origin=MetricBreachWorkflowOrigin(
-                    workflow_id=self.workflow.id, action_id=self.action.id
-                ),
+                binding=self.action.seer_workflow_binding,
+                workflow_id=self.workflow.id,
             )
 
         assert rejected == IgnoredMetricBreach("feature_disabled")
@@ -341,9 +360,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         rejected = BreachedMetricWorkflow(self.config).accept(
             self.group,
             self.breach_event(),
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert rejected == IgnoredMetricBreach("out_of_scope")
@@ -409,9 +427,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         result = BreachedMetricWorkflow(self.config).accept(
             self.group,
             self.breach_event(),
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert result == IgnoredMetricBreach("out_of_scope")
@@ -426,9 +443,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         result = BreachedMetricWorkflow(self.config).accept(
             self.group,
             self.breach_event(),
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=self.action.id
-            ),
+            binding=self.action.seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
 
         assert result == IgnoredMetricBreach("out_of_scope")
@@ -450,9 +466,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
             result = BreachedMetricWorkflow(self.config).accept(
                 self.group,
                 event,
-                origin=MetricBreachWorkflowOrigin(
-                    workflow_id=self.workflow.id, action_id=self.action.id
-                ),
+                binding=self.action.seer_workflow_binding,
+                workflow_id=self.workflow.id,
             )
 
         assert isinstance(result, RejectedMetricBreach)
@@ -481,9 +496,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
             first = BreachedMetricWorkflow(self.config).accept(
                 self.group,
                 event,
-                origin=MetricBreachWorkflowOrigin(
-                    workflow_id=self.workflow.id, action_id=self.action.id
-                ),
+                binding=self.action.seer_workflow_binding,
+                workflow_id=self.workflow.id,
             )
 
         with mock.patch(
@@ -493,16 +507,14 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
             replayed = BreachedMetricWorkflow(self.config).accept(
                 self.group,
                 event,
-                origin=MetricBreachWorkflowOrigin(
-                    workflow_id=self.workflow.id, action_id=self.action.id
-                ),
+                binding=self.action.seer_workflow_binding,
+                workflow_id=self.workflow.id,
             )
             later = BreachedMetricWorkflow(self.config).accept(
                 self.group,
                 self.breach_event(),
-                origin=MetricBreachWorkflowOrigin(
-                    workflow_id=self.workflow.id, action_id=self.action.id
-                ),
+                binding=self.action.seer_workflow_binding,
+                workflow_id=self.workflow.id,
             )
         assert isinstance(first, RejectedMetricBreach)
         assert isinstance(replayed, RejectedMetricBreach)
@@ -552,9 +564,8 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         result = BreachedMetricWorkflow(config or self.config).accept(
             self.group,
             event,
-            origin=MetricBreachWorkflowOrigin(
-                workflow_id=self.workflow.id, action_id=(action or self.action).id
-            ),
+            binding=(action or self.action).seer_workflow_binding,
+            workflow_id=self.workflow.id,
         )
         return result.run if isinstance(result, AcceptedMetricBreach) else None
 
