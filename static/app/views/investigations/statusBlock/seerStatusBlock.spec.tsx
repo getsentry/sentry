@@ -471,6 +471,39 @@ describe('getSeerStatusBlock', () => {
       ]);
     });
 
+    // One hypothesis's current reasoning must not read as what led to another's
+    // running call.
+    it("puts reasoning no call has followed after every hypothesis's calls", () => {
+      const block = getSeerStatusBlock(
+        InvestigationOrchestrationFixture({
+          status: 'processing',
+          phase: 'investigating',
+          hypotheses: [
+            InvestigationHypothesisFixture({
+              id: 'first',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('a-done')],
+              thoughts: [{id: 'a-now', text: 'Weighing a.', beforeActivityId: null}],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'second',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('b-done'), activity('b-running', 'running')],
+              thoughts: [{id: 'b-next', text: 'Then b.', beforeActivityId: 'b-running'}],
+            }),
+          ],
+        })
+      );
+
+      expect(block?.toolActivity?.map(a => a.id)).toEqual([
+        'a-done',
+        'b-done',
+        'b-next',
+        'b-running',
+        'a-now',
+      ]);
+    });
+
     it('omits the list when there are no calls', () => {
       const block = getSeerStatusBlock(
         InvestigationOrchestrationFixture({status: 'processing', phase: 'planning'})
