@@ -5,8 +5,8 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {BaseLayout, LayoutLabel} from './layout/base';
-import {useStackedLayout} from './layout/useStackedLayout';
+import {BaseLayout, LayoutLabel} from './base';
+import {useStackedLayout} from './useStackedLayout';
 
 interface DisplayFieldProps {
   children: React.ReactNode;

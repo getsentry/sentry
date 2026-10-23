@@ -1,15 +1,15 @@
 import type * as React from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {useGroupContext} from '@sentry/scraps/form/field/groupContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {RequiredIndicator, Warning} from '@sentry/scraps/form/icons';
 import {DisabledTip, InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useFieldId, useHintTextId, useLabelId} from './fieldIds';
+import {useFieldContext} from './formContext';
+import {useGroupContext} from './groupContext';
+import {RequiredIndicator, Warning} from './icons';
 
 function HintText(props: {children: React.ReactNode}) {
   const id = useHintTextId();

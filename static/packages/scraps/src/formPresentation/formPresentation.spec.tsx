@@ -8,16 +8,16 @@ import userEvent from '@testing-library/user-event';
 import {
   AutoSaveContextProvider,
   useAutoSaveContext,
-} from '@sentry/scraps/form/autoSaveContext';
-import {DisplayField} from '@sentry/scraps/form/displayField';
-import {useFieldId, useHintTextId, useLabelId} from '@sentry/scraps/form/field/fieldIds';
-import {
+  DisplayField,
+  useFieldId,
+  useHintTextId,
+  useLabelId,
   GroupProvider,
   type GroupContextValue,
-} from '@sentry/scraps/form/field/groupContext';
-import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {fieldContext as FieldContext} from '@sentry/scraps/form/formContext';
-import {FieldLayout} from '@sentry/scraps/form/layout';
+  FieldMeta,
+  fieldContext as FieldContext,
+  FieldLayout,
+} from '@sentry/scraps/formPresentation';
 import {lightTheme} from '@sentry/scraps/theme';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
@@ -93,8 +93,12 @@ describe('form presentation', () => {
       </DisplayField.Row>,
       {wrapper: ThemeWrapper}
     );
-    expect(screen.getByRole('term')).toHaveTextContent('CreatedCreation date');
-    expect(screen.getByRole('definition')).toHaveTextContent('January 1, 2025');
+    const term = screen.getByRole('term');
+    const definition = screen.getByRole('definition');
+    expect(term).toHaveTextContent('CreatedCreation date');
+    expect(definition).toHaveTextContent('January 1, 2025');
+    // eslint-disable-next-line testing-library/no-node-access -- Verify the term and definition share a description list.
+    expect(term.closest('dl')).toBe(definition.parentElement);
   });
 
   it('places stacked display hints after the value', () => {

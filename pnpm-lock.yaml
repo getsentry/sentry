@@ -1178,9 +1178,6 @@ importers:
 
   static/packages/scraps:
     dependencies:
-      '@tanstack/react-form':
-        specifier: 1.28.6
-        version: 1.28.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@emotion/is-prop-valid':
         specifier: ^1.4.0
         version: 1.4.0
@@ -1287,6 +1284,9 @@ importers:
       '@swc/jest':
         specifier: 0.2.39
         version: 0.2.39(@swc/core@1.16.13(@swc/helpers@0.5.23))
+      '@tanstack/react-form':
+        specifier: 1.28.6
+        version: 1.28.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@testing-library/dom':
         specifier: 10.4.1
         version: 10.4.1
