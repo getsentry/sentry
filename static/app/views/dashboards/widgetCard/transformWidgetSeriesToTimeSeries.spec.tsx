@@ -198,6 +198,32 @@ describe('transformWidgetSeriesToTimeSeries', () => {
       expect(result?.label).toBe('Chrome : count()');
       expect(result?.widgetQuery.name).toBe('Chrome');
     });
+
+    it('uses the matched query aggregate and grouping columns', () => {
+      const totalQuery = WidgetQueryFixture({
+        name: 'total',
+        aggregates: ['count()'],
+        columns: [],
+        fields: ['count()'],
+      });
+      const groupedQuery = WidgetQueryFixture({
+        name: 'grouped',
+        aggregates: ['avg(span.duration)'],
+        columns: ['browser'],
+        fields: ['browser', 'avg(span.duration)'],
+      });
+      const widget = WidgetFixture({queries: [totalQuery, groupedQuery]});
+
+      const result = transformWidgetSeriesToTimeSeries(
+        makeSeries('grouped > None : avg(span.duration)'),
+        widget
+      );
+
+      expect(result?.widgetQuery).toBe(groupedQuery);
+      expect(result?.timeSeries.yAxis).toBe('avg(span.duration)');
+      expect(result?.timeSeries.groupBy).toEqual([{key: 'browser', value: null}]);
+      expect(result?.label).toBe('grouped : (no value)');
+    });
   });
 
   describe('multi-query with group by but no conditions', () => {

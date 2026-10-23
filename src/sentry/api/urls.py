@@ -803,9 +803,6 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
-from .endpoints.organization_events_has_measurements import (
-    OrganizationEventsHasMeasurementsEndpoint,
-)
 from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
@@ -1948,11 +1945,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-vitals/$",
         OrganizationEventsVitalsEndpoint.as_view(),
         name="sentry-api-0-organization-events-vitals",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-has-measurements/$",
-        OrganizationEventsHasMeasurementsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-has-measurements",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

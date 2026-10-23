@@ -141,7 +141,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/eventids/$eventId/'
   | '/organizations/$organizationIdOrSlug/events-dropped/'
   | '/organizations/$organizationIdOrSlug/events-facets/'
-  | '/organizations/$organizationIdOrSlug/events-has-measurements/'
   | '/organizations/$organizationIdOrSlug/events-heatmap/'
   | '/organizations/$organizationIdOrSlug/events-histogram/'
   | '/organizations/$organizationIdOrSlug/events-meta/'
