@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -5,55 +6,80 @@ import type {LineSeriesOption} from 'echarts';
 import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import {
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 
 const BAND_OPACITY = 0.1;
 
 // Static thresholds are a flat y-value, percent thresholds are a line over time
-export type ThresholdBound = number | SeriesDataUnit[];
-
-interface ThresholdBoundary<Bound extends ThresholdBound> {
+interface Threshold<Bound> {
   bound: Bound;
-  color: string;
+  priority: DetectorPriorityLevel;
+  type: DataConditionType;
 }
 
-// Shaded region between two thresholds
-export interface ThresholdBand<Bound extends ThresholdBound> {
+// Shaded region between two thresholds, open to the chart edge when a side is missing
+interface ThresholdBand<Bound> {
   color: string;
   lower?: Bound;
   upper?: Bound;
 }
 
-interface GetThresholdBandsOptions<Bound extends ThresholdBound> {
-  alertBoundaries: Array<ThresholdBoundary<Bound>>;
-  isAbove: boolean;
-  okBoundary: ThresholdBoundary<Bound>;
+interface ThresholdBandsOptions<Bound> {
+  theme: Theme;
+  thresholds: Array<Threshold<Bound>>;
+  resolution?: Bound;
 }
 
-// Split the chart into adjacent non-overlapping bands
-export function getThresholdBands<Bound extends ThresholdBound>({
-  alertBoundaries,
-  isAbove,
-  okBoundary,
-}: GetThresholdBandsOptions<Bound>): Array<ThresholdBand<Bound>> {
+export function getThresholdColor(theme: Theme, priority: DetectorPriorityLevel): string {
+  return priority === DetectorPriorityLevel.HIGH
+    ? theme.colors.red400
+    : theme.colors.yellow400;
+}
+
+// Split the chart into adjacent non-overlapping bands, from ok to most severe
+function getThresholdBands<Bound>({
+  theme,
+  thresholds,
+  resolution,
+}: ThresholdBandsOptions<Bound>): Array<ThresholdBand<Bound>> {
+  const thresholdsBySeverity = thresholds.toSorted((a, b) => a.priority - b.priority);
+
+  const [leastSevereThreshold] = thresholdsBySeverity;
+
+  if (!leastSevereThreshold) {
+    return [];
+  }
+
+  const isAbove = leastSevereThreshold.type === DataConditionType.GREATER;
+
+  const okBound = resolution ?? leastSevereThreshold.bound;
+
   const okBand: ThresholdBand<Bound> = isAbove
-    ? {color: okBoundary.color, upper: okBoundary.bound}
-    : {color: okBoundary.color, lower: okBoundary.bound};
+    ? {color: theme.colors.green400, upper: okBound}
+    : {color: theme.colors.green400, lower: okBound};
 
-  const alertBands = alertBoundaries.map((boundary, index): ThresholdBand<Bound> => {
-    const nextBound = alertBoundaries[index + 1]?.bound;
+  const alertBands = thresholdsBySeverity.map(
+    (threshold, index): ThresholdBand<Bound> => {
+      const bandColor = getThresholdColor(theme, threshold.priority);
 
-    return isAbove
-      ? {color: boundary.color, lower: boundary.bound, upper: nextBound}
-      : {color: boundary.color, lower: nextBound, upper: boundary.bound};
-  });
+      const nextBound = thresholdsBySeverity[index + 1]?.bound;
+
+      return isAbove
+        ? {color: bandColor, lower: threshold.bound, upper: nextBound}
+        : {color: bandColor, lower: nextBound, upper: threshold.bound};
+    }
+  );
 
   return [okBand, ...alertBands];
 }
 
 export function createStaticThresholdBandSeries(
-  band: ThresholdBand<number>
-): LineSeriesOption {
-  return {
+  options: ThresholdBandsOptions<number>
+): LineSeriesOption[] {
+  return getThresholdBands(options).map((band): LineSeriesOption => ({
     type: 'line',
     markArea: MarkArea({
       silent: true,
@@ -62,7 +88,7 @@ export function createStaticThresholdBandSeries(
       data: [[{yAxis: band.lower ?? -Infinity}, {yAxis: band.upper ?? Infinity}]],
     }),
     data: [],
-  };
+  }));
 }
 
 function createBandLineSeries(props: LineSeriesOption): LineSeriesOption {
@@ -88,47 +114,30 @@ function subtractLines(
   return upper.map(({name, value}, index) => [name, value - (lower[index]?.value ?? 0)]);
 }
 
-function createBetweenLinesBandSeries({
-  bandColor,
-  lower,
-  stack,
-  upper,
-}: {
-  bandColor: string;
-  lower: SeriesDataUnit[];
-  stack: string;
-  upper: SeriesDataUnit[];
-}): LineSeriesOption[] {
-  const stackOptions: LineSeriesOption = {stack, stackStrategy: 'all'};
-
-  return [
-    createBandLineSeries({...stackOptions, data: toLineData(lower)}),
-    createBandLineSeries({
-      ...stackOptions,
-      data: subtractLines(upper, lower),
-      areaStyle: {color: bandColor, opacity: BAND_OPACITY},
-    }),
-  ];
-}
-
-export function createPercentThresholdBandSeries(
+function createPercentBandSeries(
   band: ThresholdBand<SeriesDataUnit[]>,
   stack: string
 ): LineSeriesOption[] {
+  const areaStyle = {color: band.color, opacity: BAND_OPACITY};
+
   if (band.lower && band.upper) {
-    return createBetweenLinesBandSeries({
-      bandColor: band.color,
-      lower: band.lower,
-      stack,
-      upper: band.upper,
-    });
+    // Stack the band on its lower line so the area only fills up to the upper line
+    return [
+      createBandLineSeries({stack, stackStrategy: 'all', data: toLineData(band.lower)}),
+      createBandLineSeries({
+        stack,
+        stackStrategy: 'all',
+        data: subtractLines(band.upper, band.lower),
+        areaStyle,
+      }),
+    ];
   }
 
   if (band.upper) {
     return [
       createBandLineSeries({
         data: toLineData(band.upper),
-        areaStyle: {color: band.color, opacity: BAND_OPACITY, origin: 'start'},
+        areaStyle: {...areaStyle, origin: 'start'},
       }),
     ];
   }
@@ -137,10 +146,18 @@ export function createPercentThresholdBandSeries(
     return [
       createBandLineSeries({
         data: toLineData(band.lower),
-        areaStyle: {color: band.color, opacity: BAND_OPACITY, origin: 'end'},
+        areaStyle: {...areaStyle, origin: 'end'},
       }),
     ];
   }
 
   return [];
+}
+
+export function createPercentThresholdBandSeries(
+  options: ThresholdBandsOptions<SeriesDataUnit[]>
+): LineSeriesOption[] {
+  return getThresholdBands(options).flatMap((band, index) =>
+    createPercentBandSeries(band, `percent-threshold-band-${index}`)
+  );
 }

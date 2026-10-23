@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
@@ -19,56 +19,8 @@ import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/perc
 import {
   createPercentThresholdBandSeries,
   createStaticThresholdBandSeries,
-  getThresholdBands,
-  type ThresholdBand,
-  type ThresholdBound,
+  getThresholdColor,
 } from 'sentry/views/detectors/utils/thresholdBands';
-
-function getThresholdColor(theme: Theme, priority: DetectorPriorityLevel): string {
-  return priority === DetectorPriorityLevel.HIGH
-    ? theme.colors.red400
-    : theme.colors.yellow400;
-}
-
-function sortThresholdsBySeverity<Threshold extends {priority: DetectorPriorityLevel}>(
-  thresholds: Threshold[]
-): Threshold[] {
-  return thresholds.toSorted((a, b) => a.priority - b.priority);
-}
-
-function createPriorityThresholdBands<Bound extends ThresholdBound>({
-  resolution,
-  theme,
-  thresholds,
-}: {
-  theme: Theme;
-  thresholds: Array<{
-    bound: Bound;
-    priority: DetectorPriorityLevel;
-    type: DataConditionType;
-  }>;
-  resolution?: Bound;
-}): Array<ThresholdBand<Bound>> {
-  const thresholdsBySeverity = sortThresholdsBySeverity(thresholds);
-
-  const [leastSevereThreshold] = thresholdsBySeverity;
-
-  if (!leastSevereThreshold) {
-    return [];
-  }
-
-  return getThresholdBands({
-    alertBoundaries: thresholdsBySeverity.map(threshold => ({
-      bound: threshold.bound,
-      color: getThresholdColor(theme, threshold.priority),
-    })),
-    isAbove: leastSevereThreshold.type === DataConditionType.GREATER,
-    okBoundary: {
-      bound: resolution ?? leastSevereThreshold.bound,
-      color: theme.colors.green400,
-    },
-  });
-}
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return markLine({
@@ -272,17 +224,12 @@ export function useMetricDetectorThresholdSeries({
         });
       });
 
-      const percentThresholdBands = createPriorityThresholdBands({
+      const percentThresholdBands = createPercentThresholdBandSeries({
         theme,
         thresholds: thresholdLines.map(line => ({...line, bound: line.series.data})),
       });
 
-      additional.push(
-        ...percentThresholdSeries,
-        ...percentThresholdBands.flatMap((band, index) =>
-          createPercentThresholdBandSeries(band, `percent-threshold-band-${index}`)
-        )
-      );
+      additional.push(...percentThresholdSeries, ...percentThresholdBands);
 
       // Calculate maxValue from threshold data points (similar to static thresholds)
       const thresholdValues = thresholdLines.flatMap(({series}) =>
@@ -324,13 +271,13 @@ export function useMetricDetectorThresholdSeries({
         additional.push(resolutionSeries);
       }
 
-      const staticThresholdBands = createPriorityThresholdBands({
+      const staticThresholdBands = createStaticThresholdBandSeries({
         theme,
         thresholds: thresholds.map(threshold => ({...threshold, bound: threshold.value})),
         resolution: resolution?.value,
       });
 
-      additional.push(...staticThresholdBands.map(createStaticThresholdBandSeries));
+      additional.push(...staticThresholdBands);
 
       const valuesForMax = [
         ...thresholds.map(threshold => threshold.value),
