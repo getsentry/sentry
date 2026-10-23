@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1232_backfill_commit_new_repository_id"),
+        ("sentry", "1233_backfill_grouprelease_new_release_id"),
     ]
 
     operations = [
