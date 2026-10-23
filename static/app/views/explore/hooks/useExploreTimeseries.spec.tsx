@@ -1,12 +1,17 @@
 import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
+import {
+  shouldTriggerHighAccuracy,
+  useExploreTimeseries,
+} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
 function Wrapper({children}: {children: ReactNode}) {
@@ -21,6 +26,41 @@ describe('useExploreTimeseries', () => {
 
   afterEach(() => {
     PageFiltersStore.reset();
+  });
+
+  it('keeps transformations aligned after sorting and deduplicating axes', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
+    renderHookWithProviders(() => useExploreTimeseries({query: '', enabled: true}), {
+      organization: OrganizationFixture({
+        features: ['explore-interpolation-and-smoothing'],
+      }),
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            aggregateField: [
+              {yAxes: ['count(span.duration)'], transformations: ['smooth(sma,5)']},
+              {yAxes: ['avg(span.duration)'], transformations: ['fill(zero)']},
+              {yAxes: ['count(span.duration)'], transformations: ['smooth(sma,5)']},
+            ].map(field => JSON.stringify(field)),
+          },
+        },
+      },
+    });
+
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect(request.mock.lastCall![1].query).toEqual(
+      expect.objectContaining({
+        yAxis: ['avg(span.duration)', 'count(span.duration)', 'count(span.duration)'],
+        'transformations[0]': ['fill(zero)'],
+        'transformations[1]': ['smooth(sma,5)'],
+      })
+    );
+    expect(request.mock.lastCall![1].query).not.toHaveProperty('transformations[2]');
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
@@ -201,4 +241,43 @@ describe('useExploreTimeseries', () => {
 
     expect(mockRequest).not.toHaveBeenCalled();
   });
+});
+
+describe('shouldTriggerHighAccuracy', () => {
+  it.each([
+    {sampleCount: 0, expected: true},
+    {sampleCount: 4, expected: false},
+  ])(
+    'uses the visible pipeline sample count ($sampleCount)',
+    ({sampleCount, expected}) => {
+      const transformed = TimeSeriesFixture({
+        yAxis: 'count(span.duration)',
+        requestedTransformations: ['smooth(sma,5)'],
+        meta: {
+          valueType: 'integer',
+          valueUnit: null,
+          interval: 1000,
+          dataScanned: 'partial',
+        },
+        values: [{timestamp: 1000, value: 14, sampleCount}],
+      });
+      const raw = TimeSeriesFixture({
+        yAxis: 'count(span.duration)',
+        requestedTransformations: [],
+        values: [{timestamp: 1000, value: 97, sampleCount: 97}],
+      });
+
+      expect(
+        shouldTriggerHighAccuracy(
+          {'count(span.duration)': [transformed, raw]},
+          [
+            new VisualizeFunction('count(span.duration)', {
+              transformations: ['smooth(sma,5)'],
+            }),
+          ],
+          false
+        )
+      ).toBe(expected);
+    }
+  );
 });

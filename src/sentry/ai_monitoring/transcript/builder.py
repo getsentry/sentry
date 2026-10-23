@@ -1,6 +1,6 @@
 """Build ordered conversation transcripts from AI spans.
 
-The event contract is shared by full responses and paginated windows. Replay
+The event contract is shared by full responses and paginated windows. Duplicate
 suppression requires adjacent, agent-scoped capture evidence, never rendered
 text alone. Tool executions own independent events; later events cannot rewrite
 an earlier assistant turn. Timestamps and durations are seconds.
@@ -23,8 +23,8 @@ from sentry.ai_monitoring.transcript.attributes import MEMORY_OPERATIONS, get_ev
 from sentry.ai_monitoring.transcript.deduplication import (
     GenerationCapture,
     capture_generation,
-    is_assistant_replay,
-    is_user_replay,
+    is_duplicate_assistant_message,
+    is_user_history_continuation,
 )
 from sentry.ai_monitoring.transcript.models import (
     AssistantContent,
@@ -381,7 +381,7 @@ def normalize_events(context: TranscriptContext) -> list[TranscriptEvent]:
         reasoning_tokens = number_attr(span, "gen_ai.usage.reasoning.output_tokens") or 0
         if reasoning is None and reasoning_tokens > 0:
             reasoning = NOT_REPORTED
-        if user and (user in placeholders or not is_user_replay(capture, previous)):
+        if user and (user in placeholders or not is_user_history_continuation(capture, previous)):
             emit(
                 TranscriptMessage(
                     id=f"user-{span.span_id}",
@@ -395,7 +395,7 @@ def normalize_events(context: TranscriptContext) -> list[TranscriptEvent]:
                 "start",
             )
         if (assistant or reasoning) and (
-            assistant in placeholders or not is_assistant_replay(capture, previous)
+            assistant in placeholders or not is_duplicate_assistant_message(capture, previous)
         ):
             emit(
                 TranscriptMessage(

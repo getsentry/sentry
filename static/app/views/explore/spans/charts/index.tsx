@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -43,6 +44,7 @@ import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery'
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   groupVisualizes,
+  isVisualizeFunction,
   serializeVisualizes,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -171,7 +173,11 @@ function getChartInfo({
   topEvents?: number;
 }): ChartInfo {
   const isTopN = defined(topEvents) && topEvents > 0;
-  const series = timeseriesResult.data[visualize.yAxis] ?? [];
+  const series = getTimeSeriesForQuery(
+    timeseriesResult.data,
+    visualize.yAxis,
+    isVisualizeFunction(visualize) ? visualize.transformations : []
+  );
 
   let confidenceSeries = series;
 
@@ -181,7 +187,11 @@ function getChartInfo({
   // When this happens, we override it with the sampling meta
   // data from the DEFAULT_VISUALIZATION.
   if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
-    confidenceSeries = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
+    confidenceSeries = getTimeSeriesForQuery(
+      timeseriesResult.data,
+      DEFAULT_VISUALIZATION,
+      []
+    );
     samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
   }
 

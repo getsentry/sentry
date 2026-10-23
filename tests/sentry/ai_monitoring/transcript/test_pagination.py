@@ -115,7 +115,7 @@ def collect(rows: Sequence[Row], per_page: int) -> list[TranscriptMessageRespons
 
 
 def cases() -> list[list[Row]]:
-    replay = json.dumps(
+    history = json.dumps(
         [{"role": "user", "content": "question"}, {"role": "assistant", "content": "answer"}]
     )
     return [
@@ -125,7 +125,7 @@ def cases() -> list[list[Row]]:
         [span(str(index), 1, 1) for index in range(8)],
         [
             span("one", 1, 2),
-            span("two", 3, 4, **{"gen_ai.input.messages": replay}),
+            span("two", 3, 4, **{"gen_ai.input.messages": history}),
             span("three", 5, 6),
         ],
         [
@@ -176,7 +176,7 @@ def cases() -> list[list[Row]]:
             span("agent", 1, 10, **{"gen_ai.operation.type": "agent"}),
             span("one", 2, 3, **{"parent_span": "agent"}),
             span("root", 4, 5),
-            span("two", 6, 7, **{"parent_span": "agent", "gen_ai.input.messages": replay}),
+            span("two", 6, 7, **{"parent_span": "agent", "gen_ai.input.messages": history}),
         ],
         [span("one", 1, 2, **{"parent_span": "two"}), span("two", 3, 4, **{"parent_span": "one"})],
         [
@@ -208,16 +208,16 @@ def test_repeated_responses_and_genuine_repeated_questions_are_retained() -> Non
     ]
 
 
-def test_adjacent_history_is_suppressed_but_not_distant_replay() -> None:
-    replay = json.dumps(
+def test_only_adjacent_matching_history_is_suppressed() -> None:
+    history = json.dumps(
         [{"role": "user", "content": "question"}, {"role": "assistant", "content": "answer"}]
     )
     messages = collect(
         [
             span("one", 1, 2),
-            span("two", 3, 4, **{"gen_ai.input.messages": replay}),
+            span("two", 3, 4, **{"gen_ai.input.messages": history}),
             span("three", 5, 6, **{"gen_ai.input.messages": "different"}),
-            span("four", 7, 8, **{"gen_ai.input.messages": replay}),
+            span("four", 7, 8, **{"gen_ai.input.messages": history}),
         ],
         1,
     )
@@ -278,8 +278,144 @@ def test_invalid_source_timestamp_is_rejected(timestamp: object) -> None:
         collect([span("one", 1, 2, **{"precise.finish_ts": timestamp})], 1)
 
 
+def tool_continuation_spans() -> list[Row]:
+    history: list[dict[str, object]] = [
+        {"role": "system", "content": "Be helpful"},
+        {"role": "user", "content": "Generate a sample report"},
+    ]
+    rows: list[Row] = [
+        span(
+            "agent",
+            0,
+            11,
+            **{
+                "gen_ai.operation.type": "agent",
+                "gen_ai.input.messages": "",
+                "gen_ai.output.messages": "",
+            },
+        )
+    ]
+    for name, start, text in (("one", 1, "Inspecting records"), ("two", 5, "Checking totals")):
+        call: dict[str, object] = {"id": f"call-{name}", "name": "lookup", "arguments": {}}
+        rows.extend(
+            [
+                span(
+                    name,
+                    start,
+                    start + 1,
+                    **{
+                        "parent_span": "agent",
+                        "gen_ai.input.messages": json.dumps(history),
+                        "gen_ai.output.messages": json.dumps(
+                            [
+                                {
+                                    "role": "assistant",
+                                    "parts": [
+                                        {"type": "text", "text": text},
+                                        {"type": "tool_call", **call},
+                                    ],
+                                }
+                            ]
+                        ),
+                    },
+                ),
+                span(
+                    f"tool-{name}",
+                    start + 2,
+                    start + 3,
+                    **{
+                        "parent_span": "agent",
+                        "gen_ai.operation.type": "tool",
+                        "gen_ai.tool.name": "lookup",
+                    },
+                ),
+            ]
+        )
+        history.extend(
+            [
+                {"role": "assistant", "content": text, "tool_calls": [call]},
+                {"role": "tool", "content": "result", "tool_call_id": call["id"]},
+            ]
+        )
+    rows.append(
+        span(
+            "three",
+            9,
+            10,
+            **{
+                "parent_span": "agent",
+                "gen_ai.input.messages": json.dumps(history),
+                "gen_ai.output.messages": json.dumps(
+                    [{"role": "assistant", "content": "Report complete"}]
+                ),
+            },
+        )
+    )
+    return rows
+
+
+@pytest.mark.parametrize("per_page", [1, 100])
+def test_tool_continuations_emit_the_user_turn_once(per_page: int) -> None:
+    messages = collect(tool_continuation_spans(), per_page)
+    assert [(message["role"], message["content"], message["nodeId"]) for message in messages] == [
+        ("user", "Generate a sample report", "one"),
+        ("assistant", "Inspecting records", "one"),
+        ("assistant", "", "tool-one"),
+        ("assistant", "Checking totals", "two"),
+        ("assistant", "", "tool-two"),
+        ("assistant", "Report complete", "three"),
+    ]
+
+
+def test_genuinely_repeated_question_after_tool_calls_is_retained() -> None:
+    rows = tool_continuation_spans()
+    final = dict(rows[-1])
+    raw = final["gen_ai.input.messages"]
+    assert isinstance(raw, str)
+    history = json.loads(raw)
+    final["gen_ai.input.messages"] = json.dumps(
+        [*history, {"role": "user", "content": "Generate a sample report"}]
+    )
+    rows[-1] = final
+    messages = collect(rows, 1)
+    assert [message["nodeId"] for message in messages if message["role"] == "user"] == [
+        "one",
+        "three",
+    ]
+
+
+def test_input_history_growth_proves_continuation_without_captured_output() -> None:
+    messages = collect(
+        [
+            span("one", 1, 2, **{"gen_ai.output.messages": ""}),
+            span(
+                "two",
+                5,
+                6,
+                **{
+                    "gen_ai.input.messages": json.dumps(
+                        [
+                            {"role": "user", "content": "question"},
+                            {
+                                "role": "assistant",
+                                "tool_calls": [{"id": "call-1", "name": "lookup"}],
+                            },
+                            {"role": "tool", "content": "result", "tool_call_id": "call-1"},
+                        ]
+                    )
+                },
+            ),
+        ],
+        1,
+    )
+    assert [(message["role"], message["content"]) for message in messages] == [
+        ("user", "question"),
+        ("assistant", "answer"),
+    ]
+
+
 @pytest.mark.parametrize("per_page", [1, 2, 3])
-def test_same_text_and_counts_do_not_prove_history_replay(per_page: int) -> None:
+def test_same_text_and_counts_do_not_prove_history_continuation(per_page: int) -> None:
     first = [
         {"role": "system", "content": "first context"},
         {"role": "user", "content": "question"},
@@ -324,7 +460,7 @@ def test_identical_truncated_history_is_ambiguous(per_page: int) -> None:
 
 
 @pytest.mark.parametrize("per_page", [1, 2, 3])
-def test_new_user_after_verified_history_is_not_a_replay(per_page: int) -> None:
+def test_new_user_after_verified_history_is_not_suppressed(per_page: int) -> None:
     history = json.dumps(
         [
             {"role": "user", "content": "question"},
@@ -342,7 +478,7 @@ def test_new_user_after_verified_history_is_not_a_replay(per_page: int) -> None:
 
 
 @pytest.mark.parametrize("per_page", [1, 2, 3])
-def test_verified_replay_is_agent_and_project_scoped(per_page: int) -> None:
+def test_history_continuation_is_agent_and_project_scoped(per_page: int) -> None:
     history = json.dumps(
         [{"role": "user", "content": "question"}, {"role": "assistant", "content": "answer"}]
     )
@@ -364,7 +500,7 @@ def test_verified_replay_is_agent_and_project_scoped(per_page: int) -> None:
 
 
 @pytest.mark.parametrize("per_page", [1, 2, 3])
-def test_matching_message_ids_and_payloads_prove_replay(per_page: int) -> None:
+def test_matching_message_ids_and_payloads_prove_duplicate_messages(per_page: int) -> None:
     attributes = {
         "gen_ai.input.messages": json.dumps(
             [{"role": "user", "id": "user-message", "content": "question"}]
@@ -753,7 +889,7 @@ def test_structured_assistant_output_survives_pagination(
         ("gen_ai.output.messages", "assistant", "answer"),
     ],
 )
-def test_deep_metadata_disables_replay_without_losing_messages(
+def test_deep_metadata_disables_duplicate_detection_without_losing_messages(
     per_page: int, field: str, role: str, content: str
 ) -> None:
     raw = (
