@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import assert_never
 
 from django.db import router, transaction
+from django.db.models import QuerySet
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -80,8 +81,8 @@ class SeerWorkflow:
         """Check the automation's scope before recording an admission decision."""
         return (
             self.config.enabled
-            and project_id in self.get_project_ids()
             and (not self.filters.environments or environment in self.filters.environments)
+            and self._get_projects().filter(id=project_id).exists()
         )
 
     def has_quota_available(self) -> bool:
@@ -91,6 +92,9 @@ class SeerWorkflow:
 
     def get_project_ids(self) -> list[int]:
         """Return active project IDs matching this workflow's filters, in ascending order."""
+        return list(self._get_projects().order_by("id").values_list("id", flat=True))
+
+    def _get_projects(self) -> QuerySet[Project]:
         projects = Project.objects.filter(
             organization_id=self.config.organization_id, status=ObjectStatus.ACTIVE
         )
@@ -100,7 +104,7 @@ class SeerWorkflow:
                     "project_id"
                 )
             )
-        return list(projects.order_by("id").values_list("id", flat=True))
+        return projects
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         match selection:
