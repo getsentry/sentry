@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useCallback, useRef} from 'react';
 
 interface UseColumnResizeOptions<T extends HTMLElement> {

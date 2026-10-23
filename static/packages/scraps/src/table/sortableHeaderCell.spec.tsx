@@ -1,14 +1,15 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
-import {
-  getAriaSort,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
+import {getAriaSort, SortableHeaderCell} from '@sentry/scraps/table';
+import {lightTheme} from '@sentry/scraps/theme';
 
 describe('SortableHeaderCell', () => {
   it('calls onSort when clicked', async () => {
     const onSort = jest.fn();
-    render(<SortableHeaderCell onSort={onSort}>Duration</SortableHeaderCell>);
+    renderWithTheme(<SortableHeaderCell onSort={onSort}>Duration</SortableHeaderCell>);
 
     await userEvent.click(screen.getByRole('button', {name: 'Duration'}));
 
@@ -16,14 +17,14 @@ describe('SortableHeaderCell', () => {
   });
 
   it('renders a non-interactive cell when not given onSort', () => {
-    render(<SortableHeaderCell>Duration</SortableHeaderCell>);
+    renderWithTheme(<SortableHeaderCell>Duration</SortableHeaderCell>);
 
     expect(screen.getByText('Duration')).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('renders a link to the sort target when given to', () => {
-    render(<SortableHeaderCell to="/sorted/">Duration</SortableHeaderCell>);
+    renderWithTheme(<SortableHeaderCell to="/sorted/">Duration</SortableHeaderCell>);
 
     expect(screen.getByRole('link', {name: 'Duration'})).toHaveAttribute(
       'href',
@@ -33,7 +34,7 @@ describe('SortableHeaderCell', () => {
 
   it('calls onSort when the link is clicked', async () => {
     const onSort = jest.fn();
-    render(
+    renderWithTheme(
       <SortableHeaderCell onSort={onSort} to="/sorted/">
         Duration
       </SortableHeaderCell>
@@ -45,13 +46,13 @@ describe('SortableHeaderCell', () => {
   });
 
   it('renders no indicator when the column is not sorted', () => {
-    render(<SortableHeaderCell onSort={jest.fn()}>Duration</SortableHeaderCell>);
+    renderWithTheme(<SortableHeaderCell onSort={jest.fn()}>Duration</SortableHeaderCell>);
 
     expect(screen.queryByRole('img', {hidden: true})).not.toBeInTheDocument();
   });
 
   it('points the indicator down when sorted descending', () => {
-    render(
+    renderWithTheme(
       <SortableHeaderCell direction="desc" onSort={jest.fn()}>
         Duration
       </SortableHeaderCell>
@@ -76,3 +77,9 @@ describe('getAriaSort', () => {
     expect(getAriaSort(undefined)).toBeUndefined();
   });
 });
+
+function renderWithTheme(ui: React.ReactElement) {
+  return render(ui, {
+    wrapper: ({children}) => <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>,
+  });
+}

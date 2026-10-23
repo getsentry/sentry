@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useCallback, useLayoutEffect, useMemo, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 

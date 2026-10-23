@@ -1,9 +1,9 @@
+import type * as React from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useMove} from '@react-aria/interactions';
 
-import {setDocumentDragging} from 'sentry/utils/setDocumentDragging';
-
 import type {Orientation} from './dragHandle';
+import {setDocumentDragging} from './setDocumentDragging';
 
 const KEYBOARD_STEP = 10;
 

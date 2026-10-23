@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import type {
   ComponentProps,
   HTMLAttributes,
@@ -18,10 +19,10 @@ import {
   useRef,
   useState,
 } from 'react';
-import type {LocationDescriptor} from 'history';
 
 import {DragHandle} from '@sentry/scraps/dragHandle';
 import {type Responsive, useResponsivePropResolver} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
 import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 import {
@@ -30,10 +31,7 @@ import {
   getAriaSort,
   SortableHeaderCell,
   type SortDirection,
-} from 'sentry/components/tables/sortableHeaderCell';
-import {useColumnResize} from 'sentry/components/tables/useColumnResize';
-import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
-
+} from './sortableHeaderCell';
 import {
   TableBody,
   TableCell,
@@ -44,6 +42,8 @@ import {
   TableRow,
   TableStatusCell,
 } from './styles';
+import {useColumnResize} from './useColumnResize';
+import {useObservedColumnSize} from './useObservedColumnSize';
 
 // Auto layout width.
 export const COL_WIDTH_UNDEFINED = -1;
@@ -312,7 +312,7 @@ interface HeadCellProps extends Omit<ThHTMLAttributes<HTMLTableCellElement>, 'al
   /**
    * Sort destination to navigate to on sort.
    */
-  to?: LocationDescriptor;
+  to?: LinkProps['to'];
 }
 
 function HeadCell({

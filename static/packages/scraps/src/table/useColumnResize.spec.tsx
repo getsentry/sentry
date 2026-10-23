@@ -1,13 +1,21 @@
+import type * as React from 'react';
 import {useRef} from 'react';
-
-import {dragHandle} from 'sentry-test/dragMove';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {triggerResizeObservers} from 'sentry-test/resizeObserver';
+import {ThemeProvider} from '@emotion/react';
+import {act, render, screen, waitFor} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {useDragMove} from '@sentry/scraps/dragHandle';
+import {lightTheme} from '@sentry/scraps/theme';
 
-import {useColumnResize} from 'sentry/components/tables/useColumnResize';
-import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
+import {dragHandle} from '../../test/dragMove';
+import {
+  MockResizeObserver,
+  resetResizeObservers,
+  triggerResizeObservers,
+} from '../../test/resizeObserver';
+
+import {useColumnResize} from './useColumnResize';
+import {useObservedColumnSize} from './useObservedColumnSize';
 
 interface HandleProps {
   columnIndex: number;
@@ -19,11 +27,11 @@ interface HandleProps {
 // Stands in for whatever a shell renders on the column edge.
 function Handle({columnIndex, onResizeEnd, onResizeMove, onResizeStart}: HandleProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {max, width} = useObservedColumnSize(ref);
+  const {cell, max, width} = useObservedColumnSize(ref);
   const {moveProps} = useDragMove({
     onMove: onResizeMove,
     onMoveEnd: onResizeEnd,
-    onMoveStart: () => onResizeStart(columnIndex, ref.current?.closest('th') ?? null),
+    onMoveStart: () => onResizeStart(columnIndex, cell),
     orientation: 'horizontal',
   });
 
@@ -80,9 +88,17 @@ function TestTable({
 const resizer = () => screen.getByRole('separator');
 
 describe('useColumnResize', () => {
+  const OriginalResizeObserver = globalThis.ResizeObserver;
+  beforeEach(() => {
+    globalThis.ResizeObserver = MockResizeObserver;
+  });
+  afterEach(() => {
+    globalThis.ResizeObserver = OriginalResizeObserver;
+    resetResizeObservers();
+  });
   it('computes the new width from the drag distance', async () => {
     const getResizeTemplate = jest.fn(() => '60px');
-    render(<TestTable getResizeTemplate={getResizeTemplate} />);
+    renderWithTheme(<TestTable getResizeTemplate={getResizeTemplate} />);
 
     dragHandle(resizer(), {from: 100, to: 160});
 
@@ -92,7 +108,7 @@ describe('useColumnResize', () => {
 
   it('commits the final width when the drag ends', () => {
     const onColumnResizeEnd = jest.fn();
-    render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
+    renderWithTheme(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
 
     dragHandle(resizer(), {from: 100, to: 250});
 
@@ -101,7 +117,7 @@ describe('useColumnResize', () => {
 
   it('stops resizing when the drag has ended', async () => {
     const getResizeTemplate = jest.fn(() => '40px');
-    render(<TestTable getResizeTemplate={getResizeTemplate} />);
+    renderWithTheme(<TestTable getResizeTemplate={getResizeTemplate} />);
 
     dragHandle(resizer(), {from: 100, to: 140});
     await waitFor(() => expect(getResizeTemplate).toHaveBeenCalled());
@@ -113,7 +129,7 @@ describe('useColumnResize', () => {
 
   it('does not start a resize from a non-primary button', () => {
     const onColumnResizeEnd = jest.fn();
-    render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
+    renderWithTheme(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
 
     dragHandle(resizer(), {button: 2, from: 100, to: 200});
 
@@ -130,7 +146,7 @@ describe('useColumnResize', () => {
     },
   ])('$name', async ({keys, expected}) => {
     const onColumnResizeEnd = jest.fn();
-    render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
+    renderWithTheme(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
 
     await userEvent.tab();
     await userEvent.keyboard(keys);
@@ -140,7 +156,7 @@ describe('useColumnResize', () => {
 
   it('does not resize when a key other than an arrow is pressed', async () => {
     const onColumnResizeEnd = jest.fn();
-    render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
+    renderWithTheme(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
 
     await userEvent.tab();
     await userEvent.keyboard('{Enter}');
@@ -150,7 +166,7 @@ describe('useColumnResize', () => {
 
   it('does not commit a width when arrowed across the resize axis', async () => {
     const onColumnResizeEnd = jest.fn();
-    render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
+    renderWithTheme(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
 
     await userEvent.tab();
     await userEvent.keyboard('{ArrowDown}');
@@ -160,7 +176,7 @@ describe('useColumnResize', () => {
 
   it('does not commit a width when the drag never travelled along the axis', () => {
     const onColumnResizeEnd = jest.fn();
-    render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
+    renderWithTheme(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
 
     dragHandle(resizer(), {from: 100, to: 100, y: 60});
 
@@ -181,7 +197,7 @@ describe('useColumnResize', () => {
   }
 
   it('publishes the table height inside its borders to the handle as a CSS variable', () => {
-    render(<TestTable />);
+    renderWithTheme(<TestTable />);
     stubGeometry({cell: 150, table: 900});
 
     act(triggerResizeObservers);
@@ -190,7 +206,7 @@ describe('useColumnResize', () => {
   });
 
   it('announces the observed column width against the table width', () => {
-    render(<TestTable />);
+    renderWithTheme(<TestTable />);
     stubGeometry({cell: 150, table: 900});
 
     act(triggerResizeObservers);
@@ -201,7 +217,7 @@ describe('useColumnResize', () => {
   });
 
   it('announces the table width as the upper bound', () => {
-    render(<TestTable />);
+    renderWithTheme(<TestTable />);
     stubGeometry({cell: 150, table: 900});
 
     act(triggerResizeObservers);
@@ -209,3 +225,9 @@ describe('useColumnResize', () => {
     expect(resizer()).toHaveAttribute('aria-valuemax', '900');
   });
 });
+
+function renderWithTheme(ui: React.ReactElement) {
+  return render(ui, {
+    wrapper: ({children}) => <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>,
+  });
+}

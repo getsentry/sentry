@@ -1,6 +1,9 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
 
 import {useDragSeparator} from '@sentry/scraps/dragHandle';
+import {lightTheme} from '@sentry/scraps/theme';
 
 type Options = Parameters<typeof useDragSeparator>[0];
 
@@ -19,25 +22,25 @@ const separator = () => screen.getByRole('separator');
 
 describe('useDragSeparator', () => {
   it('exposes the handle as a focusable separator', () => {
-    render(<TestSeparator />);
+    renderWithTheme(<TestSeparator />);
 
     expect(separator()).toHaveAttribute('tabindex', '0');
   });
 
   it('reports the axis across which it divides when horizontal', () => {
-    render(<TestSeparator orientation="horizontal" />);
+    renderWithTheme(<TestSeparator orientation="horizontal" />);
 
     expect(separator()).toHaveAttribute('aria-orientation', 'vertical');
   });
 
   it('reports the axis across which it divides when vertical', () => {
-    render(<TestSeparator orientation="vertical" />);
+    renderWithTheme(<TestSeparator orientation="vertical" />);
 
     expect(separator()).toHaveAttribute('aria-orientation', 'horizontal');
   });
 
   it('announces the size against its bounds', () => {
-    render(<TestSeparator max={200} min={50} value={120} />);
+    renderWithTheme(<TestSeparator max={200} min={50} value={120} />);
 
     // https://github.com/testing-library/jest-dom/issues/735
     // eslint-disable-next-line jest-dom/prefer-to-have-value
@@ -47,13 +50,13 @@ describe('useDragSeparator', () => {
   });
 
   it('omits the upper bound when the size is unbounded', () => {
-    render(<TestSeparator max={Infinity} min={50} value={120} />);
+    renderWithTheme(<TestSeparator max={Infinity} min={50} value={120} />);
 
     expect(separator()).not.toHaveAttribute('aria-valuemax');
   });
 
   it('omits the values before the size has been measured', () => {
-    render(<TestSeparator />);
+    renderWithTheme(<TestSeparator />);
 
     expect(separator()).not.toHaveAttribute('aria-valuenow');
     expect(separator()).not.toHaveAttribute('aria-valuemin');
@@ -61,7 +64,7 @@ describe('useDragSeparator', () => {
   });
 
   it('is not held before a drag starts', () => {
-    render(<TestSeparator />);
+    renderWithTheme(<TestSeparator />);
 
     expect(separator()).toHaveAttribute('data-is-held', 'false');
   });
@@ -108,8 +111,14 @@ describe('useDragSeparator', () => {
       expected: 'ew-resize',
     },
   ])('$name', ({props, expected}) => {
-    render(<TestSeparator {...props} />);
+    renderWithTheme(<TestSeparator {...props} />);
 
     expect(separator()).toHaveAttribute('data-cursor', expected);
   });
 });
+
+function renderWithTheme(ui: React.ReactElement) {
+  return render(ui, {
+    wrapper: ({children}) => <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>,
+  });
+}

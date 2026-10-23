@@ -1,7 +1,12 @@
-import {dragHandle} from 'sentry-test/dragMove';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {useDragMove} from '@sentry/scraps/dragHandle';
+import {lightTheme} from '@sentry/scraps/theme';
+
+import {dragHandle} from '../../test/dragMove';
 
 interface TestHandleProps {
   onMove?: (delta: number) => void;
@@ -25,7 +30,7 @@ const handle = () => screen.getByTestId('handle');
 describe('useDragMove', () => {
   it('reports the distance dragged along the axis', () => {
     const onMove = jest.fn();
-    render(<TestHandle onMove={onMove} />);
+    renderWithTheme(<TestHandle onMove={onMove} />);
 
     dragHandle(handle(), {from: 100, to: 160});
 
@@ -41,7 +46,7 @@ describe('useDragMove', () => {
     },
   ])('$name', async ({keys, expected}) => {
     const onMove = jest.fn();
-    render(<TestHandle onMove={onMove} />);
+    renderWithTheme(<TestHandle onMove={onMove} />);
 
     await userEvent.tab();
     await userEvent.keyboard(keys);
@@ -53,7 +58,7 @@ describe('useDragMove', () => {
     const onMove = jest.fn();
     const onMoveEnd = jest.fn();
     const onMoveStart = jest.fn();
-    render(
+    renderWithTheme(
       <TestHandle onMove={onMove} onMoveEnd={onMoveEnd} onMoveStart={onMoveStart} />
     );
 
@@ -66,7 +71,7 @@ describe('useDragMove', () => {
   });
 
   it('suppresses hover and selection on the document while dragging', () => {
-    render(<TestHandle />);
+    renderWithTheme(<TestHandle />);
 
     dragHandle(handle(), {from: 100, to: 160, release: false});
 
@@ -74,7 +79,7 @@ describe('useDragMove', () => {
   });
 
   it('restores the document once the drag ends', () => {
-    render(<TestHandle />);
+    renderWithTheme(<TestHandle />);
 
     dragHandle(handle(), {from: 100, to: 160});
 
@@ -82,7 +87,7 @@ describe('useDragMove', () => {
   });
 
   it('restores the document when unmounted mid-drag', () => {
-    const {unmount} = render(<TestHandle />);
+    const {unmount} = renderWithTheme(<TestHandle />);
 
     dragHandle(handle(), {from: 100, to: 160, release: false});
     unmount();
@@ -90,3 +95,9 @@ describe('useDragMove', () => {
     expect(document.body).toHaveStyle({pointerEvents: ''});
   });
 });
+
+function renderWithTheme(ui: React.ReactElement) {
+  return render(ui, {
+    wrapper: ({children}) => <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>,
+  });
+}

@@ -198,6 +198,14 @@
     "./useIsInsideInteractiveElement": {
       "types": "./dist/useIsInsideInteractiveElement.d.ts",
       "import": "./dist/useIsInsideInteractiveElement.js"
+    },
+    "./table": {
+      "types": "./dist/table/index.d.ts",
+      "import": "./dist/table/index.js"
+    },
+    "./dragHandle": {
+      "types": "./dist/dragHandle/index.d.ts",
+      "import": "./dist/dragHandle/index.js"
     }
   },
   "publishConfig": {
