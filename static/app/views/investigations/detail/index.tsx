@@ -5,7 +5,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconIssues} from '@sentry/icons/issues';
 import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -33,6 +33,10 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {
+  getPrimaryActionRequest,
+  NextStepCard,
+} from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
@@ -61,11 +65,19 @@ import {
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import {getInvestigationSource} from 'sentry/views/investigations/source';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {
+  InvestigationActionRequest,
   InvestigationBlock,
   InvestigationDetail,
+  InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -100,6 +112,71 @@ function ClosedMembershipPage() {
       </Alert.Container>
     </Stack>
   );
+}
+
+/**
+ * Action requests come with the investigation, which stops polling once the run is done
+ * and which orchestration commands don't refresh. Refetch it whenever the next step moves
+ * on, and return true until that refetch settles.
+ */
+function useRefetchStaleActionRequests(
+  investigationId: string,
+  orchestration: InvestigationOrchestration | undefined,
+  actionRequests: InvestigationActionRequest[] | undefined
+) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const detailQueryKey = getInvestigationDetailQueryOptions(
+    organization.slug,
+    investigationId
+  ).queryKey;
+  // Re-renders when the refetch starts and settles.
+  useIsFetching({queryKey: detailQueryKey});
+  const detailState = queryClient.getQueryState(detailQueryKey);
+  const detailUpdates =
+    (detailState?.dataUpdateCount ?? 0) + (detailState?.errorUpdateCount ?? 0);
+  const nextStepKey = orchestration
+    ? `${orchestration.report.revision}:${orchestration.report.nextStep?.status}`
+    : null;
+  const [refresh, setRefresh] = useState<{
+    detailUpdates: number;
+    initial: boolean;
+    investigationId: string;
+    key: string;
+  } | null>(null);
+
+  if (
+    nextStepKey !== null &&
+    (refresh?.investigationId !== investigationId || refresh.key !== nextStepKey)
+  ) {
+    // The first next step we see usually matches the investigation we already have,
+    // unless it finished before that investigation was fetched.
+    const missingRequest =
+      orchestration?.report.nextStep?.status === 'completed' &&
+      !getPrimaryActionRequest(actionRequests ?? [], orchestration.report.revision);
+    setRefresh({
+      detailUpdates,
+      initial: refresh?.investigationId !== investigationId && !missingRequest,
+      investigationId,
+      key: nextStepKey,
+    });
+  }
+
+  useEffect(() => {
+    if (refresh && !refresh.initial) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(
+          organization.slug,
+          refresh.investigationId
+        ).queryKey,
+      });
+    }
+  }, [organization.slug, queryClient, refresh]);
+
+  if (refresh === null || refresh.initial || nextStepKey === null) {
+    return false;
+  }
+  return detailUpdates === refresh.detailUpdates;
 }
 
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
@@ -187,10 +264,15 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
-  const {data: orchestration} = useQuery({
+  const {data: orchestration, isPending: orchestrationPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
   });
+  const actionRequestsStale = useRefetchStaleActionRequests(
+    investigation.id,
+    orchestration,
+    investigation.actionRequests
+  );
   const runStatus =
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
@@ -264,7 +346,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         exact: true,
       });
       addSuccessMessage(t('Investigation deleted.'));
-      navigate(`/organizations/${organization.slug}/explore/investigations/`);
+      navigate(getInvestigationsPath(organization.slug));
     },
     onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
@@ -372,7 +454,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             {
               type: 'link',
               label: t('Investigations'),
-              to: `/organizations/${organization.slug}/explore/investigations/`,
+              to: getInvestigationsPath(organization.slug),
               leadingGraphic: <IconStack size="md" />,
             },
           ]}
@@ -489,6 +571,15 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
+              <NextStepCard
+                actionRequests={investigation.actionRequests}
+                actionRequestsStale={actionRequestsStale}
+                source={investigation.source}
+                orchestration={orchestration}
+                orchestrationLoading={
+                  Boolean(investigation.orchestration) && orchestrationPending
+                }
+              />
 
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 
@@ -598,36 +689,6 @@ function isTitleGenerationActive(status: string | null | undefined) {
   return status === 'pending' || status === 'running';
 }
 
-function getInvestigationPath(organizationSlug: string, investigationId: string) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
-  );
-}
-
-function getRecord(value: unknown, key: string): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-  const field: unknown = (value as Record<string, unknown>)[key];
-  return field && typeof field === 'object' ? (field as Record<string, unknown>) : null;
-}
-
-function getString(value: Record<string, unknown> | null, key: string): string | null {
-  const field = value?.[key];
-  return typeof field === 'string' && field ? field : null;
-}
-
-// A breached metric investigation references the metric issue it was started
-// from, and snapshots that issue's monitor. Older investigations may predate the
-// snapshot, but still carry the issue reference.
-function getInvestigationSource(investigation: InvestigationDetail) {
-  const {source} = investigation;
-  return {
-    groupId: getString(getRecord(source, 'ref'), 'groupId'),
-    monitorName: getString(getRecord(getRecord(source, 'snapshot'), 'monitor'), 'name'),
-  };
-}
-
 function formatSourceType(sourceType: string) {
   if (sourceType === 'metric_open_period') {
     return t('Breached metric');
@@ -680,6 +741,7 @@ const MetaDivider = styled('span')`
 
 export default function InvestigationDetailView() {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const {investigationId} = useParams<{investigationId: string}>();
 
   return (
@@ -689,7 +751,7 @@ export default function InvestigationDetailView() {
         features="organizations:investigations"
         renderDisabled={() => <FeatureDisabledPage />}
       >
-        {organization.openMembership ? (
+        {investigationsEnabled ? (
           <InvestigationBootstrapPage investigationId={investigationId} />
         ) : (
           <ClosedMembershipPage />

@@ -245,6 +245,22 @@ def continue_pr_iteration(
         )
         return
 
+    if (
+        state.status == "completed"
+        and outcome == PrIterationOutcome.PR_CREATION_ERRORED
+        and any(
+            state.repo_pr_states[repo].pr_creation_error_code == "branch_moved"
+            for repo in iteration_terminal_errored_repos(state)
+        )
+    ):
+        # A terminal refusal to overwrite newer PR commits is a failed iteration,
+        # not a successful hand-back to the feedback queue.
+        pause_pr_iteration(
+            run_id=run_id,
+            organization_id=organization.id,
+            reason=PauseReason.RUN_ERRORED,
+        )
+
     if outcome == PrIterationOutcome.ALREADY_PUSHED:
         metrics.incr(
             "autofix.pr_iteration.step",

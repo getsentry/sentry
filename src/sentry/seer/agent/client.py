@@ -22,6 +22,7 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import MONITORING_PROVIDERS
+from sentry.investigations.access import has_investigations_access
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -371,10 +372,8 @@ class SeerAgentClient:
         self.enable_write_pull_request = enable_write_pull_request
         # The same gate the investigation endpoints apply, so Code Mode isn't handed
         # operations that would only 404.
-        self.enable_investigation_tools = (
-            enable_investigation_tools
-            and features.has("organizations:investigations", organization, actor=user)
-            and bool(organization.flags.allow_joinleave)
+        self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
+            organization, actor=user
         )
 
         self.viewer_context = self._build_viewer_context()

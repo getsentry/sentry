@@ -120,24 +120,25 @@ describe('getAutofixTimelineItems', () => {
     });
   });
 
-  it('keeps coding results on the PR creation entry after the PR is marked ready', () => {
+  it('keeps coding results on the reference after collapsing Seer creation and ready', () => {
     const pullRequest = PullRequestFixture();
+    const pullRequests = [
+      {
+        provider: 'github',
+        repo_name: 'org/repo',
+        pull_request: {
+          pr_number: 123,
+          pr_url: pullRequest.externalUrl,
+        },
+      },
+    ];
     const prCreated = ActivityFeedFixture({
       id: 'pr-created',
       type: GroupActivityType.SEER_PR_CREATED,
       dateCreated: completed.dateCreated,
       data: {
         run_id: runId,
-        pull_requests: [
-          {
-            provider: 'github',
-            repo_name: 'org/repo',
-            pull_request: {
-              pr_number: 123,
-              pr_url: pullRequest.externalUrl,
-            },
-          },
-        ],
+        pull_requests: pullRequests,
       },
     });
     const reference = ActivityFeedFixture({
@@ -149,7 +150,7 @@ describe('getAutofixTimelineItems', () => {
     const ready = ActivityFeedFixture({
       id: 'pr-ready',
       type: GroupActivityType.SEER_PR_READY_FOR_REVIEW,
-      data: {run_id: runId},
+      data: {run_id: runId, pull_requests: pullRequests},
       dateCreated: '2024-01-01T00:02:00Z',
     });
     const codeChanges = {
@@ -167,9 +168,8 @@ describe('getAutofixTimelineItems', () => {
     };
 
     expect(
-      getAutofixTimelineItems([ready, prCreated, reference], runId, [codeChanges])
+      getAutofixTimelineItems([reference, ready, prCreated], runId, [codeChanges])
     ).toEqual([
-      {type: 'activity', activity: ready},
       {
         type: 'activity',
         activity: reference,
