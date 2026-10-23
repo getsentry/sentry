@@ -36,6 +36,10 @@ const MIN_CARD_WIDTH = '280px';
 const DAILY_SCHEDULE_HOURS = [10, 22];
 
 type AutomationCardProps = {
+  /**
+   * Paused automations show a "Paused" tag in place of their schedule or trigger
+   */
+  enabled: boolean;
   id: string;
   /**
    * ['all'] when the automation covers all projects, [] when it covers none
@@ -77,6 +81,7 @@ export default function AutomationsList() {
     // Placeholders for automations the configs endpoint doesn't return yet
     {
       id: 'placeholder-agentic-triage',
+      enabled: true,
       title: 'Agentic Triage',
       description: 'Automatically triage and fix the most fixable issues.',
       projectSlugs: ['all'],
@@ -86,6 +91,7 @@ export default function AutomationsList() {
     },
     {
       id: 'placeholder-breached-metrics',
+      enabled: true,
       title: 'Breached Metrics',
       description:
         'Monitors backend metrics and investigates why certain key metrics were breached.',
@@ -100,6 +106,7 @@ export default function AutomationsList() {
         : undefined;
       return {
         id: config.id,
+        enabled: config.enabled,
         title: meta?.label ?? config.strategy,
         description: meta?.description ?? t('No description'),
         projectSlugs: config.projects.includes(ALL_ACCESS_PROJECTS)
@@ -129,6 +136,7 @@ export default function AutomationsList() {
 
 function AutomationCard({
   title,
+  enabled,
   description,
   projectSlugs,
   nextUpdate,
@@ -172,22 +180,28 @@ function AutomationCard({
             </Heading>
             <IconSentry size="xs" variant="muted" />
           </Flex>
-          {subtitleOverride ? (
-            <Flex>
-              <Tag variant="muted" icon={subtitleOverride.icon}>
-                {subtitleOverride.text}
-              </Tag>
-            </Flex>
-          ) : (
-            nextUpdate && (
+          {enabled ? (
+            subtitleOverride ? (
               <Flex>
-                <Tag variant="muted" icon={<IconClock />}>
-                  {tct('Next run [time]', {
-                    time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
-                  })}
+                <Tag variant="muted" icon={subtitleOverride.icon}>
+                  {subtitleOverride.text}
                 </Tag>
               </Flex>
+            ) : (
+              nextUpdate && (
+                <Flex>
+                  <Tag variant="muted" icon={<IconClock />}>
+                    {tct('Next run [time]', {
+                      time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
+                    })}
+                  </Tag>
+                </Flex>
+              )
             )
+          ) : (
+            <Flex>
+              <Tag variant="warning">{t('Paused')}</Tag>
+            </Flex>
           )}
           {description && <Text as="p">{description}</Text>}
         </Stack>

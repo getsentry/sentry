@@ -109,6 +109,23 @@ describe('AutomationsList', () => {
     expect(getCard('daily_strategy').getByText(/Next run/)).toBeInTheDocument();
     expect(getCard('weekly_strategy').queryByText(/Next run/)).not.toBeInTheDocument();
   });
+
+  it('shows a paused tag in place of the schedule for disabled configs', async () => {
+    mockConfigs([
+      makeConfig({
+        id: '1',
+        strategy: 'paused_strategy',
+        schedule: 'daily',
+        enabled: false,
+      }),
+    ]);
+
+    render(<AutomationsList />, {organization});
+
+    await screen.findByRole('heading', {name: 'paused_strategy'});
+    expect(getCard('paused_strategy').getByText('Paused')).toBeInTheDocument();
+    expect(getCard('paused_strategy').queryByText(/Next run/)).not.toBeInTheDocument();
+  });
 });
 
 describe('getNextUpdate', () => {
