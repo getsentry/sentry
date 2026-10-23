@@ -311,6 +311,55 @@ def test_flamegraph_repeated_child_edges_are_not_materialized_as_paths(flamegrap
     assert _is_valid_flamegraph(output)
 
 
+@pytest.mark.parametrize(
+    ("path", "value", "valid"),
+    [
+        (("version",), 1, False),
+        (("version",), "2", False),
+        (("platform",), 1, False),
+        (("platform",), "", True),
+        (("frames",), [], False),
+        (("frames",), [None], False),
+        (("frames",), [{}], False),
+        (("frames",), [{"filename": "source.cpp"}], True),
+        (("frames",), [{"function": " "}], True),
+        (("frames",), [{"function": 42}], False),
+        (("frames", 0, "filename"), 42, True),
+        (("frames", 0, "instruction_addr"), 42, False),
+        (("frames", 0, "addr_mode"), "", True),
+        (("debug_meta",), None, False),
+        (("debug_meta", "images"), [None], False),
+        (("debug_meta", "images", 0, "debug_id"), None, True),
+        (("debug_meta", "images", 0, "debug_id"), 42, False),
+        (("nodes", 0, "frame_id"), True, False),
+        (("nodes", 0, "frame_id"), "0", False),
+        (("nodes", 0, "frame_id"), 0.0, False),
+        (("nodes", 0, "sample_count"), True, False),
+        (("nodes", 0, "sample_count"), "10", False),
+        (("nodes", 0, "sample_count"), 10.0, False),
+        (("nodes", 0, "sample_count"), 0, False),
+        (("nodes", 0, "sample_count"), 9007199254740991, True),
+        (("nodes", 0, "sample_count"), 9007199254740992, False),
+        (("nodes", 0, "children"), [True], False),
+        (("nodes", 0, "children"), [0.0], False),
+        (("nodes", 0, "children"), ["0"], False),
+        (("nodes", 0, "children"), [-1], False),
+        (("nodes", 0, "children"), [1], False),
+        (("trees",), [], False),
+        (("trees",), [None], False),
+    ],
+)
+def test_flamegraph_validation_preserves_types(flamegraph_payload, path, value, valid) -> None:
+    target = flamegraph_payload
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    original = deepcopy(flamegraph_payload)
+
+    assert _is_valid_flamegraph(flamegraph_payload) is valid
+    assert flamegraph_payload == original
+
+
 @pytest.mark.parametrize("roots", [[], [-1], [1], [True], [0.0], [{}], "invalid"])
 def test_flamegraph_rejects_invalid_root_indices(flamegraph_payload, roots) -> None:
     flamegraph_payload["trees"][0]["roots"] = roots

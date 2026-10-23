@@ -2,6 +2,7 @@ from collections.abc import Generator
 from typing import Any
 
 import rapidjson
+from rest_framework import serializers
 
 from sentry import features
 from sentry.attachments import (
@@ -19,79 +20,94 @@ MAX_SYMBOLICATION_FRAMES = 2500
 MAX_SAMPLE_COUNT = 9007199254740991
 
 
-def _is_valid_flamegraph(payload: Any) -> bool:
-    if not isinstance(payload, dict) or payload.get("version") != "1":
-        return False
-    if not isinstance(payload.get("platform"), str):
-        return False
-    frames = payload.get("frames")
-    trees = payload.get("trees")
-    nodes = payload.get("nodes")
-    if (
-        not isinstance(frames, list)
-        or not frames
-        or not isinstance(trees, list)
-        or not trees
-        or not isinstance(nodes, list)
-        or not nodes
-    ):
-        return False
-    for frame in frames:
-        if not isinstance(frame, dict) or not any(
-            isinstance(frame.get(field), str) and frame[field]
+class _StringField(serializers.Field):
+    default_error_messages = {"invalid": "Not a valid string."}
+
+    def to_internal_value(self, data: Any) -> str:
+        # Attachment validation must not coerce JSON numbers to strings.
+        if not isinstance(data, str):
+            self.fail("invalid")
+        return data
+
+
+class _IntegerField(serializers.IntegerField):
+    def to_internal_value(self, data: Any) -> int:
+        # Reject booleans, floats, and numeric strings rather than normalizing them.
+        if type(data) is not int:
+            self.fail("invalid")
+        return data
+
+
+class _FrameSerializer(serializers.Serializer):
+    filename = serializers.JSONField(required=False, allow_null=True)
+    function = serializers.JSONField(required=False, allow_null=True)
+    instruction_addr = _StringField(required=False)
+    addr_mode = _StringField(required=False)
+    platform = _StringField(required=False)
+    data = serializers.DictField(required=False)  # type: ignore[assignment]
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if not any(
+            isinstance(attrs.get(field), str) and attrs[field]
             for field in ("filename", "function", "instruction_addr")
         ):
-            return False
-        if "instruction_addr" in frame and not isinstance(frame["instruction_addr"], str):
-            return False
-        if "addr_mode" in frame and not isinstance(frame["addr_mode"], str):
-            return False
-        if "platform" in frame and not isinstance(frame["platform"], str):
-            return False
-        if "data" in frame and not isinstance(frame["data"], dict):
-            return False
-    debug_meta = payload.get("debug_meta", {})
-    if not isinstance(debug_meta, dict):
-        return False
-    images = debug_meta.get("images", [])
-    if not isinstance(images, list) or not all(isinstance(image, dict) for image in images):
-        return False
-    for image in images:
-        if any(
-            image.get(field) is not None and not isinstance(image[field], str)
-            for field in ("debug_id", "id", "uuid")
-        ):
-            return False
-    for node in nodes:
-        if not isinstance(node, dict):
-            return False
-        frame_id = node.get("frame_id")
-        count = node.get("sample_count")
-        if type(frame_id) is not int or not 0 <= frame_id < len(frames):
-            return False
-        if type(count) is not int or not 0 < count <= MAX_SAMPLE_COUNT:
-            return False
-        children = node.get("children", [])
-        if not isinstance(children, list) or any(
-            type(child) is not int or not 0 <= child < len(nodes) for child in children
-        ):
-            return False
-    # Check the indexed table directly, rather than walking potentially cyclic or shared paths.
-    for node in nodes:
-        if (
-            sum(nodes[child]["sample_count"] for child in node.get("children", []))
-            > node["sample_count"]
-        ):
-            return False
-    for tree in trees:
-        if (
-            not isinstance(tree, dict)
-            or not isinstance(tree.get("roots"), list)
-            or not tree["roots"]
-            or any(type(root) is not int or not 0 <= root < len(nodes) for root in tree["roots"])
-        ):
-            return False
-    return True
+            raise serializers.ValidationError("A frame must have a filename, function, or address.")
+        return attrs
+
+
+class _ImageSerializer(serializers.Serializer):
+    debug_id = _StringField(required=False, allow_null=True)
+    id = _StringField(required=False, allow_null=True)
+    uuid = _StringField(required=False, allow_null=True)
+
+
+class _DebugMetaSerializer(serializers.Serializer):
+    images = _ImageSerializer(many=True, required=False)
+
+
+class _NodeSerializer(serializers.Serializer):
+    frame_id = _IntegerField(min_value=0)
+    sample_count = _IntegerField(min_value=1, max_value=MAX_SAMPLE_COUNT)
+    children = serializers.ListField(child=_IntegerField(min_value=0), required=False)
+
+
+class _TreeSerializer(serializers.Serializer):
+    roots = serializers.ListField(child=_IntegerField(min_value=0), allow_empty=False)
+
+
+class _FlamegraphSerializer(serializers.Serializer):
+    version = _StringField()
+    platform = _StringField()
+    frames = _FrameSerializer(many=True, allow_empty=False)
+    debug_meta = _DebugMetaSerializer(required=False)
+    nodes = _NodeSerializer(many=True, allow_empty=False)
+    trees = _TreeSerializer(many=True, allow_empty=False)
+
+    def validate_version(self, value: str) -> str:
+        if value != "1":
+            raise serializers.ValidationError("Unsupported flamegraph version.")
+        return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        frames, nodes = attrs["frames"], attrs["nodes"]
+        # Check the indexed table directly, rather than walking potentially cyclic or shared paths.
+        for node in nodes:
+            if node["frame_id"] >= len(frames):
+                raise serializers.ValidationError("Frame index is out of bounds.")
+            children = node.get("children", [])
+            if any(child >= len(nodes) for child in children):
+                raise serializers.ValidationError("Child index is out of bounds.")
+            if sum(nodes[child]["sample_count"] for child in children) > node["sample_count"]:
+                raise serializers.ValidationError("Child sample counts exceed the parent count.")
+        for tree in attrs["trees"]:
+            if any(root >= len(nodes) for root in tree["roots"]):
+                raise serializers.ValidationError("Root index is out of bounds.")
+        return attrs
+
+
+def _is_valid_flamegraph(payload: Any) -> bool:
+    # Validate without replacing the payload, preserving unknown fields and captured values.
+    return _FlamegraphSerializer(data=payload).is_valid()
 
 
 def expand_inline_frames(
