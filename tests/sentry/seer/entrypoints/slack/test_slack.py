@@ -43,11 +43,7 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorInvestigationCache,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.entrypoints.slack.cache import (
-    SlackSeerAgentMessageCache,
-    SlackSeerAgentReply,
-    SlackSeerAgentReplyCache,
-)
+from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentCachePayload,
@@ -728,6 +724,7 @@ class SlackAgentEntrypointTest(TestCase):
             organization=self.organization,
             external_id="TXXXXXXXXX2",
             provider="slack",
+            metadata={"access_token": "xoxb-test-token"},
         )
 
     def _get_entrypoint(self, thread_ts: str | None = None) -> SlackAgentEntrypoint:
@@ -837,45 +834,6 @@ class SlackAgentEntrypointTest(TestCase):
             "input_id": "approval-1",
         }
 
-    def _block(self, block_id: str, role: str, content: str | None = None) -> MemoryBlock:
-        return MemoryBlock(
-            id=block_id,
-            message=Message(role=role, content=content),
-            timestamp="2024-01-01T00:00:00Z",
-        )
-
-    def _state(
-        self,
-        summary: str | None = "Test summary",
-        *,
-        status: str = "completed",
-        prs: list[RepoPRState] | None = None,
-        pending_user_input: PendingUserInput | None = None,
-    ) -> SeerRunState:
-        blocks = [self._block("b1", "user", "hi")]
-        if summary:
-            blocks.append(self._block("b2", "assistant", summary))
-        return SeerRunState(
-            run_id=12345,
-            blocks=blocks,
-            status=status,
-            updated_at="2024-01-01T00:00:00Z",
-            repo_pr_states={pr.repo_name: pr for pr in prs or []},
-            pending_user_input=pending_user_input,
-        )
-
-    def _posted(self, key: str = "b2") -> None:
-        SlackSeerAgentReplyCache.set(
-            run_id=12345, key=key, reply=SlackSeerAgentReply(message_ts="1.1")
-        )
-
-    def _update(self, state: SeerRunState, cache_payload: SlackAgentCachePayload | None = None):
-        SlackAgentEntrypoint.on_agent_update(
-            cache_payload=cache_payload or self._get_entrypoint().create_agent_cache_payload(),
-            run_id=12345,
-            state=state,
-        )
-
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
@@ -901,8 +859,6 @@ class SlackAgentEntrypointTest(TestCase):
         assert call_data.run_id == run_id
         assert call_data.organization_id == self.organization.id
         assert call_data.summary == "Test summary"
-        assert call_data.missing_scope_settings_url is None
-        assert SlackSeerAgentReplyCache.get(run_id=12345)["b2"]["message_ts"] == "1.1"
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     def test_on_agent_update_with_no_summary(self, mock_send):
@@ -1150,204 +1106,128 @@ class SlackAgentEntrypointTest(TestCase):
             "I sent you a message."
         )
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
-        return_value=False,
-    )
-    def test_pr_status_updates_without_push_logs_or_tool_calls(self, _scope, send, update):
-        creating = RepoPRState(repo_name="acme/web", pr_creation_status="creating")
-        self._update(self._state(prs=[creating]))
-        assert send.call_args.kwargs["data"].repo_pr_states == [creating]
-        done = creating.copy(
-            update={
-                "pr_creation_status": "completed",
-                "pr_number": 7,
-                "pr_url": "https://gh/acme/web/pull/7",
-            }
-        )
-
-        self._update(self._state(status="processing", prs=[done]))
-
-        send.assert_called_once()
-        update.assert_called_once()
-        assert update.call_args.kwargs["message_ts"] == "1.1"
-        blocks = str(update.call_args.kwargs["renderable"]["blocks"])
-        assert "Test summary" in blocks
-        assert "Latest push complete for <https://gh/acme/web/pull/7|acme/web#7>" in blocks
-        assert "/integrations/slack/" in blocks
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    @patch(
-        "sentry.seer.entrypoints.slack.entrypoint.send_thread_update", side_effect=["1.1", "2.2"]
-    )
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
     )
-    def test_pr_status_moves_to_latest_answer(self, _scope, send, update):
-        pr = RepoPRState(
-            repo_name="acme/web",
-            pr_number=7,
-            pr_url="https://gh/acme/web/pull/7",
-            pr_creation_status="completed",
-        )
-        first = self._state(prs=[pr])
-        self._update(first)
-        second = first.copy(deep=True)
-        second.blocks += [
-            self._block("b3", "user", "change it"),
-            self._block("b4", "assistant", "Changed it"),
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
+    def test_messages_and_pr_footers_across_conversation_turns(
+        self, post: Mock, update: Mock, _scope: Mock
+    ) -> None:
+        post.side_effect = [
+            _slack_response({"ok": True, "ts": "1.1"}),
+            _slack_response({"ok": True, "ts": "2.2"}),
+            _slack_response({"ok": True, "ts": "3.3"}),
         ]
-        second.repo_pr_states[pr.repo_name].pr_creation_status = "creating"
+        update.return_value = _slack_response({"ok": True})
+        slack = Mock()
+        slack.attach_mock(post, "post")
+        slack.attach_mock(update, "update")
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I found a missing cache key.")
+        state.blocks[0].message.content = "Investigate the cache error."
 
-        self._update(second)
-
-        assert send.call_count == 2
-        assert send.call_args.kwargs["data"].summary == "Changed it"
-        assert send.call_args.kwargs["data"].repo_pr_states[0].pr_creation_status == "creating"
-        update.assert_called_once()
-        assert update.call_args.kwargs["message_ts"] == "1.1"
-        assert "Test summary" in str(update.call_args.kwargs["renderable"]["blocks"])
-        assert "acme/web" not in str(update.call_args.kwargs["renderable"]["blocks"])
-        update.reset_mock()
-        second.repo_pr_states[pr.repo_name].pr_creation_status = "completed"
-
-        self._update(second)
-
-        update.assert_called_once()
-        assert update.call_args.kwargs["message_ts"] == "2.2"
-        assert "Latest push complete" in str(update.call_args.kwargs["renderable"]["blocks"])
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
-        return_value=True,
-    )
-    def test_later_success_replaces_failed_push_status(self, _scope, send, update):
-        pr = RepoPRState(
-            repo_name="acme/web",
-            pr_number=7,
-            pr_url="https://gh/acme/web/pull/7",
-            pr_creation_status="error",
-            pr_creation_error="push failed",
-        )
-        state = self._state(prs=[pr])
-        self._update(state)
-        state.repo_pr_states[pr.repo_name].pr_creation_status = "creating"
-        self._update(state)
-        assert "Updating" in str(update.call_args.kwargs["renderable"]["blocks"])
-        state.repo_pr_states[pr.repo_name].pr_creation_status = "completed"
-        self._update(state)
-        blocks = str(update.call_args.kwargs["renderable"]["blocks"])
-        assert "Latest push complete" in blocks
-        assert "failed" not in blocks
-        send.assert_called_once()
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
-        return_value=True,
-    )
-    def test_new_commit_updates_completed_pr_status(self, _scope, send, update):
-        state = self._state(
-            prs=[
-                RepoPRState(
-                    repo_name="acme/web",
-                    pr_number=7,
-                    pr_url="https://gh/acme/web/pull/7",
-                    pr_creation_status="completed",
-                    commit_sha="abcdef1234567890",
+        def add_message(role: str, content: str) -> None:
+            state.blocks.append(
+                MemoryBlock(
+                    id=f"b{len(state.blocks) + 1}",
+                    message=Message(role=role, content=content),
+                    timestamp="2024-01-01T00:00:00Z",
                 )
-            ]
-        )
-        self._update(state)
-        state.repo_pr_states["acme/web"].commit_sha = "1234567890abcdef"
+            )
 
-        self._update(state)
+        def refresh() -> None:
+            SlackAgentEntrypoint.on_agent_update(
+                cache_payload=cache_payload, run_id=state.run_id, state=state
+            )
 
-        send.assert_called_once()
-        update.assert_called_once()
-        assert update.call_args.kwargs["message_ts"] == "1.1"
-        blocks = str(update.call_args.kwargs["renderable"]["blocks"])
-        assert (
-            "Latest push complete for <https://gh/acme/web/pull/7|acme/web#7> (`1234567`)" in blocks
-        )
-        assert "abcdef1" not in blocks
+        refresh()
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
-        return_value=True,
-    )
-    def test_unchanged_pr_status_is_not_redrawn(self, _scope, _send, update):
-        state = self._state(prs=[RepoPRState(repo_name="acme/web", pr_creation_status="creating")])
-        self._update(state)
-        state.repo_pr_states["acme/web"].description = "A new description"
-        self._update(state)
-        update.assert_not_called()
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update")
-    def test_does_not_edit_replies_from_before_pr_status(self, send, update):
-        self._posted()
-        self._update(
-            self._state(prs=[RepoPRState(repo_name="acme/web", pr_creation_status="creating")])
-        )
-        send.assert_not_called()
-        update.assert_not_called()
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    @patch(
-        "sentry.seer.entrypoints.slack.entrypoint.send_thread_update", side_effect=["1.1", "2.2"]
-    )
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
-        return_value=True,
-    )
-    def test_retries_removing_previous_footer_without_reposting(self, _scope, send, update):
-        state = self._state(prs=[RepoPRState(repo_name="acme/web", pr_creation_status="creating")])
-        self._update(state)
-        state.blocks += [self._block("b3", "user", "and?"), self._block("b4", "assistant", "More")]
-        update.side_effect = IntegrationError("temporary Slack failure")
-
-        with pytest.raises(IntegrationError):
-            self._update(state)
-
-        assert send.call_count == 2
-        update.side_effect = None
-        self._update(state)
-
-        assert send.call_count == 2
-        assert update.call_count == 2
-        assert update.call_args.kwargs["message_ts"] == "1.1"
-        assert "acme/web" not in str(update.call_args.kwargs["renderable"]["blocks"])
-
-    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
-    @patch(
-        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
-        return_value=True,
-    )
-    def test_first_pr_status_appears_on_existing_answer(self, _scope, send, update):
-        state = self._state()
-        self._update(state)
+        add_message("user", "Open a PR to fix it.")
         state.status = "processing"
-        state.blocks.append(self._block("b3", "user", "Open a PR"))
-        state.repo_pr_states["acme/web"] = RepoPRState(
-            repo_name="acme/web", pr_creation_status="creating"
-        )
+        pr = RepoPRState(repo_name="acme/web", pr_creation_status="creating")
+        state.repo_pr_states[pr.repo_name] = pr
+        refresh()
 
-        self._update(state)
+        add_message("assistant", "I'm opening a PR with the fix.")
+        state.status = "completed"
+        refresh()
 
-        send.assert_called_once()
-        update.assert_called_once()
-        assert update.call_args.kwargs["message_ts"] == "1.1"
-        assert "Creating a PR" in str(update.call_args.kwargs["renderable"]["blocks"])
+        pr.pr_number = 7
+        pr.pr_url = "https://github.com/acme/web/pull/7"
+        pr.pr_creation_status = "completed"
+        pr.commit_sha = "abcdef1234567890"
+        refresh()
+
+        add_message("user", "Also handle empty cache keys.")
+        state.status = "processing"
+        pr.pr_creation_status = "creating"
+        refresh()
+
+        add_message("assistant", "I've added empty-key handling.")
+        state.status = "completed"
+        refresh()
+
+        pr.pr_creation_status = "completed"
+        pr.commit_sha = "1234567890abcdef"
+        refresh()
+        refresh()
+
+        def blocks(summary: str, *footers: str) -> list[dict[str, Any]]:
+            return [{"type": "markdown", "text": summary}] + [
+                {"type": "context", "elements": [{"type": "mrkdwn", "text": footer}]}
+                for footer in footers
+            ]
+
+        pr_link = "<https://github.com/acme/web/pull/7|acme/web#7>"
+        for _, _, kwargs in slack.mock_calls:
+            assert kwargs["channel"] == self.channel_id
+            assert kwargs["text"] == "Seer Agent has finished"
+        assert [
+            (
+                method,
+                kwargs.get("ts", kwargs.get("thread_ts")),
+                [block.to_dict() for block in kwargs["blocks"]],
+            )
+            for method, _, kwargs in slack.mock_calls
+        ] == [
+            ("post", self.thread_ts, blocks("I found a missing cache key.")),
+            (
+                "update",
+                "1.1",
+                blocks("I found a missing cache key.", "Creating a PR in `acme/web`..."),
+            ),
+            (
+                "post",
+                self.thread_ts,
+                blocks("I'm opening a PR with the fix.", "Creating a PR in `acme/web`..."),
+            ),
+            ("update", "1.1", blocks("I found a missing cache key.")),
+            (
+                "update",
+                "2.2",
+                blocks(
+                    "I'm opening a PR with the fix.",
+                    f"Latest push complete for {pr_link} (`abcdef1`)",
+                ),
+            ),
+            ("update", "2.2", blocks("I'm opening a PR with the fix.", f"Updating {pr_link}...")),
+            (
+                "post",
+                self.thread_ts,
+                blocks("I've added empty-key handling.", f"Updating {pr_link}..."),
+            ),
+            ("update", "2.2", blocks("I'm opening a PR with the fix.")),
+            (
+                "update",
+                "3.3",
+                blocks(
+                    "I've added empty-key handling.",
+                    f"Latest push complete for {pr_link} (`1234567`)",
+                ),
+            ),
+        ]
 
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:
