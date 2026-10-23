@@ -3,6 +3,7 @@ import {useCallback, useMemo} from 'react';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
@@ -67,6 +68,10 @@ function useMultiQueryTimeseriesImpl({
   index,
   queryExtras,
 }: UseMultiQueryTimeseriesOptions): UseMultiQueryTimeseriesResults {
+  const organization = useOrganization();
+  const transformationsEnabled = organization.features.includes(
+    'explore-interpolation-and-smoothing'
+  );
   const queries = useReadQueriesFromLocation();
   const [interval] = useChartInterval();
   const queryParts = queries[index]!;
@@ -99,6 +104,9 @@ function useMultiQueryTimeseriesImpl({
     return {
       search,
       yAxis: yAxes,
+      transformations: transformationsEnabled
+        ? yAxes.map(() => queryParts.transformations ?? [])
+        : undefined,
       fields,
       orderby,
       interval,
@@ -106,7 +114,18 @@ function useMultiQueryTimeseriesImpl({
       enabled,
       ...queryExtras,
     };
-  }, [query, yAxes, fields, orderby, interval, mode, enabled, queryExtras]);
+  }, [
+    query,
+    yAxes,
+    queryParts.transformations,
+    transformationsEnabled,
+    fields,
+    orderby,
+    interval,
+    mode,
+    enabled,
+    queryExtras,
+  ]);
 
   const timeseriesResult = useSortedTimeSeries(
     options,

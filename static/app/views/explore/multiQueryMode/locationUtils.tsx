@@ -31,6 +31,7 @@ export type ReadableExploreQueryParts = {
   yAxes: string[];
   caseInsensitive?: '1' | null;
   chartType?: ChartType;
+  transformations?: readonly string[];
 };
 
 const DEFAULT_QUERY: ReadableExploreQueryParts = {
@@ -169,6 +170,11 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
     const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);
 
     const caseInsensitive = parsed.caseInsensitive ?? undefined;
+    const transformations =
+      Array.isArray(parsed.transformations) &&
+      parsed.transformations.every((value: unknown) => typeof value === 'string')
+        ? parsed.transformations
+        : undefined;
 
     const normalized = normalizeCompareQueryParts({
       yAxes,
@@ -195,6 +201,7 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       groupBys,
       fields: normalizedFields,
       caseInsensitive: normalized.caseInsensitive ?? caseInsensitive,
+      transformations,
     };
   } catch (error) {
     return DEFAULT_QUERY;
@@ -226,6 +233,7 @@ type WritableExploreQueryParts = {
   groupBys?: readonly string[];
   query?: string;
   sortBys?: readonly Sort[];
+  transformations?: readonly string[];
   yAxes?: string[];
 };
 
@@ -239,6 +247,7 @@ function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
       query: query.query,
       sortBys: query.sortBys?.map(encodeSort),
       yAxes: query.yAxes,
+      transformations: query.transformations?.length ? query.transformations : undefined,
     })
   );
 }
