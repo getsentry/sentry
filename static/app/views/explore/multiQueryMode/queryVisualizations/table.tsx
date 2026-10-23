@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconStack} from '@sentry/icons/stack';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -32,8 +32,6 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
-const TABLE_HEIGHT = '258px';
-
 interface MultiQueryTableBaseProps {
   index: number;
   mode: Mode;
@@ -49,14 +47,14 @@ export function MultiQueryTable(props: MultiQueryTableProps) {
   const {spansTableResult, aggregatesTableResult, ...rest} = props;
 
   return (
-    <Fragment>
+    <Grid minHeight="0" minWidth="0" contain="size">
       {props.mode === Mode.AGGREGATE && (
         <AggregatesTable aggregatesTableResult={aggregatesTableResult} {...rest} />
       )}
       {props.mode === Mode.SAMPLES && (
         <SpansTable spansTableResult={spansTableResult} {...rest} />
       )}
-    </Fragment>
+    </Grid>
   );
 }
 
@@ -91,7 +89,7 @@ function AggregatesTable({
     <Fragment>
       <SimpleTable
         columns={fields.map(field => ({key: field}))}
-        maxHeight={TABLE_HEIGHT}
+        maxHeight="100%"
         minimumColumnWidth={50}
         prependColumnWidths={['min-content']}
         scrollable
@@ -197,7 +195,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
     <Fragment>
       <SimpleTable
         columns={visibleFields.map(field => ({key: field}))}
-        maxHeight={TABLE_HEIGHT}
+        maxHeight="100%"
         minimumColumnWidth={50}
         scrollable
         header={

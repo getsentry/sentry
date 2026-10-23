@@ -183,10 +183,11 @@ export function MultiQueryModeChart({
   });
 
   return (
-    <Stack minWidth="0">
+    <Stack minWidth="0" border="primary" radius="md" background="primary">
       <Widget
         key={index}
         height={CHART_HEIGHT}
+        borderless
         Title={Title}
         TitleBadges={TitleBadges}
         Actions={[
