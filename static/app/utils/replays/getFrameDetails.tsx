@@ -472,7 +472,8 @@ const defaultMapper = (frame: any): Details => ({
   // The ?? operator only guards null/undefined, so we guard with typeof first.
   // Passing a plain object is fine: BreadcrumbItem routes it to BreadcrumbStructuredData
   // which renders it as an interactive inspector via StructuredEventData.
-  description: (typeof frame.message === 'string' ? frame.message : undefined) ?? frame.data ?? '',
+  description:
+    (typeof frame.message === 'string' ? frame.message : undefined) ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,
   title: toTitleCase(defaultTitle(frame)),
   icon: <IconTerminal size="xs" />,
