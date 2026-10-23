@@ -535,17 +535,6 @@ def get_token_based_billing_project_repos(
     )
 
 
-def get_token_based_billing_repos(organization: Organization) -> QuerySet[Repository]:
-    """Repos Seer can use under token-based billing. Same checks as get_token_based_billing_project_repos."""
-    return Repository.objects.filter(
-        organization_id=organization.id,
-        status=ObjectStatus.ACTIVE,
-        provider__in=get_supported_scm_providers(organization),
-        integration_id__isnull=False,
-        external_id__isnull=False,
-    ).exclude(external_id="")
-
-
 def get_seer_project_repo(project_repo: ProjectRepository) -> SeerProjectRepository | None:
     """Avoid raising RelatedObjectDoesNotExist when ProjectRepository has no SeerProjectRepository."""
     return getattr(project_repo, "seerprojectrepository", None)

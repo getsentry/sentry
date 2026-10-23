@@ -29,7 +29,6 @@ from sentry.seer.autofix.utils import (
     add_seer_project_repos,
     get_seer_project_repo,
     get_token_based_billing_project_repos,
-    get_token_based_billing_repos,
     is_seer_token_based_billing_onboarding_enabled,
     replace_all_seer_project_repos,
     update_seer_project_repo,
@@ -117,15 +116,6 @@ def _get_seat_based_billing_seer_project_repos(project: Project) -> QuerySet[See
     ).select_related("project_repository", "project_repository__repository")
 
 
-def _get_seat_based_billing_repos(organization: Organization) -> QuerySet[Repository]:
-    """Repos Seer can use under seat-based billing."""
-    return Repository.objects.filter(
-        organization_id=organization.id,
-        status=ObjectStatus.ACTIVE,
-        provider__in=get_supported_scm_providers(organization),
-    )
-
-
 def _get_seat_based_billing_project_repos(project: Project) -> QuerySet[ProjectRepository]:
     """ProjectRepository Seer can use under seat-based billing."""
     return (
@@ -140,11 +130,31 @@ def _get_seat_based_billing_project_repos(project: Project) -> QuerySet[ProjectR
     )
 
 
+def _get_seat_based_billing_repos(organization: Organization) -> QuerySet[Repository]:
+    """Repos Seer can use under seat-based billing."""
+    return Repository.objects.filter(
+        organization_id=organization.id,
+        status=ObjectStatus.ACTIVE,
+        provider__in=get_supported_scm_providers(organization),
+    )
+
+
+def _get_token_based_billing_repos(organization: Organization) -> QuerySet[Repository]:
+    """Repos Seer can use under token-based billing. Same checks as get_token_based_billing_project_repos."""
+    return Repository.objects.filter(
+        organization_id=organization.id,
+        status=ObjectStatus.ACTIVE,
+        provider__in=get_supported_scm_providers(organization),
+        integration_id__isnull=False,
+        external_id__isnull=False,
+    ).exclude(external_id="")
+
+
 def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:
     """Raise ValueError if any repo IDs are invalid, inactive, or have providers not supported by Seer."""
     organization = project.organization
     repos = (
-        get_token_based_billing_repos(organization)
+        _get_token_based_billing_repos(organization)
         if is_seer_token_based_billing_onboarding_enabled(organization)
         else _get_seat_based_billing_repos(organization)
     )
