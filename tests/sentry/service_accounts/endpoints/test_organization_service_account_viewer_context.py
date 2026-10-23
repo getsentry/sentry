@@ -1,9 +1,9 @@
 from typing import Any
 
-from django.core.cache import cache
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -27,8 +27,6 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # The endpoint reads accounts through the cell cache, which outlives a test.
-        cache.clear()
         self.service_account = self.create_service_account(
             organization=self.organization,
             name="seer-autofix",
@@ -102,6 +100,8 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.service_account.delete()
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
 
         assert self._post(service_account_id=service_account_id).status_code == 404
 

@@ -8,10 +8,10 @@ account, which it sends on its calls to Sentry in place of its own.
 It runs in the cell, unlike the management endpoints, because Seer only reaches
 its region's Sentry.
 
-It reads the account through the cell's cached RPC, so disabling or deleting an
-account fails the next call once the account's outbox clears the cache. Until
-ViewerContext has a service-account actor, the returned ViewerContext is still
-Seer's org-only one, so swapping it in changes nothing yet.
+It reads the account's cell replica. Disabling an account fails the next call
+once its outbox replicates; deleting one does once the tombstone cascade removes
+the replica. Until ViewerContext has a service-account actor, the returned
+ViewerContext is still Seer's org-only one, so swapping it in changes nothing yet.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ from sentry.service_accounts.endpoints.organization_service_accounts import (
     FEATURE_FLAG,
     SERVICE_ACCOUNT_ID,
 )
-from sentry.service_accounts.services.service_account.service import service_account_service
+from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.viewer_context import (
     Actor,
     ActorType,
@@ -94,13 +94,10 @@ class OrganizationServiceAccountViewerContextEndpoint(OrganizationEndpoint):
         if not features.has(FEATURE_FLAG, organization):
             raise ResourceDoesNotExist
 
-        # The cached lookup is keyed by ID alone, so the org and is_active checks are ours.
-        service_account = service_account_service.get(service_account_id=int(service_account_id))
-        if (
-            service_account is None
-            or service_account.organization_id != organization.id
-            or not service_account.is_active
-        ):
+        service_account = ServiceAccountReplica.objects.filter(
+            service_account_id=service_account_id, organization_id=organization.id, is_active=True
+        ).first()
+        if service_account is None:
             raise ResourceDoesNotExist
 
         ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
