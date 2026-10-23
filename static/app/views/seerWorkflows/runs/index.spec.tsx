@@ -3,7 +3,7 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import SeerWorkflows from 'sentry/views/seerWorkflows';
+import SeerWorkflows from 'sentry/views/seerWorkflows/runs';
 
 describe('SeerWorkflows', () => {
   const organization = OrganizationFixture();
@@ -14,16 +14,6 @@ describe('SeerWorkflows', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-  });
-
-  it('renders the Automations title with an alpha badge', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/runs/`,
-      body: [],
-    });
-    render(<SeerWorkflows />, {organization});
-    expect(await screen.findByRole('heading', {name: 'Automations'})).toBeInTheDocument();
-    expect(screen.getByLabelText('alpha')).toBeInTheDocument();
   });
 
   it('hides the monitor scan trigger when its flag is disabled', async () => {
@@ -65,7 +55,7 @@ describe('SeerWorkflows', () => {
       organization: scanOrganization,
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${scanOrganization.slug}/seer/automations/`,
+          pathname: `/organizations/${scanOrganization.slug}/seer/automations/runs/`,
           query: {status: 'succeeded', strategy: 'agentic_triage', source: 'scheduled'},
         },
       },
@@ -154,7 +144,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/seer/automations/`,
+          pathname: `/organizations/${organization.slug}/seer/automations/runs/`,
           query: {source: 'cron'},
         },
       },
@@ -665,7 +655,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/seer/automations/',
+          pathname: '/organizations/org-slug/seer/automations/runs/',
           query: {status: 'failed'},
         },
       },
@@ -705,7 +695,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/seer/automations/',
+          pathname: '/organizations/org-slug/seer/automations/runs/',
           query: {status: 'failed', strategy: 'agentic_triage', period: '7d'},
         },
       },
@@ -757,7 +747,7 @@ describe('SeerWorkflows', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/seer/automations/',
+          pathname: '/organizations/org-slug/seer/automations/runs/',
           query: {expandLatest: 'agentic_triage', status: 'succeeded'},
         },
       },
