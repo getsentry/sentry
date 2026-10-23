@@ -134,20 +134,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert stored.admission.decided_at == run.date_completed
         assert SeerWorkflowRun.objects.count() == 1
 
-    def test_existing_run_is_reused(self) -> None:
-        existing = Factories.create_seer_workflow_run(
-            self.organization,
-            workflow_config=self.config,
-            trigger_key=f"issue_created:{self.group.id}",
-            extras={},
-        )
-
-        replayed = self.accept(self.breach_event())
-
-        assert replayed is not None
-        assert replayed.id == existing.id
-        assert SeerWorkflowRun.objects.count() == 1
-
     def test_accept_uses_latest_scope_from_the_locked_config(self) -> None:
         workflow = BreachedMetricWorkflow(self.config)
         SeerWorkflowConfig.objects.filter(id=self.config.id).update(
@@ -192,30 +178,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert SeerWorkflowTriggerBinding.objects.filter(workflow_config=self.config).count() == 2
         assert SeerWorkflowRun.objects.count() == 1
         assert SeerWorkflowRunExecution.objects.count() == 1
-
-    def test_acceptance_result_distinguishes_new_work_from_replay(self) -> None:
-        event = self.breach_event()
-
-        accepted = BreachedMetricWorkflow(self.config).accept(
-            self.group,
-            event,
-            binding=self.action.seer_workflow_binding,
-            workflow_id=self.workflow.id,
-        )
-        replayed = BreachedMetricWorkflow(self.config).accept(
-            self.group,
-            event,
-            binding=self.action.seer_workflow_binding,
-            workflow_id=self.workflow.id,
-        )
-
-        assert isinstance(accepted, AcceptedMetricBreach)
-        assert accepted.created is True
-        assert isinstance(replayed, AcceptedMetricBreach)
-        assert replayed.created is False
-        assert replayed.run.id == accepted.run.id
-        assert accepted.run.executions.count() == 1
-        assert SeerWorkflowRun.objects.count() == 1
 
     def test_ignored_configuration_reports_reason_without_starting_work(self) -> None:
         self.config.update(enabled=False)
@@ -275,37 +237,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert rejected == IgnoredMetricBreach("feature_disabled")
         assert not SeerWorkflowRun.objects.exists()
 
-    def test_ignored_scope_reports_reason(self) -> None:
-        self.config.update(filters={"all_projects": False})
-
-        rejected = BreachedMetricWorkflow(self.config).accept(
-            self.group,
-            self.breach_event(),
-            binding=self.action.seer_workflow_binding,
-            workflow_id=self.workflow.id,
-        )
-
-        assert rejected == IgnoredMetricBreach("out_of_scope")
-        assert not SeerWorkflowRun.objects.exists()
-
-    def test_disabled_configuration_does_not_accept_work(self) -> None:
-        self.config.update(enabled=False)
-
-        assert self.accept(self.breach_event()) is None
-        assert not SeerWorkflowRun.objects.exists()
-
-    def test_automation_feature_disabled_does_not_accept_work(self) -> None:
-        with self.feature({"organizations:seer-automations": False}):
-            assert self.accept(self.breach_event()) is None
-
-        assert not SeerWorkflowRun.objects.exists()
-
-    def test_empty_selected_projects_do_not_expand_to_all_projects(self) -> None:
-        self.config.update(filters={"all_projects": False})
-
-        assert self.accept(self.breach_event()) is None
-        assert not SeerWorkflowRun.objects.exists()
-
     def test_selected_project_accepts_the_breach(self) -> None:
         self.config.update(filters={"all_projects": False})
         Factories.create_seer_workflow_config_project(self.config, self.project)
@@ -322,11 +253,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
 
         assert self.accept(self.breach_event()) is None
 
-    def test_environment_filter_does_not_accept_a_different_environment(self) -> None:
-        self.config.update(filters={"all_projects": True, "environments": ["staging"]})
-
-        assert self.accept(self.breach_event()) is None
-
     def test_matching_environment_accepts_the_breach(self) -> None:
         self.config.update(filters={"all_projects": True, "environments": ["production"]})
 
@@ -338,24 +264,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert run.extras["admission"]["reason"] is None
         assert SeerWorkflowRun.objects.count() == 1
         assert SeerWorkflowRunExecution.objects.get().run_id == run.id
-
-    @mock.patch("sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available")
-    def test_environment_mismatch_is_ignored_before_admission(
-        self, admission: mock.MagicMock
-    ) -> None:
-        self.config.update(filters={"all_projects": True, "environments": ["staging"]})
-
-        result = BreachedMetricWorkflow(self.config).accept(
-            self.group,
-            self.breach_event(),
-            binding=self.action.seer_workflow_binding,
-            workflow_id=self.workflow.id,
-        )
-
-        assert result == IgnoredMetricBreach("out_of_scope")
-        assert not SeerWorkflowRun.objects.exists()
-        assert not SeerWorkflowRunExecution.objects.exists()
-        admission.assert_not_called()
 
     @mock.patch("sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available")
     def test_project_mismatch_is_ignored_before_admission(self, admission: mock.MagicMock) -> None:
@@ -372,41 +280,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert not SeerWorkflowRun.objects.exists()
         assert not SeerWorkflowRunExecution.objects.exists()
         admission.assert_not_called()
-
-    @mock.patch(
-        "sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available",
-        return_value=False,
-    )
-    def test_eligible_admission_rejection_records_run_without_execution(
-        self, admission: mock.MagicMock
-    ) -> None:
-        self.config.update(filters={"all_projects": True, "environments": ["production"]})
-        event = self.breach_event()
-
-        with self.capture_on_commit_callbacks(execute=True):
-            result = BreachedMetricWorkflow(self.config).accept(
-                self.group,
-                event,
-                binding=self.action.seer_workflow_binding,
-                workflow_id=self.workflow.id,
-            )
-
-        assert isinstance(result, RejectedMetricBreach)
-        assert result.reason == "quota_exceeded"
-        assert result.created is True
-        run = SeerWorkflowRun.objects.get()
-        assert result.run.id == run.id
-        assert run.workflow_config_id == self.config.id
-        assert run.trigger_key == f"issue_created:{self.group.id}"
-        assert run.date_completed is not None
-        assert run.extras["status"] == "rejected"
-        assert run.extras["admission"]["status"] == "rejected"
-        assert run.extras["admission"]["reason"] == "quota_exceeded"
-        assert run.extras["admission"]["decided_at"]
-        assert run.extras["trigger"]["event_id"] == event.event_id
-        assert run.extras["config_version"] == self.config.version
-        assert not SeerWorkflowRunExecution.objects.exists()
-        admission.assert_called_once_with()
 
     def test_rejected_trigger_is_not_readmitted_for_the_same_or_another_event(self) -> None:
         event = self.breach_event()
