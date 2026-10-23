@@ -310,9 +310,19 @@ class GroupNotesDetailsTest(APITestCase):
         keys = [p["idempotency_key"] for p in payloads[1:]]
         assert len(set(keys)) == 3
         assert [payload["data"] for payload in payloads] == [
-            {"comment_id": comment_id},
-            {"comment_id": comment_id, "comment_id_kind": "comment"},
-            {"comment_id": comment_id, "comment_id_kind": "comment"},
+            {"comment_id": comment_id, "text": None, "mentions": None},
+            {
+                "comment_id": comment_id,
+                "comment_id_kind": "comment",
+                "text": None,
+                "mentions": None,
+            },
+            {
+                "comment_id": comment_id,
+                "comment_id_kind": "comment",
+                "text": None,
+                "mentions": None,
+            },
             {"comment_id": comment_id, "comment_id_kind": "comment"},
         ]
         for payload in reversed(payloads):
@@ -349,7 +359,12 @@ class GroupNotesDetailsTest(APITestCase):
         edit = GroupActionLogEntry.objects.get(
             group_id=self.group.id, type=GroupActionType.COMMENT_EDIT
         )
-        assert edit.data == {"comment_id": int(comment_id), "comment_id_kind": "comment"}
+        assert edit.data == {
+            "comment_id": int(comment_id),
+            "comment_id_kind": "comment",
+            "text": None,
+            "mentions": None,
+        }
         created.refresh_from_db()
         assert created.data == original_payload
 
@@ -396,7 +411,8 @@ class GroupNotesDetailsTest(APITestCase):
             group_id=self.group.id, type=GroupActionType.COMMENT_DELETE
         )
         expected = {"comment_id": note.id, "comment_id_kind": "comment"}
-        assert edit.data == deletion.data == expected
+        assert edit.data == {**expected, "text": None, "mentions": None}
+        assert deletion.data == expected
         created.refresh_from_db()
         assert created.data == {"comment_id": note.id, "text": "historical", "mentions": []}
 
@@ -413,7 +429,12 @@ class GroupNotesDetailsTest(APITestCase):
         edit = GroupActionLogEntry.objects.get(
             group_id=self.group.id, type=GroupActionType.COMMENT_EDIT
         )
-        assert edit.data == {"comment_id": self.activity.id, "comment_id_kind": "comment"}
+        assert edit.data == {
+            "comment_id": self.activity.id,
+            "comment_id_kind": "comment",
+            "text": None,
+            "mentions": None,
+        }
 
         response = self.client.delete(self.url, format="json")
         assert response.status_code == 204

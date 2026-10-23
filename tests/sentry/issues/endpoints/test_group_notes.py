@@ -475,7 +475,7 @@ class GroupNoteCreateTest(APITestCase):
         assert response.data["data"]["text"] == "hello world"
         assert response.data["data"]["comment_id"] == activity.id
 
-        assert entry.data == {"comment_id": activity.id}
+        assert entry.data == {"comment_id": activity.id, "text": None, "mentions": None}
 
     def test_with_mentions(self) -> None:
         user_not_on_team = self.create_user(email="hello@meow.com")

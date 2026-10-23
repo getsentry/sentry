@@ -214,7 +214,6 @@ def activity_to_action(activity: "Activity") -> GroupAction | None:
     """
 
     if activity.type == ActivityType.NOTE.value:
-        # Shared by live writes and backfill. Do not copy mutable comment bodies.
         return CommentAction(comment_id=activity.id)
 
     # Ignore certain Activities that don't make sense to translate to GroupActions.
