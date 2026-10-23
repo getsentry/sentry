@@ -265,6 +265,7 @@ def _run_taskworker_with_autoreload(**options: Any) -> None:
 
     # The worker registers signal handlers, so it must own the main thread of
     # its own process. watchfiles restarts that process with SIGINT on change.
+    # Known gap: a task still running 5s after SIGINT orphans its child and gets redelivered.
     ready = multiprocessing.get_context("spawn").Event()
     try:
         watchfiles.run_process(
