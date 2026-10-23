@@ -23,6 +23,17 @@ function datasetLabel(dataset: DiscoverDatasets): string {
   return DATASET_LABELS[dataset] ?? dataset;
 }
 
+const DROPPED_DATA_LABELS: Partial<Record<DiscoverDatasets, string>> = {
+  errors: t('Dropped Errors'),
+  ourlogs: t('Dropped Logs'),
+  spans: t('Dropped Spans'),
+  tracemetrics: t('Dropped Metrics'),
+};
+
+export function droppedDataLabel(dataset: DiscoverDatasets): string {
+  return DROPPED_DATA_LABELS[dataset] ?? t('Dropped Events');
+}
+
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
   [Outcome.CLIENT_DISCARD]: t('Client Discard'),
   [Outcome.FILTERED]: t('Inbound Filters'),

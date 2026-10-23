@@ -271,6 +271,7 @@ export const ResultsChartContainer = memo(
           droppedDataLayer={
             canShowDroppedData
               ? {
+                  dataset: DiscoverDatasets.ERRORS,
                   showDroppedData: isDroppedDataLayerOn,
                   onChange: setIsDroppedDataLayerOn,
                 }

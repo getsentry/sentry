@@ -267,6 +267,7 @@ function Graph({
     <Fragment>
       {canShowDroppedData ? (
         <DroppedDataLayerControl
+          dataset={DiscoverDatasets.OURLOGS}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />

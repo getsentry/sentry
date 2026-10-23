@@ -4,10 +4,24 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {
   buildAskSeerPrompt,
+  droppedDataLabel,
   getOutcomeColors,
   reasonDocsUrl,
   reasonTitle,
 } from './outcomes';
+
+describe('droppedDataLabel', () => {
+  it('names the telemetry type', () => {
+    expect(droppedDataLabel(DiscoverDatasets.SPANS)).toBe('Dropped Spans');
+    expect(droppedDataLabel(DiscoverDatasets.OURLOGS)).toBe('Dropped Logs');
+    expect(droppedDataLabel(DiscoverDatasets.TRACEMETRICS)).toBe('Dropped Metrics');
+    expect(droppedDataLabel(DiscoverDatasets.ERRORS)).toBe('Dropped Errors');
+  });
+
+  it('falls back to events for other datasets', () => {
+    expect(droppedDataLabel(DiscoverDatasets.TRANSACTIONS)).toBe('Dropped Events');
+  });
+});
 
 describe('buildAskSeerPrompt', () => {
   it('uses customer-facing dataset names, never the internal enum value', () => {
