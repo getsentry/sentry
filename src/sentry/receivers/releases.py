@@ -45,7 +45,12 @@ from sentry.types.activity import ActivityType
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.cache import cache
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -223,10 +228,9 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                         with (
                             viewer_context_scope(
                                 ViewerContext(
+                                    actor=Actor(type=ActorType.USER, actor_id=acting_user.id),
                                     organization_id=group.project.organization_id,
                                     project_id=group.project_id,
-                                    user_id=acting_user.id,
-                                    actor_type=ActorType.USER,
                                 )
                             ),
                             action_context_scope(
@@ -330,10 +334,9 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                     with (
                         viewer_context_scope(
                             ViewerContext(
+                                actor=Actor(type=ActorType.USER, actor_id=acting_user.id),
                                 organization_id=group.project.organization_id,
                                 project_id=group.project_id,
-                                user_id=acting_user.id,
-                                actor_type=ActorType.USER,
                             )
                         ),
                         action_context_scope(
@@ -422,14 +425,6 @@ def _create_pull_request_activities(
         groups = list(
             Group.objects.filter(id__in=group_ids).select_related("project__organization")
         )
-        # PULL_REQUEST_CLOSED predates the pr-lifecycle-activity flag and is always
-        # emitted. The other lifecycle events are gated behind the flag.
-        if activity_type != ActivityType.PULL_REQUEST_CLOSED:
-            groups = [
-                group
-                for group in groups
-                if features.has("organizations:pr-lifecycle-activity", group.project.organization)
-            ]
         if not groups:
             return
 
