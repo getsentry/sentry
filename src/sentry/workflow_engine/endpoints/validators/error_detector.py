@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.grouping.fingerprinting import normalize_config_string
+from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.issues.grouptype import GroupType
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -56,9 +56,11 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
             return value
 
         try:
-            return normalize_config_string(value)
+            FingerprintingConfig.from_config_string(value)
         except InvalidFingerprintingConfig as e:
             raise serializers.ValidationError(str(e))
+
+        return value
 
     def validate_resolve_age(self, value: Any) -> int | None:
         if value is not None and value < 0:

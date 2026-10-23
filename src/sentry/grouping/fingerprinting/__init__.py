@@ -34,51 +34,6 @@ def _blank_quoted_strings(text: str) -> str:
     return QUOTED_STRING_REGEX.sub(lambda m: " " * len(m.group()), text)
 
 
-def _parse_rules(config: str) -> list[FingerprintRule]:
-    try:
-        tree = fingerprinting_grammar.parse(config)
-    except ParseError as e:
-        raise InvalidFingerprintingConfig(_describe_syntax_error(e))
-    return FingerprintingVisitor().visit(tree)
-
-
-def _convert_unicode_arrows(config: str) -> str:
-    """
-    Use `->` in place of a `→` written right after a rule's matchers, in each rule the parser can't
-    read. Rules that already parse are left alone.
-    """
-    rules = fingerprinting_grammar["fingerprinting_rules"]
-    matchers = fingerprinting_grammar["matchers"]
-    spaces = fingerprinting_grammar["_"]
-    pos = 0
-    # Parse until a rule fails, fix its arrow, then carry on from that rule
-    while (pos := rules.match(config, pos).end) < len(config):
-        try:
-            arrow = spaces.match(config, matchers.match(config, pos).end).end
-        except ParseError:
-            break
-        if not config.startswith("→", arrow):
-            break
-        config = config[:arrow] + "->" + config[arrow + 1 :]
-    return config
-
-
-def normalize_config_string(config: str) -> str:
-    """
-    Check that a config parses, returning the string to save. A config that doesn't parse gets
-    `->` in place of `→` and is checked again.
-    """
-    try:
-        _parse_rules(config)
-    except InvalidFingerprintingConfig:
-        converted = _convert_unicode_arrows(config)
-        if converted == config:
-            raise
-        _parse_rules(converted)
-        return converted
-    return config
-
-
 def _describe_syntax_error(e: ParseError) -> str:
     """
     The parser reports a rule it can't read at all, such as one with a bad arrow, at the start of
@@ -185,7 +140,12 @@ class FingerprintingConfig:
     def from_config_string(
         cls, s: Any, bases: Sequence[str] | None = None, mark_as_built_in: bool = False
     ) -> FingerprintingConfig:
-        rules = _parse_rules(s)
+        try:
+            tree = fingerprinting_grammar.parse(s)
+        except ParseError as e:
+            raise InvalidFingerprintingConfig(_describe_syntax_error(e))
+
+        rules = FingerprintingVisitor().visit(tree)
 
         if mark_as_built_in:
             for rule in rules:

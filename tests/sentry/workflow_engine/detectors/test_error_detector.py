@@ -55,15 +55,6 @@ class TestErrorDetectorValidator(TestCase):
             )
         ]
 
-    def test_fingerprinting_rules_unicode_arrow(self) -> None:
-        data = {**self.valid_data, "fingerprinting_rules": "error.type:DatabaseUnavailable → down"}
-        validator = ErrorDetectorValidator(data=data, context=self.context)
-        assert validator.is_valid()
-        assert (
-            validator.validated_data["fingerprinting_rules"]
-            == "error.type:DatabaseUnavailable -> down"
-        )
-
     def test_invalid_resolve_duration(self) -> None:
         data = {**self.valid_data, "resolve_age": "-1"}
         validator = ErrorDetectorValidator(data=data, context=self.context)
