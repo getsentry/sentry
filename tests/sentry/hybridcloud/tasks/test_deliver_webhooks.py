@@ -991,7 +991,7 @@ def assert_drain_skips_failed_message(provider: str) -> None:
     assert remaining.schedule_for > timezone.now()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases=["default", "control"])
 @control_silo_test
 @override_settings(SENTRY_SUBNET_SECRET="subnet-secret")
 @responses.activate
