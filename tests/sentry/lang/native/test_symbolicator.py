@@ -1,4 +1,5 @@
 import copy
+from unittest import mock
 
 import orjson
 import pytest
@@ -7,6 +8,12 @@ from sentry.lang.native.sources import (
     get_sources_for_project,
     redact_internal_sources,
     reverse_aliases_map,
+)
+from sentry.lang.native.symbolicator import (
+    FrameOrder,
+    Symbolicator,
+    SymbolicatorFunction,
+    SymbolicatorTaskKind,
 )
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -29,6 +36,23 @@ CUSTOM_SOURCE_CONFIG = """
     "bundleId": "test"
 }]
 """
+
+
+@django_db_all
+@pytest.mark.parametrize("enabled", [False, True])
+def test_process_payload_apply_source_server_info(default_project, enabled) -> None:
+    default_project.update_option("sentry:enable_native_source_server_mapping", enabled)
+    symbolicator = Symbolicator(
+        task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.native),
+        on_request=lambda: None,
+        project=default_project,
+        event_id="0" * 32,
+    )
+
+    with mock.patch.object(Symbolicator, "_process", return_value={}) as process:
+        symbolicator.process_payload("native", [], [], FrameOrder.caller_first)
+
+    assert process.call_args.kwargs["json"]["options"]["apply_source_server_info"] is enabled
 
 
 @django_db_all

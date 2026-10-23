@@ -65,6 +65,10 @@ register(
     },
 )
 
+# Apply source server (srcsrv) info from native debug files to symbolicated frames.
+# Opt-in because rewriting `abs_path` affects code mappings and source links.
+register(key="sentry:enable_native_source_server_mapping", default=False)
+
 # Default legacy-browsers filter
 register(key="filters:legacy-browsers", epoch_defaults={1: "0"})
 
