@@ -10,6 +10,7 @@ from sentry.seer.oneshot import call_seer_oneshot, run_oneshot
 from sentry.seer.run_questions import QUESTIONS, get_run_questions
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -34,7 +35,7 @@ class CallSeerOneShotTest(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
+            actor=Actor(type=ActorType.UNKNOWN), organization_id=self.organization.id
         )
         mock_metrics_incr.assert_any_call(
             "seer.viewer_context_resolution",
@@ -74,10 +75,9 @@ class CallSeerOneShotTest(TestCase):
 
     def test_preserves_existing_viewer_context(self) -> None:
         existing_context = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
         observed_contexts: list[ViewerContext | None] = []
 

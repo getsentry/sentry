@@ -39,6 +39,7 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializer,
     DetectorSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
@@ -85,6 +86,11 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             detector = (
                 Detector.objects.by_organization(organization.id)
                 .with_type_filters()
+                .exclude(
+                    type__in=get_excluded_detector_types(
+                        request.method, organization, actor=request.user
+                    )
+                )
                 .select_related("project")
                 .get(id=validated_detector_id)
             )

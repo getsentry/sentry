@@ -51,7 +51,7 @@ describe('InvestigationFixtureApi', () => {
         initialRouterConfig: {
           location: {
             pathname:
-              '/organizations/storybook-investigations-list-test/explore/investigations/',
+              '/organizations/storybook-investigations-list-test/seer/investigations/',
           },
         },
       }
@@ -86,7 +86,7 @@ describe('InvestigationFixtureApi', () => {
         organization,
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/storybook-investigation-detail-test/explore/investigations/${investigation.id}/`,
+            pathname: `/organizations/storybook-investigation-detail-test/seer/investigations/${investigation.id}/`,
           },
         },
       }
@@ -418,7 +418,7 @@ describe('InvestigationFixtureApi', () => {
           organization,
           initialRouterConfig: {
             location: {
-              pathname: `/organizations/storybook-comments-drawer-test/explore/investigations/${commentedInvestigation.id}/`,
+              pathname: `/organizations/storybook-comments-drawer-test/seer/investigations/${commentedInvestigation.id}/`,
               query: {comments: 'open', commentsBlock: 'commented-query'},
             },
           },
