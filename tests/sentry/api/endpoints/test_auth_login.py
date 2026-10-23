@@ -60,6 +60,35 @@ class RegistrationValidatorTest(TestCase):
             "timezone": "Europe/Vienna",
         }
 
+    def test_email_folds_only_ascii_case(self) -> None:
+        # U+212A would become ASCII "k" under str.lower()
+        validator = RegistrationValidator(
+            data={
+                "email": "\u212aate@Example.com",
+                "name": "New User",
+                "password": "a-secure-password",
+            }
+        )
+
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["email"] == "\u212aate@example.com"
+
+    def test_email_lookalike_of_existing_account_is_rejected(self) -> None:
+        self.create_user("admin@example.com")
+        # U+0131 dotless i upper-cases to ASCII "I"
+        validator = RegistrationValidator(
+            data={
+                "email": "adm\u0131n@example.com",
+                "name": "New User",
+                "password": "a-secure-password",
+            }
+        )
+
+        assert not validator.is_valid()
+        assert validator.errors["email"] == [
+            "An account is already registered with that email address."
+        ]
+
     def test_required_fields(self) -> None:
         validator = RegistrationValidator(data={})
 
