@@ -234,7 +234,7 @@ function AutomationCard({
  * When an automation with this schedule next runs. "daily" is the only supported
  * schedule for now.
  */
-function getNextUpdate(schedule: string): Date | undefined {
+export function getNextUpdate(schedule: string): Date | undefined {
   if (schedule !== 'daily') {
     return undefined;
   }
