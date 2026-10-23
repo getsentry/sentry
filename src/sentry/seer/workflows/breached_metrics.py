@@ -210,7 +210,6 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 status=(
                     SeerWorkflowRunStatus.REJECTED if reason else SeerWorkflowRunStatus.COMPLETE
                 ),
-                date_started=None if reason else decided_at,
                 date_completed=decided_at,
                 extras=json.loads(extras.json()),
             )

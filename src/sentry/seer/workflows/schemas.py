@@ -46,3 +46,15 @@ class WorkflowRunSnapshot(BaseModel):
 class WorkflowRunError(BaseModel):
     code: str
     message: str
+
+
+class WorkflowLifecycleExtras(BaseModel):
+    error: WorkflowRunError | None = None
+
+    class Config:
+        # Preserve strategy-specific inputs, trigger context, and results.
+        extra = "allow"
+
+
+class ConfiguredWorkflowRunExtras(WorkflowLifecycleExtras):
+    snapshot: WorkflowRunSnapshot | None = None

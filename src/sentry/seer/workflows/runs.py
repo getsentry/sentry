@@ -23,6 +23,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.schemas import (
+    ConfiguredWorkflowRunExtras,
+    WorkflowLifecycleExtras,
     WorkflowResult,
     WorkflowResultError,
     WorkflowRunError,
@@ -78,8 +80,9 @@ def get_or_create_workflow_run(
             workflow_config=config,
             trigger_key=trigger_key,
             status=SeerWorkflowRunStatus.RUNNING,
-            date_started=timezone.now(),
-            snapshot=json.loads(snapshot.json()),
+            extras=json.loads(
+                ConfiguredWorkflowRunExtras(snapshot=snapshot).json(exclude_unset=True)
+            ),
         )
     return run, True
 
@@ -101,9 +104,11 @@ def complete_workflow_run(
         if run.executions.exists():
             raise ValueError("Finish the run's executions with complete_workflow_execution")
         run.status = SeerWorkflowRunStatus.FAILED if error else SeerWorkflowRunStatus.COMPLETE
-        run.error = error.dict() if error else None
+        extras = ConfiguredWorkflowRunExtras.parse_obj(run.extras)
+        extras.error = error
+        run.extras = json.loads(extras.json(exclude_unset=True))
         run.date_completed = timezone.now()
-        run.save(update_fields=["status", "error", "date_completed", "date_updated"])
+        run.save(update_fields=["status", "extras", "date_completed", "date_updated"])
     return run
 
 
@@ -131,9 +136,11 @@ def complete_workflow_execution(
         execution.status = (
             SeerWorkflowExecutionStatus.FAILED if error else SeerWorkflowExecutionStatus.COMPLETE
         )
-        execution.error = error.dict() if error else None
+        execution_extras = WorkflowLifecycleExtras.parse_obj(execution.extras)
+        execution_extras.error = error
+        execution.extras = json.loads(execution_extras.json(exclude_unset=True))
         execution.date_completed = timezone.now()
-        execution.save(update_fields=["status", "error", "date_completed", "date_updated"])
+        execution.save(update_fields=["status", "extras", "date_completed", "date_updated"])
 
         unfinished = run.executions.exclude(
             status__in=[SeerWorkflowExecutionStatus.COMPLETE, SeerWorkflowExecutionStatus.FAILED]
@@ -141,9 +148,13 @@ def complete_workflow_execution(
         if run.date_completed is None and not unfinished:
             failed = run.executions.filter(status=SeerWorkflowExecutionStatus.FAILED).first()
             run.status = SeerWorkflowRunStatus.FAILED if failed else SeerWorkflowRunStatus.COMPLETE
-            run.error = failed.error if failed else None
+            extras = ConfiguredWorkflowRunExtras.parse_obj(run.extras)
+            extras.error = (
+                WorkflowLifecycleExtras.parse_obj(failed.extras).error if failed else None
+            )
+            run.extras = json.loads(extras.json(exclude_unset=True))
             run.date_completed = execution.date_completed
-            run.save(update_fields=["status", "error", "date_completed", "date_updated"])
+            run.save(update_fields=["status", "extras", "date_completed", "date_updated"])
     return execution
 
 

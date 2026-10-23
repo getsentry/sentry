@@ -285,7 +285,6 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
             )
         assert isinstance(first, RejectedMetricBreach)
         assert first.run.status == SeerWorkflowRunStatus.REJECTED
-        assert first.run.date_started is None
         assert first.run.date_completed is not None
         assert "status" not in first.run.extras
         assert isinstance(replayed, RejectedMetricBreach)

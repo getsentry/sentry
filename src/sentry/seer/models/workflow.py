@@ -176,12 +176,8 @@ class SeerWorkflowRun(DefaultFieldsModel):
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     # Null for historical runs that have not adopted the shared lifecycle.
     status = models.CharField(max_length=16, choices=SeerWorkflowRunStatus.choices, null=True)
-    date_started = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(null=True)
-    # Immutable settings and inputs, in the shape of WorkflowRunSnapshot.
-    snapshot = models.JSONField(null=True)
-    # Structured failures, in the shape of WorkflowRunError.
-    error = models.JSONField(null=True)
+    # Invocation snapshots and errors are stored in typed extras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
@@ -221,7 +217,6 @@ class SeerWorkflowRunExecution(DefaultFieldsModel):
     )
     status = models.CharField(max_length=16, choices=SeerWorkflowExecutionStatus.choices, null=True)
     date_completed = models.DateTimeField(null=True)
-    error = models.JSONField(null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

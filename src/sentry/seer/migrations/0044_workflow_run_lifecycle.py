@@ -29,21 +29,6 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddField(
             model_name="seerworkflowrun",
-            name="date_started",
-            field=models.DateTimeField(null=True),
-        ),
-        migrations.AddField(
-            model_name="seerworkflowrun",
-            name="error",
-            field=models.JSONField(null=True),
-        ),
-        migrations.AddField(
-            model_name="seerworkflowrun",
-            name="snapshot",
-            field=models.JSONField(null=True),
-        ),
-        migrations.AddField(
-            model_name="seerworkflowrun",
             name="status",
             field=models.CharField(max_length=16, null=True),
         ),
@@ -51,11 +36,6 @@ class Migration(CheckedMigration):
             model_name="seerworkflowrunexecution",
             name="date_completed",
             field=models.DateTimeField(null=True),
-        ),
-        migrations.AddField(
-            model_name="seerworkflowrunexecution",
-            name="error",
-            field=models.JSONField(null=True),
         ),
         migrations.AddField(
             model_name="seerworkflowrunexecution",

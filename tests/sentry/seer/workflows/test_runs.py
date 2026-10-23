@@ -199,9 +199,8 @@ class ConfiguredWorkflowRunTest(TestCase):
         )
         assert created is True
         assert run.status == SeerWorkflowRunStatus.RUNNING
-        assert run.date_started is not None
         assert not run.executions.exists()
-        snapshot = WorkflowRunSnapshot.parse_obj(run.snapshot)
+        snapshot = WorkflowRunSnapshot.parse_obj(run.extras["snapshot"])
         assert snapshot.config_version == 1
         assert snapshot.project_ids == (first.id,)
         assert snapshot.inputs == {"issue_limit": 10}
@@ -216,7 +215,7 @@ class ConfiguredWorkflowRunTest(TestCase):
         )
         assert created is False
         assert retry.id == run.id
-        assert retry.snapshot == run.snapshot
+        assert retry.extras["snapshot"] == run.extras["snapshot"]
 
         next_run, created = get_or_create_workflow_run(
             organization_id=self.organization.id,
@@ -226,7 +225,7 @@ class ConfiguredWorkflowRunTest(TestCase):
         )
         assert created is True
         assert next_run.id != run.id
-        snapshot = WorkflowRunSnapshot.parse_obj(next_run.snapshot)
+        snapshot = WorkflowRunSnapshot.parse_obj(next_run.extras["snapshot"])
         assert snapshot.config_version == 2
         assert snapshot.project_ids == (later.id,)
         assert snapshot.inputs == {"issue_limit": 20}
@@ -302,10 +301,10 @@ class ConfiguredWorkflowRunTest(TestCase):
             organization_id=self.organization.id, workflow_run_id=run.id
         )
         assert complete.status == SeerWorkflowRunStatus.COMPLETE
-        assert complete.error is None
+        assert complete.extras["error"] is None
         assert complete.date_completed is not None
         assert not complete.executions.exists()
-        assert complete.snapshot == run.snapshot
+        assert complete.extras["snapshot"] == run.extras["snapshot"]
 
         repeated = complete_workflow_run(
             organization_id=self.organization.id,
@@ -313,7 +312,7 @@ class ConfiguredWorkflowRunTest(TestCase):
             error=WorkflowRunError(code="late_error", message="Late failure"),
         )
         assert repeated.status == SeerWorkflowRunStatus.COMPLETE
-        assert repeated.error is None
+        assert repeated.extras["error"] is None
         assert repeated.date_completed == complete.date_completed
 
     def test_failed_work_preserves_snapshot_and_records_error(self) -> None:
@@ -324,9 +323,12 @@ class ConfiguredWorkflowRunTest(TestCase):
             error=WorkflowRunError(code="selection_failed", message="Work selection failed"),
         )
         assert complete.status == SeerWorkflowRunStatus.FAILED
-        assert complete.error == {"code": "selection_failed", "message": "Work selection failed"}
+        assert complete.extras["error"] == {
+            "code": "selection_failed",
+            "message": "Work selection failed",
+        }
         assert complete.date_completed is not None
-        assert complete.snapshot == run.snapshot
+        assert complete.extras["snapshot"] == run.extras["snapshot"]
 
     def test_execution_completion_is_scoped_to_organization(self) -> None:
         run = self.create_run()
@@ -415,7 +417,7 @@ def test_run_finishes_after_all_executions(failed_execution: int | None) -> None
         if failed_execution is not None
         else SeerWorkflowRunStatus.COMPLETE
     )
-    assert run.error == (failure.dict() if failed_execution is not None else None)
+    assert run.extras["error"] == (failure.dict() if failed_execution is not None else None)
     assert run.date_completed is not None
     completed_at = run.date_completed
 
