@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {focusManager} from '@tanstack/react-query';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -26,6 +27,10 @@ describe('AuthLogin', () => {
   beforeEach(() => {
     jest.mocked(trackAnalytics).mockClear();
     ConfigStore.set('singleOrganization', false);
+  });
+
+  afterEach(() => {
+    focusManager.setFocused(undefined);
   });
 
   afterAll(() => {
@@ -445,6 +450,52 @@ describe('AuthLogin', () => {
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+  });
+
+  it('resumes on focus after SSO completes in another tab', async () => {
+    mockAuthConfig();
+    const organizationAuth = {
+      authenticated: false,
+      memberAuthenticated: false,
+      canRegister: false,
+      joinRequestUrl: null,
+      loginMethod: 'sso',
+      ssoRequired: true,
+      organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+      provider: {key: 'saml2', name: 'SAML'},
+      warnings: [],
+    };
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: organizationAuth,
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'SSO'})).toBeVisible();
+    act(() => focusManager.setFocused(false));
+
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {nextUri: '/organizations/acme/issues/'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {...organizationAuth, authenticated: true, memberAuthenticated: true},
+    });
+
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        '/organizations/acme/issues/'
+      )
+    );
   });
 
   it('redirects when the authenticated user can access the organization', async () => {
