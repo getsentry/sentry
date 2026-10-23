@@ -27,8 +27,8 @@ class DebugFeedbackIssueEmailView(View):
         origin = NotificationOrigin(
             label="An example rule",
             environment_id=None,
-            workflow_id=None,
-            legacy_rule_id=1,
+            workflow_id=1,
+            legacy_rule_id=None,
         )
         rules = get_rules([origin], org, project, group.type)
 
