@@ -31,7 +31,9 @@ def _comment_transaction(group: Group) -> Generator[Group]:
     # Serialize creation/deduplication and last-comment subscription removal too.
     # Always lock Group before Activity; Activity's counter hooks update Group.
     with transaction.atomic(using=router.db_for_write(Activity)):
-        yield Group.objects.select_for_update().get(id=group.id, project_id=group.project_id)
+        yield Group.objects.select_for_update(no_key=True).get(
+            id=group.id, project_id=group.project_id
+        )
 
 
 def _after_commit(callback: Callable[[], Any]) -> None:
