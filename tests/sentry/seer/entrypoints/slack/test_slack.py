@@ -51,8 +51,10 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackAutofixEntrypoint,
     SlackInvestigationCachePayload,
     SlackInvestigationEntrypoint,
+    SlackInvestigationThreadsCachePayload,
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
+    record_slack_thread_for_metric_open_period,
 )
 from sentry.seer.entrypoints.slack.messaging import (
     process_thread_update,
@@ -1599,3 +1601,59 @@ class SlackInvestigationEntrypointTest(TestCase):
             "b" * 4000,
             "_The rest of the report is in the full investigation._",
         ]
+
+    def _record_thread(self, **overrides: Any) -> None:
+        kwargs: dict[str, Any] = {
+            "organization_id": self.organization.id,
+            "integration_id": self.integration.id,
+            "channel_id": self.channel_id,
+            "thread_ts": self.message_ts,
+            "group_id": 1,
+            "open_period_id": 2,
+        }
+        kwargs.update(overrides)
+        record_slack_thread_for_metric_open_period(**kwargs)
+
+    def _get_open_period_cache(self) -> SlackInvestigationThreadsCachePayload | None:
+        return SeerOperatorInvestigationCache[SlackInvestigationThreadsCachePayload].get_for_source(
+            entrypoint_key="slack", source_type="metric_open_period", source_ids=[1, 2]
+        )
+
+    def test_record_thread_adds_each_thread_once(self) -> None:
+        self._record_thread()
+        self._record_thread()
+        self._record_thread(integration_id=self.integration.id + 1, channel_id="COTHER0000")
+
+        new_thread = {
+            "show_status": False,
+            "status_message_ts": None,
+            "last_sent_state": None,
+            "final_sent": False,
+        }
+        assert self._get_open_period_cache() == {
+            "organization_id": self.organization.id,
+            "investigation_id": None,
+            "threads": [
+                {
+                    "integration_id": self.integration.id,
+                    "channel_id": self.channel_id,
+                    "thread_ts": self.message_ts,
+                    **new_thread,
+                },
+                {
+                    "integration_id": self.integration.id + 1,
+                    "channel_id": "COTHER0000",
+                    "thread_ts": self.message_ts,
+                    **new_thread,
+                },
+            ],
+        }
+
+    def test_record_thread_skips_when_locked(self) -> None:
+        lock = Mock()
+        lock.blocking_acquire.side_effect = UnableToAcquireLock("locked")
+
+        with patch("sentry.seer.entrypoints.slack.entrypoint.locks.get", return_value=lock):
+            self._record_thread()
+
+        assert self._get_open_period_cache() is None

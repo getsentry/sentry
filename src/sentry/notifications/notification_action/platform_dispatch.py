@@ -12,10 +12,16 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
     get_detector_serializer,
 )
 from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
+from sentry.notifications.platform.provider import SendFailure
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
-from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
+from sentry.notifications.platform.threading import (
+    ThreadingLookup,
+    ThreadingOptions,
+    ThreadingService,
+    ThreadKey,
+)
 from sentry.notifications.platform.types import (
     SHADOW_PROVIDERS,
     NotificationProviderKey,
@@ -24,11 +30,14 @@ from sentry.notifications.platform.types import (
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
+from sentry.seer.entrypoints.slack.entrypoint import record_slack_thread_for_metric_open_period
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
 
 ALERT_PROVIDERS_OPTION = "notifications.platform.alert-providers"
+
+SLACK_PROVIDERS = frozenset({NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING})
 
 CHART_PROVIDERS = frozenset(
     {
@@ -143,10 +152,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
 
     # for notifications that have threads (just slack)
     threading_options = None
-    if provider in (
-        NotificationProviderKey.SLACK,
-        NotificationProviderKey.SLACK_STAGING,
-    ) and OrganizationOption.objects.get_value(
+    if provider in SLACK_PROVIDERS and OrganizationOption.objects.get_value(
         organization=organization,
         key="sentry:metric_alerts_thread_flag",
         default=METRIC_ALERTS_THREAD_DEFAULT,
@@ -163,16 +169,46 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
             reply_broadcast=(metric_issue_context.new_status == IncidentStatus.CRITICAL),
         )
 
-    errors = NotificationService[MetricAlertNotificationData](data=data).notify_sync(
-        targets=[target], threading_options=threading_options
+    result = NotificationService[MetricAlertNotificationData](data=data).notify_target(
+        target=target, threading_options=threading_options
     )
-    for failure in errors.get(provider, []):
+    if isinstance(result, SendFailure):
         logger.warning(
             "notification_action.platform_dispatch.send_failed",
             extra={
                 "action_id": notification_context.id,
                 "group_id": metric_issue_context.id,
                 "provider": provider,
-                "status": failure.status.value,
+                "status": result.status.value,
             },
         )
+        return
+
+    if (
+        data.show_investigation_button
+        and provider in SLACK_PROVIDERS
+        and result.provider_message_id is not None
+    ):
+        try:
+            thread = None
+            if threading_options is not None:
+                thread = ThreadingService.resolve(
+                    threading_lookup=ThreadingLookup(
+                        key_type=threading_options.thread_key.key_type,
+                        key_data=threading_options.thread_key.key_data,
+                        provider_key=target.provider_key,
+                        target_id=target.resource_id,
+                    )
+                )
+            # Without a stored thread, the alert is a top-level message and starts its own thread.
+            thread_ts = thread.thread_identifier if thread else result.provider_message_id
+            record_slack_thread_for_metric_open_period(
+                organization_id=organization.id,
+                integration_id=target.integration_id,
+                channel_id=target.resource_id,
+                thread_ts=thread_ts,
+                group_id=data.group_id,
+                open_period_id=data.open_period_context.id,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
