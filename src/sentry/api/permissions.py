@@ -18,6 +18,12 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
+from sentry.auth.legacy_scopes import (
+    credential_allows_legacy_read_writes,
+    held_legacy_read_write_scopes,
+    record_legacy_read_write,
+    without_legacy_read_write_scopes,
+)
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -44,7 +50,11 @@ if TYPE_CHECKING:
 
 def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
     """Choose the weakest user-grantable scope; break unrelated ties deterministically."""
-    grantable_scopes = allowed_scopes - settings.SENTRY_TOKEN_ONLY_SCOPES - settings.GRANULAR_SCOPES
+    grantable_scopes = (
+        without_legacy_read_write_scopes(allowed_scopes)
+        - settings.SENTRY_TOKEN_ONLY_SCOPES
+        - settings.GRANULAR_SCOPES
+    )
     for scope in sorted(grantable_scopes):
         implied = set(settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(scope, ()))
         if not implied.intersection(grantable_scopes - {scope}):
@@ -171,6 +181,14 @@ class ScopedPermission(BasePermission):
         current_scopes = request.auth.get_scopes()
         if any(s in allowed_scopes for s in current_scopes):
             return True
+        legacy_scopes = held_legacy_read_write_scopes(allowed_scopes, current_scopes)
+        if legacy_scopes:
+            allowed = credential_allows_legacy_read_writes(request.auth)
+            record_legacy_read_write(request, view, legacy_scopes, allowed)
+            if allowed:
+                return True
+        # Compatibility scopes can't be granted to a credential, so never advertise them.
+        allowed_scopes = without_legacy_read_write_scopes(allowed_scopes)
         if allowed_scopes:
             # Token-authorized (request.auth is set) but under-scoped. Record the required
             # scopes so permission_denied can advertise them via RFC 6750 insufficient_scope;
