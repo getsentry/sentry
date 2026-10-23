@@ -102,6 +102,7 @@ export function useDroppedDataDrawer(
       ),
       {
         ariaLabel: t('Dropped and Filtered Events'),
+        drawerKey: 'dropped-data-drawer',
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
           decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== 'true',
