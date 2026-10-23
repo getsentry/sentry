@@ -284,11 +284,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
-    "auth.oauth-react-enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
