@@ -118,8 +118,12 @@ class GroupNotesDetailsTest(APITestCase):
 
         assert Group.objects.get(id=self.group.id).num_comments == 1
 
-        response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        with patch(
+            "sentry.issues.endpoints.group_notes_details.record_activity_read"
+        ) as record_read:
+            response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 204, response.status_code
+        record_read.assert_not_called()
         assert not Activity.objects.filter(id=self.activity.id).exists()
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
