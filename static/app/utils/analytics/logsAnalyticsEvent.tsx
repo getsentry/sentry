@@ -84,6 +84,10 @@ export type LogsAnalyticsEventParameters = {
     save_type: 'star_query' | 'unstar_query';
     ui_source: 'table' | 'explorer';
   };
+  'logs.table.pinned_row_viewed_in_table': {
+    log_id: string;
+    organization: Organization;
+  };
   'logs.table.row_copied_as_json': {
     log_id: string;
     organization: Organization;
@@ -140,6 +144,7 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.delete_query': 'Logs Delete Query',
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
+  'logs.table.pinned_row_viewed_in_table': 'Logs Pinned Row Viewed in Table',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
   'logs.table.row_link_copied': 'Logs Row Link Copied',
 };
