@@ -78,7 +78,7 @@ class LLMIssueDetectionTest(TestCase):
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
             assert viewer_context.user_id is None
-            assert viewer_context.actor_type == ActorType.SYSTEM
+            assert viewer_context.actor.type == ActorType.SYSTEM
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")

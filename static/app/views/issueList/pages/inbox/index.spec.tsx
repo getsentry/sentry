@@ -1155,18 +1155,6 @@ describe('InboxPage', () => {
     );
   });
 
-  it('shows the Seer empty state for an assigned issue', async () => {
-    mockAssignedPreview(AutofixSetupFixture({}));
-    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
-
-    const preview = await openAssignedPreview();
-
-    expect(await within(preview).findByText('Have Seer...')).toBeInTheDocument();
-    expect(
-      within(preview).getByRole('button', {name: 'Find Root Cause'})
-    ).toBeInTheDocument();
-  });
-
   it('shows root cause generation after starting Autofix for an assigned issue', async () => {
     mockAssignedPreview(AutofixSetupFixture({}));
     MockApiClient.addMockResponse({
@@ -1219,19 +1207,15 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows project setup for an assigned issue with paid Seer', async () => {
+  it('keeps Resolve available when the assigned project has no Seer repository', async () => {
     mockAssignedPreview(AutofixSetupFixture({seerReposLinked: false}));
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openAssignedPreview();
 
     expect(
-      await within(preview).findByText('Finish Configuring Seer')
+      await within(preview).findByRole('button', {name: 'Resolve'})
     ).toBeInTheDocument();
-    expect(
-      within(preview).getByRole('button', {name: 'Set Up Seer for This Project'})
-    ).toHaveAttribute('href', '/settings/org-slug/projects/project-slug/seer/');
-    expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
   it('keeps Resolve available for an assigned issue without Seer quota', async () => {

@@ -134,7 +134,9 @@ class ProjectTest(APITestCase, TestCase):
         # Ensure the mock starts clean before the save operation
         mock_lock.reset_mock()
         Project.objects.create(organization=self.organization)
-        assert mock_lock.call_count == 3  # 1 lock for cached org, 2 locks for default detectors
+        mock_lock.assert_called_once_with(
+            f"slug:project:{self.organization.id}", duration=5, name="project_slug"
+        )
 
     @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:

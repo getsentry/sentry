@@ -489,6 +489,10 @@ class RPCBase:
             )
 
         if query.sampling_mode == SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+            # Flextime walks rows backward by timestamp. An aggregate has no row to
+            # walk, so the routing cannot paginate it.
+            if has_aggregations or having is not None:
+                raise InvalidSearchQuery("aggregates are not supported with flextime sampling")
             if len(resolved_orderby) == 0:
                 raise InvalidSearchQuery(
                     "You must orderby -timestamp and -id to use HIGHEST_ACCURACY_FLEX_TIME"
