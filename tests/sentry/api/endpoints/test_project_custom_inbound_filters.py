@@ -8,12 +8,11 @@ from sentry.api.endpoints.project_custom_inbound_filters import (
     MAX_CONDITION_VALUE_CHARS_PER_FILTER,
     MAX_CONDITIONS_PER_FILTER,
 )
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION, served_legacy_filters
+from sentry.ingest.legacy_filter_lists import served_legacy_filters
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -30,8 +29,8 @@ class CustomInboundFiltersTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_get_lists_the_row_of_a_legacy_list_with_its_id(self) -> None:
-        # The inbound-filters-v2 feature puts every legacy list at its v2 stage, so the
-        # API serves its row and marks it.
+        # With the inbound-filters-v2 feature the API serves the row of every legacy
+        # list and marks it.
         legacy_row = self.create_project_custom_inbound_filter(
             project=self.project,
             data_type="all",
@@ -48,24 +47,10 @@ class CustomInboundFiltersTest(APITestCase):
             (str(mine.id), None),
         ]
 
-    @override_options({STAGE_OPTION: {"releases": "v2"}})
-    def test_get_hides_the_row_of_a_list_before_its_v2_stage(self) -> None:
-        # Without the inbound-filters-v2 feature there is no v2 API, so the stage option
-        # decides per list once that feature no longer implies v2 for every list.
-        self.create_project_custom_inbound_filter(
-            project=self.project,
-            data_type="all",
-            conditions=[{"type": "release", "value": ["1.*"]}],
-            legacy_filter=LegacyFilter.RELEASE_VERSION,
-        )
-        self.create_project_custom_inbound_filter(
-            project=self.project,
-            data_type="error",
-            conditions=[{"type": "error_message", "value": ["TypeError*"]}],
-            legacy_filter=LegacyFilter.ERROR_MESSAGE,
-        )
-
-        assert served_legacy_filters(self.organization) == ["release-version"]
+    def test_legacy_rows_stay_hidden_without_the_feature(self) -> None:
+        # Without the inbound-filters-v2 feature there is no v2 API, and the rows stay
+        # hidden from every reader of the table.
+        assert served_legacy_filters(self.organization) == []
 
     @patch("sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT", 1)
     def test_post_does_not_count_a_hidden_row_against_the_cap(self) -> None:

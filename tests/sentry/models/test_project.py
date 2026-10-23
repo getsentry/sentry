@@ -12,7 +12,6 @@ from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_ke
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
@@ -41,7 +40,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
@@ -1081,8 +1079,7 @@ class CopyProjectSettingsTest(TestCase):
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    @override_options({STAGE_OPTION: {"releases": "double_write"}})
-    def test_copy_writes_the_row_of_a_double_written_list(self) -> None:
+    def test_copy_writes_the_row_of_a_list(self) -> None:
         self.other_project.update_option("sentry:releases", ["1.*"])
         project = self.create_project(fire_project_created=True)
 
