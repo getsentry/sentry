@@ -1,72 +1,119 @@
+import {Fragment} from 'react';
+import {IconAllProjects} from '@sentry/icons/allProjects';
+import {IconClock} from '@sentry/icons/clock';
+import {IconFire} from '@sentry/icons/fire';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {ProjectList} from 'sentry/components/projectList';
+import {TimeSince} from 'sentry/components/timeSince';
+import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {SeerWorkflowConfigsResponse} from 'sentry/views/seerWorkflows/types';
+import {useProjects} from 'sentry/utils/useProjects';
+import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
+import type {
+  SeerWorkflowConfigsResponse,
+  WorkflowStrategy,
+} from 'sentry/views/seerWorkflows/types';
 import {
-  getAutomationRunsPath,
+  getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 
 /**
  * The narrowest a card may get before the grid drops to fewer columns per row.
- * `auto-fill` keeps empty tracks, so an org with only one or two automations
- * gets cards at the usual width instead of cards stretched across the row.
  */
 const MIN_CARD_WIDTH = '280px';
 
-// Placeholder cards until the configs response is wired up
-const PLACEHOLDER_CARDS = [
-  {
-    title: 'Agentic Triage',
-    description: 'Automatically triages and fixes the most fixable issues.',
-  },
-  {
-    title: 'Error Count Spike',
-    description:
-      'Enabled by default for every organization. Detects spikes in total error count and immediately starts an investigation.',
-  },
-  {
-    title: 'Breached Metrics',
-    description:
-      'Monitors backend metrics and investigates why certain key metrics were breached.',
-  },
-  {
-    title: 'Release Health',
-    description:
-      'Monitors new commits, catches bad releases, and triages the resulting issues.',
-  },
-  {
-    title: 'Telemetry Audit',
-    description:
-      'Finds the telemetry behind issues Agentic Triage skipped for insufficient info, and plans the change that lets Seer triage them.',
-  },
-  {
-    title: 'Noisy Issues',
-    description:
-      'Periodically archives new noisy issues caused by browser extensions or ephemeral issues due to third-party APIs.',
-  },
-];
+/**
+ * "daily" configs are picked up by the seer-night-shift cron, which fires at 10:00
+ * and 22:00 UTC (see TASKWORKER_SCHEDULES in src/sentry/conf/server.py).
+ */
+const DAILY_SCHEDULE_HOURS = [10, 22];
 
-function workflowConfigsQueryOptions(organizationSlug: string | null) {
-  return apiOptions.as<SeerWorkflowConfigsResponse>()(
-    '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-    {
-      path: organizationSlug ? {organizationIdOrSlug: organizationSlug} : skipToken,
-      staleTime: 30_000,
-    }
-  );
-}
+type SeerAutomationCardProps = {
+  id: string;
+  /**
+   * ['all'] when the automation covers all projects, [] when it covers none
+   */
+  projectSlugs: string[];
+  title: string;
+  /**
+   * Estimated cost of a single run, in US dollars
+   */
+  costPerRun?: number;
+  description?: string;
+  nextUpdate?: Date;
+  /**
+   * Shown in place of the "Next run" tag, e.g. for automations triggered by events
+   */
+  subtitleOverride?: {icon: React.ReactNode; text: string};
+  /**
+   * Estimated tokens used per month
+   */
+  tokensPerMonth?: number;
+};
 
 export default function Automations() {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
+  const {projects} = useProjects();
 
-  useQuery(workflowConfigsQueryOptions(automationsEnabled ? organization.slug : null));
+  const {data} = useQuery(
+    apiOptions.as<SeerWorkflowConfigsResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
+      {
+        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        staleTime: 0,
+      }
+    )
+  );
+
+  const cards: SeerAutomationCardProps[] = [
+    // Placeholders for automations the configs endpoint doesn't return yet
+    {
+      id: 'placeholder-agentic-triage',
+      title: 'Agentic Triage',
+      description: 'Automatically triages and fixes the most fixable issues.',
+      projectSlugs: ['all'],
+      nextUpdate: getNextUpdate('daily'),
+      tokensPerMonth: 85_400_000,
+      costPerRun: 2.5,
+    },
+    {
+      id: 'placeholder-breached-metrics',
+      title: 'Breached Metrics',
+      description:
+        'Monitors backend metrics and investigates why certain key metrics were breached.',
+      projectSlugs: ['all'],
+      subtitleOverride: {icon: <IconFire />, text: 'Triggered by metric exceptions'},
+      tokensPerMonth: 341_000,
+      costPerRun: 0.052,
+    },
+    ...(data?.configs ?? []).map(config => {
+      const meta = Object.hasOwn(STRATEGY_META, config.strategy)
+        ? STRATEGY_META[config.strategy as WorkflowStrategy]
+        : undefined;
+      return {
+        id: config.id,
+        title: meta?.label ?? config.strategy,
+        description: meta?.description ?? t('No description'),
+        projectSlugs: config.projects.includes(ALL_ACCESS_PROJECTS)
+          ? ['all']
+          : config.projects
+              .map(id => projects.find(p => p.id === String(id))?.slug)
+              .filter((slug): slug is string => slug !== undefined),
+        nextUpdate: getNextUpdate(config.schedule),
+      };
+    }),
+  ];
 
   return (
     <Grid
@@ -76,25 +123,124 @@ export default function Automations() {
       margin="0"
       padding="0"
     >
-      {PLACEHOLDER_CARDS.map(card => (
-        <Container as="li" key={card.title} display="grid">
-          <Link to={getAutomationRunsPath(organization.slug)}>
-            <Stack
-              gap="sm"
-              height="100%"
-              padding="lg"
-              border="primary"
-              radius="md"
-              background="primary"
-            >
-              <Heading as="h3" size="md">
-                {card.title}
-              </Heading>
-              <Text as="p">{card.description}</Text>
-            </Stack>
-          </Link>
-        </Container>
+      {cards.map(card => (
+        <SeerAutomationCard key={card.id} {...card} />
       ))}
     </Grid>
   );
+}
+
+function SeerAutomationCard({
+  title,
+  description,
+  projectSlugs,
+  nextUpdate,
+  subtitleOverride,
+  tokensPerMonth,
+  costPerRun,
+}: SeerAutomationCardProps) {
+  const organization = useOrganization();
+  const usage = [
+    tokensPerMonth === undefined
+      ? null
+      : tct('[tokens] tokens/month', {
+          tokens: formatAbbreviatedNumber(tokensPerMonth, undefined, true),
+        }),
+    costPerRun === undefined
+      ? null
+      : tct('[cost]/run', {
+          cost: costPerRun.toLocaleString(undefined, {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 3,
+          }),
+        }),
+  ].filter(part => part !== null);
+
+  return (
+    <Container as="li" display="grid">
+      {/* TODO(aliu): Disabled until each automation has its own page */}
+      <Link to={getAutomationsPath(organization.slug)} disabled>
+        <Stack
+          gap="lg"
+          height="100%"
+          padding="lg"
+          border="primary"
+          radius="md"
+          background="primary"
+        >
+          <Stack gap="lg" flex="1">
+            <Heading as="h3" size="md">
+              {title}
+            </Heading>
+            {subtitleOverride ? (
+              <Flex>
+                <Tag variant="muted" icon={subtitleOverride.icon}>
+                  {subtitleOverride.text}
+                </Tag>
+              </Flex>
+            ) : (
+              nextUpdate && (
+                <Flex>
+                  <Tag variant="muted" icon={<IconClock />}>
+                    {tct('Next run [time]', {time: <TimeSince date={nextUpdate} />})}
+                  </Tag>
+                </Flex>
+              )
+            )}
+            {description && <Text as="p">{description}</Text>}
+          </Stack>
+          <Stack gap="xs">
+            {usage.length > 0 && (
+              <Text size="sm" variant="muted">
+                {usage.map((part, index) => (
+                  <Fragment key={index}>
+                    {index > 0 && ' | '}
+                    {part}
+                  </Fragment>
+                ))}
+              </Text>
+            )}
+            {projectSlugs[0] === 'all' ? (
+              <Flex align="center" gap="xs">
+                <IconAllProjects size="sm" variant="muted" />
+                <Text size="sm" variant="muted">
+                  {t('All projects')}
+                </Text>
+              </Flex>
+            ) : projectSlugs.length === 0 ? (
+              <Text size="sm" variant="muted">
+                {t('No projects')}
+              </Text>
+            ) : (
+              <ProjectList projectSlugs={projectSlugs} />
+            )}
+          </Stack>
+        </Stack>
+      </Link>
+    </Container>
+  );
+}
+
+/**
+ * When an automation with this schedule next runs. "daily" is the only supported
+ * schedule for now.
+ */
+function getNextUpdate(schedule: string): Date | undefined {
+  if (schedule !== 'daily') {
+    return undefined;
+  }
+  const now = new Date();
+  for (const hour of DAILY_SCHEDULE_HOURS) {
+    const next = new Date(now);
+    next.setUTCHours(hour, 0, 0, 0);
+    if (next > now) {
+      return next;
+    }
+  }
+  const tomorrow = new Date(now);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  tomorrow.setUTCHours(10, 0, 0, 0);
+  return tomorrow;
 }
