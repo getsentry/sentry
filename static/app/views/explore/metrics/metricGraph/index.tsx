@@ -14,6 +14,7 @@ import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -47,7 +48,10 @@ import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
-import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
@@ -187,8 +191,17 @@ function Graph({
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
-    const yAxes = visualizes.map(v => v.yAxis);
-    const rawSeries = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis] ?? []);
+    const rawSeries = [
+      ...new Set(
+        visualizes.flatMap(v =>
+          getTimeSeriesForQuery(
+            timeseriesResult.data,
+            v.yAxis,
+            isVisualizeFunction(v) ? v.transformations : []
+          )
+        )
+      ),
+    ];
 
     // When displaying multiple aggregates, simplify the legend labels
     // to just show the function name (e.g., "p50" instead of "p50(metric.name)")
@@ -218,6 +231,19 @@ function Graph({
     }
 
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
+    const groups = Object.values(
+      Object.groupBy(
+        rawSeries.filter(s => !s.meta.isOther),
+        s => JSON.stringify(s.groupBy ?? [])
+      )
+    );
+    if (isTopEvents) {
+      samplingMeta.sampleCount = groups.reduce(
+        (total, group) =>
+          total + determineSeriesSampleCountAndIsSampled(group ?? [], false).sampleCount,
+        0
+      );
+    }
 
     return {
       chartType: visualize.chartType,
@@ -229,7 +255,7 @@ function Graph({
       isSampled: samplingMeta.isSampled,
       sampleCount: samplingMeta.sampleCount,
       samplingMode: undefined,
-      topEvents: isTopEvents ? series.filter(s => !s.meta.isOther).length : undefined,
+      topEvents: isTopEvents ? groups.length : undefined,
     };
   }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit, visualizes]);
 

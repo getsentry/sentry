@@ -132,9 +132,7 @@ export function useTraceMetricsSeriesQuery(
         requestIndex
       );
 
-      transformedResult.forEach((result, resultIndex) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
 
       const resultTypes = traceMetricsResponseTransforms.getSeriesResultType?.(
         responseData,

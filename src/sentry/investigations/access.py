@@ -8,6 +8,8 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 INVESTIGATIONS_FEATURE = "organizations:investigations"
+# Any one of these lets a member read and manage investigations.
+INVESTIGATION_SCOPES = frozenset({"org:read", "org:write", "org:admin"})
 
 
 def has_investigations_access(

@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0040_add_seerprojectrepository_enabled"),
+        ("seer", "0041_remove_seerprojectrepository_enabled"),
         ("sentry", "1230_add_commit_new_repository_id_no_check"),
         ("workflow_engine", "0122_sync_cron_detector_enabled"),
     ]

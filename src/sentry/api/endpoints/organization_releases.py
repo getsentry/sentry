@@ -192,9 +192,12 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
             (operator, negated) = handle_operator_negation(search_filter.operator)
+            django_op = OPERATOR_TO_DJANGO.get(operator)
+            if django_op is None:
+                raise InvalidSearchQuery(f"Invalid operator for search key '{SEMVER_BUILD_ALIAS}'")
             queryset = queryset.filter_by_semver_build(
                 organization.id,
-                OPERATOR_TO_DJANGO[operator],
+                django_op,
                 search_filter.value.raw_value,
                 negated=negated,
             )

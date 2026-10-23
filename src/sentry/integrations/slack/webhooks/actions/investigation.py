@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.requests.action import SlackActionRequest
+from sentry.investigations.access import INVESTIGATION_SCOPES
 from sentry.investigations.endpoints.base import organization_project_ids
 from sentry.investigations.services import (
     InvestigationSourceNotFound,
@@ -46,6 +47,7 @@ class InvestigationUnavailableReason(StrEnum):
     ORGANIZATION_NOT_FOUND = "organization_not_found"
     NO_ACCESS = "no_access"
     CLOSED_MEMBERSHIP = "closed_membership"
+    MISSING_SCOPE = "missing_scope"
     INVALID_ACTION = "invalid_action"
     SOURCE_NOT_FOUND = "source_not_found"
     INVALID_SOURCE = "invalid_source"
@@ -153,6 +155,11 @@ def handle_seer_investigation_start(
         return _respond_ephemeral(
             INVESTIGATION_NOT_MEMBER_MESSAGE.format(org_name=organization.name)
         )
+    # Matches InvestigationPermission, so a role like billing can't start a run it can't open.
+    if not member.get_scopes() & INVESTIGATION_SCOPES:
+        log_unavailable(InvestigationUnavailableReason.MISSING_SCOPE)
+        return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
+
     try:
         source = _get_investigation_source(slack_request)
     except InvestigationActionError as e:

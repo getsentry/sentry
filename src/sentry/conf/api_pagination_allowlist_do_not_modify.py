@@ -34,8 +34,6 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "OrganizationDeriveCodeMappingsEndpoint",
     "OrganizationEnvironmentsEndpoint",
     "OrganizationEventsFacetsEndpoint",
-    "OrganizationEventsRelatedIssuesEndpoint",
-    "OrganizationEventsVitalsEndpoint",
     "OrganizationGroupIndexEndpoint",
     "OrganizationGroupIndexStatsEndpoint",
     "OrganizationIndexEndpoint",
