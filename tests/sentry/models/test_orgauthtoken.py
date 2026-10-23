@@ -36,6 +36,20 @@ class OrgAuthTokenTest(TestCase):
         ):
             token.full_clean()
 
+    def test_validate_scope_rejects_org_tokens(self) -> None:
+        token = OrgAuthToken(
+            organization_id=self.organization.id,
+            name="test token",
+            token_hashed="test-token",
+            scope_list=["org:ci", "org:tokens"],
+        )
+
+        with pytest.raises(
+            ValidationError,
+            match="org:tokens cannot be granted to an org auth token.",
+        ):
+            token.full_clean()
+
 
 class UpdateOrgAuthTokenLastUsed(TestCase):
     def test_creates_outboxes(self) -> None:
