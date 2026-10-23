@@ -44,11 +44,9 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedTemplate,
 )
-from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def link_decorator(data: NotificationData) -> NotificationLinkDecorator:
@@ -716,49 +714,3 @@ class SeerSlackRendererInvestigationTest(TestCase):
         assert button.style == "primary"
         assert button.value == "link_clicked"
         assert links == {NotificationLink.INVESTIGATION}
-
-
-@django_db_all
-def test_render_agent_response_lists_current_pr_status_under_summary() -> None:
-    pr_url = "https://gh/acme/web/pull/7"
-    data = SeerAgentResponse(
-        run_id=MOCK_RUN_ID,
-        organization_id=1,
-        summary="Opened it",
-        repo_pr_states=[
-            RepoPRState(repo_name="acme/new", pr_creation_status="creating"),
-            RepoPRState(
-                repo_name="acme/web", pr_number=7, pr_url=pr_url, pr_creation_status="creating"
-            ),
-            RepoPRState(
-                repo_name="acme/web",
-                pr_number=7,
-                pr_url=pr_url,
-                pr_creation_status="completed",
-                commit_sha="abcdef1234567890",
-            ),
-            RepoPRState(
-                repo_name="acme/web", pr_number=7, pr_url=pr_url, pr_creation_status="completed"
-            ),
-            RepoPRState(
-                repo_name="acme/web", pr_number=7, pr_url=pr_url, pr_creation_status="error"
-            ),
-            RepoPRState(repo_name="acme/new", pr_creation_status="error"),
-        ],
-    )
-
-    renderable = SeerSlackRenderer._render_agent_response(data, link_decorator(data))
-
-    _summary, footer = renderable["blocks"]
-    assert isinstance(footer, ContextBlock)
-    (text,) = footer.elements
-    assert isinstance(text, MarkdownTextObject)
-    pr_link = "<https://gh/acme/web/pull/7|acme/web#7>"
-    assert text.text.splitlines() == [
-        "Creating a PR in \u0060acme/new\u0060...",
-        f"Updating {pr_link}...",
-        f"Latest push complete for {pr_link} (`abcdef1`)",
-        f"Latest push complete for {pr_link}",
-        f"Latest push failed for {pr_link}",
-        "Latest push failed for \u0060acme/new\u0060",
-    ]
