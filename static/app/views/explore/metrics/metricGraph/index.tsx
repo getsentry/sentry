@@ -1,11 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
 
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -41,6 +43,7 @@ import {
   getEquationMetricsTotalFilter,
 } from 'sentry/views/explore/metrics/utils';
 import {
+  useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
@@ -100,6 +103,7 @@ function getVisualizationTypeDisabledReason(
 interface MetricsGraphProps {
   actions: React.ReactNode;
   timeseriesResult: SortedTimeSeries;
+  footerActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -107,6 +111,7 @@ interface MetricsGraphProps {
 export function MetricsGraph({
   timeseriesResult,
   actions,
+  footerActions,
   isMetricOptionsEmpty,
   title,
 }: MetricsGraphProps) {
@@ -126,6 +131,7 @@ export function MetricsGraph({
       visualizes={visualizes}
       timeseriesResult={timeseriesResult}
       actions={actions}
+      footerActions={footerActions}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
       title={title}
     />
@@ -137,6 +143,7 @@ interface GraphProps {
   timeseriesResult: SortedTimeSeries;
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
+  footerActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -146,6 +153,7 @@ function Graph({
   visualize,
   visualizes,
   actions,
+  footerActions,
   isMetricOptionsEmpty,
   title,
 }: GraphProps) {
@@ -154,6 +162,8 @@ function Graph({
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
   const userQuery = useQueryParamsQuery();
+  const groupBys = useQueryParamsGroupBys();
+  const {selection} = usePageFilters();
   const traceMetric = useTraceMetric();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
@@ -245,6 +255,13 @@ function Graph({
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
+  // ECharts keeps its toolbox zoom window across option merges, so a chart that
+  // stays mounted after a zoom keeps clipping to the old range when the query
+  // changes (e.g. switching back to a larger preset). Remounting gives each
+  // query a fresh chart instance, matching `LogsGraph`.
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${visualizes.map(v => v.yAxis).join(',')}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
+
   return (
     <WidgetWrapper hideFooterBorder>
       <Widget
@@ -289,6 +306,7 @@ function Graph({
             />
           ) : showChart ? (
             <ChartVisualization
+              key={chartRemountKey}
               chartInfo={chartInfo}
               droppedData={
                 showDroppedDataBand
@@ -303,13 +321,18 @@ function Graph({
           ) : undefined
         }
         Footer={
-          showChart ? (
-            <ConfidenceFooter
-              chartInfo={chartInfo}
-              isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
-              hasUserQuery={!!userQuery}
-              rawMetricCounts={rawMetricCounts}
-            />
+          showChart || footerActions ? (
+            <Flex align="center" justify="between" gap="sm" wrap="wrap">
+              {showChart ? (
+                <ConfidenceFooter
+                  chartInfo={chartInfo}
+                  isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
+                  hasUserQuery={!!userQuery}
+                  rawMetricCounts={rawMetricCounts}
+                />
+              ) : null}
+              {footerActions}
+            </Flex>
           ) : undefined
         }
         height={height}

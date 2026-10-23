@@ -429,8 +429,9 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
     Expects the URL to contain a `uuid` in the path
     """
 
-    def _create_cache_key(self, installation_uuid: str, jti: str) -> str:
-        return f"jwt_client_secret:{installation_uuid}:{jti}"
+    def _create_cache_key(self, sentry_app_id: int, jti: str) -> str:
+        jti_digest = hashlib.sha256(jti.encode()).hexdigest()
+        return f"jwt_client_secret:{sentry_app_id}:{jti_digest}"
 
     def authenticate(self, request: Request):
         if not request.data:
@@ -478,7 +479,7 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
             )
             raise AuthenticationFailed("JWT expiration is too far in the future")
 
-        cache_key = self._create_cache_key(installation.uuid, jti)
+        cache_key = self._create_cache_key(installation.sentry_app_id, jti)
         # Atomically remember the jti until the JWT expires so it can't be reused while still valid.
         if not cache.add(cache_key, True, timeout=max(seconds_until_expiry, 1)):
             logger.warning(
@@ -1022,7 +1023,7 @@ class ViewerContextAuthentication(BaseAuthentication):
         # avoid requiring browser-session SSO state on service callbacks.
         setattr(request, "user_from_viewer_context", True)
 
-        if vc.superuser is not None:
+        if vc.actor.superuser is not None:
             org_context = (
                 organization_service.get_organization_by_id(
                     id=vc.organization_id,
@@ -1034,7 +1035,7 @@ class ViewerContextAuthentication(BaseAuthentication):
                 else None
             )
             delegated = (
-                resolve_superuser_access(vc.superuser, user, org_context)
+                resolve_superuser_access(vc.actor.superuser, user, org_context)
                 if org_context is not None
                 else None
             )
@@ -1046,7 +1047,7 @@ class ViewerContextAuthentication(BaseAuthentication):
                 user_id=user.id,
                 organization_id=vc.organization_id,
                 scopes=sorted(scopes),
-                superuser=vc.superuser,
+                superuser=vc.actor.superuser,
             )
             # Org-bound access must not enable global staff/superuser bypasses.
             user = user.copy(

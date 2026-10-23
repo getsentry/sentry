@@ -1,4 +1,3 @@
-import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -199,6 +198,32 @@ describe('transformWidgetSeriesToTimeSeries', () => {
       expect(result?.label).toBe('Chrome : count()');
       expect(result?.widgetQuery.name).toBe('Chrome');
     });
+
+    it('uses the matched query aggregate and grouping columns', () => {
+      const totalQuery = WidgetQueryFixture({
+        name: 'total',
+        aggregates: ['count()'],
+        columns: [],
+        fields: ['count()'],
+      });
+      const groupedQuery = WidgetQueryFixture({
+        name: 'grouped',
+        aggregates: ['avg(span.duration)'],
+        columns: ['browser'],
+        fields: ['browser', 'avg(span.duration)'],
+      });
+      const widget = WidgetFixture({queries: [totalQuery, groupedQuery]});
+
+      const result = transformWidgetSeriesToTimeSeries(
+        makeSeries('grouped > None : avg(span.duration)'),
+        widget
+      );
+
+      expect(result?.widgetQuery).toBe(groupedQuery);
+      expect(result?.timeSeries.yAxis).toBe('avg(span.duration)');
+      expect(result?.timeSeries.groupBy).toEqual([{key: 'browser', value: null}]);
+      expect(result?.label).toBe('grouped : (no value)');
+    });
   });
 
   describe('multi-query with group by but no conditions', () => {
@@ -269,102 +294,5 @@ describe('transformWidgetSeriesToTimeSeries', () => {
       );
       expect(result?.label).toBe('prod');
     });
-  });
-
-  it('plots the attached time series values', () => {
-    const widget = WidgetFixture({
-      queries: [
-        WidgetQueryFixture({
-          name: '',
-          aggregates: ['count()'],
-          columns: [],
-          fields: ['count()'],
-        }),
-      ],
-    });
-    const timeSeries = TimeSeriesFixture({
-      yAxis: 'count()',
-      meta: {valueType: 'integer', valueUnit: null, interval: 60_000, isOther: false},
-      values: [
-        {timestamp: 1000, value: 5, confidence: 'high'},
-        {
-          timestamp: 2000,
-          value: null,
-          incomplete: true,
-          incompleteReason: 'INGESTION_PENDING',
-        },
-      ],
-    });
-
-    const result = transformWidgetSeriesToTimeSeries(
-      {
-        seriesName: 'count()',
-        data: [
-          {name: 1000, value: 5},
-          {name: 2000, value: 0},
-        ],
-        timeSeries,
-      },
-      widget
-    );
-
-    expect(result?.timeSeries.values).toEqual([
-      {timestamp: 1000, value: 5, confidence: 'high'},
-      {
-        timestamp: 2000,
-        value: 0,
-        incomplete: true,
-        incompleteReason: 'INGESTION_PENDING',
-      },
-    ]);
-    expect(result?.timeSeries.meta).toEqual({
-      valueType: 'number',
-      valueUnit: null,
-      interval: 60_000,
-      isOther: false,
-    });
-  });
-
-  it('keeps the attached group by only when its keys are the widget columns', () => {
-    const widget = WidgetFixture({
-      queries: [
-        WidgetQueryFixture({
-          name: '',
-          aggregates: ['count()'],
-          columns: ['tags', 'browser'],
-          fields: ['tags', 'browser', 'count()'],
-        }),
-      ],
-    });
-    const series = {
-      seriesName: '[a,b],None',
-      data: [{name: 1000, value: 5}],
-    };
-    const groupBy = [
-      {key: 'tags', value: ['a', 'b']},
-      {key: 'browser', value: null},
-    ];
-
-    const result = transformWidgetSeriesToTimeSeries(
-      {...series, timeSeries: TimeSeriesFixture({yAxis: 'count()', groupBy})},
-      widget
-    );
-    expect(result?.timeSeries.groupBy).toEqual(groupBy);
-
-    // Falls back to the group by parsed from the series name
-    const mismatched = transformWidgetSeriesToTimeSeries(
-      {
-        ...series,
-        timeSeries: TimeSeriesFixture({
-          yAxis: 'count()',
-          groupBy: [{key: 'tags[browser]', value: null}],
-        }),
-      },
-      widget
-    );
-    expect(mismatched?.timeSeries.groupBy).toEqual([
-      {key: 'tags', value: '[a,b]'},
-      {key: 'browser', value: 'None'},
-    ]);
   });
 });

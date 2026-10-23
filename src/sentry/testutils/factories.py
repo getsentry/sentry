@@ -93,6 +93,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.hostname import instance_hostname
 from sentry.investigations.models import (
     Investigation,
+    InvestigationActionRequest,
     InvestigationBlock,
     InvestigationBlockDependency,
     InvestigationBlockExecution,
@@ -202,6 +203,7 @@ from sentry.seer.models.run import (
 )
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
 )
@@ -258,6 +260,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -485,6 +488,17 @@ class Factories:
             block=block,
             author_id=author.id if author else None,
             body=body,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_action_request(
+        investigation, report_revision=0, key="action-request", **kwargs
+    ):
+        kwargs.setdefault("title", "An action request")
+        kwargs.setdefault("rationale", "Because it helps.")
+        return InvestigationActionRequest.objects.create(
+            investigation=investigation, report_revision=report_revision, key=key, **kwargs
         )
 
     @staticmethod
@@ -3004,6 +3018,16 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_data_condition_alert_rule_trigger(
+        data_condition: DataCondition,
+        alert_rule_trigger_id: int,
+    ) -> DataConditionAlertRuleTrigger:
+        return DataConditionAlertRuleTrigger.objects.create(
+            data_condition=data_condition, alert_rule_trigger_id=alert_rule_trigger_id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_data_condition_group_action(
         action: Action | None = None,
         condition_group: DataConditionGroup | None = None,
@@ -3398,6 +3422,11 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_workflow_config(organization, **kwargs) -> SeerWorkflowConfig:
         return SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config_project(config, project) -> SeerWorkflowConfigProject:
+        return SeerWorkflowConfigProject.objects.create(config=config, project=project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

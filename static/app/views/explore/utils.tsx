@@ -636,6 +636,7 @@ function getConversationsUrlFromSavedQueryUrl({
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
     statsPeriod: savedQuery.statsPeriod,
+    errorsOnly: savedQuery.errorsOnly ? true : undefined,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -706,6 +707,7 @@ export const ATTRIBUTE_VALUE_TYPES: Record<
   float: FieldValueType.NUMBER,
   int: FieldValueType.INTEGER,
   str: FieldValueType.STRING,
+  array: FieldValueType.ARRAY,
 };
 
 /**

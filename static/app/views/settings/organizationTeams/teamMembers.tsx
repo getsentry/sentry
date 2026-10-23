@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {IconUser} from '@sentry/icons/user';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {
@@ -18,6 +17,7 @@ import {
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -27,10 +27,7 @@ import {
 import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
@@ -43,13 +40,16 @@ import {useUser} from 'sentry/utils/useUser';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
-import {
-  GRID_TEMPLATE,
-  TeamMembersRow,
-} from 'sentry/views/settings/organizationTeams/teamMembersRow';
+import {TeamMembersRow} from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {getButtonHelpText} from './utils';
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'member', width: {zero: 'minmax(200px, 1fr)', sm: 'minmax(150px, 1fr)'}},
+  {key: 'teamRole', width: {zero: 160, md: 200}},
+  {key: 'actions', width: 'max-content'},
+];
 
 function getTeamMembersApiOptions({
   organization,
@@ -78,9 +78,11 @@ function AddMemberDropdown({
   organization,
   team,
   teamId,
+  disabled,
   isTeamAdmin,
   onAddMember,
 }: {
+  disabled: boolean;
   isTeamAdmin: boolean;
   onAddMember: (variables: {orgMember: TeamMember}) => void;
   organization: Organization;
@@ -104,7 +106,7 @@ function AddMemberDropdown({
   const hasOpenMembership = !!organization?.openMembership;
   const canAddMembers = hasOpenMembership || isTeamAdmin;
 
-  const isDropdownDisabled = team.flags['idp:provisioned'];
+  const isDropdownDisabled = disabled || team.flags['idp:provisioned'];
 
   const addTeamMember = (selection: SelectOption<string>) => {
     const orgMember = orgMembers.find(member => member.id === selection.value);
@@ -147,6 +149,7 @@ function AddMemberDropdown({
   return (
     <CompactSelect
       size="xs"
+      strategy="fixed"
       menuWidth={250}
       options={items}
       onClose={() => setMemberQuery('')}
@@ -326,15 +329,6 @@ export default function TeamMembers() {
     },
   });
 
-  if (isTeamMembersError) {
-    return (
-      <Fragment>
-        <BreadcrumbTitle title={t('Members')} />
-        <LoadingError onRetry={refetchTeamMembers} />
-      </Fragment>
-    );
-  }
-
   const renderPageTextBlock = () => {
     const {openMembership} = organization;
     const isIdpProvisioned = team.flags['idp:provisioned'];
@@ -353,8 +347,11 @@ export default function TeamMembers() {
   };
 
   const renderMembers = () => {
+    if (isTeamMembersError) {
+      return <SimpleTable.Error onRetry={refetchTeamMembers} />;
+    }
     if (isTeamMembersLoading) {
-      return <LoadingIndicator />;
+      return <SimpleTable.Loading />;
     }
     if (teamMembers.length) {
       return teamMembers.map(member => {
@@ -373,9 +370,11 @@ export default function TeamMembers() {
       });
     }
     return (
-      <EmptyMessage icon={<IconUser />} size="lg">
-        {t('This team has no members')}
-      </EmptyMessage>
+      <SimpleTable.Empty>
+        <EmptyMessage icon={<IconUser />} size="lg">
+          {t('This team has no members')}
+        </EmptyMessage>
+      </SimpleTable.Empty>
     );
   };
 
@@ -389,30 +388,33 @@ export default function TeamMembers() {
         team={team}
       />
 
-      <Panel>
-        <StyledPanelHeader hasButtons>
-          <div>{t('Members')}</div>
-          <div>
-            <TeamRoleColumnLabel />
-          </div>
-          <Flex justify="end">
-            <AddMemberDropdown
-              teamMembers={teamMembers}
-              organization={organization}
-              team={team}
-              teamId={team.slug}
-              isTeamAdmin={isTeamAdmin}
-              onAddMember={handleAddTeamMember}
-            />
-          </Flex>
-        </StyledPanelHeader>
+      <SimpleTable
+        aria-label={t('Members')}
+        columns={COLUMNS}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Members')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <TeamRoleColumnLabel />
+            </SimpleTable.HeaderCell>
+            <Flex as="th" role="columnheader" align="center" justify="end" padding="0 xl">
+              <AddMemberDropdown
+                teamMembers={teamMembers}
+                organization={organization}
+                team={team}
+                teamId={team.slug}
+                disabled={isTeamMembersError}
+                isTeamAdmin={isTeamAdmin}
+                onAddMember={handleAddTeamMember}
+              />
+            </Flex>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {renderMembers()}
-      </Panel>
+      </SimpleTable>
       <Pagination pageLinks={teamMembersPageLinks} />
     </Fragment>
   );
 }
-
-const StyledPanelHeader = styled(PanelHeader)`
-  ${GRID_TEMPLATE}
-`;
