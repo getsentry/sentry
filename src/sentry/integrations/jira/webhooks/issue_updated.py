@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import datetime
 import logging
+import time
 from collections.abc import Mapping
 from typing import Any
 
@@ -18,7 +20,12 @@ from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.util import (
+    WEBHOOK_DELIVERY_SIGNATURE_HEADER,
+    verify_webhook_delivery_signature,
+)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import jwt, metrics
 
 from ..utils import (
     handle_assignee_change,
@@ -31,6 +38,10 @@ from .base import JiraWebhookBase
 logger = logging.getLogger(__name__)
 
 PAYLOAD_LOGGING_FEATURE = "organizations:jira-issue-updated-payload-logging"
+
+# Matches MAX_DELIVERY_AGE in sentry.hybridcloud.tasks.deliver_webhooks, the longest a
+# webhook can wait in a mailbox before control discards it.
+DELIVERED_TOKEN_EXPIRY_LEEWAY = datetime.timedelta(days=3)
 
 
 @cell_silo_endpoint
@@ -70,13 +81,26 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
+        # A signed delivery is a webhook control already verified on arrival, which may
+        # have waited in a mailbox longer than Atlassian's short token lifetime. The token
+        # doesn't cover the body, so anything else gets the strict expiry check.
+        is_signed_delivery = verify_webhook_delivery_signature(
+            request.get_full_path(),
+            request.headers.get("Authorization"),
+            request.body,
+            request.headers.get(WEBHOOK_DELIVERY_SIGNATURE_HEADER),
+        )
+        leeway = DELIVERED_TOKEN_EXPIRY_LEEWAY if is_signed_delivery else datetime.timedelta(0)
         rpc_integration = get_integration_from_jwt(
             token=token,
             path=request.path,
             provider=self.provider,
             query_params=request.GET,
             method="POST",
+            leeway=leeway,
         )
+        if is_signed_delivery and jwt.peek_claims(token)["exp"] < time.time():
+            metrics.incr("jira.issue_updated.accepted_expired_delivery")
         # Integrations and their corresponding RpcIntegrations share the same id,
         # so we don't need to first convert this to a full Integration object.
         # Capture the bound org so the payload-logging feature check below can

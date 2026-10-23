@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import hashlib
 from collections.abc import Mapping, Sequence
 
@@ -66,6 +67,7 @@ def get_integration_from_jwt(
     provider: str,
     query_params: Mapping[str, str] | None,
     method: str = "GET",
+    leeway: datetime.timedelta = datetime.timedelta(0),
 ) -> RpcIntegration:
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/authentication.html
     # Extract the JWT token from the request's jwt query
@@ -107,7 +109,9 @@ def get_integration_from_jwt(
         decoded_claims = (
             authenticate_asymmetric_jwt(token, key_id)
             if key_id
-            else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
+            else jwt.decode(
+                token, integration.metadata["shared_secret"], audience=False, leeway=leeway
+            )
         )
     except InvalidSignatureError as e:
         raise AtlassianConnectValidationError("Signature is invalid") from e

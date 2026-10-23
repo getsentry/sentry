@@ -6,6 +6,7 @@ central place which handles JWT in a uniform way.
 
 from __future__ import annotations
 
+import datetime
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
@@ -55,6 +56,7 @@ def decode(
     audience: str | bool | None = None,
     algorithms: list[str] | None = None,
     require_exp: bool = True,
+    leeway: datetime.timedelta = datetime.timedelta(0),
 ) -> dict[str, Any]:
     """Returns the claims (payload) in the JWT token.
 
@@ -69,6 +71,7 @@ def decode(
     :param algorithms: The algorithms which should be tried to verify the payload.
     :param require_exp: Whether the token must include an expiration claim. Tokens with an
        expiration claim are always rejected after they expire.
+    :param leeway: How long after its expiration a token is still accepted.
     """
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
@@ -82,7 +85,7 @@ def decode(
         kwargs["audience"] = audience
     if algorithms is None:
         algorithms = ["HS256"]
-    return pyjwt.decode(token, key, options=options, algorithms=algorithms, **kwargs)
+    return pyjwt.decode(token, key, options=options, algorithms=algorithms, leeway=leeway, **kwargs)
 
 
 def encode(
