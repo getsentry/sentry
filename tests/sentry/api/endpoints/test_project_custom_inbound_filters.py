@@ -808,6 +808,30 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert legacy_row.conditions == [condition]
         assert self.project.get_option("sentry:releases") == lines
 
+    def test_legacy_row_without_operator_takes_a_partial_update(self) -> None:
+        # The backfill wrote the rows without an operator, which reads as glob.
+        legacy_row = self.create_project_custom_inbound_filter(
+            project=self.project,
+            name="Releases",
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                name="Old builds",
+                active=False,
+            )
+
+        assert response.data["name"] == "Old builds"
+        assert response.data["active"] is False
+        legacy_row.refresh_from_db()
+        assert legacy_row.conditions == [{"type": "release", "value": ["1.*"]}]
+
     def test_legacy_row_keeps_its_data_type_and_its_one_condition(self) -> None:
         legacy_row = self.create_legacy_row()
 

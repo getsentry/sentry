@@ -343,10 +343,13 @@ def _validate_legacy_row_change(
             }
         )
     condition_type = stored.conditions[0]["type"]
+    # A row from the backfill or the double write of an older revision has no operator,
+    # which reads as glob.
     if (
         len(conditions) != 1
         or conditions[0]["type"] != condition_type
-        or conditions[0].get("operator") != ConditionOperator.GLOB.value
+        or conditions[0].get("operator", ConditionOperator.GLOB.value)
+        != ConditionOperator.GLOB.value
     ):
         raise serializers.ValidationError(
             {
