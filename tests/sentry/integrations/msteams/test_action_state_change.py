@@ -636,7 +636,7 @@ class StatusActionTest(APITestCase):
         ctx = captured_contexts[0]
         assert ctx is not None
         assert ctx.organization_id == self.org.id
-        assert ctx.actor_type == ActorType.INTEGRATION
+        assert ctx.actor.type == ActorType.INTEGRATION
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

@@ -259,6 +259,31 @@ describe('NextStepCard', () => {
     expect(getCard()).toHaveAttribute('aria-busy', 'true');
   });
 
+  it('holds space for a completed next step until its request arrives', () => {
+    render(
+      <NextStepCard
+        actionRequests={[]}
+        actionRequestsStale
+        orchestration={runWith({status: 'completed', error: null})}
+      />
+    );
+
+    expect(getCard()).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('renders nothing for a completed next step that suggested nothing', () => {
+    render(
+      <NextStepCard
+        actionRequests={[]}
+        orchestration={runWith({status: 'completed', error: null})}
+      />
+    );
+
+    expect(
+      screen.queryByRole('region', {name: 'Recommended action'})
+    ).not.toBeInTheDocument();
+  });
+
   it('renders nothing while the run is loading', () => {
     render(
       <NextStepCard
