@@ -1141,6 +1141,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_project_repository(
+        project, repository, source=ProjectRepositorySource.MANUAL
+    ) -> ProjectRepository:
+        return ProjectRepository.objects.create(
+            project=project, repository=repository, source=source
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_project_repository(project, repository=None, repository_id=None, **kwargs):
         if repository is None and repository_id is not None:
             repository = Repository.objects.get(id=repository_id)
