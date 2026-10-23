@@ -18,9 +18,6 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FEATURE_FLAG = "organizations:service-accounts"
 CLEAR_KEY = "sentry.receivers.outbox.control.cell_caching_service.clear_key"
-DUPLICATE_NAME_CHECK = (
-    "sentry.service_accounts.endpoints.organization_service_accounts._is_duplicate_name"
-)
 
 
 def project_ids_for(service_account: ServiceAccount) -> list[int]:
@@ -164,27 +161,6 @@ class OrganizationServiceAccountIndexTest(APITestCase):
         self.create_service_account(organization=self.organization, name="nightly-triage")
 
         with self.feature(FEATURE_FLAG):
-            response = self.get_error_response(
-                self.organization.slug,
-                method="post",
-                name="nightly-triage",
-                scopes=["event:read"],
-                status_code=400,
-            )
-
-        assert response.data["detail"]["name"] == [
-            "A service account with this name already exists."
-        ]
-        assert ServiceAccount.objects.filter(organization_id=self.organization.id).count() == 1
-
-    def test_create_duplicate_name_race_returns_400(self) -> None:
-        self.create_service_account(organization=self.organization, name="nightly-triage")
-
-        # Simulates another request inserting the name after the pre-check ran.
-        with (
-            mock.patch(DUPLICATE_NAME_CHECK, return_value=False),
-            self.feature(FEATURE_FLAG),
-        ):
             response = self.get_error_response(
                 self.organization.slug,
                 method="post",
@@ -409,28 +385,6 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
         self.create_service_account(organization=self.organization, name="nightly-triage")
 
         with self.feature(FEATURE_FLAG):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.service_account.id,
-                method="put",
-                name="nightly-triage",
-                status_code=400,
-            )
-
-        assert response.data["detail"]["name"] == [
-            "A service account with this name already exists."
-        ]
-        self.service_account.refresh_from_db()
-        assert self.service_account.name == "seer-autofix"
-
-    def test_update_duplicate_name_race_returns_400(self) -> None:
-        self.create_service_account(organization=self.organization, name="nightly-triage")
-
-        # Simulates another request taking the name after the pre-check ran.
-        with (
-            mock.patch(DUPLICATE_NAME_CHECK, return_value=False),
-            self.feature(FEATURE_FLAG),
-        ):
             response = self.get_error_response(
                 self.organization.slug,
                 self.service_account.id,

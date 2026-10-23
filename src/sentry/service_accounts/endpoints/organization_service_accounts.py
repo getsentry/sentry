@@ -118,13 +118,6 @@ def _audit_log_data(response: ServiceAccountResponse) -> dict[str, Any]:
     }
 
 
-def _is_duplicate_name(organization_id: int, name: str, exclude_id: int | None = None) -> bool:
-    queryset = ServiceAccount.objects.filter(organization_id=organization_id, name=name)
-    if exclude_id is not None:
-        queryset = queryset.exclude(id=exclude_id)
-    return queryset.exists()
-
-
 def _replace_projects(service_account: ServiceAccount, project_ids: Sequence[int]) -> None:
     existing = set()
     # Delete links one at a time: a queryset delete wouldn't write the account's outbox.
@@ -280,8 +273,6 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
         data = cast(ServiceAccountCreateRequestData, serializer.validated_data)
-        if _is_duplicate_name(organization.id, data["name"]):
-            return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
 
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
@@ -297,7 +288,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
                     for project_id in data.get("projectIds") or ()
                 )
         except IntegrityError:
-            # Another request created the same name between the check and the insert.
+            # The (organization_id, name) unique constraint is the duplicate name check.
             return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
 
         response = serialize(service_account, request.user, serializer=ServiceAccountSerializer())
@@ -384,10 +375,6 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
         data = cast(ServiceAccountUpdateRequestData, serializer.validated_data)
-        if "name" in data and _is_duplicate_name(
-            organization.id, data["name"], exclude_id=service_account.id
-        ):
-            return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
 
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
@@ -407,6 +394,7 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             # Deleted by another request after convert_args loaded it.
             raise ResourceDoesNotExist
         except IntegrityError:
+            # The (organization_id, name) unique constraint is the duplicate name check.
             return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
 
         response = serialize(service_account, request.user, serializer=ServiceAccountSerializer())
