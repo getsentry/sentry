@@ -63,6 +63,22 @@
       "types": "./dist/slider/index.d.ts",
       "import": "./dist/slider/index.js"
     },
+    "./input": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js"
+    },
+    "./input/inputStyles": {
+      "types": "./dist/input/inputStyles.d.ts",
+      "import": "./dist/input/inputStyles.js"
+    },
+    "./input/otpInput": {
+      "types": "./dist/input/otpInput.d.ts",
+      "import": "./dist/input/otpInput.js"
+    },
+    "./textarea": {
+      "types": "./dist/textarea/index.d.ts",
+      "import": "./dist/textarea/index.js"
+    },
     "./slot": {
       "types": "./dist/slot/index.d.ts",
       "import": "./dist/slot/index.js"
@@ -216,6 +232,7 @@
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
+    "@react-aria/numberfield": "3.13.1",
     "@react-aria/overlays": "3.32.1",
     "@react-aria/radio": "3.13.1",
     "@react-aria/slider": "3.9.1",
@@ -224,6 +241,7 @@
     "@react-stately/collections": "3.13.1",
     "@react-stately/disclosure": "3.1.1",
     "@react-stately/list": "3.14.1",
+    "@react-stately/numberfield": "3.12.1",
     "@react-stately/overlays": "3.7.1",
     "@react-stately/radio": "3.12.1",
     "@react-stately/slider": "3.8.1",
@@ -233,7 +251,9 @@
     "@types/react": "19.3.0",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
+    "input-otp": "^1.5.0",
     "query-string": "7.0.1",
+    "react-textarea-autosize": "8.5.7",
     "type-fest": "^5.10.0"
   },
   "devDependencies": {
