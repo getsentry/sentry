@@ -39,7 +39,7 @@ from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.orgauthtoken import ORG_AUTH_TOKEN_SCOPES, is_org_auth_token_auth
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
@@ -290,15 +290,8 @@ class OrgAuthTokenPermission(OrganizationPermission):
         if request.auth is not None:
             if not self._is_oauth_application_token(request):
                 return False
-            required_scopes = {"org:tokens"}
-            # A minted token must never hold scopes the issuing token lacks.
-            if request.method == "POST":
-                required_scopes.update(ORG_AUTH_TOKEN_SCOPES)
-            missing_scopes = {
-                scope for scope in required_scopes if not request.auth.has_scope(scope)
-            }
-            if missing_scopes:
-                setattr(request, INSUFFICIENT_SCOPE_ATTR, missing_scopes)
+            if not request.auth.has_scope("org:tokens"):
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:tokens"})
                 return False
         return super().has_permission(request, view)
 

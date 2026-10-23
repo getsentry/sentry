@@ -29,7 +29,11 @@ if TYPE_CHECKING:
 
 MAX_NAME_LENGTH = 255
 
-ORG_AUTH_TOKEN_SCOPES: tuple[str, ...] = ("org:ci",)
+DEFAULT_ORG_AUTH_TOKEN_SCOPES: tuple[str, ...] = ("org:ci",)
+
+# Scopes a newly minted org auth token may be granted. Org auth tokens are not bound to a
+# member and keep working after their creator leaves, so this stays limited to CI scopes.
+ORG_AUTH_TOKEN_ALLOWED_SCOPES = frozenset({"org:ci"})
 
 # org:tokens lets an OAuth token mint org auth tokens. Org auth tokens must never carry it,
 # otherwise a minted token could mint further tokens.

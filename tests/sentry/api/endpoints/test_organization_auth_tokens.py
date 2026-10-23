@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 from rest_framework import status
 
@@ -5,8 +7,8 @@ from sentry import audit_log, options
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.orgauthtoken import (
+    ORG_AUTH_TOKEN_ALLOWED_SCOPES,
     ORG_AUTH_TOKEN_FORBIDDEN_SCOPES,
-    ORG_AUTH_TOKEN_SCOPES,
     OrgAuthToken,
 )
 from sentry.testutils.cases import APITestCase, PermissionTestCase
@@ -305,8 +307,86 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
         assert response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:ci"'
         assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
 
+    def test_create_rejects_scopes_outside_allowlist(self) -> None:
+        for scopes in (["org:ci", "project:releases"], ["org:tokens"], ["org:admin"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                method="POST",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                name="cli token",
+                scopes=scopes,
+                extra_headers=self.oauth_headers(
+                    ["org:read", "org:admin", "org:ci", "org:tokens", "project:releases"]
+                ),
+            )
+            assert "cannot be granted" in response.data["detail"]
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_rejects_malformed_scopes(self) -> None:
+        for scopes in ([], "org:ci", [1]):
+            self.get_error_response(
+                self.organization.slug,
+                method="POST",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                name="cli token",
+                scopes=scopes,
+                extra_headers=self.oauth_headers(["org:read", "org:ci", "org:tokens"]),
+            )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    @patch(
+        "sentry.api.endpoints.organization_auth_tokens.ORG_AUTH_TOKEN_ALLOWED_SCOPES",
+        frozenset({"org:ci", "project:releases", "org:tokens"}),
+    )
+    def test_minted_scopes_are_subset_of_issuer_scopes(self) -> None:
+        issuer_scopes = ["org:read", "org:ci", "org:tokens"]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="too broad",
+            scopes=["org:ci", "project:releases"],
+            extra_headers=self.oauth_headers(issuer_scopes),
+        )
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="project:releases"'
+        )
+
+        # org:tokens is always stripped from what can be minted, even if the issuer holds it.
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            name="minting token",
+            scopes=["org:ci", "org:tokens"],
+            extra_headers=self.oauth_headers(issuer_scopes),
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_201_CREATED,
+            name="narrower",
+            scopes=["org:ci"],
+            extra_headers=self.oauth_headers(issuer_scopes + ["project:releases"]),
+        )
+        assert response.data["scopes"] == ["org:ci"]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_201_CREATED,
+            name="equal",
+            scopes=["org:ci", "project:releases"],
+            extra_headers=self.oauth_headers(issuer_scopes + ["project:releases"]),
+        )
+        assert response.data["scopes"] == ["org:ci", "project:releases"]
+
     def test_minted_token_cannot_mint_tokens(self) -> None:
-        assert not ORG_AUTH_TOKEN_FORBIDDEN_SCOPES & set(ORG_AUTH_TOKEN_SCOPES)
+        assert not ORG_AUTH_TOKEN_FORBIDDEN_SCOPES & ORG_AUTH_TOKEN_ALLOWED_SCOPES
 
         response = self.get_success_response(
             self.organization.slug,
@@ -365,8 +445,7 @@ class OrganizationAuthTokensOAuthTest(APITestCase):
             extra_headers=self.oauth_headers(["org:read", "project:write"]),
         )
         assert (
-            response["WWW-Authenticate"]
-            == 'Bearer error="insufficient_scope", scope="org:ci org:tokens"'
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:tokens"'
         )
         assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
 
