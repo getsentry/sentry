@@ -27,6 +27,7 @@ from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.seer.autofix.utils import (
     add_seer_project_repos,
+    get_seer_project_repo,
     get_token_based_billing_project_repos,
     get_token_based_billing_repos,
     is_seer_token_based_billing_onboarding_enabled,
@@ -70,10 +71,10 @@ class ProjectRepoResponse(TypedDict):
     instructions: str | None
 
 
-def _serialize_project_repo(project_repo: ProjectRepository) -> ProjectRepoResponse:
+def _serialize_project_repo(
+    project_repo: ProjectRepository, seer_project_repo: SeerProjectRepository | None
+) -> ProjectRepoResponse:
     repo = project_repo.repository
-    # getattr since accessing a missing one-to-one raises RelatedObjectDoesNotExist.
-    seer_project_repo = getattr(project_repo, "seerprojectrepository", None)
     name_parts = repo.name.split("/", 1)
     owner = name_parts[0] if len(name_parts) > 1 else ""
     name = name_parts[1] if len(name_parts) > 1 else repo.name
@@ -259,7 +260,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
         if project_repo is None:
             return Response(status=404)
 
-        return Response(_serialize_project_repo(project_repo))
+        return Response(_serialize_project_repo(project_repo, get_seer_project_repo(project_repo)))
 
     def put(self, request: Request, project: Project, repo_id: int) -> Response:
         serializer = SeerProjectRepoUpdateSerializer(data=request.data)
@@ -284,7 +285,6 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
                         project_repository=project_repo
                     )
                 )
-                project_repo.seerprojectrepository = seer_project_repo
             else:
                 seer_project_repo = (
                     _get_seat_based_billing_seer_project_repos(project)
@@ -298,7 +298,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
 
             update_seer_project_repo(seer_project_repo, data)
 
-        return Response(_serialize_project_repo(project_repo))
+        return Response(_serialize_project_repo(project_repo, seer_project_repo))
 
     def delete(self, request: Request, project: Project, repo_id: int) -> Response:
         if is_seer_token_based_billing_onboarding_enabled(project.organization):
@@ -354,7 +354,9 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             request=request,
             queryset=queryset,
             order_by=order_by,
-            on_results=lambda results: [_serialize_project_repo(r) for r in results],
+            on_results=lambda results: [
+                _serialize_project_repo(r, get_seer_project_repo(r)) for r in results
+            ],
             paginator_cls=OffsetPaginator,
         )
 

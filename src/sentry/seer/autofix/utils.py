@@ -546,6 +546,11 @@ def get_token_based_billing_repos(organization: Organization) -> QuerySet[Reposi
     ).exclude(external_id="")
 
 
+def get_seer_project_repo(project_repo: ProjectRepository) -> SeerProjectRepository | None:
+    """Avoid raising RelatedObjectDoesNotExist when ProjectRepository has no SeerProjectRepository."""
+    return getattr(project_repo, "seerprojectrepository", None)
+
+
 def build_seer_repo_definition(
     repo: Repository, seer_project_repo: SeerProjectRepository | None
 ) -> SeerRepoDefinition | None:
@@ -584,9 +589,8 @@ def _get_repo_definitions_by_project(
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     if is_seer_token_based_billing_onboarding_enabled(organization):
         for project_repo in get_token_based_billing_project_repos(organization, project_ids):
-            # getattr since accessing a missing one-to-one raises RelatedObjectDoesNotExist.
             repo_def = build_seer_repo_definition(
-                project_repo.repository, getattr(project_repo, "seerprojectrepository", None)
+                project_repo.repository, get_seer_project_repo(project_repo)
             )
             if repo_def is not None:
                 repo_definitions_by_project[project_repo.project_id].append(repo_def)
