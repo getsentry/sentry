@@ -37,7 +37,10 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.notifications.models.notificationthread import NotificationThread
+from sentry.notifications.models.notificationthread import (
+    NotificationThread,
+    NotificationThreadObjectType,
+)
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
@@ -258,8 +261,9 @@ class SlackService:
         platform_threads = NotificationThread.objects.none()
         if NotificationRolloutService(organization=group.organization).has_feature_flag_access():
             platform_threads = NotificationThread.objects.filter(
-                key_type=NotificationSource.ISSUE.value,
+                object_type=NotificationThreadObjectType.GROUP,
                 object_id=group.id,
+                key_type=NotificationSource.ISSUE.value,
                 provider_key__in=SLACK_PROVIDERS,
             )
         if use_open_period_start:

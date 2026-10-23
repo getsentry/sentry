@@ -17,6 +17,7 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
+from sentry.notifications.models.notificationthread import NotificationThreadObjectType
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_detector_serializer,
 )
@@ -251,6 +252,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
                     "group_id": metric_issue_context.id,
                     "open_period_start": open_period_context.date_started.isoformat(),
                 },
+                object_type=NotificationThreadObjectType.GROUP,
                 object_id=metric_issue_context.id,
             ),
             reply_broadcast=(metric_issue_context.new_status == IncidentStatus.CRITICAL),
@@ -283,7 +285,10 @@ def send_issue_alert(invocation: ActionInvocation, provider: NotificationProvide
             )
         threading_options = ThreadingOptions(
             thread_key=ThreadKey(
-                key_type=NotificationSource.ISSUE, key_data=key_data, object_id=group.id
+                key_type=NotificationSource.ISSUE,
+                key_data=key_data,
+                object_type=NotificationThreadObjectType.GROUP,
+                object_id=group.id,
             ),
             reply_broadcast=True,
         )
