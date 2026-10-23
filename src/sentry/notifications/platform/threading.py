@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from dataclasses import dataclass
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import pydantic
 from django.db import router, transaction
@@ -27,6 +27,13 @@ class ThreadKey(pydantic.BaseModel):
     The associations to look up for this thread.
     e.g. for metric alerts: {"alert_rule_id": ..., "incident_id": ..., "trigger_action_id": ...}
     e.g. for NOA: {"action_id": ..., "group_id": ..., "open_period_start": ...}
+    """
+
+    object_id: int | None = None
+    """
+    The ID of the object this thread is about (e.g. the group ID for issue and metric alerts),
+    interpreted by key_type. Stored so every thread for an object can be found without the
+    full key. Not part of the thread key hash.
     """
 
     class Config:
@@ -91,6 +98,9 @@ class ThreadingConfig(ThreadingLookup):
 
     # Optional provider-specific metadata
     provider_data: dict[str, Any] | None
+
+    # The ID of the object this thread is about (see ThreadKey.object_id)
+    object_id: NotRequired[int | None]
 
 
 class ThreadingService:
@@ -163,6 +173,7 @@ class ThreadingService:
                     "thread_identifier": threading_config["thread_identifier"],
                     "key_type": threading_config["key_type"],
                     "key_data": threading_config["key_data"],
+                    "object_id": threading_config.get("object_id"),
                     "provider_data": threading_config["provider_data"] or {},
                 },
             )

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from django.db import models
-from django.db.models import F
-from django.db.models.fields.json import KeyTransform
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.notifications.platform.types import NotificationSource
 
 
@@ -16,7 +14,11 @@ class NotificationThread(DefaultFieldsModel):
 
     The thread_key is a hash of key_type + key_data, which allows for efficient lookups
     without needing to query by multiple fields. The key_type and key_data fields store
-    the original values for debugging and auditing, and for lookups by group.
+    the original values for debugging and auditing purposes.
+
+    object_id is the ID of the object the thread is about (e.g. the group ID for issue and
+    metric alert threads), interpreted by key_type. It lets callers find every thread for an
+    object without knowing the full key. It is not part of thread_key.
 
     key_type uses NotificationSource values. Example key_data for different sources:
     - slow-load-metric-alert: {"alert_rule_id": 456, "incident_id": 789, "trigger_action_id": 101}
@@ -43,6 +45,8 @@ class NotificationThread(DefaultFieldsModel):
     )
     key_data = models.JSONField()
 
+    object_id = BoundedBigIntegerField(null=True)
+
     provider_data = models.JSONField(default=dict)
 
     class Meta:
@@ -55,13 +59,9 @@ class NotificationThread(DefaultFieldsModel):
             ),
         ]
         indexes = [
-            # Lookups by group (e.g. every thread for an issue) can't use thread_key, which
-            # hashes the full key. Filter on key_type and key_data__group_id to use this index.
-            models.Index(
-                F("key_type"),
-                KeyTransform("group_id", "key_data"),
-                name="idx_notifthread_type_group",
-            ),
+            # Lookups by object (e.g. every thread for an issue) can't use thread_key, which
+            # hashes the full key.
+            models.Index(fields=["key_type", "object_id"], name="idx_notifthread_type_object"),
         ]
 
     __repr__ = sane_repr("id", "thread_key", "provider_key", "thread_identifier")
