@@ -1,3 +1,7 @@
+import type {ComponentProps} from 'react';
+import {expectTypeOf} from 'expect-type';
+import type {LocationDescriptor} from 'history';
+
 import {dragHandle, dragMove} from 'sentry-test/dragMove';
 import {
   render,
@@ -46,6 +50,12 @@ const gridTemplate = () => screen.getByRole('table').style.gridTemplateColumns;
 const resizers = () => screen.getAllByRole('separator');
 
 describe('Table', () => {
+  it('accepts existing app sort destinations', () => {
+    expectTypeOf<LocationDescriptor>().toExtend<
+      NonNullable<ComponentProps<typeof Table.HeadCell>['to']>
+    >();
+  });
+
   it('exposes table semantics when rendered', () => {
     render(<TestTable />);
 
