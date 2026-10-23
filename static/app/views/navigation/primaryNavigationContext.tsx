@@ -29,14 +29,10 @@ const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   /** Only apply the override when the organization lacks this feature */
   unlessFeature?: string;
 }> = [
-  {
-    group: 'explore',
-    pattern: /(?:^|\/)seer\/investigation\/[^/]+\/?$/,
-  },
   // Seer pages linked from Explore until the Seer primary nav ships.
   {
     group: 'explore',
-    pattern: /(?:^|\/)seer\/(?:investigations|automations)\/?$/,
+    pattern: /(?:^|\/)seer\/(?:investigations|automations|investigation\/[^/]+)\/?$/,
     unlessFeature: 'seer-primary-nav',
   },
 ];
