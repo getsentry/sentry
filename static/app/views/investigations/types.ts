@@ -279,7 +279,7 @@ export type InvestigationUpdateDetectorAction = {
   kind: 'update_detector';
 };
 
-type InvestigationAction =
+export type InvestigationAction =
   | InvestigationUpdateDetectorAction
   | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
 
@@ -289,11 +289,23 @@ type InvestigationActionRequestAnchor = {
   type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
 };
 
+export type InvestigationActionCannotApplyReason = InvestigationOrchestrationOpenString<
+  | 'investigation_archived'
+  | 'not_suggested'
+  | 'unsupported_action'
+  | 'no_access'
+  | 'permission_denied'
+  | 'detector_not_found'
+  | 'not_target_detector'
+>;
+
 export type InvestigationActionRequest = {
   action: InvestigationAction | null;
   anchor: InvestigationActionRequestAnchor | null;
   appliedBy: AvatarUser | null;
   appliedDetails: Record<string, unknown> | null;
+  canApply: boolean;
+  cannotApplyReason: InvestigationActionCannotApplyReason | null;
   dateApplied: string | null;
   dateCreated: string;
   error: Record<string, unknown> | null;
@@ -308,6 +320,10 @@ export type InvestigationActionRequest = {
     'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
   >;
   title: string;
+};
+
+export type InvestigationActionRequestApplyResponse = {
+  actionRequest: InvestigationActionRequest;
 };
 
 type InvestigationOrchestrationError = {

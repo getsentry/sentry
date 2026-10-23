@@ -2,9 +2,20 @@ import {useId} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {tct} from 'sentry/locale';
-import {ActionRequestDetails} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
+import {t, tct} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  ActionRequestApply,
+  ActionRequestDetails,
+  getApplySuccessMessage,
+  useApplyCheck,
+} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
+import {
+  parseApplyError,
+  useApplyInvestigationActionRequestMutation,
+} from 'sentry/views/investigations/api';
 import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
 import type {
   InvestigationActionRequest,
@@ -13,6 +24,7 @@ import type {
 
 type ActionRequestCardProps = {
   actionRequest: InvestigationActionRequest;
+  investigationId: string;
   heading?: string;
   source?: InvestigationDetail['source'];
 };
@@ -20,9 +32,27 @@ type ActionRequestCardProps = {
 export function ActionRequestCard({
   actionRequest,
   heading,
+  investigationId,
   source,
 }: ActionRequestCardProps) {
   const headingId = useId();
+  const organization = useOrganization();
+  const check = useApplyCheck(investigationId, actionRequest);
+  const applyMutation = useApplyInvestigationActionRequestMutation(
+    organization.slug,
+    investigationId,
+    {
+      onSuccess: (_response, applied) => {
+        const message = getApplySuccessMessage(applied.action);
+        if (message) {
+          toast.success(message);
+        }
+      },
+      onError: error => {
+        toast.error(parseApplyError(error)?.detail ?? t('Unable to apply this change.'));
+      },
+    }
+  );
 
   if (actionRequest.state !== 'suggested' && actionRequest.state !== 'withdrawn') {
     return null;
@@ -63,6 +93,14 @@ export function ActionRequestCard({
         })}
       </Text>
       <ActionRequestDetails actionRequest={actionRequest} source={source} />
+      <ActionRequestApply
+        actionRequest={actionRequest}
+        applying={
+          applyMutation.isPending && applyMutation.variables?.id === actionRequest.id
+        }
+        check={check}
+        onApply={() => applyMutation.mutate(actionRequest)}
+      />
     </Stack>
   );
 }

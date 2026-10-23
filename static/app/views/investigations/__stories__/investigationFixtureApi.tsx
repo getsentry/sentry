@@ -23,7 +23,9 @@ import {
   InvestigationQueryOutputFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
+import {getSourceMonitor} from 'sentry/views/investigations/source';
 import type {
+  InvestigationActionRequest,
   InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
@@ -453,6 +455,50 @@ function handleFixtureRequest(
         projection: cloneFixture(updated),
       },
     };
+  }
+
+  if (
+    parts[1] === 'action-requests' &&
+    parts[3] === 'apply' &&
+    parts.length === 4 &&
+    method === 'POST'
+  ) {
+    const detail = getFixtureDetail(state, investigationId);
+    const actionRequest = detail.actionRequests?.find(
+      candidate => candidate.id === parts[2]
+    );
+    if (!actionRequest?.action) {
+      throw new Error(`Unknown fixture action request: ${parts[2]}`);
+    }
+    if (data.dryRun === true) {
+      return {body: {actionRequest: cloneFixture(actionRequest)}};
+    }
+    const {action} = actionRequest;
+    const applied: InvestigationActionRequest = {
+      ...actionRequest,
+      state: 'applied',
+      appliedBy: state.viewer,
+      appliedDetails:
+        action.kind === 'update_detector'
+          ? {
+              detectorId: action.detectorId,
+              detectorName:
+                getSourceMonitor(detail.source, action.detectorId)?.name ??
+                action.detectorId,
+              fields: Object.keys(action.changes),
+            }
+          : null,
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+      dateApplied: new Date().toISOString(),
+    };
+    setFixtureDetail(state, {
+      ...detail,
+      actionRequests: detail.actionRequests?.map(candidate =>
+        candidate.id === applied.id ? applied : candidate
+      ),
+    });
+    return {body: {actionRequest: cloneFixture(applied)}};
   }
 
   if (parts[1] === 'title-generation' && method === 'GET') {

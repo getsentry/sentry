@@ -14,6 +14,7 @@ import type {
 
 type NextStepCardProps = {
   actionRequests: InvestigationActionRequest[] | undefined;
+  investigationId: string;
   orchestration: InvestigationOrchestration | undefined;
   /** The action requests predate the run's current next step. */
   actionRequestsStale?: boolean;
@@ -24,6 +25,7 @@ type NextStepCardProps = {
 export function NextStepCard({
   actionRequests,
   actionRequestsStale = false,
+  investigationId,
   orchestration,
   orchestrationLoading = false,
   source,
@@ -44,6 +46,7 @@ export function NextStepCard({
       <ActionRequestCard
         actionRequest={actionRequest}
         heading={heading}
+        investigationId={investigationId}
         source={source}
       />
     );
