@@ -115,13 +115,7 @@ export function transformWidgetSeriesToTimeSeries(
     aggregates[0] ??
     '';
 
-  const timeSeries = transformLegacySeriesToTimeSeries(
-    effectiveSeries,
-    undefined,
-    undefined,
-    columns,
-    yAxis
-  );
+  const timeSeries = transformLegacySeriesToTimeSeries(effectiveSeries, columns, yAxis);
 
   if (!timeSeries) {
     return null;
