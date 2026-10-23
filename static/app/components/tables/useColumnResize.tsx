@@ -2,9 +2,14 @@ import {useCallback, useRef} from 'react';
 
 interface UseColumnResizeOptions<T extends HTMLElement> {
   /**
-   * Build the `gridTemplateColumns` string while `columnIndex` is being resized to `newWidth`.
+   * Build the `gridTemplateColumns` string while `columnIndex` is being resized to `newWidth`,
+   * holding the columns in `pinnedWidths` (passed to `onResizeStart`) at those widths.
    */
-  getResizeTemplate: (columnIndex: number, newWidth: number) => string;
+  getResizeTemplate: (
+    columnIndex: number,
+    newWidth: number,
+    pinnedWidths: ReadonlyMap<number, number>
+  ) => string;
 
   /**
    * The grid element whose `gridTemplateColumns` is mutated during a resize.
@@ -12,14 +17,19 @@ interface UseColumnResizeOptions<T extends HTMLElement> {
   gridRef: React.RefObject<T | null>;
 
   /**
-   * Persist the finalized width once the resize ends.
+   * Persist the finalized width, and any `pinnedWidths`, once the resize ends.
    */
-  onColumnResizeEnd?: (columnIndex: number, newWidth: number) => void;
+  onColumnResizeEnd?: (
+    columnIndex: number,
+    newWidth: number,
+    pinnedWidths: ReadonlyMap<number, number>
+  ) => void;
 }
 
 interface ColumnResizeState {
   columnIndex: number;
   moved: boolean;
+  pinnedWidths: ReadonlyMap<number, number>;
   width: number;
 }
 
@@ -55,9 +65,21 @@ export function useColumnResize<T extends HTMLElement>({
     [gridRef]
   );
 
-  const onResizeStart = useCallback((columnIndex: number, cell: HTMLElement | null) => {
-    resizeStateRef.current = {columnIndex, moved: false, width: cell?.offsetWidth ?? 0};
-  }, []);
+  const onResizeStart = useCallback(
+    (
+      columnIndex: number,
+      cell: HTMLElement | null,
+      pinnedWidths: ReadonlyMap<number, number> = new Map()
+    ) => {
+      resizeStateRef.current = {
+        columnIndex,
+        moved: false,
+        pinnedWidths,
+        width: cell?.offsetWidth ?? 0,
+      };
+    },
+    []
+  );
 
   const onResizeMove = useCallback(
     (delta: number) => {
@@ -77,7 +99,13 @@ export function useColumnResize<T extends HTMLElement>({
 
       frameRef.current = window.requestAnimationFrame(() => {
         frameRef.current = null;
-        applyTemplate(getResizeTemplate(state.columnIndex, Math.round(state.width)));
+        applyTemplate(
+          getResizeTemplate(
+            state.columnIndex,
+            Math.round(state.width),
+            state.pinnedWidths
+          )
+        );
       });
     },
     [applyTemplate, cancelPendingFrame, getResizeTemplate]
@@ -101,8 +129,8 @@ export function useColumnResize<T extends HTMLElement>({
     }
 
     const width = Math.round(state.width);
-    applyTemplate(getResizeTemplate(state.columnIndex, width));
-    onColumnResizeEnd?.(state.columnIndex, width);
+    applyTemplate(getResizeTemplate(state.columnIndex, width, state.pinnedWidths));
+    onColumnResizeEnd?.(state.columnIndex, width, state.pinnedWidths);
   }, [applyTemplate, cancelPendingFrame, getResizeTemplate, onColumnResizeEnd]);
 
   return {applyTemplate, onResizeEnd, onResizeMove, onResizeStart};

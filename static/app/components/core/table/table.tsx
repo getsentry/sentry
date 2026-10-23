@@ -100,6 +100,15 @@ function getDefaultColumnTrack(
   return flexible ? `minmax(${minimumColumnWidth}px, auto)` : `${minimumColumnWidth}px`;
 }
 
+function isFlexibleWidth(width: ResolvedWidth) {
+  // Content-sized minimums promise never to truncate, which a pinned width can't keep.
+  if (typeof width === 'string') {
+    return /\bauto\b|fr\b/.test(width) && !width.includes('content');
+  }
+
+  return width === undefined || width === COL_WIDTH_UNDEFINED;
+}
+
 interface TableContextValue {
   lastColumnIndex: number;
   minimumColumnWidth: number;
@@ -160,45 +169,28 @@ export function Table({
   // `@container` rules because the grid template is an inline style, which any
   // stylesheet rule would lose to.
   const resolvedColumns: ResolvedColumn[] = [];
-  const visibleColumns: ResolvedColumn[] = [];
 
   for (const {visible, width, ...column} of columns) {
-    const resolved = {
+    resolvedColumns.push({
       ...column,
       hidden: !resolveResponsiveProp(withHiddenBase(visible)),
       width: resolveResponsiveProp(width),
-    };
-
-    resolvedColumns.push(resolved);
-
-    if (!resolved.hidden) {
-      visibleColumns.push(resolved);
-    }
+    });
   }
 
   const lastVisibleIndex = resolvedColumns.findLastIndex(column => !column.hidden);
 
-  // A hidden column keeps its place in `columns` — a cell is still rendered for
-  // it — so a column's own index is not the index of the track it sits in.
-  const trackIndexes = resolvedColumns.map(
-    (_, index) => resolvedColumns.slice(0, index).filter(column => !column.hidden).length
-  );
-
   const resolveWidth = (column: ResolvedColumn): ResolvedWidth =>
     isControlled ? column.width : (internalWidths[column.key] ?? column.width);
 
-  const buildTemplate = (overrideIndex?: number, overrideWidth?: number) => {
-    const overrideTrack =
-      overrideIndex === undefined ? undefined : trackIndexes[overrideIndex];
-
-    const tracks = visibleColumns.map((column, index) =>
-      getDefaultColumnTrack(
-        index === overrideTrack ? overrideWidth : resolveWidth(column),
-        {
-          flexible: flexibleLastColumn && index === visibleColumns.length - 1,
-          minimumColumnWidth,
-        }
-      )
+  const buildTemplate = (overrides?: ReadonlyMap<number, number>) => {
+    const tracks = resolvedColumns.flatMap((column, index) =>
+      column.hidden
+        ? []
+        : getDefaultColumnTrack(overrides?.get(index) ?? resolveWidth(column), {
+            flexible: flexibleLastColumn && index === lastVisibleIndex,
+            minimumColumnWidth,
+          })
     );
 
     if (!tracks.length) {
@@ -218,12 +210,65 @@ export function Table({
     }
   };
 
+  // A flexible column left of the dragged one would otherwise absorb the width
+  // change, leaving the handle in place while the columns before it move.
+  // Without a flexible last column, pinning could leave no column to absorb
+  // later container width changes, so those tables keep their flexible columns.
+  const measurePinnedWidths = (draggedIndex: number) => {
+    const pinned = new Map<number, number>();
+    const grid = gridRef.current;
+    if (!grid || !flexibleLastColumn) {
+      return pinned;
+    }
+
+    // Computed tracks are only usable once the browser has resolved them to pixels.
+    const tracks = getComputedStyle(grid).gridTemplateColumns.split(' ');
+    if (!tracks.every(track => track.endsWith('px'))) {
+      return pinned;
+    }
+
+    const columnTracks = tracks.slice(prependColumnWidths?.length ?? 0).values();
+
+    for (const [index, column] of resolvedColumns.slice(0, draggedIndex).entries()) {
+      if (column.hidden) {
+        continue;
+      }
+
+      const trackWidth = Math.round(parseFloat(columnTracks.next().value ?? ''));
+
+      // A column without a handle could never be reset to flexible again, and one
+      // narrower than the minimum would jump wider when pinned.
+      if (
+        column.resizable !== false &&
+        isFlexibleWidth(resolveWidth(column)) &&
+        trackWidth >= minimumColumnWidth
+      ) {
+        pinned.set(index, trackWidth);
+      }
+    }
+
+    return pinned;
+  };
+
+  const withResizedWidth = (
+    pinnedWidths: ReadonlyMap<number, number>,
+    index: number,
+    width: number
+  ) => new Map(pinnedWidths).set(index, Math.max(width, minimumColumnWidth));
+
   const {applyTemplate, onResizeEnd, onResizeMove, onResizeStart} = useColumnResize({
     gridRef,
-    getResizeTemplate: (index, newWidth) =>
-      buildTemplate(index, Math.max(newWidth, minimumColumnWidth)),
-    onColumnResizeEnd: (index, newWidth) =>
-      commitWidth(index, Math.max(newWidth, minimumColumnWidth)),
+    getResizeTemplate: (index, newWidth, pinnedWidths) =>
+      buildTemplate(withResizedWidth(pinnedWidths, index, newWidth)),
+    onColumnResizeEnd: (index, newWidth, pinnedWidths) => {
+      for (const [columnIndex, width] of withResizedWidth(
+        pinnedWidths,
+        index,
+        newWidth
+      )) {
+        commitWidth(columnIndex, width);
+      }
+    },
   });
 
   const template = buildTemplate();
@@ -249,12 +294,13 @@ export function Table({
     onResetColumnSize: (event, index) => {
       event.stopPropagation();
 
-      applyTemplate(buildTemplate(index, COL_WIDTH_UNDEFINED));
+      applyTemplate(buildTemplate(new Map([[index, COL_WIDTH_UNDEFINED]])));
       commitWidth(index, COL_WIDTH_UNDEFINED);
     },
     onResizeEnd,
     onResizeMove,
-    onResizeStart,
+    onResizeStart: (index, cell) =>
+      onResizeStart(index, cell, measurePinnedWidths(index)),
     resizableByIndex: resolvedColumns.map(
       column => !column.hidden && column.resizable !== false
     ),
