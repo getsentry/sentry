@@ -83,7 +83,7 @@ class BackfillActionsTest(TestCase):
             group_id=self.group.id, idempotency_key=f"activity:{missing.id}"
         )
         assert row.type == GroupActionType.COMMENT
-        assert row.data == {"comment_id": missing.id}
+        assert row.data == {"comment_id": missing.id, "text": None, "mentions": None}
         assert row.date_added == missing.datetime
         legacy_entry.refresh_from_db()
         assert legacy_entry.type == GroupActionType.COMMENT

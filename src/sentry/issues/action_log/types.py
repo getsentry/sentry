@@ -420,10 +420,6 @@ class CommentAction(GroupAction):
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
-    def json_dict(self) -> dict[str, Any]:
-        # Retain historical content when present; omit it for reference-only events.
-        return {key: value for key, value in super().json_dict().items() if value is not None}
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.COMMENT
@@ -438,10 +434,6 @@ class CommentEditAction(GroupAction):
     comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
-
-    def json_dict(self) -> dict[str, Any]:
-        # Retain historical content when present; omit it for reference-only events.
-        return {key: value for key, value in super().json_dict().items() if value is not None}
 
     @classmethod
     def get_type(cls) -> GroupActionType:

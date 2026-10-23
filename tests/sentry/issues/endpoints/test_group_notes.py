@@ -515,7 +515,7 @@ class GroupNoteCreateTest(APITestCase):
         assert response.data["data"]["text"] == "hello world"
         assert response.data["data"]["comment_id"] == activity.id
 
-        assert entry.data == {"comment_id": activity.id}
+        assert entry.data == {"comment_id": activity.id, "text": None, "mentions": None}
 
     @with_feature({"projects:issue-action-log-write-to-db": False})
     def test_returns_null_source_without_action_log_entry(self) -> None:
@@ -532,7 +532,6 @@ class GroupNoteCreateTest(APITestCase):
         assert response.data["source"] is None
         assert response.data["id"] == response.data["commentId"]
         assert response.data["data"]["comment_id"] == int(response.data["commentId"])
-
 
     def test_with_mentions(self) -> None:
         user_not_on_team = self.create_user(email="hello@meow.com")

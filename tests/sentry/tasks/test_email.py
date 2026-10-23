@@ -38,7 +38,7 @@ class ProcessInboundEmailTest(TestCase):
         activity = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
         assert activity.data == {"text": "hello world!"}
         entry = GroupActionLogEntry.objects.get(group_id=group.id, type=GroupActionType.COMMENT)
-        assert entry.data == {"comment_id": activity.id}
+        assert entry.data == {"comment_id": activity.id, "text": None, "mentions": None}
         assert entry.source == "email"
         assert entry.actor_id == self.user.id
 
