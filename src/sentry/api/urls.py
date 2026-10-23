@@ -803,10 +803,6 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
-from .endpoints.organization_events_facets_performance import (
-    OrganizationEventsFacetsPerformanceEndpoint,
-    OrganizationEventsFacetsPerformanceHistogramEndpoint,
-)
 from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
@@ -817,7 +813,6 @@ from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_validate import OrganizationEventsValidateEndpoint
-from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
@@ -1921,16 +1916,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-facets",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance/$",
-        OrganizationEventsFacetsPerformanceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-performance",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance-histogram/$",
-        OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-performance-histogram",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-meta/$",
         OrganizationEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-meta",
@@ -1954,11 +1939,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-histogram/$",
         OrganizationEventsHistogramEndpoint.as_view(),
         name="sentry-api-0-organization-events-histogram",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-vitals/$",
-        OrganizationEventsVitalsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-vitals",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

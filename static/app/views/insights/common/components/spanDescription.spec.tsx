@@ -22,7 +22,6 @@ describe('DatabaseSpanDescription', () => {
 
   const project = ProjectFixture();
 
-  const groupId = '2ed2abf6ce7e3577';
   const spanId = 'abfed2aabf';
   const eventId = '65c7d8647b8a76ef8f4c05d41deb7860';
 
@@ -34,7 +33,7 @@ describe('DatabaseSpanDescription', () => {
 
     render(
       <DatabaseSpanDescription
-        groupId={groupId}
+        spanId={spanId}
         preliminaryDescription="SELECT USERS FRO*"
       />,
       {organization}
@@ -43,6 +42,21 @@ describe('DatabaseSpanDescription', () => {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('SELECT USERS FRO*')).toBeInTheDocument();
+  });
+
+  it('does not look up a span without an id', () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+
+    render(
+      <DatabaseSpanDescription spanId="" preliminaryDescription="SELECT * FROM users" />,
+      {organization}
+    );
+
+    expect(screen.getByText('SELECT * FROM users')).toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
   });
 
   it('shows full query from indexed span', async () => {
@@ -62,7 +76,7 @@ describe('DatabaseSpanDescription', () => {
 
     render(
       <DatabaseSpanDescription
-        groupId={groupId}
+        spanId={spanId}
         preliminaryDescription="SELECT USERS FRO*"
       />,
       {organization}
@@ -94,7 +108,7 @@ describe('DatabaseSpanDescription', () => {
 
     render(
       <DatabaseSpanDescription
-        groupId={groupId}
+        spanId={spanId}
         preliminaryDescription="SELECT USERS FRO*"
       />,
       {organization}
@@ -130,7 +144,7 @@ describe('DatabaseSpanDescription', () => {
 
     render(
       <DatabaseSpanDescription
-        groupId={groupId}
+        spanId={spanId}
         preliminaryDescription={sampleMongoDBQuery}
       />,
       {organization}

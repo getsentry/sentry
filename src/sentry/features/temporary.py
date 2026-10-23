@@ -110,6 +110,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:explore-errors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable interpolation and smoothing for Explore charts
     manager.add("organizations:explore-interpolation-and-smoothing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable plotting multiple aggregates on one chart in Explore
+    manager.add("organizations:explore-multi-aggregate-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable returning the migrated discover queries in explore saved queries
     manager.add("organizations:expose-migrated-discover-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable organization investigation notebooks.
@@ -164,6 +166,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:jira-lazy-status-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use the paginated project endpoint in Jira org config to avoid timeouts on large instances.
     manager.add("organizations:jira-paginated-project-config", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable usage CSV downloads on the subscription invoices list.
+    manager.add("organizations:invoice-usage-downloads", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable inviting billing members to organizations at the member limit.
     manager.add("organizations:invite-billing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     # Enable inviting members to organizations.
@@ -345,8 +349,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-should-run-repo-checks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable showing seer in a persistent sidebar
-    manager.add("organizations:seer-explorer-persistent-sidebar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show Seer run ID in Slack notification footers
     manager.add("organizations:seer-run-id-in-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Gate infra telemetry provider connections (Datadog MCP, GCP MCP)

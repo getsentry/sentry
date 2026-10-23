@@ -37,7 +37,7 @@ function formatBucketRange(start: number, end: number, timezone: string): string
 }
 
 function totalEventCount(bucket: DroppedDataBucket): number {
-  return bucket.dropped.count + bucket.accepted.count;
+  return bucket.dropped + bucket.accepted;
 }
 
 function VolumeRow({label, value, total}: Ratio & {label: string}) {

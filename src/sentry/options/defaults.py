@@ -284,11 +284,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
-    "auth.oauth-react-enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -1551,6 +1546,22 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Conversation classifiers PoC.
+register(
+    "classifiers.conversations.project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum conversations fetched from each project per scan.
+register(
+    "classifiers.conversations.telemetry-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1908,16 +1919,6 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 register(
     "relay.invalidation-direct-outside-atomic",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
-# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
-# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
-register(
-    "custom-inbound-filters.legacy-filter-stage",
-    default={},
-    type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3458,13 +3459,6 @@ register(
 # Enable sending a post update signal after we update groups using a queryset update
 register(
     "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Invalidate the model cache for rows updated by a queryset update that sends the post update signal
-register(
-    "groups.post-update-invalidates-cache",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -14,8 +14,10 @@ import {
 /** Names are stored with this prefix so they can't collide with a built in function. */
 const NAME_PREFIX = 'formula.';
 
-/** The API resolves params positionally, and only has four positions. */
-export const MAX_PARAMS = 4;
+/** Mirrors the API limits, which keep formulas small enough for the UI to render. */
+export const MAX_PARAMS = 7;
+export const MAX_INPUT_PARAMS = 2;
+export const MAX_REFERENCES = 5;
 
 /** Rows are keyed separately because they have no name until one is typed in. */
 export type DraftParam = Omit<FormulaParam, 'order'> & {key: string};

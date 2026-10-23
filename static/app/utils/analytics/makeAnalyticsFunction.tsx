@@ -1,6 +1,7 @@
 import {getOverride} from 'sentry/overrideRegistry';
 import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 /**
  * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
@@ -13,7 +14,7 @@ import type {Overrides} from 'sentry/types/overrides';
 const rawTrackAnalyticsEvent: Overrides['analytics:raw-track-event'] = (data, options) =>
   getOverride('analytics:raw-track-event')?.(data, options);
 
-const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
+const hasAnalyticsDebug = () => localStorageWrapper.getItem('DEBUG_ANALYTICS') === '1';
 
 type OptionalOrg = {
   organization: Organization | string | null;

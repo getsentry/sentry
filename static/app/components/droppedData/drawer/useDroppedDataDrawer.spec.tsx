@@ -88,6 +88,7 @@ describe('useDroppedDataDrawer', () => {
 
   afterEach(() => {
     PageFiltersStore.reset();
+    localStorage.clear();
   });
 
   it('adds the drawer to the URL when opened and removes it when closed', async () => {
@@ -215,6 +216,24 @@ describe('useDroppedDataDrawer', () => {
     });
 
     expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
+  });
+
+  it('restores the width the drawer was resized to', async () => {
+    mockDroppedData(10, '14d');
+    localStorage.setItem('drawer-width:dropped-data-drawer', '70');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 dropped and filtered events')).toBeInTheDocument();
+
+    const drawer = screen.getByRole('complementary', {
+      name: 'Dropped and Filtered Events',
+    });
+    expect(drawer.style.getPropertyValue('--drawer-width')).toBe('70%');
   });
 
   it('does not open from the URL param when disabled', async () => {
