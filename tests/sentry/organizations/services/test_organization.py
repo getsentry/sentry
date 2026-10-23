@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.conf import settings
 
 from sentry.constants import ObjectStatus
@@ -9,7 +11,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
-from sentry.models.team import Team, TeamStatus
+from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 from sentry.organizations.services.organization.service import organization_service
 from sentry.testutils.cases import TestCase
@@ -18,7 +20,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 
 @all_silo_test
 class ActiveOrganizationResourcesTest(TestCase):
-    def test_active_project_ids(self) -> None:
+    def test_active_resource_ids(self) -> None:
         org = self.create_organization()
         other_org = self.create_organization()
         team = self.create_team(organization=org)
@@ -28,49 +30,126 @@ class ActiveOrganizationResourcesTest(TestCase):
         self.create_project(organization=org, status=ObjectStatus.PENDING_DELETION)
         self.create_project(organization=org, status=ObjectStatus.DELETION_IN_PROGRESS)
         self.create_project(organization=org, status=ObjectStatus.DISABLED)
-
-        assert set(organization_service.get_active_project_ids(organization_id=org.id)) == {
-            project.id,
-            unassigned.id,
-        }
-
-    def test_active_team_ids(self) -> None:
-        org = self.create_organization()
-        team = self.create_team(organization=org)
         self.create_team(organization=self.create_organization())
         self.create_team(organization=org, status=TeamStatus.PENDING_DELETION)
         self.create_team(organization=org, status=TeamStatus.DELETION_IN_PROGRESS)
 
-        assert organization_service.get_active_team_ids(organization_id=org.id) == [team.id]
+        resources = organization_service.get_active_resource_ids(organization_id=org.id)
+        assert set(resources.project_ids) == {project.id, unassigned.id}
+        assert resources.team_ids == [team.id]
+
+    def test_validate_supplied_project_ids(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self.create_project(organization=org)
+        inactive = self.create_project(organization=org, status=ObjectStatus.DISABLED)
+        foreign = self.create_project(organization=self.create_organization())
+
+        assert organization_service.get_active_project_ids(
+            organization_id=org.id, project_ids=[project.id, project.id, inactive.id, foreign.id]
+        ) == [project.id]
+        assert (
+            organization_service.get_active_project_ids(organization_id=org.id, project_ids=[])
+            == []
+        )
 
     def test_empty_organization(self) -> None:
         org = self.create_organization()
 
-        assert organization_service.get_active_project_ids(organization_id=org.id) == []
-        assert organization_service.get_active_team_ids(organization_id=org.id) == []
+        context = organization_service.get_access_context(
+            organization_id=org.id, include_resource_ids=True
+        )
+        assert context is not None
+        assert context.resource_ids is not None
+        assert context.resource_ids.project_ids == []
+        assert context.resource_ids.team_ids == []
 
-    def test_project_ids_rpc_serialization(self) -> None:
-        project = self.create_project()
+    def test_member_context_does_not_load_organization_resources(self) -> None:
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(organization=org, members=[self.user])
+        project = self.create_project(organization=org, teams=[team])
+        self.create_project(organization=org)
+        with (
+            mock.patch(
+                "sentry.organizations.services.organization.serial.serialize_project"
+            ) as projects,
+            mock.patch(
+                "sentry.organizations.services.organization.serial.serialize_rpc_team"
+            ) as teams,
+            mock.patch(
+                "sentry.organizations.services.organization.impl.DatabaseBackedOrganizationService.get_active_resource_ids"
+            ) as resources,
+        ):
+            context = organization_service.get_access_context(
+                organization_id=org.id, user_id=self.user.id
+            )
+        projects.assert_not_called()
+        teams.assert_not_called()
+        resources.assert_not_called()
+        assert context is not None
+        assert context.organization.id == org.id
+        assert context.organization.projects == []
+        assert context.organization.teams == []
+        assert context.resource_ids is None
+        assert context.member is not None
+        assert context.member.user_id == self.user.id
+        assert context.member.project_ids == [project.id]
+        assert [t.team_id for t in context.member.member_teams] == [team.id]
+
+    def test_access_context_rpc_serialization(self) -> None:
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(organization=org, teams=[team])
 
         with assume_test_silo_mode_of(Project):
             response = dispatch_to_local_service(
                 "organization",
-                "get_active_project_ids",
-                {"organization_id": project.organization_id},
+                "get_access_context",
+                {"organization_id": org.id, "include_resource_ids": True},
             )
 
-        assert response["value"] == [project.id]
+        value = response["value"]
+        assert value["organization"]["id"] == org.id
+        assert value["organization"]["projects"] == []
+        assert value["organization"]["teams"] == []
+        assert value["resource_ids"] == {"project_ids": [project.id], "team_ids": [team.id]}
 
-    def test_team_ids_rpc_serialization(self) -> None:
+    def test_access_context_visibility(self) -> None:
         org = self.create_organization()
-        team = self.create_team(organization=org)
+        context = organization_service.get_access_context_by_slug(
+            slug=org.slug, only_visible=True, user_id=self.user.id
+        )
+        assert context is not None
+        assert context.member is None
+        with assume_test_silo_mode_of(Organization):
+            org.update(status=OrganizationStatus.PENDING_DELETION)
+        assert (
+            organization_service.get_access_context_by_slug(slug=org.slug, only_visible=True)
+            is None
+        )
+        assert (
+            organization_service.get_access_context_by_slug(slug=org.slug, only_visible=False)
+            is not None
+        )
+        assert organization_service.get_access_context(organization_id=0) is None
 
-        with assume_test_silo_mode_of(Team):
-            response = dispatch_to_local_service(
-                "organization", "get_active_team_ids", {"organization_id": org.id}
-            )
+    def test_project_summary_preserves_targeting_semantics(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org, platform="python")
+        self.create_project(organization=org, platform="python")
+        self.create_project(organization=org, platform=None)
+        self.create_project(
+            organization=org, platform="javascript", status=ObjectStatus.PENDING_DELETION
+        )
+        self.create_project(organization=self.create_organization(), platform="ruby")
+        with assume_test_silo_mode_of(Project):
+            project.flags.has_releases = True
+            project.save()
 
-        assert response["value"] == [team.id]
+        summary = organization_service.get_project_summary(organization_id=org.id)
+        assert set(summary.platforms) == {"python", "javascript", None}
+        assert summary.flags.has_releases
+        assert not summary.flags.has_sessions
 
 
 @all_silo_test

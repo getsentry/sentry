@@ -545,13 +545,11 @@ class DetermineAccessHydrationTest(TestCase):
     def test_existing_context_is_reused(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
-        context = organization_service.get_organization_by_id(
-            id=org.id, user_id=user.id, include_projects=False, include_teams=False
-        )
+        context = organization_service.get_access_context(organization_id=org.id, user_id=user.id)
         assert context is not None
         request = drf_request_from_request(self.make_request(user=user))
 
-        with mock.patch.object(organization_service, "get_organization_by_id") as get_org:
+        with mock.patch.object(organization_service, "get_access_context") as get_org:
             OrganizationPermission().determine_access(request, context)
 
         get_org.assert_not_called()
