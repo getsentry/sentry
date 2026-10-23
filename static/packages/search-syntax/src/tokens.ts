@@ -58,6 +58,14 @@ export enum TermOperator {
   DOES_NOT_MATCH = '!//',
 }
 
+/**
+ * The internal "contains", "starts with" and "ends with" operators for text
+ * filters, and their negations. The query builder writes them as a
+ * `\uF00D`-delimited marker before the value, e.g.
+ * `message:\uF00DContains\uF00Dtimeout`, and the parser turns the marker
+ * into the filter's operator. They are not user-facing syntax: `*` wildcards
+ * that users type stay in the value text.
+ */
 export const wildcardOperators = [
   TermOperator.CONTAINS,
   TermOperator.DOES_NOT_CONTAIN,
@@ -67,17 +75,27 @@ export const wildcardOperators = [
   TermOperator.DOES_NOT_END_WITH,
 ] as const;
 
+/** One of {@link wildcardOperators}. */
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
+/**
+ * The operators for regex filters such as `foo://^ba[rz]$//`. Token
+ * converters only use them when the search config sets `allowRegex`;
+ * otherwise the value is literal text.
+ */
 export const regexOperators = [
   TermOperator.MATCHES,
   TermOperator.DOES_NOT_MATCH,
 ] as const;
 
+/** One of {@link regexOperators}. */
 export type RegexOperator = (typeof regexOperators)[number];
 
 /**
- * Logic operators
+ * The boolean operators that join search terms, e.g. `a:1 OR b:2`. They are
+ * case-insensitive in queries and normalized to upper case in
+ * {@link Token.LOGIC_BOOLEAN} tokens. Terms separated only by spaces are
+ * implicitly joined with `AND`.
  */
 export enum BooleanOperator {
   AND = 'AND',
@@ -85,8 +103,9 @@ export enum BooleanOperator {
 }
 
 /**
- * The Token.Filter may be one of many types of filters. This enum declares the
- * each variant filter type.
+ * The kind of a {@link Token.FILTER} token, which decides how its value is
+ * parsed. The grammar picks a typed filter (date, duration, numeric, ...) when
+ * the token converter's predicates accept the key, and falls back to `TEXT`.
  */
 export enum FilterType {
   TEXT = 'text',

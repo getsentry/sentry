@@ -24,7 +24,11 @@ export type SourcePosition = {
 
 export type SourceLocation = {
   end: SourcePosition;
-  source: unknown;
+  /**
+   * Peggy's `grammarSource` option. The grammar options don't take one, so
+   * this is always `undefined`.
+   */
+  source: undefined;
   start: SourcePosition;
 };
 
@@ -330,7 +334,8 @@ function joinListItem<V>([space1, comma, space2, value]: RawListItem<V>): ListIt
   };
 }
 
-type ConverterOptions<C extends SearchConfig> = {
+/** What the grammar passes to the converter's constructor. */
+export type ConverterOptions<C extends SearchConfig> = {
   config: C;
   location: () => SourceLocation;
   text: () => string;
@@ -834,15 +839,14 @@ export function parseSearchOrThrow<C extends SearchConfig = SearchConfig>(
   query: string,
   options: ParseSearchOptions<C> = {}
 ): ParseResult {
-  const config = options.config
-    ? mergeSearchConfig(defaultConfig as C, options.config)
-    : defaultConfig;
+  const base = defaultConfig as C;
+  const config = options.config ? mergeSearchConfig(base, options.config) : base;
   return parseGrammar(query, {
     config,
     TokenConverter: options.converter ?? TokenConverter,
     TermOperator,
     FilterType,
-  }) as ParseResult;
+  });
 }
 
 /**

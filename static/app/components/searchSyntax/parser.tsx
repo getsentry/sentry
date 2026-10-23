@@ -1582,9 +1582,9 @@ export const defaultConfig: SearchConfig = {
   },
 };
 
-function tryParseSearch(...args: Parameters<typeof parse>): ParseResult | null {
+function tryParseSearch(query: string, config: SearchConfig): ParseResult | null {
   try {
-    return parse(...args);
+    return parse(query, {config, TokenConverter, TermOperator, FilterType});
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),
@@ -1607,12 +1607,7 @@ export function parseSearch(
     ? mergeSearchConfigWithDefaults(defaultConfig, additionalConfig)
     : defaultConfig;
 
-  return tryParseSearch(query, {
-    config,
-    TokenConverter,
-    TermOperator,
-    FilterType,
-  });
+  return tryParseSearch(query, config);
 }
 
 /**
