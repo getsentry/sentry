@@ -11,6 +11,7 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models.group import Group, GroupStatus
+from sentry.models.options.project_option import ProjectOption
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
@@ -67,8 +68,8 @@ class ScheduleAutoResolutionTest(TestCase):
         assert project.get_option("sentry:_last_auto_resolve") > current_ts
         assert not project2.get_option("sentry:_last_auto_resolve")
         assert project3.get_option("sentry:_last_auto_resolve") == current_ts
-        # this should get cleaned up since it had no resolve age set
-        assert not project4.get_option("sentry:_last_auto_resolve")
+        # _last_auto_resolve rows that are disabled are no longer deleted; the project is simply skipped
+        assert project4.get_option("sentry:_last_auto_resolve") == current_ts
         assert_any_analytics_event(
             mock_record,
             IssueAutoResolvedEvent(
@@ -79,6 +80,54 @@ class ScheduleAutoResolutionTest(TestCase):
                 issue_category="error",
             ),
         )
+
+    @patch("sentry.tasks.auto_resolve_issues.auto_resolve_project_issues")
+    def test_explicit_zero_row_survives_and_is_not_dispatched(self, mock_task: MagicMock) -> None:
+        project = self.create_project()
+        project.update_option("sentry:resolve_age", 0)
+        project.update_option("sentry:_last_auto_resolve", 12345)
+
+        schedule_auto_resolution()
+
+        assert mock_task.apply_async.call_count == 0
+        # the explicit opt-out row is durable, not garbage collected
+        assert ProjectOption.objects.filter(project=project, key="sentry:resolve_age").exists()
+        assert ProjectOption.objects.filter(
+            project=project, key="sentry:_last_auto_resolve"
+        ).exists()
+
+    @patch("sentry.tasks.auto_resolve_issues.auto_resolve_project_issues")
+    def test_none_valued_row_survives_and_is_not_dispatched(self, mock_task: MagicMock) -> None:
+        project = self.create_project()
+        project.update_option("sentry:resolve_age", None)
+
+        schedule_auto_resolution()
+
+        assert mock_task.apply_async.call_count == 0
+        assert ProjectOption.objects.filter(project=project, key="sentry:resolve_age").exists()
+
+    @patch("sentry.tasks.auto_resolve_issues.auto_resolve_project_issues")
+    def test_debounce_honored(self, mock_task: MagicMock) -> None:
+        project = self.create_project()
+        project.update_option("sentry:resolve_age", 1)
+        project.update_option("sentry:_last_auto_resolve", int(time()))
+
+        schedule_auto_resolution()
+
+        assert mock_task.apply_async.call_count == 0
+
+    @patch("sentry.tasks.auto_resolve_issues.SCHEDULER_CHUNK_SIZE", 2)
+    @patch("sentry.tasks.auto_resolve_issues.auto_resolve_project_issues")
+    def test_multi_chunk_scan(self, mock_task: MagicMock) -> None:
+        projects = [self.create_project() for _ in range(5)]
+        for project in projects:
+            project.update_option("sentry:resolve_age", 1)
+
+        schedule_auto_resolution()
+
+        assert mock_task.apply_async.call_count == 5
+        dispatched_ids = {call.kwargs["args"][0] for call in mock_task.apply_async.call_args_list}
+        assert dispatched_ids == {project.id for project in projects}
 
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
     def test_records_action_log_as_system(self, mock_kick_off_status_syncs: MagicMock) -> None:
