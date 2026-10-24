@@ -51,7 +51,10 @@ class ManualTokenRefresher:
 
             try:
                 installation = self.installation
-                if installation.api_token is None:
+                # Check the FK id rather than the related object: the token may be
+                # deleted by a concurrent refresh between reading the installation
+                # and lazily loading the relation, which would raise DoesNotExist.
+                if installation.api_token_id is None:
                     raise SentryAppIntegratorError(
                         message="Installation does not have a token",
                         status_code=401,
