@@ -1,6 +1,9 @@
 from datetime import timedelta
-from typing import cast
-from unittest.mock import patch
+from typing import Any, cast
+from unittest.mock import Mock, call, patch
+
+import pytest
+from django.db import OperationalError
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -9,7 +12,7 @@ from sentry.issues.action_log.types import (
     ActionSource,
     ReconcileStatusAction,
 )
-from sentry.issues.derived.check import StatusInconsistency
+from sentry.issues.derived.check import StatusInconsistency, check_status_consistency
 from sentry.issues.derived.features import IssueStatus
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.processing import PIPELINE
@@ -84,6 +87,117 @@ class ReconcileGroupStatusTest(TestCase):
             sample_rate=1.0,
             tags={"result": "aligned"},
         )
+
+    def test_invalid_status_is_reported_without_publishing(self) -> None:
+        self._assert_corrupt_data_is_contained({"status": "invalid"})
+
+    def test_null_status_is_reported_without_publishing(self) -> None:
+        self._assert_corrupt_data_is_contained({"status": None})
+
+    def test_non_object_data_is_reported_without_publishing(self) -> None:
+        self._assert_corrupt_data_is_contained([])
+
+    def _assert_corrupt_data_is_contained(self, data: Any) -> None:
+        group, derived = self._create_divergent_group()
+        GroupDerivedData.objects.filter(id=derived.id).update(data=data)
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+        with (
+            capture_action_log() as log,
+            patch("sentry.issues.derived.reconcile.metrics.incr") as incr,
+            patch("sentry.issues.derived.reporting.logger") as logger,
+        ):
+            reconcile_group_status(group.id)
+
+        log.assert_not_logged(ReconcileStatusAction)
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
+        self._assert_corruption_reported(incr, logger, derived)
+
+    def _assert_corruption_reported(
+        self, incr: Mock, logger: Mock, derived: GroupDerivedData
+    ) -> None:
+        outcomes = [
+            metric_call
+            for metric_call in incr.call_args_list
+            if metric_call.args[0] == "issues.derived.reconcile_group_status.result"
+        ]
+        assert outcomes == [
+            call(
+                "issues.derived.reconcile_group_status.result",
+                sample_rate=1.0,
+                tags={"result": "error"},
+            )
+        ]
+        incr.assert_any_call(
+            "issues.derived.feature_error",
+            sample_rate=1.0,
+            tags={
+                "operation": "reconcile",
+                "stage": "decode",
+                "feature": "status",
+                "aggregator": "none",
+            },
+        )
+        logger.exception.assert_called_once()
+        extra = logger.exception.call_args.kwargs["extra"]
+        assert extra["group_id"] == derived.group_id
+        assert extra["cursor_id"] == derived.cursor_id
+        assert extra["stored_pipeline_hash"] == derived.pipeline_hash
+        assert extra["pipeline_hash"] == PIPELINE.pipeline_hash
+        assert extra["operation"] == "reconcile"
+        assert extra["feature_name"] == "status"
+
+    def test_corruption_between_checks_is_reported_without_publishing(self) -> None:
+        group, derived = self._create_divergent_group()
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+
+        def corrupt_stored_status(group_id: int) -> bool:
+            GroupDerivedData.objects.filter(group_id=group_id).update(data={"status": None})
+            return False
+
+        with (
+            patch(
+                "sentry.issues.derived.reconcile._has_pending_group_action_log_outbox",
+                side_effect=corrupt_stored_status,
+            ),
+            patch(
+                "sentry.issues.derived.reconcile.check_status_consistency",
+                wraps=check_status_consistency,
+            ) as check,
+            capture_action_log() as log,
+            patch("sentry.issues.derived.reconcile.metrics.incr") as incr,
+            patch("sentry.issues.derived.reporting.logger") as logger,
+        ):
+            reconcile_group_status(group.id)
+
+        assert check.call_count == 2
+        log.assert_not_logged(ReconcileStatusAction)
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == {
+            **before,
+            "data": {"status": None},
+        }
+        self._assert_corruption_reported(incr, logger, derived)
+
+    def test_database_failure_propagates(self) -> None:
+        group, _ = self._create_divergent_group()
+        with (
+            patch(
+                "sentry.issues.derived.reconcile.GroupDerivedData.objects.get_or_none",
+                side_effect=OperationalError("database unavailable"),
+            ),
+            capture_action_log() as log,
+            patch("sentry.issues.derived.reconcile.metrics.incr") as incr,
+            patch("sentry.issues.derived.reporting.logger") as logger,
+            pytest.raises(OperationalError, match="database unavailable"),
+        ):
+            reconcile_group_status(group.id)
+
+        log.assert_not_logged(ReconcileStatusAction)
+        logger.exception.assert_not_called()
+        assert not [
+            metric_call
+            for metric_call in incr.call_args_list
+            if metric_call.args[0] == "issues.derived.reconcile_group_status.result"
+        ]
 
     def test_divergent_publishes_action(self) -> None:
         group, _ = self._create_divergent_group(
