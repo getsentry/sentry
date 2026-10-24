@@ -78,7 +78,10 @@ describe('SharedGroupDetails', () => {
     const detailsLink = await screen.findByRole('link', {name: 'Details'});
     expect(detailsLink).toBeInTheDocument();
     expect(detailsLink.tagName).toBe('A');
-    expect(detailsLink).toHaveAttribute('href', 'https://foo.io/organizations/foo/issues/1234/');
+    expect(detailsLink).toHaveAttribute(
+      'href',
+      'https://foo.io/organizations/foo/issues/1234/'
+    );
     expect(await screen.findByTestId('sgh-timestamp')).toBeInTheDocument();
   });
 
