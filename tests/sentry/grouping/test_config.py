@@ -4,9 +4,17 @@ import time
 from unittest.mock import MagicMock, patch
 
 from sentry import audit_log
-from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
+from sentry.conf.server import (
+    BETA_GROUPING_CONFIG,
+    DEFAULT_GROUPING_CONFIG,
+    SENTRY_GROUPING_CONFIG_TRANSITION_DURATION,
+)
 from sentry.grouping.api import get_grouping_config_dict_for_project
-from sentry.grouping.ingest.config import is_in_transition, update_or_set_grouping_config_if_needed
+from sentry.grouping.ingest.config import (
+    CONFIGS_TO_DEPRECATE,
+    is_in_transition,
+    update_or_set_grouping_config_if_needed,
+)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
@@ -22,6 +30,17 @@ class GroupingConfigTest(TestCase):
             key__in=["sentry:secondary_grouping_config", "sentry:secondary_grouping_expiry"],
             project_id=self.project.id,
         ).count()
+
+    def test_preserves_beta_grouping_config(self) -> None:
+        self.project.update_option("sentry:grouping_config", BETA_GROUPING_CONFIG)
+
+        assert BETA_GROUPING_CONFIG not in CONFIGS_TO_DEPRECATE
+        assert (
+            update_or_set_grouping_config_if_needed(self.project, "ingest")
+            == "skipped - beta config"
+        )
+        assert self.project.get_option("sentry:grouping_config") == BETA_GROUPING_CONFIG
+        assert self._count_secondary_config_options() == 0
 
     def test_loads_default_config_if_stored_config_option_is_invalid(self) -> None:
         self.project.update_option("sentry:grouping_config", "dogs.are.great")

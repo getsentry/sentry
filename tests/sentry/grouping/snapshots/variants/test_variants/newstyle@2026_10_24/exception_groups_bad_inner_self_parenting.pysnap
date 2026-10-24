@@ -1,0 +1,20 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "93b26686d00504b4e5aa1cb0244d8b37"
+  contributing component: chained_exception
+  hint: None
+  root_component:
+    app*
+      chained_exception*
+        exception*
+          type*
+            "InnerException"
+          value*
+            "Nope"
+        exception*
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."

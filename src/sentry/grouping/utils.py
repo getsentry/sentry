@@ -17,7 +17,11 @@ if TYPE_CHECKING:
     from sentry.services.eventstore.models import BaseEvent
 
 
-def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:
+def hash_from_values(
+    values: Iterable[str | int | UUID | ExceptionGroupingComponent],
+    *,
+    with_value_boundaries: bool = False,
+) -> str:
     """
     Primarily used at the end of the grouping process, to get a final hash value once the all of the
     variants have been constructed, but also used as a hack to compare exception components (by
@@ -25,7 +29,12 @@ def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingCompon
     """
     result = md5()
     for value in values:
-        result.update(force_bytes(value, errors="replace"))
+        value_bytes = force_bytes(value, errors="replace")
+        if with_value_boundaries:
+            # Length-prefix the encoded bytes so empty values and values containing delimiters
+            # cannot obscure fingerprint boundaries. Keep legacy callers unchanged by default.
+            result.update(f"{len(value_bytes)}:".encode("ascii"))
+        result.update(value_bytes)
     return result.hexdigest()
 
 

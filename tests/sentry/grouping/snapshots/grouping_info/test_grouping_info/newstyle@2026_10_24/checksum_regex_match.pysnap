@@ -1,0 +1,17 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": null,
+  "variants": {
+    "checksum": {
+      "checksum": "11212012123120120415201309082013",
+      "contributes": true,
+      "description": "checksum",
+      "hash": "11212012123120120415201309082013",
+      "hint": null,
+      "key": "checksum",
+      "type": "checksum"
+    }
+  }
+}

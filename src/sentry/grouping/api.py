@@ -433,7 +433,9 @@ def get_grouping_variants_for_event(
         )
         hint = f"ignored because {fingerprint_source} fingerprint takes precedence"
 
-        fingerprint_variant = CustomFingerprintVariant(resolved_fingerprint, fingerprint_info)
+        fingerprint_variant = CustomFingerprintVariant(
+            resolved_fingerprint, fingerprint_info, context.config
+        )
         additional_variants[fingerprint_variant.key] = fingerprint_variant
 
         for variant in strategy_component_variants.values():

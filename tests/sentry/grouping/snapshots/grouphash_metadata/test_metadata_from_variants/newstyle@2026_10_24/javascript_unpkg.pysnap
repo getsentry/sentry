@@ -1,0 +1,47 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "96955d6eb6b1c842b7c64ac8eb3ffe8d"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "Error"
+          stacktrace*
+            frame*
+              module*
+                "react-dom@16.13.1/umd/react-dom.production"
+              function*
+                "unpkg"
+            frame*
+              function*
+                "cdnjs"
+            frame*
+              function*
+                "jsdelivr"
+            frame*
+              function* (trimmed javascript function)
+                "run"

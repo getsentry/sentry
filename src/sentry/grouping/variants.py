@@ -193,7 +193,13 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo):
+    def __init__(
+        self,
+        fingerprint: list[str],
+        fingerprint_info: FingerprintInfo,
+        strategy_config: StrategyConfiguration,
+    ):
+        self.config = strategy_config
         self.values = fingerprint
         self.fingerprint_info = fingerprint_info
         self.is_built_in = fingerprint_info.get("matched_rule", {}).get("is_builtin", False)
@@ -207,7 +213,12 @@ class CustomFingerprintVariant(BaseVariant):
         return get_custom_fingerprint_description(self.fingerprint_info)
 
     def get_hash(self) -> str | None:
-        return hash_from_values(self.values)
+        return hash_from_values(
+            self.values,
+            with_value_boundaries=self.config.initial_context.get(
+                "fingerprint_value_boundaries", False
+            ),
+        )
 
     def _get_metadata_as_dict(self) -> FingerprintVariantMetadata:
         return expose_fingerprint_dict(self.values, self.fingerprint_info)
@@ -260,15 +271,24 @@ class SaltedComponentVariant(ComponentVariant):
     def get_hash(self) -> str | None:
         if not self.root_component.contributes:
             return None
+        with_value_boundaries = self.config.initial_context.get(
+            "fingerprint_value_boundaries", False
+        )
         final_values: list[str | int] = []
         for value in self.values:
             # If we've hit the `{{ default }}` part of the fingerprint, pull in values from the
             # original grouping method (message, stacktrace, etc.)
             if is_default_fingerprint_var(value):
-                final_values.extend(self.root_component.iter_values())
+                if with_value_boundaries:
+                    # Treat the entire default grouping contribution as one fingerprint value.
+                    # Preserve its existing equivalence rules rather than introducing boundaries
+                    # between internal stacktrace or exception components.
+                    final_values.append("".join(str(v) for v in self.root_component.iter_values()))
+                else:
+                    final_values.extend(self.root_component.iter_values())
             else:
                 final_values.append(value)
-        return hash_from_values(final_values)
+        return hash_from_values(final_values, with_value_boundaries=with_value_boundaries)
 
     def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {

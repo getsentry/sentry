@@ -1,4 +1,8 @@
-from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
+from sentry.conf.server import (
+    FALL_2025_GROUPING_CONFIG,
+    FALL_2026_GROUPING_CONFIG,
+    WINTER_2023_GROUPING_CONFIG,
+)
 from sentry.grouping.strategies.base import (
     StrategyConfiguration,
     create_strategy_configuration_class,
@@ -81,4 +85,11 @@ register_grouping_config(
         "use_legacy_unknown_variable_handling": False,
     },
     enhancements_base="all-platforms:2026-01-20",
+)
+
+# Opt-in only: changing fingerprint encoding changes existing custom and hybrid hashes.
+register_grouping_config(
+    id=FALL_2026_GROUPING_CONFIG,
+    base=FALL_2025_GROUPING_CONFIG,
+    initial_context={"fingerprint_value_boundaries": True},
 )
