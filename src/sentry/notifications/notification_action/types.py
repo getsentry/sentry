@@ -345,17 +345,17 @@ class BaseIssueAlertHandler(ABC):
         """
         from sentry.notifications.notification_action.utils import issue_notification_data_factory
 
+        context = cls.create_action_context(
+            invocation.action,
+            invocation.detector,
+            invocation.event_data,
+            workflow_id=invocation.workflow_id,
+        )
         with shadow_read(
             invocation,
             NotificationSource.ISSUE,
-            lambda _: issue_notification_data_factory(invocation),
+            lambda _: issue_notification_data_factory(invocation, context=context),
         ):
-            context = cls.create_action_context(
-                invocation.action,
-                invocation.detector,
-                invocation.event_data,
-                workflow_id=invocation.workflow_id,
-            )
             rule_data = cls.build_rule_data_from_action(
                 invocation.action, invocation.detector, context.origin
             )
