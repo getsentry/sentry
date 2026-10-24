@@ -5,15 +5,13 @@ import {
   SERIES_QUERY_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 
 /**
- * Helper wrapper around `transformWidgetSeriesToTimeSeries` operating on an array of Series.
+ * Transforms a list of legacy echarts Series into a list of TimeSeries using the widget's
+ * query configuration.
  */
 export function transformMultipleWidgetSeriesToTimeSeries(
   series: Series[],
@@ -25,103 +23,43 @@ export function transformMultipleWidgetSeriesToTimeSeries(
     return [];
   }
   const queryPrefix = getSeriesQueryPrefix(widgetQuery, widget);
+  const {aggregates, columns} = widgetQuery;
 
   return series
     .map(item => {
       const seriesName = queryPrefix
         ? `${queryPrefix}${SERIES_QUERY_DELIMITER}${item.seriesName}`
         : item.seriesName;
-      const transformed = transformWidgetSeriesToTimeSeries(
-        {...item, seriesName},
-        widget
+      const unprefixedName = stripAliasPrefix(item.seriesName, widgetQuery);
+      const nameParts = unprefixedName.split(SERIES_NAME_PART_DELIMITER);
+      const yAxis =
+        aggregates.find(aggregate => nameParts.includes(aggregate)) ??
+        aggregates[0] ??
+        '';
+      const timeSeries = transformLegacySeriesToTimeSeries(
+        {...item, seriesName: unprefixedName},
+        columns,
+        yAxis
       );
-      return transformed
-        ? {queryIndex, widgetQuery, seriesName, timeSeries: transformed.timeSeries}
-        : null;
+      return timeSeries ? {queryIndex, widgetQuery, seriesName, timeSeries} : null;
     })
     .filter(defined);
 }
 
-interface TransformedSeries {
-  label: string;
-  seriesName: string;
-  timeSeries: TimeSeries;
-  widgetQuery: WidgetQuery;
-}
-
 /**
- * Transforms a legacy echarts Series into a TimeSeries using the widget's
- * query configuration, and computes a display label that matches the chart legend.
+ * `transformSeries` prefixes series names with the query's legend alias, using
+ * ' > ' when the name also carries group-by values and ' : ' otherwise.
+ * Remove only that prefix: a group-by value may equal the alias.
  */
-export function transformWidgetSeriesToTimeSeries(
-  series: Series,
-  widget: Widget
-): TransformedSeries | null {
-  const firstQuery = widget.queries[0];
-  if (!firstQuery) {
-    return null;
+function stripAliasPrefix(seriesName: string, {name}: WidgetQuery): string {
+  if (!name) {
+    return seriesName;
   }
-  const seriesName = series.seriesName ?? firstQuery.aggregates[0] ?? '';
-
-  // The query prefix (alias or conditions) is separated by ' > ' from the
-  // rest of the series name. This is set by transformEventsResponseToSeries
-  // (for aliases with group-by) and getSeriesQueryPrefix (for conditions).
-  const queryDelimiterIndex = seriesName.indexOf(SERIES_QUERY_DELIMITER);
-  const queryName =
-    queryDelimiterIndex >= 0 ? seriesName.slice(0, queryDelimiterIndex) : undefined;
-  const unprefixedName =
-    queryDelimiterIndex >= 0
-      ? seriesName.slice(queryDelimiterIndex + SERIES_QUERY_DELIMITER.length)
-      : seriesName;
-
-  // If no ' > ' delimiter, try matching by alias in the ' : ' delimited parts.
-  // This handles the alias-without-group-by case where transformEventsResponseToSeries
-  // uses ' : ' (e.g., "Chrome : count()").
-  const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
-  const splitUnprefixedName =
-    queryDelimiterIndex >= 0
-      ? unprefixedName.split(SERIES_NAME_PART_DELIMITER)
-      : splitSeriesName;
-  const widgetQuery =
-    widget.queries.find(({conditions}) => conditions && queryName === conditions) ??
-    // When there's a group-by, an alias prefix is glued to the group-by value
-    // with the ' > ' delimiter (e.g., "http > (no value) : count()"), so the
-    // bare alias never appears as a ' : ' delimited part. Match the extracted
-    // prefix against the query name directly to avoid falling back to the first
-    // query and mislabeling every series with its name.
-    widget.queries.find(({name}) => name && queryName === name) ??
-    widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ??
-    firstQuery;
-  const {aggregates, columns} = widgetQuery;
-  const aliasPrefix = widgetQuery.name
-    ? `${widgetQuery.name}${SERIES_NAME_PART_DELIMITER}`
-    : undefined;
-  // Remove only the prefix: a group value may equal the query's alias.
-  const effectiveSeriesName =
-    queryDelimiterIndex >= 0
-      ? unprefixedName
-      : aliasPrefix && seriesName.startsWith(aliasPrefix)
-        ? seriesName.slice(aliasPrefix.length)
-        : seriesName;
-  const effectiveSeries = {...series, seriesName: effectiveSeriesName};
-
-  const yAxis =
-    aggregates.find(aggregate => {
-      if (widget.widgetType === WidgetType.TRACEMETRICS) {
-        return splitUnprefixedName.includes(formatTraceMetricsFunction(aggregate));
-      }
-      return splitUnprefixedName.includes(aggregate);
-    }) ??
-    aggregates[0] ??
-    '';
-
-  const timeSeries = transformLegacySeriesToTimeSeries(effectiveSeries, columns, yAxis);
-
-  if (!timeSeries) {
-    return null;
+  for (const delimiter of [SERIES_QUERY_DELIMITER, SERIES_NAME_PART_DELIMITER]) {
+    const prefix = `${name}${delimiter}`;
+    if (seriesName.startsWith(prefix)) {
+      return seriesName.slice(prefix.length);
+    }
   }
-
-  const label = formatTimeSeriesLabelForWidgetQuery(timeSeries, widget, widgetQuery);
-
-  return {timeSeries, label, seriesName, widgetQuery};
+  return seriesName;
 }
