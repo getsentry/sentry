@@ -2,8 +2,10 @@ import {useEffect, type ReactNode} from 'react';
 
 import {
   CaseInsensitivityDefaultContext,
+  useCaseInsensitivity,
   useCaseInsensitivityParam,
 } from 'sentry/components/searchQueryBuilder/hooks';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -43,6 +45,31 @@ export function isCaseIndependent({
     ) &&
     !groupBys?.some(groupBy => groupBy !== '')
   );
+}
+
+export function useAlwaysMatchesCaseDetails({
+  query,
+  yAxes,
+  groupBys,
+  caseInsensitive: queryCaseInsensitive,
+}: Pick<CaseIndependenceOptions, 'query' | 'yAxes' | 'groupBys'> & {
+  caseInsensitive?: boolean;
+}) {
+  const organization = useOrganization();
+  const [pageCaseInsensitive] = useCaseInsensitivity();
+  const caseInsensitive = queryCaseInsensitive ?? pageCaseInsensitive;
+
+  if (!hasIgnoreCaseDefault(organization) || !caseInsensitive) {
+    return {alert: null, dashboard: null};
+  }
+
+  const details = t('Always matches case');
+
+  // Monitors don't keep group bys, so only dashboard widgets are affected by them.
+  return {
+    alert: isCaseIndependent({query, yAxes}) ? null : details,
+    dashboard: isCaseIndependent({query, yAxes, groupBys}) ? null : details,
+  };
 }
 
 export function ExploreCaseInsensitivityDefault({children}: {children: ReactNode}) {

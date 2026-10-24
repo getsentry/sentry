@@ -41,6 +41,7 @@ import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottab
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {
   ChartVisualization,
   useChartVisualizationPlottables,
@@ -382,6 +383,13 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   const search = useQueryParamsSearch();
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const groupBys = useQueryParamsGroupBys();
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({
+      query: search.formatString(),
+      yAxes: [visualize.yAxis],
+      groupBys,
+    });
 
   const items = useMemo(() => {
     const project =
@@ -392,29 +400,33 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
     return [
-      getSaveAsAlertMenuItem({
-        to: getAlertsUrl({
-          project,
-          query: search.formatString(),
-          pageFilters: pageFilters.selection,
-          aggregate: visualize.yAxis,
-          organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-          eventTypes: [EventTypes.TRACE_ITEM_LOG],
-        }),
-        onAction: () => {
-          trackAnalytics('logs.save_as', {
-            save_type: 'alert',
-            ui_source: 'chart',
+      {
+        ...getSaveAsAlertMenuItem({
+          to: getAlertsUrl({
+            project,
+            query: search.formatString(),
+            pageFilters: pageFilters.selection,
+            aggregate: visualize.yAxis,
             organization,
-          });
-          return;
-        },
-      }),
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            interval,
+            eventTypes: [EventTypes.TRACE_ITEM_LOG],
+          }),
+          onAction: () => {
+            trackAnalytics('logs.save_as', {
+              save_type: 'alert',
+              ui_source: 'chart',
+              organization,
+            });
+            return;
+          },
+        }),
+        details: alertCaseDetails,
+      },
       {
         key: 'add-to-dashboard',
         textValue: t('Add to Dashboard'),
+        details: dashboardCaseDetails,
         label: (
           <Feature
             overrideName="feature-disabled:dashboards-edit"
@@ -480,6 +492,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   }, [
     aggregateFields,
     aggregateSortBys,
+    alertCaseDetails,
+    dashboardCaseDetails,
     interval,
     location,
     mode,
