@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.auth.services.auth import auth_service
-from sentry.demo_mode.utils import is_demo_user
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -81,7 +81,9 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
                 {"detail": "Your organization does not allow join requests."}, status=403
             )
 
-        if is_demo_user(request.user):
+        # Demo orgs are publicly browsable through the shared demo user, so a
+        # join request would only page the demo org's admins.
+        if is_demo_user(request.user) or (is_demo_mode_enabled() and is_demo_org(organization)):
             return Response(status=403)
 
         # users can already join organizations with SSO enabled without an invite

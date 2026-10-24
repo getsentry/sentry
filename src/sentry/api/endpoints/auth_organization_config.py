@@ -90,7 +90,11 @@ class AuthOrganizationConfigEndpoint(Endpoint):
             )
         )
         join_request_url = None
-        if auth_provider is None and organization.get_option("sentry:join_requests") is not False:
+        if (
+            auth_provider is None
+            and not is_demo_organization
+            and organization.get_option("sentry:join_requests") is not False
+        ):
             join_request_url = construct_link_with_query(
                 path=reverse("sentry-join-request", args=[organization.slug]),
                 query_params=request.GET,
