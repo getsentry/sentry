@@ -321,6 +321,8 @@ family:native stack.function:DispatchCheckVerify*                          v+app
 
 ### UE 5.4 and newer
 family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app -app ^-app
+family:native stack.function:UE::Assert::Private::CheckEnsureFailed*       v+app -app ^-app
+family:native stack.function:UE::Assert::Private::EnsureFailed*            v+app -app ^-app
 
 ## UE SDK USentrySubsystem event capturing
 family:native stack.function:USentrySubsystem::CaptureMessage*             v+app -app ^-app
