@@ -1,4 +1,5 @@
 import type {AvatarUser} from 'sentry/types/user';
+import type {CannotApplyReason} from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -289,31 +290,13 @@ type InvestigationActionRequestAnchor = {
   type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
 };
 
-export type InvestigationActionCannotApplyReason = InvestigationOrchestrationOpenString<
-  | 'investigation_archived'
-  | 'not_suggested'
-  | 'unsupported_action'
-  | 'no_access'
-  | 'permission_denied'
-  | 'detector_not_found'
-  | 'not_target_detector'
->;
-
-export type InvestigationActionApplyErrorCode = InvestigationOrchestrationOpenString<
-  | InvestigationActionCannotApplyReason
-  | 'already_applied'
-  | 'stale'
-  | 'validation_failed'
-  | 'withdrawn'
->;
-
 export type InvestigationActionRequest = {
   action: InvestigationAction | null;
   anchor: InvestigationActionRequestAnchor | null;
   appliedBy: AvatarUser | null;
   appliedDetails: Record<string, unknown> | null;
   canApply: boolean;
-  cannotApplyReason: InvestigationActionCannotApplyReason | null;
+  cannotApplyReason: InvestigationOrchestrationOpenString<CannotApplyReason> | null;
   dateApplied: string | null;
   dateCreated: string;
   error: Record<string, unknown> | null;

@@ -118,7 +118,7 @@ export default Storybook.story('Investigations — Recommended Action', story =>
         [intervalChange.id]: {
           status: 409,
           body: {
-            detail: 'The monitor changed since this was suggested.',
+            detail: 'This changed since Seer suggested it.',
             code: 'stale',
             current: {timeWindowSeconds: 600},
           },

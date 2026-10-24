@@ -53,8 +53,7 @@ export function ActionRequestCard({
         const applyError = parseApplyError(error);
         toast.error(
           applyError
-            ? (getCannotApplyMessage(applied.action, applyError.code) ??
-                applyError.detail)
+            ? getCannotApplyMessage(applied.action, applyError.code)
             : t('Unable to apply this change.')
         );
       },

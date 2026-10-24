@@ -10,11 +10,13 @@ import {
   type ApplyCheck,
 } from 'sentry/views/investigations/actionRequests/applyButton';
 import {MonitorChanges} from 'sentry/views/investigations/actionRequests/monitorChanges';
-import {actionRequestDryRunQueryOptions} from 'sentry/views/investigations/api';
+import {
+  actionRequestDryRunQueryOptions,
+  type ActionRequestError,
+} from 'sentry/views/investigations/api';
 import {getSourceMonitor} from 'sentry/views/investigations/source';
 import type {
   InvestigationAction,
-  InvestigationActionApplyErrorCode,
   InvestigationActionRequest,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
@@ -45,6 +47,10 @@ export function ActionRequestDetails({actionRequest, source}: ActionRequestDetai
   }
 }
 
+type ApplyBlockReason =
+  | InvestigationActionRequest['cannotApplyReason']
+  | ActionRequestError['code'];
+
 type ActionRequestApplyProps = {
   actionRequest: InvestigationActionRequest;
   applying: boolean;
@@ -62,16 +68,14 @@ export function ActionRequestApply({
     case 'update_detector':
       return (
         <ApplyButton
-          actionRequest={actionRequest}
+          canApply={actionRequest.canApply}
           applying={applying}
           check={check}
+          message={getApplyMessage(actionRequest, check)}
           onApply={onApply}
           icon={<IconSiren />}
           label={t('Update monitor')}
           busyLabel={t('Updating monitor…')}
-          getCannotApplyMessage={reason =>
-            getCannotApplyMessage(actionRequest.action, reason)
-          }
         />
       );
     default:
@@ -86,7 +90,7 @@ export function useApplyCheck(
   const organization = useOrganization();
   const {data, isError, isPending} = useQuery({
     ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
-    enabled: hasApplyCheck(actionRequest) && actionRequest.canApply,
+    enabled: actionRequest.canApply,
   });
   if (isError) {
     return {status: 'unavailable'};
@@ -97,12 +101,17 @@ export function useApplyCheck(
   return data ? {status: 'blocked', error: data} : {status: 'passed'};
 }
 
-function hasApplyCheck(actionRequest: InvestigationActionRequest) {
-  switch (actionRequest.action?.kind) {
-    case 'update_detector':
-      return true;
+function getApplyMessage(actionRequest: InvestigationActionRequest, check: ApplyCheck) {
+  if (!actionRequest.canApply) {
+    return getCannotApplyMessage(actionRequest.action, actionRequest.cannotApplyReason);
+  }
+  switch (check.status) {
+    case 'blocked':
+      return getCannotApplyMessage(actionRequest.action, check.error.code);
+    case 'unavailable':
+      return t("Couldn't check this change in advance. Applying it checks it again.");
     default:
-      return false;
+      return null;
   }
 }
 
@@ -117,14 +126,18 @@ export function getApplySuccessMessage(action: InvestigationAction | null) {
 
 export function getCannotApplyMessage(
   action: InvestigationAction | null,
-  reason: InvestigationActionApplyErrorCode
+  reason: ApplyBlockReason
 ) {
-  return getKindCannotApplyMessage(action, reason) ?? getSharedCannotApplyMessage(reason);
+  return (
+    getKindCannotApplyMessage(action, reason) ??
+    getSharedCannotApplyMessage(reason) ??
+    t("This change can't be applied.")
+  );
 }
 
 function getKindCannotApplyMessage(
   action: InvestigationAction | null,
-  reason: InvestigationActionApplyErrorCode
+  reason: ApplyBlockReason
 ) {
   switch (action?.kind) {
     case 'update_detector':
@@ -134,7 +147,7 @@ function getKindCannotApplyMessage(
   }
 }
 
-function getSharedCannotApplyMessage(reason: InvestigationActionApplyErrorCode) {
+function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
   switch (reason) {
     case 'investigation_archived':
       return t('Archived investigations are read-only.');
@@ -144,12 +157,20 @@ function getSharedCannotApplyMessage(reason: InvestigationActionApplyErrorCode) 
       return t("Seer can't apply this kind of change yet.");
     case 'no_access':
       return t("You don't have access to apply this.");
+    case 'already_applied':
+      return t('This was already applied.');
+    case 'withdrawn':
+      return t('Seer no longer suggests this.');
+    case 'stale':
+      return t('This changed since Seer suggested it.');
+    case 'validation_failed':
+      return t("This change wasn't valid.");
     default:
       return null;
   }
 }
 
-function getMonitorCannotApplyMessage(reason: InvestigationActionApplyErrorCode) {
+function getMonitorCannotApplyMessage(reason: ApplyBlockReason) {
   switch (reason) {
     case 'permission_denied':
       return t("You don't have permission to edit this monitor.");
@@ -157,6 +178,10 @@ function getMonitorCannotApplyMessage(reason: InvestigationActionApplyErrorCode)
       return t('This monitor is no longer available.');
     case 'not_target_detector':
       return t('This change targets a different monitor than this investigation.');
+    case 'dynamic_detector':
+      return t("Seer can't change dynamic monitors yet.");
+    case 'stale':
+      return t('The monitor changed since Seer suggested this.');
     default:
       return null;
   }
