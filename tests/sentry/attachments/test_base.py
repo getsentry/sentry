@@ -67,6 +67,22 @@ def test_meta_rate_limited() -> None:
 
 
 @django_db_all
+def test_meta_rate_limited_reason() -> None:
+    att = CachedAttachment(
+        key="c:foo",
+        id=123,
+        name="minidump.dmp",
+        type="event.minidump",
+        chunks=3,
+        rate_limited="attachment_usage_exceeded",
+    )
+
+    meta = att.meta()
+    assert meta["rate_limited"] == "attachment_usage_exceeded"
+    assert CachedAttachment(**meta).rate_limited == "attachment_usage_exceeded"
+
+
+@django_db_all
 def test_basic_chunked() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)

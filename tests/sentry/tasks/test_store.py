@@ -1,4 +1,6 @@
+from collections.abc import MutableMapping
 from time import time
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -10,6 +12,9 @@ from sentry import nodestore, options, quotas
 from sentry.event_manager import EventManager
 from sentry.exceptions import HashDiscarded
 from sentry.ingest.types import ConsumerType
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.group import Group
+from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import (
     is_process_disabled,
@@ -603,6 +608,88 @@ def test_discard_event_cleans_up_attachments_with_optional_cache_key(
     get_session.return_value.delete.assert_called_once_with("stored-attachment")
     delete.assert_called_once_with(cache_key or cache_key_for_event(data))
     assert "_attachments" not in data
+
+
+def _event_with_rate_limited_minidump(
+    project_id: int, rate_limited: bool | str
+) -> MutableMapping[str, Any]:
+    manager = EventManager(
+        {
+            "platform": "native",
+            "logentry": {"formatted": "crash"},
+            "event_id": EVENT_ID,
+            "timestamp": time(),
+        }
+    )
+    manager.normalize()
+    data = manager.get_data()
+    data["project"] = project_id
+    data["_attachments"] = [
+        {
+            "key": "e:attachment-event",
+            "id": 0,
+            "name": "minidump.dmp",
+            "type": "event.minidump",
+            "stored_id": "stored-minidump",
+            "rate_limited": rate_limited,
+        }
+    ]
+    return data
+
+
+@django_db_all
+@with_feature("organizations:attachments-quota-exceeded-notice")
+@pytest.mark.parametrize(
+    "rate_limited",
+    ("attachment_usage_exceeded", "project_quota_attachment_usage_exceeded", "usage_exceeded"),
+)
+def test_save_event_flags_attachments_dropped_for_quota(default_project, rate_limited) -> None:
+    data = _event_with_rate_limited_minidump(default_project.id, rate_limited)
+
+    with mock.patch("sentry.attachments.get_session") as get_session:
+        save_event_attachments(data=data, project_id=default_project.id, start_time=time())
+
+    get_session.return_value.delete.assert_called_once_with("stored-minidump")
+    event = Event(project_id=default_project.id, event_id=EVENT_ID)
+    assert event.data["metadata"]["attachments_quota_exceeded"] is True
+    group = Group.objects.get(project=default_project)
+    assert group.data["metadata"]["attachments_quota_exceeded"] is True
+    assert not EventAttachment.objects.filter(event_id=EVENT_ID).exists()
+
+
+@django_db_all
+@with_feature("organizations:attachments-quota-exceeded-notice")
+@pytest.mark.parametrize("rate_limited", ("smart_rate_limit", "key_quota", True))
+def test_save_event_does_not_flag_attachments_dropped_for_other_rate_limits(
+    default_project, rate_limited
+) -> None:
+    data = _event_with_rate_limited_minidump(default_project.id, rate_limited)
+
+    with mock.patch("sentry.attachments.get_session"):
+        save_event_attachments(data=data, project_id=default_project.id, start_time=time())
+
+    event = Event(project_id=default_project.id, event_id=EVENT_ID)
+    assert "attachments_quota_exceeded" not in event.data["metadata"]
+    group = Group.objects.get(project=default_project)
+    assert "attachments_quota_exceeded" not in group.data["metadata"]
+
+
+@django_db_all
+def test_save_event_does_not_flag_attachments_dropped_for_quota_without_feature(
+    default_project,
+) -> None:
+    data = _event_with_rate_limited_minidump(default_project.id, "attachment_usage_exceeded")
+
+    with mock.patch("sentry.attachments.get_session") as get_session:
+        save_event_attachments(data=data, project_id=default_project.id, start_time=time())
+
+    # Rate-limited attachments are still cleaned up and never persisted; only the flag is gated.
+    get_session.return_value.delete.assert_called_once_with("stored-minidump")
+    assert not EventAttachment.objects.filter(event_id=EVENT_ID).exists()
+    event = Event(project_id=default_project.id, event_id=EVENT_ID)
+    assert "attachments_quota_exceeded" not in event.data["metadata"]
+    group = Group.objects.get(project=default_project)
+    assert "attachments_quota_exceeded" not in group.data["metadata"]
 
 
 @pytest.fixture(params=["org", "project"])
