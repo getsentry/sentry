@@ -31,10 +31,13 @@ class Deploy(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_deploy"
+        indexes = (models.Index(fields=("release", "environment_id", "notified")),)
 
     @staticmethod
-    def get_lock_key(deploy_id):
-        return "deploy-notify:%s" % deploy_id
+    def get_lock_key(release_id, environment_id):
+        # Repeated callbacks for one deployment share a release and environment
+        # but not a Deploy id, so the lock has to cover that pair.
+        return "deploy-notify:%s:%s" % (release_id, environment_id)
 
     @classmethod
     def notify_if_ready(cls, deploy_id, fetch_complete=False):
@@ -46,14 +49,33 @@ class Deploy(Model):
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-        lock_key = cls.get_lock_key(deploy_id)
+        deploy = cls.objects.get(id=deploy_id)
+        lock_key = cls.get_lock_key(deploy.release_id, deploy.environment_id)
         lock = locks.get(lock_key, duration=30, name="deploy_notify")
         with TimedRetryPolicy(10)(lock.acquire):
+            # Refresh inside the lock so a concurrent callback can't notify first
+            # and then lose the race to this row's stale state.
             deploy = cls.objects.filter(id=deploy_id).select_related("release").get()
             if deploy.notified:
                 return
 
             release = deploy.release
+            # Another row for this release and environment already produced the
+            # notification. Keep this row for deploy history, and mark it notified
+            # so a later commit-fetch retry does not send again.
+            if (
+                cls.objects.filter(
+                    organization_id=deploy.organization_id,
+                    release_id=release.id,
+                    environment_id=deploy.environment_id,
+                    notified=True,
+                )
+                .exclude(id=deploy.id)
+                .exists()
+            ):
+                deploy.update(notified=True)
+                return
+
             environment = Environment.objects.get(
                 organization_id=deploy.organization_id, id=deploy.environment_id
             )
