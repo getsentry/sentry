@@ -120,7 +120,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         except SlackApiError as e:
             translate_slack_api_error(e)
 
-    def send_notification_with_threading(
+    def send_notification_with_response(
         self,
         target: IntegrationNotificationTarget,
         payload: SlackRenderable,
