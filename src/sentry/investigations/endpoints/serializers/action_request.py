@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, override
+from typing import Any, TypedDict, cast, override
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -19,7 +19,7 @@ from sentry.investigations.services.action_kinds import (
     get_action_kind,
     shared_cannot_apply_reason,
 )
-from sentry.investigations.services.action_kinds.base import CannotApplyReason
+from sentry.investigations.services.action_kinds.base import ActionRequestError, CannotApplyReason
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -62,7 +62,7 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     appliedBy: UserSerializerResponse | None
     appliedDetails: dict[str, Any] | None
     dateApplied: datetime | None
-    error: dict[str, Any] | None
+    error: ActionRequestError | None
     dateCreated: datetime
 
 
@@ -201,6 +201,7 @@ class InvestigationActionRequestSerializer(
             "appliedBy": attrs["applied_by"],
             "appliedDetails": obj.applied_details,
             "dateApplied": obj.date_applied,
-            "error": obj.error,
+            # Only the shared apply path writes this column.
+            "error": cast(ActionRequestError | None, obj.error),
             "dateCreated": obj.date_added,
         }
