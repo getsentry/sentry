@@ -1,5 +1,5 @@
 import logging
-from typing import Required, TypedDict
+from typing import NotRequired, Required, TypedDict
 
 from django.conf import settings
 
@@ -33,6 +33,8 @@ class AIModelMetadata(TypedDict, total=False):
 class AIModelMetadataConfig(TypedDict):
     version: Required[int]
     models: Required[dict[ModelId, AIModelMetadata]]
+    # Provider IDs from models.dev, with full model IDs and provider-local aliases.
+    providers: NotRequired[dict[str, dict[ModelId, AIModelMetadata]]]
 
 
 def ai_model_metadata_config() -> AIModelMetadataConfig | None:

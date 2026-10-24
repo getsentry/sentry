@@ -29,6 +29,21 @@ MODELS_DEV_API_URL = "https://models.dev/api.json?type=all"
 MODELS_DEV_TOKEN_PRICED_TYPES = frozenset({"decision"})
 
 
+def _add_provider_model_aliases(models: dict[ModelId, AIModelMetadata]) -> None:
+    """Keep full IDs and add unambiguous short names within a single provider."""
+    aliases: dict[str, AIModelMetadata] = {}
+    ambiguous: set[str] = set()
+    for model_id, metadata in models.items():
+        for alias in (model_id.split("/", 1)[-1], model_id.rsplit("/", 1)[-1]):
+            if alias in aliases and aliases[alias] != metadata:
+                ambiguous.add(alias)
+            aliases[alias] = metadata
+    for alias, metadata in aliases.items():
+        if alias not in ambiguous:
+            models.setdefault(alias, metadata)
+    _add_glob_model_names(models)
+
+
 def _add_glob_model_names(models_dict: dict[ModelId, AIModelMetadata]) -> None:
     """
     Add glob versions of model names to the models dictionary.
@@ -69,17 +84,22 @@ def fetch_ai_model_metadata() -> None:
 
     This task fetches model pricing and context size data from both sources and
     converts it to the AIModelMetadata format.
-    OpenRouter data takes precedence over models.dev data.
+    OpenRouter data takes precedence within the OpenRouter provider and the
+    legacy model-only table, without overriding other providers' prices.
     """
     if settings.SENTRY_AIR_GAP:
         return
 
+    # Keep the legacy model-only table for older Relays and spans without a provider.
     models_dict: dict[ModelId, AIModelMetadata] = {}
 
     # Fetch from OpenRouter API (takes precedence)
     try:
         openrouter_models = _fetch_openrouter_models()
-        models_dict.update(openrouter_models)
+        models_dict.update(
+            (model_id.split("/", 1)[-1], metadata)
+            for model_id, metadata in openrouter_models.items()
+        )
     except Exception as e:
         logger.warning(
             "Failed to fetch AI model metadata from OpenRouter API", extra={"error": str(e)}
@@ -88,9 +108,14 @@ def fetch_ai_model_metadata() -> None:
 
     # Fetch from models.dev API (only add models not already present)
     try:
-        models_dev_models = _fetch_models_dev_models()
-        for model_id, model_metadata in models_dev_models.items():
-            models_dict.setdefault(model_id, model_metadata)
+        providers = _fetch_models_dev_models()
+        legacy_models = {
+            model_id.split("/", 1)[-1]: metadata
+            for models in providers.values()
+            for model_id, metadata in models.items()
+        }
+        for model_id, metadata in legacy_models.items():
+            models_dict.setdefault(model_id, metadata)
     except Exception as e:
         logger.warning(
             "Failed to fetch AI model metadata from models.dev API", extra={"error": str(e)}
@@ -100,7 +125,16 @@ def fetch_ai_model_metadata() -> None:
     # Add glob versions of model names for flexible matching
     _add_glob_model_names(models_dict)
 
-    metadata_config: AIModelMetadataConfig = {"version": 1, "models": models_dict}
+    # OpenRouter prices belong only to OpenRouter, not to the model author.
+    providers.setdefault("openrouter", {}).update(openrouter_models)
+    for models in providers.values():
+        _add_provider_model_aliases(models)
+
+    metadata_config: AIModelMetadataConfig = {
+        "version": 1,
+        "models": models_dict,
+        "providers": providers,
+    }
     cache.set(AI_MODEL_METADATA_CACHE_KEY, metadata_config, AI_MODEL_METADATA_CACHE_TTL)
 
 
@@ -147,12 +181,6 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelMetadata]:
         if not model_id:
             continue
 
-        # OpenRouter includes provider name in the model ID, e.g. openai/gpt-4o-mini
-        # We need to extract the model name, since our SDKs only send the model name
-        # (e.g. gpt-4o-mini)
-        if "/" in model_id:
-            model_id = model_id.split("/", maxsplit=1)[1]
-
         pricing = model_data.get("pricing", {})
 
         # OpenRouter provides costs as strings, we need to convert to float
@@ -183,7 +211,7 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelMetadata]:
     return models_dict
 
 
-def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
+def _fetch_models_dev_models() -> dict[str, dict[ModelId, AIModelMetadata]]:
     """Fetch model metadata from models.dev API.
 
     Example response:
@@ -214,7 +242,7 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
     if not isinstance(data, dict):
         raise ValueError("Invalid models.dev response format: expected dict")
 
-    models_dict: dict[ModelId, AIModelMetadata] = {}
+    providers: dict[str, dict[ModelId, AIModelMetadata]] = {}
 
     for provider_name, provider_data in data.items():
         if not isinstance(provider_data, dict):
@@ -224,6 +252,7 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
         if not isinstance(models, dict):
             continue
 
+        models_dict = providers.setdefault(provider_name, {})
         for model_id, model_data in models.items():
             if not isinstance(model_data, dict):
                 continue
@@ -236,12 +265,6 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
             if not isinstance(cost_data, dict) or not cost_data:
                 # Skip models with no cost data or empty cost data
                 continue
-
-            # models.dev may include provider name in the model ID, e.g. google/gemini-2.0-flash-001
-            # We need to extract the model name, since our SDKs only send the model name
-            # (e.g. gemini-2.0-flash-001)
-            if "/" in model_id:
-                model_id = model_id.split("/", maxsplit=1)[1]
 
             # models.dev provides costs as numbers, but for extra safety convert to our format
             try:
@@ -274,7 +297,7 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
                 )
                 continue
 
-    return models_dict
+    return providers
 
 
 def safe_float_conversion(value: Any) -> float:
