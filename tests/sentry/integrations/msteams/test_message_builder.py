@@ -54,7 +54,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
-    create_workflow_notification_origin_for_rule,
+    create_origin_for_workflow,
 )
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -119,11 +119,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert self.event1.group is not None
         self.group1 = self.event1.group
 
-        self.rules = [
-            self.create_project_rule(name="rule1"),
-            self.create_project_rule(name="rule2"),
+        self.origins = [
+            create_origin_for_workflow(self.create_workflow(name=name, organization=self.org))
+            for name in ("rule1", "rule2")
         ]
-        self.origins = [create_workflow_notification_origin_for_rule(rule) for rule in self.rules]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
