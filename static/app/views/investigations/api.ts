@@ -1,5 +1,4 @@
 import {
-  keepPreviousData,
   queryOptions,
   useMutation,
   useQueryClient,
@@ -753,7 +752,6 @@ export function actionRequestDryRunQueryOptions(
         throw error;
       }
     },
-    placeholderData: keepPreviousData,
     staleTime: 0,
     retry: false,
   });

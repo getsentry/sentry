@@ -1003,6 +1003,37 @@ describe('NextStepCard', () => {
     await waitFor(() => expect(dryRun).toHaveBeenCalledTimes(2));
   });
 
+  it('waits for the new check instead of trusting the old one', async () => {
+    mockDryRun();
+    const actionRequest = InvestigationActionRequestFixture();
+    const {rerender} = render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[actionRequest]}
+      />
+    );
+    await findApplyButton();
+
+    MockApiClient.clearMockResponses();
+    mockDryRun({asyncDelay: 50});
+    rerender(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          {
+            ...actionRequest,
+            action: changeOf({timeWindowSeconds: 300}, {timeWindowSeconds: 1800}),
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeDisabled();
+    await findApplyButton();
+  });
+
   it('does not check a change the viewer cannot apply', () => {
     const dryRun = mockDryRun();
     render(
