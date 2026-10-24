@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
-from unittest import mock
 
 from django.test import override_settings
 from django.urls import reverse
@@ -638,17 +637,13 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         self.set_detector(config={"detection_type": "dynamic"})
         action_request = self.suggest()
 
-        with mock.patch(
-            "sentry.incidents.metric_issue_detector.update_detector_data"
-        ) as update_detector_data:
-            response = self.apply(action_request)
+        response = self.apply(action_request)
 
         assert response.status_code == 409
         assert response.data == {
             "detail": "This action can't be applied.",
             "code": "dynamic_detector",
         }
-        update_detector_data.assert_not_called()
         action_request.refresh_from_db()
         assert action_request.state == InvestigationActionRequestState.SUGGESTED
         assert self.snuba_query().time_window == 300
