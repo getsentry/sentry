@@ -3129,11 +3129,6 @@
       "count": 1
     }
   },
-  "views/seerWorkflows/index.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 2
-    }
-  },
   "views/seerWorkflows/overview/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 2
