@@ -782,6 +782,9 @@ class TestHmacSignatureAuthentication(TestCase):
 
         # Signature without URL should fail
 
+        request = drf_request_from_request(
+            RequestFactory().post(url_path, data=data, content_type="application/json")
+        )
         signature_without_url = generate_service_request_signature(
             request.path_info,
             request.body,
