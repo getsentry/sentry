@@ -10,6 +10,7 @@ import {
   ActionRequestApply,
   ActionRequestDetails,
   getApplySuccessMessage,
+  getCannotApplyMessage,
   useApplyCheck,
 } from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import {
@@ -48,8 +49,14 @@ export function ActionRequestCard({
           toast.success(message);
         }
       },
-      onError: error => {
-        toast.error(parseApplyError(error)?.detail ?? t('Unable to apply this change.'));
+      onError: (error, applied) => {
+        const applyError = parseApplyError(error);
+        toast.error(
+          applyError
+            ? (getCannotApplyMessage(applied.action, applyError.code) ??
+                applyError.detail)
+            : t('Unable to apply this change.')
+        );
       },
     }
   );

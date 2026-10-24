@@ -1,3 +1,6 @@
+import {QueryClientProvider} from '@tanstack/react-query';
+
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   screen,
@@ -7,8 +10,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
+import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import {
   InvestigationActionRequestFixture,
+  InvestigationDetailFixture,
   InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
 import type {
@@ -90,6 +95,12 @@ function mockDryRun(response: MockResponse = {}) {
 
 function getCard() {
   return screen.getByRole('region', {name: 'Recommended action'});
+}
+
+async function findApplyButton() {
+  const button = screen.getByRole('button', {name: 'Update monitor'});
+  await waitFor(() => expect(button).toBeEnabled());
+  return button;
 }
 
 describe('NextStepCard', () => {
@@ -741,25 +752,50 @@ describe('NextStepCard', () => {
     expect(card).not.toHaveTextContent('p95(span.duration) • transaction:/api/cart');
   });
 
-  it('applies the change', async () => {
-    const apply = mockApply({
-      body: {actionRequest: InvestigationActionRequestFixture({state: 'applied'})},
+  it('applies the change and stores the applied request', async () => {
+    const actionRequest = InvestigationActionRequestFixture();
+    const applied = InvestigationActionRequestFixture({
+      state: 'applied',
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+    });
+    const apply = mockApply({body: {actionRequest: applied}});
+    const queryClient = makeTestQueryClient();
+    const detailKey = getInvestigationDetailQueryOptions(
+      'org-slug',
+      'investigation-1'
+    ).queryKey;
+    queryClient.setQueryData(detailKey, {
+      headers: {},
+      json: InvestigationDetailFixture({
+        id: 'investigation-1',
+        version: 4,
+        actionRequests: [actionRequest],
+      }),
     });
     render(
       <NextStepCard
         investigationId="investigation-1"
         orchestration={completedRun}
-        actionRequests={[InvestigationActionRequestFixture()]}
-      />
+        actionRequests={[actionRequest]}
+      />,
+      {
+        additionalWrapper: ({children}) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Update monitor'}));
+    await userEvent.click(await findApplyButton());
 
     expect(apply).toHaveBeenCalledWith(
       applyUrl,
       expect.objectContaining({method: 'POST', data: {}})
     );
     expect(await screen.findByText('Monitor updated.')).toBeInTheDocument();
+    const cached = queryClient.getQueryData(detailKey)?.json;
+    expect(cached?.actionRequests).toEqual([applied]);
+    expect(cached?.version).toBe(4);
   });
 
   it('shows the updating state while the change is applied', async () => {
@@ -772,20 +808,30 @@ describe('NextStepCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Update monitor'}));
+    await userEvent.click(await findApplyButton());
 
     expect(await screen.findByRole('button', {name: 'Updating monitor…'})).toBeDisabled();
   });
 
   it.each([
-    {status: 500, body: {}, message: 'Unable to apply this change.'},
+    {
+      status: 500,
+      body: {detail: 'Internal Error', errorId: 'abc123'},
+      message: 'Unable to apply this change.',
+    },
     {
       status: 403,
+      body: {detail: "This action can't be applied.", code: 'permission_denied'},
+      message: "You don't have permission to edit this monitor.",
+    },
+    {
+      status: 409,
       body: {
-        code: 'permission_denied',
-        detail: 'You do not have permission to edit this monitor.',
+        detail: 'The monitor changed since this was suggested.',
+        code: 'stale',
+        current: {timeWindowSeconds: 600},
       },
-      message: 'You do not have permission to edit this monitor.',
+      message: 'The monitor changed since this was suggested.',
     },
   ])('says when an apply fails with $status', async ({status, body, message}) => {
     mockApply({statusCode: status, body});
@@ -797,7 +843,7 @@ describe('NextStepCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Update monitor'}));
+    await userEvent.click(await findApplyButton());
 
     expect(await screen.findByText(message)).toBeInTheDocument();
   });
@@ -821,10 +867,24 @@ describe('NextStepCard', () => {
       />
     );
 
-    expect(
-      within(getCard()).getByRole('button', {name: 'Update monitor'})
-    ).toBeDisabled();
-    expect(getCard()).toHaveTextContent(message);
+    const button = within(getCard()).getByRole('button', {name: 'Update monitor'});
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleDescription(message);
+  });
+
+  it('holds the button while the change is checked', () => {
+    mockDryRun({asyncDelay: 1_000_000});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: 'Update monitor'});
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
   });
 
   it('checks the change before it is applied', async () => {
@@ -837,18 +897,56 @@ describe('NextStepCard', () => {
       />
     );
 
-    await waitFor(() => expect(dryRun).toHaveBeenCalled());
-    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeEnabled();
+    expect(await findApplyButton()).toBeEnabled();
+    expect(dryRun).toHaveBeenCalledTimes(1);
   });
 
-  it('holds the update when the check finds a problem', async () => {
-    mockDryRun({
-      statusCode: 400,
+  it.each([
+    {
+      status: 409,
       body: {
-        code: 'unsupported_action',
-        detail: "Seer can't change dynamic monitors yet.",
+        detail: 'The monitor changed since this was suggested.',
+        code: 'stale',
+        current: {timeWindowSeconds: 600},
       },
-    });
+      message: 'The monitor changed since this was suggested.',
+    },
+    {
+      status: 403,
+      body: {detail: "This action can't be applied.", code: 'permission_denied'},
+      message: "You don't have permission to edit this monitor.",
+    },
+    {
+      status: 400,
+      body: {
+        detail: 'The monitor change was not valid.',
+        code: 'validation_failed',
+        errors: {timeWindowSeconds: ['Invalid Time Window: 900']},
+        messages: ['Invalid Time Window: 900'],
+      },
+      message: 'The monitor change was not valid.',
+    },
+  ])(
+    'holds the update when the check fails with $body.code',
+    async ({status, body, message}) => {
+      mockDryRun({statusCode: status, body});
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[InvestigationActionRequestFixture()]}
+        />
+      );
+
+      await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(message));
+      const button = screen.getByRole('button', {name: 'Update monitor'});
+      expect(button).toBeDisabled();
+      expect(button).toHaveAccessibleDescription(message);
+    }
+  );
+
+  it('keeps the update available when the check itself fails', async () => {
+    mockDryRun({statusCode: 500, body: {detail: 'Internal Error', errorId: 'abc123'}});
     render(
       <NextStepCard
         investigationId="investigation-1"
@@ -857,10 +955,40 @@ describe('NextStepCard', () => {
       />
     );
 
-    expect(
-      await screen.findByText("Seer can't change dynamic monitors yet.")
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        "Couldn't check this change in advance. Applying it checks it again."
+      )
+    );
+    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeEnabled();
+  });
+
+  it('checks the change again when Seer changes it', async () => {
+    const dryRun = mockDryRun();
+    const actionRequest = InvestigationActionRequestFixture();
+    const {rerender} = render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[actionRequest]}
+      />
+    );
+    await waitFor(() => expect(dryRun).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          {
+            ...actionRequest,
+            action: changeOf({timeWindowSeconds: 300}, {timeWindowSeconds: 1800}),
+          },
+        ]}
+      />
+    );
+
+    await waitFor(() => expect(dryRun).toHaveBeenCalledTimes(2));
   });
 
   it('does not check a change the viewer cannot apply', () => {

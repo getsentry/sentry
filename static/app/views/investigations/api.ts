@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   queryOptions,
   useMutation,
   useQueryClient,
@@ -7,11 +8,12 @@ import {
 import {z} from 'zod';
 
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions, selectJson} from 'sentry/utils/api/apiOptions';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {
+  InvestigationActionApplyErrorCode,
   InvestigationActionRequest,
   InvestigationActionRequestApplyResponse,
   InvestigationCandidate,
@@ -674,11 +676,14 @@ export function useRunInvestigationBlockMutation(
   });
 }
 
-const applyErrorSchema = z.object({detail: z.string()});
+const applyErrorSchema = z.object({code: z.string(), detail: z.string()});
 
-export type ApplyError = z.infer<typeof applyErrorSchema>;
+export type ApplyError = {
+  code: InvestigationActionApplyErrorCode;
+  detail: string;
+};
 
-export function parseApplyError(error: Error): ApplyError | null {
+export function parseApplyError(error: unknown): ApplyError | null {
   const parsed = applyErrorSchema.safeParse(
     error instanceof RequestError ? error.responseJSON : undefined
   );
@@ -705,20 +710,31 @@ function getActionRequestApplyUrl(
 export function actionRequestDryRunQueryOptions(
   organizationSlug: string,
   investigationId: string,
-  actionRequestId: string,
-  investigationVersion: number | undefined
+  actionRequest: InvestigationActionRequest
 ) {
   const url = getActionRequestApplyUrl(
     organizationSlug,
     investigationId,
-    actionRequestId
+    actionRequest.id
   );
   const endpoint = {method: 'POST', data: {dryRun: true}} as const;
   return queryOptions({
-    queryKey: [url, endpoint, {investigationVersion}] as const,
-    queryFn: () =>
-      apiFetch<InvestigationActionRequestApplyResponse>({queryKey: [url, endpoint]}),
-    select: selectJson,
+    queryKey: [url, endpoint, {action: actionRequest.action}] as const,
+    queryFn: async (): Promise<ApplyError | null> => {
+      try {
+        await apiFetch<InvestigationActionRequestApplyResponse>({
+          queryKey: [url, endpoint],
+        });
+        return null;
+      } catch (error) {
+        const applyError = parseApplyError(error);
+        if (applyError) {
+          return applyError;
+        }
+        throw error;
+      }
+    },
+    placeholderData: keepPreviousData,
     staleTime: 0,
     retry: false,
   });
@@ -766,7 +782,6 @@ export function useApplyInvestigationActionRequestMutation(
               ...current,
               json: {
                 ...current.json,
-                version: current.json.version + 1,
                 actionRequests: current.json.actionRequests?.map(actionRequest =>
                   actionRequest.id === response.actionRequest.id
                     ? response.actionRequest

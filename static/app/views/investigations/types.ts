@@ -299,6 +299,14 @@ export type InvestigationActionCannotApplyReason = InvestigationOrchestrationOpe
   | 'not_target_detector'
 >;
 
+export type InvestigationActionApplyErrorCode = InvestigationOrchestrationOpenString<
+  | InvestigationActionCannotApplyReason
+  | 'already_applied'
+  | 'stale'
+  | 'validation_failed'
+  | 'withdrawn'
+>;
+
 export type InvestigationActionRequest = {
   action: InvestigationAction | null;
   anchor: InvestigationActionRequestAnchor | null;
