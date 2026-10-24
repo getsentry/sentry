@@ -70,7 +70,18 @@ describe('SharedGroupDetails', () => {
         route: '/organizations/:orgId/share/issue/:shareId/',
       },
     });
-    expect(await screen.findByText('Details')).toBeInTheDocument();
+    // The "Details" link must be a hard-navigation anchor (not a React Router
+    // Link) so clicking it triggers a full page load and the issue detail route
+    // boots with the correct org context. An in-app navigation would unmount
+    // this page's OrganizationContext, leaving child components that call
+    // useOrganization() with a null context and causing them to throw.
+    const detailsLink = await screen.findByRole('link', {name: 'Details'});
+    expect(detailsLink).toBeInTheDocument();
+    expect(detailsLink.tagName).toBe('A');
+    expect(detailsLink).toHaveAttribute(
+      'href',
+      'https://foo.io/organizations/foo/issues/1234/'
+    );
     expect(await screen.findByTestId('sgh-timestamp')).toBeInTheDocument();
   });
 
