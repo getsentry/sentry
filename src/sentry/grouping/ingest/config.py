@@ -26,6 +26,7 @@ Job = MutableMapping[str, Any]
 # Used to migrate projects that have no activity via getsentry scripts
 CONFIGS_TO_DEPRECATE = set(GROUPING_CONFIG_CLASSES.keys()) - {
     DEFAULT_GROUPING_CONFIG,
+    BETA_GROUPING_CONFIG,
 }
 
 

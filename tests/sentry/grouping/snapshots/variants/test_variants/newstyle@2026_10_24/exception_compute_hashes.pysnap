@@ -1,0 +1,14 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "b23ee1963904c2ca87b145febf94b66c"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        type*
+          "ValueError"
+        value*
+          "hello world"

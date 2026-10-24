@@ -1,0 +1,26 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: fingerprint
+hashing_metadata: {
+  "client_fingerprint": "['celery', 'SoftTimeLimitExceeded', 'sentry.tasks.store.process_event']",
+  "fingerprint": "['celery', 'SoftTimeLimitExceeded', 'sentry.tasks.store.process_event']",
+  "fingerprint_source": "client",
+  "is_hybrid_fingerprint": false
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "fingerprint",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.fingerprint": {
+    "fingerprint_source": "client"
+  }
+}
+---
+contributing variants:
+  custom_client_fingerprint*
+    hash: "1f104d36b017e2e430aed1f6a94a5a9d"
+    fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]}
+    values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
