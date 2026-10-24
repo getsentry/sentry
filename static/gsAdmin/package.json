@@ -12,7 +12,7 @@
     "@sentry/react": "11.7.0",
     "@sentry/scraps": "workspace:*",
     "@tanstack/react-pacer": "^0.22.1",
-    "@tanstack/react-query": "5.101.4",
+    "@tanstack/react-query": "5.104.5",
     "admin": "workspace:@sentry-internal/gs-admin@*",
     "classnames": "2.3.1",
     "core-js": "3.45.0",

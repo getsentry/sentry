@@ -104,7 +104,7 @@
     "@e18e/eslint-plugin": "0.8.0",
     "@mdx-js/mdx": "3.1.1",
     "@sentry/decision-model-linter": "0.2.0",
-    "@tanstack/eslint-plugin-query": "5.101.4",
+    "@tanstack/eslint-plugin-query": "5.104.5",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "26.6.4",
     "eslint": "10.8.0",
