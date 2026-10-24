@@ -543,7 +543,16 @@ class InvestigationActionRequestSerializationTest(TestCase):
         self.add_request()
         self.detector.update(config={"detection_type": "dynamic"})
 
-        assert self.cannot_apply_reason() == "unsupported_action"
+        assert self.cannot_apply_reason() == "dynamic_detector"
+
+    def test_each_suggestion_gets_the_reason_for_its_own_monitor(self) -> None:
+        other = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.add_request("own-monitor")
+        self.add_request("other-monitor", action=self.action(detectorId=str(other.id)))
+
+        reasons = {row["key"]: row["cannotApplyReason"] for row in self.serialize_for(self.user)}
+
+        assert reasons == {"own-monitor": None, "other-monitor": "not_target_detector"}
 
     def test_only_the_source_detector_can_be_changed(self) -> None:
         other = self.create_detector(project=self.project, type=MetricIssue.slug)
