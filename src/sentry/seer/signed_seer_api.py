@@ -117,7 +117,9 @@ def _resolve_viewer_context(
         org_id = explicit_org_id
 
     if explicit_user_id is not None:
-        if user_id is not None and user_id != explicit_user_id:
+        # A service account is its own principal; never re-attribute it to a human.
+        is_service_account = actor.type == ActorType.SERVICE_ACCOUNT
+        if (user_id is not None or is_service_account) and user_id != explicit_user_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
@@ -132,7 +134,7 @@ def _resolve_viewer_context(
             actor = replace(actor, actor_id=explicit_user_id)
         elif actor.type == ActorType.AGENT:
             actor = replace(actor, delegated_user_id=explicit_user_id)
-        else:
+        elif not is_service_account:
             actor = Actor(type=ActorType.USER, actor_id=explicit_user_id)
 
     metrics.incr(
