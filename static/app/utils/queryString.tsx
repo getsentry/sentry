@@ -46,7 +46,7 @@ export function appendTagCondition(
   value: null | string
 ): string {
   let currentQuery = Array.isArray(query)
-    ? query.pop()
+    ? query.at(-1)
     : typeof query === 'string'
       ? query
       : '';
@@ -76,7 +76,7 @@ export function appendExcludeTagValuesCondition(
   values: string[]
 ): string {
   let currentQuery = Array.isArray(query)
-    ? query.pop()
+    ? query.at(-1)
     : typeof query === 'string'
       ? query
       : '';
