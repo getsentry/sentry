@@ -199,7 +199,6 @@ patchedDependencies:
   css-tree@3.2.1: ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489
   jest-resolve@30.5.1: f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f
   jest-runtime@30.5.1: 36dce404d135697664f0f47961ef7b7df4963b97984d55155c6719f3e2c5205b
-  zod@4.3.5: 2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76
   zrender@6.1.0: 183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193
 
 importers:
@@ -804,8 +803,8 @@ importers:
         specifier: ^5.10.0
         version: 5.10.0
       zod:
-        specifier: 4.3.5
-        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+        specifier: 4.6.7
+        version: 4.6.7
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
@@ -943,8 +942,8 @@ importers:
         specifier: workspace:@sentry-internal/app@*
         version: link:../app
       zod:
-        specifier: 4.3.5
-        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@testing-library/jest-dom':
         specifier: 7.0.1
@@ -1040,8 +1039,8 @@ importers:
         specifier: workspace:@sentry-internal/app@*
         version: link:../app
       zod:
-        specifier: 4.3.5
-        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/history':
         specifier: ^3.2.5
@@ -9260,9 +9259,6 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
-
-  zod@4.3.5:
-    resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
 
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
@@ -17854,8 +17850,6 @@ snapshots:
     optional: true
 
   yocto-queue@0.1.0: {}
-
-  zod@4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76): {}
 
   zod@4.6.7: {}
 

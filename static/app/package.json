@@ -122,7 +122,7 @@
     "sonner": "2.0.8",
     "sprintf-js": "1.0.3",
     "type-fest": "^5.10.0",
-    "zod": "4.3.5",
+    "zod": "4.6.7",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
