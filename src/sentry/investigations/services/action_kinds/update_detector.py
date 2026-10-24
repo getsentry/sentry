@@ -55,6 +55,7 @@ from sentry.workflow_engine.endpoints.serializers.data_condition_serializer impo
 )
 from sentry.workflow_engine.endpoints.validators.utils import can_edit_detector_with_access
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.detector import DetectorQuerySet
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 UPDATE_DETECTOR_ACTION = "update_detector"
@@ -296,11 +297,17 @@ def target_detectors(organization_id: int, detector_ids: Collection[int]) -> dic
 
     return {
         detector.id: detector
-        for detector in Detector.objects.by_organization(organization_id)
-        .with_type_filters()
-        .filter(id__in=detector_ids, type=MetricIssue.slug)
-        .select_related("project", "workflow_condition_group")
+        for detector in _metric_detectors(organization_id).filter(id__in=detector_ids)
     }
+
+
+def _metric_detectors(organization_id: int) -> DetectorQuerySet:
+    return (
+        Detector.objects.by_organization(organization_id)
+        .with_type_filters()
+        .filter(type=MetricIssue.slug)
+        .select_related("project", "workflow_condition_group")
+    )
 
 
 def source_detector_id(source: Mapping[str, Any]) -> str | None:
@@ -439,16 +446,20 @@ class UpdateDetectorKind(ActionKind):
     def _apply(self, context: ApplyContext, *, dry_run: bool) -> UpdateDetectorAppliedDetails:
         action = context.action_request.action_payload
         assert action is not None
-        detectors = Detector.objects.select_related("project", "workflow_condition_group")
+        detectors = _metric_detectors(context.investigation.organization_id)
         snuba_queries = SnubaQuery.objects.all()
         if not dry_run:
             # Lock the monitor until we save, so an edit between the stale check and the save
             # isn't lost.
             detectors = detectors.select_for_update(of=("self",))
             snuba_queries = snuba_queries.select_for_update()
-        detector = detectors.get(id=int(action["detectorId"]))
+        try:
+            detector = detectors.get(id=int(action["detectorId"]))
+        except Detector.DoesNotExist:
+            raise ResourceDoesNotExist
         snuba_query = fetch_snuba_query(detector)
-        assert snuba_query is not None
+        if snuba_query is None:
+            raise ResourceDoesNotExist
         if not dry_run:
             snuba_query = snuba_queries.get(id=snuba_query.id)
 

@@ -391,6 +391,16 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 409
         assert response.data["code"] == "detector_not_found"
 
+    def test_a_monitor_without_a_query_is_not_found(self) -> None:
+        action_request = self.suggest()
+        self.detector.data_sources.get().delete()
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 404
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+
     def test_another_organizations_monitor_is_not_found(self) -> None:
         foreign = self.create_detector(
             project=self.create_project(organization=self.create_organization()),
