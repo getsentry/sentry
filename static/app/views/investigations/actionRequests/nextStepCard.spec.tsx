@@ -9,6 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {
   getPrimaryActionRequest,
   NextStepCard,
@@ -867,15 +868,6 @@ describe('NextStepCard', () => {
       },
       message: 'The monitor changed since Seer suggested this.',
     },
-    {
-      status: 400,
-      body: {
-        detail: "The change wasn't valid.",
-        code: 'validation_failed',
-        messages: ['Invalid Time Window: 900'],
-      },
-      message: "This change wasn't valid.",
-    },
   ])('says when an apply fails with $status', async ({status, body, message}) => {
     mockApply({statusCode: status, body});
     render(
@@ -1001,7 +993,7 @@ describe('NextStepCard', () => {
         code: 'validation_failed',
         messages: ['Invalid Time Window: 900'],
       },
-      message: "This change wasn't valid.",
+      message: 'Invalid Time Window: 900.',
     },
   ])(
     'holds the update when the check fails with $body.code',
@@ -1139,5 +1131,220 @@ describe('NextStepCard', () => {
       screen.queryByRole('button', {name: 'Update monitor'})
     ).not.toBeInTheDocument();
     expect(getCard()).not.toHaveTextContent("Seer can't apply this kind of change yet.");
+  });
+
+  it('says why the check would reject a change', async () => {
+    mockDryRun({
+      statusCode: 400,
+      body: {
+        detail: "The change wasn't valid.",
+        code: 'validation_failed',
+        messages: ['Invalid Time Window: 900', 'A valid number is required.'],
+      },
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Invalid Time Window: 900. A valid number is required.'
+      )
+    );
+    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeDisabled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows why an apply was rejected and lets the user retry', async () => {
+    const apply = mockApply({
+      statusCode: 400,
+      body: {
+        detail: "The change wasn't valid.",
+        code: 'validation_failed',
+        messages: ['Invalid Time Window: 900'],
+      },
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await userEvent.click(await findApplyButton());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This change could not be applied. Invalid Time Window: 900.'
+    );
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeEnabled();
+    expect(screen.queryByText("This change wasn't valid.")).not.toBeInTheDocument();
+  });
+
+  it('renders the applied change with who applied it', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            appliedBy: {
+              id: '2',
+              name: 'Grace Hopper',
+              email: 'grace@example.com',
+              username: 'grace@example.com',
+              ip_address: '',
+            },
+            dateApplied: '2026-08-27T12:00:00Z',
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent(
+      'Monitor updated. Cart p95 latency was changed to the settings below.'
+    );
+    expect(card).toHaveTextContent(/Applied by Grace Hopper •/);
+    expect(card).not.toHaveTextContent('Widen the interval.');
+    expect(within(card).getByText('Applied')).toBeInTheDocument();
+    expect(within(card).getByText('15 minutes')).toBeInTheDocument();
+    expect(within(card).getByText('was 5 minutes')).toBeInTheDocument();
+    expect(within(card).getByRole('button', {name: 'View monitor'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/monitors/789/'
+    );
+    expect(
+      within(card).queryByRole('button', {name: 'Update monitor'})
+    ).not.toBeInTheDocument();
+    expect(card).not.toHaveTextContent('This can no longer be applied.');
+  });
+
+  it('says when the viewer applied the change', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            appliedBy: {
+              id: ConfigStore.get('user').id,
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              username: 'ada@example.com',
+              ip_address: '',
+            },
+          }),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent('Applied by you');
+    expect(getCard()).not.toHaveTextContent('Ada Lovelace');
+  });
+
+  it('says a change was applied when nobody is named', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            appliedBy: null,
+            dateApplied: '2017-10-17T02:36:20Z',
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent('Applied 5 minutes ago');
+    expect(card).not.toHaveTextContent('Applied by');
+  });
+
+  it('keeps the title of an applied change of a kind it does not know', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            title: 'Connect Datadog',
+            rationale: 'Seer needs traces.',
+            action: {kind: 'connect_telemetry', provider: 'datadog'},
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            appliedBy: null,
+            dateApplied: null,
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent('Connect Datadog. Seer needs traces.');
+    expect(within(card).getByText('Applied')).toBeInTheDocument();
+  });
+
+  it('names the monitor as it was when the change was applied', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        source={sourceWith()}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            appliedDetails: {
+              detectorId: '789',
+              detectorName: 'Cart latency (renamed)',
+              fields: ['timeWindowSeconds'],
+            },
+          }),
+        ]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent(
+      'Monitor updated. Cart latency (renamed) was changed to the settings below.'
+    );
+    expect(within(card).queryByText('Cart p95 latency')).not.toBeInTheDocument();
+  });
+
+  it('reports an already applied request', async () => {
+    mockApply({
+      statusCode: 409,
+      body: {detail: 'This action was already applied.', code: 'already_applied'},
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await userEvent.click(await findApplyButton());
+
+    expect(await screen.findByText('This was already applied.')).toBeInTheDocument();
   });
 });
