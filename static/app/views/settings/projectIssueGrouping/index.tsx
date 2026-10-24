@@ -26,6 +26,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+import {
+  FingerprintRulesCode,
+  FingerprintRulesEditor,
+} from 'sentry/views/settings/projectIssueGrouping/fingerprintRulesEditor';
 
 function FingerprintRulesForm({
   project,
@@ -81,26 +85,26 @@ function FingerprintRulesForm({
                       }
                     )}
                   </Text>
-                  <Container background="secondary" padding="md lg" radius="md">
-                    <Text as="div" monospace size="sm" wrap="pre-wrap">
-                      {`# force all errors of the same type to have the same fingerprint
+                  <FingerprintRulesCode
+                    rules={`# force all errors of the same type to have the same fingerprint
 error.type:DatabaseUnavailable -> system-down
 # force all memory allocation errors to be grouped together
 stack.function:malloc -> memory-allocation-error`}
-                    </Text>
-                  </Container>
-                  <field.TextArea
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={!hasAccess}
-                    monospace
-                    autosize
-                    rows={2}
-                    maxRows={20}
-                    placeholder={t(
-                      'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
-                    )}
                   />
+                  <field.Base<HTMLTextAreaElement> disabled={!hasAccess}>
+                    {fieldProps => (
+                      <FingerprintRulesEditor
+                        {...fieldProps}
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        rows={2}
+                        maxRows={20}
+                        placeholder={t(
+                          'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
+                        )}
+                      />
+                    )}
+                  </field.Base>
                 </Stack>
               </field.Layout.Stack>
             )}
