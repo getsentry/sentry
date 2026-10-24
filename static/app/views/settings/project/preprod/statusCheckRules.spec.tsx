@@ -93,7 +93,38 @@ describe('StatusCheckRules', () => {
       await screen.findByRole('checkbox', {name: 'Toggle status checks'})
     ).not.toBeChecked();
     expect(
-      screen.getByText('Enable status checks above to configure rules.')
+      screen.getByText(
+        "Status checks are disabled. Rules are saved but won't be evaluated."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('shows saved rules while disabled', async () => {
+    mockRepositories();
+    const project = DetailedProjectFixture({
+      options: {
+        'sentry:preprod_size_status_checks_enabled': false,
+        'sentry:preprod_size_status_checks_rules': JSON.stringify([
+          {id: 'rule1', metric: 'install_size', measurement: 'absolute', value: 100},
+        ]),
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
+
+    render(<StatusCheckRules />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByText(/Install\/Uncompressed Size • Absolute Size • Main App/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Create Status Check Rule'})
     ).toBeInTheDocument();
   });
 });
