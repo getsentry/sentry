@@ -181,6 +181,9 @@ register(
     default=True,
 )
 
+# Pin semver ordering instead of inferring it from recent releases.
+register(key="sentry:semver", default=False)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,
