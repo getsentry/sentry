@@ -23,7 +23,7 @@ const installationConfigSchema = z
   .object({
     selfHosted: z.boolean(),
     url: z.string(),
-    group: z.string(),
+    group: z.string().trim().min(1, t('Group path is required')),
     includeSubgroups: z.boolean(),
     verifySsl: z.boolean(),
     clientId: z.string().min(1, t('Application ID is required')),
@@ -78,7 +78,7 @@ function InstallationConfigStep({
         url: value.selfHosted ? value.url.replace(/\/+$/, '') : undefined,
         verify_ssl: value.selfHosted ? value.verifySsl : undefined,
         group: value.group,
-        include_subgroups: value.group ? value.includeSubgroups : undefined,
+        include_subgroups: value.includeSubgroups,
         client_id: value.clientId,
         client_secret: value.clientSecret,
       });
@@ -122,8 +122,9 @@ function InstallationConfigStep({
             <field.Layout.Stack
               label={t('GitLab Group Path')}
               hintText={t(
-                'Limit this integration to a specific group. Found in the URL of your group page (e.g. my-group/my-subgroup). Leave empty to integrate all accessible projects.'
+                'The group to connect, found in the URL of your group page (e.g. my-group/my-subgroup). Groups without a shared parent each need their own installation.'
               )}
+              required
             >
               <field.Input
                 value={field.state.value}
