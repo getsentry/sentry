@@ -435,6 +435,27 @@ export function useMetricDetectorChart({
     };
   }, [openPeriodMarkerResult.incidentMarkerGrid]);
 
+  // The tooltip formatter runs on every pointer move, and mounting the table each
+  // time is expensive, so render it once, on the first hover that needs it.
+  const getAggregateSummaryHtml = useMemo(() => {
+    if (!aggregateSummary) {
+      return null;
+    }
+
+    let html: string | undefined;
+
+    return () => {
+      if (html === undefined) {
+        html = renderToString(
+          <Container paddingTop="md">
+            <AggregateSummaryTable summary={aggregateSummary} />
+          </Container>
+        );
+      }
+      return html;
+    };
+  }, [aggregateSummary, renderToString]);
+
   const chartProps = useMemo<AreaChartProps | null>(() => {
     if (isLoading || error) {
       return null;
@@ -471,17 +492,9 @@ export function useMetricDetectorChart({
                   )
                 : name
           : undefined,
-        renderSeriesDetails: aggregateSummary
+        renderSeriesDetails: getAggregateSummaryHtml
           ? seriesNames =>
-              seriesNames.includes(aggregate)
-                ? renderToString(
-                    // The wrapper absorbs `.tooltip-series > div`, which would otherwise
-                    // override the table's grid with flex.
-                    <Container paddingTop="md">
-                      <AggregateSummaryTable summary={aggregateSummary} />
-                    </Container>
-                  )
-                : ''
+              seriesNames.includes(aggregate) ? getAggregateSummaryHtml() : ''
           : undefined,
         // Data points are shifted to bucket-end timestamps
         // so we need to subtract the interval to get the bucket-start time.
@@ -522,6 +535,7 @@ export function useMetricDetectorChart({
     chartZoomProps,
     detectionType,
     error,
+    getAggregateSummaryHtml,
     grid,
     height,
     isLoading,

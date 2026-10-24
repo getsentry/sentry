@@ -1,7 +1,12 @@
 import {type ReactNode, useCallback} from 'react';
 import {flushSync} from 'react-dom';
 import {createRoot} from 'react-dom/client';
-import {ThemeProvider, useTheme} from '@emotion/react';
+import {
+  __unsafe_useEmotionCache,
+  CacheProvider,
+  ThemeProvider,
+  useTheme,
+} from '@emotion/react';
 
 const renderToString = (tree: ReactNode) => {
   const div = document.createElement('div');
@@ -20,10 +25,15 @@ const renderToString = (tree: ReactNode) => {
 
 export const useRenderToString = () => {
   const theme = useTheme();
+  const cache = __unsafe_useEmotionCache();
 
   return useCallback(
     (tree: ReactNode) =>
-      renderToString(<ThemeProvider theme={theme}>{tree}</ThemeProvider>),
-    [theme]
+      renderToString(
+        <CacheProvider value={cache}>
+          <ThemeProvider theme={theme}>{tree}</ThemeProvider>
+        </CacheProvider>
+      ),
+    [cache, theme]
   );
 };
