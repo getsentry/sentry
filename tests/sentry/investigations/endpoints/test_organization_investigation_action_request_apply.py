@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
+from unittest import mock
 
 from django.test import override_settings
 from django.urls import reverse
@@ -329,6 +330,18 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"dryRn": "Unknown field."}
 
+    def test_a_setting_seer_relied_on_but_did_not_change_counts_as_stale(self) -> None:
+        action_request = self.suggest(
+            before={"timeWindowSeconds": 300, "aggregate": "p95(transaction.duration)"},
+            changes={"timeWindowSeconds": 900},
+        )
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data["current"] == {"aggregate": "count()"}
+        assert self.snuba_query().time_window == 300
+
     def test_a_stale_monitor_conflicts_and_supersedes_the_suggestion(self) -> None:
         action_request = self.suggest(before={"timeWindowSeconds": 600})
 
@@ -336,7 +349,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
 
         assert response.status_code == 409
         assert response.data == {
-            "detail": "The monitor changed since this was suggested.",
+            "detail": "This changed since Seer suggested it.",
             "code": "stale",
             "current": {"timeWindowSeconds": 300},
         }
@@ -408,7 +421,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert action_request.state == InvestigationActionRequestState.SUGGESTED
         assert self.snuba_query().time_window == 300
 
-    def test_an_invalid_change_fails_the_request(self) -> None:
+    def test_an_invalid_change_is_rejected_and_can_be_tried_again(self) -> None:
         self.detector = self.create_metric_detector(dataset=Dataset.EventsAnalyticsPlatform)
         self.orchestration_run.update(
             source={"type": "breached_metric", "detectorId": str(self.detector.id)}
@@ -419,17 +432,12 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         response = self.apply(action_request)
 
         assert response.status_code == 400
-        assert response.data["detail"] == "The monitor change was not valid."
+        assert response.data["detail"] == "The change wasn't valid."
         assert response.data["code"] == "validation_failed"
-        assert "Invalid Time Window" in str(response.data["errors"]["dataSources"])
+        assert any("Invalid Time Window" in message for message in response.data["messages"])
         action_request.refresh_from_db()
-        assert action_request.error is not None
-        assert response.data["messages"] == action_request.error["messages"]
-        assert action_request.state == InvestigationActionRequestState.FAILED
-        assert action_request.error is not None
-        assert set(action_request.error) == {"code", "messages"}
-        assert action_request.error["code"] == "validation_failed"
-        assert any("Invalid Time Window" in message for message in action_request.error["messages"])
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.error is None
         assert self.snuba_query().time_window == 300
         self.investigation.refresh_from_db()
         assert self.investigation.version == version
@@ -454,7 +462,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data["code"] == "validation_failed"
-        assert "Invalid Time Window" in str(response.data["errors"]["dataSources"])
+        assert any("Invalid Time Window" in message for message in response.data["messages"])
         action_request.refresh_from_db()
         assert action_request.state == InvestigationActionRequestState.SUGGESTED
         assert action_request.error is None
@@ -638,7 +646,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 409
         assert response.data == {
             "detail": "This action can't be applied.",
-            "code": "unsupported_action",
+            "code": "dynamic_detector",
         }
         update_detector_data.assert_not_called()
         action_request.refresh_from_db()
@@ -690,13 +698,11 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data["code"] == "validation_failed"
-        [error] = response.data["errors"]["dataSources"]
-        assert error == TRANSACTION_UPDATES_DISABLED
+        assert response.data["messages"] == [TRANSACTION_UPDATES_DISABLED]
         assert self.conditions() == conditions
         assert self.snuba_query().time_window == 300
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.FAILED
-        assert action_request.error == {"code": "validation_failed", "messages": [error]}
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
 
     @override_settings(SEER_API_SHARED_SECRET="test-seer-api-shared-secret-thirty-two-bytes!")
     def test_an_agent_token_without_alerts_write_cannot_apply(self) -> None:
@@ -758,7 +764,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         }
         assert InvestigationBlock.objects.filter(investigation=self.investigation).count() == blocks
         self.investigation.refresh_from_db()
-        assert self.investigation.version == version + 1
+        assert self.investigation.version == version
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("DETECTOR_EDIT"))
@@ -778,6 +784,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 200, response.data
         details = response.data["actionRequest"]["appliedDetails"]
         assert details["fields"] == ["query", "environment"]
+
 
 @with_feature(FEATURE)
 class SharedApplyPathTest(APITestCase):
