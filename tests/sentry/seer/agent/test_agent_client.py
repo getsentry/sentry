@@ -29,6 +29,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
 from sentry.utils.prompts import seer_monitoring_provider_dont_ask_feature
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 
 class TestSeerAgentClient(TestCase):
@@ -60,6 +61,27 @@ class TestSeerAgentClient(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         assert client.organization == self.organization
         assert client.user == self.user
+        assert client.viewer_context == {
+            "organization_id": self.organization.id,
+            "user_id": self.user.id,
+        }
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_client_uses_matching_ambient_viewer_context(self, _mock_access):
+        viewer = ViewerContext(organization_id=self.organization.id, user_id=self.user.id)
+        with viewer_context_scope(viewer):
+            client = SeerAgentClient(self.organization, self.user)
+            assert client.viewer_context is None
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_client_keeps_explicit_context_for_other_organization(self, _mock_access):
+        other = self.create_organization()
+        with viewer_context_scope(ViewerContext(organization_id=other.id, user_id=self.user.id)):
+            client = SeerAgentClient(self.organization, self.user)
+            assert client.viewer_context == {
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+            }
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_client_init_raises_when_coding_option_disabled(self, mock_access):
