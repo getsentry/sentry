@@ -163,7 +163,7 @@ class EventAttachmentBase(Model):
 
         raise NotImplementedError()
 
-    def delete_blob(self) -> None:
+    def delete_blob(self, organization_id: int | None = None) -> None:
         """
         Delete this attachment's payload from its backing store.
 
@@ -171,6 +171,9 @@ class EventAttachmentBase(Model):
         `PendingEventAttachment` to an `EventAttachment` hands the blob over to the new
         row, so the pending row must be deleted without touching the blob (a queryset
         delete does that, since it does not run `Model.delete`).
+
+        ``organization_id`` may be passed by callers deleting many attachments of the
+        same project to avoid resolving the organization once per attachment.
         """
         if not self.blob_path:
             return
@@ -187,7 +190,8 @@ class EventAttachmentBase(Model):
             # V2 objectstore blobs expire via TTL — if TTL is imminent, skip the
             # explicit delete to avoid unnecessary load on the objectstore service.
             if self.final_expiry_date() > (timezone.now() + timedelta(days=1)):
-                organization_id = _get_organization(self.project_id)
+                if organization_id is None:
+                    organization_id = _get_organization(self.project_id)
                 get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
                     self.blob_path.removeprefix(V2_PREFIX)
                 )

@@ -150,9 +150,10 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         for m3 in (
             ReleaseProject,
             ReleaseProjectEnvironment,
-            EventAttachment,
             ProjectDebugFile,
         ):
             relations.append(ModelRelation(m3, {"project_id": instance.id}, ModelDeletionTask))
+        # Uses the registered EventAttachmentDeletionTask, which deletes in batches.
+        relations.append(ModelRelation(EventAttachment, {"project_id": instance.id}))
 
         return relations
