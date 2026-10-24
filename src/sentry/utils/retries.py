@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import TypeVar
 
-from django.utils.encoding import force_bytes
+from django.utils.encoding import force_str
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class RetryException(Exception):
         return RetryException, (self.message, self.exception)
 
     def __str__(self) -> str:
-        return force_bytes(self.message, errors="replace")
+        return force_str(self.message, errors="replace")
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: {self.message!r}>"
