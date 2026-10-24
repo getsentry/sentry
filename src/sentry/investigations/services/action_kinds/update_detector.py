@@ -27,7 +27,11 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationOrchestrationRun,
 )
-from sentry.investigations.services.action_kinds.base import ActionKind, CannotApplyReason
+from sentry.investigations.services.action_kinds.base import (
+    ActionKind,
+    CannotApplyReason,
+    SettingValue,
+)
 from sentry.models.organization import Organization
 from sentry.snuba.models import SnubaQuery
 from sentry.users.models.user import User
@@ -124,8 +128,6 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
         }
 
 
-DetectorValue = int | float | str | None
-
 _THRESHOLD_RESULTS: dict[
     Literal["highThreshold", "mediumThreshold", "resolutionThreshold"], DetectorPriorityLevel
 ] = {
@@ -211,12 +213,12 @@ class DetectorState:
         )
         return cls(data_source=data_source, condition_group=condition_group)
 
-    def values(self) -> dict[str, DetectorValue]:
+    def values(self) -> dict[str, SettingValue]:
         """The monitor's current settings, keyed like Seer's changes. A threshold is left out
         unless exactly one condition sets it.
         """
 
-        values: dict[str, DetectorValue] = {
+        values: dict[str, SettingValue] = {
             "timeWindowSeconds": self.data_source["timeWindow"],
             "query": self.data_source["query"],
             "aggregate": self.data_source["aggregate"],

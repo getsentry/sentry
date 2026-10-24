@@ -20,12 +20,13 @@ from sentry.investigations.models import (
 from sentry.investigations.services.action_kinds import get_action_kind, shared_cannot_apply_reason
 from sentry.investigations.services.action_kinds.base import (
     ActionInvalid,
+    ActionKind,
     ActionRequestError,
     ActionStale,
     ApplyContext,
     ApplyError,
     ApplyErrorCode,
-    ApplyResult,
+    ApplyFailed,
     CannotApplyReason,
 )
 
@@ -229,11 +230,11 @@ def supersede_block_action_requests(investigation: Investigation, block_keys: Se
     )
 
 
-# The usual detail for a reason; anything a kind refuses gets the last one.
 _REASON_DETAILS = {
     CannotApplyReason.INVESTIGATION_ARCHIVED: "Archived investigations are read-only.",
     CannotApplyReason.UNSUPPORTED_ACTION: "This request has no action to apply.",
 }
+_DEFAULT_REASON_DETAIL = "This action can't be applied."
 
 
 def _not_suggested_error(action_request: InvestigationActionRequest) -> ApplyError:
@@ -254,22 +255,39 @@ def _not_suggested_error(action_request: InvestigationActionRequest) -> ApplyErr
     }
 
 
-def _error_messages(errors: object) -> list[str]:
-    if isinstance(errors, dict):
-        return [message for value in errors.values() for message in _error_messages(value)]
-    if isinstance(errors, list):
-        return [message for value in errors for message in _error_messages(value)]
-    return [str(errors)]
+def _check_can_apply(
+    investigation: Investigation, action_request: InvestigationActionRequest, request: Request
+) -> ActionKind:
+    """Return the request's kind, or raise ApplyFailed if the viewer can't apply it."""
+
+    reason = shared_cannot_apply_reason(investigation, action_request)
+    if reason == CannotApplyReason.NOT_SUGGESTED:
+        raise ApplyFailed(_not_suggested_error(action_request))
+    if reason is None:
+        kind = get_action_kind(action_request.action_kind)
+        assert kind is not None
+        # The same check that decides canApply guards the endpoint, so a kind can't forget it.
+        reason = kind.cannot_apply_reasons(
+            [action_request],
+            investigations={investigation.id: investigation},
+            access=request.access,
+            user=request.user,
+        )[action_request.id]
+        if reason is None:
+            return kind
+    raise ApplyFailed(
+        {"detail": _REASON_DETAILS.get(reason, _DEFAULT_REASON_DETAIL), "code": reason}
+    )
 
 
 def _apply(
     *,
     investigation: Investigation,
-    action_request_id: str,
+    action_request: InvestigationActionRequest,
     request: Request,
     actor_id: int,
     dry_run: bool,
-) -> ApplyResult:
+) -> InvestigationActionRequest:
     investigations = Investigation.objects.select_related("organization")
     runs = InvestigationOrchestrationRun.objects.all()
     action_requests = InvestigationActionRequest.objects.all()
@@ -279,31 +297,9 @@ def _apply(
         action_requests = action_requests.select_for_update()
 
     locked = investigations.get(id=investigation.id)
-    try:
-        run = runs.get(investigation=locked)
-    except InvestigationOrchestrationRun.DoesNotExist:
-        raise ResourceDoesNotExist
-    try:
-        action_request = action_requests.get(id=action_request_id, investigation=locked)
-    except (InvestigationActionRequest.DoesNotExist, ValueError):
-        raise ResourceDoesNotExist
-
-    reason = shared_cannot_apply_reason(locked, action_request)
-    if reason == CannotApplyReason.NOT_SUGGESTED:
-        return ApplyResult(action_request, _not_suggested_error(action_request))
-    kind = get_action_kind(action_request.action_kind)
-    if reason is None and kind is not None:
-        # The same check that decides canApply guards the endpoint, so a kind can't forget it.
-        reason = kind.cannot_apply_reasons(
-            [action_request],
-            investigations={locked.id: locked},
-            access=request.access,
-            user=request.user,
-        ).get(action_request.id, CannotApplyReason.UNSUPPORTED_ACTION)
-    if reason is not None:
-        detail = _REASON_DETAILS.get(reason, "This action can't be applied.")
-        return ApplyResult(action_request, {"detail": detail, "code": reason})
-    assert kind is not None
+    run = runs.get(investigation=locked)
+    action_request = action_requests.get(id=action_request.id)
+    kind = _check_can_apply(locked, action_request, request)
 
     context = ApplyContext(
         investigation=locked,
@@ -315,7 +311,7 @@ def _apply(
     try:
         if dry_run:
             kind.check(context)
-            return ApplyResult(action_request)
+            return action_request
         details = kind.apply(context)
     except ActionStale as stale:
         if not dry_run:
@@ -325,23 +321,21 @@ def _apply(
                 state=InvestigationActionRequestState.SUPERSEDED,
                 error=ActionRequestError(code=ApplyErrorCode.STALE, current=stale.current),
             )
-        return ApplyResult(
-            action_request,
+        raise ApplyFailed(
             {
                 "detail": "This changed since Seer suggested it.",
                 "code": ApplyErrorCode.STALE,
                 "current": stale.current,
-            },
+            }
         )
     except ActionInvalid as invalid:
         # The request stays suggested, so the user can try again.
-        return ApplyResult(
-            action_request,
+        raise ApplyFailed(
             {
                 "detail": "The change wasn't valid.",
                 "code": ApplyErrorCode.VALIDATION_FAILED,
-                "messages": _error_messages(invalid.errors),
-            },
+                "messages": invalid.messages,
+            }
         )
     action_request.update(
         state=InvestigationActionRequestState.APPLIED,
@@ -350,7 +344,7 @@ def _apply(
         applied_details=details,
         error=None,
     )
-    return ApplyResult(action_request)
+    return action_request
 
 
 def apply_action_request(
@@ -360,21 +354,33 @@ def apply_action_request(
     request: Request,
     actor_id: int,
     dry_run: bool = False,
-) -> ApplyResult:
-    """Apply a suggested action as the requesting user. A dry run only says whether it would
-    work, and doesn't take locks or change anything.
+) -> InvestigationActionRequest:
+    """Apply a suggested action as the requesting user, or raise ApplyFailed. A dry run only
+    says whether it would work, and doesn't take locks or change anything.
     """
+
+    try:
+        action_request = InvestigationActionRequest.objects.get(
+            id=action_request_id, investigation=investigation
+        )
+    except (InvestigationActionRequest.DoesNotExist, ValueError):
+        raise ResourceDoesNotExist
 
     using = router.db_for_write(InvestigationActionRequest)
     with transaction.atomic(using=using):
-        result = _apply(
-            investigation=investigation,
-            action_request_id=action_request_id,
-            request=request,
-            actor_id=actor_id,
-            dry_run=dry_run,
-        )
-        if dry_run:
-            # Even if a check writes by mistake, a dry run keeps nothing.
-            transaction.set_rollback(True, using=using)
-        return result
+        try:
+            return _apply(
+                investigation=investigation,
+                action_request=action_request,
+                request=request,
+                actor_id=actor_id,
+                dry_run=dry_run,
+            )
+        except ApplyFailed as failed:
+            error = failed
+        finally:
+            if dry_run:
+                # The detector validator can create environments while validating.
+                transaction.set_rollback(True, using=using)
+    # Raise once the transaction commits, so a stale request stays superseded.
+    raise error

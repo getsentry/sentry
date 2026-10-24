@@ -207,24 +207,6 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 409
         assert response.data["code"] == "not_suggested"
 
-    def test_a_dry_run_changes_nothing(self) -> None:
-        action_request = self.create_investigation_action_request(
-            investigation=self.investigation,
-            key="task",
-            action_kind="seer_task",
-            action_payload={"kind": "seer_task", "prompt": "Go"},
-        )
-        version = self.investigation.version
-
-        response = self.apply(action_request, dryRun=True)
-
-        assert response.status_code == 400
-        assert response.data["code"] == "unsupported_action"
-        action_request.refresh_from_db()
-        self.investigation.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
-        assert self.investigation.version == version
-
     def test_rejects_an_unknown_field(self) -> None:
         response = self.apply(self.suggest(), dryRn=True)
 
@@ -350,6 +332,16 @@ class SharedApplyPathTest(APITestCase):
         self.action_request.refresh_from_db()
         assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
 
+    def test_a_dry_run_keeps_nothing_a_check_writes(self) -> None:
+        title = self.action_request.title
+        self.kind.check_title = "Changed by the check"
+
+        response = self.post(dryRun=True)
+
+        assert response.status_code == 200, response.data
+        self.action_request.refresh_from_db()
+        assert self.action_request.title == title
+
     def test_applying_records_what_the_kind_returns(self) -> None:
         response = self.post()
 
@@ -386,7 +378,7 @@ class SharedApplyPathTest(APITestCase):
         assert self.action_request.error is None
 
     def test_an_invalid_action_stays_suggested(self) -> None:
-        self.kind.raises = ActionInvalid({"window": ["Pick a supported window."]})
+        self.kind.raises = ActionInvalid(["Pick a supported window."])
 
         response = self.post()
 
