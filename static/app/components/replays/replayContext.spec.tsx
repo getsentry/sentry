@@ -12,6 +12,7 @@ import {
   Provider as ReplayContextProvider,
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
+import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {RawReplayError, RecordingFrame} from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
@@ -395,6 +396,93 @@ describe('replayContext', () => {
     );
 
     expect(Replayer).toHaveBeenCalledTimes(2);
+  });
+
+  it('replaces the video player with an rrweb player when switching replays', () => {
+    const {rerender} = render(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({attachments: [VideoFrameEventFixture()]})}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+    expect(VideoReplayerWithInteractions).toHaveBeenCalledTimes(1);
+    const videoReplayer = jest.mocked(VideoReplayerWithInteractions).mock.results[0]!
+      .value;
+
+    rerender(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({
+          attachments: RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        })}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+
+    expect(videoReplayer.destroy).toHaveBeenCalled();
+    expect(Replayer).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces the rrweb player with a video player when switching replays', () => {
+    const {rerender} = render(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({
+          attachments: RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        })}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+    expect(Replayer).toHaveBeenCalledTimes(1);
+    const rrwebReplayer = jest.mocked(Replayer).mock.results[0]!.value;
+
+    rerender(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({attachments: [VideoFrameEventFixture()]})}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+
+    expect(rrwebReplayer.destroy).toHaveBeenCalled();
+    expect(VideoReplayerWithInteractions).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the fast forward speed when switching from an rrweb to a video replay', () => {
+    const {rerender} = render(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({
+          attachments: RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        })}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+    startFastForwarding();
+    expect(screen.getByText('Fast forward: 8')).toBeInTheDocument();
+
+    rerender(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({attachments: [VideoFrameEventFixture()]})}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+
+    expect(screen.getByText('Fast forward: 0')).toBeInTheDocument();
   });
 
   it('keeps the fast forward speed when the tab stays visible while skipping', async () => {

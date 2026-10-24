@@ -243,6 +243,10 @@ export function Provider({
   // Note we have to check this outside of hooks, see `usePrevious` comments
   const hasNewEvents = !hasSameFrames(events, oldEvents);
   const replayerRef = useRef<Replayer | null>(null);
+  // Tracks whether `replayerRef` holds a `VideoReplayerWithInteractions` (true)
+  // or an rrweb `Replayer` (false). The provider is reused across replays (e.g.
+  // playlist navigation), so the mounted replayer can be the wrong kind.
+  const isVideoReplayerRef = useRef(false);
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState(-1);
@@ -420,6 +424,7 @@ export function Provider({
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
       replayerRef.current = inst;
+      isVideoReplayerRef.current = false;
 
       applyInitialOffset();
     },
@@ -483,6 +488,7 @@ export function Provider({
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
       // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
       replayerRef.current = inst;
+      isVideoReplayerRef.current = true;
       applyInitialOffset();
       return inst;
     },
@@ -592,6 +598,21 @@ export function Provider({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [togglePlayPause, isPlaying, isVideoReplay]);
+
+  // When switching between a video and an rrweb replay without remounting
+  // (e.g. playlist navigation), tear down the replayer of the other kind so the
+  // init effects below can create the correct one. Player UI state is normally
+  // reset by replayer callbacks (`onBuffer`, `SkipEnd`, ...), which won't fire
+  // after `destroy()`, so reset it here too.
+  useEffect(() => {
+    if (replayerRef.current && isVideoReplayerRef.current !== isVideoReplay) {
+      replayerRef.current.destroy();
+      replayerRef.current = null;
+      setIsPlaying(false);
+      setFFSpeed(0);
+      setVideoBuffering(false);
+    }
+  }, [isVideoReplay]);
 
   // Initialize replayer for Video Replays
   useEffect(() => {
