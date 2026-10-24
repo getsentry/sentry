@@ -135,13 +135,8 @@ export function parseTraceMetricFromQuery(query: string): {
   };
 }
 
-export function hasDisplayMetricUnit(
-  hasMetricUnitsUI: boolean,
-  metricUnit?: string | null
-): metricUnit is string {
-  return (
-    hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
-  );
+export function hasDisplayMetricUnit(metricUnit?: string | null): metricUnit is string {
+  return !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT;
 }
 
 export function makeMetricSelectValue(metric: TraceMetric): string {
