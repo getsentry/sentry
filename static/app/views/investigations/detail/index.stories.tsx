@@ -516,7 +516,9 @@ export default Storybook.story('Investigations — Detail', story => {
       orchestration={{[agenticReportInvestigation.id]: agenticReportOrchestration}}
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={agenticReportInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={agenticReportInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -527,7 +529,9 @@ export default Storybook.story('Investigations — Detail', story => {
       details={[completedInvestigation]}
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={completedInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={completedInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -538,7 +542,9 @@ export default Storybook.story('Investigations — Detail', story => {
       details={[manualInvestigation]}
     >
       <Container minHeight="680px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={manualInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={manualInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -591,7 +597,9 @@ export default Storybook.story('Investigations — Detail', story => {
       }}
     >
       <Container minHeight="760px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={runningInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={runningInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -619,7 +627,9 @@ export default Storybook.story('Investigations — Detail', story => {
       }}
     >
       <Container minHeight="520px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={skeletonInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={skeletonInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -637,7 +647,9 @@ export default Storybook.story('Investigations — Detail', story => {
       }}
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={reportingInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={reportingInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -649,7 +661,9 @@ export default Storybook.story('Investigations — Detail', story => {
       orchestration={{[gatheringContextInvestigation.id]: gatheringContextOrchestration}}
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={gatheringContextInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={gatheringContextInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -668,7 +682,9 @@ export default Storybook.story('Investigations — Detail', story => {
       }}
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={awaitingInputRunInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={awaitingInputRunInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -721,7 +737,9 @@ export default Storybook.story('Investigations — Detail', story => {
       }}
     >
       <Container minHeight="700px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={awaitingInputInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={awaitingInputInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -732,7 +750,9 @@ export default Storybook.story('Investigations — Detail', story => {
       details={[failureInvestigation]}
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={failureInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={failureInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
@@ -757,7 +777,9 @@ export default Storybook.story('Investigations — Detail', story => {
       mode="loading"
     >
       <Container minHeight="360px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId="loading-investigation" />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId="loading-investigation" />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
