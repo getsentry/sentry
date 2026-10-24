@@ -28,6 +28,12 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/`,
           index: true,
           title: t('General Settings'),
+          keywords: [
+            t('slug'),
+            t('project slug'),
+            'SENTRY_PROJECT',
+            'SENTRY_PROJECT_SLUG',
+          ],
           description: t('Configure general settings for a project'),
         },
         {
@@ -111,6 +117,13 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
+          keywords: [
+            t('data scrubbing'),
+            t('data scrubber'),
+            t('pii'),
+            t('ip address'),
+            t('prevent storing of ip addresses'),
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
           ),
@@ -207,6 +220,8 @@ export function getNavigationConfiguration({
             t('client key'),
             t('dsn key'),
             t('allowed domains'),
+            t('sdk'),
+            t('sdk setup'),
           ],
         },
         {
