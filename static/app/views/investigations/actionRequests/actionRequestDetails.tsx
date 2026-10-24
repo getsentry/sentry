@@ -1,22 +1,20 @@
 import {IconSiren} from '@sentry/icons/siren';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ApplyButton} from 'sentry/views/investigations/actionRequests/applyButton';
-import {MonitorChanges} from 'sentry/views/investigations/actionRequests/monitorChanges';
 import {
-  actionRequestDryRunQueryOptions,
-  getInvestigationDetailQueryOptions,
-  parseApplyError,
-  type ApplyError,
-} from 'sentry/views/investigations/api';
+  ApplyButton,
+  type ApplyCheck,
+} from 'sentry/views/investigations/actionRequests/applyButton';
+import {MonitorChanges} from 'sentry/views/investigations/actionRequests/monitorChanges';
+import {actionRequestDryRunQueryOptions} from 'sentry/views/investigations/api';
 import {getSourceMonitor} from 'sentry/views/investigations/source';
 import type {
   InvestigationAction,
-  InvestigationActionCannotApplyReason,
+  InvestigationActionApplyErrorCode,
   InvestigationActionRequest,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
@@ -50,7 +48,7 @@ export function ActionRequestDetails({actionRequest, source}: ActionRequestDetai
 type ActionRequestApplyProps = {
   actionRequest: InvestigationActionRequest;
   applying: boolean;
-  check: ApplyError | null;
+  check: ApplyCheck;
   onApply: () => void;
 };
 
@@ -71,9 +69,9 @@ export function ActionRequestApply({
           icon={<IconSiren />}
           label={t('Update monitor')}
           busyLabel={t('Updating monitor…')}
-          cannotApplyMessage={getMonitorCannotApplyMessage(
-            actionRequest.cannotApplyReason
-          )}
+          getCannotApplyMessage={reason =>
+            getCannotApplyMessage(actionRequest.action, reason)
+          }
         />
       );
     default:
@@ -84,25 +82,19 @@ export function ActionRequestApply({
 export function useApplyCheck(
   investigationId: string,
   actionRequest: InvestigationActionRequest
-): ApplyError | null {
+): ApplyCheck {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
-  const investigationVersion = queryClient.getQueryData(
-    getInvestigationDetailQueryOptions(organization.slug, investigationId).queryKey
-  )?.json.version;
-  const {error} = useQuery({
-    ...actionRequestDryRunQueryOptions(
-      organization.slug,
-      investigationId,
-      actionRequest.id,
-      investigationVersion
-    ),
-    enabled:
-      hasApplyCheck(actionRequest) &&
-      actionRequest.state === 'suggested' &&
-      actionRequest.canApply,
+  const {data, isError, isPending} = useQuery({
+    ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
+    enabled: hasApplyCheck(actionRequest) && actionRequest.canApply,
   });
-  return error ? parseApplyError(error) : null;
+  if (isError) {
+    return {status: 'unavailable'};
+  }
+  if (isPending) {
+    return {status: 'pending'};
+  }
+  return data ? {status: 'blocked', error: data} : {status: 'passed'};
 }
 
 function hasApplyCheck(actionRequest: InvestigationActionRequest) {
@@ -123,9 +115,41 @@ export function getApplySuccessMessage(action: InvestigationAction | null) {
   }
 }
 
-function getMonitorCannotApplyMessage(
-  reason: InvestigationActionCannotApplyReason | null
+export function getCannotApplyMessage(
+  action: InvestigationAction | null,
+  reason: InvestigationActionApplyErrorCode
 ) {
+  return getKindCannotApplyMessage(action, reason) ?? getSharedCannotApplyMessage(reason);
+}
+
+function getKindCannotApplyMessage(
+  action: InvestigationAction | null,
+  reason: InvestigationActionApplyErrorCode
+) {
+  switch (action?.kind) {
+    case 'update_detector':
+      return getMonitorCannotApplyMessage(reason);
+    default:
+      return null;
+  }
+}
+
+function getSharedCannotApplyMessage(reason: InvestigationActionApplyErrorCode) {
+  switch (reason) {
+    case 'investigation_archived':
+      return t('Archived investigations are read-only.');
+    case 'not_suggested':
+      return t('This can no longer be applied.');
+    case 'unsupported_action':
+      return t("Seer can't apply this kind of change yet.");
+    case 'no_access':
+      return t("You don't have access to apply this.");
+    default:
+      return null;
+  }
+}
+
+function getMonitorCannotApplyMessage(reason: InvestigationActionApplyErrorCode) {
   switch (reason) {
     case 'permission_denied':
       return t("You don't have permission to edit this monitor.");

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, type ComponentProps} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
@@ -49,17 +49,20 @@ function investigationWith(id: string, actionRequests: InvestigationActionReques
 
 function CardStory({
   actionRequests,
+  dryRunErrors,
   id,
   orchestration = completedRun,
 }: {
   actionRequests: InvestigationActionRequest[];
   id: string;
+  dryRunErrors?: ComponentProps<typeof InvestigationFixtureApi>['dryRunErrors'];
   orchestration?: InvestigationOrchestration;
 }) {
   return (
     <InvestigationFixtureApi
       organizationSlug={`storybook-next-step-${id}`}
       details={[investigationWith(id, actionRequests)]}
+      dryRunErrors={dryRunErrors}
     >
       <Container maxWidth="960px">
         <FixtureCard investigationId={id} orchestration={orchestration} />
@@ -104,6 +107,23 @@ export default Storybook.story('Investigations — Recommended Action', story =>
       actionRequests={[
         {...intervalChange, canApply: false, cannotApplyReason: 'permission_denied'},
       ]}
+    />
+  ));
+
+  story('Check failed', () => (
+    <CardStory
+      id="check-failed"
+      actionRequests={[intervalChange]}
+      dryRunErrors={{
+        [intervalChange.id]: {
+          status: 409,
+          body: {
+            detail: 'The monitor changed since this was suggested.',
+            code: 'stale',
+            current: {timeWindowSeconds: 600},
+          },
+        },
+      }}
     />
   ));
 
