@@ -8,9 +8,11 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.eventstream.base import GroupState
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowRun,
@@ -33,9 +35,11 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.models import Action, Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.processors.workflow import process_workflows
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -43,11 +47,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.enterContext(
-            mock.patch.object(
-                Action, "get_handler", return_value=mock.Mock(config_schema={}, data_schema={})
-            )
-        )
         self.environment = self.create_environment(project=self.project, name="production")
         self.group = self.create_group(
             project=self.project,
@@ -165,6 +164,15 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert result == IgnoredMetricBreach("out_of_scope")
         assert not SeerWorkflowRun.objects.exists()
 
+    def test_new_issue_starts_noop_run(self) -> None:
+        event = self.breach_event()
+
+        self.process_breach_workflow(event)
+
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        assert run.trigger_key == f"issue_created:{self.group.id}"
+        assert run.executions.get().extras == {"status": "complete", "result": "noop"}
+
     def test_multiple_action_bindings_share_one_automation_run(self) -> None:
         second_action = self.create_action(type=Action.Type.SEER_WORKFLOW)
         second_binding = Factories.create_seer_workflow_trigger_binding(self.config, second_action)
@@ -193,6 +201,59 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert SeerWorkflowTriggerBinding.objects.filter(workflow_config=self.config).count() == 2
         assert SeerWorkflowRun.objects.count() == 1
         assert SeerWorkflowRunExecution.objects.count() == 1
+
+    def test_later_event_on_same_issue_does_not_create_another_run(self) -> None:
+        event = self.breach_event()
+        with (
+            mock.patch("sentry.seer.workflows.action.metrics.incr") as incr,
+            mock.patch("sentry.seer.workflows.action.logger") as logger,
+        ):
+            self.process_breach_workflow(event)
+            run = SeerWorkflowRun.objects.get()
+            self.process_breach_workflow(event, is_new=False)
+            self.process_breach_workflow(event)
+
+        assert list(SeerWorkflowRun.objects.values_list("id", flat=True)) == [run.id]
+        assert SeerWorkflowRunExecution.objects.count() == 1
+        incr.assert_any_call(
+            "seer.workflow.trigger",
+            tags={"outcome": "accepted", "reason": "none", "deduplicated": "false"},
+            sample_rate=1.0,
+        )
+        incr.assert_any_call(
+            "seer.workflow.trigger",
+            tags={"outcome": "accepted", "reason": "none", "deduplicated": "true"},
+            sample_rate=1.0,
+        )
+        assert logger.info.call_count == 2
+        initial, duplicate = logger.info.call_args_list
+        assert initial.args == duplicate.args == ("seer.workflow.trigger",)
+        assert initial.kwargs["extra"]["outcome"] == "accepted"
+        assert initial.kwargs["extra"]["deduplicated"] is False
+        assert duplicate.kwargs["extra"]["outcome"] == "accepted"
+        assert duplicate.kwargs["extra"]["deduplicated"] is True
+
+    def test_existing_issue_does_not_start_a_run_even_without_previous_history(self) -> None:
+        self.process_breach_workflow(self.breach_event(), is_new=False)
+        assert not SeerWorkflowRun.objects.exists()
+
+    def test_connected_monitors_in_different_projects_feed_the_same_automation(self) -> None:
+        project = self.create_project(organization=self.organization)
+        event, detector = self.breach_in_project(project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        self.process_breach_workflow(self.breach_event())
+        self.process_breach_workflow(event)
+        assert set(
+            SeerWorkflowRun.objects.filter(workflow_config=self.config).values_list(
+                "trigger_key", flat=True
+            )
+        ) == {f"issue_created:{self.group.id}", f"issue_created:{event.group_id}"}
+        assert SeerWorkflowRunExecution.objects.count() == 2
+
+    def test_disconnected_monitor_does_not_start_a_run(self) -> None:
+        DetectorWorkflow.objects.filter(detector=self.detector, workflow=self.workflow).delete()
+        self.process_breach_workflow(self.breach_event())
+        assert not SeerWorkflowRun.objects.exists()
 
     def test_ignored_configuration_reports_reason_without_starting_work(self) -> None:
         self.config.update(enabled=False)
@@ -292,6 +353,57 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert SeerWorkflowRun.objects.count() == 1
         assert not SeerWorkflowRunExecution.objects.exists()
 
+    @mock.patch("sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available")
+    def test_wfe_action_ignores_environment_mismatch_without_history(
+        self, admission: mock.MagicMock
+    ) -> None:
+        self.config.update(filters={"all_projects": True, "environments": ["staging"]})
+
+        with mock.patch("sentry.seer.workflows.action.metrics.incr") as incr:
+            self.process_breach_workflow(self.breach_event())
+
+        assert not SeerWorkflowRun.objects.exists()
+        assert not SeerWorkflowRunExecution.objects.exists()
+        admission.assert_not_called()
+        incr.assert_any_call(
+            "seer.workflow.trigger",
+            tags={"outcome": "ignored", "reason": "out_of_scope", "deduplicated": "false"},
+            sample_rate=1.0,
+        )
+
+    @mock.patch(
+        "sentry.seer.workflows.workflow.SeerWorkflow.has_quota_available",
+        return_value=False,
+    )
+    def test_wfe_action_records_eligible_rejection_without_execution(
+        self, admission: mock.MagicMock
+    ) -> None:
+        self.config.update(filters={"all_projects": True, "environments": ["production"]})
+        event = self.breach_event()
+
+        with mock.patch("sentry.seer.workflows.action.metrics.incr") as incr:
+            self.process_breach_workflow(event)
+
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        assert run.workflow_config_id == self.config.id
+        assert run.trigger_key == f"issue_created:{self.group.id}"
+        assert run.date_completed is not None
+        assert run.extras["status"] == "rejected"
+        assert run.extras["admission"]["status"] == "rejected"
+        assert run.extras["admission"]["reason"] == "quota_exceeded"
+        assert run.extras["admission"]["decided_at"]
+        assert run.extras["config_version"] == self.config.version
+        assert run.extras["trigger"]["workflow_id"] == self.workflow.id
+        assert run.extras["trigger"]["action_id"] == self.action.id
+        assert run.extras["trigger"]["event_id"] == event.event_id
+        assert not SeerWorkflowRunExecution.objects.exists()
+        admission.assert_called_once_with()
+        incr.assert_any_call(
+            "seer.workflow.trigger",
+            tags={"outcome": "rejected", "reason": "quota_exceeded", "deduplicated": "false"},
+            sample_rate=1.0,
+        )
+
     def test_other_organization_configuration_does_not_accept_the_breach(self) -> None:
         other_action = self.create_action(type=Action.Type.SEER_WORKFLOW)
         other = Factories.create_seer_workflow_config(
@@ -316,6 +428,33 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert self.accept(self.breach_event(), config=other) is None
         assert not SeerWorkflowRun.objects.exists()
 
+    def process_breach_workflow(
+        self, event: GroupEvent, *, is_new: bool = True, is_regression: bool = False
+    ) -> None:
+        triggers = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=triggers,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=triggers)
+        with self.tasks():
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=event,
+                    group=event.group,
+                    group_state=GroupState(
+                        id=event.group.id,
+                        is_new=is_new,
+                        is_regression=is_regression,
+                        is_new_group_environment=is_new,
+                    ),
+                ),
+                event.datetime,
+            )
+
     def accept(
         self,
         event: GroupEvent,
@@ -330,6 +469,50 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
             workflow_id=self.workflow.id,
         )
         return result.run if isinstance(result, AcceptedMetricBreach) else None
+
+    def breach_in_project(self, project: Project) -> tuple[GroupEvent, Detector]:
+        conditions = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=conditions,
+            type=Condition.GREATER,
+            comparison=100,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        detector = self.create_detector(
+            project=project,
+            type=MetricIssue.slug,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=conditions,
+        )
+        subscription = create_snuba_subscription(
+            project=project, subscription_type="incidents", snuba_query=self.query
+        )
+        source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        self.create_data_source_detector(data_source=source, detector=detector)
+        group = self.create_group(
+            project=project, type=MetricIssue.type_id, create_open_period=False
+        )
+        self.create_detector_group(detector=detector, group=group)
+        event = self.breach_event()
+        assert event.occurrence is not None
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            project_id=project.id,
+            type=MetricIssue.type_id,
+            evidence_data={**event.occurrence.evidence_data, "detector_id": detector.id},
+        )
+        stored = self.store_event(
+            data={"event_id": event.event_id, "environment": self.environment.name},
+            project_id=project.id,
+        )
+        occurrence.save()
+        group_event = stored.for_group(group)
+        group_event.occurrence = occurrence
+        return group_event, detector
 
     def breach_event(self, *, value: int = 180) -> GroupEvent:
         event_id = uuid4().hex

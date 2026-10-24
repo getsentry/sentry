@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 from django.utils import timezone
 
@@ -9,7 +9,12 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
+from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer.workflows.breached_metrics import (
+    BreachedMetricWorkflow,
+)
 from sentry.services.eventstore.models import GroupEvent
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -21,6 +26,7 @@ from sentry.workflow_engine.defaults.detectors import ensure_default_all_project
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.action import is_action_permitted
 from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
 )
@@ -1373,3 +1379,115 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                 )
             },
         )
+
+
+@with_feature("organizations:seer-automations")
+class TestMetricBreachWorkflow(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.group, self.event, self.group_event = self.create_group_event(
+            group_type_id=MetricIssue.type_id
+        )
+        self.create_detector_group(detector=self.detector, group=self.group)
+        trigger_group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=trigger_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.workflow = self.create_workflow(when_condition_group=trigger_group)
+        self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
+        self.action = self.create_action(type=Action.Type.SEER_WORKFLOW, config={}, data={})
+        action_group, _ = self.create_workflow_action(self.workflow, action=self.action)
+        self.create_data_condition(
+            condition_group=action_group,
+            type=Condition.ISSUE_TYPE,
+            comparison={"value": MetricIssue.slug},
+            condition_result=True,
+        )
+        self.config = Factories.create_seer_workflow_config(
+            organization=self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            trigger_actions=[self.action],
+        )
+
+    def test_registered_seer_action_requires_automation_feature(self) -> None:
+        with self.feature({"organizations:seer-automations": False}):
+            assert not is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+
+        with self.feature("organizations:seer-automations"):
+            assert is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_distinct_bound_configs_both_dispatch(self, mock_accept: MagicMock) -> None:
+        second_action = self.create_action(type=Action.Type.SEER_WORKFLOW, config={}, data={})
+        self.create_workflow_action(self.workflow, action=second_action)
+        second_config = Factories.create_seer_workflow_config(
+            organization=self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            trigger_actions=[second_action],
+        )
+
+        with self.tasks():
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        assert mock_accept.call_count == 2
+        mock_accept.assert_has_calls(
+            [
+                call(
+                    BreachedMetricWorkflow(self.config),
+                    self.group,
+                    self.group_event,
+                    binding=self.action.seer_workflow_binding,
+                    workflow_id=self.workflow.id,
+                ),
+                call(
+                    BreachedMetricWorkflow(second_config),
+                    self.group,
+                    self.group_event,
+                    binding=second_action.seer_workflow_binding,
+                    workflow_id=self.workflow.id,
+                ),
+            ],
+            any_order=True,
+        )
+
+    @patch("sentry.seer.workflows.action.BreachedMetricWorkflow.accept", autospec=True)
+    def test_cross_organization_binding_is_ignored(self, mock_accept: MagicMock) -> None:
+        self.config.update(organization=self.create_organization())
+
+        with self.tasks():
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=self.group_event,
+                    group=self.group,
+                    group_state=GroupState(
+                        id=self.group.id,
+                        is_new=True,
+                        is_regression=False,
+                        is_new_group_environment=True,
+                    ),
+                ),
+                self.group_event.datetime,
+                detector=self.detector,
+            )
+
+        mock_accept.assert_not_called()
