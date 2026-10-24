@@ -38,6 +38,10 @@ BACKOFF_MAX = 5
 # Symbolicator runs up to 3 tries with 5 minute timeouts
 TOKEN_VALIDITY = timedelta(minutes=15)
 
+# `invoke_tool` blocks in Symbolicator until the underlying symbolication is
+# done, so it needs a much more generous timeout than a polled task.
+INVOKE_TOOL_TIMEOUT = 60
+
 logger = logging.getLogger(__name__)
 
 
@@ -225,6 +229,46 @@ class Symbolicator:
 
                 # Otherwise, we are done processing, yay
                 return json_response
+
+    def _invoke_tool(self, tool_name: str, json: dict[str, Any]) -> Any:
+        """
+        Invokes a Symbolicator tool via the `invoke_tool` endpoint.
+
+        Unlike `_process`, this does not poll: `invoke_tool` blocks until it has a
+        result, and its response is the tool's payload rather than a task envelope.
+        """
+        session = SymbolicatorSession(
+            url=self.base_url,
+            project_id=str(self.project.id),
+            event_id=str(self.event_id),
+            timeout=INVOKE_TOOL_TIMEOUT,
+        )
+
+        with session, metrics.timer("events.symbolicator.invoke_tool", tags={"tool": tool_name}):
+            return session.create_task("invoke_tool", json=json)
+
+    def get_minidump_metadata(self, stored_id: str) -> Any:
+        """
+        Returns the system info of the minidump stored at `stored_id` in Objectstore.
+        """
+        (sources, _) = sources_for_symbolication(self.project, self.event_id)
+        session = get_session(UsecaseId.ATTACHMENTS, self.project)
+
+        json: dict[str, Any] = {
+            "sources": sources,
+            "args": "GetMetadata",
+            "minidump": {
+                "type": "minidump",
+                # A pre-signed URL; unlike `_process`, we submit exactly once, so
+                # there is no need to re-mint this on a retry.
+                "storage_url": get_internal_download_url(
+                    session, stored_id, token_validity=TOKEN_VALIDITY
+                ),
+                "rewrite_first_module": [],
+            },
+        }
+
+        return self._invoke_tool("get_metadata", json)
 
     def process_minidump(
         self, platform: str, minidump: CachedAttachment, rewrite_first_module: list[Any]
@@ -530,7 +574,7 @@ class SymbolicatorSession:
                 if response.ok:
                     json = response.json()
 
-                    if json["status"] != "pending":
+                    if json.get("status") != "pending":
                         metrics.distribution(
                             "events.symbolicator.response.completed.size",
                             len(response.content),
