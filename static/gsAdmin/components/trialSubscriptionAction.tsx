@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,101 +10,82 @@ import type {
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
-import {isTrial} from 'getsentry/utils/billing';
 
 type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
   startEnterpriseTrial?: boolean;
 };
 
-type State = {
-  trialDays: number;
-};
-
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-export class TrialSubscriptionAction extends Component<Props, State> {
-  state: State = {
-    trialDays:
-      this.props.subscription.isEnterpriseTrial || this.props.startEnterpriseTrial
-        ? 28
-        : 14,
+export function TrialSubscriptionAction({
+  subscription,
+  startEnterpriseTrial,
+  onConfirm,
+  setConfirmCallback,
+  disableConfirmButton,
+}: Props) {
+  const [trialDays, setTrialDays] = useState(
+    subscription?.isEnterpriseTrial || startEnterpriseTrial ? 28 : 14
+  );
+
+  // Re-register the confirm callback whenever its inputs change so the modal
+  // always submits the latest trialDays value.
+  useEffect(() => {
+    setConfirmCallback((_params: AdminConfirmParams) => {
+      // XXX(epurkhiser): In the original implementation none of the audit params
+      // were passed, is that an oversight?
+      //
+      // The trial plan is resolved server-side: new enterprise trials always
+      // start on the latest tier.
+      const data = {
+        trialDays,
+        ...(startEnterpriseTrial && {startEnterpriseTrial}),
+      };
+
+      onConfirm?.(data);
+    });
+  }, [setConfirmCallback, onConfirm, trialDays, startEnterpriseTrial]);
+
+  const onDaysChange = (value: string) => {
+    const days = parseInt(value, 10) || 0;
+    setTrialDays(days);
+    disableConfirmButton(days <= 0);
   };
 
-  componentDidMount() {
-    this.props.setConfirmCallback(this.handleConfirm);
+  if (!subscription) {
+    return null;
   }
 
-  handleConfirm = (_params: AdminConfirmParams) => {
-    const {trialDays} = this.state;
-    const {startEnterpriseTrial, onConfirm} = this.props;
+  const currentTrialEnd = moment(
+    (!startEnterpriseTrial && subscription.trialEnd) || undefined
+  );
+  const trialEndDate = currentTrialEnd.add(trialDays, 'days').format('MMMM Do YYYY');
 
-    // XXX(epurkhiser): In the original implementation none of the audit params
-    // were passed, is that an oversight?
-    //
-    // The trial plan is resolved server-side: new enterprise trials always
-    // start on the latest tier.
-    const data = {
-      trialDays,
-      ...(startEnterpriseTrial && {startEnterpriseTrial}),
-    };
-
-    onConfirm?.(data);
-  };
-
-  onDaysChange = (value: string) => {
-    const trialDays = parseInt(value, 10) || 0;
-    this.setState({trialDays});
-    this.props.disableConfirmButton(trialDays <= 0);
-  };
-
-  get actionLabel(): string {
-    const {subscription, startEnterpriseTrial} = this.props;
-
-    if (startEnterpriseTrial) {
-      return 'Start Enterprise Trial';
-    }
-    return isTrial(subscription) ? 'Extend Trial' : 'Start Trial';
-  }
-
-  render() {
-    const {subscription, startEnterpriseTrial} = this.props;
-    const {trialDays} = this.state;
-
-    if (!subscription) {
-      return null;
-    }
-
-    const currentTrialEnd = moment(
-      (!startEnterpriseTrial && subscription.trialEnd) || undefined
-    );
-    const trialEndDate = currentTrialEnd.add(trialDays, 'days').format('MMMM Do YYYY');
-
-    return (
-      <Fragment>
-        {startEnterpriseTrial && (
-          <Alert.Container>
-            <Alert variant="info">
-              Spike protection will need to be manually disabled.
-            </Alert>
-          </Alert.Container>
-        )}
-        <NumberField
-          inline={false}
-          stacked
-          flexibleControlStateSize
-          label="Number of Days"
-          help={
-            <Fragment>
-              Their trial will end on <strong>{trialEndDate}</strong>
-            </Fragment>
-          }
-          name="days"
-          value={trialDays}
-          onChange={this.onDaysChange}
-        />
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      {startEnterpriseTrial && (
+        <Alert.Container>
+          <Alert variant="info">
+            Spike protection will need to be manually disabled.
+          </Alert>
+        </Alert.Container>
+      )}
+      <NumberField
+        inline={false}
+        stacked
+        flexibleControlStateSize
+        label="Number of Days"
+        help={
+          <Fragment>
+            Their trial will end on <strong>{trialEndDate}</strong>
+          </Fragment>
+        }
+        name="days"
+        value={trialDays}
+        onChange={onDaysChange}
+      />
+    </Fragment>
+  );
 }
