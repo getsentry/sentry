@@ -186,6 +186,15 @@ module:cn.gundam.sdk.* category=telemetry
 module:com.lenovo.payplus.analytics.* category=telemetry
 package:"**/libBugly.so" category=telemetry
 
+## Unity ships the Sentry SDK under a different name on each platform, none of them the embedded
+## `Sentry.framework` covered by the support-framework rules below
+family:native package:**/PlugIns/Sentry.*                            category=telemetry
+family:native package:**/PlugIns/libsentry.*                         category=telemetry
+family:native package:**/SentryObjC.framework/**                     category=telemetry
+family:native package:**/libsentry.so                                category=telemetry
+family:native package:**/libsentry-android.so                        category=telemetry
+family:native package:**/sentry.dll                                  category=telemetry
+
 family:native function:dlopen category=load
 family:native function:dladdr category=load
 family:native function:ImageLoaderMachO::findClosestSymbol category=load
@@ -298,6 +307,45 @@ family:native package:**/Containers/Bundle/Application/**            +app
 # well known path components for mac paths
 family:native package:**.app/Contents/**                             +app
 family:native package:/Users/**                                      +app
+
+# Unity IL2CPP compiles game, engine and BCL code into one binary, so the bundle rules above would
+# mark all of it in-app. Only frames the IL2CPP line mapping resolved back to project sources are the
+# developer's; anything left in generated `il2cppOutput/cpp/*.cpp` is engine, BCL or runtime code.
+# `Assets/` and `Packages/` are not Unity-specific, so the restores are scoped to the binary.
+family:native package:**/GameAssembly.*                              category=il2cpp
+family:native package:**/UnityFramework                              category=il2cpp
+family:native package:**/libil2cpp.so                                category=il2cpp
+category:il2cpp -app
+
+category:il2cpp path:**/Assets/**                                    +app
+category:il2cpp path:**/Packages/**                                  +app
+## Unity's engine C# ships its sources under an `Assets` directory of its own, and registry packages
+## are third-party but escape the restore above only by UPM convention (sources under `Runtime/`).
+category:il2cpp path:**/unity/Modules/**                             -app
+category:il2cpp path:**/Library/PackageCache/**                      -app
+
+## The engine, which never contains game code
+family:native package:**/UnityPlayer.*                               category=framework
+family:native package:**/libunity.so                                 category=framework
+family:native package:**/libiPhone-lib.dylib                         category=framework
+family:native package:**/UnityRuntime.framework/**                   category=framework
+## Unity's Android GameActivity glue. `libgame` is also a natural name for a developer's own NDK
+## library, so the file name alone does not identify Unity.
+family:native package:**/libgame.so path:**/unityLibrary/src/main/cpp/GameActivity/**  category=framework
+family:native package:**/libgame.so function:Unity::*                category=framework
+family:native package:**/libgame.so function:MainLoop                category=framework
+
+## Unity's launch stubs on iOS and macOS: template code rather than anything the developer wrote,
+## and the bundle rules above mark it in-app on those platforms only, which splits an otherwise
+## identical crash from its counterparts. Its source path is lost when the app executable's debug
+## file is not uploaded; its call into the engine is not.
+family:native function:main | [ category:il2cpp ]                  -app
+family:native function:main | [ package:**/UnityPlayer.* ]         -app
+
+# Unity dispatches coroutines from its own scheduler, so the frames below `InvokeMoveNext` are
+# whoever started the coroutine rather than the caller that threw. Which of them get captured
+# differs by platform, splitting one crash into several issues.
+family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group
 
 # Unreal Engine
 
