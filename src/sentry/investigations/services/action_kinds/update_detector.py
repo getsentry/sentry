@@ -317,7 +317,7 @@ def detector_cannot_apply_reason(
     if not can_edit_detector_with_access(detector, access):
         return CannotApplyReason.PERMISSION_DENIED
     if is_dynamic_detector(detector):
-        return CannotApplyReason.UNSUPPORTED_ACTION
+        return CannotApplyReason.DYNAMIC_DETECTOR
     return None
 
 
