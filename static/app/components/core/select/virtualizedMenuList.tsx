@@ -9,13 +9,10 @@
  * giant row. Groups are flattened here into heading + option rows instead,
  * with per-row measurement since headings and options differ in height.
  *
- * Stopgap until a Combobox scraps component replaces this
- * (see #discuss-design-engineering).
- *
- * Usage: <Select components={{MenuList: ScmVirtualizedMenuList}} />
+ * Implementation detail of the shared Select virtualized prop.
  */
 
-import {isValidElement, type Ref, useEffect, useRef} from 'react';
+import {Children, isValidElement, type Ref, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {getInteractionModality} from '@react-aria/interactions';
 import {mergeRefs} from '@react-aria/utils';
@@ -86,9 +83,7 @@ function flattenMenuRows(children: React.ReactNode[]): MenuRow[] {
         </Heading>
       ),
     });
-    const groupOptions = Array.isArray(child.props.children)
-      ? child.props.children
-      : [child.props.children];
+    const groupOptions = Children.toArray(child.props.children);
     for (const option of groupOptions) {
       rows.push(toOptionRow(option, rows.length));
     }
@@ -96,7 +91,7 @@ function flattenMenuRows(children: React.ReactNode[]): MenuRow[] {
   return rows;
 }
 
-interface ScmVirtualizedMenuListProps {
+interface VirtualizedMenuListProps {
   children: React.ReactNode;
   focusedOption?: unknown;
   innerProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -104,15 +99,15 @@ interface ScmVirtualizedMenuListProps {
   maxHeight?: number;
 }
 
-export function ScmVirtualizedMenuList({
+export function VirtualizedMenuList({
   children,
   focusedOption,
   maxHeight = MAX_MENU_HEIGHT,
   innerRef,
   innerProps,
-}: ScmVirtualizedMenuListProps) {
+}: VirtualizedMenuListProps) {
   const theme = useTheme();
-  const rows = Array.isArray(children) ? flattenMenuRows(children) : [];
+  const rows = Array.isArray(children) ? flattenMenuRows(Children.toArray(children)) : [];
   const scrollRef = useRef<HTMLDivElement>(null);
   const combinedRef = mergeRefs(scrollRef, innerRef ?? null);
   const visibleOptionCount = Math.max(

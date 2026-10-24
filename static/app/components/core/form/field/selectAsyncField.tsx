@@ -54,9 +54,9 @@ export function SelectAsyncField<TData, TValue>({
       {...props}
       options={options}
       isLoading={isPending || inputValue !== debouncedInput}
-      onInputChange={(newInputValue, actionMeta) => {
-        if (actionMeta.action === 'input-change') {
-          setInputValue(newInputValue);
+      onInputChange={(input, reason) => {
+        if (reason === 'input') {
+          setInputValue(input);
         }
       }}
     />

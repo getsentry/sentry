@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
+import {VirtualizedMenuList} from './virtualizedMenuList';
 
 // Mock the virtualizer so all rows render in JSDOM (no layout engine).
 const mockScrollToIndex = jest.fn();
@@ -63,14 +63,14 @@ const groupedChildren = [
   </Group>,
 ];
 
-describe('ScmVirtualizedMenuList', () => {
+describe('VirtualizedMenuList', () => {
   beforeEach(() => {
     mockScrollToIndex.mockClear();
   });
 
   it('flattens grouped children into interleaved heading and option rows', () => {
     const {container} = render(
-      <ScmVirtualizedMenuList>{groupedChildren}</ScmVirtualizedMenuList>
+      <VirtualizedMenuList>{groupedChildren}</VirtualizedMenuList>
     );
 
     expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
@@ -88,9 +88,9 @@ describe('ScmVirtualizedMenuList', () => {
 
   it('scrolls to the focused option by its flattened row index', () => {
     render(
-      <ScmVirtualizedMenuList focusedOption={angularData}>
+      <VirtualizedMenuList focusedOption={angularData}>
         {groupedChildren}
-      </ScmVirtualizedMenuList>
+      </VirtualizedMenuList>
     );
 
     // Rows: Popular(0), React(1), Vue(2), Other platforms(3), Angular(4).
@@ -99,7 +99,7 @@ describe('ScmVirtualizedMenuList', () => {
 
   it('still renders ungrouped children as one row each', () => {
     render(
-      <ScmVirtualizedMenuList>
+      <VirtualizedMenuList>
         {[
           <Option key="react" data={reactData}>
             React
@@ -108,7 +108,7 @@ describe('ScmVirtualizedMenuList', () => {
             Vue
           </Option>,
         ]}
-      </ScmVirtualizedMenuList>
+      </VirtualizedMenuList>
     );
 
     expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([

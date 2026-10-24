@@ -343,7 +343,7 @@ export function AuditLogList({
       />
       <EventSelector
         clearable
-        isDisabled={isLoading}
+        disabled={isLoading}
         name="eventFilter"
         value={eventType}
         placeholder={t('Select Action: ')}

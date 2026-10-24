@@ -123,6 +123,27 @@ describe('InviteRowControlNew', () => {
     expect(mockSetRole).toHaveBeenCalled();
   });
 
+  it('keeps unfinished email text when an existing email is removed', async () => {
+    const setEmails = jest.fn();
+    render(
+      getComponent({
+        ...defaultInviteProps,
+        setEmails,
+        pendingInvites: {
+          ...defaultInviteProps.pendingInvites,
+          emails: new Set(['existing@example.com']),
+        },
+      })
+    );
+    const input = screen.getByRole('textbox', {name: 'Email Addresses'});
+
+    await userEvent.type(input, 'unfinished');
+    await userEvent.click(screen.getByLabelText('Remove item'));
+
+    expect(setEmails).toHaveBeenLastCalledWith([], 0);
+    expect(input).toHaveValue('unfinished');
+  });
+
   it('disables team selection when team roles are not allowed', () => {
     render(
       getComponent({

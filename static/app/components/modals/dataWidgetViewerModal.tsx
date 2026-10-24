@@ -13,7 +13,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Select, SelectOption, components} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -664,61 +664,29 @@ function DataWidgetViewerModal(props: Props) {
                 display_type: widget.displayType,
               });
             }}
-            components={{
-              // Replaces the displayed selected value
-              SingleValue: (containerProps: any) => {
-                return (
-                  <components.SingleValue
-                    {...containerProps}
-                    // Overwrites some of the default styling that interferes with highlighted query text
-                    getStyles={() => ({
-                      wordBreak: 'break-word',
-                      flex: 1,
-                      display: 'flex',
-                      padding: `0 ${theme.space.xs}`,
-                    })}
-                  >
-                    {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
-                      display: 'block',
-                    }) ??
-                      (queryOptions[selectedQueryIndex]!.label || (
-                        <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                      ))}
-                  </components.SingleValue>
-                );
-              },
-              // Replaces the dropdown options
-              Option: (containerProps: any) => {
-                const highlightedQuery = containerProps.data.getHighlightedQuery({
-                  display: 'flex',
-                });
-                return (
-                  <SelectOption
-                    {...(highlightedQuery
-                      ? {
-                          ...containerProps,
-                          label: highlightedQuery,
-                        }
-                      : containerProps.label
-                        ? containerProps
-                        : {
-                            ...containerProps,
-                            label: (
-                              <EmptyQueryContainer>
-                                {EMPTY_QUERY_NAME}
-                              </EmptyQueryContainer>
-                            ),
-                          })}
-                  />
-                );
-              },
-              // Hide the dropdown indicator if there is only one option
-              ...(widget.queries.length < 2
-                ? {IndicatorsContainer: (_: any) => null}
-                : {}),
+            renderValue={option =>
+              option.getHighlightedQuery({display: 'block'}) ??
+              (option.label || (
+                <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+              ))
+            }
+            renderOptionLabel={option =>
+              option.getHighlightedQuery({display: 'flex'}) ??
+              (option.label || (
+                <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+              ))
+            }
+            styles={{
+              singleValue: () => ({
+                wordBreak: 'break-word',
+                flex: 1,
+                display: 'flex',
+                padding: `0 ${theme.space.xs}`,
+              }),
             }}
-            isSearchable={false}
-            isDisabled={widget.queries.length < 2}
+            {...(widget.queries.length < 2 ? {renderIndicators: () => null} : {})}
+            searchable={false}
+            disabled={widget.queries.length < 2}
           />
           {widget.queries.length === 1 && (
             <StyledQuestionTooltip

@@ -336,7 +336,6 @@ export function SeerProjectTable() {
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={stoppingPointOptions}
-                              // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
                               value={field.state.value}
                             />
@@ -367,7 +366,6 @@ export function SeerProjectTable() {
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={PR_ITERATION_OPTIONS}
-                              // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
                               value={field.state.value}
                             />
@@ -422,7 +420,10 @@ function AgentSelectCell({
           disabled={disabled}
           menuPortalTarget={document.body}
           multiple={false}
-          onMenuOpen={() => {
+          onOpenChange={isOpen => {
+            if (!isOpen) {
+              return;
+            }
             // Warm the cache so the on-change check below usually resolves from
             // cache instead of blocking on a fetch.
             void prefetchAllSeerProjectRepos({
@@ -456,7 +457,6 @@ function AgentSelectCell({
             field.handleBlur();
           }}
           options={agentSelectOptions}
-          // @ts-expect-error: Select component does not have a size prop defined
           size="xs"
           value={field.state.value}
         />

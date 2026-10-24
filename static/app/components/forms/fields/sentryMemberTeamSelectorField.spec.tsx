@@ -147,10 +147,13 @@ describe('SentryMemberTeamSelectorField', () => {
       within((await screen.findByText('My Teams')).parentElement!).getByText('#my-team')
     ).toBeInTheDocument();
 
-    expect(
-      within((await screen.findByText('Disabled Teams')).parentElement!).getByText(
-        '#disabled-team'
-      )
-    ).toBeInTheDocument();
+    const disabledOption = within(
+      (await screen.findByText('Disabled Teams')).parentElement!
+    ).getByRole('menuitemcheckbox', {name: '#disabled-team'});
+    expect(disabledOption).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.click(disabledOption);
+
+    expect(mock).not.toHaveBeenCalled();
   });
 });

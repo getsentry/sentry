@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack, Grid} from '@sentry/scraps/layout';
-import type {StylesConfig, SelectValue, MultiValueProps} from '@sentry/scraps/select';
+import type {StylesConfig, SelectValue} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
@@ -41,15 +41,8 @@ function orgOnlyAllowsMemberInvitesWithinTeam(organization: Organization): boole
 export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   const organization = useOrganization();
   const filterByUserMembership = orgOnlyAllowsMemberInvitesWithinTeam(organization);
-  const {
-    inviteStatus,
-    isOverMemberLimit,
-    pendingInvites,
-    setEmails,
-    setRole,
-    setTeams,
-    reset,
-  } = useInviteMembersContext();
+  const {inviteStatus, isOverMemberLimit, pendingInvites, setEmails, setRole, setTeams} =
+    useInviteMembersContext();
   const emails = [...(pendingInvites.emails ?? [])];
   const role = pendingInvites.role ?? '';
   const teams = [...(pendingInvites.teams ?? [])];
@@ -118,12 +111,10 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           placeholder={t('Enter one or more emails')}
           inputValue={inputValue}
           value={emails}
-          components={{
-            MultiValue: (props: MultiValueProps<SelectOption>) => (
-              <EmailValue status={inviteStatus[props.data.value]!} valueProps={props} />
-            ),
-            DropdownIndicator: () => null,
-          }}
+          renderMultiValueLabel={(option, label) => (
+            <EmailValue status={inviteStatus[option.value]!}>{label}</EmailValue>
+          )}
+          dropdownIndicator={null}
           options={mapToOptions(emails)}
           onBlur={(e: any) => {
             handleInput(e.target.value);
@@ -135,8 +126,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           multiple
           creatable
           clearable
-          onClear={reset}
-          menuIsOpen={false}
+          isOpen={false}
         />
       </div>
       <Grid align="start" gap="lg" columns="1fr 1fr">
@@ -183,7 +173,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
  */
 function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
   return {
-    multiValue: (provided, {data}: MultiValueProps<SelectOption>) => {
+    multiValue: (provided, {data}) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
@@ -196,7 +186,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
           : {}),
       };
     },
-    multiValueLabel: (provided, {data}: MultiValueProps<SelectOption>) => {
+    multiValueLabel: (provided, {data}) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
@@ -204,7 +194,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
         ...(status?.error ? {color: theme.colors.red500} : {}),
       };
     },
-    multiValueRemove: (provided, {data}: MultiValueProps<SelectOption>) => {
+    multiValueRemove: (provided, {data}) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
