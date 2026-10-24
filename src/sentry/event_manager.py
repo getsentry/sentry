@@ -1920,7 +1920,11 @@ def _handle_regression(
         record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 
         kick_off_status_syncs.apply_async(
-            kwargs={"project_id": group.project_id, "group_id": group.id}
+            kwargs={
+                "project_id": group.project_id,
+                "group_id": group.id,
+                "is_resolved": False,
+            }
         )
         create_open_period(group, activity.datetime, event.event_id)
 
