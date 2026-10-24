@@ -49,9 +49,9 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
     queryDataset: str
     datasetSource: str
     expired: bool
-    dateCreated: str
-    dateUpdated: str
-    createdBy: UserSerializerResponse
+    dateCreated: datetime
+    dateUpdated: datetime
+    createdBy: UserSerializerResponse | None
 
 
 @register(DiscoverSavedQuery)

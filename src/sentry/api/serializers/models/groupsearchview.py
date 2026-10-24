@@ -1,4 +1,5 @@
 from collections.abc import MutableMapping
+from datetime import datetime
 from typing import Any, TypedDict
 
 from django.db.models import prefetch_related_objects
@@ -7,7 +8,6 @@ from sentry.api.serializers import Serializer, register
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
-from sentry.models.savedsearch import SORT_LITERALS
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 
@@ -24,13 +24,13 @@ class GroupSearchViewSerializerResponse(TypedDict):
     createdBy: UserSerializerResponse | None
     name: str
     query: str
-    querySort: SORT_LITERALS
+    querySort: str
     projects: list[int]
     environments: list[str]
     timeFilters: GroupSearchViewTimeFilters
-    lastVisited: str | None
-    dateCreated: str
-    dateUpdated: str
+    lastVisited: datetime | None
+    dateCreated: datetime | None
+    dateUpdated: datetime
     starred: bool
     stars: int
 

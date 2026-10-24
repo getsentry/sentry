@@ -8,14 +8,14 @@ from sentry.utils.eventuser import EventUser
 
 class EventUserSerializerResponse(TypedDict):
     id: str | None
-    tagValue: str
-    identifier: str
-    username: str
-    email: str
-    name: str
-    ipAddress: str
+    tagValue: str | None
+    identifier: str | int | None
+    username: str | None
+    email: str | None
+    name: str | None
+    ipAddress: str | None
     avatarUrl: str
-    hash: str
+    hash: str | None
     # Legacy field, always null; typed nullable so it resolves in the OpenAPI schema.
     dateCreated: datetime | None
 

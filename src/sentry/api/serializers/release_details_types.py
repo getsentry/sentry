@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
+from sentry.release_health.base import StatsPeriod
 from sentry.users.api.serializers.user import UserSerializerResponse
 
 
@@ -53,7 +54,7 @@ class HealthData(HealthDataOptional):
     sessionsCrashed: int
     sessionsErrored: int
     hasHealthData: bool
-    stats: dict[str, Any]
+    stats: dict[StatsPeriod, list[list[int]]] | None
 
 
 class ProjectOptional(TypedDict, total=False):
@@ -73,4 +74,4 @@ class BaseProject(ProjectOptional):
 
 
 class Project(BaseProject):
-    newGroups: int
+    newGroups: int | None
