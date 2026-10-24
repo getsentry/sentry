@@ -8,7 +8,12 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.action_kinds.base import ActionKind, CannotApplyReason
 from sentry.investigations.services.action_kinds.connect_telemetry import ConnectTelemetryKind
-from sentry.investigations.services.action_kinds.update_detector import UpdateDetectorKind
+from sentry.investigations.services.action_kinds.update_detector import (
+    UpdateDetectorAppliedDetails,
+    UpdateDetectorKind,
+)
+
+AppliedDetails = UpdateDetectorAppliedDetails
 
 ACTION_KINDS: dict[str, ActionKind] = {
     kind.kind: kind for kind in (UpdateDetectorKind(), ConnectTelemetryKind())
