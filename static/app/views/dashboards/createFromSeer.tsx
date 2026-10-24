@@ -6,14 +6,23 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
 import {CreateFromSeerPrompt} from 'sentry/views/dashboards/createFromSeerPrompt';
 
 import {WidgetErrorProvider} from './contexts/widgetErrorContext';
-import {statusIsTerminal, validateDashboardAndRecordMetrics} from './createFromSeerUtils';
+import {
+  getGeneratedDashboardPageFilters,
+  queryHasPageFilters,
+  statusIsTerminal,
+  validateDashboardAndRecordMetrics,
+  type GeneratedDashboard,
+  type GeneratedDashboardPageFilters,
+} from './createFromSeerUtils';
 import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
@@ -24,11 +33,21 @@ import {useSeerDashboardSession} from './useSeerDashboardSession';
 export default function CreateFromSeer() {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
   const hasFeature = organization.features.includes('dashboards-edit');
 
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
+  // Page filters the preview is navigating to so the generated widgets query
+  // the projects Seer scoped the dashboard to. The dashboard is held back until the
+  // URL reflects them, otherwise widgets would first query with the old
+  // selection and fail.
+  const [pendingPageFilters, setPendingPageFilters] =
+    useState<GeneratedDashboardPageFilters | null>(null);
+  // Remounts the preview after page filters change so its page filter
+  // container re-initializes from the URL before any widget queries run.
+  const [pageFiltersKey, setPageFiltersKey] = useState(0);
 
   // Additional guards to prevent duplicate metrics recording and on reload
   const hasValidatedRef = useRef(false);
@@ -40,7 +59,20 @@ export default function CreateFromSeer() {
   const widgetErrorsMap = useRef(new Map<string, WidgetError>());
 
   const handleDashboardUpdate = useCallback(
-    (data: {title: string; widgets: Widget[]}) => {
+    (data: GeneratedDashboard) => {
+      const pageFilters = getGeneratedDashboardPageFilters({
+        dashboard: data,
+        query: location.query,
+      });
+      if (pageFilters) {
+        setPendingPageFilters(pageFilters);
+        setPageFiltersKey(key => key + 1);
+        navigate(
+          {...location, query: {...location.query, ...pageFilters}},
+          {replace: true}
+        );
+      }
+
       const newDashboard = {
         ...EMPTY_DASHBOARD,
         title: data.title,
@@ -49,8 +81,19 @@ export default function CreateFromSeer() {
       setDashboard(newDashboard);
       reportedWidgetErrors.current.clear();
     },
-    []
+    [location, navigate]
   );
+
+  const isSyncingPageFilters =
+    pendingPageFilters !== null &&
+    !queryHasPageFilters(location.query, pendingPageFilters);
+
+  useEffect(() => {
+    if (pendingPageFilters !== null && !isSyncingPageFilters) {
+      // oxlint-disable-next-line react/set-state-in-effect
+      setPendingPageFilters(null);
+    }
+  }, [pendingPageFilters, isSyncingPageFilters]);
 
   const handlePostCompletePollEnd = useCallback(() => {
     if (!hasValidatedRef.current && hasSeenNonTerminalRef.current) {
@@ -168,10 +211,15 @@ export default function CreateFromSeer() {
   return (
     <ErrorBoundary>
       <WidgetErrorProvider value={handleWidgetError}>
-        <MemoizedDashboardDetail
-          initialState={DashboardState.PREVIEW}
-          dashboard={dashboard}
-        />
+        {isSyncingPageFilters ? (
+          <LoadingIndicator />
+        ) : (
+          <MemoizedDashboardDetail
+            key={pageFiltersKey}
+            initialState={DashboardState.PREVIEW}
+            dashboard={dashboard}
+          />
+        )}
         <DashboardChatPanel
           blocks={session?.blocks ?? []}
           pendingUserInput={session?.pending_user_input}
