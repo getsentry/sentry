@@ -97,7 +97,18 @@ enum RateLimitedReason {
   PROJECT_ABUSE_LIMIT = 'project_abuse_limit',
   ORG_ABUSE_LIMIT = 'org_abuse_limit',
   GLOBAL_ABUSE_LIMIT = 'global_abuse_limit',
+  PROJECT_CATEGORY_PAUSE = 'project_category_pause',
+  ORGANIZATION_PAUSE = 'organization_pause',
 }
+
+const PROJECT_CATEGORY_PAUSE_NAME = 'Pause (solutions.sentry.io)';
+const ORGANIZATION_PAUSE_NAME = 'Org Pause (solutions.sentry.io)';
+
+// Group names that are shown as written, without title case.
+export const VERBATIM_REASON_GROUP_NAMES = new Set([
+  PROJECT_CATEGORY_PAUSE_NAME,
+  ORGANIZATION_PAUSE_NAME,
+]);
 
 // Invalid reasons should not be exposed directly, but instead in the following groups:
 const invalidReasonsGroup: Record<string, DiscardReason[]> = {
@@ -225,6 +236,10 @@ function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): stri
     case RateLimitedReason.SPIKE_PROTECTION:
     case RateLimitedReason.SMART_RATE_LIMIT:
       return 'spike protection';
+    case RateLimitedReason.PROJECT_CATEGORY_PAUSE:
+      return PROJECT_CATEGORY_PAUSE_NAME;
+    case RateLimitedReason.ORGANIZATION_PAUSE:
+      return ORGANIZATION_PAUSE_NAME;
     case RateLimitedReason.PROJECT_ABUSE_LIMIT:
       return 'project abuse limit';
     case RateLimitedReason.ORG_ABUSE_LIMIT:
