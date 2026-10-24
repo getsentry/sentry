@@ -8,6 +8,7 @@ import {
   eventViewFromWidget,
   flattenErrors,
   getCurrentPageFilters,
+  getDashboardFiltersFromURL,
   getFieldsFromEquations,
   getNumEquations,
   getSavedFiltersAsPageFilters,
@@ -345,6 +346,38 @@ describe('Dashboards util', () => {
         })
       ).toBe(false);
     });
+  });
+});
+
+describe('getDashboardFiltersFromURL', () => {
+  it('filters out GlobalFilter objects missing a tag property', () => {
+    const validFilter = JSON.stringify({
+      tag: {key: 'release', name: 'Release'},
+      value: 'release:[v1.0]',
+      dataset: WidgetType.DISCOVER,
+    });
+    const missingTag = JSON.stringify({
+      value: 'release:[v1.0]',
+      dataset: WidgetType.DISCOVER,
+    });
+    const nullTag = JSON.stringify({
+      tag: null,
+      value: 'foo',
+      dataset: WidgetType.DISCOVER,
+    });
+
+    const location = LocationFixture({
+      query: {globalFilter: [validFilter, missingTag, nullTag]},
+    });
+
+    const result = getDashboardFiltersFromURL(location);
+    expect(result?.globalFilter).toHaveLength(1);
+    expect(result?.globalFilter?.[0]?.tag?.key).toBe('release');
+  });
+
+  it('returns null when no filters are present', () => {
+    const location = LocationFixture({query: {}});
+    expect(getDashboardFiltersFromURL(location)).toBeNull();
   });
 });
 
