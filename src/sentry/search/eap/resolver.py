@@ -642,6 +642,7 @@ class SearchResolver:
                                 ),  # tell this function the single operator since its being ORed
                                 event_search.translate_wildcard_as_clickhouse_pattern(str(value)),
                             ),
+                            ignore_case=self._ignores_case(resolved_column),
                         )
                     )
                     for value in raw_value
@@ -699,8 +700,7 @@ class SearchResolver:
                                 value=self._resolve_search_value(
                                     resolved_column, term.operator, non_none_values
                                 ),
-                                ignore_case=self.params.case_insensitive
-                                and resolved_column.search_type == "string",
+                                ignore_case=self._ignores_case(resolved_column),
                             )
                         )
                     )
@@ -721,8 +721,7 @@ class SearchResolver:
                                 value=self._resolve_search_value(
                                     resolved_column, term.operator, non_none_values
                                 ),
-                                ignore_case=self.params.case_insensitive
-                                and resolved_column.search_type == "string",
+                                ignore_case=self._ignores_case(resolved_column),
                             )
                         )
                     )
@@ -788,8 +787,7 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                     op=operator,
                     value=self._resolve_search_value(resolved_column, term.operator, value),
-                    ignore_case=self.params.case_insensitive
-                    and resolved_column.search_type == "string",
+                    ignore_case=self._ignores_case(resolved_column),
                 )
             ),
             context_definition,
@@ -947,6 +945,9 @@ class SearchResolver:
             # There is no OP_NOT_REGEXP, so negation is expressed by wrapping the match
             return TraceItemFilter(not_filter=NotFilter(filters=[match]))
         return match
+
+    def _ignores_case(self, column: ResolvedAttribute) -> bool:
+        return self.params.case_insensitive and column.search_type == "string"
 
     def _resolve_search_value(
         self,

@@ -411,6 +411,56 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_wildcard_list_query_ignores_case_when_requested(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(case_insensitive=True),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+        where, _, _ = resolver.resolve_query("message:[*Foo*,*bar*]")
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.body", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_LIKE,
+                            value=AttributeValue(val_str=pattern),
+                            ignore_case=True,
+                        )
+                    )
+                    for pattern in ["%Foo%", "%bar%"]
+                ]
+            )
+        )
+
+    def test_negated_wildcard_list_query_ignores_case_when_requested(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(case_insensitive=True),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+        where, _, _ = resolver.resolve_query("!message:[*Foo*,*bar*]")
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.body", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_NOT_LIKE,
+                            value=AttributeValue(val_str=pattern),
+                            ignore_case=True,
+                        )
+                    )
+                    for pattern in ["%Foo%", "%bar%"]
+                ]
+            )
+        )
+
     def test_regex_query_is_case_insensitive_when_requested(self) -> None:
         resolver = SearchResolver(
             params=SnubaParams(organization=self.organization, case_insensitive=True),

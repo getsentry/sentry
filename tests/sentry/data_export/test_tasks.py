@@ -969,6 +969,8 @@ class AssembleDownloadExploreTest(
                 {"body": "test log message", "severity_text": "INFO"},
                 timestamp=before_now(minutes=10),
                 attributes={"custom.field": "test_value"},
+                organization=self.org,
+                project=self.project,
             )
         ]
         self.store_eap_items(logs)
@@ -1003,6 +1005,45 @@ class AssembleDownloadExploreTest(
         with file.getfile() as f:
             content = f.read().strip()
         assert b"log.body,severity_text" in content
+        assert b"test log message,INFO" in content
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_logs_export_ignores_case_when_requested(self, emailer: MagicMock) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": body},
+                timestamp=before_now(minutes=10),
+                organization=self.org,
+                project=self.project,
+            )
+            for body in ["Deleted 3 records", "3 records were deleted", "3 records kept"]
+        ]
+        self.store_eap_items(logs)
+
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.EXPLORE,
+            query_info={
+                "project": [self.project.id],
+                "field": ["log.body"],
+                "query": "message:*deleted*",
+                "caseInsensitive": "1",
+                "dataset": "logs",
+                "start": before_now(minutes=15).isoformat(),
+                "end": before_now(minutes=5).isoformat(),
+            },
+        )
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+
+        de = ExportedData.objects.get(id=de.id)
+        file = de._get_file()
+        assert isinstance(file, File)
+        with file.getfile() as f:
+            rows = sorted(f.read().strip().splitlines()[1:])
+        assert rows == [b"3 records were deleted", b"Deleted 3 records"]
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_tracemetrics_dataset_called_correctly(self, emailer: MagicMock) -> None:
