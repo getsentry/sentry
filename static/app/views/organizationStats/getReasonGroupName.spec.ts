@@ -88,6 +88,10 @@ describe('getReasonGroupName', () => {
 
     expect(getReasonGroupName(Outcome.RATE_LIMITED, 'key_quota')).toBe('DSN limit');
     expect(getReasonGroupName(Outcome.RATE_LIMITED, 'org_quota')).toBe('global limit');
+    expect(getReasonGroupName(Outcome.RATE_LIMITED, 'project_category_pause')).toBe(
+      'paused'
+    );
+    expect(getReasonGroupName(Outcome.RATE_LIMITED, 'organization_pause')).toBe('paused');
 
     expect(getReasonGroupName(Outcome.FILTERED, 'browser-extensions')).toBe(
       'Browser Extensions'

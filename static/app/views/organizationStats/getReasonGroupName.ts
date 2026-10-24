@@ -97,6 +97,8 @@ enum RateLimitedReason {
   PROJECT_ABUSE_LIMIT = 'project_abuse_limit',
   ORG_ABUSE_LIMIT = 'org_abuse_limit',
   GLOBAL_ABUSE_LIMIT = 'global_abuse_limit',
+  PROJECT_CATEGORY_PAUSE = 'project_category_pause',
+  ORGANIZATION_PAUSE = 'organization_pause',
 }
 
 // Invalid reasons should not be exposed directly, but instead in the following groups:
@@ -225,6 +227,9 @@ function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): stri
     case RateLimitedReason.SPIKE_PROTECTION:
     case RateLimitedReason.SMART_RATE_LIMIT:
       return 'spike protection';
+    case RateLimitedReason.PROJECT_CATEGORY_PAUSE:
+    case RateLimitedReason.ORGANIZATION_PAUSE:
+      return 'paused';
     case RateLimitedReason.PROJECT_ABUSE_LIMIT:
       return 'project abuse limit';
     case RateLimitedReason.ORG_ABUSE_LIMIT:
