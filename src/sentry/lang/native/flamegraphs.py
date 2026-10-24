@@ -2,17 +2,18 @@ from collections.abc import Generator
 from typing import Any
 
 import rapidjson
+import sentry_sdk
 from rest_framework import serializers
 
 from sentry import features
 from sentry.attachments import (
     CachedAttachment,
-    MissingAttachmentChunks,
     get_attachments_for_event,
     store_attachments_for_event,
 )
 from sentry.ingest.consumer import CACHE_TIMEOUT
 from sentry.models.project import Project
+from sentry.utils import metrics
 
 # See: https://develop.sentry.dev/sdk/telemetry/attachments/#flame-graph-validation-and-limits
 MAX_FLAMEGRAPH_SIZE = 10 * 1024 * 1024
@@ -144,34 +145,57 @@ class Flamegraphs:
         self._attachments = list(get_attachments_for_event(data))
 
     def get_flamegraphs(self) -> Generator[tuple[int, dict[str, Any]]]:
-        if not any(attachment.type == "event.flamegraph" for attachment in self._attachments):
-            return
+        # Imported at invocation time to avoid the symbolication task's processing import cycle.
+        from sentry.tasks.symbolication import SymbolicationTimeout
+
         if not features.has("organizations:flamegraph-attachments", self._project.organization):
             return
         for index, attachment in enumerate(self._attachments):
             if attachment.type != "event.flamegraph":
                 continue
+            reason = "load_error"
             try:
                 raw = attachment.load_data(self._project)
-            except (MissingAttachmentChunks, FileNotFoundError):
-                continue
-            if len(raw) > MAX_FLAMEGRAPH_SIZE:
-                continue
-            try:
+                if len(raw) > MAX_FLAMEGRAPH_SIZE:
+                    metrics.incr("process.native.flamegraph.skipped", tags={"reason": "raw_size"})
+                    continue
+                reason = "invalid_json"
                 payload = rapidjson.loads(raw, allow_nan=False)
-            except (rapidjson.JSONDecodeError, UnicodeDecodeError):
+                if not isinstance(payload, dict):
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "invalid_schema"}
+                    )
+                    continue
+                state = payload.get("_symbolication")
+                if isinstance(state, dict) and state.get("status") == "completed":
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "already_completed"}
+                    )
+                    continue
+                nodes = payload.get("nodes")
+                if isinstance(nodes, list) and len(nodes) > MAX_EXPANDED_NODES:
+                    metrics.incr("process.native.flamegraph.skipped", tags={"reason": "node_limit"})
+                    continue
+                reason = "invalid_schema"
+                if not _is_valid_flamegraph(payload):
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "invalid_schema"}
+                    )
+                    continue
+            except SymbolicationTimeout as error:
+                sentry_sdk.capture_exception(error)
+                metrics.incr("process.native.flamegraph.skipped", tags={"reason": "timeout"})
+                return
+            except Exception as error:
+                sentry_sdk.capture_exception(error)
+                metrics.incr("process.native.flamegraph.skipped", tags={"reason": reason})
                 continue
-            if not isinstance(payload, dict):
-                continue
-            state = payload.get("_symbolication")
-            if isinstance(state, dict) and state.get("status") == "completed":
-                continue
-            if _is_valid_flamegraph(payload):
-                yield index, payload
+            yield index, payload
 
     def save(self, attachment_index: int, payload: dict[str, Any]) -> bool:
         serialized = rapidjson.dumps(payload, ensure_ascii=False, allow_nan=False).encode()
         if len(serialized) > MAX_FLAMEGRAPH_SIZE:
+            metrics.incr("process.native.flamegraph.skipped", tags={"reason": "rewrite_size"})
             return False
         attachment = self._attachments[attachment_index]
         metadata = attachment.meta()
