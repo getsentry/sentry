@@ -22,7 +22,11 @@ from sentry.investigations.endpoints.serializers.responses import (
 )
 from sentry.investigations.endpoints.validators import ActionRequestApplyValidator
 from sentry.investigations.models import Investigation
-from sentry.investigations.services.action_kinds.base import ApplyErrorCode, CannotApplyReason
+from sentry.investigations.services.action_kinds.base import (
+    ApplyErrorCode,
+    ApplyFailed,
+    CannotApplyReason,
+)
 from sentry.investigations.services.action_requests import apply_action_request
 from sentry.models.organization import Organization
 
@@ -79,18 +83,19 @@ class OrganizationInvestigationActionRequestApplyEndpoint(OrganizationInvestigat
         validator = ActionRequestApplyValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-        result = apply_action_request(
-            investigation=investigation,
-            action_request_id=action_request_id,
-            request=request,
-            actor_id=actor_id,
-            dry_run=validator.validated_data["dry_run"],
-        )
-        if result.error is not None:
-            return Response(result.error, status=_STATUS.get(result.error["code"], 409))
+        try:
+            action_request = apply_action_request(
+                investigation=investigation,
+                action_request_id=action_request_id,
+                request=request,
+                actor_id=actor_id,
+                dry_run=validator.validated_data["dry_run"],
+            )
+        except ApplyFailed as failed:
+            return Response(failed.error, status=_STATUS.get(failed.error["code"], 409))
         body: InvestigationActionRequestApplyResponse = {
             "actionRequest": serialize(
-                result.action_request,
+                action_request,
                 request.user,
                 InvestigationActionRequestSerializer(access=request.access),
             ),

@@ -662,6 +662,8 @@ class RecordingKind(ActionKind):
         self.calls: list[str] = []
         # What check and apply raise, if anything.
         self.raises: Exception | None = None
+        # A title for check to write on the request.
+        self.check_title: str | None = None
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         self.upserted.append(action_request)
@@ -681,6 +683,8 @@ class RecordingKind(ActionKind):
 
     def check(self, context: ApplyContext) -> None:
         self.calls.append("check")
+        if self.check_title is not None:
+            context.action_request.update(title=self.check_title)
         if self.raises is not None:
             raise self.raises
 

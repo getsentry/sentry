@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -65,10 +65,10 @@ class ActionRequestError(TypedDict):
     messages: NotRequired[list[str]]
 
 
-@dataclass(frozen=True)
-class ApplyResult:
-    action_request: InvestigationActionRequest
-    error: ApplyError | None = None
+class ApplyFailed(Exception):
+    def __init__(self, error: ApplyError) -> None:
+        super().__init__(error["detail"])
+        self.error = error
 
 
 @dataclass(frozen=True)
@@ -91,11 +91,11 @@ class ActionStale(Exception):
 
 
 class ActionInvalid(Exception):
-    """The change wouldn't save. `errors` are the validator's errors."""
+    """The change wouldn't save, and why."""
 
-    def __init__(self, errors: dict[str, Any] | list[Any]) -> None:
+    def __init__(self, messages: list[str]) -> None:
         super().__init__("The action is invalid.")
-        self.errors = errors
+        self.messages = messages
 
 
 class ActionKind(abc.ABC):
@@ -121,7 +121,7 @@ class ActionKind(abc.ABC):
         cannot_apply_reasons can leave this as is.
         """
 
-    def apply(self, context: ApplyContext) -> dict[str, object]:
+    def apply(self, context: ApplyContext) -> Mapping[str, object]:
         """Make the change, and return what the activity feed should show about it. Raise
         ActionStale or ActionInvalid instead of updating the request; the caller records it.
         """
