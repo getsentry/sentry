@@ -39,31 +39,36 @@ const MAX_PREVIEW_WIDGETS = 2;
 const MAX_PREVIEW_ITEMS_PER_WIDGET = 5;
 
 function getDashboardPreview(dashboard: DashboardDetails): DashboardDetails {
-  if (!dashboard.prebuiltId) {
-    return dashboard;
+  // Normalize widgets to an empty array — the Seer-generated dashboard API
+  // response may omit the field even though the TypeScript type declares it
+  // as non-optional. All downstream accesses (.length, .slice) are then safe.
+  const normalized: DashboardDetails = {...dashboard, widgets: dashboard.widgets ?? []};
+
+  if (!normalized.prebuiltId) {
+    return normalized;
   }
 
-  const prebuiltDashboard = PREBUILT_DASHBOARDS[dashboard.prebuiltId];
+  const prebuiltDashboard = PREBUILT_DASHBOARDS[normalized.prebuiltId];
   if (!prebuiltDashboard) {
-    return dashboard;
+    return normalized;
   }
 
   const globalFilter = mergeGlobalFilters(
     prebuiltDashboard.filters?.globalFilter ?? [],
-    dashboard.filters?.globalFilter ?? []
+    normalized.filters?.globalFilter ?? []
   );
 
   return {
-    ...dashboard,
+    ...normalized,
     ...prebuiltDashboard,
-    id: dashboard.id,
-    filters: {...dashboard.filters, globalFilter},
-    projects: dashboard.projects,
-    environment: dashboard.environment,
-    period: dashboard.period,
-    start: dashboard.start,
-    end: dashboard.end,
-    utc: dashboard.utc,
+    id: normalized.id,
+    filters: {...normalized.filters, globalFilter},
+    projects: normalized.projects,
+    environment: normalized.environment,
+    period: normalized.period,
+    start: normalized.start,
+    end: normalized.end,
+    utc: normalized.utc,
   };
 }
 
