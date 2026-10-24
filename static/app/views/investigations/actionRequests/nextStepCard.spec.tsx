@@ -861,6 +861,40 @@ describe('NextStepCard', () => {
   });
 
   it.each([
+    {status: 500, body: {detail: 'Internal Error'}},
+    {status: 409, body: {detail: "This action can't be applied.", code: 'not_suggested'}},
+  ])('refreshes the investigation when an apply fails with $status', async response => {
+    mockApply({statusCode: response.status, body: response.body});
+    const queryClient = makeTestQueryClient();
+    const detailKey = getInvestigationDetailQueryOptions(
+      'org-slug',
+      'investigation-1'
+    ).queryKey;
+    queryClient.setQueryData(detailKey, {
+      headers: {},
+      json: InvestigationDetailFixture({id: 'investigation-1'}),
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />,
+      {
+        additionalWrapper: ({children}) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      }
+    );
+
+    await userEvent.click(await findApplyButton());
+
+    await waitFor(() =>
+      expect(queryClient.getQueryState(detailKey)?.isInvalidated).toBe(true)
+    );
+  });
+
+  it.each([
     ['permission_denied', "You don't have permission to edit this monitor."],
     ['detector_not_found', 'This monitor is no longer available.'],
     [

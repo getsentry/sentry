@@ -807,11 +807,10 @@ export function useApplyInvestigationActionRequestMutation(
       await options?.onSuccess?.(response, variables, onMutateResult, context);
     },
     onError: async (error, variables, onMutateResult, context) => {
-      const code = parseApplyError(error)?.code;
-      if (code === 'stale' || code === 'already_applied' || code === 'withdrawn') {
-        void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-        void queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
-      }
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
+        queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey}),
+      ]);
       await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
