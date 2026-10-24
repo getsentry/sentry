@@ -41,6 +41,7 @@ import {
   WipeCardBody,
 } from './snapshotDiffBodies';
 import {SnapshotCanvasWrapper, SnapshotVariantFrame} from './snapshotFrames';
+import {ViewedCheckbox} from './viewedCheckbox';
 
 export function DarkAware({
   isDark,
@@ -126,6 +127,8 @@ export const PairCard = memo(function PairCardImpl({
   onOpenSnapshot,
   onCopyLink,
   onCopyMetadata,
+  isViewed = false,
+  onToggleViewed,
 }: {
   copyUrl: string;
   diffMode: DiffMode;
@@ -135,10 +138,12 @@ export const PairCard = memo(function PairCardImpl({
   snapshotKey: string;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
+  isViewed?: boolean;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
+  onToggleViewed?: () => void;
   overlayColor?: string;
   overlayOpacity?: number;
   status?: DiffStatus;
@@ -217,9 +222,11 @@ export const PairCard = memo(function PairCardImpl({
           showBottomBorder={false}
           onCopyLink={onCopyLink}
           onCopyMetadata={onCopyMetadata}
+          isViewed={isViewed}
+          onToggleViewed={onToggleViewed}
         />
-        {status === DiffStatus.ERRORED && <ErroredBanner />}
-        <Container padding="0 xl xl">{body}</Container>
+        {!isViewed && status === DiffStatus.ERRORED && <ErroredBanner />}
+        {!isViewed && <Container padding="0 xl xl">{body}</Container>}
       </SnapshotVariantFrame>
     </DarkAware>
   );
@@ -237,6 +244,8 @@ export const ImageCard = memo(function ImageCardImpl({
   onOpenSnapshot,
   onCopyLink,
   onCopyMetadata,
+  isViewed = false,
+  onToggleViewed,
 }: {
   cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged' | 'skipped';
   copyUrl: string;
@@ -245,10 +254,12 @@ export const ImageCard = memo(function ImageCardImpl({
   isSelected: boolean;
   snapshotKey: string;
   copyData?: unknown;
+  isViewed?: boolean;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
+  onToggleViewed?: () => void;
 }) {
   const {isDark, toggleIsDark} = useCanvasTheme(image.canvas_theme);
   const imageUrl = getSnapshotImageUrl(imageBaseUrl, image);
@@ -302,10 +313,14 @@ export const ImageCard = memo(function ImageCardImpl({
           showBottomBorder={false}
           onCopyLink={onCopyLink}
           onCopyMetadata={onCopyMetadata}
+          isViewed={isViewed}
+          onToggleViewed={onToggleViewed}
         />
-        <Container padding="0 xl xl">
-          <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
-        </Container>
+        {!isViewed && (
+          <Container padding="0 xl xl">
+            <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
+          </Container>
+        )}
       </SnapshotVariantFrame>
     </DarkAware>
   );
@@ -325,6 +340,8 @@ export const CardHeader = memo(function CardHeaderImpl({
   showBottomBorder = true,
   onCopyLink,
   onCopyMetadata,
+  isViewed = false,
+  onToggleViewed,
 }: {
   copyData: unknown;
   copyUrl: string;
@@ -333,9 +350,11 @@ export const CardHeader = memo(function CardHeaderImpl({
   onToggleDark: () => void;
   diffPercent?: number | null;
   displayName?: string | null;
+  isViewed?: boolean;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onDoubleClick?: () => void;
+  onToggleViewed?: () => void;
   showBottomBorder?: boolean;
   status?: DiffStatus | null;
   tags?: Record<string, string> | null;
@@ -378,6 +397,14 @@ export const CardHeader = memo(function CardHeaderImpl({
             }}
           />
           <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
+          {onToggleViewed && (
+            <ViewedCheckbox
+              checked={isViewed}
+              onChange={onToggleViewed}
+              showHotkey
+              aria-label={t('%s viewed', displayName ?? fileName)}
+            />
+          )}
         </Flex>
       </Flex>
       {tags && Object.keys(tags).length > 0 && <CollapsibleBadgeRow tags={tags} />}

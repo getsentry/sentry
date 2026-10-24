@@ -13,6 +13,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {TOGGLE_VIEWED_HOTKEY} from './viewedCheckbox';
+
 interface Shortcut {
   description: string;
   keys: ReactNode;
@@ -58,6 +60,10 @@ function getShortcutGroups(): ShortcutGroup[] {
         {
           keys: <Hotkey value="space" />,
           description: t('Scroll selected snapshot into view'),
+        },
+        {
+          keys: <Hotkey value={TOGGLE_VIEWED_HOTKEY} />,
+          description: t('Mark selected snapshot as viewed / not viewed'),
         },
       ],
     },
