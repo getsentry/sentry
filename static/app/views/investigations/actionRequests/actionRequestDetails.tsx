@@ -1,8 +1,17 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {Text} from '@sentry/scraps/text';
 
-import {MonitorChanges} from 'sentry/views/investigations/actionRequests/monitorChanges';
-import {getSourceMonitor} from 'sentry/views/investigations/source';
+import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  getActionKind,
+  type ApplyBlockReason,
+} from 'sentry/views/investigations/actionRequests/actionKinds';
+import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
+import {actionRequestDryRunQueryOptions} from 'sentry/views/investigations/api';
 import type {
+  InvestigationAction,
   InvestigationActionRequest,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
@@ -13,22 +22,122 @@ type ActionRequestDetailsProps = {
 };
 
 export function ActionRequestDetails({actionRequest, source}: ActionRequestDetailsProps) {
-  const {action, impact} = actionRequest;
+  const kind = getActionKind(actionRequest.action);
+  if (kind?.ui.Details) {
+    return (
+      <kind.ui.Details
+        action={kind.action}
+        actionRequest={actionRequest}
+        source={source}
+      />
+    );
+  }
+  return actionRequest.impact ? (
+    <Text as="p" size="md" density="comfortable">
+      {actionRequest.impact}
+    </Text>
+  ) : null;
+}
 
-  switch (action?.kind) {
-    case 'update_detector':
-      return (
-        <MonitorChanges
-          action={action}
-          impact={impact}
-          monitor={getSourceMonitor(source, action.detectorId)}
-        />
-      );
+type ActionRequestApplyProps = {
+  actionRequest: InvestigationActionRequest;
+  applying: boolean;
+  check: ApplyCheck;
+  onApply: () => void;
+};
+
+export function ActionRequestApply({
+  actionRequest,
+  applying,
+  check,
+  onApply,
+}: ActionRequestApplyProps) {
+  const kind = getActionKind(actionRequest.action);
+  if (!kind) {
+    return null;
+  }
+  return (
+    <kind.ui.Apply
+      action={kind.action}
+      actionRequest={actionRequest}
+      applying={applying}
+      check={check}
+      message={getApplyMessage(actionRequest, check)}
+      onApply={onApply}
+    />
+  );
+}
+
+export function useApplyCheck(
+  investigationId: string,
+  actionRequest: InvestigationActionRequest
+): ApplyCheck {
+  const organization = useOrganization();
+  const checksBeforeApply =
+    getActionKind(actionRequest.action)?.ui.checksBeforeApply ?? false;
+  const enabled = actionRequest.canApply && checksBeforeApply;
+  const {data, isError, isPending} = useQuery({
+    ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
+    enabled,
+  });
+  if (!enabled) {
+    return {status: 'passed'};
+  }
+  if (isError) {
+    return {status: 'unavailable'};
+  }
+  if (isPending) {
+    return {status: 'pending'};
+  }
+  return data ? {status: 'blocked', error: data} : {status: 'passed'};
+}
+
+function getApplyMessage(actionRequest: InvestigationActionRequest, check: ApplyCheck) {
+  if (!actionRequest.canApply) {
+    return getCannotApplyMessage(actionRequest.action, actionRequest.cannotApplyReason);
+  }
+  switch (check.status) {
+    case 'blocked':
+      return getCannotApplyMessage(actionRequest.action, check.error.code);
+    case 'unavailable':
+      return t("Couldn't check this change in advance. Applying it checks it again.");
     default:
-      return impact ? (
-        <Text as="p" size="md" density="comfortable">
-          {impact}
-        </Text>
-      ) : null;
+      return null;
+  }
+}
+
+export function getApplySuccessMessage(action: InvestigationAction | null) {
+  return getActionKind(action)?.ui.getSuccessMessage?.() ?? null;
+}
+
+export function getCannotApplyMessage(
+  action: InvestigationAction | null,
+  reason: ApplyBlockReason
+) {
+  return (
+    getActionKind(action)?.ui.getCannotApplyMessage(reason) ??
+    getSharedCannotApplyMessage(reason) ??
+    t("This change can't be applied.")
+  );
+}
+
+function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
+  switch (reason) {
+    case 'investigation_archived':
+      return t('Archived investigations are read-only.');
+    case 'not_suggested':
+      return t('This can no longer be applied.');
+    case 'unsupported_action':
+      return t("Seer can't apply this kind of change yet.");
+    case 'no_access':
+      return t("You don't have access to apply this.");
+    case 'already_applied':
+      return t('This was already applied.');
+    case 'withdrawn':
+      return t('Seer no longer suggests this.');
+    case 'validation_failed':
+      return t("This change wasn't valid.");
+    default:
+      return null;
   }
 }

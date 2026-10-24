@@ -1,12 +1,17 @@
-import {Fragment} from 'react';
+import {Fragment, type ComponentProps} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
+import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import {
   InvestigationActionRequestFixture,
+  InvestigationDetailFixture,
   InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
 import type {
@@ -38,17 +43,51 @@ function runWith(
   });
 }
 
+function investigationWith(id: string, actionRequests: InvestigationActionRequest[]) {
+  return InvestigationDetailFixture({id, actionRequests});
+}
+
 function CardStory({
   actionRequests,
+  dryRunErrors,
+  id,
   orchestration = completedRun,
 }: {
   actionRequests: InvestigationActionRequest[];
+  id: string;
+  dryRunErrors?: ComponentProps<typeof InvestigationFixtureApi>['dryRunErrors'];
   orchestration?: InvestigationOrchestration;
 }) {
   return (
-    <Container maxWidth="960px">
-      <NextStepCard actionRequests={actionRequests} orchestration={orchestration} />
-    </Container>
+    <InvestigationFixtureApi
+      organizationSlug={`storybook-next-step-${id}`}
+      details={[investigationWith(id, actionRequests)]}
+      dryRunErrors={dryRunErrors}
+    >
+      <Container maxWidth="960px">
+        <FixtureCard investigationId={id} orchestration={orchestration} />
+      </Container>
+    </InvestigationFixtureApi>
+  );
+}
+
+function FixtureCard({
+  investigationId,
+  orchestration,
+}: {
+  investigationId: string;
+  orchestration: InvestigationOrchestration;
+}) {
+  const organization = useOrganization();
+  const {data: investigation} = useQuery(
+    getInvestigationDetailQueryOptions(organization.slug, investigationId)
+  );
+  return (
+    <NextStepCard
+      actionRequests={investigation?.actionRequests}
+      investigationId={investigationId}
+      orchestration={orchestration}
+    />
   );
 }
 
@@ -58,12 +97,38 @@ export default Storybook.story('Investigations — Recommended Action', story =>
       <Text as="p">
         Seer's primary request from the latest report sits under the summary.
       </Text>
-      <CardStory actionRequests={[intervalChange]} />
+      <CardStory id="suggested" actionRequests={[intervalChange]} />
     </Fragment>
+  ));
+
+  story('Cannot apply', () => (
+    <CardStory
+      id="cannot-apply"
+      actionRequests={[
+        {...intervalChange, canApply: false, cannotApplyReason: 'permission_denied'},
+      ]}
+    />
+  ));
+
+  story('Check failed', () => (
+    <CardStory
+      id="check-failed"
+      actionRequests={[intervalChange]}
+      dryRunErrors={{
+        [intervalChange.id]: {
+          status: 409,
+          body: {
+            detail: 'This changed since Seer suggested it.',
+            code: 'stale',
+          },
+        },
+      }}
+    />
   ));
 
   story('Threshold change', () => (
     <CardStory
+      id="threshold"
       actionRequests={[
         {
           ...intervalChange,
@@ -83,6 +148,7 @@ export default Storybook.story('Investigations — Recommended Action', story =>
 
   story('Query change', () => (
     <CardStory
+      id="query"
       actionRequests={[
         {
           ...intervalChange,
@@ -107,6 +173,7 @@ export default Storybook.story('Investigations — Recommended Action', story =>
         Advice Seer cannot carry out has no action, so the card shows the advice only.
       </Text>
       <CardStory
+        id="no-action"
         actionRequests={[
           {
             ...intervalChange,
@@ -123,6 +190,7 @@ export default Storybook.story('Investigations — Recommended Action', story =>
 
   story('Withdrawn', () => (
     <CardStory
+      id="withdrawn"
       actionRequests={[
         {
           ...intervalChange,
@@ -135,12 +203,13 @@ export default Storybook.story('Investigations — Recommended Action', story =>
 
   story('Generating', () => (
     <CardStory
+      id="generating"
       actionRequests={[]}
       orchestration={runWith('generating', {phase: 'metadata', status: 'processing'})}
     />
   ));
 
   story('Failed', () => (
-    <CardStory actionRequests={[]} orchestration={runWith('failed')} />
+    <CardStory id="failed" actionRequests={[]} orchestration={runWith('failed')} />
   ));
 });
