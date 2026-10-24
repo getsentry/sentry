@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 from rest_framework import serializers
 
@@ -107,25 +107,56 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
 
 DetectorValue = int | float | str | None
 
-_THRESHOLD_RESULTS = {
+_THRESHOLD_RESULTS: dict[
+    Literal["highThreshold", "mediumThreshold", "resolutionThreshold"], DetectorPriorityLevel
+] = {
     "highThreshold": DetectorPriorityLevel.HIGH,
     "mediumThreshold": DetectorPriorityLevel.MEDIUM,
     "resolutionThreshold": DetectorPriorityLevel.OK,
 }
-# Seer's names for the data source fields, mapped to the detector API's names.
-_DATA_SOURCE_FIELDS = {
-    "timeWindowSeconds": "timeWindow",
-    "query": "query",
-    "aggregate": "aggregate",
-    "environment": "environment",
-}
+_DATA_SOURCE_KEYS = ("timeWindowSeconds", "query", "aggregate", "environment")
+
+
+class DetectorChanges(TypedDict, total=False):
+    timeWindowSeconds: int
+    highThreshold: float
+    mediumThreshold: float
+    resolutionThreshold: float
+    query: str
+    aggregate: str
+    environment: str | None
+
+
+class DataSourceBody(TypedDict):
+    id: str
+    dataset: str
+    query: str
+    aggregate: str
+    timeWindow: int
+    environment: str | None
+    eventTypes: list[str]
+    queryType: int
+
+
+class ConditionBody(TypedDict):
+    id: str
+    type: str
+    # Only static monitors get here, and their conditions compare against a number.
+    comparison: float
+    conditionResult: int
+
+
+class ConditionGroupBody(TypedDict):
+    id: int
+    logicType: str
+    conditions: list[ConditionBody]
 
 
 class DetectorUpdate(TypedDict, total=False):
     """The body we send to the detector validator."""
 
-    conditionGroup: dict[str, Any]
-    dataSources: list[dict[str, Any]]
+    conditionGroup: ConditionGroupBody
+    dataSources: list[DataSourceBody]
 
 
 @dataclass(frozen=True)
@@ -134,25 +165,28 @@ class DetectorState:
     them, so we can read current values and build an update from the same data.
     """
 
-    data_source: dict[str, Any]
-    condition_group: dict[str, Any] | None
+    data_source: DataSourceBody
+    condition_group: ConditionGroupBody | None
 
     @classmethod
     def load(cls, detector: Detector, snuba_query: SnubaQuery) -> DetectorState:
-        data_source: dict[str, Any] = serialize(snuba_query, serializer=SnubaQuerySerializer())
-        data_source["queryType"] = snuba_query.type
+        serialized = serialize(snuba_query, serializer=SnubaQuerySerializer())
         # Without a mode the update keeps the stored one. Some span monitors migrated from
         # transactions store a mode the validator no longer accepts.
-        del data_source["extrapolationMode"]
+        del serialized["extrapolationMode"]
+        data_source = cast(DataSourceBody, {**serialized, "queryType": snuba_query.type})
         group = detector.workflow_condition_group
         condition_group = (
-            {
-                "id": group.id,
-                "logicType": group.logic_type,
-                "conditions": serialize(
-                    list(group.conditions.order_by("id")), serializer=DataConditionSerializer()
+            ConditionGroupBody(
+                id=group.id,
+                logicType=group.logic_type,
+                conditions=cast(
+                    list[ConditionBody],
+                    serialize(
+                        list(group.conditions.order_by("id")), serializer=DataConditionSerializer()
+                    ),
                 ),
-            }
+            )
             if group is not None
             else None
         )
@@ -160,11 +194,14 @@ class DetectorState:
 
     def values(self) -> dict[str, DetectorValue]:
         """The monitor's current settings, keyed like Seer's changes. A threshold is left out
-        unless exactly one numeric condition sets it.
+        unless exactly one condition sets it.
         """
 
         values: dict[str, DetectorValue] = {
-            key: self.data_source[field] for key, field in _DATA_SOURCE_FIELDS.items()
+            "timeWindowSeconds": self.data_source["timeWindow"],
+            "query": self.data_source["query"],
+            "aggregate": self.data_source["aggregate"],
+            "environment": self.data_source["environment"],
         }
         conditions = self.condition_group["conditions"] if self.condition_group else []
         for key, result in _THRESHOLD_RESULTS.items():
@@ -173,19 +210,15 @@ class DetectorState:
                 for condition in conditions
                 if condition["conditionResult"] == result
             ]
-            if (
-                len(comparisons) == 1
-                and isinstance(comparisons[0], int | float)
-                and not isinstance(comparisons[0], bool)
-            ):
+            if len(comparisons) == 1:
                 values[key] = comparisons[0]
         return values
 
-    def update(self, changes: dict[str, DetectorValue]) -> DetectorUpdate:
+    def update(self, changes: DetectorChanges) -> DetectorUpdate:
         """Apply Seer's changes on top of the current settings."""
 
         update: DetectorUpdate = {}
-        thresholds = {
+        thresholds: dict[int, float] = {
             result: changes[key] for key, result in _THRESHOLD_RESULTS.items() if key in changes
         }
         if thresholds:
@@ -205,17 +238,17 @@ class DetectorState:
                     for condition in self.condition_group["conditions"]
                 ],
             }
-        if any(key in changes for key in _DATA_SOURCE_FIELDS):
-            update["dataSources"] = [
-                {
-                    **self.data_source,
-                    **{
-                        field: changes[key]
-                        for key, field in _DATA_SOURCE_FIELDS.items()
-                        if key in changes
-                    },
-                }
-            ]
+        if any(key in changes for key in _DATA_SOURCE_KEYS):
+            data_source = self.data_source.copy()
+            if "timeWindowSeconds" in changes:
+                data_source["timeWindow"] = changes["timeWindowSeconds"]
+            if "query" in changes:
+                data_source["query"] = changes["query"]
+            if "aggregate" in changes:
+                data_source["aggregate"] = changes["aggregate"]
+            if "environment" in changes:
+                data_source["environment"] = changes["environment"]
+            update["dataSources"] = [data_source]
         return update
 
 

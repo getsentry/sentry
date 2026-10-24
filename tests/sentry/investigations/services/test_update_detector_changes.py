@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import fetch_snuba_query
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.investigations.services.action_kinds.update_detector import (
+    DetectorChanges,
     DetectorState,
-    DetectorValue,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
@@ -86,7 +87,7 @@ class DetectorStateTest(TestCase):
         assert snuba_query is not None
         return DetectorState.load(self.detector, snuba_query)
 
-    def validation_errors(self, changes: dict[str, DetectorValue]) -> object:
+    def validation_errors(self, changes: DetectorChanges) -> dict[str, Any] | None:
         """Send the update through the detector validator, the way the detector API would."""
         settings = self.detector.group_type.detector_settings
         assert settings is not None and settings.validator is not None
