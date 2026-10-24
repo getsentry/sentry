@@ -18,6 +18,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.autofix_agent import _group_and_referrer_from_run, get_current_step
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
     STOPPING_POINT_TO_STEP,
@@ -25,6 +26,7 @@ from sentry.seer.autofix.on_completion_hook import (
     _stopping_point_from_run,
 )
 from sentry.seer.autofix.pr_iteration.completion import (
+    BRANCH_MOVED_RETRY_PROMPT,
     continue_pr_iteration,
     iteration_completed_webhook_fields,
     iteration_log_context,
@@ -993,6 +995,46 @@ class TestPrIterationCompletionHook(TestCase):
             mock_complete.call_args.kwargs["outcome"]
             == PrIterationOutcome.PR_CREATION_ERRORED.value
         )
+
+    def test_a_push_refused_because_the_branch_moved_retries_the_iteration_pinned(self):
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        state = self._unsynced()
+        state.blocks[0].message.metadata = {
+            **(state.blocks[0].message.metadata or {}),
+            "iteration_id": "41",
+            "feedback": "[]",
+        }
+        pr_state = state.repo_pr_states["test-repo"]
+        pr_state.pr_creation_status = "error"
+        pr_state.pr_creation_error_code = "branch_moved"
+
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch(f"{COMPLETION_PATH}.trigger_push_changes") as mock_push,
+        ):
+            mock_client_cls.return_value.continue_feature_run.return_value = run
+            outcome = pr_iteration_push_outcome(
+                iteration_log_context(self.organization, self.group, state),
+                self.group,
+                123,
+                state,
+                AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+
+        assert outcome is None
+        mock_push.assert_not_called()
+        kwargs = mock_client_cls.return_value.continue_feature_run.call_args.kwargs
+        assert kwargs["agent_run_options"]["pin_to_pr_head"] is True
+        payload = kwargs["payload"]
+        assert payload["step"] == AutofixStep.PR_ITERATION
+        assert payload["user_context"] == BRANCH_MOVED_RETRY_PROMPT
+        assert payload["step_args"]["iteration_index"] == 1
+        assert payload["step_args"]["iteration_id"] == 41
+        assert payload["step_args"]["feedback"] == "[]"
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
