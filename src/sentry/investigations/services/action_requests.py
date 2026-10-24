@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
-from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -20,11 +19,13 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.action_kinds import get_action_kind, shared_cannot_apply_reason
 from sentry.investigations.services.action_kinds.base import (
+    ActionInvalid,
+    ActionStale,
     ApplyContext,
+    ApplyError,
+    ApplyErrorCode,
     ApplyResult,
     CannotApplyReason,
-    apply_error,
-    unsupported_action,
 )
 
 logger = logging.getLogger(__name__)
@@ -227,28 +228,37 @@ def supersede_block_action_requests(investigation: Investigation, block_keys: Se
     )
 
 
-def _not_suggested_error(action_request: InvestigationActionRequest) -> ApplyResult:
+# The usual detail for a reason; anything a kind refuses gets the last one.
+_REASON_DETAILS = {
+    CannotApplyReason.INVESTIGATION_ARCHIVED: "Archived investigations are read-only.",
+    CannotApplyReason.UNSUPPORTED_ACTION: "This request has no action to apply.",
+}
+
+
+def _not_suggested_error(action_request: InvestigationActionRequest) -> ApplyError:
     if action_request.state == InvestigationActionRequestState.APPLIED:
-        return apply_error(
-            action_request,
-            status.HTTP_409_CONFLICT,
-            "This action was already applied.",
-            "already_applied",
-        )
+        return {
+            "detail": "This action was already applied.",
+            "code": ApplyErrorCode.ALREADY_APPLIED,
+        }
     if action_request.state == InvestigationActionRequestState.WITHDRAWN:
-        return apply_error(
-            action_request,
-            status.HTTP_409_CONFLICT,
-            "Seer no longer suggests this.",
-            "withdrawn",
-            reason=action_request.reason,
-        )
-    return apply_error(
-        action_request,
-        status.HTTP_409_CONFLICT,
-        "This action can no longer be applied.",
-        "not_suggested",
-    )
+        return {
+            "detail": "Seer no longer suggests this.",
+            "code": ApplyErrorCode.WITHDRAWN,
+            "reason": action_request.reason,
+        }
+    return {
+        "detail": "This action can no longer be applied.",
+        "code": CannotApplyReason.NOT_SUGGESTED,
+    }
+
+
+def _error_messages(errors: object) -> list[str]:
+    if isinstance(errors, dict):
+        return [message for value in errors.values() for message in _error_messages(value)]
+    if isinstance(errors, list):
+        return [message for value in errors for message in _error_messages(value)]
+    return [str(errors)]
 
 
 def _apply(
@@ -277,36 +287,23 @@ def _apply(
     except (InvestigationActionRequest.DoesNotExist, ValueError):
         raise ResourceDoesNotExist
 
-    match shared_cannot_apply_reason(locked, action_request):
-        case CannotApplyReason.INVESTIGATION_ARCHIVED:
-            return apply_error(
-                action_request,
-                status.HTTP_400_BAD_REQUEST,
-                "Archived investigations are read-only.",
-                CannotApplyReason.INVESTIGATION_ARCHIVED,
-            )
-        case CannotApplyReason.NOT_SUGGESTED:
-            return _not_suggested_error(action_request)
-        case CannotApplyReason.UNSUPPORTED_ACTION:
-            return unsupported_action(action_request)
+    reason = shared_cannot_apply_reason(locked, action_request)
+    if reason == CannotApplyReason.NOT_SUGGESTED:
+        return ApplyResult(action_request, _not_suggested_error(action_request))
     kind = get_action_kind(action_request.action_kind)
-    assert kind is not None
-    # The same check that decides canApply guards the endpoint, so a kind can't forget it.
-    reason = kind.cannot_apply_reasons(
-        [action_request],
-        investigations={locked.id: locked},
-        access=request.access,
-        user=request.user,
-    ).get(action_request.id, CannotApplyReason.UNSUPPORTED_ACTION)
+    if reason is None and kind is not None:
+        # The same check that decides canApply guards the endpoint, so a kind can't forget it.
+        reason = kind.cannot_apply_reasons(
+            [action_request],
+            investigations={locked.id: locked},
+            access=request.access,
+            user=request.user,
+        ).get(action_request.id, CannotApplyReason.UNSUPPORTED_ACTION)
     if reason is not None:
-        return apply_error(
-            action_request,
-            status.HTTP_403_FORBIDDEN
-            if reason == CannotApplyReason.PERMISSION_DENIED
-            else status.HTTP_409_CONFLICT,
-            "This action can't be applied.",
-            reason,
-        )
+        detail = _REASON_DETAILS.get(reason, "This action can't be applied.")
+        return ApplyResult(action_request, {"detail": detail, "code": reason})
+    assert kind is not None
+
     context = ApplyContext(
         investigation=locked,
         run=run,
@@ -314,9 +311,45 @@ def _apply(
         request=request,
         actor_id=actor_id,
     )
-    if dry_run:
-        return kind.check(context) or ApplyResult(action_request=action_request)
-    return kind.apply(context)
+    try:
+        if dry_run:
+            kind.check(context)
+            return ApplyResult(action_request)
+        details = kind.apply(context)
+    except ActionStale as stale:
+        if not dry_run:
+            # Keep the error on the row, so Seer sending the same suggestion again can't bring
+            # it back.
+            action_request.update(
+                state=InvestigationActionRequestState.SUPERSEDED,
+                error={"code": ApplyErrorCode.STALE, "current": stale.current},
+            )
+        return ApplyResult(
+            action_request,
+            {
+                "detail": "This changed since Seer suggested it.",
+                "code": ApplyErrorCode.STALE,
+                "current": stale.current,
+            },
+        )
+    except ActionInvalid as invalid:
+        # The request stays suggested, so the user can try again.
+        return ApplyResult(
+            action_request,
+            {
+                "detail": "The change wasn't valid.",
+                "code": ApplyErrorCode.VALIDATION_FAILED,
+                "messages": _error_messages(invalid.errors),
+            },
+        )
+    action_request.update(
+        state=InvestigationActionRequestState.APPLIED,
+        applied_by_id=actor_id,
+        date_applied=timezone.now(),
+        applied_details=details,
+        error=None,
+    )
+    return ApplyResult(action_request)
 
 
 def apply_action_request(
@@ -329,15 +362,18 @@ def apply_action_request(
 ) -> ApplyResult:
     """Apply a suggested action as the requesting user. A dry run only says whether it would
     work, and doesn't take locks or change anything.
-
-    If an error updates the row, it's returned instead of raised, so the update still commits.
     """
 
-    with transaction.atomic(using=router.db_for_write(InvestigationActionRequest)):
-        return _apply(
+    using = router.db_for_write(InvestigationActionRequest)
+    with transaction.atomic(using=using):
+        result = _apply(
             investigation=investigation,
             action_request_id=action_request_id,
             request=request,
             actor_id=actor_id,
             dry_run=dry_run,
         )
+        if dry_run:
+            # Even if a check writes by mistake, a dry run keeps nothing.
+            transaction.set_rollback(True, using=using)
+        return result
