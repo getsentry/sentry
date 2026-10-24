@@ -662,7 +662,9 @@ export default Storybook.story('Investigations — Detail', story => {
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
         <StoryTopBar>
-          <InvestigationBootstrapPage investigationId={gatheringContextInvestigation.id} />
+          <InvestigationBootstrapPage
+            investigationId={gatheringContextInvestigation.id}
+          />
         </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
@@ -683,7 +685,9 @@ export default Storybook.story('Investigations — Detail', story => {
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
         <StoryTopBar>
-          <InvestigationBootstrapPage investigationId={awaitingInputRunInvestigation.id} />
+          <InvestigationBootstrapPage
+            investigationId={awaitingInputRunInvestigation.id}
+          />
         </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
