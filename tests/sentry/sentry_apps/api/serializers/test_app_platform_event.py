@@ -196,6 +196,46 @@ class AppPlatformEventSerializerTest(TestCase):
             },
         )
 
+    def test_explicit_idempotency_key_is_forwarded(self) -> None:
+        key = "a" * 32
+        result = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"issue": {"id": "7604140174"}},
+            idempotency_key=key,
+        )
+        assert result.sentry_headers["Idempotency-Key"] == key
+        assert result.headers["Idempotency-Key"] == key
+        assert result.loggable_headers["Idempotency-Key"] == key
+
+        error = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ERROR,
+            action=ErrorActionType.CREATED,
+            install=self.install,
+            data={"error": {"event_id": "b" * 32}},
+            idempotency_key="c" * 32,
+        )
+        assert error.headers["Idempotency-Key"] == "c" * 32
+
+    def test_idempotency_key_requires_explicit_value(self) -> None:
+        cases: list[tuple[SentryAppResourceType, SentryAppActionType, dict[str, Any]]] = [
+            (SentryAppResourceType.ISSUE, IssueActionType.ASSIGNED, {"issue": {"id": "123"}}),
+            (SentryAppResourceType.ISSUE, IssueActionType.CREATED, {"issue": {"id": "123"}}),
+            (
+                SentryAppResourceType.EVENT_ALERT,
+                IssueAlertActionType.TRIGGERED,
+                {"event": {"event_id": "123"}},
+            ),
+            (SentryAppResourceType.ERROR, ErrorActionType.CREATED, {"error": {"event_id": "123"}}),
+        ]
+        for resource, action, data in cases:
+            event = AppPlatformEvent[dict[str, Any]](
+                resource=resource, action=action, install=self.install, data=data
+            )
+            assert "Idempotency-Key" not in event.sentry_headers
+            assert "Idempotency-Key" not in event.headers
+
     def test_text_summary_appended_when_enabled(self) -> None:
         result = self._issue_event()
         result.include_text_summary = True

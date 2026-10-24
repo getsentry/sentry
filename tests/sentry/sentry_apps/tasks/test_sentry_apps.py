@@ -1,4 +1,5 @@
 from collections import namedtuple
+from hashlib import sha256
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -644,6 +645,10 @@ class TestProcessResourceChange(TestCase):
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == self.install.uuid
         assert data["data"]["issue"]["id"] == str(event.group.id)
+        expected_key = sha256(
+            f"{self.install.id}:issue.created:{event.event_id}".encode()
+        ).hexdigest()[:32]
+        assert kwargs["headers"]["Idempotency-Key"] == expected_key
         assert kwargs["headers"].keys() >= {
             "Content-Type",
             "Request-ID",
@@ -659,6 +664,54 @@ class TestProcessResourceChange(TestCase):
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook.delay")
+    def test_group_created_idempotency_key_is_stable_per_installation(
+        self, delay: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        second_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        second_install = self.create_sentry_app_installation(
+            organization=self.organization, slug=second_app.slug
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group_id = event.group.id
+
+        def queue_webhooks(event_id: str) -> dict[int, str]:
+            delay.reset_mock()
+            process_resource_change_bound(
+                action="created",
+                sender="Group",
+                instance_id=str(group_id),
+                event_id=event_id,
+            )
+            assert delay.call_count == 2
+            return {
+                call.kwargs["installation_id"]: call.kwargs["idempotency_key"]
+                for call in delay.call_args_list
+            }
+
+        first = queue_webhooks(event.event_id)
+        retry = queue_webhooks(event.event_id)
+        assert first == retry
+        assert set(first) == {self.install.id, second_install.id}
+        assert first[self.install.id] != first[second_install.id]
+        for installation_id, key in first.items():
+            assert (
+                key
+                == sha256(f"{installation_id}:issue.created:{event.event_id}".encode()).hexdigest()[
+                    :32
+                ]
+            )
+
+        # Same issue, but a different event ID, should yield a new key.
+        new_event_id = "f" * 32
+        assert all(
+            key != first[installation_id]
+            for installation_id, key in queue_webhooks(new_event_id).items()
         )
 
     @patch("sentry_sdk.capture_exception")
@@ -993,6 +1046,10 @@ class TestProcessResourceChange(TestCase):
         assert data["installation"]["uuid"] == install.uuid
         assert data["data"]["error"]["event_id"] == event.event_id
         assert data["data"]["error"]["issue_id"] == str(event.group_id)
+        expected_key = sha256(f"{install.id}:error.created:{event.event_id}".encode()).hexdigest()[
+            :32
+        ]
+        assert kwargs["headers"]["Idempotency-Key"] == expected_key
         assert kwargs["headers"].keys() >= {
             "Content-Type",
             "Request-ID",
@@ -1674,6 +1731,7 @@ class TestWorkflowNotification(TestCase):
         ((_, kwargs),) = safe_urlopen.call_args_list
         assert kwargs["url"] == self.sentry_app.webhook_url
         assert kwargs["headers"]["Sentry-Hook-Resource"] == "issue"
+        assert "Idempotency-Key" not in kwargs["headers"]
         data = json.loads(kwargs["data"])
         issue_data = data["data"]["issue"]
         assert data["action"] == "resolved"
@@ -1700,6 +1758,23 @@ class TestWorkflowNotification(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
+
+    def test_resolved_webhook_reuses_queued_idempotency_key(self, safe_urlopen: MagicMock) -> None:
+        key = "a" * 32
+
+        # The same queued task can be retried without generating a new key.
+        for _ in range(2):
+            workflow_notification(
+                self.install.id,
+                self.issue.id,
+                "resolved",
+                self.user.id,
+                idempotency_key=key,
+            )
+
+        assert safe_urlopen.call_count == 2
+        for call in safe_urlopen.call_args_list:
+            assert call.kwargs["headers"]["Idempotency-Key"] == key
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_sends_resolved_webhook_as_Sentry_without_user(

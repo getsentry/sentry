@@ -51,6 +51,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         install: RpcSentryAppInstallation | SentryAppInstallation,
         data: T,
         actor: RpcUser | User | None = None,
+        idempotency_key: str | None = None,
     ):
         self.resource = resource
         self.action = action
@@ -58,6 +59,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         self.data = data
         self.actor = actor
         self.include_text_summary = False
+        self.idempotency_key = idempotency_key
 
     def get_actor(self) -> AppPlatformEventActor:
         # when sentry auto assigns, auto resolves, etc.
@@ -116,13 +118,18 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         """
         request_uuid = uuid4().hex
 
-        return {
+        headers = {
             "Content-Type": "application/json",
             "Request-ID": request_uuid,
             "Sentry-Hook-Resource": self.resource,
             "Sentry-Hook-Timestamp": str(int(time())),
             "Sentry-Hook-Signature": self.install.sentry_app.build_signature(self.body),
         }
+
+        if self.idempotency_key is not None:
+            headers["Idempotency-Key"] = self.idempotency_key
+
+        return headers
 
     @property
     def custom_headers(self) -> dict[str, str]:
