@@ -1896,6 +1896,62 @@ describe('ArtifactCard', () => {
       expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
     });
 
+    it('keeps the latest iteration feedback in progress while its changes are pushed', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR({pr_creation_status: 'creating'})},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    });
+
+    it('shows a retried iteration feedback once, in progress during the retry', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [
+              makePrIterationBlock(0, {text: 'fix the CI failure'}),
+              makeAssistantBlock('Edited the handler.'),
+              {
+                ...makePrIterationBlock(0, {text: 'fix the CI failure'}),
+                id: 'block-pr-0-retry',
+              },
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getAllByText('fix the CI failure')).toHaveLength(1);
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    });
+
     it('marks queued feedback with a queued label and no timestamp', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
