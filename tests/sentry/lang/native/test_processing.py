@@ -297,7 +297,7 @@ def test_flamegraph_indexed_inline_expansion(flamegraph_payload, nodes) -> None:
 
 
 def test_flamegraph_inline_expansion_at_node_limit() -> None:
-    nodes = [
+    nodes: list[dict[str, Any]] = [
         {"frame_id": 0, "sample_count": 10, "children": [1]},
         {"frame_id": 0, "sample_count": 10},
     ]
