@@ -159,7 +159,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
                 "project_id": project.id,
             }
         )
-        write_preference_to_sentry_db(project, preference)
+        write_preference_to_sentry_db(preference)
 
         return Response(status=204)
 
