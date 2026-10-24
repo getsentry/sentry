@@ -1,8 +1,11 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import SeerWorkflows from 'sentry/views/seerWorkflows';
 
 describe('SeerWorkflows', () => {
@@ -10,6 +13,7 @@ describe('SeerWorkflows', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ConfigStore.loadInitialData(ConfigFixture());
   });
 
   afterEach(() => {
@@ -541,6 +545,82 @@ describe('SeerWorkflows', () => {
     expect(
       screen.getByText('No triage batches recorded for this run.')
     ).toBeInTheDocument();
+  });
+
+  describe('for Sentry employees', () => {
+    beforeEach(() => {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            emails: [{email: 'employee@sentry.io', id: '1', is_verified: true}],
+          }),
+        })
+      );
+    });
+
+    it('lists each issue in the per-issue internals table when the debug panel is open', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/workflows/`,
+        body: [
+          {
+            id: '1',
+            dateAdded: '2026-04-20T00:00:00Z',
+            strategy: 'agentic_triage',
+            errorMessage: null,
+            extras: {},
+            issues: [
+              {
+                id: '10',
+                groupId: '100',
+                groupTitle: 'ValueError: something broke',
+                action: 'autofix_triggered',
+                seerRunId: 'seer-1',
+                pullRequests: [],
+                dateAdded: '2026-04-20T00:00:01Z',
+              },
+              {
+                id: '11',
+                groupId: '101',
+                groupTitle: 'TypeError: something else broke',
+                action: 'skip',
+                skipReason: 'insufficient_info',
+                seerRunId: null,
+                pullRequests: [],
+                dateAdded: '2026-04-20T00:00:02Z',
+              },
+            ],
+          },
+        ],
+      });
+
+      render(<SeerWorkflows />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+      await userEvent.click(screen.getByRole('button', {name: /Debug/}));
+
+      const table = screen.getByRole('table', {name: 'Per-issue internals'});
+      const [, autofixRow, skipRow] = within(table).getAllByRole('row');
+
+      expect(
+        within(table)
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['Group', 'Raw action', 'Skip reason', 'Seer Run ID', '']);
+      expect(
+        within(autofixRow!)
+          .getAllByRole('cell')
+          .map(cell => cell.textContent)
+      ).toEqual(['100', 'autofix_triggered', '-', 'seer-1', 'Explorer']);
+      expect(
+        within(skipRow!)
+          .getAllByRole('cell')
+          .map(cell => cell.textContent)
+      ).toEqual(['101', 'skip', 'insufficient_info', '-', '']);
+      expect(within(autofixRow!).getByRole('button', {name: 'Explorer'})).toHaveAttribute(
+        'href',
+        expect.stringContaining('explorerRunId=seer-1')
+      );
+    });
   });
 
   it('sorts by date desc by default and toggles asc on Date header click', async () => {

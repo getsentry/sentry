@@ -8,11 +8,13 @@ import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Prose, Text} from '@sentry/scraps/text';
 import type {TagVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -328,54 +330,68 @@ function TriageIssuesDebugAddendum({run}: {run: SeerAgenticTriageRun}) {
       <Text bold size="xs" variant="muted" uppercase>
         {t('Per-issue internals')}
       </Text>
-      <Grid
-        columns="max-content max-content max-content max-content max-content"
-        gap="sm xl"
-        align="center"
+      <SimpleTable
+        aria-label={t('Per-issue internals')}
+        columns={ISSUE_INTERNALS_COLUMNS}
+        density="compressed"
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Group')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Raw action')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Skip reason')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Seer Run ID')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
+          </SimpleTable.HeaderRow>
+        }
       >
-        <Text bold size="xs" variant="muted">
-          {t('Group')}
-        </Text>
-        <Text bold size="xs" variant="muted">
-          {t('Raw action')}
-        </Text>
-        <Text bold size="xs" variant="muted">
-          {t('Skip reason')}
-        </Text>
-        <Text bold size="xs" variant="muted">
-          {t('Seer Run ID')}
-        </Text>
-        <span />
-        {issues.flatMap(issue => [
-          <Text key={`${issue.id}-group`} size="sm" monospace>
-            {issue.groupId}
-          </Text>,
-          <Text key={`${issue.id}-action`} size="sm" monospace>
-            {issue.action}
-          </Text>,
-          <Text key={`${issue.id}-skip-reason`} size="sm" variant="muted" monospace>
-            {issue.skipReason ?? '-'}
-          </Text>,
-          <Text key={`${issue.id}-seer`} size="sm" variant="muted" monospace>
-            {issue.seerRunId ?? '-'}
-          </Text>,
-          issue.seerRunId === null ? (
-            <span key={`${issue.id}-explorer`} />
-          ) : (
-            <LinkButton
-              key={`${issue.id}-explorer`}
-              size="xs"
-              icon={<IconOpen />}
-              to={getRelativeExplorerUrl(issue.seerRunId)}
-            >
-              {t('Explorer')}
-            </LinkButton>
-          ),
-        ])}
-      </Grid>
+        {issues.map(issue => (
+          <SimpleTable.Row key={issue.id}>
+            <SimpleTable.RowCell>
+              <Text size="sm" monospace>
+                {issue.groupId}
+              </Text>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <Text size="sm" monospace>
+                {issue.action}
+              </Text>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <Text size="sm" variant="muted" monospace>
+                {issue.skipReason ?? '-'}
+              </Text>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <Text size="sm" variant="muted" monospace>
+                {issue.seerRunId ?? '-'}
+              </Text>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              {issue.seerRunId === null ? null : (
+                <LinkButton
+                  size="xs"
+                  icon={<IconOpen />}
+                  to={getRelativeExplorerUrl(issue.seerRunId)}
+                >
+                  {t('Explorer')}
+                </LinkButton>
+              )}
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
+        ))}
+      </SimpleTable>
     </Stack>
   );
 }
+
+const ISSUE_INTERNALS_COLUMNS: TableColumnConfig[] = [
+  {key: 'group', width: 'max-content'},
+  {key: 'action', width: 'max-content'},
+  {key: 'skipReason', width: 'max-content'},
+  {key: 'seerRunId', width: 'max-content'},
+  {key: 'explorer', width: 'minmax(max-content, 1fr)'},
+];
 
 function getTriageErrorPresentation(
   errorType: SeerAgenticTriageRunErrorType | null

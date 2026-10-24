@@ -249,7 +249,7 @@ const StyledRow = styled(Table.Row, {
   ${p =>
     p.variant === 'faded' &&
     css`
-      [role='cell'] {
+      > [role='cell'] {
         opacity: 0.8;
       }
     `}
