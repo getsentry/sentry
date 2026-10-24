@@ -33,6 +33,10 @@ class CannotApplyReason(StrEnum):
     DYNAMIC_DETECTOR = "dynamic_detector"
 
 
+# One setting an action reads or changes, as JSON.
+SettingValue = int | float | str | None
+
+
 class ApplyErrorCode(StrEnum):
     """What else the apply endpoint can say went wrong. The UI switches on these."""
 
@@ -48,8 +52,16 @@ class ApplyError(TypedDict):
     # Seer's reason for withdrawing it.
     reason: NotRequired[str | None]
     # The settings that moved since Seer suggested the change.
-    current: NotRequired[dict[str, object]]
+    current: NotRequired[dict[str, SettingValue]]
     # Why the change wouldn't save.
+    messages: NotRequired[list[str]]
+
+
+class ActionRequestError(TypedDict):
+    """What's stored on a request that went wrong, and shown with it."""
+
+    code: ApplyErrorCode
+    current: NotRequired[dict[str, SettingValue]]
     messages: NotRequired[list[str]]
 
 
@@ -73,7 +85,7 @@ class ApplyContext:
 class ActionStale(Exception):
     """What the action changes moved since Seer suggested it."""
 
-    def __init__(self, current: dict[str, object]) -> None:
+    def __init__(self, current: dict[str, SettingValue]) -> None:
         super().__init__("The action is stale.")
         self.current = current
 

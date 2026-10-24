@@ -20,6 +20,7 @@ from sentry.investigations.models import (
 from sentry.investigations.services.action_kinds import get_action_kind, shared_cannot_apply_reason
 from sentry.investigations.services.action_kinds.base import (
     ActionInvalid,
+    ActionRequestError,
     ActionStale,
     ApplyContext,
     ApplyError,
@@ -322,7 +323,7 @@ def _apply(
             # it back.
             action_request.update(
                 state=InvestigationActionRequestState.SUPERSEDED,
-                error={"code": ApplyErrorCode.STALE, "current": stale.current},
+                error=ActionRequestError(code=ApplyErrorCode.STALE, current=stale.current),
             )
         return ApplyResult(
             action_request,
