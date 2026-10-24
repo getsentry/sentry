@@ -18,6 +18,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -29,7 +30,7 @@ type Props = {
   dataCategory: DataCategoryInfo;
   headers: React.ReactNode[];
   usageStats: TableStat[];
-  errors?: Record<string, Error>;
+  errors?: Record<string, RequestError>;
   isEmpty?: boolean;
   isError?: boolean;
   isLoading?: boolean;
@@ -48,8 +49,10 @@ export type TableStat = {
   total: number;
 };
 
-function getErrorMessage(errorMessage: any) {
-  if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
+function getErrorMessage(errors: Props['errors']) {
+  // `responseJSON` is absent when the request fails without a JSON body
+  // (e.g. network errors), so every step of this lookup must be guarded.
+  if (errors?.projectStats?.responseJSON?.detail === 'No projects available') {
     return (
       <EmptyMessage
         icon={<IconWarning />}
