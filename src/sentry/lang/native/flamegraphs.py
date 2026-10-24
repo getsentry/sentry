@@ -8,6 +8,7 @@ from rest_framework import serializers
 from sentry import features
 from sentry.attachments import (
     CachedAttachment,
+    MissingAttachmentChunks,
     get_attachments_for_event,
     store_attachments_for_event,
 )
@@ -145,9 +146,8 @@ class Flamegraphs:
         self._attachments = list(get_attachments_for_event(data))
 
     def get_flamegraphs(self) -> Generator[tuple[int, dict[str, Any]]]:
-        # Imported at invocation time to avoid the symbolication task's processing import cycle.
-        from sentry.tasks.symbolication import SymbolicationTimeout
-
+        if not any(attachment.type == "event.flamegraph" for attachment in self._attachments):
+            return
         if not features.has("organizations:flamegraph-attachments", self._project.organization):
             return
         for index, attachment in enumerate(self._attachments):
@@ -155,7 +155,11 @@ class Flamegraphs:
                 continue
             reason = "load_error"
             try:
-                raw = attachment.load_data(self._project)
+                try:
+                    raw = attachment.load_data(self._project)
+                except (MissingAttachmentChunks, FileNotFoundError):
+                    metrics.incr("process.native.flamegraph.skipped", tags={"reason": "load_error"})
+                    continue
                 if len(raw) > MAX_FLAMEGRAPH_SIZE:
                     metrics.incr("process.native.flamegraph.skipped", tags={"reason": "raw_size"})
                     continue
@@ -182,10 +186,6 @@ class Flamegraphs:
                         "process.native.flamegraph.skipped", tags={"reason": "invalid_schema"}
                     )
                     continue
-            except SymbolicationTimeout as error:
-                sentry_sdk.capture_exception(error)
-                metrics.incr("process.native.flamegraph.skipped", tags={"reason": "timeout"})
-                return
             except Exception as error:
                 sentry_sdk.capture_exception(error)
                 metrics.incr("process.native.flamegraph.skipped", tags={"reason": reason})

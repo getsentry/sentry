@@ -782,11 +782,11 @@ def get_native_symbolication_functions(
         return functions  # early return to prevent duplicates
 
     if has_native_stacktraces(stacktraces) or (
-        features.has("organizations:flamegraph-attachments", project.organization)
-        and any(
+        any(
             attachment.get("type") == "event.flamegraph"
             for attachment in data.get("_attachments", [])
         )
+        and features.has("organizations:flamegraph-attachments", project.organization)
     ):
         # Run native symbolication first, to prevent sending minidump / ACR events to
         # symbolicator twice (after symbolication a minidump event will have native stacktraces).

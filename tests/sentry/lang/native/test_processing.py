@@ -23,6 +23,7 @@ from sentry.attachments import (
 )
 from sentry.lang.native.flamegraphs import (
     FlamegraphExpansionLimitExceeded,
+    Flamegraphs,
     _is_valid_flamegraph,
     expand_inline_frames,
 )
@@ -249,6 +250,26 @@ def test_route_flamegraph_to_native_symbolication(default_project, enabled, expe
     data = {"platform": "other", "_attachments": [{"type": "event.flamegraph"}]}
     with Feature({"organizations:flamegraph-attachments": enabled}):
         assert get_native_symbolication_functions(data, [], default_project) == expected
+
+
+@django_db_all
+@pytest.mark.parametrize("attachments", [[], [{"type": "event.attachment"}]])
+def test_route_without_flamegraph_skips_feature_check(default_project, attachments) -> None:
+    data = {"platform": "python", "_attachments": attachments}
+    with mock.patch("sentry.features.has", return_value=True) as has:
+        assert get_native_symbolication_functions(data, [], default_project) == []
+    has.assert_not_called()
+
+
+@django_db_all
+@pytest.mark.parametrize("attachments", [[], [{"type": "event.attachment"}]])
+def test_get_flamegraphs_without_flamegraph_skips_feature_check(
+    default_project, attachments
+) -> None:
+    data = {"platform": "native", "_attachments": attachments}
+    with mock.patch("sentry.features.has", return_value=True) as has:
+        assert list(Flamegraphs(default_project, data).get_flamegraphs()) == []
+    has.assert_not_called()
 
 
 @django_db_all
@@ -708,9 +729,13 @@ def test_flamegraph_unavailable_data_does_not_block_event_symbolication(
     with (
         Feature({"organizations:flamegraph-attachments": True}),
         mock.patch.object(CachedAttachment, "load_data", side_effect=error),
+        mock.patch("sentry_sdk.capture_exception") as capture,
+        mock.patch("sentry.utils.metrics.incr") as incr,
     ):
         assert process_native_stacktraces(symbolicator, data) is data
     assert data["exception"]["values"][0]["stacktrace"]["frames"][0]["function"] == "main"
+    capture.assert_not_called()
+    incr.assert_any_call("process.native.flamegraph.skipped", tags={"reason": "load_error"})
 
 
 @django_db_all
