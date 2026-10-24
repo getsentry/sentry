@@ -15,6 +15,7 @@ import {
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardingPanel';
+import {SnapshotsOnboardingPanel} from 'sentry/components/preprod/snapshotsOnboardingPanel';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -132,8 +133,8 @@ export function MobileBuilds({
     (selectedProjectIds.length === 1 &&
       selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`);
   const projectId = selectedProjectIds[0];
+  const isSnapshotDisplay = activeDisplay === PreprodBuildsDisplay.SNAPSHOT;
   const shouldShowOnboarding =
-    activeDisplay !== PreprodBuildsDisplay.SNAPSHOT &&
     builds.length === 0 &&
     !isLoadingBuilds &&
     !buildsError &&
@@ -160,17 +161,40 @@ export function MobileBuilds({
 
   useEffect(() => {
     if (shouldShowOnboarding && project && projectId) {
-      trackAnalytics('preprod.builds.onboarding.viewed', {
-        organization,
-        platform,
-        project_id: projectId,
-      });
+      trackAnalytics(
+        isSnapshotDisplay
+          ? 'preprod.snapshots.onboarding.viewed'
+          : 'preprod.builds.onboarding.viewed',
+        {
+          organization,
+          platform,
+          project_id: projectId,
+        }
+      );
     }
-  }, [shouldShowOnboarding, project, projectId, organization, platform]);
+  }, [
+    shouldShowOnboarding,
+    isSnapshotDisplay,
+    project,
+    projectId,
+    organization,
+    platform,
+  ]);
 
   const handleDocsClick = useCallback(
     (linkType: 'product' | 'ios' | 'android' | 'flutter' | 'react-native') => {
       trackAnalytics('preprod.builds.onboarding.docs_clicked', {
+        organization,
+        link_type: linkType,
+        platform,
+      });
+    },
+    [organization, platform]
+  );
+
+  const handleSnapshotsDocsClick = useCallback(
+    (linkType: 'product' | 'ci') => {
+      trackAnalytics('preprod.snapshots.onboarding.docs_clicked', {
         organization,
         link_type: linkType,
         platform,
@@ -225,10 +249,17 @@ export function MobileBuilds({
       {buildsError && <LoadingError onRetry={refetch} />}
 
       {shouldShowOnboarding && projectId ? (
-        <PreprodOnboardingPanel
-          platform={platform ?? null}
-          onDocsClick={handleDocsClick}
-        />
+        isSnapshotDisplay ? (
+          <SnapshotsOnboardingPanel
+            projectSlug={project?.slug}
+            onDocsClick={handleSnapshotsDocsClick}
+          />
+        ) : (
+          <PreprodOnboardingPanel
+            platform={platform ?? null}
+            onDocsClick={handleDocsClick}
+          />
+        )
       ) : (
         <Fragment>
           {activeDisplay === PreprodBuildsDisplay.SIZE && (
