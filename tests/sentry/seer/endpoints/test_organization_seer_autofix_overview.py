@@ -212,10 +212,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         self._run_for_group(plain, "plain")
         self._run_for_group(fixable, "fixable")
 
-        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
-            resp = self.get_success_response(
-                self.organization.slug, qs_params={"sort": "recommended"}
-            )
+        resp = self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
 
         assert self._root_cause_short_ids(resp) == [
             fixable.qualified_short_id,
@@ -230,11 +227,10 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         self._run_for_group(stale, "stale")
         self._run_for_group(active, "active")
 
-        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
-            resp = self.get_success_response(
-                self.organization.slug,
-                qs_params={"sort": "recommended", "statsPeriod": "1h"},
-            )
+        resp = self.get_success_response(
+            self.organization.slug,
+            qs_params={"sort": "recommended", "statsPeriod": "1h"},
+        )
 
         assert self._root_cause_short_ids(resp) == [
             active.qualified_short_id,
@@ -245,23 +241,6 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         group = self._group_with_events("boom", events=1)
         self._run_for_group(group, "boom")
 
-        with (
-            self.feature("organizations:issue-stream-recommended-sort-experimental"),
-            mock.patch(
-                "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
-                wraps=search.backend.query,
-            ) as mock_query,
-        ):
-            self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
-
-        assert mock_query.call_count == 1
-        assert mock_query.call_args.kwargs["sort_by"] == "recommended_v2"
-        assert mock_query.call_args.kwargs["actor"].id == self.user.id
-
-    def test_sort_recommended_without_experimental_flag_uses_v1_scorer(self):
-        group = self._group_with_events("boom", events=1)
-        self._run_for_group(group, "boom")
-
         with mock.patch(
             "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
             wraps=search.backend.query,
@@ -269,7 +248,8 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
             self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
 
         assert mock_query.call_count == 1
-        assert mock_query.call_args.kwargs["sort_by"] == "recommended"
+        assert mock_query.call_args.kwargs["sort_by"] == "recommended_v2"
+        assert mock_query.call_args.kwargs["actor"].id == self.user.id
 
     def test_issue_sort_raises_paginator_cap_to_candidate_count(self):
         # Without the max_limit override the paginator silently caps at 100 and
