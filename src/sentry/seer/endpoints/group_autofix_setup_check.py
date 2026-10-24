@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from typing import Literal, TypedDict
+
 import sentry_sdk
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,6 +12,14 @@ from sentry import options, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
@@ -22,13 +33,31 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
 )
 from sentry.seer.seer_setup import get_supported_scm_providers
+from sentry.seer.types import SetupAcknowledgementResponse
 from sentry.seer.utils import runs_for_group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+class AutofixIntegrationSetupResponse(TypedDict):
+    ok: bool
+    reason: Literal["integration_missing"] | None
+
+
+class AutofixSetupBillingResponse(TypedDict):
+    hasAutofixQuota: bool
+
+
+class GroupAutofixSetupCheckResponse(TypedDict):
+    integration: AutofixIntegrationSetupResponse
+    setupAcknowledgement: SetupAcknowledgementResponse
+    billing: AutofixSetupBillingResponse
+    seerReposLinked: bool
+    autofixEnabled: bool
+
+
 def get_autofix_integration_setup_problems(
     organization: Organization, project: Project
-) -> str | None:
+) -> Literal["integration_missing"] | None:
     """
     Runs through the checks to see if we can use the SCM integration for Autofix.
     Supports GitHub, GitHub Enterprise, and GitLab (when the seer-gitlab-support flag is enabled).
@@ -56,10 +85,11 @@ def get_autofix_integration_setup_problems(
     return "integration_missing"
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupAutofixSetupCheck(GroupAiEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
@@ -75,9 +105,37 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         }
     )
 
-    def get(self, request: Request, group: Group) -> Response:
+    @extend_schema(
+        operation_id="getIssueAutofixSetupCheck",
+        summary="Check Autofix Setup for an Issue",
+        description=(
+            "Check whether an issue's organization and project meet Autofix setup requirements. "
+            "The setupAcknowledgement fields are always true for backward compatibility. "
+            "Requests without an authenticated user (for example, organization auth tokens) "
+            "receive a bare 400 response."
+        ),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "GroupAutofixSetupCheckResponse", GroupAutofixSetupCheckResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, group: Group
+    ) -> Response[GroupAutofixSetupCheckResponse] | Response[None]:
         """
         Checks if we are able to run Autofix on the given group.
+        The setupAcknowledgement fields are always true for backward compatibility. Requests without
+        an authenticated user (for example, organization auth tokens) receive a bare 400 response.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
@@ -122,20 +180,19 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         ):
             autofix_enabled = True
 
-        return Response(
-            {
-                "integration": {
-                    "ok": integration_check is None,
-                    "reason": integration_check,
-                },
-                "setupAcknowledgement": {
-                    "orgHasAcknowledged": True,
-                    "userHasAcknowledged": True,
-                },
-                "billing": {
-                    "hasAutofixQuota": has_autofix_quota,
-                },
-                "seerReposLinked": seer_repos_linked,
-                "autofixEnabled": autofix_enabled,
-            }
-        )
+        body: GroupAutofixSetupCheckResponse = {
+            "integration": {
+                "ok": integration_check is None,
+                "reason": integration_check,
+            },
+            "setupAcknowledgement": {
+                "orgHasAcknowledged": True,
+                "userHasAcknowledged": True,
+            },
+            "billing": {
+                "hasAutofixQuota": has_autofix_quota,
+            },
+            "seerReposLinked": seer_repos_linked,
+            "autofixEnabled": autofix_enabled,
+        }
+        return Response(body)
