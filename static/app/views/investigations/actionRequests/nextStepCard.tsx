@@ -4,10 +4,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {
-  ActionRequestCard,
-  isShownActionRequest,
-} from 'sentry/views/investigations/actionRequests/actionRequestCard';
+import {ActionRequestCard} from 'sentry/views/investigations/actionRequests/actionRequestCard';
 import {PlaceholderBar} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import type {
   InvestigationActionRequest,
@@ -78,7 +75,7 @@ export function getPrimaryActionRequest(
       actionRequest =>
         actionRequest.primary &&
         actionRequest.reportRevision >= revision &&
-        isShownActionRequest(actionRequest)
+        actionRequest.state !== 'superseded'
     )
     .toSorted(
       (a, b) =>

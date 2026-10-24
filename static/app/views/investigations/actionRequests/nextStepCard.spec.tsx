@@ -9,7 +9,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
+import {
+  getPrimaryActionRequest,
+  NextStepCard,
+} from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import {
   InvestigationActionRequestFixture,
@@ -412,6 +415,14 @@ describe('NextStepCard', () => {
 
     expect(getCard()).toHaveTextContent('Widen the interval.');
     expect(getCard()).not.toHaveTextContent('no longer recommends');
+  });
+
+  it('still counts an applied primary as the next step', () => {
+    const applied = InvestigationActionRequestFixture({id: '313', state: 'applied'});
+
+    expect(
+      getPrimaryActionRequest([InvestigationActionRequestFixture(), applied], undefined)
+    ).toBe(applied);
   });
 
   it('shows the live primary over a newer one Seer replaced', () => {
