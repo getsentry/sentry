@@ -1223,6 +1223,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 provider="segment",
                 config={"write_key": "matrix-key"},
             )
+        elif name == "scm_integration":
+            resource, _organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
         elif name == "flag_log":
             resource = FlagAuditLogModel.objects.create(
                 action=ActionEnum.UPDATED.value,
@@ -1455,6 +1463,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "integration_id":
             if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
                 return str(self._resource("channel_integration").id)
+            if endpoint.endpoint_name == "OrganizationIntegrationRepoSyncEndpoint":
+                return str(self._resource("scm_integration").id)
             return str(self._resource("integration").id)
         if placeholder == "data_forwarder_id":
             return str(self._resource("data_forwarder").id)
@@ -2476,6 +2486,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                     "identifier": "1",
                     "webUrl": "https://example.com/issues/1",
                 },
+            )
+        elif endpoint.endpoint_name == "OrganizationIntegrationRepoSyncEndpoint":
+            downstream_scope = patch(
+                "sentry.integrations.api.endpoints.organization_integration_repo_sync."
+                "sync_repos_for_org.apply_async",
             )
         else:
             downstream_scope = nullcontext()
