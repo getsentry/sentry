@@ -46,7 +46,6 @@ from sentry.pr_metrics.lifecycle_mapping import (
     map_gitlab_state_to_pullrequest_lifecycle,
     update_pull_request_from_scm_snapshot,
 )
-from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
     handle_merge_request_note_event,
@@ -475,11 +474,9 @@ class MergeEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.merge_request.repo_not_found",
-                {
+                extra={
                     "integration_id": integration.id,
                     "project_id": (event.get("project") or {}).get("id"),
                 },
@@ -487,11 +484,9 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         object_attributes = event.get("object_attributes") or {}
-        debug_log(
-            logger,
-            organization,
+        logger.info(
             "gitlab.merge_request.received",
-            {
+            extra={
                 "organization_slug": organization.slug,
                 "integration_id": integration.id,
                 "repo_id": repo.id,
@@ -538,11 +533,9 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         if not author_email:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.merge_request.missing_author_email",
-                {
+                extra={
                     "integration_id": integration.id,
                     "repo_id": repo.id,
                     "pr_number": number,
@@ -629,11 +622,9 @@ class NoteEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.note.repo_not_found",
-                {
+                extra={
                     "integration_id": integration.id,
                     "project_id": (event.get("project") or {}).get("id"),
                 },
@@ -642,11 +633,9 @@ class NoteEventWebhook(GitlabWebhook):
 
         object_attributes = event.get("object_attributes") or {}
         merge_request = event.get("merge_request") or {}
-        debug_log(
-            logger,
-            organization,
+        logger.info(
             "gitlab.note.received",
-            {
+            extra={
                 "organization_slug": organization.slug,
                 "integration_id": integration.id,
                 "repo_id": repo.id,
