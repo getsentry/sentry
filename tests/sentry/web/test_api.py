@@ -728,6 +728,7 @@ class ApiCatalogTest(TestCase):
         assert entry["anchor"] == "https://sentry.io"
         hrefs = [item["href"] for item in entry["item"]]
         assert "https://sentry.io/api/0/" in hrefs
+        assert "https://sentry.io/api/0/agent-problem-reports/" in hrefs
         assert "https://mcp.sentry.dev/mcp" in hrefs
 
     def test_non_saas_mode_returns_404(self) -> None:
@@ -831,6 +832,7 @@ class McpServerCardTest(TestCase):
         data = json.loads(response.content)
         assert data["name"] == "Sentry"
         assert data["url"] == "https://mcp.sentry.dev/mcp"
+        assert "https://sentry.io/api/0/agent-problem-reports/" in data["instructions"]
 
     def test_non_saas_mode_returns_404(self) -> None:
         with override_settings(SENTRY_MODE="self_hosted"):
@@ -880,6 +882,33 @@ class AgentSkillsIndexTest(TestCase):
         assert response.status_code == 404
 
 
+@control_silo_test
+class AgentProblemReportsDocTest(TestCase):
+    def test_saas_mode(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/agent-problem-reports")
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/markdown"
+        assert response["Access-Control-Allow-Origin"] == "*"
+        assert "max-age=3600" in response["Cache-Control"]
+        body = response.content.decode()
+        assert "https://sentry.io/api/0/agent-problem-reports/" in body
+        assert "after the user agrees" in body
+
+    def test_non_saas_mode_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/agent-problem-reports")
+        assert response.status_code == 404
+
+    def test_subdomain_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get(
+                "/.well-known/agent-problem-reports", HTTP_HOST="albertos-apples.testserver"
+            )
+        assert response.status_code == 404
+
+
 class AgentDiscoveryMiddlewareTest(TestCase):
     def test_html_response_gets_link_header(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
@@ -887,6 +916,7 @@ class AgentDiscoveryMiddlewareTest(TestCase):
 
         assert "Link" in response
         assert "api-catalog" in response["Link"]
+        assert "agent-problem-reports" in response["Link"]
 
     def test_api_response_no_link_header(self) -> None:
         from django.http import HttpRequest, HttpResponse
