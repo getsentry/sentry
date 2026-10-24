@@ -120,7 +120,6 @@ export default Storybook.story('Investigations — Recommended Action', story =>
           body: {
             detail: 'This changed since Seer suggested it.',
             code: 'stale',
-            current: {timeWindowSeconds: 600},
           },
         },
       }}

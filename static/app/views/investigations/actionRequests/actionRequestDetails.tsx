@@ -1,4 +1,3 @@
-import {IconSiren} from '@sentry/icons/siren';
 import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
@@ -6,15 +5,11 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  ApplyButton,
-  type ApplyCheck,
-} from 'sentry/views/investigations/actionRequests/applyButton';
-import {MonitorChanges} from 'sentry/views/investigations/actionRequests/monitorChanges';
-import {
-  actionRequestDryRunQueryOptions,
-  type ActionRequestError,
-} from 'sentry/views/investigations/api';
-import {getSourceMonitor} from 'sentry/views/investigations/source';
+  getActionKind,
+  type ApplyBlockReason,
+} from 'sentry/views/investigations/actionRequests/actionKinds';
+import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
+import {actionRequestDryRunQueryOptions} from 'sentry/views/investigations/api';
 import type {
   InvestigationAction,
   InvestigationActionRequest,
@@ -27,29 +22,22 @@ type ActionRequestDetailsProps = {
 };
 
 export function ActionRequestDetails({actionRequest, source}: ActionRequestDetailsProps) {
-  const {action, impact} = actionRequest;
-
-  switch (action?.kind) {
-    case 'update_detector':
-      return (
-        <MonitorChanges
-          action={action}
-          impact={impact}
-          monitor={getSourceMonitor(source, action.detectorId)}
-        />
-      );
-    default:
-      return impact ? (
-        <Text as="p" size="md" density="comfortable">
-          {impact}
-        </Text>
-      ) : null;
+  const kind = getActionKind(actionRequest.action);
+  if (kind?.ui.Details) {
+    return (
+      <kind.ui.Details
+        action={kind.action}
+        actionRequest={actionRequest}
+        source={source}
+      />
+    );
   }
+  return actionRequest.impact ? (
+    <Text as="p" size="md" density="comfortable">
+      {actionRequest.impact}
+    </Text>
+  ) : null;
 }
-
-type ApplyBlockReason =
-  | InvestigationActionRequest['cannotApplyReason']
-  | ActionRequestError['code'];
 
 type ActionRequestApplyProps = {
   actionRequest: InvestigationActionRequest;
@@ -64,23 +52,20 @@ export function ActionRequestApply({
   check,
   onApply,
 }: ActionRequestApplyProps) {
-  switch (actionRequest.action?.kind) {
-    case 'update_detector':
-      return (
-        <ApplyButton
-          canApply={actionRequest.canApply}
-          applying={applying}
-          check={check}
-          message={getApplyMessage(actionRequest, check)}
-          onApply={onApply}
-          icon={<IconSiren />}
-          label={t('Update monitor')}
-          busyLabel={t('Updating monitor…')}
-        />
-      );
-    default:
-      return null;
+  const kind = getActionKind(actionRequest.action);
+  if (!kind) {
+    return null;
   }
+  return (
+    <kind.ui.Apply
+      action={kind.action}
+      actionRequest={actionRequest}
+      applying={applying}
+      check={check}
+      message={getApplyMessage(actionRequest, check)}
+      onApply={onApply}
+    />
+  );
 }
 
 export function useApplyCheck(
@@ -88,9 +73,11 @@ export function useApplyCheck(
   actionRequest: InvestigationActionRequest
 ): ApplyCheck {
   const organization = useOrganization();
+  const checksBeforeApply =
+    getActionKind(actionRequest.action)?.ui.checksBeforeApply ?? false;
   const {data, isError, isPending} = useQuery({
     ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
-    enabled: actionRequest.canApply,
+    enabled: actionRequest.canApply && checksBeforeApply,
   });
   if (isError) {
     return {status: 'unavailable'};
@@ -116,12 +103,7 @@ function getApplyMessage(actionRequest: InvestigationActionRequest, check: Apply
 }
 
 export function getApplySuccessMessage(action: InvestigationAction | null) {
-  switch (action?.kind) {
-    case 'update_detector':
-      return t('Monitor updated.');
-    default:
-      return null;
-  }
+  return getActionKind(action)?.ui.getSuccessMessage?.() ?? null;
 }
 
 export function getCannotApplyMessage(
@@ -129,22 +111,10 @@ export function getCannotApplyMessage(
   reason: ApplyBlockReason
 ) {
   return (
-    getKindCannotApplyMessage(action, reason) ??
+    getActionKind(action)?.ui.getCannotApplyMessage(reason) ??
     getSharedCannotApplyMessage(reason) ??
     t("This change can't be applied.")
   );
-}
-
-function getKindCannotApplyMessage(
-  action: InvestigationAction | null,
-  reason: ApplyBlockReason
-) {
-  switch (action?.kind) {
-    case 'update_detector':
-      return getMonitorCannotApplyMessage(reason);
-    default:
-      return null;
-  }
 }
 
 function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
@@ -161,27 +131,8 @@ function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
       return t('This was already applied.');
     case 'withdrawn':
       return t('Seer no longer suggests this.');
-    case 'stale':
-      return t('This changed since Seer suggested it.');
     case 'validation_failed':
       return t("This change wasn't valid.");
-    default:
-      return null;
-  }
-}
-
-function getMonitorCannotApplyMessage(reason: ApplyBlockReason) {
-  switch (reason) {
-    case 'permission_denied':
-      return t("You don't have permission to edit this monitor.");
-    case 'detector_not_found':
-      return t('This monitor is no longer available.');
-    case 'not_target_detector':
-      return t('This change targets a different monitor than this investigation.');
-    case 'dynamic_detector':
-      return t("Seer can't change dynamic monitors yet.");
-    case 'stale':
-      return t('The monitor changed since Seer suggested this.');
     default:
       return null;
   }

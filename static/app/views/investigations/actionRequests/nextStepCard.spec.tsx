@@ -799,7 +799,10 @@ describe('NextStepCard', () => {
   });
 
   it('shows the updating state while the change is applied', async () => {
-    mockApply({body: {}, asyncDelay: 1_000_000});
+    mockApply({
+      body: {actionRequest: InvestigationActionRequestFixture({state: 'applied'})},
+      asyncDelay: 1_000_000,
+    });
     render(
       <NextStepCard
         investigationId="investigation-1"
