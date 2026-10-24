@@ -253,6 +253,36 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
         pytest.param(FunctionRegressionDetector, id="function"),
     ],
 )
+def test_limit_regressions_by_project_equal_scores(detector_cls, timestamp) -> None:
+    """Regression test: equal scores must not cause a TypeError when comparing TrendBundles."""
+    payloads = [
+        DetectorPayload(
+            project_id=1,
+            group=f"group_{i}",
+            fingerprint=f"group_{i}",
+            count=i,
+            value=float(i),
+            timestamp=timestamp,
+        )
+        for i in range(3)
+    ]
+
+    def trends():
+        # All three bundles share the same score — triggers tiebreaker path in heapq.
+        for payload in payloads:
+            yield TrendBundle(TrendType.Regressed, 0.5, payload)
+
+    # Should not raise TypeError; with ratelimit=2, one bundle is dropped.
+    regressions = list(detector_cls.limit_regressions_by_project(trends(), ratelimit=2))
+    assert len(regressions) == 2
+
+
+@pytest.mark.parametrize(
+    ["detector_cls"],
+    [
+        pytest.param(FunctionRegressionDetector, id="function"),
+    ],
+)
 @pytest.mark.parametrize(
     ["regression_groups", "expected_versions"],
     [
