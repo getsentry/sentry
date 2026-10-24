@@ -27,6 +27,22 @@ import type {
 // full escaping for values that are not already simple CSS identifiers.
 const SIMPLE_CSS_IDENTIFIER = /^-?(?!\d)\w[-\w]*$/;
 
+/** Caps a requested menu height by the space available to its overlay. */
+export function minHeight(
+  first: string | number | undefined,
+  second: string | number | undefined
+): string | undefined {
+  if (first === undefined) {
+    return typeof second === 'number' ? `${second}px` : second;
+  }
+  if (second === undefined) {
+    return typeof first === 'number' ? `${first}px` : first;
+  }
+  const firstHeight = typeof first === 'number' ? `${first}px` : first;
+  const secondHeight = typeof second === 'number' ? `${second}px` : second;
+  return `min(${firstHeight}, ${secondHeight})`;
+}
+
 /**
  * Normalises the `search` prop into a plain config object (or `undefined` if
  * search is disabled). Accepts `true` as shorthand for `{}` and treats

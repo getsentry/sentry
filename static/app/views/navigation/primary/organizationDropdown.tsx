@@ -6,7 +6,11 @@ import {IconSettings} from '@sentry/icons/settings';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {getOrganizationAvatarProps, OrganizationAvatar} from '@sentry/scraps/avatar';
+import {
+  getOrganizationAvatarProps,
+  OrganizationAvatar,
+  ProjectAvatar,
+} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {
   DropdownMenu,
@@ -19,15 +23,19 @@ import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
+import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
+import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -63,6 +71,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
+  const canCreateProject = useCanCreateProject();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
   const avatarProps = getOrganizationAvatarProps(organization);
@@ -80,13 +89,16 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const createOrganizationItem = makeCreateOrganizationMenuItem();
 
   if (settingsV3) {
+    const memberProjects = sortProjects(projects.filter(project => project.isMember));
+    const otherProjects = sortProjects(projects.filter(project => !project.isMember));
+
     return (
       <DropdownMenu
         usePortal
         portalContainerRef={portalContainerRef}
         zIndex={theme.zIndex.modal}
         trigger={trigger}
-        minMenuWidth={258}
+        maxWidth={258}
         menuTitle={
           <NavigationMenuHeader
             organization={organization}
@@ -132,6 +144,58 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 ],
               },
               createOrganizationItem,
+            ],
+          },
+          {
+            key: 'project-settings',
+            label: t('Project Settings'),
+            hidden: props.hideCurrentOrganizationLinks,
+            children: [
+              ...sortProjects(projects.filter(project => project.isBookmarked))
+                .slice(0, 5)
+                .map(project =>
+                  makeProjectMenuItem(project, organization, navigate, 'starred-project')
+                ),
+              {
+                key: 'view-all-projects',
+                label: t('View All Projects'),
+                leadingItems: <span aria-hidden="true" />,
+                submenu: {
+                  title: t('All Projects'),
+                  emptyMessage: t('No projects found'),
+                  search: {placeholder: t('Search')},
+                  maxHeight: 240,
+                  maxWidth: 258,
+                },
+                hidden: projects.length === 0,
+                children: [
+                  {
+                    key: 'my-projects',
+                    label: t('My Projects'),
+                    hidden: memberProjects.length === 0,
+                    children: memberProjects.map(project =>
+                      makeProjectMenuItem(project, organization, navigate)
+                    ),
+                  },
+                  {
+                    key: 'other-projects',
+                    label: t('Other Projects'),
+                    hidden: otherProjects.length === 0,
+                    children: otherProjects.map(project =>
+                      makeProjectMenuItem(project, organization, navigate)
+                    ),
+                  },
+                ],
+              },
+              {
+                key: 'create-project',
+                label: t('Create Project'),
+                leadingItems: <IconAdd />,
+                to: canCreateProject
+                  ? makeProjectsPathname({path: '/new/', organization})
+                  : undefined,
+                disabled: !canCreateProject,
+              },
             ],
           },
         ]}
@@ -235,6 +299,21 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       ]}
     />
   );
+}
+
+function makeProjectMenuItem(
+  project: Project,
+  organization: Organization,
+  navigate: ReactRouter3Navigate,
+  keyPrefix = 'project'
+): MenuItemProps {
+  return {
+    key: `${keyPrefix}-${project.id}`,
+    label: project.slug,
+    leadingItems: <ProjectAvatar project={project} size={16} />,
+    trailingAction: <BookmarkStar project={project} organization={organization} />,
+    onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
+  };
 }
 
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
