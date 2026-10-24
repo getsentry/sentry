@@ -86,6 +86,111 @@ describe('convertBuilderStateToWidget', () => {
     expect(widget.queries[1]!.orderby).toBe('-count()');
   });
 
+  it('injects a hidden sort aggregate into the query aggregates for tables', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TABLE,
+      dataset: WidgetType.ERRORS,
+      fields: [
+        {field: 'geo.country', kind: FieldValueKind.FIELD},
+      ],
+      sort: [{field: 'count()', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.orderby).toBe('-count()');
+    // The hidden aggregate is added to query aggregates so the backend can
+    // compute the sort, but is NOT rendered as a column.
+    expect(widget.queries[0]!.aggregates).toEqual(['count()']);
+    expect(widget.queries[0]!.fields).toEqual(['geo.country']);
+  });
+
+  it('injects a hidden sort aggregate into the query aggregates for details', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.DETAILS,
+      dataset: WidgetType.ERRORS,
+      fields: [
+        {field: 'geo.country', kind: FieldValueKind.FIELD},
+      ],
+      sort: [{field: 'count()', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.orderby).toBe('-count()');
+    expect(widget.queries[0]!.aggregates).toEqual(['count()']);
+  });
+
+  it('does not inject a hidden sort aggregate for non-table displays', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.LINE,
+      dataset: WidgetType.TRANSACTIONS,
+      fields: [
+        {field: 'geo.country', kind: FieldValueKind.FIELD},
+      ],
+      yAxis: [
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
+      ],
+      sort: [{field: 'avg(transaction.duration)', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    // The hidden sort aggregate should not be injected because non-table
+    // displays render their aggregates as series.
+    expect(widget.queries[0]!.orderby).toBe('-avg(transaction.duration)');
+    expect(widget.queries[0]!.aggregates).toEqual(['count()']);
+  });
+
+  it('does not duplicate a sort aggregate already present in the query', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TABLE,
+      dataset: WidgetType.ERRORS,
+      fields: [
+        {field: 'geo.country', kind: FieldValueKind.FIELD},
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
+      ],
+      sort: [{field: 'count()', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.aggregates).toEqual(['count()']);
+  });
+
+  it('does not inject a non-aggregate sort field into the query aggregates', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TABLE,
+      dataset: WidgetType.ERRORS,
+      fields: [
+        {field: 'geo.country', kind: FieldValueKind.FIELD},
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
+      ],
+      sort: [{field: 'geo.country', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.aggregates).toEqual(['count()']);
+    expect(widget.queries[0]!.orderby).toBe('-geo.country');
+  });
+
+  it('does not inject an equation sort field into the query aggregates', () => {
+    const mockState: WidgetBuilderState = {
+      displayType: DisplayType.TABLE,
+      dataset: WidgetType.ERRORS,
+      fields: [
+        {field: 'geo.country', kind: FieldValueKind.FIELD},
+        {function: ['count', '', undefined, undefined], kind: FieldValueKind.FUNCTION},
+      ],
+      sort: [{field: 'equation|count() / 2', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0]!.aggregates).toEqual(['count()']);
+  });
+
   it('adds aliases to the widget queries', () => {
     const mockState: WidgetBuilderState = {
       fields: [

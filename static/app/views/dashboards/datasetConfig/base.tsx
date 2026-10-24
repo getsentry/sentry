@@ -272,7 +272,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getTableSortOptions?: (
     organization: Organization,
-    widgetQuery: WidgetQuery
+    widgetQuery: WidgetQuery,
+    tags?: TagCollection
   ) => Array<SelectValue<string>>;
   /**
    * Apply dataset specific overrides to the logic that handles
