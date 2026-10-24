@@ -6,6 +6,7 @@ import {
 import {td} from 'sentry/locale';
 
 import {attributeSearchTypeToFieldValueType} from './attributeSearchTypeToFieldValueType';
+import {getAttributeSearchMetadata} from './getAttributeSearchMetadata';
 import {
   getAttributeSearchDeprecationAliases,
   getPreferredAttributeSearchKey,
@@ -29,14 +30,27 @@ function getFieldDefinitionFromAttributeSearchMetadata(
   };
 }
 
+const definitions = new Map<string, FieldDefinition>();
+
 /**
- * Field definitions sourced from `@sentry/conventions`. Iterate this instead of
+ * Field definition sourced from `@sentry/conventions` for an attribute search key,
+ * or `undefined` when the key is not a convention attribute. Use this instead of
  * hand-writing desc/valueType for attributes that already live in the package.
+ *
+ * Definitions are built on first lookup and reused, rather than all at import.
  */
-export const ATTRIBUTE_SEARCH_FIELD_DEFINITIONS: Record<string, FieldDefinition> =
-  Object.fromEntries(
-    Object.entries(ATTRIBUTE_SEARCH_METADATA).map(([key, metadata]) => [
-      key,
-      getFieldDefinitionFromAttributeSearchMetadata(key, metadata),
-    ])
-  );
+export function getAttributeSearchFieldDefinition(
+  key: string
+): FieldDefinition | undefined {
+  const cached = definitions.get(key);
+  if (cached) {
+    return cached;
+  }
+  const metadata = getAttributeSearchMetadata(key);
+  if (!metadata) {
+    return undefined;
+  }
+  const definition = getFieldDefinitionFromAttributeSearchMetadata(key, metadata);
+  definitions.set(key, definition);
+  return definition;
+}
