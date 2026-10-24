@@ -13,7 +13,7 @@ from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
-from sentry.integrations.gitlab.client import GitLabApiRequestType
+from sentry.integrations.gitlab.client import PROJECT_WEBHOOK_TIMEOUT, GitLabApiRequestType
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -829,3 +829,18 @@ class GitLabProjectWebhookRequestTypeTest(GitLabClientTest):
                 sample_rate=1.0,
                 tags={"integration": "gitlab", "status": status, "api_request_type": request_type},
             )
+
+    @responses.activate
+    def test_hook_calls_use_short_connect_timeout(self) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(responses.POST, hooks_url, status=201, json={"id": 7})
+        responses.add(responses.PUT, f"{hooks_url}/7", status=200, json={"id": 7})
+        responses.add(responses.DELETE, f"{hooks_url}/7", status=204)
+
+        self.gitlab_client.create_project_webhook(self.gitlab_id)
+        self.gitlab_client.update_project_webhook(self.gitlab_id, 7)
+        self.gitlab_client.delete_project_webhook(self.gitlab_id, 7)
+
+        assert [call.request.req_kwargs["timeout"] for call in responses.calls] == [
+            PROJECT_WEBHOOK_TIMEOUT
+        ] * 3
