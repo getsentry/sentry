@@ -436,7 +436,10 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("x:1 OR y:1", config=config)
         (msg,) = excinfo.value.args
-        assert msg == 'Boolean statements containing "OR" or "AND" are not supported in this search'
+        assert msg == (
+            'Boolean statements containing "OR" or "AND" are not supported in this search. '
+            "To match any of several values, use a list: key:[value1, value2]"
+        )
 
     def test_wildcard_free_text(self) -> None:
         config = SearchConfig.create_from(default_config, wildcard_free_text=True)
