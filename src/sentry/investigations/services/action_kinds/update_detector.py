@@ -7,7 +7,7 @@ from typing import Any, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
-from rest_framework import serializers, status
+from rest_framework import serializers
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -32,17 +32,15 @@ from sentry.investigations.contracts import (
 from sentry.investigations.models import (
     Investigation,
     InvestigationActionRequest,
-    InvestigationActionRequestState,
     InvestigationOrchestrationRun,
 )
 from sentry.investigations.services.action_kinds.base import (
+    ActionInvalid,
     ActionKind,
+    ActionStale,
     ApplyContext,
-    ApplyResult,
     CannotApplyReason,
     SettingValue,
-    apply_error,
-    mark_applied,
 )
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -97,8 +95,10 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
         changes = attrs["changes"]
         if not changes:
             raise serializers.ValidationError({"changes": "At least one change is required."})
-        if set(before) != set(changes):
-            raise serializers.ValidationError("before and changes must have the same keys.")
+        # before can also hold settings Seer relied on but didn't change, so apply can tell
+        # if any of them moved.
+        if not set(changes) <= set(before):
+            raise serializers.ValidationError("Every change needs its before value.")
         if any(changes[key] == before[key] for key in changes):
             raise serializers.ValidationError({"changes": "Every change must differ from before."})
         return attrs
@@ -116,7 +116,7 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
         if (
             not isinstance(before, dict)
             or not isinstance(changes, dict)
-            or set(before) != set(changes)
+            or not set(changes) <= set(before)
         ):
             return action
         dropped = {
@@ -137,7 +137,7 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
             return None
         return {
             **action,
-            "before": {key: before[key] for key in kept},
+            "before": {key: value for key, value in before.items() if key not in dropped},
             "changes": {key: changes[key] for key in kept},
         }
 
@@ -343,14 +343,6 @@ def _action_detector_id(action_request: InvestigationActionRequest) -> int:
     return int(action_request.action_payload["detectorId"])
 
 
-def _error_messages(errors: object) -> list[str]:
-    if isinstance(errors, dict):
-        return [message for value in errors.values() for message in _error_messages(value)]
-    if isinstance(errors, list):
-        return [message for value in errors for message in _error_messages(value)]
-    return [str(errors)]
-
-
 def _validation_errors(
     validator: MetricIssueDetectorValidator,
     detector: Detector,
@@ -424,25 +416,34 @@ class UpdateDetectorKind(ActionKind):
             reasons[item.id] = detector_reasons[key]
         return reasons
 
-    def check(self, context: ApplyContext) -> ApplyResult | None:
-        return self._apply(context, dry_run=True)
+    def check(self, context: ApplyContext) -> None:
+        self._apply(context, dry_run=True)
 
-    def apply(self, context: ApplyContext) -> ApplyResult:
-        return self._apply(context, dry_run=False) or ApplyResult(
-            action_request=context.action_request
-        )
+    def apply(self, context: ApplyContext) -> dict[str, object]:
+        return self._apply(context, dry_run=False)
 
-    def _apply(self, context: ApplyContext, *, dry_run: bool) -> ApplyResult | None:
-        action_request = context.action_request
-        action = action_request.action_payload
+    def _apply(self, context: ApplyContext, *, dry_run: bool) -> dict[str, object]:
+        action = context.action_request.action_payload
         assert action is not None
         detector_id = int(action["detectorId"])
         detector = target_detectors(context.investigation.organization_id, [detector_id]).get(
             detector_id
         )
-        snuba_query = fetch_snuba_query(detector) if detector is not None else None
-        if detector is None or snuba_query is None:
+        if detector is None:
             raise ResourceDoesNotExist
+        if not dry_run:
+            # Lock the monitor until we save, so an edit between the stale check and the save
+            # isn't lost.
+            detector = (
+                Detector.objects.select_for_update(of=("self",))
+                .select_related("project", "workflow_condition_group")
+                .get(id=detector.id)
+            )
+        snuba_query = fetch_snuba_query(detector)
+        if snuba_query is None:
+            raise ResourceDoesNotExist
+        if not dry_run:
+            snuba_query = SnubaQuery.objects.select_for_update().get(id=snuba_query.id)
 
         state = DetectorState.load(detector, snuba_query)
         current = state.values()
@@ -452,20 +453,7 @@ class UpdateDetectorKind(ActionKind):
             if current.get(key) != value
         }
         if moved:
-            if not dry_run:
-                # Keep the error on the row, so Seer sending the same suggestion again can't
-                # bring it back.
-                action_request.update(
-                    state=InvestigationActionRequestState.SUPERSEDED,
-                    error={"code": "stale", "current": moved},
-                )
-            return apply_error(
-                action_request,
-                status.HTTP_409_CONFLICT,
-                "The monitor changed since this was suggested.",
-                "stale",
-                current=moved,
-            )
+            raise ActionStale(dict(moved))
 
         changes = action["changes"]
         validator = get_detector_validator(
@@ -478,40 +466,21 @@ class UpdateDetectorKind(ActionKind):
         )
         assert isinstance(validator, MetricIssueDetectorValidator)
         errors = _validation_errors(validator, detector, snuba_query, changes.get("environment"))
-        if errors is None and not dry_run:
+        if errors is not None:
+            raise ActionInvalid(errors)
+        if not dry_run:
             try:
-                # If the save fails partway, undo the monitor changes but keep the failure we
-                # record below.
+                # If the save fails partway, undo the monitor changes it made.
                 with transaction.atomic(router.db_for_write(Detector)):
                     validator.save()
             except serializers.ValidationError as error:
-                errors = convert_dict_key_case(
-                    serializers.as_serializer_error(error), snake_to_camel_case
+                raise ActionInvalid(
+                    convert_dict_key_case(
+                        serializers.as_serializer_error(error), snake_to_camel_case
+                    )
                 )
-        if errors is not None:
-            if not dry_run:
-                action_request.update(
-                    state=InvestigationActionRequestState.FAILED,
-                    error={"code": "validation_failed", "messages": _error_messages(errors)},
-                )
-            return apply_error(
-                action_request,
-                status.HTTP_400_BAD_REQUEST,
-                "The monitor change was not valid.",
-                "validation_failed",
-                errors=errors,
-                messages=_error_messages(errors),
-            )
-        if dry_run:
-            return None
-
-        mark_applied(
-            action_request,
-            context.actor_id,
-            {
-                "detectorId": str(detector.id),
-                "detectorName": detector.name,
-                "fields": [key for key in DetectorChangesSerializer().fields if key in changes],
-            },
-        )
-        return None
+        return {
+            "detectorId": str(detector.id),
+            "detectorName": detector.name,
+            "fields": [key for key in DetectorChangesSerializer().fields if key in changes],
+        }
