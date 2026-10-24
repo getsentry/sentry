@@ -140,17 +140,17 @@ def test_move_to_process_event_inline_save_event_still_submits_process_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(cache_key="e:1", data=data, event_id=EVENT_ID, inline_save_event=True)
+    preprocess_event(data=data, event_id=EVENT_ID, inline_save_event=True)
 
     assert mock_symbolicate_event.delay.call_count == 0
     mock_process_event.delay.assert_called_once_with(
-        cache_key=cache_key_for_event(data),
+        cache_key=None,
         start_time=None,
         event_id=EVENT_ID,
         data_has_changed=False,
         from_symbolicate=False,
         has_attachments=False,
-        data=None,
+        data=data,
         unprocessed=None,
     )
     assert mock_save_event.call_count == 0
@@ -188,13 +188,13 @@ def test_move_to_save_event_inline(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(cache_key="e:1", data=data, event_id=EVENT_ID, inline_save_event=True)
+    preprocess_event(data=data, event_id=EVENT_ID, inline_save_event=True)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0
     mock_save_event.assert_called_once_with(
-        cache_key=cache_key_for_event(data),
-        data=None,
+        cache_key=None,
+        data=data,
         start_time=None,
         event_id=EVENT_ID,
         project_id=default_project.id,
@@ -204,14 +204,11 @@ def test_move_to_save_event_inline(
 
 
 @django_db_all
-@pytest.mark.parametrize("cache_key,expected_writes", [("e:1", 1), (None, 0)])
 def test_process_event_mutate_and_save(
     default_project,
     mock_event_processing_store,
     mock_save_event,
     mock_get_preprocessors,
-    cache_key,
-    expected_writes,
 ):
     mock_get_preprocessors.return_value = [_remove_extra, _noop]
 
@@ -224,21 +221,17 @@ def test_process_event_mutate_and_save(
         "_attachments": [{"id": 0, "key": "attachment-key", "name": "dump.dmp"}],
     }
 
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = cache_key
-
     attachments = data["_attachments"]
-    inline_data = data if cache_key is None else None
-    process_event(cache_key=cache_key, data=inline_data, start_time=1)
+    process_event(data=data, start_time=1)
 
     assert "extra" not in data
     assert data["_attachments"] == attachments
-    assert mock_event_processing_store.store.call_args_list == [mock.call(data)] * expected_writes
-    assert mock_event_processing_store.get.call_count == expected_writes
+    mock_event_processing_store.store.assert_not_called()
+    mock_event_processing_store.get.assert_not_called()
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key=cache_key,
-        data=inline_data,
+        cache_key=None,
+        data=data,
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
@@ -263,7 +256,7 @@ def test_process_event_no_mutate_and_save(
     mock_event_processing_store.get.return_value = data
 
     with override_options(
-        {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
+        {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False}
     ):
         process_event(cache_key="e:1", start_time=1)
 
@@ -283,38 +276,23 @@ def test_process_event_no_mutate_and_save(
 
 
 @django_db_all
-@pytest.mark.parametrize(
-    "cache_key,expected_writes,send_inline", [(None, 0, True), ("e:working", 1, False)]
-)
 @pytest.mark.parametrize("load_shed", (False, True))
 def test_process_event_payload_transport(
     default_project,
     mock_event_processing_store,
     mock_save_event,
     mock_get_preprocessors,
-    cache_key,
-    expected_writes,
-    send_inline,
     load_shed,
 ):
     data = {"project": default_project.id, "event_id": EVENT_ID, "platform": "python"}
     mock_get_preprocessors.return_value = [_noop]
-    mock_event_processing_store.store.return_value = cache_key
-    with (
-        override_options(
-            {
-                "store.enable-inline-payloads": float(send_inline),
-                "store.disable-processing-store": send_inline,
-            }
-        ),
-        mock.patch("sentry.tasks.store.is_process_disabled", return_value=load_shed),
-    ):
-        process_event(cache_key=cache_key, data=data)
+    with mock.patch("sentry.tasks.store.is_process_disabled", return_value=load_shed):
+        process_event(data=data)
 
     mock_event_processing_store.get.assert_not_called()
-    assert mock_event_processing_store.store.call_count == expected_writes
-    assert mock_save_event.delay.call_args.kwargs["data"] == (data if send_inline else None)
-    assert mock_save_event.delay.call_args.kwargs["cache_key"] == cache_key
+    mock_event_processing_store.store.assert_not_called()
+    assert mock_save_event.delay.call_args.kwargs["data"] == data
+    assert mock_save_event.delay.call_args.kwargs["cache_key"] is None
 
 
 @django_db_all
@@ -331,17 +309,15 @@ def test_process_event_unprocessed(
         "extra": {"foo": "bar"},
     }
 
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = "e:1"
+    process_event(data=data, start_time=1)
 
-    process_event(cache_key="e:1", start_time=1)
-
-    ((_, (event,), _),) = mock_event_processing_store.store.mock_calls
-    assert event["unprocessed"] is True
+    assert data["unprocessed"] is True
+    mock_event_processing_store.get.assert_not_called()
+    mock_event_processing_store.store.assert_not_called()
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1",
-        data=None,
+        cache_key=None,
+        data=data,
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
@@ -650,19 +626,18 @@ def test_scrubbing_after_processing(
         "extra": {"ooo": "remove me"},
     }
 
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = "e:1"
-
     # We pass data_has_changed=True to pretend that we've added "extra" attribute
     # to "data" shortly before (e.g. during symbolication).
-    process_event(cache_key="e:1", start_time=1, data_has_changed=True)
+    process_event(data=data, start_time=1, data_has_changed=True)
 
-    ((_, (event,), _),) = mock_event_processing_store.store.mock_calls
-    assert event["extra"] == {"ooo": "[Filtered]", "ooo2": "event preprocessor"}
+    saved_data = mock_save_event.delay.call_args.kwargs["data"]
+    assert saved_data["extra"] == {"ooo": "[Filtered]", "ooo2": "event preprocessor"}
+    mock_event_processing_store.get.assert_not_called()
+    mock_event_processing_store.store.assert_not_called()
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1",
-        data=None,
+        cache_key=None,
+        data=saved_data,
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
@@ -681,6 +656,7 @@ def test_killswitch() -> None:
 
 
 @django_db_all
+@override_options({"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False})
 def test_transactions_store(default_project, mock_transaction_processing_store) -> None:
     data = {
         "project": default_project.id,
@@ -766,16 +742,14 @@ def test_store_consumer_type(
         "timestamp": time(),
     }
 
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = "e:2"
+    process_event(data=data, start_time=1)
 
-    process_event(cache_key="e:2", start_time=1)
-
-    mock_event_processing_store.get.assert_called_once_with("e:2")
+    mock_event_processing_store.get.assert_not_called()
+    mock_event_processing_store.store.assert_not_called()
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:2",
-        data=None,
+        cache_key=None,
+        data=data,
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
@@ -791,20 +765,18 @@ def test_store_consumer_type(
         "start_timestamp": time() - 1,
     }
 
-    mock_transaction_processing_store.get.return_value = transaction_data
-    mock_transaction_processing_store.store.return_value = "tx:3"
-
     with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
         save_event_transaction(
-            cache_key="tx:3",
-            data=None,
+            data=transaction_data,
             start_time=1,
             event_id=EVENT_ID,
             project_id=default_project.id,
         )
 
-    mock_transaction_processing_store.get.assert_called_once_with("tx:3")
-    mock_transaction_processing_store.delete_by_key.assert_called_once_with("tx:3")
+    mock_transaction_processing_store.get.assert_not_called()
+    mock_transaction_processing_store.delete_by_key.assert_called_once_with(
+        cache_key_for_event(transaction_data)
+    )
     mock_transaction_processing_store.store.assert_not_called()
 
 
@@ -848,10 +820,7 @@ def test_process_event_new_path_js(default_project, mock_event_processing_store,
         "event_id": EVENT_ID,
     }
 
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = "e:1"
-
-    process_event(cache_key="e:1", start_time=1)
+    process_event(data=data, start_time=1)
 
     mock_save_event.delay.assert_called_once()
 
