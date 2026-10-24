@@ -14,6 +14,7 @@ from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.flamegraphs import (
     MAX_SYMBOLICATION_FRAMES,
+    FlamegraphExpansionLimitExceeded,
     Flamegraphs,
     expand_inline_frames,
 )
@@ -548,7 +549,10 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         resolved_stacktraces = response.get("stacktraces", [])
         if len(resolved_stacktraces) != len(frame_ids):
             continue
-        output = _merge_flamegraph_frames(payload, frame_ids, resolved_stacktraces)
+        try:
+            output = _merge_flamegraph_frames(payload, frame_ids, resolved_stacktraces)
+        except FlamegraphExpansionLimitExceeded:
+            continue
         attachments_changed |= flamegraphs.save(attachment_index, output)
     stacktrace_infos = [
         stacktrace

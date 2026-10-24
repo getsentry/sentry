@@ -18,6 +18,12 @@ from sentry.models.project import Project
 MAX_FLAMEGRAPH_SIZE = 10 * 1024 * 1024
 MAX_SYMBOLICATION_FRAMES = 2500
 MAX_SAMPLE_COUNT = 9007199254740991
+# Bound node allocations independently of the serialized attachment size.
+MAX_EXPANDED_NODES = 100_000
+
+
+class FlamegraphExpansionLimitExceeded(Exception):
+    pass
 
 
 class _StringField(serializers.Field):
@@ -113,11 +119,15 @@ def _is_valid_flamegraph(payload: Any) -> bool:
 def expand_inline_frames(
     nodes: list[dict[str, Any]], chains: dict[int, list[int]]
 ) -> list[dict[str, Any]]:
+    if len(nodes) > MAX_EXPANDED_NODES:
+        raise FlamegraphExpansionLimitExceeded
     # Keep captured indices stable so roots and shared child references remain valid.
     output = [dict(node) for node in nodes]
     for index, original in enumerate(nodes):
         current = output[index]
         for frame_id in chains.get(original["frame_id"], [])[1:]:
+            if len(output) >= MAX_EXPANDED_NODES:
+                raise FlamegraphExpansionLimitExceeded
             child = {"frame_id": frame_id, "sample_count": original["sample_count"]}
             current["children"] = [len(output)]
             output.append(child)

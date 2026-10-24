@@ -21,7 +21,11 @@ from sentry.attachments import (
     get_attachments_for_event,
     store_attachments_for_event,
 )
-from sentry.lang.native.flamegraphs import _is_valid_flamegraph
+from sentry.lang.native.flamegraphs import (
+    FlamegraphExpansionLimitExceeded,
+    _is_valid_flamegraph,
+    expand_inline_frames,
+)
 from sentry.lang.native.processing import (
     ELECTRON_FIRST_MODULE_REWRITE_RULES,
     _get_flamegraph_stacktraces,
@@ -290,6 +294,38 @@ def test_flamegraph_indexed_inline_expansion(flamegraph_payload, nodes) -> None:
             "frame_id": 1,
         }
     assert _is_valid_flamegraph(output)
+
+
+def test_flamegraph_inline_expansion_at_node_limit() -> None:
+    nodes = [
+        {"frame_id": 0, "sample_count": 10, "children": [1]},
+        {"frame_id": 0, "sample_count": 10},
+    ]
+    with mock.patch("sentry.lang.native.flamegraphs.MAX_EXPANDED_NODES", 4):
+        assert expand_inline_frames(nodes, {0: [0, 1]}) == [
+            {"frame_id": 0, "sample_count": 10, "children": [2]},
+            {"frame_id": 0, "sample_count": 10, "children": [3]},
+            {"frame_id": 1, "sample_count": 10, "children": [1]},
+            {"frame_id": 1, "sample_count": 10},
+        ]
+
+
+def test_flamegraph_inline_expansion_discards_partial_rewrite(flamegraph_payload) -> None:
+    flamegraph_payload["nodes"] = [
+        {"frame_id": 0, "sample_count": 10, "children": [1]},
+        {"frame_id": 0, "sample_count": 10},
+    ]
+    original = deepcopy(flamegraph_payload)
+    with (
+        mock.patch("sentry.lang.native.flamegraphs.MAX_EXPANDED_NODES", 3),
+        pytest.raises(FlamegraphExpansionLimitExceeded),
+    ):
+        _merge_flamegraph_frames(
+            flamegraph_payload,
+            [0],
+            [{"frames": [{"function": "outer"}, {"function": "inner"}]}],
+        )
+    assert flamegraph_payload == original
 
 
 def test_flamegraph_repeated_child_edges_are_not_materialized_as_paths(flamegraph_payload) -> None:
@@ -602,6 +638,48 @@ def test_flamegraph_large_frame_metadata_is_not_duplicated(cached_flamegraph) ->
     assert processed["frames"][0]["custom"] == payload["frames"][0]["custom"]
     assert "custom" not in processed["frames"][1]
     assert processed["_symbolication"]["status"] == "completed"
+
+
+@django_db_all
+@pytest.mark.parametrize("node_limit", [0, 1])
+def test_flamegraph_node_limit_preserves_original(cached_flamegraph, node_limit) -> None:
+    data, payload, symbolicator = cached_flamegraph
+    original = deepcopy(data)
+    with (
+        Feature({"organizations:flamegraph-attachments": True}),
+        mock.patch("sentry.lang.native.flamegraphs.MAX_EXPANDED_NODES", node_limit),
+    ):
+        assert process_native_stacktraces(symbolicator, data) is None
+    assert data == original
+    assert next(get_attachments_for_event(data)).load_data(symbolicator.project) == orjson.dumps(
+        payload
+    )
+
+
+@django_db_all
+def test_flamegraph_node_limit_does_not_block_event_symbolication(cached_flamegraph) -> None:
+    data, payload, symbolicator = cached_flamegraph
+    data["platform"] = "native"
+    data["exception"] = {"values": [deepcopy(NATIVE_EXCEPTION)]}
+    symbolicator.process_payload.side_effect = [
+        symbolicator.process_payload.return_value,
+        {
+            "status": "completed",
+            "modules": [],
+            "stacktraces": [
+                {"frames": [{"original_index": 0, "function": "main", "status": "symbolicated"}]}
+            ],
+        },
+    ]
+    with (
+        Feature({"organizations:flamegraph-attachments": True}),
+        mock.patch("sentry.lang.native.flamegraphs.MAX_EXPANDED_NODES", 1),
+    ):
+        assert process_native_stacktraces(symbolicator, data) is data
+    assert data["exception"]["values"][0]["stacktrace"]["frames"][0]["function"] == "main"
+    assert next(get_attachments_for_event(data)).load_data(symbolicator.project) == orjson.dumps(
+        payload
+    )
 
 
 @django_db_all
