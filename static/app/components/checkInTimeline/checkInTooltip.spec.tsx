@@ -30,6 +30,17 @@ const tickConfig: TimeWindowConfig = {
   },
 };
 
+function getBodyRowCells(table: HTMLElement) {
+  return within(table)
+    .getAllByRole('row')
+    .slice(1)
+    .map(row =>
+      within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    );
+}
+
 describe('CheckInTooltip', () => {
   it('renders tooltip representing single job run', async () => {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
@@ -56,11 +67,14 @@ describe('CheckInTooltip', () => {
       />
     );
 
-    // Skip the header row
-    const statusRow = (await screen.findAllByRole('row'))[1]!;
+    const table = await screen.findByRole('table');
 
-    expect(within(statusRow).getByText('Missed')).toBeInTheDocument();
-    expect(within(statusRow).getByText('1')).toBeInTheDocument();
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Status', 'Count', 'Unit']);
+    expect(getBodyRowCells(table)).toEqual([['Missed', '1', 'some unit']]);
   });
 
   it('renders tooltip representing multiple job runs 1 env', async () => {
@@ -88,24 +102,13 @@ describe('CheckInTooltip', () => {
       />
     );
 
-    const okayRow = (await screen.findAllByRole('row'))[1]!;
-    expect(within(okayRow).getByText('Okay')).toBeInTheDocument();
-    expect(within(okayRow).getByText('1')).toBeInTheDocument();
-    expect(within(okayRow).getByText('some unit')).toBeInTheDocument();
+    const table = await screen.findByRole('table');
 
-    const missedRow = screen.getAllByRole('row')[2]!;
-    expect(within(missedRow).getByText('Missed')).toBeInTheDocument();
-    expect(within(missedRow).getByText('1')).toBeInTheDocument();
-    expect(within(missedRow).getByText('some unit')).toBeInTheDocument();
-
-    const timeoutRow = screen.getAllByRole('row')[3]!;
-    expect(within(timeoutRow).getByText('Timed Out')).toBeInTheDocument();
-    expect(within(timeoutRow).getByText('1')).toBeInTheDocument();
-    expect(within(timeoutRow).getByText('some unit')).toBeInTheDocument();
-
-    const errorRow = screen.getAllByRole('row')[4]!;
-    expect(within(errorRow).getByText('Failed')).toBeInTheDocument();
-    expect(within(errorRow).getByText('1')).toBeInTheDocument();
-    expect(within(errorRow).getByText('some unit')).toBeInTheDocument();
+    expect(getBodyRowCells(table)).toEqual([
+      ['Okay', '1', 'some unit'],
+      ['Missed', '1', 'some unit'],
+      ['Timed Out', '1', 'some unit'],
+      ['Failed', '1', 'some unit'],
+    ]);
   });
 });
