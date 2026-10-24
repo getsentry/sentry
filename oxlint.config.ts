@@ -149,6 +149,11 @@ const config = defineConfig({
         pattern: 'static/packages/icons/src',
         partialMatch: false,
       },
+      {
+        type: 'search-syntax',
+        pattern: 'static/packages/search-syntax/src',
+        partialMatch: false,
+      },
       // Domain badges stay in the app after the generic badge primitives move.
       {
         type: 'sentry',
@@ -289,6 +294,7 @@ const config = defineConfig({
   ignorePatterns: [
     'static/packages/icons/**/*',
     'static/packages/scraps/**/*',
+    'static/packages/search-syntax/**/*',
     '.devenv/**/*',
     '.agents/**/*',
     '.github/**/*',
@@ -351,7 +357,13 @@ const config = defineConfig({
                 to: {
                   element: {
                     types: {
-                      anyOf: ['sentry*', 'getsentry', 'gsAdmin', 'icons'],
+                      anyOf: [
+                        'sentry*',
+                        'getsentry',
+                        'gsAdmin',
+                        'icons',
+                        'search-syntax',
+                      ],
                     },
                   },
                 },

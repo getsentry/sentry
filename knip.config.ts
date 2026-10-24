@@ -154,6 +154,10 @@ const config: KnipConfig = {
         '!{test,scripts}/**!',
       ],
     },
+    'static/packages/search-syntax': {
+      jest: scopedJest,
+      oxlint: scopedOxlint,
+    },
     'static/oxlint/eslintPluginScraps': {
       jest: scopedJest,
     },
