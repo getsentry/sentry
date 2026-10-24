@@ -11,9 +11,9 @@ This skill captures the _architectural_ decisions that go into a Sentry model. I
 - Outbox replication plumbing (signal receivers, payload shapes, deletion handlers): invoke the `hybrid-cloud-outboxes` skill.
 - Hybrid cloud RPCs: invoke the `hybrid-cloud-rpc` skill.
 
-## The four decisions that define a Sentry model
+## The six decisions that define a Sentry model
 
-Before writing any fields, decide all four. They are coupled — getting one wrong forces a follow-up migration to fix the others.
+Before writing any fields, decide all six. They are coupled — getting one wrong forces a follow-up migration to fix the others.
 
 ### 1. Which silo does this data live in?
 
@@ -50,6 +50,18 @@ The FK type is an architectural statement, not a style choice:
 
 If a model has both kinds of FKs, that is fine and common. The presence of an HCFK is _not_ a signal that the model should be in the other silo — it just means the relationship crosses silos.
 
+### 5. How will primary keys survive data movement?
+
+Use UUIDv7 by default for new primary keys instead of auto-incrementing `int4` or `int8` IDs. Independently allocated integer sequences can collide when data moves between databases or cells, forcing primary-key and foreign-key remapping. UUIDv7 lets new records receive identities that can be preserved during relocation without coordinating sequences.
+
+Explicitly override the inherited `id` field with `models.UUIDField(primary_key=True, default=uuid7, editable=False)`, where `uuid7` is a supported UUIDv7 generator callable, not the result of calling it. Use an integer primary key only for a concrete compatibility requirement, and document the reason. This default applies to new models; converting existing primary keys requires a separate migration design.
+
+### 6. Can rows be selected directly by their owning organization or project?
+
+For tenant-owned data, prefer a direct `organization_id` or `project_id` column, choosing the scope that matches the model's ownership and access patterns: organization for organization-wide data, project for project-owned data. Use the appropriate FK type from decision 4. A same-silo `organization = FlexibleForeignKey(...)` or `project = FlexibleForeignKey(...)` creates the corresponding `_id` column.
+
+Keep this direct ownership reference even when it can be derived through another parent relationship. Deeply normalized ownership chains force nested fetching or multi-hop joins to discover the rows belonging to an organization or project, making data migration and relocation harder. A direct column makes scoped selection straightforward. Keep denormalized ownership consistent with parent relationships on creation and updates. Do not add both columns automatically; add both only when access patterns justify them and maintain their consistency. Shared or system-wide data without a tenant owner need not have either column.
+
 ## Other norms worth encoding
 
 ### Base class and timestamps
@@ -58,7 +70,7 @@ Use `DefaultFieldsModel` for new models. It gives you `date_added` (`auto_now_ad
 
 ### Field-type intent
 
-- `BoundedBigAutoField` for primary keys, `BoundedBigIntegerField` / `BoundedPositiveIntegerField` for non-PK numeric IDs and counts. The "bounded" part is a runtime overflow guard, not a Django nicety — it catches values that would silently corrupt downstream consumers.
+- UUIDv7 for new primary keys (decision 5); `BoundedBigIntegerField` / `BoundedPositiveIntegerField` for non-PK numeric IDs and counts. The "bounded" part is a runtime overflow guard, not a Django nicety — it catches values that would silently corrupt downstream consumers.
 - For bounded text fields without a strict spec, prefer `CharField(max_length=256)`. Postgres `varchar(n)` storage is identical regardless of `n` below the TOAST threshold, so picking 64 prematurely is a constraint without a benefit. Pick a smaller value only when the column has a real meaning (hash=40/64, UUID=32, slug, identifier with a spec).
 - For free-form text fields, use `TextField`.
 - For new JSON columns, prefer Django's `models.JSONField()` (jsonb-backed). The legacy `sentry.db.models.fields.jsonfield.JSONField` is text-backed and exists for compatibility with old columns — only use it when intentionally matching one.
@@ -86,8 +98,12 @@ If you filter on `(org_id, project_id, type)` together, you need an index whose 
 
 This is a starting scaffold, not a template — strip what you do not need, do not add things you do not need.
 
+The UUIDv7 default in this example requires Python 3.14+. Sentry currently runs Python 3.13; adoption waits for the runtime upgrade without adding a backport dependency.
+
 ```python
 from __future__ import annotations
+
+from uuid import uuid7
 
 from django.db import models
 
@@ -100,6 +116,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class MyThing(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
+    id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     organization = FlexibleForeignKey("sentry.Organization")
     project = FlexibleForeignKey("sentry.Project")
     user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
