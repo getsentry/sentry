@@ -13,7 +13,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {
-  InvestigationActionApplyErrorCode,
   InvestigationActionRequest,
   InvestigationActionRequestApplyResponse,
   InvestigationCandidate,
@@ -676,15 +675,35 @@ export function useRunInvestigationBlockMutation(
   });
 }
 
-const applyErrorSchema = z.object({code: z.string(), detail: z.string()});
+const cannotApplyReasonSchema = z.enum([
+  'investigation_archived',
+  'not_suggested',
+  'unsupported_action',
+  'no_access',
+  'permission_denied',
+  'not_target_detector',
+  'detector_not_found',
+  'dynamic_detector',
+]);
 
-export type ApplyError = {
-  code: InvestigationActionApplyErrorCode;
-  detail: string;
-};
+export type CannotApplyReason = z.infer<typeof cannotApplyReasonSchema>;
 
-export function parseApplyError(error: unknown): ApplyError | null {
-  const parsed = applyErrorSchema.safeParse(
+const actionRequestErrorSchema = z.discriminatedUnion('code', [
+  z.object({
+    code: z.enum([
+      ...cannotApplyReasonSchema.options,
+      'already_applied',
+      'withdrawn',
+      'stale',
+    ]),
+  }),
+  z.object({code: z.literal('validation_failed'), messages: z.array(z.string())}),
+]);
+
+export type ActionRequestError = z.infer<typeof actionRequestErrorSchema>;
+
+export function parseApplyError(error: unknown): ActionRequestError | null {
+  const parsed = actionRequestErrorSchema.safeParse(
     error instanceof RequestError ? error.responseJSON : undefined
   );
   return parsed.success ? parsed.data : null;
@@ -720,7 +739,7 @@ export function actionRequestDryRunQueryOptions(
   const endpoint = {method: 'POST', data: {dryRun: true}} as const;
   return queryOptions({
     queryKey: [url, endpoint, {action: actionRequest.action}] as const,
-    queryFn: async (): Promise<ApplyError | null> => {
+    queryFn: async (): Promise<ActionRequestError | null> => {
       try {
         await apiFetch<InvestigationActionRequestApplyResponse>({
           queryKey: [url, endpoint],

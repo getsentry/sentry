@@ -827,11 +827,20 @@ describe('NextStepCard', () => {
     {
       status: 409,
       body: {
-        detail: 'The monitor changed since this was suggested.',
+        detail: 'This changed since Seer suggested it.',
         code: 'stale',
         current: {timeWindowSeconds: 600},
       },
-      message: 'The monitor changed since this was suggested.',
+      message: 'The monitor changed since Seer suggested this.',
+    },
+    {
+      status: 400,
+      body: {
+        detail: "The change wasn't valid.",
+        code: 'validation_failed',
+        messages: ['Invalid Time Window: 900'],
+      },
+      message: "This change wasn't valid.",
     },
   ])('says when an apply fails with $status', async ({status, body, message}) => {
     mockApply({statusCode: status, body});
@@ -855,6 +864,7 @@ describe('NextStepCard', () => {
       'not_target_detector',
       'This change targets a different monitor than this investigation.',
     ],
+    ['dynamic_detector', "Seer can't change dynamic monitors yet."],
     ['investigation_archived', 'Archived investigations are read-only.'],
   ])('says why a %s change cannot apply', (cannotApplyReason, message) => {
     render(
@@ -905,11 +915,11 @@ describe('NextStepCard', () => {
     {
       status: 409,
       body: {
-        detail: 'The monitor changed since this was suggested.',
+        detail: 'This changed since Seer suggested it.',
         code: 'stale',
         current: {timeWindowSeconds: 600},
       },
-      message: 'The monitor changed since this was suggested.',
+      message: 'The monitor changed since Seer suggested this.',
     },
     {
       status: 403,
@@ -919,12 +929,11 @@ describe('NextStepCard', () => {
     {
       status: 400,
       body: {
-        detail: 'The monitor change was not valid.',
+        detail: "The change wasn't valid.",
         code: 'validation_failed',
-        errors: {timeWindowSeconds: ['Invalid Time Window: 900']},
         messages: ['Invalid Time Window: 900'],
       },
-      message: 'The monitor change was not valid.',
+      message: "This change wasn't valid.",
     },
   ])(
     'holds the update when the check fails with $body.code',
@@ -945,8 +954,11 @@ describe('NextStepCard', () => {
     }
   );
 
-  it('keeps the update available when the check itself fails', async () => {
-    mockDryRun({statusCode: 500, body: {detail: 'Internal Error', errorId: 'abc123'}});
+  it.each([
+    {status: 500, body: {detail: 'Internal Error', errorId: 'abc123'}},
+    {status: 409, body: {detail: "This action can't be applied.", code: 'new_reason'}},
+  ])('keeps the update available when the check returns $status', async response => {
+    mockDryRun({statusCode: response.status, body: response.body});
     render(
       <NextStepCard
         investigationId="investigation-1"
