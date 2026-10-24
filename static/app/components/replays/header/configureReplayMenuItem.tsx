@@ -37,7 +37,7 @@ export function useConfigureReplayMenuItem({
   };
 }
 
-function getPath(sdkName: string | null | undefined) {
+function getPath(sdkName: string) {
   switch (sdkName) {
     case 'sentry.cocoa':
       return 'apple/guides/ios'; // https://docs.sentry.io/platforms/apple/guides/ios/session-replay/
@@ -139,7 +139,17 @@ function getWebItems(): MenuItemProps[] {
 }
 
 function getMobileItems(replayRecord: ReplayRecord | undefined): MenuItemProps[] {
-  const path = getPath(replayRecord?.sdk.name);
+  const sdkName = replayRecord?.sdk.name;
+  if (!sdkName) {
+    // The SDK sent a replay without a name, so there is nothing for us to fix.
+    Sentry.logger.warn('Replay: Missing SDK name in configure card', {
+      replay_id: replayRecord?.id,
+      platform: replayRecord?.platform,
+      sdk_version: replayRecord?.sdk.version,
+      os_name: replayRecord?.os.name,
+    });
+  }
+  const path = sdkName ? getPath(sdkName) : null;
 
   return [
     {
