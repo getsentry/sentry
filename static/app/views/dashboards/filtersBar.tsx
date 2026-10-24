@@ -32,6 +32,7 @@ import {
   getTagKeysInMultipleDatasets,
   globalFilterKeysAreEqual,
   globalFiltersAreEqual,
+  isValidGlobalFilter,
   mergeGlobalFilters,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
@@ -101,9 +102,16 @@ export function FiltersBar({
   const {teams: userTeams} = useUserTeams();
   const {getSearchBarData, onFilterKeySearch} = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
-  const prebuiltDashboardFilters = prebuiltDashboardId
-    ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
-    : [];
+  const prebuiltDashboardFilters = (
+    prebuiltDashboardId
+      ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
+      : []
+  ).filter(isValidGlobalFilter);
+  // Saved filters come from untyped dashboard JSON, so drop malformed entries
+  // (e.g. missing `tag`) before they reach code that reads `filter.tag.key`.
+  const savedGlobalFilters = (filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? []).filter(
+    isValidGlobalFilter
+  );
 
   const maxPickableDaysOptions = useDashboardMaxPickableDays(dashboard?.widgets);
 
@@ -136,9 +144,8 @@ export function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    const savedFilters = filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
     const initialFilters =
-      savedFilters.length > 0 ? savedFilters : prebuiltDashboardFilters;
+      savedGlobalFilters.length > 0 ? savedGlobalFilters : prebuiltDashboardFilters;
     const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
 
     if (!urlFilters) {
@@ -361,8 +368,8 @@ export function FiltersBar({
                   onCancel?.();
                   // Reset local display state, falling back to prebuilt
                   // defaults when no saved filters exist
-                  const displayFilters = filters.globalFilter?.length
-                    ? filters.globalFilter
+                  const displayFilters = savedGlobalFilters.length
+                    ? savedGlobalFilters
                     : prebuiltDashboardFilters;
                   setActiveGlobalFilters(displayFilters);
                   // Push saved filters (not display fallback) to avoid a
