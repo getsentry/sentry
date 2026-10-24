@@ -1,5 +1,8 @@
 import type {AvatarUser} from 'sentry/types/user';
-import type {CannotApplyReason} from 'sentry/views/investigations/api';
+import type {
+  ActionRequestError,
+  CannotApplyReason,
+} from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -299,7 +302,7 @@ export type InvestigationActionRequest = {
   cannotApplyReason: InvestigationOrchestrationOpenString<CannotApplyReason> | null;
   dateApplied: string | null;
   dateCreated: string;
-  error: Record<string, unknown> | null;
+  error: ActionRequestError | null;
   id: string;
   impact: string | null;
   key: string;

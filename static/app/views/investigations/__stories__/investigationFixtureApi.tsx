@@ -14,6 +14,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {commentStoryAuthors} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
+import type {ActionRequestError} from 'sentry/views/investigations/api';
 import {
   InvestigationBlockExecutionFixture,
   InvestigationCommentFixture,
@@ -70,7 +71,7 @@ type FixtureResponse = {
 };
 
 type FixtureErrorResponse = {
-  body: Record<string, unknown>;
+  body: ActionRequestError & {detail: string};
   status: number;
 };
 
@@ -861,7 +862,7 @@ function setFixtureDetail(state: FixtureState, detail: InvestigationDetail) {
 function fixtureRequestError(
   method: ReturnType<typeof normalizeMethod>,
   path: string,
-  {body, status}: FixtureErrorResponse
+  {body, status}: {body: {detail: string}; status: number}
 ) {
   const response: ResponseMeta = {
     status,

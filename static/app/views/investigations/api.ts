@@ -775,11 +775,6 @@ export function useApplyInvestigationActionRequestMutation(
     investigationId
   );
 
-  function refresh() {
-    void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-    void queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
-  }
-
   return useMutation({
     ...options,
     mutationFn: actionRequest =>
@@ -808,11 +803,15 @@ export function useApplyInvestigationActionRequestMutation(
             }
           : current
       );
-      refresh();
+      void queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
       await options?.onSuccess?.(response, variables, onMutateResult, context);
     },
     onError: async (error, variables, onMutateResult, context) => {
-      refresh();
+      const code = parseApplyError(error)?.code;
+      if (code === 'stale' || code === 'already_applied' || code === 'withdrawn') {
+        void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+        void queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
+      }
       await options?.onError?.(error, variables, onMutateResult, context);
     },
   });

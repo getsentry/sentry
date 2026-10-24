@@ -138,7 +138,7 @@ describe('Investigation detail', () => {
       MockApiClient.addMockResponse({
         url: `${detailUrl}action-requests/${id}/apply/`,
         method: 'POST',
-        body: {},
+        body: {actionRequest: InvestigationActionRequestFixture({id})},
       });
     }
   });
