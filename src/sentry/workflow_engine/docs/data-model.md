@@ -106,6 +106,11 @@ The detector type is registered outside this Django app, in two parts. A concret
 
 `GroupType.detector_settings` and `Detector.settings` read from the registry.
 
+A `Detector` row can exist for a group type with no registered settings, for example
+when a migration creates rows before the settings ship. `Detector.objects.with_type_filters()`
+excludes those rows, and `Detector.detector_handler` logs and returns `None`, so
+`process_detectors` skips them. `Detector.settings` still raises for them.
+
 `Detector` does not enforce a database uniqueness constraint for project and type.
 Default detector creation uses short distributed locks and idempotent lookups instead.
 
