@@ -41,7 +41,7 @@ describe('DetectorDetails', () => {
   const ownerTeam = TeamFixture();
   const dataSource = SnubaQueryDataSourceFixture({
     queryObj: {
-      ...defaultDataSource.queryObj,
+      ...defaultDataSource.queryObj!,
       snubaQuery: {
         ...defaultDataSource.queryObj.snubaQuery,
         query: 'test',
@@ -410,7 +410,7 @@ describe('DetectorDetails', () => {
   describe('cron detectors', () => {
     const cronMonitorDataSource = CronMonitorDataSourceFixture({
       queryObj: {
-        ...CronMonitorDataSourceFixture().queryObj,
+        ...CronMonitorDataSourceFixture().queryObj!,
         environments: [
           CronMonitorEnvironmentFixture({
             lastCheckIn: '2017-10-17T01:41:20.000Z', // 1 hour ago
@@ -442,7 +442,7 @@ describe('DetectorDetails', () => {
         body: cronDetector,
       });
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${project.id}/monitors/${cronMonitorDataSource.queryObj.slug}/processing-errors/`,
+        url: `/projects/org-slug/${project.id}/monitors/${cronMonitorDataSource.queryObj!.slug}/processing-errors/`,
         body: [],
       });
     });

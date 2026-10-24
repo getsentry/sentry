@@ -9,6 +9,9 @@ import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 export function CronMonitor({detector}: {detector: CronDetector}) {
   const monitor = detector.dataSources[0].queryObj;
+  if (!monitor) {
+    return null;
+  }
   const environment = getNextCheckInEnv(monitor.environments);
 
   return (

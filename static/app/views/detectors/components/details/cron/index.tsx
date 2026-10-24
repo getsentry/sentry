@@ -60,7 +60,7 @@ type CronDetectorDetailsProps = {
 };
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
-  const environments = detector.dataSources[0].queryObj.environments;
+  const environments = detector.dataSources[0].queryObj!.environments;
   return getNextCheckInEnv(environments);
 }
 
@@ -72,6 +72,9 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const organization = useOrganization();
   const location = useLocation();
   const dataSource = detector.dataSources[0];
+  // queryObj is always set for a configured cron monitor (only null for newly-created
+  // monitors whose first check-in hasn't arrived yet — not reachable from the detail page)
+  const queryObj = dataSource.queryObj!;
   const userTimezone = useTimezone();
   const clockDisplay = useClockDisplay();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
@@ -80,7 +83,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
     () => ({timezone: timezoneOverride, clockDisplay}),
     [timezoneOverride, clockDisplay]
   );
-  const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
+  const openDocsPanel = useDocsPanel(queryObj.slug, project);
   const queryClient = useQueryClient();
 
   useDetectorQuery<CronDetector>(detector.id, {
@@ -91,6 +94,9 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
         return false;
       }
       const monitor = query.state.data.json.dataSources[0].queryObj;
+      if (!monitor) {
+        return false;
+      }
       return getMonitorRefetchInterval(monitor, new Date());
     },
   });
@@ -106,21 +112,19 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
     organization,
     projectId: project.id,
-    monitorSlug: dataSource.queryObj.slug,
+    monitorSlug: queryObj.slug,
   });
 
-  const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
+  const {failure_issue_threshold, recovery_threshold} = queryObj.config;
 
   // Filter monitor environments based on the selected environment from page filters
   const selectedEnvironments = toArray(location.query.environment).filter(Boolean);
   const filteredMonitor = {
-    ...dataSource.queryObj,
+    ...queryObj,
     environments:
       selectedEnvironments.length > 0
-        ? dataSource.queryObj.environments.filter(env =>
-            selectedEnvironments.includes(env.name)
-          )
-        : dataSource.queryObj.environments,
+        ? queryObj.environments.filter(env => selectedEnvironments.includes(env.name))
+        : queryObj.environments,
   };
 
   const monitorEnv = getLatestCronMonitorEnv({
@@ -174,7 +178,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 </PageFilterBar>
                 <Flex align="center" gap="sm" marginLeft="auto">
                   <TimezoneOverride
-                    monitor={dataSource.queryObj}
+                    monitor={queryObj}
                     size="sm"
                     userTimezone={userTimezone}
                     onTimezoneSelected={setTimezoneOverride}
@@ -213,7 +217,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 <DetailSection title={t('Recent Check-Ins')}>
                   <div>
                     <MonitorCheckIns
-                      monitorSlug={dataSource.queryObj.slug}
+                      monitorSlug={queryObj.slug}
                       monitorEnvs={filteredMonitor.environments}
                       project={project}
                     />
@@ -222,10 +226,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 <DetectorDetailsAutomations detector={detector} />
               </Fragment>
             ) : (
-              <MonitorOnboarding
-                monitorSlug={dataSource.queryObj.slug}
-                project={project}
-              />
+              <MonitorOnboarding monitorSlug={queryObj.slug} project={project} />
             )}
           </DetailLayout.Main>
           <DetailLayout.Sidebar>
@@ -246,20 +247,20 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             <DetectorDetailsAssignee owner={detector.owner} />
             <DetailSection title={t('Schedule')}>
               <div>
-                {scheduleAsText(dataSource.queryObj.config)}{' '}
-                {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB &&
-                  `(${dataSource.queryObj.config.timezone}) `}
-                {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB && (
+                {scheduleAsText(queryObj.config)}{' '}
+                {queryObj.config.schedule_type === ScheduleType.CRONTAB &&
+                  `(${queryObj.config.timezone}) `}
+                {queryObj.config.schedule_type === ScheduleType.CRONTAB && (
                   <Text variant="muted" monospace>
-                    ({dataSource.queryObj.config.schedule})
+                    ({queryObj.config.schedule})
                   </Text>
                 )}
               </div>
             </DetailSection>
             <DetailSection title={t('Legend')}>
               <DetailsTimelineLegend
-                checkInMargin={dataSource.queryObj.config.checkin_margin}
-                maxRuntime={dataSource.queryObj.config.max_runtime}
+                checkInMargin={queryObj.config.checkin_margin}
+                maxRuntime={queryObj.config.max_runtime}
                 showUnknownLegend={showUnknownLegend}
               />
             </DetailSection>
@@ -268,9 +269,9 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <DescriptionList.Term>{t('Monitor slug')}</DescriptionList.Term>
               <DescriptionList.Details>
                 <Flex gap="xs" align="center">
-                  <Text ellipsis>{dataSource.queryObj.slug}</Text>
+                  <Text ellipsis>{queryObj.slug}</Text>
                   <CopyToClipboardButton
-                    text={dataSource.queryObj.slug}
+                    text={queryObj.slug}
                     aria-label={t('Copy monitor slug to clipboard')}
                     size="zero"
                     variant="transparent"
@@ -279,7 +280,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               </DescriptionList.Details>
               <DescriptionList.Term>{t('Next check-in')}</DescriptionList.Term>
               <DescriptionList.Details>
-                {dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
+                {queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
                   moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
                     <TimeSince
                       unitStyle="regular"
@@ -309,7 +310,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <DetectorExtraDetails.CreatedBy detector={detector} />
               <DetectorExtraDetails.LastModified detector={detector} />
             </DetectorExtraDetails>
-            {dataSource.queryObj.isUpserting && (
+            {queryObj.isUpserting && (
               <Alert variant="muted" icon={<IconJson />}>
                 {t(
                   'This monitor is managed in code and updates automatically with each check-in.'
