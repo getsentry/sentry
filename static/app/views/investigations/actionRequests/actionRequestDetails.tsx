@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
@@ -9,7 +10,11 @@ import {
   type ApplyBlockReason,
 } from 'sentry/views/investigations/actionRequests/actionKinds';
 import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
-import {actionRequestDryRunQueryOptions} from 'sentry/views/investigations/api';
+import {
+  actionRequestDryRunQueryOptions,
+  type ActionRequestError,
+} from 'sentry/views/investigations/api';
+import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
 import type {
   InvestigationAction,
   InvestigationActionRequest,
@@ -98,7 +103,7 @@ function getApplyMessage(actionRequest: InvestigationActionRequest, check: Apply
   }
   switch (check.status) {
     case 'blocked':
-      return getCannotApplyMessage(actionRequest.action, check.error.code);
+      return getApplyErrorMessage(actionRequest.action, check.error);
     case 'unavailable':
       return t("Couldn't check this change in advance. Applying it checks it again.");
     default:
@@ -106,8 +111,27 @@ function getApplyMessage(actionRequest: InvestigationActionRequest, check: Apply
   }
 }
 
+export function getAppliedSummary(
+  actionRequest: InvestigationActionRequest,
+  source: InvestigationDetail['source'] | undefined
+): ReactNode {
+  const kind = getActionKind(actionRequest.action);
+  return kind
+    ? kind.ui.getAppliedSummary({action: kind.action, actionRequest, source})
+    : null;
+}
+
 export function getApplySuccessMessage(action: InvestigationAction | null) {
   return getActionKind(action)?.ui.getSuccessMessage?.() ?? null;
+}
+
+export function getApplyErrorMessage(
+  action: InvestigationAction | null,
+  error: ActionRequestError
+) {
+  return error.code === 'validation_failed'
+    ? error.messages.map(ensureSentenceEnd).join(' ')
+    : getCannotApplyMessage(action, error.code);
 }
 
 export function getCannotApplyMessage(
