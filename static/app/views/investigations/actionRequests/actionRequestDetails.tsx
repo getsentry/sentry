@@ -75,10 +75,14 @@ export function useApplyCheck(
   const organization = useOrganization();
   const checksBeforeApply =
     getActionKind(actionRequest.action)?.ui.checksBeforeApply ?? false;
+  const enabled = actionRequest.canApply && checksBeforeApply;
   const {data, isError, isPending} = useQuery({
     ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
-    enabled: actionRequest.canApply && checksBeforeApply,
+    enabled,
   });
+  if (!enabled) {
+    return {status: 'passed'};
+  }
   if (isError) {
     return {status: 'unavailable'};
   }
