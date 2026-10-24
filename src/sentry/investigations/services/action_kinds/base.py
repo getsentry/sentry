@@ -20,6 +20,10 @@ class CannotApplyReason(StrEnum):
     NOT_SUGGESTED = "not_suggested"
     UNSUPPORTED_ACTION = "unsupported_action"
     NO_ACCESS = "no_access"
+    NOT_TARGET_DETECTOR = "not_target_detector"
+    DETECTOR_NOT_FOUND = "detector_not_found"
+    PERMISSION_DENIED = "permission_denied"
+    DYNAMIC_DETECTOR = "dynamic_detector"
 
 
 class ActionKind(abc.ABC):
