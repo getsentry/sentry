@@ -204,7 +204,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
 
     def _generate_csv(self, projects):
         if not len(projects):
-            return
+            return ""
 
         output = StringIO()
         csv_writer = csv.writer(output)
