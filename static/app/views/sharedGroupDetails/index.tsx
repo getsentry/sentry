@@ -92,9 +92,14 @@ function SharedGroupDetails() {
                   <span className="icon-sentry-logo-full" />
                 </Link>
                 {group.permalink && (
-                  <Link className="details" to={group.permalink}>
+                  // Use a hard navigation (not React Router in-app nav) so the
+                  // app re-bootstraps with the correct org context. An in-app
+                  // navigation unmounts this page's OrganizationContext before
+                  // the issue detail route has a chance to load its own, causing
+                  // useOrganization() calls in child components to throw.
+                  <a className="details" href={group.permalink}>
                     {t('Details')}
-                  </Link>
+                  </a>
                 )}
               </div>
               <div className="box-content">
