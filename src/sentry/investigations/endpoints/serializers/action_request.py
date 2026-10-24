@@ -16,6 +16,7 @@ from sentry.investigations.models import (
     InvestigationBlock,
 )
 from sentry.investigations.services.action_kinds import (
+    AppliedDetails,
     get_action_kind,
     shared_cannot_apply_reason,
 )
@@ -60,7 +61,7 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     canApply: bool
     cannotApplyReason: CannotApplyReason | None
     appliedBy: UserSerializerResponse | None
-    appliedDetails: dict[str, Any] | None
+    appliedDetails: AppliedDetails | None
     dateApplied: datetime | None
     error: ActionRequestError | None
     dateCreated: datetime
@@ -199,9 +200,9 @@ class InvestigationActionRequestSerializer(
             "canApply": attrs["cannot_apply_reason"] is None,
             "cannotApplyReason": attrs["cannot_apply_reason"],
             "appliedBy": attrs["applied_by"],
-            "appliedDetails": obj.applied_details,
+            # Only the shared apply path writes these columns.
+            "appliedDetails": cast(AppliedDetails | None, obj.applied_details),
             "dateApplied": obj.date_applied,
-            # Only the shared apply path writes this column.
             "error": cast(ActionRequestError | None, obj.error),
             "dateCreated": obj.date_added,
         }
