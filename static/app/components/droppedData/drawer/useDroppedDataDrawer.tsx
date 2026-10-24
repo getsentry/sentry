@@ -4,8 +4,10 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {buildAskSeerPrompt} from 'sentry/components/droppedData/outcomes';
-import {t} from 'sentry/locale';
+import {
+  buildAskSeerPrompt,
+  droppedAndFilteredLabel,
+} from 'sentry/components/droppedData/outcomes';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -101,7 +103,8 @@ export function useDroppedDataDrawer(
         <DroppedDataDrawer dataset={dataset} interval={interval} onAskSeer={onAskSeer} />
       ),
       {
-        ariaLabel: t('Dropped and Filtered Events'),
+        ariaLabel: droppedAndFilteredLabel(dataset),
+        drawerKey: 'dropped-data-drawer',
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
           decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== 'true',

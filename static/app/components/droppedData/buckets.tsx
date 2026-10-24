@@ -1,7 +1,6 @@
 import type {
   DroppedDataBucket,
   DroppedEventsBucket,
-  EventVolume,
   OutcomeVolume,
 } from 'sentry/components/droppedData/types';
 import {defined} from 'sentry/utils/defined';
@@ -9,19 +8,11 @@ import {defined} from 'sentry/utils/defined';
 const MIN_HIGHLIGHT_RATIO = 0.001;
 
 interface BucketDraft {
+  accepted: number;
   byOutcome: Map<string, OutcomeVolume>;
-  dropped: EventVolume;
+  dropped: number;
   end: number;
-  events: DroppedEventsBucket[];
   start: number;
-}
-
-function emptyVolume(): EventVolume {
-  return {count: 0};
-}
-
-function addCount(volume: EventVolume, event: DroppedEventsBucket): void {
-  volume.count += event.count;
 }
 
 function getOrCreateDraft(
@@ -31,7 +22,7 @@ function getOrCreateDraft(
   let draft = drafts.get(start);
 
   if (!draft) {
-    draft = {start, end, events: [], byOutcome: new Map(), dropped: emptyVolume()};
+    draft = {start, end, byOutcome: new Map(), dropped: 0, accepted: 0};
     drafts.set(start, draft);
   }
 
@@ -48,47 +39,26 @@ function addDroppedEvent(
     return;
   }
 
-  draft.events.push(event);
-  addCount(draft.dropped, event);
+  draft.dropped += event.count;
 
   let outcomeVolume = draft.byOutcome.get(event.outcome);
   if (!outcomeVolume) {
-    outcomeVolume = {
-      outcome: event.outcome,
-      ...emptyVolume(),
-    };
+    outcomeVolume = {outcome: event.outcome, count: 0};
     draft.byOutcome.set(event.outcome, outcomeVolume);
   }
-  addCount(outcomeVolume, event);
+  outcomeVolume.count += event.count;
 }
 
-function acceptedVolumeByStart(events: DroppedEventsBucket[]): Map<number, EventVolume> {
-  const volumes = new Map<number, EventVolume>();
-
-  for (const event of events) {
-    const accepted = volumes.get(event.start) ?? emptyVolume();
-    addCount(accepted, event);
-    volumes.set(event.start, accepted);
-  }
-
-  return volumes;
-}
-
-function toBucket(
-  draft: BucketDraft,
-  acceptedByStart: Map<number, EventVolume>
-): DroppedDataBucket {
-  const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
-  const total = draft.dropped.count + accepted.count;
-  const ratio = total > 0 ? draft.dropped.count / total : 0;
+function toBucket(draft: BucketDraft): DroppedDataBucket {
+  const total = draft.dropped + draft.accepted;
+  const ratio = total > 0 ? draft.dropped / total : 0;
 
   return {
     start: draft.start,
     end: draft.end,
-    events: draft.events,
     byOutcome: Array.from(draft.byOutcome.values()).sort((a, b) => b.count - a.count),
     dropped: draft.dropped,
-    accepted,
+    accepted: draft.accepted,
     ratio,
   };
 }
@@ -104,15 +74,13 @@ export function groupIntoBuckets(
   const drafts = new Map<number, BucketDraft>();
 
   for (const event of acceptedEvents) {
-    getOrCreateDraft(drafts, event);
+    getOrCreateDraft(drafts, event).accepted += event.count;
   }
   for (const event of droppedEvents) {
     addDroppedEvent(drafts, event);
   }
 
-  const acceptedByStart = acceptedVolumeByStart(acceptedEvents);
-
-  return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
+  return Array.from(drafts.values()).map(toBucket);
 }
 
 export function isHighlighted(bucket: DroppedDataBucket): boolean {
@@ -122,7 +90,7 @@ export function isHighlighted(bucket: DroppedDataBucket): boolean {
 export function hasDroppedData(
   droppedEvents: DroppedEventsBucket[] | undefined,
   acceptedEvents?: DroppedEventsBucket[]
-): droppedEvents is DroppedEventsBucket[] {
+): boolean {
   return (
     defined(droppedEvents) &&
     groupIntoBuckets(droppedEvents, acceptedEvents).some(isHighlighted)

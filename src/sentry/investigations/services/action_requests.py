@@ -14,6 +14,7 @@ from sentry.investigations.models import (
     InvestigationActionRequestState,
     InvestigationOrchestrationRun,
 )
+from sentry.investigations.services.action_kinds import get_action_kind
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,21 @@ def _replace_primary(investigation: Investigation, row: InvestigationActionReque
     _supersede(others.filter(anchor_type__isnull=True))
 
 
+def _after_upsert(rows: Sequence[InvestigationActionRequest]) -> None:
+    """Call after_upsert for the requests that are still suggested."""
+
+    if not rows:
+        return
+    for row in InvestigationActionRequest.objects.filter(
+        id__in=[row.id for row in rows], state=InvestigationActionRequestState.SUGGESTED
+    ).order_by("id"):
+        kind = get_action_kind(row.action_kind)
+        if kind is not None:
+            kind.after_upsert(row)
+
+
 def upsert_action_request(
-    run: InvestigationOrchestrationRun, item: ActionRequestItem, *, replace_primary: bool = True
+    run: InvestigationOrchestrationRun, item: ActionRequestItem
 ) -> InvestigationActionRequest:
     """Create or update the request with this key. Callers must hold the investigation and
     run locks.
@@ -68,6 +82,19 @@ def upsert_action_request(
     Applied requests are never touched. Failed, withdrawn, or errored requests only come back
     if Seer changes the action, so replaying an event can't bring them back.
     """
+
+    row, changed = _upsert(run, item)
+    if item["primary"]:
+        _replace_primary(run.investigation, row)
+    if changed:
+        _after_upsert([row])
+    return row
+
+
+def _upsert(
+    run: InvestigationOrchestrationRun, item: ActionRequestItem
+) -> tuple[InvestigationActionRequest, bool]:
+    """Create or update the request with this key, and say whether Seer changed it."""
 
     investigation = run.investigation
     anchor = item["anchor"]
@@ -84,6 +111,7 @@ def upsert_action_request(
     row = InvestigationActionRequest.objects.filter(
         investigation=investigation, key=item["key"]
     ).first()
+    changed = True
     if row is None:
         row = InvestigationActionRequest.objects.create(
             investigation=investigation,
@@ -92,7 +120,9 @@ def upsert_action_request(
             action_payload=action,
             **display,
         )
-    elif row.state != InvestigationActionRequestState.APPLIED:
+    elif row.state == InvestigationActionRequestState.APPLIED:
+        changed = False
+    else:
         update_fields = [*display, "date_updated"]
         for field, value in display.items():
             setattr(row, field, value)
@@ -106,18 +136,17 @@ def upsert_action_request(
         elif row.state == InvestigationActionRequestState.SUPERSEDED and row.error is None:
             row.state = InvestigationActionRequestState.SUGGESTED
             update_fields.append("state")
+        else:
+            changed = False
         row.save(update_fields=update_fields)
 
-    if item["primary"]:
-        if row.state not in LIVE_STATES:
-            # Seer should have used a new key. A finished request can't be the next step again.
-            logger.warning(
-                "investigations.action_requests.terminal_key_reused",
-                extra={"action_request_id": row.id, "state": row.state},
-            )
-        if replace_primary:
-            _replace_primary(investigation, row)
-    return row
+    if item["primary"] and row.state not in LIVE_STATES:
+        # Seer should have used a new key. A finished request can't be the next step again.
+        logger.warning(
+            "investigations.action_requests.terminal_key_reused",
+            extra={"action_request_id": row.id, "state": row.state},
+        )
+    return row, changed
 
 
 def withdraw_action_request(run: InvestigationOrchestrationRun, key: str, reason: str) -> bool:
@@ -144,10 +173,13 @@ def sync_snapshot_action_requests(
     """Treat the snapshot as the full list: any live request it leaves out is superseded."""
 
     primaries: list[InvestigationActionRequest] = []
+    changed: list[InvestigationActionRequest] = []
     for item in items:
-        row = upsert_action_request(run, item, replace_primary=False)
+        row, row_changed = _upsert(run, item)
         if item["primary"]:
             primaries.append(row)
+        if row_changed:
+            changed.append(row)
     if primaries:
         # Pick the newest revision, then a suggested request over a failed one, then the key,
         # so the list order never decides which primary wins.
@@ -167,6 +199,7 @@ def sync_snapshot_action_requests(
             key__in=[item["key"] for item in items]
         )
     )
+    _after_upsert(changed)
 
 
 def supersede_block_action_requests(investigation: Investigation, block_keys: Sequence[str]) -> int:

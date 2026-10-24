@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
-
 import {Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {
   getOrderedAutofixSections,
@@ -8,6 +7,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 
 import {IssuePreviewAutofixSection} from './issuePreviewAutofixSection';
+import {getAutofixSectionLabels} from './issuePreviewSection';
 
 const SECTION_ORDER = ['code_changes', 'solution', 'root_cause'];
 
@@ -25,18 +25,13 @@ export function IssuePreviewAutofixSummary({
   readOnly = false,
 }: IssuePreviewAutofixSummaryProps) {
   const {runState} = autofix;
-  if (!runState) {
-    return autofix.isWaitingForRun ? (
-      <IssuePreviewAutofixSection
-        autofix={autofix}
-        groupId={groupId}
-        readOnly={readOnly}
-        section={{artifacts: [], blocks: [], status: 'processing', step: 'root_cause'}}
-      />
-    ) : null;
+  let orderedSections = getOrderedAutofixSections(runState);
+  if (!runState && autofix.isWaitingForRun) {
+    orderedSections = [
+      {artifacts: [], blocks: [], status: 'processing', step: 'root_cause'},
+    ];
   }
 
-  const orderedSections = getOrderedAutofixSections(runState);
   const sections = SECTION_ORDER.flatMap(step => {
     const section = orderedSections.find(item => item.step === step);
     return section && !excludeSteps?.has(step) ? [section] : [];
@@ -47,23 +42,23 @@ export function IssuePreviewAutofixSummary({
   }
 
   return (
-    <Dividers gap="md">
-      {sections.map(section => (
-        <IssuePreviewAutofixSection
-          key={section.step}
-          autofix={autofix}
-          groupId={groupId}
-          readOnly={readOnly}
-          section={section}
-        />
-      ))}
-    </Dividers>
+    <Stack gap="md">
+      {sections.map(section => {
+        const labels = getAutofixSectionLabels(section.step);
+        return labels ? (
+          <Stack key={section.step} border="primary" radius="md" padding="lg" gap="lg">
+            <Heading as="h3" size="md">
+              {labels.title}
+            </Heading>
+            <IssuePreviewAutofixSection
+              autofix={autofix}
+              groupId={groupId}
+              readOnly={readOnly}
+              section={section}
+            />
+          </Stack>
+        ) : null;
+      })}
+    </Stack>
   );
 }
-
-const Dividers = styled(Stack)`
-  & > * + * {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-    padding-top: ${p => p.theme.space.md};
-  }
-`;

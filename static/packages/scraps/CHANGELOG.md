@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0
+
+### Bug Fixes 🐛
+
+- (button-bar) Stop clamping dropdown menus in table headers by @sentry-junior in [#128430](https://github.com/getsentry/sentry/pull/128430)
+- (menu) Stop clipping tag and pill labels in menu items by @sentry-junior in [#128425](https://github.com/getsentry/sentry/pull/128425)
+- (overlay) Ignore overflow ancestors inside the real containing block by @sentry-junior in [#128429](https://github.com/getsentry/sentry/pull/128429)
+
+### Internal Changes 🔧
+
+#### Scraps
+
+- Isolate input and textarea controls by @natemoo-re in [#128649](https://github.com/getsentry/sentry/pull/128649)
+- Isolate table and resize controls by @natemoo-re in [#128651](https://github.com/getsentry/sentry/pull/128651)
+- Isolate form presentation components by @natemoo-re in [#128650](https://github.com/getsentry/sentry/pull/128650)
+
 ## 0.2.0
 
 #### Features

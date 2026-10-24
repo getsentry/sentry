@@ -3,19 +3,16 @@ from __future__ import annotations
 import abc
 import logging
 from typing import Any
-from urllib.parse import urlencode
 
 import orjson
 import sentry_sdk
 from django.conf import settings
-from django.urls import reverse
 
 from sentry import analytics, features
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
@@ -41,7 +38,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
-from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 EMAIL_STATUS_DISPLAY = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
@@ -140,6 +136,10 @@ def generate_incident_trigger_email_context(
 ) -> dict[str, Any]:
     from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
+    group = metric_issue_context.group
+    if group is None:
+        raise ValueError("Metric alert emails require a group")
+
     snuba_query = metric_issue_context.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = (
@@ -149,6 +149,7 @@ def generate_incident_trigger_email_context(
     subscription = metric_issue_context.subscription
     alert_link_params = {
         "referrer": "metric_alert_email",
+        "openPeriod": str(metric_issue_context.open_period_identifier),
     }
     # if alert threshold and threshold type is above then show '>'
     # if resolve threshold and threshold type is *BELOW* then show '>'
@@ -203,28 +204,7 @@ def generate_incident_trigger_email_context(
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
-    # lookup the incident_id from the open_period_identifier
-    try:
-        incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
-            group_open_period_id=metric_issue_context.open_period_identifier
-        )
-        incident_identifier = incident_group_open_period.incident_identifier
-    except IncidentGroupOpenPeriod.DoesNotExist:
-        # the corresponding metric detector was not dual written
-        incident_identifier = get_fake_id_from_object_id(
-            metric_issue_context.open_period_identifier
-        )
-
-    alert_link = organization.absolute_url(
-        reverse(
-            "sentry-metric-alert",
-            kwargs={
-                "organization_slug": organization.slug,
-                "incident_id": incident_identifier,
-            },
-        ),
-        query=urlencode(alert_link_params),
-    )
+    alert_link = group.get_absolute_url(params=alert_link_params)
 
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     return {
