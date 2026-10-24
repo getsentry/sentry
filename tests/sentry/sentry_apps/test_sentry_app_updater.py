@@ -298,7 +298,7 @@ class TestUpdater(TestCase):
         outbox_entries = ControlOutbox.objects.filter(
             category=OutboxCategory.SERVICE_HOOK_UPDATE,
             shard_scope=OutboxScope.APP_SCOPE,
-            shard_identifier=self.sentry_app.id,
+            shard_identifier=installation.id,
         )
 
         assert len(outbox_entries) == 1
@@ -352,14 +352,14 @@ class TestUpdater(TestCase):
 
         # Update the sentry app (this creates outbox entries)
         updater = SentryAppUpdater(sentry_app=self.sentry_app)
-        updater.webhook_url = "https://example.com/webhook"
+        updater.webhook_url = "https://example.com/new-webhook"
         updater.run(self.user)
 
         # Verify outbox entries were created
         outbox_entries = ControlOutbox.objects.filter(
             category=OutboxCategory.SERVICE_HOOK_UPDATE,
             shard_scope=OutboxScope.APP_SCOPE,
-            shard_identifier=self.sentry_app.id,
+            shard_identifier=installation.id,
         )
         assert outbox_entries.count() == 1
 
@@ -376,7 +376,7 @@ class TestUpdater(TestCase):
             outbox_entries = ControlOutbox.objects.filter(
                 category=OutboxCategory.SERVICE_HOOK_UPDATE,
                 shard_scope=OutboxScope.APP_SCOPE,
-                shard_identifier=self.sentry_app.id,
+                shard_identifier=installation.id,
             )
             assert outbox_entries.count() == 0
 
@@ -385,4 +385,92 @@ class TestUpdater(TestCase):
             service_hook = ServiceHook.objects.get(
                 application_id=self.sentry_app.application_id, organization_id=self.org.id
             )
-            assert service_hook.url == "https://example.com/webhook"
+            assert service_hook.url == "https://example.com/new-webhook"
+
+    def test_update_service_hooks_skipped_for_non_hook_fields(self) -> None:
+        self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        updater = SentryAppUpdater(
+            sentry_app=self.sentry_app,
+            name="A New Thing",
+            overview="Description of my very cool application",
+            redirect_url="http://example.com/finish-setup",
+            is_alertable=True,
+            scopes=["project:read", "event:read", "org:read"],
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+            webhook_headers=["X-Custom-Header: value"],
+        )
+        updater.run(self.user)
+
+        assert not ControlOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_HOOK_UPDATE
+        ).exists()
+
+    def test_update_service_hooks_skipped_when_webhook_url_and_events_unchanged(self) -> None:
+        sentry_app = self.create_sentry_app(
+            name="sentry",
+            organization=self.org,
+            scopes=("project:read", "event:read"),
+            events=("issue",),
+        )
+        self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.org)
+
+        # The stored events are already expanded; the rolled-up form is equivalent.
+        updater = SentryAppUpdater(
+            sentry_app=sentry_app,
+            webhook_url=sentry_app.webhook_url,
+            events=["issue"],
+        )
+        updater.run(self.user)
+
+        assert not ControlOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_HOOK_UPDATE
+        ).exists()
+
+    def test_update_service_hooks_skipped_when_clearing_already_empty_webhook_url(self) -> None:
+        internal_app = self.create_internal_integration(
+            name="Internal", organization=self.org, webhook_url=None
+        )
+
+        updater = SentryAppUpdater(sentry_app=internal_app, webhook_url="")
+        updater.run(self.user)
+
+        assert not ControlOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_HOOK_UPDATE
+        ).exists()
+
+    def test_update_service_hooks_shards_outboxes_per_installation(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+        other_installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=other_org, user=self.user
+        )
+
+        updater = SentryAppUpdater(
+            sentry_app=self.sentry_app, webhook_url="https://example.com/new-webhook"
+        )
+        updater.run(self.user)
+
+        outbox_entries = ControlOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_HOOK_UPDATE, shard_scope=OutboxScope.APP_SCOPE
+        )
+        assert {(entry.shard_identifier, entry.object_identifier) for entry in outbox_entries} == {
+            (installation.id, installation.id),
+            (other_installation.id, other_installation.id),
+        }
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            service_hooks = ServiceHook.objects.filter(
+                application_id=self.sentry_app.application_id
+            )
+            assert {(hook.installation_id, hook.url) for hook in service_hooks} == {
+                (installation.id, "https://example.com/new-webhook"),
+                (other_installation.id, "https://example.com/new-webhook"),
+            }
