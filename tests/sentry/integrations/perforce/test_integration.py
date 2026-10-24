@@ -359,6 +359,13 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert "//depot/app/services/processor.cpp" in result
         assert "depot/depot" not in result
 
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file", return_value=None)
+    def test_get_stacktrace_link_checks_missing_file_again(self, mock_check_file):
+        """The client returns None for P4 errors as well as missing files, so it isn't cached"""
+        self.installation.get_stacktrace_link(self.repo, "app/services/processor.cpp", "", None)
+        self.installation.get_stacktrace_link(self.repo, "app/services/processor.cpp", "", None)
+        assert mock_check_file.call_count == 2
+
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_check_file_relative_path(self, mock_check_file):
         """Test check_file with normal relative path (app/...)"""
