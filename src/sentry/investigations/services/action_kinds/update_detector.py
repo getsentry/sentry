@@ -141,6 +141,9 @@ class DetectorState:
     def load(cls, detector: Detector, snuba_query: SnubaQuery) -> DetectorState:
         data_source: dict[str, Any] = serialize(snuba_query, serializer=SnubaQuerySerializer())
         data_source["queryType"] = snuba_query.type
+        # Without a mode the update keeps the stored one. Some span monitors migrated from
+        # transactions store a mode the validator no longer accepts.
+        del data_source["extrapolationMode"]
         group = detector.workflow_condition_group
         condition_group = (
             {

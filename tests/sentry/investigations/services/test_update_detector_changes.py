@@ -29,7 +29,12 @@ class DetectorStateTest(TestCase):
         super().setUp()
         self.detector = self.create_metric_detector()
 
-    def create_metric_detector(self, *, eap: bool = False) -> Detector:
+    def create_metric_detector(
+        self,
+        *,
+        eap: bool = False,
+        extrapolation_mode: ExtrapolationMode = ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+    ) -> Detector:
         with self.tasks():
             snuba_query = create_snuba_query(
                 query_type=SnubaQuery.Type.PERFORMANCE if eap else SnubaQuery.Type.ERROR,
@@ -44,7 +49,7 @@ class DetectorStateTest(TestCase):
                     if eap
                     else SnubaQueryEventType.EventType.ERROR
                 ],
-                extrapolation_mode=(ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED if eap else None),
+                extrapolation_mode=extrapolation_mode if eap else None,
             )
             subscription = create_snuba_subscription(
                 project=self.project,
@@ -135,6 +140,21 @@ class DetectorStateTest(TestCase):
         snuba_query.update(group_by=["transaction"])
 
         assert "groupBy" not in self.state().update({"timeWindowSeconds": 900})["dataSources"][0]
+        assert self.validation_errors({"timeWindowSeconds": 900}) is None
+
+    def test_a_span_monitor_can_change_its_window(self) -> None:
+        self.detector = self.create_metric_detector(eap=True)
+
+        assert self.validation_errors({"timeWindowSeconds": 900}) is None
+
+    def test_a_migrated_span_monitor_keeps_its_extrapolation_mode(self) -> None:
+        self.detector = self.create_metric_detector(
+            eap=True, extrapolation_mode=ExtrapolationMode.SERVER_WEIGHTED
+        )
+
+        [data_source] = self.state().update({"timeWindowSeconds": 900})["dataSources"]
+
+        assert "extrapolationMode" not in data_source
         assert self.validation_errors({"timeWindowSeconds": 900}) is None
 
     def test_an_invalid_window_returns_the_validator_errors(self) -> None:
