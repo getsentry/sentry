@@ -414,6 +414,26 @@ describe('NextStepCard', () => {
     expect(getCard()).not.toHaveTextContent('no longer recommends');
   });
 
+  it('shows the live primary over a newer one Seer replaced', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture(),
+          InvestigationActionRequestFixture({
+            id: '313',
+            key: 'raise-threshold',
+            state: 'superseded',
+            title: 'Raise the threshold',
+          }),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent('Widen the interval.');
+  });
+
   it('holds space for a new next step over a withdrawn one', () => {
     render(
       <NextStepCard

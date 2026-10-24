@@ -60,7 +60,7 @@ export function ActionRequestCard({
     }
   );
 
-  if (actionRequest.state !== 'suggested' && actionRequest.state !== 'withdrawn') {
+  if (!isShownActionRequest(actionRequest)) {
     return null;
   }
 
@@ -109,4 +109,8 @@ export function ActionRequestCard({
       />
     </Stack>
   );
+}
+
+export function isShownActionRequest(actionRequest: InvestigationActionRequest) {
+  return actionRequest.state === 'suggested' || actionRequest.state === 'withdrawn';
 }
