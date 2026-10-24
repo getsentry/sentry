@@ -4,9 +4,9 @@ import abc
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.auth.access import Access
@@ -33,11 +33,30 @@ class CannotApplyReason(StrEnum):
     DYNAMIC_DETECTOR = "dynamic_detector"
 
 
+class ApplyErrorCode(StrEnum):
+    """What else the apply endpoint can say went wrong. The UI switches on these."""
+
+    ALREADY_APPLIED = "already_applied"
+    WITHDRAWN = "withdrawn"
+    STALE = "stale"
+    VALIDATION_FAILED = "validation_failed"
+
+
+class ApplyError(TypedDict):
+    detail: str
+    code: CannotApplyReason | ApplyErrorCode
+    # Seer's reason for withdrawing it.
+    reason: NotRequired[str | None]
+    # The settings that moved since Seer suggested the change.
+    current: NotRequired[dict[str, object]]
+    # Why the change wouldn't save.
+    messages: NotRequired[list[str]]
+
+
 @dataclass(frozen=True)
 class ApplyResult:
     action_request: InvestigationActionRequest
-    status: int = status.HTTP_200_OK
-    error: dict[str, object] | None = None
+    error: ApplyError | None = None
 
 
 @dataclass(frozen=True)
@@ -51,27 +70,20 @@ class ApplyContext:
     actor_id: int
 
 
-def apply_error(
-    action_request: InvestigationActionRequest,
-    status_code: int,
-    detail: str,
-    code: str,
-    **extra: object,
-) -> ApplyResult:
-    return ApplyResult(
-        action_request=action_request,
-        status=status_code,
-        error={"detail": detail, "code": code, **extra},
-    )
+class ActionStale(Exception):
+    """What the action changes moved since Seer suggested it."""
+
+    def __init__(self, current: dict[str, object]) -> None:
+        super().__init__("The action is stale.")
+        self.current = current
 
 
-def unsupported_action(action_request: InvestigationActionRequest) -> ApplyResult:
-    return apply_error(
-        action_request,
-        status.HTTP_400_BAD_REQUEST,
-        "This request has no action to apply.",
-        "unsupported_action",
-    )
+class ActionInvalid(Exception):
+    """The change wouldn't save. `errors` are the validator's errors."""
+
+    def __init__(self, errors: dict[str, Any] | list[Any]) -> None:
+        super().__init__("The action is invalid.")
+        self.errors = errors
 
 
 class ActionKind(abc.ABC):
@@ -91,18 +103,17 @@ class ActionKind(abc.ABC):
         """For each suggested request, why the viewer can't apply it, or None if they can."""
         return {item.id: CannotApplyReason.UNSUPPORTED_ACTION for item in action_requests}
 
-    def check(self, context: ApplyContext) -> ApplyResult | None:
-        """Run the checks apply would, without changing anything. Returns the error apply would
-        return, or None if it would apply. cannot_apply_reasons has already passed.
-        """
-        return unsupported_action(context.action_request)
-
-    def apply(self, context: ApplyContext) -> ApplyResult:
-        """Make the change. cannot_apply_reasons has already passed. If an error updates the row,
-        return it rather than raise, so the update still commits.
+    def check(self, context: ApplyContext) -> None:
+        """Run the checks apply would, without changing anything. Raise ActionStale or
+        ActionInvalid where apply would. Kinds with nothing to check beyond
+        cannot_apply_reasons can leave this as is.
         """
 
-        return unsupported_action(context.action_request)
+    def apply(self, context: ApplyContext) -> dict[str, object]:
+        """Make the change, and return what the activity feed should show about it. Raise
+        ActionStale or ActionInvalid instead of updating the request; the caller records it.
+        """
+        raise NotImplementedError
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         """Runs when Seer creates or changes a request, in the same transaction. Only requests

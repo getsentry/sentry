@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
-from unittest import mock
 
 from django.urls import reverse
 
@@ -15,6 +14,8 @@ from sentry.investigations.models import (
     InvestigationActionRequestState,
     InvestigationStatus,
 )
+from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.investigations.services.action_kinds.base import ActionInvalid, ActionStale
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
@@ -25,6 +26,7 @@ from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
 pytestmark = [requires_snuba, requires_kafka]
 
@@ -145,13 +147,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         )
 
     def apply(self, action_request: InvestigationActionRequest, **data: Any) -> Any:
-        with (
-            self.tasks(),
-            mock.patch(
-                "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
-            ) as self.dispatch,
-        ):
-            return self.client.post(self.apply_url(action_request.id), data=data, format="json")
+        return self.client.post(self.apply_url(action_request.id), data=data, format="json")
 
     def snuba_query(self, detector: Detector | None = None) -> SnubaQuery:
         data_source = (detector or self.detector).data_sources.get()
@@ -311,3 +307,94 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             response = self.client.post(self.apply_url(action_request.id), data={}, format="json")
 
         assert response.status_code == 404
+
+
+@with_feature(FEATURE)
+class SharedApplyPathTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        kind = fake_action_kind()
+        kind.start()
+        self.addCleanup(kind.stop)
+        recording = ACTION_KINDS["test_kind"]
+        assert isinstance(recording, RecordingKind)
+        self.kind = recording
+        self.investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user
+        )
+        self.create_investigation_orchestration_run(investigation=self.investigation)
+        self.action_request = self.create_investigation_action_request(
+            investigation=self.investigation,
+            key="test",
+            action_kind="test_kind",
+            action_payload=fake_action(),
+        )
+
+    def post(self, **data: Any) -> Any:
+        url = reverse(
+            "sentry-api-0-organization-investigation-action-request-apply",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+                "action_request_id": self.action_request.id,
+            },
+        )
+        return self.client.post(url, data=data, format="json")
+
+    def test_a_dry_run_only_checks(self) -> None:
+        response = self.post(dryRun=True)
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == ["check"]
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
+
+    def test_applying_records_what_the_kind_returns(self) -> None:
+        response = self.post()
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == ["apply"]
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == InvestigationActionRequestState.APPLIED
+        assert self.action_request.applied_by_id == self.user.id
+        assert self.action_request.applied_details == {"target": "a"}
+
+    def test_a_stale_action_is_superseded_with_what_moved(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+
+        response = self.post()
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "This changed since Seer suggested it.",
+            "code": "stale",
+            "current": {"window": 600},
+        }
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == InvestigationActionRequestState.SUPERSEDED
+        assert self.action_request.error == {"code": "stale", "current": {"window": 600}}
+
+    def test_a_stale_dry_run_changes_nothing(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+
+        response = self.post(dryRun=True)
+
+        assert response.status_code == 409
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert self.action_request.error is None
+
+    def test_an_invalid_action_stays_suggested(self) -> None:
+        self.kind.raises = ActionInvalid({"window": ["Pick a supported window."]})
+
+        response = self.post()
+
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": "The change wasn't valid.",
+            "code": "validation_failed",
+            "messages": ["Pick a supported window."],
+        }
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
