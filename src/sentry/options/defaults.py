@@ -2751,6 +2751,39 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Per-destination circuit breaker for outbound RPCs. `enabled` tracks outcomes and
+# records would-be rejections; `enforce` actually rejects calls while the breaker is open.
+register(
+    "hybridcloud.rpc.circuit-breaker.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.rpc.circuit-breaker.enforce",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.rpc.circuit-breaker.config",
+    type=Dict,
+    default={
+        "error_limit_window": 60,  # seconds
+        "broken_state_duration": 30,  # seconds
+        "threshold": 0.5,  # fraction of calls that must fail to trip
+        "floor": 50,  # minimum failures before the threshold applies
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Calls slower than this count as failures: a slow destination ties up workers the
+# same way a failing one does.
+register(
+    "hybridcloud.rpc.circuit-breaker.slow-call-seconds",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.apigateway.use_pooling.rate",
     default=0.0,
