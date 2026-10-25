@@ -85,9 +85,10 @@ class MonitorTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
-        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
-            2024, 10, 27, 1, 1, tzinfo=timezone.utc
-        )
+        # PEP 495: inter-zone == is always False for a time with fold=1
+        assert monitor_environment.monitor.get_next_expected_checkin(ts).astimezone(
+            timezone.utc
+        ) == datetime(2024, 10, 27, 1, 1, tzinfo=timezone.utc)
         assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
             2024, 10, 27, 1, 6, tzinfo=timezone.utc
         )
