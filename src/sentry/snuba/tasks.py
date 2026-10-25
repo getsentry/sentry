@@ -149,6 +149,7 @@ def update_subscription_in_snuba(
                     [subscription.project_id],
                     None,
                     {"organization_id": subscription.project.organization_id},
+                    skip_field_validation_for_entity_subscription_deletion=True,
                 ),
             )
         )
