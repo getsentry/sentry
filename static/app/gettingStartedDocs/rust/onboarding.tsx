@@ -20,23 +20,21 @@ sentry = "${version}"`;
 };
 
 const getConfigureSnippet = (params: Params) => `
-let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
-  release: sentry::release_name!(),
-  // Capture user IPs and potentially sensitive headers when using HTTP server integrations
-  // see https://docs.sentry.io/platforms/rust/data-management/data-collected for more info
-  send_default_pii: true,
-  ..Default::default()
-}));`;
+let _guard = sentry::init((
+  "${params.dsn.public}",
+  sentry::ClientOptions::new()
+    .maybe_release(sentry::release_name!())
+    .send_default_pii(true),
+));`;
 
 const getVerifySnippet = (params: Params) => `
 fn main() {
-  let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
-    release: sentry::release_name!(),
-    // Capture user IPs and potentially sensitive headers when using HTTP server integrations
-    // see https://docs.sentry.io/platforms/rust/data-management/data-collected for more info
-    send_default_pii: true,
-    ..Default::default()
-  }));
+  let _guard = sentry::init((
+    "${params.dsn.public}",
+    sentry::ClientOptions::new()
+      .maybe_release(sentry::release_name!())
+      .send_default_pii(true),
+  ));
 
   // Sentry will capture this
   panic!("Everything is on fire!");
