@@ -94,6 +94,44 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
 />
 ```
 
+### Icons on some items
+
+Only add icons where they help. When any item in a menu has `leadingItems`, items without them are indented to match, so every label lines up.
+
+<Storybook.Demo>
+  <DropdownMenu
+    triggerLabel="Actions"
+    items={[
+      {key: 'rename', label: 'Rename', onAction: () => {}},
+      {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+      {
+        key: 'download',
+        label: 'Download',
+        leadingItems: <IconDownload size="sm" />,
+        onAction: () => {},
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        leadingItems: <IconDelete size="sm" />,
+        onAction: () => {},
+      },
+    ]}
+  />
+</Storybook.Demo>
+
+```jsx
+<DropdownMenu
+  triggerLabel="Actions"
+  items={[
+    {key: 'rename', label: 'Rename', onAction: () => {}},
+    {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+    {key: 'download', label: 'Download', leadingItems: <IconDownload size="sm" />},
+    {key: 'delete', label: 'Delete', leadingItems: <IconDelete size="sm" />},
+  ]}
+/>
+```
+
 ## Sections, Links, and Submenus
 
 Group related items by adding `children` without setting `submenu`. Use `to` for internal links and `externalHref` for external links. Set `submenu` and `children` together to create a nested menu.

@@ -115,11 +115,15 @@ export function GridListOption<T extends ListItemBase>({
             )
           )}
         </LeadWrap>
-        {leading ? (
-          <LeadWrap role="presentation">{leading}</LeadWrap>
-        ) : reserveLeadingSlot ? (
-          // Matches the default 16px icon, so labels line up with options that have one.
-          <LeadWrap role="presentation" minWidth="16px" />
+        {/* When any option has an icon, every option gets a 16px icon column so
+            labels line up. */}
+        {leading || reserveLeadingSlot ? (
+          <LeadWrap
+            role="presentation"
+            minWidth={reserveLeadingSlot ? '16px' : undefined}
+          >
+            {leading}
+          </LeadWrap>
         ) : null}
       </Fragment>
     );

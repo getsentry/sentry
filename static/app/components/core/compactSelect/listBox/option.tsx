@@ -97,11 +97,12 @@ export function ListBoxOption({
             isSelected && <IconCheckmark size={checkboxSize} variant="accent" />
           )}
         </LeadWrap>
-        {leading ? (
-          <LeadWrap aria-hidden="true">{leading}</LeadWrap>
-        ) : reserveLeadingSlot ? (
-          // Matches the default 16px icon, so labels line up with options that have one.
-          <LeadWrap aria-hidden="true" minWidth="16px" />
+        {/* When any option has an icon, every option gets a 16px icon column so
+            labels line up. */}
+        {leading || reserveLeadingSlot ? (
+          <LeadWrap aria-hidden="true" minWidth={reserveLeadingSlot ? '16px' : undefined}>
+            {leading}
+          </LeadWrap>
         ) : null}
       </Fragment>
     );
