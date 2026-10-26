@@ -238,7 +238,7 @@ function AutomationCard({
               </Text>
             ) : (
               <Flex align="center" gap="sm">
-                <ProjectList projectSlugs={projectSlugs} />
+                <ProjectList projectSlugs={projectSlugs} disableLinks />
                 {/* TODO(aliu): Limit the length of this list */}
                 <Container flex="1" minWidth={0}>
                   <Text size="sm" variant="muted">
