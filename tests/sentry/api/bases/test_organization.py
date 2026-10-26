@@ -32,7 +32,7 @@ from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
-from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -913,13 +913,15 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         assert first_cache_key != second_cache_key
 
-    def build_service_account_request(self, organization: Organization | None = None):
+    def build_service_account_request(
+        self, organization: Organization | None = None, params: dict[str, str] | None = None
+    ):
         service_account = self.create_service_account(
             organization=organization or self.org,
             scope_list=["project:releases"],
             project_ids=[self.project_1.id] if organization is None else [],
         )
-        request = RequestFactory().get("/")
+        request = RequestFactory().get("/", params or {})
         request.session = SessionBase()
         request.user = AnonymousUser()
         request.auth = AuthenticatedToken(
@@ -942,6 +944,29 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         request = self.build_service_account_request(organization=self.create_organization())
 
         assert self.endpoint.get_projects(request, self.org) == []
+
+    def test_service_account_release_projects_are_limited_to_linked_projects(self) -> None:
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request()
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
+
+    def test_service_account_release_all_projects_are_limited_to_linked_projects(self) -> None:
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request(params={"project": str(ALL_ACCESS_PROJECT_ID)})
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
+
+    def test_service_account_release_projects_with_open_membership(self) -> None:
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request()
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {
+            self.project_1.id,
+            self.project_2.id,
+        }
 
     def test_service_account_release_permission_follows_linked_projects(self) -> None:
         linked_release = self.create_release(project=self.project_1)

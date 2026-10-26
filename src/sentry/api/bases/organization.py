@@ -922,7 +922,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
         Agent requests bypass the cache so every call rechecks live project membership.
-        Service accounts bypass it too, since their IDs would share `apikey:` keys.
+        Service accounts bypass it too. With no user, they'd fall into the
+        `apikey:<entity_id>` key below, where a service account ID can match an
+        API key ID.
         """
         actor_id = None
         has_perms = None
