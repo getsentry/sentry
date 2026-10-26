@@ -2133,7 +2133,6 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             organization=self.organization,
             projects=[self.project],
         )
-        self.create_alert_rule_trigger(alert_rule=alert_rule)
         detector = self.create_detector(
             project=self.project,
             type=MetricIssue.slug,

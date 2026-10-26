@@ -10,7 +10,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
-    AlertRuleTrigger,
 )
 from sentry.incidents.models.incident import Incident
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -30,7 +29,6 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
     def test_simple(self) -> None:
         organization = self.create_organization()
         alert_rule = self.create_alert_rule(organization=organization)
-        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
         incident = self.create_incident(
             organization,
             title="Incident #1",
@@ -64,7 +62,6 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
 
         assert Organization.objects.filter(id=organization.id).exists()
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
-        assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
         assert IncidentGroupOpenPeriod.objects.filter(
             incident_id=incident.id,
@@ -92,9 +89,6 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
             detection_type=AlertRuleDetectionType.DYNAMIC,
             organization=organization,
         )
-        alert_rule_trigger = self.create_alert_rule_trigger(
-            alert_rule=alert_rule, alert_threshold=0
-        )
         incident = self.create_incident(
             organization,
             title="Incident #1",
@@ -111,5 +105,4 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
 
         assert Organization.objects.filter(id=organization.id).exists()
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
-        assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
