@@ -11,6 +11,7 @@ import type {
   BaseDetectorUpdatePayload,
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -54,7 +55,7 @@ export function NewDetectorLayout<
     const writableProjects = projects.filter(project =>
       hasDetectorWriteAccess({organization, project})
     );
-    const queryProjectId = location.query.project as string | undefined;
+    const queryProjectId = decodeScalar(location.query.project);
     if (queryProjectId) {
       const match = writableProjects.find(p => p.id === queryProjectId);
       if (match) {
@@ -77,22 +78,17 @@ export function NewDetectorLayout<
   const [formModel] = useState(() => new FormModel());
   const {onFieldChange} = useFormEagerValidation(formModel);
 
+  const initialEnvironment = decodeScalar(location.query.environment, '');
   const initialData = useMemo(() => {
     return {
       projectId: initialProjectId,
-      environment: (location.query.environment as string | undefined) || '',
-      name: (location.query.name as string | undefined) || '',
-      owner: (location.query.owner as string | undefined) || '',
+      environment: initialEnvironment,
+      name: '',
+      owner: '',
       workflowIds: [],
       ...initialFormData,
     };
-  }, [
-    initialProjectId,
-    initialFormData,
-    location.query.environment,
-    location.query.name,
-    location.query.owner,
-  ]);
+  }, [initialProjectId, initialEnvironment, initialFormData]);
 
   const formProps: FormProps = {
     model: formModel,

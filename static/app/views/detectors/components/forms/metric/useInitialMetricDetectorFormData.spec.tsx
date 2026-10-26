@@ -45,7 +45,7 @@ describe('useInitialMetricDetectorFormData', () => {
     expect(result.current.query).toBe('');
   });
 
-  it('parses dataset, aggregate, query, environment, and name from URL', () => {
+  it('parses dataset, aggregate, and query from URL', () => {
     const organization = OrganizationFixture({features: ['performance-view']});
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
       organization,
@@ -56,8 +56,6 @@ describe('useInitialMetricDetectorFormData', () => {
             dataset: 'spans',
             aggregate: 'avg(span.duration)',
             query: 'span.op:queue.publish',
-            environment: 'prod',
-            name: 'My Monitor',
           },
         },
       },
@@ -66,8 +64,6 @@ describe('useInitialMetricDetectorFormData', () => {
     expect(result.current.dataset).toBe(DetectorDataset.SPANS);
     expect(result.current.aggregateFunction).toBe('avg(span.duration)');
     expect(result.current.query).toBe('span.op:queue.publish');
-    expect(result.current.environment).toBe('prod');
-    expect(result.current.name).toBe('My Monitor');
   });
 
   it('preserves an application metric aggregate from the URL', () => {
