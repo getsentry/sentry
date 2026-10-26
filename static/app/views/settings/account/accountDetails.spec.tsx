@@ -22,7 +22,7 @@ describe('AccountDetails', () => {
   it('renders', async () => {
     render(<AccountDetails />);
 
-    expect(await screen.findByRole('textbox', {name: 'Name'})).toBeEnabled();
+    expect(await screen.findByRole('textbox', {name: 'Full name'})).toBeEnabled();
 
     expect(screen.getByRole('checkbox', {name: 'Use a 24-hour clock'})).toBeEnabled();
     expect(screen.getByRole('radiogroup', {name: 'Avatar Type'})).toBeEnabled();
@@ -40,7 +40,7 @@ describe('AccountDetails', () => {
       mockUserDetails({isManaged: true});
       render(<AccountDetails />);
 
-      expect(await screen.findByRole('textbox', {name: 'Name'})).toBeEnabled();
+      expect(await screen.findByRole('textbox', {name: 'Full name'})).toBeEnabled();
       expect(screen.queryByRole('textbox', {name: 'Password'})).not.toBeInTheDocument();
     });
 

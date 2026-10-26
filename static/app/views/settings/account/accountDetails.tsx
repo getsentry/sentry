@@ -174,7 +174,11 @@ function AccountDetails() {
             mutationOptions={userMutationOptions}
           >
             {field => (
-              <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
+              <field.Layout.Row
+                label={t('Full name')}
+                hintText={t('Your full name')}
+                required
+              >
                 <field.Input
                   value={field.state.value}
                   onChange={field.handleChange}
