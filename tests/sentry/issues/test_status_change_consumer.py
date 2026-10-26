@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
+
+from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.occurrence_consumer import _process_message
@@ -13,6 +15,7 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -237,6 +240,67 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             PriorityLevel.MEDIUM,
             group_inbox_reason=GroupInboxReason.ONGOING,
         )
+
+    @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
+    @patch(
+        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
+    )
+    def test_resolve_closes_open_period_opened_by_a_concurrent_regression(
+        self, mock_update_igop: MagicMock, mock_kick_off_status_syncs: MagicMock
+    ) -> None:
+        """
+        SENTRY-4EDG, metric issue shape. The occurrence consumer runs in parallel mode, so a
+        regression occurrence and the resolve for the same fingerprint can be processed at the
+        same time. The resolve stamps its activity first, then the regression opens a period a
+        few milliseconds later, then the resolve tries to close that period with the earlier time.
+        """
+        self.group.update(type=MetricIssue.type_id)
+
+        open_period = get_latest_open_period(self.group)
+        assert open_period is not None
+
+        with freeze_time():
+            resolution_time = timezone.now()
+
+            open_period.update(date_started=resolution_time + timedelta(milliseconds=7))
+
+            message = get_test_message_status_change(
+                self.project.id, fingerprint=["touch-id"], detector_id=1
+            )
+            _process_message(message)
+
+        self.group.refresh_from_db()
+        open_period.refresh_from_db()
+
+        assert self.group.status == GroupStatus.RESOLVED
+        assert open_period.date_ended is not None
+        assert open_period.date_ended >= open_period.date_started
+        mock_update_igop.assert_called_once()
+
+    @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
+    def test_resolve_with_update_date_before_open_period_start(
+        self, mock_kick_off_status_syncs: MagicMock
+    ) -> None:
+        """
+        SENTRY-4EDG, cron monitor shape. Cron resolves carry the OK check-in's client-supplied
+        timestamp as update_date, which can predate the server time the failure was received.
+        """
+        open_period = get_latest_open_period(self.group)
+        assert open_period is not None
+
+        update_date = open_period.date_started - timedelta(seconds=12)
+
+        message = get_test_message_status_change(
+            self.project.id, fingerprint=["touch-id"], update_date=update_date
+        )
+        _process_message(message)
+
+        self.group.refresh_from_db()
+        open_period.refresh_from_db()
+
+        assert self.group.status == GroupStatus.RESOLVED
+        assert open_period.date_ended is not None
+        assert open_period.date_ended >= open_period.date_started
 
 
 class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
