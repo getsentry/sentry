@@ -91,7 +91,7 @@ class IntegrationNotificationClient[RenderableT, ResponseT = dict[str, Any]](Pro
         self, target: IntegrationNotificationTarget, payload: RenderableT
     ) -> ResponseT | None: ...
 
-    def send_notification_with_threading(
+    def send_notification_with_response(
         self,
         target: IntegrationNotificationTarget,
         payload: RenderableT,
