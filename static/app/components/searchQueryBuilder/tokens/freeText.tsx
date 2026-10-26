@@ -533,6 +533,10 @@ function SearchQueryBuilderInputInternal({
       e.preventDefault();
       e.stopPropagation();
 
+      if (!e.clipboardData) {
+        return;
+      }
+
       const clipboardText = e.clipboardData
         .getData('text/plain')
         .replace('\n', '')
