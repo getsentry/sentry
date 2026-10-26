@@ -50,6 +50,7 @@ class SCMIntegrationInteractionType(StrEnum):
 
     # Releases
     COMPARE_COMMITS = "compare_commits"
+    RESOLVE_ISSUE_VIA_COMMIT = "resolve_issue_via_commit"
 
     # Status Checks
     CREATE_STATUS_CHECK = "create_status_check"
@@ -60,6 +61,10 @@ class SCMIntegrationInteractionType(StrEnum):
     # Repo Trees
     GET_REPOSITORIES = "get_repositories"
     GET_REPO_TREE = "get_repo_tree"
+
+
+class SCMResolutionHaltReason(StrEnum):
+    ISSUE_ALREADY_RESOLVED = "issue_already_resolved"
 
 
 @dataclass

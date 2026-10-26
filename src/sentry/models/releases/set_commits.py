@@ -3,12 +3,18 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+from contextlib import nullcontext
 from typing import Any, TypedDict
 
 from django.db import IntegrityError, router
 
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+    SCMResolutionHaltReason,
+)
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import Activity
@@ -200,11 +206,6 @@ def update_group_resolutions(release, commit_author_by_commit):
         ).values_list("group_id", "linked_id")
     )
 
-    commit_group_authors = [
-        (cr[0], commit_author_by_commit.get(cr[1]))
-        for cr in commit_resolutions  # group_id
-    ]
-
     # repository_id is fetched here so we don't need a second PullRequest query
     # below to resolve providers (pull_request_resolutions is always a subset).
     pr_repo_ids = dict(
@@ -232,20 +233,20 @@ def update_group_resolutions(release, commit_author_by_commit):
 
     pr_authors_dict = {pra.id: pra.author for pra in pr_authors}
 
-    pull_request_group_authors = [
-        (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
-    ]
-
     # Map each resolved group to the (normalized) provider of the commit/PR that
     # resolved it, so the issue_resolved analytics event records e.g. "github".
     # commit -> repository_id comes for free from the select_related above;
     # pr -> repository_id was already collected in pr_repo_ids above.
     commit_repo_ids = {rc["commit_id"]: rc["commit__repository_id"] for rc in release_commits}
-    repo_providers = dict(
-        Repository.objects.filter(
+    repo_details = {
+        repo_id: (provider, integration_id)
+        for repo_id, provider, integration_id in Repository.objects.filter(
             id__in=set(commit_repo_ids.values()) | set(pr_repo_ids.values())
-        ).values_list("id", "provider")
-    )
+        ).values_list("id", "provider", "integration_id")
+    }
+    repo_providers = {
+        repo_id: provider for repo_id, (provider, _integration_id) in repo_details.items()
+    }
     # Iterate PRs first, commits second, so a commit-derived provider wins when a
     # group is resolved by both. The repo_id guards prevent a repo-less link from
     # overwriting a valid provider with None.
@@ -276,14 +277,37 @@ def update_group_resolutions(release, commit_author_by_commit):
 
     user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
-    commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
-    group_project_lookup = dict(
-        Group.objects.filter(id__in=[group_id for group_id, _ in commits_and_prs]).values_list(
-            "id", "project_id"
+    resolution_attempts = list(
+        itertools.chain(
+            (
+                (
+                    group_id,
+                    commit_author_by_commit.get(commit_id),
+                    SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_COMMIT,
+                    commit_repo_ids.get(commit_id),
+                )
+                for group_id, commit_id in commit_resolutions
+            ),
+            (
+                (
+                    group_id,
+                    pr_authors_dict.get(pr_id),
+                    None,
+                    None,
+                )
+                for group_id, pr_id in pull_request_resolutions
+            ),
         )
     )
+    group_project_lookup = dict(
+        Group.objects.filter(
+            id__in=[
+                group_id for group_id, _author, _interaction_type, _repo_id in resolution_attempts
+            ]
+        ).values_list("id", "project_id")
+    )
 
-    for group_id, author in commits_and_prs:
+    for group_id, author, interaction_type, repo_id in resolution_attempts:
         if author is not None and author not in user_by_author:
             try:
                 user_by_author[author] = author.find_users()[0]
@@ -291,14 +315,34 @@ def update_group_resolutions(release, commit_author_by_commit):
                 user_by_author[author] = None
         actor = user_by_author[author]
 
-        with atomic_transaction(
-            using=(
-                router.db_for_write(GroupResolution),
-                router.db_for_write(Group),
-                # inside the remove_group_from_inbox
-                router.db_for_write(GroupInbox),
-                router.db_for_write(Activity),
+        provider, integration_id = (
+            repo_details.get(repo_id, (None, None)) if repo_id is not None else (None, None)
+        )
+        normalized_provider = normalize_provider_key(provider)
+        event = (
+            SCMIntegrationInteractionEvent(
+                interaction_type=interaction_type,
+                provider_key=normalized_provider,
+                organization_id=release.organization_id,
+                integration_id=integration_id,
             )
+            if interaction_type is not None and normalized_provider is not None
+            else None
+        )
+        lifecycle_context = (
+            event.capture(assume_success=False) if event is not None else nullcontext()
+        )
+        with (
+            lifecycle_context as lifecycle,
+            atomic_transaction(
+                using=(
+                    router.db_for_write(GroupResolution),
+                    router.db_for_write(Group),
+                    # inside the remove_group_from_inbox
+                    router.db_for_write(GroupInbox),
+                    router.db_for_write(Activity),
+                )
+            ),
         ):
             resolution, _ = GroupResolution.objects.update_or_create(
                 group_id=group_id,
@@ -329,6 +373,12 @@ def update_group_resolutions(release, commit_author_by_commit):
             record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 
             metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
+
+        if lifecycle is not None:
+            if should_create_resolution_activity:
+                lifecycle.record_success()
+            else:
+                lifecycle.record_halt(SCMResolutionHaltReason.ISSUE_ALREADY_RESOLVED)
 
         issue_resolved.send_robust(
             organization_id=release.organization_id,

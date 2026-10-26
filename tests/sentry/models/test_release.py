@@ -10,6 +10,7 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
 from sentry.issues.action_log.types import SetResolvedInReleaseAction
 from sentry.models.commit import Commit
@@ -695,15 +696,21 @@ class SetCommitsTestCase(TestCase):
         assert resolution.status == GroupResolution.Status.resolved
         assert Group.objects.get(id=frontend_group.id).status == GroupStatus.RESOLVED
 
+    @patch("sentry.models.releases.set_commits.SCMIntegrationInteractionEvent")
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
-    def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
+    def test_resolution_records_commit_provider(
+        self, mock_record: MagicMock, mock_lifecycle_event: MagicMock
+    ) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         repo = Repository.objects.create(
-            organization_id=org.id, name="test/repo", provider="integrations:github"
+            organization_id=org.id,
+            name="test/repo",
+            provider="integrations:github",
+            integration_id=123,
         )
         commit = Commit.objects.create(
             organization_id=org.id,
@@ -731,6 +738,15 @@ class SetCommitsTestCase(TestCase):
                 issue_category=group.issue_category.name.lower(),
             ),
         )
+        mock_lifecycle_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_COMMIT,
+            provider_key="github",
+            organization_id=org.id,
+            integration_id=repo.integration_id,
+        )
+        mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
+        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_success.assert_called_once_with()
 
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
