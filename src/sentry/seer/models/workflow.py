@@ -198,7 +198,7 @@ class SeerWorkflowRunExtras(BaseModel):
 
 
 class SeerWorkflowExecutionExtras(BaseModel):
-    """Execution JSON metadata; execution failures stay here, even when the run fails."""
+    """Metadata for one execution, including its error."""
 
     error: WorkflowRunError | None = None
 
