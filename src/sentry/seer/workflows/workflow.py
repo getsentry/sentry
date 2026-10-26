@@ -16,6 +16,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowFilters,
     SeerWorkflowStrategy,
 )
+from sentry.service_accounts.models import ServiceAccountReplica
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
@@ -105,6 +106,49 @@ class SeerWorkflow:
                 )
             )
         return projects
+
+    def set_service_account(self, service_account_id: int | None) -> None:
+        """Store the control account ID after validating its current cell replica."""
+        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
+            config = SeerWorkflowConfig.objects.select_for_update().get(
+                id=self.config.id, organization_id=self.config.organization_id
+            )
+            if service_account_id is not None:
+                try:
+                    replica = ServiceAccountReplica.objects.get(
+                        service_account_id=service_account_id,
+                        organization_id=config.organization_id,
+                    )
+                except ServiceAccountReplica.DoesNotExist as exc:
+                    raise ValueError(
+                        "Service account is unavailable in the workflow's organization"
+                    ) from exc
+                if not replica.is_active:
+                    raise ValueError("Service account is inactive")
+
+            if config.service_account_id != service_account_id:
+                config.service_account_id = service_account_id
+                config.version += 1
+                config.save(update_fields=["service_account_id", "version", "date_updated"])
+
+        self.config = config
+
+    def resolve_service_account(self) -> ServiceAccountReplica:
+        """Resolve authoritative identity against current cell state on every call."""
+        if self.config.service_account_id is None:
+            raise ValueError("Workflow has no service account")
+        try:
+            replica = ServiceAccountReplica.objects.get(
+                service_account_id=self.config.service_account_id,
+                organization_id=self.config.organization_id,
+            )
+        except ServiceAccountReplica.DoesNotExist as exc:
+            raise ValueError(
+                "Service account is unavailable in the workflow's organization"
+            ) from exc
+        if not replica.is_active:
+            raise ValueError("Service account is inactive")
+        return replica
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         match selection:
