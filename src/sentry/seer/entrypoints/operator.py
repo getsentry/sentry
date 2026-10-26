@@ -4,7 +4,7 @@ from typing import Any, NotRequired, TypedDict
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
-from sentry.constants import DataCategory
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.investigations.access import has_investigations_access
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
@@ -545,7 +545,7 @@ class SeerAgentOperator[CachePayloadT]:
                     "organizations:ask-seer-create-pr", organization, actor=user
                 )
             enable_coding = has_create_pr and organization.get_option(
-                "sentry:enable_seer_coding", False
+                "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
             )
 
             try:
