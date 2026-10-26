@@ -22,7 +22,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
     WorkflowRunSnapshot,
 )
-from sentry.seer.workflows.runs import WorkflowRun
+from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.utils import json
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
@@ -91,7 +91,7 @@ class SeerWorkflow:
         trigger_key: str,
         inputs: BaseModel,
         extras: Mapping[str, Any] | None = None,
-    ) -> tuple[WorkflowRun, bool]:
+    ) -> tuple[SeerWorkflowRunLifecycle, bool]:
         """Record an invocation once; retries keep its original snapshot and admission."""
         if not trigger_key or len(trigger_key) > 256:
             raise ValueError("Trigger keys must contain between 1 and 256 characters")
@@ -102,7 +102,7 @@ class SeerWorkflow:
             )
             existing = self.get_runs().filter(trigger_key=trigger_key).first()
             if existing is not None:
-                return WorkflowRun(existing), False
+                return SeerWorkflowRunLifecycle(existing), False
 
             snapshot = WorkflowRunSnapshot(
                 config_version=self.config.version,
@@ -120,7 +120,7 @@ class SeerWorkflow:
                 status=SeerWorkflowRunStatus.QUEUED,
                 extras=json.loads(run_extras.json()),
             )
-        return WorkflowRun(run), True
+        return SeerWorkflowRunLifecycle(run), True
 
     def get_runs(self) -> QuerySet[SeerWorkflowRun]:
         return SeerWorkflowRun.objects.filter(

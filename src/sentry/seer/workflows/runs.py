@@ -33,13 +33,13 @@ TERMINAL_STATUSES = {"complete", "partial", "failed"}
 
 
 @dataclass
-class WorkflowRun:
+class SeerWorkflowRunLifecycle:
     """The lifecycle of one configurable automation invocation."""
 
     run: SeerWorkflowRun
 
     @classmethod
-    def get(cls, *, organization_id: int, run_id: int) -> WorkflowRun:
+    def get(cls, *, organization_id: int, run_id: int) -> SeerWorkflowRunLifecycle:
         return cls(
             SeerWorkflowRun.objects.get(
                 id=run_id, organization_id=organization_id, status__isnull=False

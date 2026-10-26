@@ -21,7 +21,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import (
-    WorkflowRun,
+    SeerWorkflowRunLifecycle,
     create_workflow_run,
     deliver_workflow_result,
     finish_workflow_run,
@@ -249,7 +249,7 @@ class ConfiguredWorkflowRunTest(TestCase):
                 trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
             )
         with pytest.raises(SeerWorkflowRun.DoesNotExist):
-            WorkflowRun.get(organization_id=other_org.id, run_id=first.run.id)
+            SeerWorkflowRunLifecycle.get(organization_id=other_org.id, run_id=first.run.id)
         first.run.refresh_from_db()
         assert first.run.date_completed is None
 
@@ -382,7 +382,7 @@ class ConfiguredWorkflowRunTest(TestCase):
         assert run.extras.error is None
         assert run.run.date_completed is not None
 
-    def create_run(self) -> WorkflowRun:
+    def create_run(self) -> SeerWorkflowRunLifecycle:
         run, _ = self.create_configured_workflow().get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
@@ -450,7 +450,7 @@ def test_run_finishes_after_all_executions(
     first.refresh_from_db()
     assert SeerWorkflowExecutionExtras.parse_obj(first.extras).error == first_error
     assert SeerWorkflowExecutionExtras.parse_obj(finished.extras).error == second_error
-    completed_run = WorkflowRun.get(organization_id=organization.id, run_id=run.run.id)
+    completed_run = SeerWorkflowRunLifecycle.get(organization_id=organization.id, run_id=run.run.id)
     assert completed_run.run.status == expected_status
     assert completed_run.extras.error is None
     assert completed_run.run.extras == original_extras
