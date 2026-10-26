@@ -764,3 +764,23 @@ class PromoteToLiveTest(TestCase):
         assert result.resume_from_group_id is None
         assert GroupDerivedData.objects.filter(id=bad.id).values().get() == before
         assert GroupDerivedData.objects.get(group_id=good_group.id).view_count == 1
+
+    def test_build_and_promote_batch_records_per_group_duration(self) -> None:
+        group = self.create_group()
+        self.create_group_action_log_entry(group)
+
+        with patch("sentry.issues.derived.promote.metrics.distribution") as distribution:
+            build_and_promote_batch([group.id], timeout=timedelta(minutes=1), log_key="test.batch")
+
+        (duration,) = [
+            c
+            for c in distribution.call_args_list
+            if c.args[0] == "issues.derived.build_and_promote_group.duration"
+        ]
+        assert duration.args[1] >= 0
+        assert duration.kwargs["tags"] == {
+            "task": "test.batch",
+            "outcome": "promoted",
+            "resumed": "false",
+        }
+        assert duration.kwargs["unit"] == "second"
