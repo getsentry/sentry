@@ -31,6 +31,7 @@ import type {
   InvestigationActionRequest,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
+import {getActorName} from 'sentry/views/investigations/utils';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const SHOWN_STATES = new Set<InvestigationActionRequest['state']>([
@@ -181,7 +182,7 @@ function AppliedBy({actionRequest}: {actionRequest: InvestigationActionRequest})
       </Text>
     );
   }
-  const name = appliedBy.id === user.id ? t('you') : appliedBy.name || appliedBy.email;
+  const name = appliedBy.id === user.id ? t('you') : getActorName(appliedBy);
   return (
     <Text as="p" size="sm" variant="muted">
       {time

@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getActionKind,
@@ -137,6 +137,26 @@ export function getAppliedSummary(
   return kind
     ? kind.ui.getAppliedSummary({action: kind.action, actionRequest, source})
     : null;
+}
+
+export function getAppliedActivityTitle(
+  actionRequest: InvestigationActionRequest,
+  actorName: string | null,
+  organizationSlug: string
+): ReactNode {
+  const kind = getActionKind(actionRequest.action);
+  const title = kind?.ui.getActivityTitle({
+    action: kind.action,
+    actionRequest,
+    actorName,
+    organizationSlug,
+  });
+  if (title) {
+    return title;
+  }
+  return actorName
+    ? tct('[actor] applied “[title]”', {actor: actorName, title: actionRequest.title})
+    : tct('“[title]” was applied', {title: actionRequest.title});
 }
 
 export function getApplySuccessMessage(action: InvestigationAction | null) {
