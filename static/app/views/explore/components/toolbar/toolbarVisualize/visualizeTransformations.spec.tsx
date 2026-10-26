@@ -5,13 +5,22 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-import {VisualizeTransformations} from './visualizeTransformations';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from './visualizeTransformations';
 
 function Example({initial = []}: {initial?: string[]}) {
   const [transformations, setTransformations] = useState<readonly string[]>(initial);
   return (
     <div>
-      <VisualizeTransformations
+      <VisualizeTransformationRows
+        traceItemDataset={TraceItemDataset.SPANS}
+        transformations={transformations}
+        onChange={setTransformations}
+        layout="inline"
+      />
+      <AddTransformationButton
         traceItemDataset={TraceItemDataset.SPANS}
         transformations={transformations}
         onChange={setTransformations}

@@ -117,27 +117,6 @@ interface Props {
   transformations: readonly string[];
 }
 
-export function VisualizeTransformations({
-  transformations,
-  onChange,
-  traceItemDataset,
-}: Props) {
-  return (
-    <Stack gap="sm">
-      <VisualizeTransformationRows
-        transformations={transformations}
-        onChange={onChange}
-        traceItemDataset={traceItemDataset}
-      />
-      <AddTransformationButton
-        transformations={transformations}
-        onChange={onChange}
-        traceItemDataset={traceItemDataset}
-      />
-    </Stack>
-  );
-}
-
 interface TransformationRowsProps extends Props {
   layout?: TransformationLayout;
 }
@@ -232,7 +211,12 @@ export function AddTransformationButton({
       disabled={transformations.length >= KIND_OPTIONS.length}
       value={undefined}
       trigger={props => (
-        <OverlayTrigger.Button {...props} variant="link" size="zero" icon={<IconAdd />}>
+        <OverlayTrigger.Button
+          {...props}
+          variant="transparent"
+          size="zero"
+          icon={<IconAdd />}
+        >
           {t('Add Transformation')}
         </OverlayTrigger.Button>
       )}
@@ -283,15 +267,20 @@ function TransformationRow({
     'organization'
   >;
   return (
-    <Stack
-      role="group"
-      aria-label={t('Transformation %s', index + 1)}
-      gap="sm"
-      padding="md"
-      background="secondary"
-      radius="md"
-    >
-      <Flex align="center" justify="between" gap="sm">
+    <Stack role="group" aria-label={t('Transformation %s', index + 1)} gap="sm">
+      <Flex align="center" gap="md">
+        <Button
+          variant="transparent"
+          size="zero"
+          icon={<IconDelete size="sm" />}
+          aria-label={t('Remove transformation')}
+          analyticsEventKey="explore.visualize.transformation.removed"
+          analyticsEventName={
+            exploreAnalyticsEventMap['explore.visualize.transformation.removed']
+          }
+          analyticsParams={removalAnalyticsParams}
+          onClick={onRemove}
+        />
         <Flex align="center" gap="md" wrap="wrap" minWidth="0">
           {transformation ? (
             <PageFilterBar condensed>
@@ -366,18 +355,6 @@ function TransformationRow({
             />
           ) : null}
         </Flex>
-        <Button
-          variant="transparent"
-          size="zero"
-          icon={<IconDelete size="sm" />}
-          aria-label={t('Remove transformation')}
-          analyticsEventKey="explore.visualize.transformation.removed"
-          analyticsEventName={
-            exploreAnalyticsEventMap['explore.visualize.transformation.removed']
-          }
-          analyticsParams={removalAnalyticsParams}
-          onClick={onRemove}
-        />
       </Flex>
       {layout === 'stacked' && transformation?.kind === 'smooth' ? (
         <SmoothingSettings
