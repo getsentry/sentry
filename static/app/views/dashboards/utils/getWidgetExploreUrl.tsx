@@ -95,7 +95,7 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
 /**
  * Returns whether the given widget type supports multiple queries in the Explore view.
  */
-export function widgetTypeSupportsExploreMultiQuery(
+function widgetTypeSupportsExploreMultiQuery(
   widgetType: WidgetType | undefined
 ): boolean {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widgetType);
