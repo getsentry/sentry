@@ -1696,11 +1696,11 @@ const TraceStylingWrapper = styled('div')`
         }
       }
 
-      .loading-indicator {
+      .scraps-spinner-ring {
         border-width: 2px;
       }
 
-      .loading-message {
+      .scraps-spinner-message {
         display: none;
       }
     }

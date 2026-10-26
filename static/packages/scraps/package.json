@@ -219,9 +219,9 @@
       "types": "./dist/dragHandle/index.d.ts",
       "import": "./dist/dragHandle/index.js"
     },
-    "./loadingIndicator": {
-      "types": "./dist/loadingIndicator/index.d.ts",
-      "import": "./dist/loadingIndicator/index.js"
+    "./spinner": {
+      "types": "./dist/spinner/index.d.ts",
+      "import": "./dist/spinner/index.js"
     }
   },
   "publishConfig": {

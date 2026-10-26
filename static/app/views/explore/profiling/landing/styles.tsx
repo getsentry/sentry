@@ -41,7 +41,7 @@ export const StatusContainer = styled('div')`
   justify-content: center;
   flex: 1 1 auto;
 
-  .loading {
+  .scraps-spinner {
     margin: 0 auto;
   }
 `;

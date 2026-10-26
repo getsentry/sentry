@@ -234,7 +234,7 @@ const StyledRightAlignedCell = styled(RightAlignedCell)`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   &,
-  .loading-message {
+  .scraps-spinner-message {
     margin: 0;
   }
 `;

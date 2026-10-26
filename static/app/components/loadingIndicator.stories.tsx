@@ -1,10 +1,10 @@
-import {LoadingIndicator} from '@sentry/scraps/loadingIndicator';
+import {Spinner} from '@sentry/scraps/spinner';
 
 import * as Storybook from 'sentry/stories';
 
 import {NegativeSpaceContainer} from './container/negativeSpaceContainer';
 
-export default Storybook.story('LoadingIndicator', story => {
+export default Storybook.story('Spinner', story => {
   story('Default', () => (
     <div>
       <p>
@@ -13,9 +13,9 @@ export default Storybook.story('LoadingIndicator', story => {
       </p>
       <NegativeSpaceContainer>
         <Storybook.SideBySide>
-          <LoadingIndicator />
-          <LoadingIndicator size={48} />
-          <LoadingIndicator size={24} />
+          <Spinner />
+          <Spinner size={48} />
+          <Spinner size={24} />
         </Storybook.SideBySide>
       </NegativeSpaceContainer>
     </div>
@@ -23,7 +23,7 @@ export default Storybook.story('LoadingIndicator', story => {
 
   story('Loading text', () => (
     <NegativeSpaceContainer>
-      <LoadingIndicator>Loading...</LoadingIndicator>
+      <Spinner>Loading...</Spinner>
     </NegativeSpaceContainer>
   ));
 });

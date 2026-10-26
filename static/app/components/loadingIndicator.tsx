@@ -1,1 +1,1 @@
-export {LoadingIndicator} from '@sentry/scraps/loadingIndicator';
+export {Spinner as LoadingIndicator} from '@sentry/scraps/spinner';

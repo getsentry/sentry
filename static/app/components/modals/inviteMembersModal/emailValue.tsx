@@ -40,7 +40,7 @@ export function EmailValue<Option extends OptionTypeBase>({
 
 const SendingIndicator = styled(LoadingIndicator)`
   margin: 0;
-  .loading-indicator {
+  .scraps-spinner-ring {
     border-width: 2px;
   }
 `;

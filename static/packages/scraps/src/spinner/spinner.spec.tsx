@@ -1,24 +1,21 @@
 /* oxlint-disable testing-library/no-node-access -- The decorative ring and clipping container have no accessible role. */
+import {Fragment} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
 
-import {LoadingIndicator} from '@sentry/scraps/loadingIndicator';
+import {Spinner} from '@sentry/scraps/spinner';
 import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 
-describe('LoadingIndicator', () => {
+describe('Spinner', () => {
   it('renders its message and forwards presentation overrides', () => {
     render(
-      <LoadingIndicator
-        className="custom"
-        data-test-id="custom-loader"
-        style={{margin: 0}}
-      >
+      <Spinner className="custom" data-test-id="custom-loader" style={{margin: 0}}>
         Loading data
-      </LoadingIndicator>
+      </Spinner>
     );
 
     expect(screen.getByText('Loading data')).toBeInTheDocument();
-    expect(screen.getByTestId('custom-loader')).toHaveClass('loading', 'custom');
+    expect(screen.getByTestId('custom-loader')).toHaveClass('scraps-spinner', 'custom');
     expect(screen.getByTestId('custom-loader')).toHaveStyle({margin: '0px'});
   });
 
@@ -28,7 +25,7 @@ describe('LoadingIndicator', () => {
     [64, 63, 6],
     [80, 79, 6],
   ])('preserves a %ipx indicator and its border', (size, diameter, borderWidth) => {
-    render(<LoadingIndicator size={size} />);
+    render(<Spinner size={size} />);
 
     const container = screen.getByTestId('loading-indicator').firstElementChild;
     expect(container).toHaveStyle({width: `${size}px`, height: `${size}px`});
@@ -39,20 +36,46 @@ describe('LoadingIndicator', () => {
     });
   });
 
-  it('retains mini and relative class hooks', () => {
-    render(<LoadingIndicator mini relative />);
+  it('isolates compact and relative styles', () => {
+    render(<Spinner mini relative />);
 
-    expect(screen.getByTestId('loading-indicator')).toHaveClass('loading', 'mini');
-    expect(screen.getByTestId('loading-indicator').firstElementChild).toHaveClass(
-      'loading-indicator-container',
-      'relative'
+    expect(screen.getByTestId('loading-indicator')).toHaveClass(
+      'scraps-spinner',
+      'scraps-spinner-mini'
     );
+    expect(screen.getByTestId('loading-indicator').firstElementChild).toHaveClass(
+      'scraps-spinner-container',
+      'scraps-spinner-relative'
+    );
+  });
+
+  it('ignores legacy global loader styles', () => {
+    render(
+      <Fragment>
+        <style>{`
+          .loading, .loading-indicator-container, .loading-indicator, .loading-message {
+            width: 1px !important;
+            height: 1px !important;
+            border-width: 20px !important;
+          }
+        `}</style>
+        <Spinner>Loading data</Spinner>
+      </Fragment>
+    );
+
+    const spinner = screen.getByTestId('loading-indicator');
+    expect(spinner).not.toHaveClass('loading');
+    expect(
+      spinner.querySelector(
+        '.loading-indicator-container, .loading-indicator, .loading-message'
+      )
+    ).toBeNull();
   });
 
   it.each([lightTheme, darkTheme])('provides its own styles in $type mode', theme => {
     render(
       <ThemeProvider theme={theme}>
-        <LoadingIndicator />
+        <Spinner />
       </ThemeProvider>
     );
 

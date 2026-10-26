@@ -3,7 +3,7 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-export interface LoadingIndicatorProps {
+export interface SpinnerProps {
   children?: NonNullable<React.ReactNode>;
   className?: string;
   ['data-test-id']?: string;
@@ -16,41 +16,41 @@ export interface LoadingIndicatorProps {
   style?: React.CSSProperties;
 }
 
-export function LoadingIndicator(props: LoadingIndicatorProps) {
+export function Spinner(props: SpinnerProps) {
   return (
     <Container
-      className={classNames('loading', props.className, {
-        mini: props.mini,
+      className={classNames('scraps-spinner', props.className, {
+        'scraps-spinner-mini': props.mini,
       })}
       style={props.style}
       data-test-id={props['data-test-id'] ?? 'loading-indicator'}
     >
       <div
-        className={classNames('loading-indicator-container', {
-          relative: props.relative,
+        className={classNames('scraps-spinner-container', {
+          'scraps-spinner-relative': props.relative,
         })}
         style={{width: props.size, height: props.size}}
       >
         <div
-          className="loading-indicator"
+          className="scraps-spinner-ring"
           style={
             props.size
               ? {
                   // Reserve 0.5px on each side for the container's antialiasing inset.
                   width: props.size - 1,
                   height: props.size - 1,
-                  borderWidth: getLoadingIndicatorBorderWidth(props.size),
+                  borderWidth: getSpinnerBorderWidth(props.size),
                 }
               : undefined
           }
         />
       </div>
-      {props.children && <div className="loading-message">{props.children}</div>}
+      {props.children && <div className="scraps-spinner-message">{props.children}</div>}
     </Container>
   );
 }
 
-function getLoadingIndicatorBorderWidth(size: number | undefined): number | undefined {
+function getSpinnerBorderWidth(size: number | undefined): number | undefined {
   if (!size) {
     return undefined;
   }
@@ -70,7 +70,7 @@ const Container = styled('div')`
   margin: 6em auto;
   position: relative;
 
-  .loading-indicator-container {
+  .scraps-spinner-container {
     box-sizing: border-box;
     position: relative;
     width: fit-content;
@@ -79,7 +79,7 @@ const Container = styled('div')`
     overflow: hidden;
   }
 
-  .loading-indicator {
+  .scraps-spinner-ring {
     box-sizing: border-box;
     position: relative;
     background: transparent;
@@ -92,46 +92,46 @@ const Container = styled('div')`
     margin: 0 auto;
   }
 
-  .loading-indicator,
-  .loading-indicator::after {
+  .scraps-spinner-ring,
+  .scraps-spinner-ring::after {
     border-radius: 50%;
     width: 63px;
     height: 63px;
   }
 
-  .loading-message {
+  .scraps-spinner-message {
     margin-top: 20px;
     text-align: center;
   }
 
-  &.mini {
+  &.scraps-spinner-mini {
     margin: 4px 0;
     font-size: 13px;
     height: 24px;
     width: 24px;
 
-    .loading-indicator-container {
+    .scraps-spinner-container {
       position: absolute;
       left: 0;
       top: 0;
       width: 24px;
       height: 24px;
 
-      &.relative {
+      &.scraps-spinner-relative {
         position: relative;
         left: auto;
         top: auto;
       }
     }
 
-    .loading-indicator {
+    .scraps-spinner-ring {
       margin: 0;
       width: 23px;
       height: 23px;
       border-width: 2px;
     }
 
-    .loading-message {
+    .scraps-spinner-message {
       padding-left: 30px;
       margin-top: 1px;
       display: inline-block;
@@ -139,7 +139,7 @@ const Container = styled('div')`
   }
 
   @media (prefers-reduced-motion) {
-    .loading-indicator {
+    .scraps-spinner-ring {
       animation-delay: -1ms !important;
       animation-duration: 0ms !important;
       animation-iteration-count: 1 !important;
