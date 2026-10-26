@@ -63,7 +63,7 @@ type AutomationCardProps = {
   tokensPerMonth?: number;
 };
 
-export default function AutomationsList() {
+export function AutomationsList() {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
   const {projects} = useProjects();
