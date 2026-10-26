@@ -13,6 +13,10 @@ from sentry.utils.circuit_breaker2 import (
 
 logger = logging.getLogger(__name__)
 
+# Statuses that mean the destination itself is unhealthy. Plain 500s usually come from
+# one method or one bad input, so they don't count against the whole destination.
+_FAILURE_STATUSES = frozenset((502, 503, 504))
+
 
 class RpcCircuitBreaker:
     """
@@ -53,6 +57,12 @@ class RpcCircuitBreaker:
         Whether to reject a call to this destination now. Calls the open breaker would
         reject are counted even when it isn't enforcing.
         """
+        if self.destination in options.get(
+            "hybridcloud.rpc.circuit-breaker.force-open-destinations"
+        ):
+            self._record_rejection("forced")
+            return True
+
         if self._breaker is None:
             return False
 
@@ -64,17 +74,15 @@ class RpcCircuitBreaker:
         if allowed:
             return False
 
-        metrics.incr("hybrid_cloud.dispatch_rpc.circuit_breaker.rejected", tags=self.metric_tags)
+        self._record_rejection("tripped")
         return bool(options.get("hybridcloud.rpc.circuit-breaker.enforce"))
 
     def record_failure(self) -> None:
         self._record(failed=True)
 
     def record_response(self, status_code: int, duration: float) -> None:
-        failed = duration > options.get(
-            "hybridcloud.rpc.circuit-breaker.slow-call-seconds"
-        ) or status_code in options.get("hybridcloud.rpc.circuit-breaker.failure-status-codes")
-        self._record(failed=failed)
+        slow = duration > options.get("hybridcloud.rpc.circuit-breaker.slow-call-seconds")
+        self._record(failed=slow or status_code in _FAILURE_STATUSES)
 
     def _record(self, failed: bool) -> None:
         if self._breaker is None:
@@ -87,6 +95,12 @@ class RpcCircuitBreaker:
                 self._breaker.record_success()
         except Exception:
             self._record_internal_error("record")
+
+    def _record_rejection(self, reason: str) -> None:
+        metrics.incr(
+            "hybrid_cloud.dispatch_rpc.circuit_breaker.rejected",
+            tags={**self.metric_tags, "reason": reason},
+        )
 
     def _record_internal_error(self, kind: str) -> None:
         logger.exception(

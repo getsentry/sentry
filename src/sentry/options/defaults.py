@@ -2755,13 +2755,12 @@ register(
     default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Response statuses that count as failures. Plain 500s usually come from one method or
-# one bad input, so they're left out by default; add them during an outage that shows
-# up as 500s.
+# Destinations (cell names, or "control") whose calls are rejected outright, whatever the
+# options above say. A manual switch for cutting off a cell during an outage.
 register(
-    "hybridcloud.rpc.circuit-breaker.failure-status-codes",
+    "hybridcloud.rpc.circuit-breaker.force-open-destinations",
     type=Sequence,
-    default=[502, 503, 504],
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

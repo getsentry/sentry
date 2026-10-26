@@ -459,20 +459,28 @@ class RpcCircuitBreakerTest(TestCase):
             assert not isinstance(excinfo.value, RpcCircuitBreakerOpenException)
 
     @responses.activate
-    @override_options(
-        {
-            "hybridcloud.rpc.circuit-breaker.enabled": True,
-            "hybridcloud.rpc.circuit-breaker.enforce": True,
-            "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
-            "hybridcloud.rpc.circuit-breaker.failure-status-codes": [500],
-        }
-    )
-    def test_failure_status_codes_are_configurable(self) -> None:
-        with override_cells([self.failing_cell]):
-            self._fail_calls(self.failing_cell, 2, status=500)
-
+    def test_force_open_rejects_listed_destination_only(self) -> None:
+        # Works as a manual switch even when the breaker itself is off.
+        with (
+            override_cells([self.failing_cell, self.healthy_cell]),
+            override_options(
+                {
+                    "hybridcloud.rpc.circuit-breaker.force-open-destinations": [
+                        self.failing_cell.name
+                    ]
+                }
+            ),
+        ):
+            self._add_response(self.failing_cell, body="")
             with pytest.raises(RpcCircuitBreakerOpenException):
                 self._call(self.failing_cell)
+            assert len(responses.calls) == 0
+
+            serial = serialize_rpc_user(self.create_user())
+            self._add_response(
+                self.healthy_cell, body=json.dumps({"meta": {}, "value": serial.dict()})
+            )
+            assert self._call(self.healthy_cell) == serial
 
     @responses.activate
     @override_options(
