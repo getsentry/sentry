@@ -11,6 +11,7 @@ from urllib.parse import quote
 from django.urls import reverse
 from requests import PreparedRequest
 
+from sentry.identity.gitlab.provider import ACCESS_TOKEN_LIFETIME_S
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.gitlab.blame import fetch_file_blames
@@ -48,9 +49,17 @@ REFRESH_LOCK_DURATION_S = 90
 REFRESH_LOCK_WAIT_S = 10
 
 
-def _expires_within(identity_data: Mapping[str, Any], margin_s: float) -> bool:
+def _refresh_margin_s(identity_data: Mapping[str, Any], requested_margin_s: float) -> float:
+    # An instance can shorten the token lifetime. Capping the margin at half of it still leaves
+    # a usable token, where a fixed margin as long as the lifetime would refresh on every call.
+    lifetime = int(identity_data.get("expires_in", ACCESS_TOKEN_LIFETIME_S))
+    return min(requested_margin_s, lifetime // 2)
+
+
+def _expires_soon(identity_data: Mapping[str, Any], requested_margin_s: float) -> bool:
     # A token stored before Sentry recorded GitLab's expiry has none; refreshing records one.
     expires = identity_data.get("expires")
+    margin_s = _refresh_margin_s(identity_data, requested_margin_s)
     return expires is None or int(expires) < time() + margin_s
 
 
@@ -135,28 +144,29 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         self, token_minimum_validity_time: timedelta | None = None
     ) -> dict[str, str | None] | None:
         """Return the stored token, refreshed if it has less than token_minimum_validity_time
-        left (TOKEN_MINIMUM_VALIDITY_S by default), and until when to use it.
+        left (TOKEN_MINIMUM_VALIDITY_S by default, at most half the token's lifetime), and until
+        when to use it.
 
         API requests refresh after GitLab answers 401, but a caller that hands the token on
         can't retry, so it needs one that's still valid.
         """
-        margin_s = (
+        requested_margin_s = (
             TOKEN_MINIMUM_VALIDITY_S
             if token_minimum_validity_time is None
             else token_minimum_validity_time.total_seconds()
         )
 
-        def expires_soon(identity_data: Mapping[str, Any]) -> bool:
-            return _expires_within(identity_data, margin_s)
+        def needs_refresh(identity_data: Mapping[str, Any]) -> bool:
+            return _expires_soon(identity_data, requested_margin_s)
 
         # Without a refresh token, the stored token is the only one there is.
-        if self.identity.data.get("refresh_token") and expires_soon(self.identity.data):
+        if self.identity.data.get("refresh_token") and needs_refresh(self.identity.data):
             try:
-                self._refresh_auth_once(expires_soon)
+                self._refresh_auth_once(needs_refresh)
             except UnableToAcquireLock:
                 # Another request's refresh is taking long; use its token if it has stored one.
                 self._reload_identity()
-                if expires_soon(self.identity.data):
+                if needs_refresh(self.identity.data):
                     raise
 
         access_token = self.identity.data["access_token"]
@@ -168,7 +178,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             # Within the margin any request may refresh the token, which revokes it, so a caller
             # holding it should get a new one by then.
             "expires_at": (
-                datetime.fromtimestamp(int(expires) - margin_s, UTC).isoformat()
+                datetime.fromtimestamp(
+                    int(expires) - _refresh_margin_s(self.identity.data, requested_margin_s), UTC
+                ).isoformat()
                 if expires is not None
                 else None
             ),

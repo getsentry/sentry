@@ -38,7 +38,8 @@ def get_oauth_data(payload):
     # Measured on our clock rather than from GitLab's created_at, since it's compared against
     # our clock. GitLab before 15.0 can issue a token without an expiry, and gives it one when
     # the instance upgrades; assuming the usual lifetime refreshes it often enough either way.
-    data["expires"] = int(time()) + int(payload.get("expires_in", ACCESS_TOKEN_LIFETIME_S))
+    data["expires_in"] = int(payload.get("expires_in", ACCESS_TOKEN_LIFETIME_S))
+    data["expires"] = int(time()) + data["expires_in"]
     if "refresh_token" in payload:
         data["refresh_token"] = payload["refresh_token"]
     if "token_type" in payload:
