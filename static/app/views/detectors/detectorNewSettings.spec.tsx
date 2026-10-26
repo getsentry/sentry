@@ -554,6 +554,7 @@ describe('DetectorEdit', () => {
       ['another host', {url: 'https://attacker.example/collect'}, []],
       ['another path', {url: 'https://example.com/v1/projects/prod'}, []],
       ['another method', {method: 'DELETE'}, []],
+      ['another project', {projectId: '999'}, []],
       [
         'the same request',
         {url: 'https://example.com', method: 'GET'},

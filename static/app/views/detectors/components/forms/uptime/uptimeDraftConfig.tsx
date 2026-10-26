@@ -143,11 +143,12 @@ export function getUptimeDuplicateFormData(
   draftValues: Record<string, unknown> | undefined
 ): UptimeDetectorFormData {
   const formData = uptimeSavedDetectorToFormData(duplicateDetector);
-  const {method, url} = draftValues
+  const {method, projectId, url} = draftValues
     ? parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, draftValues)
     : {};
   const isSameRequest =
     (url === undefined || isSameUrl(url, formData.url)) &&
-    (method === undefined || method === formData.method);
+    (method === undefined || method === formData.method) &&
+    (projectId === undefined || projectId === formData.projectId);
   return isSameRequest ? formData : {...formData, body: '', headers: []};
 }
