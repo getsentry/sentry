@@ -1,11 +1,23 @@
+import type * as React from 'react';
 import {createRef} from 'react';
-
-import {dragHandle} from 'sentry-test/dragMove';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {ThemeProvider} from '@emotion/react';
+import {act, render as rtlRender, screen, waitFor} from '@testing-library/react';
+import userEvent, {PointerEventsCheckLevel} from '@testing-library/user-event';
 
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
+import {lightTheme} from '@sentry/scraps/theme';
+
+import {dragHandle} from '../../test/dragMove';
 
 describe('SplitPanel', () => {
+  beforeEach(() => {
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1024);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders both panes and a divider', () => {
     render(
       <SplitPanel
@@ -169,7 +181,9 @@ describe('SplitPanel', () => {
       // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '400');
 
-      await userEvent.dblClick(separator);
+      await userEvent.dblClick(separator, {
+        pointerEventsCheck: PointerEventsCheckLevel.Never,
+      });
 
       // Resets to the canonical default and reports it so consumers can persist.
 
@@ -203,7 +217,9 @@ describe('SplitPanel', () => {
       // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '100');
 
-      await userEvent.dblClick(separator);
+      await userEvent.dblClick(separator, {
+        pointerEventsCheck: PointerEventsCheckLevel.Never,
+      });
 
       // startSize must match the rendered size (100), not the unclamped -50.
       expect(onResizeEnd).toHaveBeenCalledWith({
@@ -244,6 +260,7 @@ describe('SplitPanel', () => {
     });
 
     it('treats a Home/End edge as a no-op while max is unbounded', async () => {
+      jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(0);
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
@@ -255,7 +272,7 @@ describe('SplitPanel', () => {
         />
       );
 
-      const separator = screen.getByRole('separator');
+      const separator = screen.getByRole('separator', {hidden: true});
       separator.focus();
       // End targets max — but max is unbounded until the container is
       // measured, so it must not set an infinite size.
@@ -318,3 +335,9 @@ describe('SplitPanel', () => {
     });
   });
 });
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, {
+    wrapper: ({children}) => <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>,
+  });
+}

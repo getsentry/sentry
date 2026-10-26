@@ -2314,11 +2314,6 @@
       "count": 1
     }
   },
-  "utils/useResizableDrawer.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "utils/useSyncedLocalStorageState.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
