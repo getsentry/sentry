@@ -267,7 +267,7 @@ def classify_link(url: str) -> NotificationLink:
         return NotificationLink.REPOSITORIES
     if path.startswith("/explore/agents/conversations/"):
         return NotificationLink.SEER_AGENT_RUN
-    if path.startswith("/explore/investigations/"):
+    if path.startswith("/seer/investigations/"):
         return NotificationLink.INVESTIGATION
     logger.error("notifications.tracking.unclassified_link", extra={"path": path})
     return NotificationLink.OTHER

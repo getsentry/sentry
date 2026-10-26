@@ -248,7 +248,7 @@ class SeerInvestigationStartedTemplate(NotificationTemplate[SeerInvestigationSta
     example_data = SeerInvestigationStarted(
         organization_id=1,
         slack_user_id="U0123456789",
-        investigation_url="https://example.sentry.io/explore/investigations/1/",
+        investigation_url="https://example.sentry.io/seer/investigations/1/",
     )
     hide_from_debugger = True
 
@@ -313,7 +313,7 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
         organization_id=1,
         title="FCP on organization login pages",
         subtitle="`/auth/login/[org]/` · Aug 27, 09:00–11:00 UTC",
-        investigation_url="https://sentry.io/organizations/example/explore/investigations/1/",
+        investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
         hypotheses=[
             SeerInvestigationHypothesis(
                 statement="Database or cache degradation delayed the response",
@@ -373,7 +373,7 @@ class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigation
             "## Next steps\n\n- Preload the font file or load it asynchronously.\n"
             "- Add a performance budget for render-blocking assets.",
         ],
-        investigation_url="https://sentry.io/organizations/example/explore/investigations/1/",
+        investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
     )
     hide_from_debugger = True
 
