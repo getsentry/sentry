@@ -28,9 +28,11 @@ export default function DetectorNewSettings() {
   const [detectorType] = useDetectorTypeQueryState();
   const [duplicateFromParam] = useQueryState('duplicateFrom', parseAsString);
   const draft = useInitialDetectorDraft(detectorType);
-  // A draft already holds every field, so it doesn't need the source monitor
-  // (which whoever opens a shared draft may not be able to read).
-  const duplicateFrom = draft ? null : duplicateFromParam;
+  // A draft holds every field, so it doesn't need the source monitor (which
+  // whoever opens a shared draft may not be able to read). Uptime drafts leave
+  // out headers, body, and URLs with credentials, so they still do.
+  const duplicateFrom =
+    draft && detectorType !== 'uptime_domain_failure' ? null : duplicateFromParam;
   const canCreateDetector = useCanCreateDetector(detectorType);
   const canDuplicateMonitors = organization.features.includes('monitor-duplication');
   const isDetectorTypeAvailable =

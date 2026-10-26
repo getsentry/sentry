@@ -490,6 +490,65 @@ describe('DetectorEdit', () => {
       });
     });
 
+    it('keeps the source headers when reopening an edited uptime copy', async () => {
+      const sourceDetector = UptimeDetectorFixture({
+        id: 'source-uptime',
+        projectId: project.id,
+      });
+      const sourceDataSource = sourceDetector.dataSources[0];
+      sourceDataSource.queryObj.headers = [['Authorization', 'Bearer secret']];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: UptimeDetectorFixture({id: 'copied-uptime'}),
+      });
+      const duplicateRouterConfig = getDuplicateRouterConfig(
+        sourceDetector.type,
+        sourceDetector.id
+      );
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: {
+          ...duplicateRouterConfig,
+          location: {
+            ...duplicateRouterConfig.location,
+            query: {
+              ...duplicateRouterConfig.location.query,
+              draft: JSON.stringify({
+                version: 1,
+                detectorType: sourceDetector.type,
+                hasSetName: true,
+                values: {name: 'Edited copy'},
+              }),
+            },
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Edited copy',
+              dataSources: [
+                expect.objectContaining({
+                  headers: [['Authorization', 'Bearer secret']],
+                }),
+              ],
+            }),
+          })
+        );
+      });
+    });
+
     it('rejects a source monitor whose type does not match the create form', async () => {
       const sourceDetector = CronDetectorFixture({id: 'source-cron'});
       MockApiClient.addMockResponse({
@@ -1810,7 +1869,7 @@ describe('DetectorEdit', () => {
       );
       expect(screen.getByRole('textbox', {name: 'Name of header 1'})).toHaveValue('');
       expect(getWindowDraftValues()).toEqual(
-        expect.objectContaining({url: 'https://shared.example.com'})
+        expect.objectContaining({name: 'Shared uptime'})
       );
       expect(JSON.stringify(getWindowDraftValues())).not.toContain('secret');
     });
