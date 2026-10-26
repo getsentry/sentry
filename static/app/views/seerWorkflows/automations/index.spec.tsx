@@ -51,12 +51,12 @@ describe('AutomationsList', () => {
     return MockApiClient.addMockResponse({url: configsUrl, body: {configs}});
   }
 
-  it('only renders placeholders without seer-automations', async () => {
+  it('renders not found without seer-automations', async () => {
     const request = mockConfigs([makeConfig({id: '1'})]);
 
     render(<AutomationsList />, {organization: OrganizationFixture()});
 
-    expect(await screen.findAllByRole('listitem')).toHaveLength(2);
+    expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
 
