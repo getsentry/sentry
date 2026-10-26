@@ -2439,10 +2439,10 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.91.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.10.1" },
-    { name = "sentry-scm", specifier = ">=1.9.0" },
+    { name = "sentry-scm", specifier = ">=2.0.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.72.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
-    { name = "sentry-viewercontext", specifier = ">=0.1.0" },
+    { name = "sentry-viewercontext", specifier = ">=0.2.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
     { name = "slack-sdk", specifier = ">=3.40.1" },
     { name = "snuba-sdk", specifier = ">=3.0.43" },
@@ -2654,14 +2654,16 @@ wheels = [
 
 [[package]]
 name = "sentry-scm"
-version = "1.9.0"
+version = "2.0.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "msgspec" },
+    { name = "pyjwt" },
     { name = "requests" },
+    { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-1.9.0-py3-none-any.whl", hash = "sha256:5610e6046adaa42ba089416db1d37dbf31e50880c6e44fc66b058d48facd41cf" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-2.0.0-py3-none-any.whl", hash = "sha256:2a12655efd36dab251e0a04dee894f2552adbed0bfd72731f65d493b68794d14" },
 ]
 
 [[package]]
@@ -2694,13 +2696,13 @@ wheels = [
 
 [[package]]
 name = "sentry-viewercontext"
-version = "0.1.0"
+version = "0.2.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pyjwt" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_viewercontext-0.1.0-py3-none-any.whl", hash = "sha256:388161ccf93af22ed0c3bd6e48ac4875b05d096e6839edd68befe47ec8b15132" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_viewercontext-0.2.0-py3-none-any.whl", hash = "sha256:c9621daade77f995b0c24f602ba11b9c2269f93d6372dc0194ad71a8b1f4c29c" },
 ]
 
 [[package]]

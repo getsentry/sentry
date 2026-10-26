@@ -2796,11 +2796,6 @@
       "count": 3
     }
   },
-  "views/performance/landing/widgets/widgets/histogramWidget.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1

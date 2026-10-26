@@ -375,8 +375,8 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
-        "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
-        "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "POST": ["org:read", "org:write", "org:admin", "dashboard:update"],
+        "PUT": ["org:read", "org:write", "org:admin", "dashboard:update"],
         "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
     }
 
@@ -412,10 +412,9 @@ class OrganizationDashboardsCreatePermission(OrganizationDashboardsPermission):
     # `dashboard:create` is only accepted here, where POST creates a new dashboard.
     # Other dashboard endpoints use POST to modify existing dashboards (e.g.
     # revision restore), so the shared permission must not accept it.
-    # `dashboard:write` stays listed for tokens whose stored scopes predate `dashboard:create`.
     scope_map = {
         **OrganizationDashboardsPermission.scope_map,
-        "POST": ["org:read", "org:write", "org:admin", "dashboard:create", "dashboard:write"],
+        "POST": ["org:read", "org:write", "org:admin", "dashboard:create"],
     }
 
 

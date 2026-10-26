@@ -191,6 +191,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         activity = Activity.objects.get(id=response.data["id"])
         assert response.data["commentId"] == str(activity.id)
+        assert response.data["source"] is None
         assert activity.user_id == self.user.id
         assert activity.group == self.group
         assert activity.data == {"text": "hi haters", "external_id": "123"}
@@ -302,7 +303,7 @@ class GroupNotesDetailsTest(APITestCase):
         self._assert_edit_and_delete_body_free_comment(True, "api")
 
     def test_edit_and_delete_body_free_comment_without_gal_serving(self) -> None:
-        self._assert_edit_and_delete_body_free_comment(False, None)
+        self._assert_edit_and_delete_body_free_comment(False, "api")
 
     def _assert_edit_and_delete_body_free_comment(
         self, serve_from_log: bool, expected_source: str | None
@@ -329,7 +330,7 @@ class GroupNotesDetailsTest(APITestCase):
             assert response.data["id"] == response.data["commentId"] == str(note.id)
             assert response.data["type"] == "note"
             assert response.data["data"]["text"] == "updated"
-            assert response.data.get("source") == expected_source
+            assert response.data["source"] == expected_source
             note.refresh_from_db()
             assert note.data["text"] == "updated"
 

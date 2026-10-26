@@ -46,6 +46,7 @@ interface GetSimilarEventsUrlArgs {
   projectIds: number[];
   queryString: string;
   selection: PageFilters;
+  caseInsensitive?: GetExploreUrlArgs['caseInsensitive'];
   table?: GetExploreUrlArgs['table'];
 }
 
@@ -55,11 +56,13 @@ export function getSimilarEventsUrl({
   organization,
   projectIds,
   selection,
+  caseInsensitive,
 }: GetSimilarEventsUrlArgs) {
   return getExploreUrl({
     organization,
     mode: Mode.SAMPLES,
     query: queryString,
+    caseInsensitive,
     table,
     selection: {
       ...selection,

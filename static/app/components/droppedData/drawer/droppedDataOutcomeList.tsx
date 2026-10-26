@@ -9,16 +9,13 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {Count} from 'sentry/components/count';
+import {formatDroppedShare} from 'sentry/components/droppedData/outcomes';
 import type {
   AskSeerHandler,
   OutcomeSection,
   ReasonRow,
-} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  formatDroppedShare,
-  reasonDocsUrl,
-  reasonTitle,
-} from 'sentry/components/droppedData/outcomes';
+} from 'sentry/components/droppedData/outcomeSections';
+import {reasonDocsUrl, reasonTitle} from 'sentry/components/droppedData/reasonInfo';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 

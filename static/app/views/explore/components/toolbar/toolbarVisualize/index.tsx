@@ -88,7 +88,6 @@ interface ToolbarVisualizeDropdownProps {
   onClose?: () => void;
   onDelete?: () => void;
   onSearch?: (search: string) => void;
-  transformationControls?: ReactNode;
 }
 
 export function ToolbarVisualizeDropdown({
@@ -108,7 +107,6 @@ export function ToolbarVisualizeDropdown({
   filterSearchBar,
   formulaDefaultColumn = null,
   formulas = NO_FORMULAS,
-  transformationControls,
   fieldDefinitionType = 'span',
 }: ToolbarVisualizeDropdownProps) {
   const {attributes, listeners, setNodeRef, transform} = useSortable({
@@ -163,9 +161,7 @@ export function ToolbarVisualizeDropdown({
         transform: CSS.Transform.toString(transform),
         // Keep the drag handle, label and delete button aligned with the dropdowns
         // rather than centered against the taller filter bar row.
-        ...(filterSearchBar || transformationControls || formula
-          ? {alignItems: 'flex-start'}
-          : null),
+        ...(filterSearchBar || formula ? {alignItems: 'flex-start'} : null),
       }}
       {...attributes}
     >
@@ -255,7 +251,6 @@ export function ToolbarVisualizeDropdown({
         {filterSearchBar ? (
           <ExpandableFilterSearchBar>{filterSearchBar}</ExpandableFilterSearchBar>
         ) : null}
-        {transformationControls}
       </Stack>
       {onDelete ? (
         <Button
