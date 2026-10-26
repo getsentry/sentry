@@ -510,8 +510,10 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
         operation_id="replaceProjectSeerRepositories",
         summary="Replace Repositories Configured for Seer",
         description=(
-            "Replace the project's Seer repository list with the submitted repositories. "
-            "An empty `repos` list removes every Seer repository from the project."
+            "Replace the project's active Seer repository configurations with the submitted "
+            "repositories. An empty `repos` list removes all active Seer repository "
+            "configurations. Inactive repository configurations are retained and become "
+            "available again if the repositories are reactivated."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SeerProjectReposRequestSerializer,
