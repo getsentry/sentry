@@ -117,27 +117,6 @@ interface Props {
   transformations: readonly string[];
 }
 
-export function VisualizeTransformations({
-  transformations,
-  onChange,
-  traceItemDataset,
-}: Props) {
-  return (
-    <Stack gap="sm">
-      <VisualizeTransformationRows
-        transformations={transformations}
-        onChange={onChange}
-        traceItemDataset={traceItemDataset}
-      />
-      <AddTransformationButton
-        transformations={transformations}
-        onChange={onChange}
-        traceItemDataset={traceItemDataset}
-      />
-    </Stack>
-  );
-}
-
 interface TransformationRowsProps extends Props {
   layout?: TransformationLayout;
 }
