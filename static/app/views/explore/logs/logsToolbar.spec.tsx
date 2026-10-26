@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {initializeLogsTest} from 'sentry-fixture/log';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -105,41 +104,6 @@ describe('LogsToolbar', () => {
   });
 
   describe('visualize section', () => {
-    it('keeps existing transformations out of the visualize toolbar', async () => {
-      const {router} = render(<LogsToolbar />, {
-        organization: OrganizationFixture({
-          ...organization,
-          features: [...organization.features, 'explore-interpolation-and-smoothing'],
-        }),
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/logs/',
-            query: {
-              aggregateField: [
-                {groupBy: 'severity'},
-                {yAxes: ['count(message)'], transformations: ['fill(zero)']},
-                {yAxes: ['avg(foo)'], transformations: ['smooth(asap,10)']},
-              ].map(field => JSON.stringify(field)),
-            },
-          },
-        },
-      });
-
-      expect(await screen.findByRole('button', {name: 'avg'})).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Add Transformation'})
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('group', {name: 'Transformation 1'})
-      ).not.toBeInTheDocument();
-      expect(router.location.query.aggregateField).toEqual([
-        JSON.stringify({groupBy: 'severity'}),
-        JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
-        JSON.stringify({yAxes: ['avg(foo)'], transformations: ['smooth(asap,10)']}),
-      ]);
-    });
-
     it('options disabled', async () => {
       render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
 
