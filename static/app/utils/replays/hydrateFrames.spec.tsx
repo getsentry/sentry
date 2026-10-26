@@ -3,6 +3,7 @@ import {
   ReplayMemoryEventFixture,
 } from 'sentry-fixture/replay/helpers';
 import {
+  ReplayBreadcrumbFrameEventFixture,
   ReplayOptionFrameEventFixture,
   ReplayOptionFrameFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
@@ -37,5 +38,22 @@ describe('hydrateFrames', () => {
     expect(optionFrame).toStrictEqual(optionsFrame);
     expect(rrwebFrames).toHaveLength(3);
     expect(spanFrames).toHaveLength(4);
+  });
+
+  it('should drop breadcrumb events that have no payload', () => {
+    const timestamp = new Date();
+    const attachments = [
+      ReplayConsoleEventFixture({timestamp}),
+      ReplayBreadcrumbFrameEventFixture({
+        timestamp,
+        data: {payload: undefined as any},
+      }),
+      ReplayMemoryEventFixture({startTimestamp: timestamp, endTimestamp: timestamp}),
+    ];
+
+    const {breadcrumbFrames, spanFrames} = hydrateFrames(attachments);
+
+    expect(breadcrumbFrames).toHaveLength(1);
+    expect(spanFrames).toHaveLength(1);
   });
 });
