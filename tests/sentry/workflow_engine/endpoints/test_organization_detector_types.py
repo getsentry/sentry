@@ -7,18 +7,18 @@ from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.handlers.detector import (
+    DetectorEvaluations,
     DetectorHandler,
     DetectorOccurrence,
-    GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     APIGate,
     DetectorAPIOperation,
+    DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
     FeatureGate,
@@ -45,23 +45,20 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
         class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
             def evaluate(
-                self, data_packet: DataPacket[dict[Never, Never]]
-            ) -> GroupedDetectorEvaluationResult:
-                return GroupedDetectorEvaluationResult(
-                    result={
-                        None: DetectorEvaluation(
-                            result=None,
-                            data=DetectorEvaluationData(
-                                group_key=None,
-                                trigger_group_evaluation=DataConditionGroupEvaluation(
-                                    result=True,
-                                    triggered=True,
-                                    data={"condition_evaluations": [], "logic_type": "any"},
-                                ),
-                                event_data=None,
+                self,
+                data_packet: DataPacket[dict[Never, Never]],
+                values: Mapping[DetectorGroupKey, bool],
+            ) -> DetectorEvaluations:
+                return DetectorEvaluations(
+                    evaluations={
+                        None: DetectorEvaluation.create_issue(
+                            None,
+                            DetectorPriorityLevel.HIGH,
+                            DataConditionGroupEvaluation(
+                                result=True,
+                                triggered=True,
+                                data={"condition_evaluations": [], "logic_type": "any"},
                             ),
-                            triggered=True,
-                            priority=DetectorPriorityLevel.HIGH,
                         )
                     },
                     tainted=False,
@@ -72,9 +69,8 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
             def create_occurrence(
                 self,
-                evaluation_result: DataConditionGroupEvaluation,
+                evaluation: DetectorEvaluation,
                 data_packet: DataPacket[dict[Never, Never]],
-                priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:
                 return (
                     DetectorOccurrence(
@@ -86,7 +82,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                         type=TestMetricGroupType,
                         level="",
                         culprit="",
-                        priority=priority,
+                        priority=evaluation.priority,
                         assignee=None,
                     ),
                     {},

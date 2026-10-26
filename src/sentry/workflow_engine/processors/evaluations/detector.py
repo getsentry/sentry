@@ -55,11 +55,11 @@ class DetectorEvaluation(
     intended outcome and keep `triggered`, `priority`, and `result` consistent:
 
     - `DetectorEvaluation.create_issue(...)`: the group triggered at a non-OK priority. The
-      handler attaches the `IssueOccurrence` it builds with `with_result`.
-    - `evaluation.with_result(...)`: a copy carrying a built `IssueOccurrence` or
-      `StatusChangeMessage`, e.g. a resolution from a stateful detector.
-    - `DetectorEvaluation.ok(...)`: the group evaluated as OK. It carries no result unless a
-      handler attaches a resolution with `with_result`.
+      detector handler calls `create_occurrence` and sets the built `IssueOccurrence` as the result.
+    - `evaluation.with_result(...)`: carry an `IssueOccurrence` or `StatusChangeMessage` that
+      was already built, e.g. a resolution from a stateful detector. It is kept as-is.
+    - `DetectorEvaluation.ok(...)`: the group evaluated as OK. It carries no result, so it is
+      dropped unless a subclass acts on it.
 
     Evaluations with a result are passed to the detector handler's `on_complete`, which decides
     what to do with them. The default, `DetectorOutcome.ISSUE_PLATFORM`, sends them to the Issue Platform.
@@ -70,8 +70,8 @@ class DetectorEvaluation(
     Inherited properties
     - result: DetectorResult - An occurrence (IssueOccurrence) or a status change for an existing issue
         (StatusChangeMessage), passed to the detector handler's `on_complete`.
-        None when there is no result yet: a `create_issue` evaluation before its occurrence is attached,
-        or an `ok` evaluation without a resolution.
+        None when there is no result yet: a `create_issue` evaluation before its occurrence is built,
+        or an `ok` evaluation that no handler turned into a resolution.
     - data: DetectorEvaluationData - This data includes the group key (DetectorGroupKey), the evaluation of the Detector
         triggers (DataConditionGroupEvaluation), and the event data (dict) that triggered the detector evaluation.
     - error: ConditionError - An error during the processing of the conditions in the trigger group.
@@ -89,8 +89,8 @@ class DetectorEvaluation(
         trigger_group_evaluation: DataConditionGroupEvaluation | None = None,
     ) -> Self:
         """
-        The group triggered at `priority`. The handler attaches the `IssueOccurrence` it builds
-        with `with_result`.
+        The group triggered at `priority`. The detector handler calls `create_occurrence` and
+        sets the built `IssueOccurrence` as the result.
 
         `trigger_group_evaluation` is the condition group evaluation that decided the
         priority, or None for detectors that do not evaluate one.
@@ -116,8 +116,9 @@ class DetectorEvaluation(
         trigger_group_evaluation: DataConditionGroupEvaluation | None = None,
     ) -> Self:
         """
-        The group evaluated as OK. The evaluation carries no result; a handler that resolves
-        the issue, e.g. `StatefulDetectorHandler`, attaches the resolution with `with_result`.
+        The group evaluated as OK. The evaluation carries no result, so the detector handler
+        drops it; a subclass can act on it instead, e.g. `StatefulDetectorHandler` resolves the
+        issue once enough OK evaluations are seen.
         """
         return cls(
             result=None,
@@ -137,8 +138,8 @@ class DetectorEvaluation(
         event_data: dict[str, Any] | None = None,
     ) -> Self:
         """
-        Returns a copy of this evaluation carrying a built result. `event_data` replaces the
-        evaluation's event data when given.
+        Returns a copy of this evaluation carrying an already built result, which the detector
+        handler keeps as-is. `event_data` replaces the evaluation's event data when given.
         """
         return replace(
             self,
@@ -149,6 +150,13 @@ class DetectorEvaluation(
                 event_data=event_data if event_data is not None else self.data["event_data"],
             ),
         )
+
+    @property
+    def needs_occurrence(self) -> bool:
+        """
+        True for `create_issue` evaluations whose `IssueOccurrence` has not been built yet.
+        """
+        return self.triggered and self.result is None
 
     @property
     def outcome(self) -> DetectorEvaluationOutcome:

@@ -113,12 +113,12 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         result_detector, group_results = results[0]
         assert result_detector == detector
         assert set(group_results.keys()) == {None}
-        self.assert_evaluation(
-            group_results[None],
-            group_key=None,
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-        )
+        # The mock handler's evaluation triggers without a result, so the platform builds the occurrence
+        evaluation = group_results[None]
+        assert isinstance(evaluation.result, IssueOccurrence)
+        assert evaluation.data["group_key"] is None
+        assert evaluation.triggered is True
+        assert evaluation.priority == DetectorPriorityLevel.HIGH
 
     def test_logs_canonical_evaluation_artifact(self) -> None:
         detector = self.create_detector_from_cache(type=self.handler_type.slug)
@@ -135,7 +135,10 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "sentry.workflow_engine.processors.evaluations.logging.logger"
             ) as mock_logger,
         ):
-            process_detectors(data_packet, [detector])
+            results = process_detectors(data_packet, [detector])
+
+        event_data = results[0][1][None].data["event_data"]
+        assert event_data is not None
 
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_detectors.evaluation",
@@ -145,7 +148,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "detector_type": detector.type,
                 "project_id": detector.linked_project.id,
                 "outcome": DetectorEvaluationOutcome.TRIGGERED,
-                "event_id": None,
+                "event_id": event_data["event_id"],
                 "group_key": None,
                 "priority": DetectorPriorityLevel.HIGH.value,
                 "trigger_evaluation": {
@@ -416,16 +419,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         self, mock_produce_occurrence_to_kafka: MagicMock
     ) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
-        evaluation = DetectorEvaluation(
-            result=None,
-            data={
-                "group_key": None,
-                "trigger_group_evaluation": build_mock_group_evaluation(),
-                "event_data": None,
-            },
-            triggered=False,
-            priority=DetectorPriorityLevel.OK,
-        )
+        evaluation = DetectorEvaluation.ok(None, build_mock_group_evaluation())
 
         DetectorOutcome.ISSUE_PLATFORM.dispatch(detector, evaluation)
         mock_produce_occurrence_to_kafka.assert_not_called()
