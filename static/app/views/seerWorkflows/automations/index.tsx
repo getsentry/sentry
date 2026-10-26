@@ -211,8 +211,6 @@ function AutomationCard({
             </Flex>
           )}
           {description && <Text as="p">{description}</Text>}
-        </Stack>
-        <Stack gap="lg">
           {usage.length > 0 && (
             <Text size="sm" variant="muted">
               {usage.map((part, index) => (
@@ -223,45 +221,43 @@ function AutomationCard({
               ))}
             </Text>
           )}
-          {projectSlugs[0] === 'all' ? (
-            <Flex align="center" gap="sm">
-              <IconAllProjects size="sm" variant="muted" />
-              <Text size="sm" variant="muted">
-                {t('All projects')}
-              </Text>
-            </Flex>
-          ) : projectSlugs.length === 0 ? (
-            <Text size="sm" variant="muted">
-              {t('No projects')}
-            </Text>
-          ) : (
-            <Flex align="center" gap="sm">
-              <ProjectList
-                projectSlugs={projectSlugs}
-                maxVisibleProjects={MAX_VISIBLE_PROJECTS}
-              />
-              <Container flex="1" minWidth={0}>
-                <Text size="sm" variant="muted" wordBreak="break-word">
-                  {projectSlugs.slice(0, MAX_VISIBLE_PROJECTS).join(', ')}
-                  {projectSlugs.length > MAX_VISIBLE_PROJECTS && (
-                    <Fragment>
-                      {' '}
-                      <InfoText
-                        title={projectSlugs.slice(MAX_VISIBLE_PROJECTS).join(', ')}
-                      >
-                        {tn(
-                          '+%s more',
-                          '+%s more',
-                          projectSlugs.length - MAX_VISIBLE_PROJECTS
-                        )}
-                      </InfoText>
-                    </Fragment>
-                  )}
-                </Text>
-              </Container>
-            </Flex>
-          )}
         </Stack>
+        {projectSlugs[0] === 'all' ? (
+          <Flex align="center" gap="sm">
+            <IconAllProjects size="sm" variant="muted" />
+            <Text size="sm" variant="muted">
+              {t('All projects')}
+            </Text>
+          </Flex>
+        ) : projectSlugs.length === 0 ? (
+          <Text size="sm" variant="muted">
+            {t('No projects')}
+          </Text>
+        ) : (
+          <Flex align="center" gap="sm">
+            <ProjectList
+              projectSlugs={projectSlugs}
+              maxVisibleProjects={MAX_VISIBLE_PROJECTS}
+            />
+            <Container flex="1" minWidth={0}>
+              <Text size="sm" variant="muted" wordBreak="break-word">
+                {projectSlugs.slice(0, MAX_VISIBLE_PROJECTS).join(', ')}
+                {projectSlugs.length > MAX_VISIBLE_PROJECTS && (
+                  <Fragment>
+                    {' '}
+                    <InfoText title={projectSlugs.slice(MAX_VISIBLE_PROJECTS).join(', ')}>
+                      {tn(
+                        '+%s more',
+                        '+%s more',
+                        projectSlugs.length - MAX_VISIBLE_PROJECTS
+                      )}
+                    </InfoText>
+                  </Fragment>
+                )}
+              </Text>
+            </Container>
+          </Flex>
+        )}
       </CardStack>
     </Container>
   );
