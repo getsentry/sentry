@@ -599,7 +599,6 @@ export type KnownSentryApiUrls =
   | '/sentry-apps/$sentryAppIdOrSlug/avatar/'
   | '/sentry-apps/$sentryAppIdOrSlug/components/'
   | '/sentry-apps/$sentryAppIdOrSlug/features/'
-  | '/sentry-apps/$sentryAppIdOrSlug/interaction/'
   | '/sentry-apps/$sentryAppIdOrSlug/publish-request/'
   | '/sentry-apps/$sentryAppIdOrSlug/rotate-secret/'
   | '/sentry-apps/$sentryAppIdOrSlug/stats/'
