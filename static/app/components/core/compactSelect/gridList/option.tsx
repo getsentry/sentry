@@ -12,7 +12,7 @@ import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
+import {ListItem, useReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
@@ -84,6 +84,7 @@ export function GridListOption<T extends ListItemBase>({
     [label]
   );
 
+  const reserveLeadingSlot = useReserveLeadingSlot();
   const {leadingItems}: Pick<ListItemProps, 'leadingItems'> = node.props;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
@@ -114,11 +115,25 @@ export function GridListOption<T extends ListItemBase>({
             )
           )}
         </LeadWrap>
-        {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
+        {leading ? (
+          <LeadWrap role="presentation">{leading}</LeadWrap>
+        ) : reserveLeadingSlot ? (
+          // Matches the default 16px icon, so labels line up with options that have one.
+          <LeadWrap role="presentation" minWidth="16px" />
+        ) : null}
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
+  }, [
+    multiple,
+    isSelected,
+    isDisabled,
+    isFocused,
+    size,
+    leadingItems,
+    hideCheck,
+    reserveLeadingSlot,
+  ]);
 
   return (
     <ListItem
@@ -136,7 +151,7 @@ export function GridListOption<T extends ListItemBase>({
         ...gridCellProps,
         paddingLeft: getOptionPaddingLeft({
           hasCheck: !hideCheck,
-          hasLeadingItems: Boolean(leadingItems),
+          hasLeadingItems: Boolean(leadingItems) || reserveLeadingSlot,
         }),
       }}
       labelProps={labelPropsMemo}
