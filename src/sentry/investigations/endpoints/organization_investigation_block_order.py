@@ -84,6 +84,6 @@ class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationEndpo
             serialize(
                 updated,
                 request.user,
-                InvestigationDetailsSerializer(),
+                InvestigationDetailsSerializer(access=request.access),
             )
         )

@@ -27,7 +27,11 @@ import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
-import type {ActivityFeedItem, CollapsedSeerActivity} from './activityFeedItem';
+import {
+  getActorActivity,
+  type ActivityFeedItem,
+  type CollapsedSeerActivity,
+} from './activityFeedItem';
 import {getArchiveDetails} from './archiveDetails';
 
 interface ActivityItem {
@@ -177,7 +181,7 @@ function getCollapsedSeerIterationReferrer(item: ActivityFeedItem) {
 
 export function getActivityItem(params: GetActivityItemParams): ActivityItem {
   const activityItem = getActivityItemContent(params);
-  const source = getSentryAppSource(params.item.activity);
+  const source = getSentryAppSource(getActorActivity(params.item));
 
   return source ? {...activityItem, source} : activityItem;
 }

@@ -48,10 +48,11 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.superuser import SuperuserAccess
 from sentry.utils import json
 from sentry.viewer_context import (
+    Actor,
     ActorType,
+    SuperuserAccess,
     ViewerContext,
     encode_viewer_context,
     get_viewer_context,
@@ -98,17 +99,15 @@ class SuperuserAgentTokenTest(APITestCase):
                 f"{self.path}seer/explorer-chat/", {"query": "List projects"}, format="json"
             )
         assert response.status_code == 200, response.content
-        grant = resolved_contexts[0].superuser
+        grant = resolved_contexts[0].actor.superuser
         assert grant is not None
         return grant
 
     def _mint(self, grant):
         viewer = encode_viewer_context(
             ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=self.employee.id, superuser=grant),
                 organization_id=self.org.id,
-                user_id=self.employee.id,
-                actor_type=ActorType.USER,
-                superuser=grant,
             ),
             key=SECRET,
         )
@@ -140,7 +139,7 @@ class SuperuserAgentTokenTest(APITestCase):
         assert issue_response.data["id"] == str(group.id)
         claims = agent_token.decode_agent_token(minted.data["token"])
         assert set(claims["scopes"]) <= agent_token.readonly_scopes()
-        assert claims["superuser"] == grant.dict()
+        assert claims["superuser"] == {"expires_at": grant.expires_at}
         assert claims["exp"] <= grant.expires_at
 
     def test_identity_alone_does_not_delegate_superuser(self):
@@ -197,7 +196,7 @@ class SuperuserAgentTokenTest(APITestCase):
     def test_invalid_expiry_cannot_mint(self):
         self._chat_authorization()
         with self.feature(FLAG):
-            assert self._mint(SuperuserAccess.construct(expires_at=True)).status_code == 401
+            assert self._mint(SuperuserAccess(expires_at=True)).status_code == 401
 
     def test_expired_elevation_cannot_mint_or_be_used(self):
         grant = self._chat_authorization()
@@ -279,13 +278,15 @@ class SuperuserAgentTokenTest(APITestCase):
         )
         assert org_context is not None
         with self.feature(FLAG):
-            with viewer_context_scope(ViewerContext(user_id=self.employee.id)):
+            with viewer_context_scope(
+                ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.employee.id))
+            ):
                 access.from_request_org_and_scopes(
                     request=request, rpc_user_org_context=org_context
                 )
                 viewer = get_viewer_context()
                 assert viewer is not None
-                assert viewer.superuser is None
+                assert viewer.actor.superuser is None
 
                 request.superuser.authorize_org(
                     self.org.slug, "for_unit_test", "Testing delegated access"
@@ -295,7 +296,7 @@ class SuperuserAgentTokenTest(APITestCase):
                 )
                 viewer = get_viewer_context()
                 assert viewer is not None
-                grant = viewer.superuser
+                grant = viewer.actor.superuser
             assert grant is not None
             assert self._mint(grant).status_code == 200
 
@@ -1174,6 +1175,25 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 project=self.project,
                 organization_integration=organization_integration,
             )
+        elif name == "scm_code_mapping":
+            _integration, organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            repo = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=_integration.id,
+            )
+            resource = self.create_code_mapping(
+                project=self.project,
+                repo=repo,
+                organization_integration=organization_integration,
+            )
         elif name == "codeowners":
             resource = self.create_codeowners(
                 project=self.project,
@@ -1191,33 +1211,17 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
             resource = self.create_repo(
                 project=self.project,
-                name="permission-matrix/repo",
+                name="permission-matrix/bulk-repo",
                 provider="integrations:github",
                 integration_id=integration.id,
                 external_id="123",
-                url="https://github.com/permission-matrix/repo",
+                url="https://github.com/permission-matrix/bulk-repo",
             )
         elif name == "data_forwarder":
             resource = self.create_data_forwarder(
                 organization=self.org,
                 provider="segment",
                 config={"write_key": "matrix-key"},
-            )
-        elif name == "scm_repository":
-            integration, _organization_integration = self.create_provider_integration_for(
-                self.org,
-                self.owner,
-                provider="github",
-                external_id=f"matrix-github-{uuid4()}",
-                name="Matrix GitHub integration",
-            )
-            resource = self.create_repo(
-                project=self.project,
-                name="permission-matrix/repo",
-                provider="integrations:github",
-                integration_id=integration.id,
-                external_id="123",
-                url="https://github.com/permission-matrix/repo",
             )
         elif name == "flag_log":
             resource = FlagAuditLogModel.objects.create(
@@ -1420,6 +1424,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return self.project.slug
         if placeholder == "codeowners_id":
             return str(self._resource("codeowners").id)
+        if placeholder == "config_id":
+            return str(self._resource("scm_code_mapping").id)
         if placeholder == "team_id_or_slug":
             if endpoint.endpoint_name == "OrganizationSCIMTeamDetails":
                 return str(self.team.id)
@@ -1944,18 +1950,28 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "title": "Permission matrix dashboard mutation"
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
+            ("OrganizationCodeMappingDetailsEndpoint", "PUT"): {
+                "repositoryId": self._resource("scm_code_mapping").project_repository.repository_id,
+                "projectId": self.project.id,
+                "stackRoot": "/app/",
+                "sourceRoot": "src/",
+                "defaultBranch": "main",
+            },
             ("OrganizationCodeMappingsBulkEndpoint", "POST"): {
                 "project": self.project.slug,
                 "repository": self._resource("scm_repository").name,
+                "provider": "github",
                 "defaultBranch": "main",
                 "mappings": [{"stackRoot": "/app/", "sourceRoot": "src/"}],
             },
             ("OrganizationCodeMappingsEndpoint", "POST"): {
-                "integrationId": self._resource("scm_repository").integration_id,
-                "repositoryId": self._resource("scm_repository").id,
+                "integrationId": self._resource(
+                    "scm_code_mapping"
+                ).project_repository.repository.integration_id,
+                "repositoryId": self._resource("scm_code_mapping").project_repository.repository_id,
                 "projectId": self.project.id,
-                "stackRoot": "/app/",
-                "sourceRoot": "src/",
+                "stackRoot": "/new-app/",
+                "sourceRoot": "src/new/",
                 "defaultBranch": "main",
             },
             ("OrganizationDetectorIndexEndpoint", "PUT"): {"enabled": False},
@@ -2159,10 +2175,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if authentication is MatrixAuthentication.VIEWER_CONTEXT:
             viewer_context = encode_viewer_context(
                 ViewerContext(
-                    user_id=self.owner.id,
+                    actor=Actor(type=ActorType.USER, actor_id=self.owner.id),
                     organization_id=self.org.id,
                     project_id=self.project.id,
-                    actor_type=ActorType.USER,
                 ),
                 key=SECRET,
             )
@@ -2192,10 +2207,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         elif authentication is MatrixAuthentication.VIEWER_CONTEXT:
             headers["HTTP_X_VIEWER_CONTEXT"] = encode_viewer_context(
                 ViewerContext(
-                    user_id=self.owner.id,
+                    actor=Actor(type=ActorType.USER, actor_id=self.owner.id),
                     organization_id=self.org.id,
                     project_id=self.project.id,
-                    actor_type=ActorType.USER,
                 ),
                 key=SECRET,
             )

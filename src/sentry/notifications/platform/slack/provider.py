@@ -170,13 +170,13 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             )
 
         try:
-            slack_target.integration_installation.send_notification(
+            response = slack_target.integration_installation.send_notification(
                 target=target, payload=renderable
             )
         except IntegrationError as e:
             return integration_error_result(e)
 
-        return SendSuccessResult()
+        return SendSuccessResult(provider_message_id=response.get("ts"))
 
     @classmethod
     def _send_with_threading(

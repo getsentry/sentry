@@ -217,6 +217,19 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert self.investigations() == []
 
     @with_feature(FEATURES)
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    def test_member_without_investigation_scope_is_unavailable(
+        self, mock_get_scopes: MagicMock
+    ) -> None:
+        response = self.click()
+
+        assert response.data["text"] == "Seer can't start an investigation for this alert."
+        assert self.investigations() == []
+
+    @with_feature(FEATURES)
     def test_group_from_another_organization_is_unavailable(self) -> None:
         other_project = self.create_project(organization=self.create_organization())
         other_group = self.create_group(project=other_project, type=MetricIssue.type_id)

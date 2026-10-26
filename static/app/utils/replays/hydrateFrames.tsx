@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import type {
   OptionFrame,
   RawBreadcrumbFrame,
@@ -31,14 +33,19 @@ export function hydrateFrames(attachments: unknown[]) {
   const spanFrames: RawSpanFrame[] = [];
   const videoFrames: VideoEvent[] = [];
   let optionFrame = undefined as OptionFrame | undefined;
+  let breadcrumbsWithoutPayload = 0;
 
   attachments.forEach(attachment => {
     if (!attachment) {
       return;
     }
     if (isBreadcrumbFrameEvent(attachment)) {
-      if (attachment.data.payload.category !== 'sentry.feedback') {
-        breadcrumbFrames.push(attachment.data.payload);
+      // SDK types require a payload, but some recordings arrive without one
+      const payload = attachment.data.payload as RawBreadcrumbFrame | undefined;
+      if (!payload) {
+        breadcrumbsWithoutPayload++;
+      } else if (payload.category !== 'sentry.feedback') {
+        breadcrumbFrames.push(payload);
       }
     } else if (isSpanFrameEvent(attachment)) {
       spanFrames.push(attachment.data.payload);
@@ -54,6 +61,12 @@ export function hydrateFrames(attachments: unknown[]) {
       rrwebFrames.push(attachment);
     }
   });
+
+  if (breadcrumbsWithoutPayload > 0) {
+    Sentry.logger.warn('Replay: dropped breadcrumb frames without a payload', {
+      count: breadcrumbsWithoutPayload,
+    });
+  }
 
   return {
     breadcrumbFrames,

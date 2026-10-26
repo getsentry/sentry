@@ -103,6 +103,14 @@ class PaginatorTest(TestCase):
         result3 = paginator.get_result(limit=1, cursor=result2.prev)
         assert len(result3) == 0, (result3, list(result3))
 
+    def test_negative_offset(self) -> None:
+        self.create_user("foo@example.com")
+        paginator = self.cls(User.objects.all(), "id")
+
+        for cursor in (Cursor(0, -1), Cursor(0, -1, True), Cursor(1, -5)):
+            with pytest.raises(BadPaginationError):
+                paginator.get_result(limit=1, cursor=cursor)
+
 
 @control_silo_test
 class OffsetPaginatorTest(TestCase):

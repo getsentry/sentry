@@ -1,7 +1,7 @@
 import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 /**
- * This is our "custom" route object. It varies a bit from react-router 6's
+ * This is our "custom" route object. It varies a bit from React Router's
  * routing object in that it doesn't take a rendered component, but instead a
  * component type and handles the rendering itself.
  */
