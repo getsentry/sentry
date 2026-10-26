@@ -1,6 +1,7 @@
 from sentry.integrations.slack.message_builder.routing import (
     TRACKING_SEPARATOR,
     SlackActionTracking,
+    add_action_tracking,
     decode_action_id,
     encode_action_id,
 )
@@ -61,6 +62,23 @@ class SlackRequestRoutingTest(TestCase):
             assert decoded.organization_id == self.organization.id
             assert decoded.project_id == project_id
             assert decoded.tracking == TRACKING
+
+    def test_add_action_tracking(self) -> None:
+        action_id = f"{SlackAction.SEER_AUTOFIX_START}::1::2"
+        tracked = add_action_tracking(action_id, TRACKING)
+
+        assert tracked == f"{action_id}{TRACKING_SEPARATOR}{TRACKING.encode()}"
+        assert decode_action_id(tracked).tracking == TRACKING
+
+    def test_add_action_tracking_keeps_existing_tracking(self) -> None:
+        tracked = add_action_tracking(f"{SlackAction.SEER_AUTOFIX_START}::1::2", TRACKING)
+        other = SlackActionTracking(notification_uuid="other", source="seer-autofix-update")
+
+        assert add_action_tracking(tracked, other) == tracked
+
+    def test_add_action_tracking_too_long(self) -> None:
+        action_id = f"{'a' * 250}::1::2"
+        assert add_action_tracking(action_id, TRACKING) == action_id
 
     def test_decode_action_id_incomplete_tracking(self) -> None:
         decoded = decode_action_id(f"{SlackAction.SEER_AUTOFIX_START}::1::2|n=abc")
