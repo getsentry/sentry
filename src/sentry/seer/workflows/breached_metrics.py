@@ -2,27 +2,25 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from datetime import datetime
+from typing import Any, Literal
 
 from django.db import router, transaction
 from django.utils import timezone
-from pydantic import ValidationError
+from pydantic import BaseModel, PositiveInt, ValidationError
 
 from sentry import features
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
-    MetricBreachAdmission,
-    MetricBreachExecutionExtras,
-    MetricBreachRejectionReason,
-    MetricBreachRunExtras,
-    MetricBreachTrigger,
+    ConfiguredWorkflowRunExtras,
     SeerWorkflowConfig,
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
+    WorkflowLifecycleExtras,
     WorkflowRunError,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
@@ -47,11 +45,43 @@ class IgnoredMetricBreach:
     ]
 
 
+MetricBreachRejectionReason = Literal["quota_exceeded"]
+
+
 @dataclass(frozen=True)
 class RejectedMetricBreach:
     run: SeerWorkflowRun
     reason: MetricBreachRejectionReason
     created: bool
+
+
+class MetricBreachTrigger(BaseModel):
+    event_id: str
+    occurrence_id: str
+    detector_id: PositiveInt
+    evidence: dict[str, Any]
+    observed_at: datetime
+    environment: str | None = None
+    group_id: int
+    project_id: int
+    invocation_source: Literal["wfe"] = "wfe"
+    binding_id: int
+    workflow_id: int
+    action_id: int
+
+
+class MetricBreachAdmission(BaseModel):
+    status: Literal["accepted", "rejected"]
+    reason: MetricBreachRejectionReason | None
+    decided_at: datetime
+
+
+class MetricBreachRunExtras(ConfiguredWorkflowRunExtras):
+    admission: MetricBreachAdmission
+
+
+class MetricBreachExecutionExtras(WorkflowLifecycleExtras):
+    result: Literal["noop"] = "noop"
 
 
 class BreachedMetricWorkflow(SeerWorkflow):

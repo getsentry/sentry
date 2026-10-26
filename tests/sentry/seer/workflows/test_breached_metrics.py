@@ -12,8 +12,6 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.seer.models.workflow import (
-    MetricBreachRunExtras,
-    MetricBreachTrigger,
     SeerWorkflowConfig,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
@@ -26,6 +24,8 @@ from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
     BreachedMetricWorkflow,
     IgnoredMetricBreach,
+    MetricBreachRunExtras,
+    MetricBreachTrigger,
     RejectedMetricBreach,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects

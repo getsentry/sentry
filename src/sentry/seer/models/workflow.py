@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
 from django.db import models
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -195,38 +194,6 @@ class WorkflowLifecycleExtras(BaseModel):
 
 class ConfiguredWorkflowRunExtras(WorkflowLifecycleExtras):
     snapshot: WorkflowRunSnapshot
-
-
-MetricBreachRejectionReason = Literal["quota_exceeded"]
-
-
-class MetricBreachTrigger(BaseModel):
-    event_id: str
-    occurrence_id: str
-    detector_id: PositiveInt
-    evidence: dict[str, Any]
-    observed_at: datetime
-    environment: str | None = None
-    group_id: int
-    project_id: int
-    invocation_source: Literal["wfe"] = "wfe"
-    binding_id: int
-    workflow_id: int
-    action_id: int
-
-
-class MetricBreachAdmission(BaseModel):
-    status: Literal["accepted", "rejected"]
-    reason: MetricBreachRejectionReason | None
-    decided_at: datetime
-
-
-class MetricBreachRunExtras(ConfiguredWorkflowRunExtras):
-    admission: MetricBreachAdmission
-
-
-class MetricBreachExecutionExtras(WorkflowLifecycleExtras):
-    result: Literal["noop"] = "noop"
 
 
 @cell_silo_model
