@@ -426,10 +426,12 @@ describe('ExploreCharts', () => {
       acceptedEvents = [],
       droppedEvents = [],
       organizationFeatures = features,
+      query = '',
     }: {
       acceptedEvents?: DroppedEventsBucket[];
       droppedEvents?: DroppedEventsBucket[];
       organizationFeatures?: string[];
+      query?: string;
     }) {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-dropped/',
@@ -445,7 +447,7 @@ describe('ExploreCharts', () => {
           <ChartSelectionProvider>
             <ExploreCharts
               extrapolate
-              query=""
+              query={query}
               timeseriesResult={timeseriesResultFixture()}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
@@ -461,6 +463,28 @@ describe('ExploreCharts', () => {
 
       return request;
     }
+
+    it('notes that dropped spans ignore the search while the layer is on', async () => {
+      renderCharts({droppedEvents: [DroppedEventFixture()], query: 'span.op:db'});
+
+      expect(
+        await screen.findByText('Dropped spans are not filtered by search')
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText('Chart layers'));
+      await userEvent.click(screen.getByRole('option', {name: 'Dropped Spans'}));
+
+      expect(
+        screen.queryByText('Dropped spans are not filtered by search')
+      ).not.toBeInTheDocument();
+    });
+
+    it('omits the filter note without a search or environment', async () => {
+      renderCharts({droppedEvents: [DroppedEventFixture()]});
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
+    });
 
     it('hides the Layers control without the feature flag', async () => {
       const request = renderCharts({
