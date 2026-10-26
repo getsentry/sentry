@@ -1,10 +1,20 @@
 from __future__ import annotations
 
-from typing import Any
+from collections import defaultdict
+from collections.abc import Collection, Mapping, Sequence
+from dataclasses import dataclass
+from typing import Any, Literal, TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import serialize
+from sentry.auth.access import Access
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
+from sentry.incidents.endpoints.serializers.query_subscription import SnubaQuerySerializer
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.investigations.contracts import (
     ActionPayloadSerializer,
     StrictCharField,
@@ -12,7 +22,25 @@ from sentry.investigations.contracts import (
     StrictFloatField,
     StrictIntegerField,
 )
-from sentry.investigations.services.action_kinds.base import ActionKind
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationActionRequest,
+    InvestigationOrchestrationRun,
+)
+from sentry.investigations.services.action_kinds.base import ActionKind, CannotApplyReason
+from sentry.models.organization import Organization
+from sentry.snuba.models import SnubaQuery
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+from sentry.workflow_engine.endpoints.organization_detector_details import (
+    check_metric_detector_allowed,
+)
+from sentry.workflow_engine.endpoints.serializers.data_condition_serializer import (
+    DataConditionSerializer,
+)
+from sentry.workflow_engine.endpoints.validators.utils import can_edit_detector_with_access
+from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 UPDATE_DETECTOR_ACTION = "update_detector"
 
@@ -96,6 +124,252 @@ class UpdateDetectorActionSerializer(ActionPayloadSerializer):
         }
 
 
+DetectorValue = int | float | str | None
+
+_THRESHOLD_RESULTS: dict[
+    Literal["highThreshold", "mediumThreshold", "resolutionThreshold"], DetectorPriorityLevel
+] = {
+    "highThreshold": DetectorPriorityLevel.HIGH,
+    "mediumThreshold": DetectorPriorityLevel.MEDIUM,
+    "resolutionThreshold": DetectorPriorityLevel.OK,
+}
+_DATA_SOURCE_KEYS = ("timeWindowSeconds", "query", "aggregate", "environment")
+
+
+class DetectorChanges(TypedDict, total=False):
+    timeWindowSeconds: int
+    highThreshold: float
+    mediumThreshold: float
+    resolutionThreshold: float
+    query: str
+    aggregate: str
+    environment: str | None
+
+
+class DataSourceBody(TypedDict):
+    id: str
+    dataset: str
+    query: str
+    aggregate: str
+    timeWindow: int
+    environment: str | None
+    eventTypes: list[str]
+    queryType: int
+
+
+class ConditionBody(TypedDict):
+    id: str
+    type: str
+    # Only static monitors get here, and their conditions compare against a number.
+    comparison: float
+    conditionResult: int
+
+
+class ConditionGroupBody(TypedDict):
+    id: int
+    logicType: str
+    conditions: list[ConditionBody]
+
+
+class DetectorUpdate(TypedDict, total=False):
+    """The body we send to the detector validator."""
+
+    conditionGroup: ConditionGroupBody
+    dataSources: list[DataSourceBody]
+
+
+@dataclass(frozen=True)
+class DetectorState:
+    """A metric monitor's query and conditions, serialized the way the detector API returns
+    them, so we can read current values and build an update from the same data.
+    """
+
+    data_source: DataSourceBody
+    condition_group: ConditionGroupBody | None
+
+    @classmethod
+    def load(cls, detector: Detector, snuba_query: SnubaQuery) -> DetectorState:
+        serialized = serialize(snuba_query, serializer=SnubaQuerySerializer())
+        # Without a mode the update keeps the stored one. Some span monitors migrated from
+        # transactions store a mode the validator no longer accepts.
+        del serialized["extrapolationMode"]
+        data_source = cast(DataSourceBody, {**serialized, "queryType": snuba_query.type})
+        group = detector.workflow_condition_group
+        condition_group = (
+            ConditionGroupBody(
+                id=group.id,
+                logicType=group.logic_type,
+                conditions=cast(
+                    list[ConditionBody],
+                    serialize(
+                        list(group.conditions.order_by("id")), serializer=DataConditionSerializer()
+                    ),
+                ),
+            )
+            if group is not None
+            else None
+        )
+        return cls(data_source=data_source, condition_group=condition_group)
+
+    def values(self) -> dict[str, DetectorValue]:
+        """The monitor's current settings, keyed like Seer's changes. A threshold is left out
+        unless exactly one condition sets it.
+        """
+
+        values: dict[str, DetectorValue] = {
+            "timeWindowSeconds": self.data_source["timeWindow"],
+            "query": self.data_source["query"],
+            "aggregate": self.data_source["aggregate"],
+            "environment": self.data_source["environment"],
+        }
+        conditions = self.condition_group["conditions"] if self.condition_group else []
+        for key, result in _THRESHOLD_RESULTS.items():
+            comparisons = [
+                condition["comparison"]
+                for condition in conditions
+                if condition["conditionResult"] == result
+            ]
+            if len(comparisons) == 1:
+                values[key] = comparisons[0]
+        return values
+
+    def update(self, changes: DetectorChanges) -> DetectorUpdate:
+        """Apply Seer's changes on top of the current settings."""
+
+        update: DetectorUpdate = {}
+        thresholds: dict[int, float] = {
+            result: changes[key] for key, result in _THRESHOLD_RESULTS.items() if key in changes
+        }
+        if thresholds:
+            # values() has no thresholds without a condition group, so the stale check stops
+            # those changes before they get here.
+            assert self.condition_group is not None
+            # The update deletes conditions we leave out, so send them all.
+            update["conditionGroup"] = {
+                **self.condition_group,
+                "conditions": [
+                    {
+                        **condition,
+                        "comparison": thresholds.get(
+                            condition["conditionResult"], condition["comparison"]
+                        ),
+                    }
+                    for condition in self.condition_group["conditions"]
+                ],
+            }
+        if any(key in changes for key in _DATA_SOURCE_KEYS):
+            data_source = self.data_source.copy()
+            if "timeWindowSeconds" in changes:
+                data_source["timeWindow"] = changes["timeWindowSeconds"]
+            if "query" in changes:
+                data_source["query"] = changes["query"]
+            if "aggregate" in changes:
+                data_source["aggregate"] = changes["aggregate"]
+            if "environment" in changes:
+                data_source["environment"] = changes["environment"]
+            update["dataSources"] = [data_source]
+        return update
+
+
+def is_dynamic_detector(detector: Detector) -> bool:
+    # Saving a dynamic monitor calls Seer's anomaly detection inline, so we leave those alone.
+    return detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
+
+
+def target_detectors(organization_id: int, detector_ids: Collection[int]) -> dict[int, Detector]:
+    """The metric detectors with these ids that the detector API would find in this org."""
+
+    return {
+        detector.id: detector
+        for detector in Detector.objects.by_organization(organization_id)
+        .with_type_filters()
+        .filter(id__in=detector_ids, type=MetricIssue.slug)
+        .select_related("project", "workflow_condition_group")
+    }
+
+
+def source_detector_id(source: Mapping[str, Any]) -> str | None:
+    """The monitor an investigation's run started from, if it started from one."""
+
+    detector_id = source.get("detectorId")
+    return str(detector_id) if detector_id is not None else None
+
+
+def detector_cannot_apply_reason(
+    detector_id: str,
+    *,
+    source_detector_id: str | None,
+    detector: Detector | None,
+    organization: Organization,
+    access: Access,
+) -> CannotApplyReason | None:
+    """Why the viewer can't change `detector_id`, or None if they can. `detector` is what
+    target_detectors found for that id.
+    """
+    if detector_id != source_detector_id:
+        return CannotApplyReason.NOT_TARGET_DETECTOR
+    if detector is None:
+        return CannotApplyReason.DETECTOR_NOT_FOUND
+    try:
+        check_metric_detector_allowed(detector, organization)
+    except ResourceDoesNotExist:
+        return CannotApplyReason.DETECTOR_NOT_FOUND
+    if not can_edit_detector_with_access(detector, access):
+        return CannotApplyReason.PERMISSION_DENIED
+    if is_dynamic_detector(detector):
+        return CannotApplyReason.DYNAMIC_DETECTOR
+    return None
+
+
+def _action_detector_id(action_request: InvestigationActionRequest) -> int:
+    # The payload was validated when it arrived, and advice never reaches the kind.
+    assert action_request.action_payload is not None
+    return int(action_request.action_payload["detectorId"])
+
+
 class UpdateDetectorKind(ActionKind):
     kind = UPDATE_DETECTOR_ACTION
     payload_serializer = UpdateDetectorActionSerializer
+
+    def cannot_apply_reasons(
+        self,
+        action_requests: Sequence[InvestigationActionRequest],
+        *,
+        investigations: dict[int, Investigation],
+        access: Access,
+        user: User | RpcUser | AnonymousUser,
+    ) -> dict[int, CannotApplyReason | None]:
+        source_detector_ids = {
+            investigation_id: source_detector_id(source)
+            for investigation_id, source in InvestigationOrchestrationRun.objects.filter(
+                investigation_id__in={item.investigation_id for item in action_requests}
+            ).values_list("investigation_id", "source")
+        }
+        detector_ids_by_org: dict[int, set[int]] = defaultdict(set)
+        for item in action_requests:
+            organization_id = investigations[item.investigation_id].organization_id
+            detector_ids_by_org[organization_id].add(_action_detector_id(item))
+        detectors = {
+            (organization_id, detector_id): detector
+            for organization_id, detector_ids in detector_ids_by_org.items()
+            for detector_id, detector in target_detectors(organization_id, detector_ids).items()
+        }
+
+        # Requests often share a detector, and the checks query.
+        detector_reasons: dict[tuple[int, str | None, int], CannotApplyReason | None] = {}
+        reasons: dict[int, CannotApplyReason | None] = {}
+        for item in action_requests:
+            detector_id = _action_detector_id(item)
+            investigation = investigations[item.investigation_id]
+            source_id = source_detector_ids.get(item.investigation_id)
+            key = (detector_id, source_id, investigation.organization_id)
+            if key not in detector_reasons:
+                detector_reasons[key] = detector_cannot_apply_reason(
+                    str(detector_id),
+                    source_detector_id=source_id,
+                    detector=detectors.get((investigation.organization_id, detector_id)),
+                    organization=investigation.organization,
+                    access=access,
+                )
+            reasons[item.id] = detector_reasons[key]
+        return reasons

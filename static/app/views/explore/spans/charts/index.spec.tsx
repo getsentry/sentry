@@ -4,7 +4,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -96,6 +103,9 @@ describe('ExploreCharts', () => {
       '[[[1729796400000,10]]]',
       '[[[1729796400000,20]]]',
     ]);
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders the high accuracy message when the widget is loading more data', async () => {
@@ -247,6 +257,61 @@ describe('ExploreCharts', () => {
         </SpansQueryParamsProvider>
       );
     }
+
+    it('edits transformations for a chart group without changing another chart with the same aggregate', async () => {
+      const onSetVisualizes = jest.fn();
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
+            {yAxes: ['p50(span.duration)'], transformations: ['fill(locf)']},
+            {yAxes: ['equation|$a + $b']},
+          ]}
+          onSetVisualizes={onSetVisualizes}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['explore-interpolation-and-smoothing'],
+          }),
+        }
+      );
+
+      const addButtons = await screen.findAllByRole('button', {
+        name: 'Add Transformation',
+      });
+      expect(addButtons).toHaveLength(2);
+      await userEvent.click(addButtons[0]!);
+      await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {
+          yAxes: ['p50(span.duration)', 'p75(span.duration)'],
+          transformations: ['smooth(sma,3)'],
+        },
+        {yAxes: ['p50(span.duration)'], transformations: ['fill(locf)']},
+        {yAxes: ['equation|$a + $b']},
+      ]);
+
+      const rows = screen.getAllByRole('group', {name: 'Transformation 1'});
+      expect(rows).toHaveLength(2);
+      await userEvent.click(within(rows[0]!).getByRole('button', {name: 'Window Size'}));
+      await userEvent.click(screen.getByRole('option', {name: '5'}));
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {
+          yAxes: ['p50(span.duration)', 'p75(span.duration)'],
+          transformations: ['smooth(sma,5)'],
+        },
+        {yAxes: ['p50(span.duration)'], transformations: ['fill(locf)']},
+        {yAxes: ['equation|$a + $b']},
+      ]);
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Collapse chart'})[0]!);
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(1);
+      expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(1);
+      await userEvent.click(screen.getByRole('button', {name: 'Expand chart'}));
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+      expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(2);
+    });
 
     it('plots aggregates selected together on a single chart', async () => {
       render(

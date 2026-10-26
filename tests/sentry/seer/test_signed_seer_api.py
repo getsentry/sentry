@@ -350,6 +350,28 @@ class TestResolveViewerContext:
             "user_id",
         }
 
+    @patch("sentry.seer.signed_seer_api.logger")
+    def test_service_account_is_not_reattributed_to_user(self, mock_logger: MagicMock) -> None:
+        ctx = ViewerContext(
+            actor=Actor(
+                type=ActorType.SERVICE_ACCOUNT,
+                actor_id=5,
+                superuser=SuperuserAccess(expires_at=1234567890),
+            ),
+            organization_id=42,
+            project_id=3,
+        )
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=99))
+
+        assert isinstance(result, ViewerContext)
+        assert result.actor.type == ActorType.SERVICE_ACCOUNT
+        assert result.actor.actor_id == 5
+        assert result.actor.superuser is None
+        assert result.project_id is None
+        mock_logger.warning.assert_called_once()
+        assert mock_logger.warning.call_args[1]["extra"]["field"] == "user_id"
+
     @patch("sentry.seer.signed_seer_api.metrics")
     def test_match_emits_metric_with_project_id(self, mock_metrics: MagicMock) -> None:
         ctx = ViewerContext(
