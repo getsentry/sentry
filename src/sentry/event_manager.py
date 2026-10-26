@@ -1904,7 +1904,7 @@ def _handle_regression(
                 }
             )
 
-        activity = Activity.objects.create_group_activity(
+        Activity.objects.create_group_activity(
             group,
             ActivityType.SET_REGRESSION,
             data=activity_data,
@@ -1914,7 +1914,10 @@ def _handle_regression(
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        create_open_period(group, activity.datetime, event.event_id)
+        # Use event time, not processing time: the open period may be closed by a status
+        # change carrying event time (e.g. a cron check-in), and consumer lag would
+        # otherwise let that close land before the start.
+        create_open_period(group, date, event.event_id)
 
     return is_regression
 
