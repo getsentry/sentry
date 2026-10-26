@@ -17,9 +17,21 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 class InvestigationOrchestrationSeerClientTest(TestCase):
+    def setUp(self) -> None:
+        self.enterContext(
+            viewer_context_scope(
+                ViewerContext(
+                    actor=Actor(type=ActorType.USER, actor_id=self.user.id),
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                )
+            )
+        )
+
     @override_settings(SEER_API_SHARED_SECRET="investigation-protocol-test-secret")
     @mock.patch("sentry.investigations.seer_client.investigation_connection_pool")
     @mock.patch("sentry.investigations.seer_client.get_monitoring_provider_connections")

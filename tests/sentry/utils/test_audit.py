@@ -18,12 +18,7 @@ from sentry.utils.audit import (
     create_audit_entry_from_user,
     create_system_audit_entry,
 )
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 username = "hello" * 20
 

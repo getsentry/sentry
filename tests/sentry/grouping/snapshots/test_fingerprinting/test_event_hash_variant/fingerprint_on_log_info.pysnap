@@ -14,7 +14,8 @@ config:
       - sentry.*
     - - level
       - ERROR
-    text: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
+    text: logger:"sentry.*" level:"ERROR" -> "log-", "{{ logger }}", "-", "{{ level
+      }}"
   version: 1
 fingerprint:
 - log-
@@ -27,7 +28,8 @@ variants:
     contributes: true
     hint: null
     key: custom_server_fingerprint
-    matched_rule: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
+    matched_rule: logger:"sentry.*" level:"ERROR" -> "log-", "{{ logger }}", "-",
+      "{{ level }}"
     type: custom_fingerprint
     values:
     - log-

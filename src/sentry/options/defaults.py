@@ -947,6 +947,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "msteams.client-secret-expires-at",
+    default="",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("msteams.app-id")
 register(
     "msteams.personal-installation-link.enabled",
@@ -3454,13 +3459,6 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable sending a post update signal after we update groups using a queryset update
-register(
-    "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 

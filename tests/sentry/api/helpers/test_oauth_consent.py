@@ -242,3 +242,6 @@ def test_resource_access_descriptions() -> None:
     (ci,) = get_permission_groups(["org:ci"])
     assert ci["accessDescriptions"] == {}
     assert ci["description"]
+    (tokens,) = get_permission_groups(["org:tokens"])
+    assert tokens["accessDescriptions"] == {}
+    assert tokens["description"]

@@ -346,16 +346,11 @@ def _detect_function_change_points(
     )
 
     breakpoint_count = 0
-    vroom_emitted_count = 0
-    sentry_emitted_count = 0
+    emitted_count = 0
 
     for regression_chunk in chunked(regressions, 100):
         breakpoint_count += len(regression_chunk)
-        vroom_count, sentry_count = emit_function_regression_issue(
-            projects_by_id, regression_chunk, start
-        )
-        vroom_emitted_count += vroom_count
-        sentry_emitted_count += sentry_count
+        emitted_count += emit_function_regression_issue(projects_by_id, regression_chunk, start)
 
     metrics.incr(
         "statistical_detectors.breakpoint.detected",
@@ -366,13 +361,7 @@ def _detect_function_change_points(
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
-        amount=vroom_emitted_count,
-        tags={"source": "profile", "kind": "function", "producer": "vroom"},
-        sample_rate=1.0,
-    )
-    metrics.incr(
-        "statistical_detectors.breakpoint.emitted",
-        amount=sentry_emitted_count,
+        amount=emitted_count,
         tags={"source": "profile", "kind": "function", "producer": "sentry"},
         sample_rate=1.0,
     )
@@ -382,7 +371,7 @@ def emit_function_regression_issue(
     projects_by_id: dict[int, Project],
     regressions: list[BreakpointData],
     start: datetime,
-) -> tuple[int, int]:
+) -> int:
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
 
@@ -437,8 +426,7 @@ def emit_function_regression_issue(
 
     continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
-    payloads_by_producer: dict[bool, list[dict[str, Any]]] = {}
-    produce_in_sentry_by_org: dict[int, bool] = {}
+    payloads: list[dict[str, Any]] = []
 
     for regression in regressions:
         project_id = int(regression["project"])
@@ -454,12 +442,7 @@ def emit_function_regression_issue(
         if example is None:
             continue
 
-        if project.organization_id not in produce_in_sentry_by_org:
-            produce_in_sentry_by_org[project.organization_id] = features.has(
-                "organizations:profiling-sentry-regression-occurrences", project.organization
-            )
-        produce_in_sentry = produce_in_sentry_by_org[project.organization_id]
-        payloads_by_producer.setdefault(produce_in_sentry, []).append(
+        payloads.append(
             {
                 "organization_id": project.organization_id,
                 "project_id": project_id,
@@ -476,37 +459,31 @@ def emit_function_regression_issue(
             }
         )
 
-    vroom_occurrences = 0
-    sentry_occurrences = 0
-    for produce_in_sentry, payloads in payloads_by_producer.items():
-        response = get_from_profiling_service(
-            method="POST",
-            path="/regressed?produce=false" if produce_in_sentry else "/regressed",
-            json_data=payloads,
+    if not payloads:
+        return 0
+
+    response = get_from_profiling_service(
+        method="POST", path="/regressed?produce=false", json_data=payloads
+    )
+    if response.status != 200:
+        return 0
+
+    data = json.loads(response.data)
+    for payload in data["occurrence_payloads"]:
+        event_data = payload["event"]
+        occurrence = IssueOccurrence.from_dict(
+            cast(
+                IssueOccurrenceData,
+                {
+                    **payload,
+                    "event_id": event_data["event_id"],
+                    "resource_id": payload.get("resource_id"),
+                },
+            )
         )
-        if response.status != 200:
-            continue
+        produce_occurrence_to_kafka(occurrence=occurrence, event_data=event_data)
 
-        data = json.loads(response.data)
-        if produce_in_sentry:
-            for payload in data["occurrence_payloads"]:
-                event_data = payload["event"]
-                occurrence = IssueOccurrence.from_dict(
-                    cast(
-                        IssueOccurrenceData,
-                        {
-                            **payload,
-                            "event_id": event_data["event_id"],
-                            "resource_id": payload.get("resource_id"),
-                        },
-                    )
-                )
-                produce_occurrence_to_kafka(occurrence=occurrence, event_data=event_data)
-            sentry_occurrences += len(data["occurrence_payloads"])
-        else:
-            vroom_occurrences += data["occurrences"]
-
-    return vroom_occurrences, sentry_occurrences
+    return len(data["occurrence_payloads"])
 
 
 def fetch_continuous_examples(raw_examples):

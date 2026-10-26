@@ -46,12 +46,13 @@ describe('useIssuesSeriesQuery', () => {
           {
             yAxis: 'count(new_issues)',
             values: [{timestamp: 1, value: 10}],
+            meta: {valueType: 'integer', valueUnit: null, interval: 3600000},
           },
         ],
       },
     });
 
-    renderHookWithProviders(() =>
+    const {result} = renderHookWithProviders(() =>
       useIssuesSeriesQuery({
         widget,
         organization,
@@ -71,6 +72,20 @@ describe('useIssuesSeriesQuery', () => {
         })
       );
     });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.timeseriesResults).toEqual([
+      expect.objectContaining({
+        queryIndex: 0,
+        seriesName: 'count(new_issues)',
+        timeSeries: expect.objectContaining({
+          yAxis: 'count(new_issues)',
+          values: [{timestamp: 1, value: 10}],
+        }),
+      }),
+    ]);
   });
 
   it('applies dashboard filters to widget query', async () => {
@@ -95,6 +110,7 @@ describe('useIssuesSeriesQuery', () => {
           {
             yAxis: 'count(new_issues)',
             values: [{timestamp: 1, value: 10}],
+            meta: {valueType: 'integer', valueUnit: null, interval: 3600000},
           },
         ],
       },
