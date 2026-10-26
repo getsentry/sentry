@@ -10,8 +10,10 @@ import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {NotFound} from 'sentry/components/errors/notFound';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
 type SpendPeriod = '7d' | '30d' | '90d' | '6m';
 
@@ -84,6 +86,7 @@ function ConfigRow({
 }
 
 export default function AutomationConfiguration() {
+  const automationsEnabled = useAutomationsEnabled();
   const theme = useTheme();
   const colors = theme.chart.getColorPalette(3);
 
@@ -118,6 +121,10 @@ export default function AutomationConfiguration() {
       description: t('Propose a fix as a pull request for someone to review and merge.'),
     },
   ];
+
+  if (!automationsEnabled) {
+    return <NotFound />;
+  }
 
   return (
     <Stack gap="xl" maxWidth="960px">
@@ -188,6 +195,7 @@ export default function AutomationConfiguration() {
         <Stack gap="lg" padding="lg">
           <Flex justify="end">
             <SegmentedControl<SpendPeriod>
+              aria-label={t('Spend period')}
               size="xs"
               value={MOCK_SPEND_PERIOD}
               onChange={() => {}}
