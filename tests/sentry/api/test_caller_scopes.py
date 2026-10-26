@@ -10,7 +10,7 @@ from sentry.api.caller_scopes import has_deprecated_scopes, has_granular_scopes
         (["project:read"], True, False),
         (["member:read"], True, False),
         (["dashboard:read"], False, True),
-        (["org:read", "dashboard:write"], True, True),
+        (["org:read", "dashboard:update"], True, True),
         (["org:write", "project:write"], False, False),
         ([], False, False),
     ],

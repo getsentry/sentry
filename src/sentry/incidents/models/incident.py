@@ -83,8 +83,12 @@ class Incident(Model):
 
     objects: ClassVar[IncidentManager] = IncidentManager()
 
-    organization = FlexibleForeignKey("sentry.Organization")
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", on_delete=models.PROTECT)
+    organization = FlexibleForeignKey(
+        "sentry.Organization", on_delete=models.DO_NOTHING, db_constraint=False
+    )
+    alert_rule = FlexibleForeignKey(
+        "sentry.AlertRule", on_delete=models.DO_NOTHING, db_constraint=False
+    )
     # Incrementing id that is specific to the org.
     identifier = models.IntegerField()
     # Identifier used to match incoming events from the detection algorithm
@@ -102,7 +106,7 @@ class Incident(Model):
     date_added = models.DateTimeField(default=timezone.now)
     date_closed = models.DateTimeField(null=True)
     subscription = FlexibleForeignKey(
-        "sentry.QuerySubscription", on_delete=models.SET_NULL, null=True
+        "sentry.QuerySubscription", on_delete=models.DO_NOTHING, null=True, db_constraint=False
     )
 
     class Meta:

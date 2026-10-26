@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
@@ -634,3 +635,21 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
         ).first()
         assert activity is not None
         assert before <= activity.datetime <= after
+
+
+@patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+class UpdateGroupStatusSnapshotTest(TestCase):
+    def test_emits_one_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=[group],
+                status=GroupStatus.IGNORED,
+                substatus=GroupSubStatus.FOREVER,
+                activity_type=ActivityType.SET_IGNORED,
+            )
+
+        produce_snapshot.assert_called_once()

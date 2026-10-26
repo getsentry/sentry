@@ -656,6 +656,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                        @getsentry/agent-tracing
 /src/sentry/ai_monitoring/                                                             @getsentry/agent-tracing
 /tests/sentry/ai_monitoring/                                                           @getsentry/agent-tracing
+/src/sentry/telemetry_classifiers/                                                     @getsentry/agent-tracing
+/tests/sentry/telemetry_classifiers/                                                   @getsentry/agent-tracing
 /tests/sentry/api/endpoints/test_organization_ai_conversation*.py                      @getsentry/agent-tracing
 /src/sentry/apidocs/examples/ai_conversation_examples.py                               @getsentry/agent-tracing
 /src/sentry/analytics/events/agent_monitoring_events.py                                @getsentry/agent-tracing
@@ -705,6 +707,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
 /src/sentry/investigations/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/investigations/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/src/sentry/seer/workflows/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/seer/workflows/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 
 ## End of ML & AI
 
@@ -914,6 +918,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Agent Interfaces
 /static/app/views/investigations/                         @getsentry/agent-interfaces-sentry-frontend
+/static/app/views/seerWorkflows/                          @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/seer/                              @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/prevent/                           @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/prevent/                                @getsentry/agent-interfaces-sentry-frontend

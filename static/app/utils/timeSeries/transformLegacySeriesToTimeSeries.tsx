@@ -4,7 +4,6 @@ import {
   aggregateOutputType,
   RateUnit,
   type AggregationOutputType,
-  type DataUnit,
 } from 'sentry/utils/discover/fields';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -27,8 +26,6 @@ export const SERIES_QUERY_DELIMITER = ' > ';
 /** Converts a legacy series whose query and alias prefixes have already been removed. */
 export function transformLegacySeriesToTimeSeries(
   timeseriesResult: Series | undefined,
-  timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
-  timeseriesResultsUnits: Record<string, DataUnit> | undefined,
   fields: string[] = [],
   yAxis = ''
 ): TimeSeries | null {
@@ -36,20 +33,10 @@ export function transformLegacySeriesToTimeSeries(
     return null;
   }
 
-  const fieldType = timeseriesResultsTypes?.[yAxis] ?? aggregateOutputType(yAxis);
-
-  // Prefer results types and units from the config if available
-  // Fallback to the default mapping logic if not available
-  const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, yAxis);
+  const mapped = mapAggregationTypeToValueTypeAndUnit(aggregateOutputType(yAxis), yAxis);
   const seriesName = timeseriesResult.seriesName ?? yAxis;
-  const valueType =
-    timeseriesResultsTypes?.[seriesName] ??
-    timeseriesResultsTypes?.[yAxis] ??
-    (mapped.valueType as AggregationOutputType);
-  const valueUnit =
-    timeseriesResultsUnits?.[seriesName] ??
-    timeseriesResultsUnits?.[yAxis] ??
-    mapped.valueUnit;
+  const valueType = mapped.valueType as AggregationOutputType;
+  const valueUnit = mapped.valueUnit;
 
   const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
 

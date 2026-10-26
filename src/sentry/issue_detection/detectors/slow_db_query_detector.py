@@ -11,6 +11,7 @@ from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     fingerprint_span,
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
 )
 from ..performance_problem import PerformanceProblem
@@ -53,7 +54,7 @@ class SlowDBQueryDetector(PerformanceDetector):
             )
             return
 
-        description = span["description"].strip()
+        description = get_span_description(span)
 
         if duration_threshold is not None and span_duration >= timedelta(
             milliseconds=duration_threshold
@@ -104,11 +105,10 @@ class SlowDBQueryDetector(PerformanceDetector):
         return self.settings["detection_enabled"]
 
     def _is_span_eligible(self, span: Span) -> bool:
-        description = span.get("description", None)
+        description = get_span_description(span)
         if not description:
             return False
 
-        description = description.strip()
         if description[:6].upper() != "SELECT":
             return False
 

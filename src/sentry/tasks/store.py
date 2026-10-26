@@ -46,12 +46,7 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")

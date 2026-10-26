@@ -303,6 +303,16 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         [serialized] = response.data["actionRequests"]
         assert serialized["id"] == str(action_request.id)
         assert serialized["action"] == action_request.action_payload
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
+
+        updated = self.client.put(
+            url,
+            data={"investigationVersion": investigation.version, "title": "Renamed"},
+            format="json",
+        )
+
+        assert updated.status_code == 200
+        assert updated.data["actionRequests"][0]["canApply"] is True
 
     def test_metadata_update_persists_and_stale_version_rolls_back(self) -> None:
         created = self.client.post(
