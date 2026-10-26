@@ -237,7 +237,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             serialize(
                 investigation,
                 request.user,
-                InvestigationDetailsSerializer(),
+                InvestigationDetailsSerializer(access=request.access),
             ),
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )

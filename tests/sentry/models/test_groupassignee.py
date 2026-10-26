@@ -15,8 +15,13 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import (
+    Actor,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.viewer_context import ActorType as ViewerActorType
-from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
 
 pytestmark = requires_snuba
 
@@ -24,10 +29,9 @@ pytestmark = requires_snuba
 class GroupAssigneeTestCase(TestCase):
     def test_assign_preserves_viewer_context_until_on_commit(self) -> None:
         expected_context = ViewerContext(
+            actor=Actor(type=ViewerActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ViewerActorType.USER,
         )
         captured_contexts: list[ViewerContext | None] = []
 

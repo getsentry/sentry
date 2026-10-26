@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import click
 import pytest
+from django.db import DatabaseError
 
 from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.constants import ObjectStatus
@@ -14,7 +15,12 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.notifications.models.notificationrecord import NotificationRecord
+from sentry.notifications.models.notificationthread import NotificationThread
+from sentry.notifications.platform.threading import ThreadingConfig, ThreadingService
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.runner.commands.cleanup import (
+    CleanupExecutionAborted,
     _cleanup,
     generate_bulk_query_deletes,
     models_which_use_deletions_code_path,
@@ -22,6 +28,7 @@ from sentry.runner.commands.cleanup import (
     prepare_deletes_by_project,
     remove_cross_project_bulk_query_models,
     remove_cross_project_models,
+    remove_inactive_notification_threads,
     remove_old_notification_messages,
     run_bulk_deletes_by_project,
     run_bulk_deletes_in_deletes,
@@ -267,8 +274,8 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
             assert viewer_context is not None
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
-            assert viewer_context.user_id is None
-            assert viewer_context.actor_type == ActorType.SYSTEM
+            assert viewer_context.actor.actor_id is None
+            assert viewer_context.actor.type == ActorType.SYSTEM
 
         with (
             assume_test_silo_mode(SiloMode.CELL),
@@ -616,3 +623,226 @@ class RemoveOldNotificationMessagesTest(TestCase):
         remove_old_notification_messages(lambda model: False, models_attempted)
 
         assert "notificationmessage" in models_attempted
+
+
+class RemoveInactiveNotificationThreadsTest(TestCase):
+    RETENTION_DAYS = 90
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._thread_counter = 0
+
+    def _threading_config(self, key: int) -> ThreadingConfig:
+        return ThreadingConfig(
+            key_type=NotificationSource.TEST,
+            key_data={"key": key},
+            provider_key=NotificationProviderKey.SLACK,
+            target_id="C1234",
+            thread_identifier=f"1700000000.{key:06d}",
+            provider_data=None,
+        )
+
+    def _create_thread(self, days_old: int) -> NotificationThread:
+        self._thread_counter += 1
+        thread, record = ThreadingService.store_new_thread(
+            threading_config=self._threading_config(self._thread_counter),
+            external_message_id=f"msg-{self._thread_counter}",
+        )
+        self._age(thread, days_old)
+        self._age(record, days_old)
+        return thread
+
+    def _create_record(
+        self, thread: NotificationThread, days_old: int, failed: bool = False
+    ) -> NotificationRecord:
+        if failed:
+            record = ThreadingService.store_error(
+                thread=thread,
+                provider_key=NotificationProviderKey.SLACK,
+                target_id=thread.target_id,
+                error_details={"error": "channel_not_found"},
+            )
+        else:
+            _, record = ThreadingService.store_existing_thread(
+                thread=thread, external_message_id=f"reply-{thread.id}-{days_old}"
+            )
+        self._age(record, days_old)
+        return record
+
+    def _age(self, obj: NotificationThread | NotificationRecord, days_old: int) -> None:
+        type(obj).objects.filter(id=obj.id).update(date_added=before_now(days=days_old))
+
+    def _run(self, **option_overrides: Any) -> None:
+        opts = {"cleanup.notification-thread.dry-run": False, **option_overrides}
+        with self.options(opts):
+            remove_inactive_notification_threads(lambda model: False, set())
+
+    def test_deletes_inactive_thread_and_all_records(self) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 30)
+        self._create_record(thread, days_old=self.RETENTION_DAYS + 10)
+
+        self._run()
+
+        assert not NotificationThread.objects.filter(id=thread.id).exists()
+        assert not NotificationRecord.objects.filter(thread_id=thread.id).exists()
+
+    def test_keeps_active_thread_with_all_records(self) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 200)
+        old_reply = self._create_record(thread, days_old=self.RETENTION_DAYS + 100)
+        recent_reply = self._create_record(thread, days_old=self.RETENTION_DAYS - 1)
+
+        self._run()
+
+        assert NotificationThread.objects.filter(id=thread.id).exists()
+        remaining = set(
+            NotificationRecord.objects.filter(thread_id=thread.id).values_list("id", flat=True)
+        )
+        assert {old_reply.id, recent_reply.id} <= remaining
+        assert len(remaining) == 3
+
+    def test_keeps_new_thread(self) -> None:
+        thread = self._create_thread(days_old=1)
+
+        self._run()
+
+        assert NotificationThread.objects.filter(id=thread.id).exists()
+
+    def test_recent_failed_send_does_not_keep_thread_active(self) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 30)
+        self._create_record(thread, days_old=1, failed=True)
+
+        self._run()
+
+        assert not NotificationThread.objects.filter(id=thread.id).exists()
+        assert not NotificationRecord.objects.filter(thread_id=thread.id).exists()
+
+    def test_next_notification_after_expiry_starts_new_thread(self) -> None:
+        config = self._threading_config(key=999)
+        thread, record = ThreadingService.store_new_thread(
+            threading_config=config, external_message_id="original"
+        )
+        self._age(thread, self.RETENTION_DAYS + 1)
+        self._age(record, self.RETENTION_DAYS + 1)
+
+        self._run()
+
+        assert ThreadingService.resolve(threading_lookup=config) is None
+        new_config = ThreadingConfig(**{**config, "thread_identifier": "1700000001.000001"})
+        new_thread, _ = ThreadingService.store_new_thread(
+            threading_config=new_config, external_message_id="fresh"
+        )
+        assert new_thread.id != thread.id
+        assert new_thread.thread_identifier == "1700000001.000001"
+        assert ThreadingService.resolve(threading_lookup=config) == new_thread
+
+    def test_processes_multiple_batches(self) -> None:
+        inactive = [self._create_thread(days_old=self.RETENTION_DAYS + 5) for _ in range(3)]
+        active = self._create_thread(days_old=self.RETENTION_DAYS + 5)
+        self._create_record(active, days_old=1)
+
+        self._run(**{"cleanup.notification-thread.batch-size": 1})
+
+        assert not NotificationThread.objects.filter(id__in=[t.id for t in inactive]).exists()
+        assert NotificationThread.objects.filter(id=active.id).exists()
+
+    def test_respects_retention_days_option(self) -> None:
+        thread = self._create_thread(days_old=40)
+
+        self._run(**{"cleanup.notification-thread.retention-days": 30})
+
+        assert not NotificationThread.objects.filter(id=thread.id).exists()
+
+    @patch("sentry.utils.metrics.incr")
+    def test_dry_run_deletes_nothing_and_reports_counts(self, mock_incr: Any) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 5)
+        self._create_record(thread, days_old=self.RETENTION_DAYS + 1)
+
+        with self.options({"cleanup.notification-thread.dry-run": True}):
+            remove_inactive_notification_threads(lambda model: False, set())
+
+        assert NotificationThread.objects.filter(id=thread.id).exists()
+        assert NotificationRecord.objects.filter(thread_id=thread.id).count() == 2
+        mock_incr.assert_any_call(
+            "cleanup.notification_thread.threads_deleted",
+            amount=1,
+            tags={"dry_run": "true"},
+            sample_rate=1.0,
+        )
+        mock_incr.assert_any_call(
+            "cleanup.notification_thread.records_deleted",
+            amount=2,
+            tags={"dry_run": "true"},
+            sample_rate=1.0,
+        )
+
+    def test_dry_run_is_default(self) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 5)
+
+        remove_inactive_notification_threads(lambda model: False, set())
+
+        assert NotificationThread.objects.filter(id=thread.id).exists()
+
+    @patch("sentry.utils.metrics.incr")
+    def test_abort_execution_stops_cleanup(self, mock_incr: Any) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 5)
+
+        with self.options(
+            {"cleanup.notification-thread.dry-run": False, "cleanup.abort_execution": True}
+        ):
+            with pytest.raises(CleanupExecutionAborted):
+                remove_inactive_notification_threads(lambda model: False, set())
+
+        assert NotificationThread.objects.filter(id=thread.id).exists()
+        mock_incr.assert_any_call(
+            "cleanup.notification_thread.run",
+            tags={"outcome": "aborted", "dry_run": "false"},
+            sample_rate=1.0,
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_completed_run(self, mock_incr: Any) -> None:
+        self._create_thread(days_old=self.RETENTION_DAYS + 5)
+
+        self._run()
+
+        mock_incr.assert_any_call(
+            "cleanup.notification_thread.run",
+            tags={"outcome": "completed", "dry_run": "false"},
+            sample_rate=1.0,
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_failed_run(self, mock_incr: Any) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 5)
+
+        queryset_class = type(NotificationThread.objects.none())
+        with patch.object(queryset_class, "delete", side_effect=DatabaseError("boom")):
+            self._run()
+
+        assert NotificationThread.objects.filter(id=thread.id).exists()
+        mock_incr.assert_any_call(
+            "cleanup.notification_thread.run",
+            tags={"outcome": "failed", "dry_run": "false"},
+            sample_rate=1.0,
+        )
+        mock_incr.assert_any_call(
+            "cleanup.error",
+            tags={"type": "specialized_cleanup_notification_threads"},
+            sample_rate=1.0,
+        )
+        run_names = [c.args[0] for c in mock_incr.call_args_list]
+        assert "cleanup.notification_thread.threads_deleted" not in run_names
+
+    def test_respects_is_filtered(self) -> None:
+        thread = self._create_thread(days_old=self.RETENTION_DAYS + 5)
+
+        with self.options({"cleanup.notification-thread.dry-run": False}):
+            remove_inactive_notification_threads(lambda model: True, set())
+
+        assert NotificationThread.objects.filter(id=thread.id).exists()
+
+    def test_records_models_attempted(self) -> None:
+        models_attempted: set[str] = set()
+        remove_inactive_notification_threads(lambda model: False, models_attempted)
+
+        assert {"notificationthread", "notificationrecord"} <= models_attempted

@@ -188,8 +188,20 @@ def get_transformations(request: Request) -> dict[int, list[Transformation]]:
             raise ParseError(detail="Invalid transformations index")
         if index >= axis_count:
             raise ParseError(detail="transformations index must match a yAxis position")
+        if len(values) > len(_TRANSFORMATIONS):
+            raise ParseError(
+                detail=f"At most {len(_TRANSFORMATIONS)} transformations are allowed per yAxis"
+            )
         with handle_query_errors():
             transformations[index] = [parse_transformation(value) for value in values]
+        functions = [
+            "fill" if isinstance(transformation, FillTransformation) else "smooth"
+            for transformation in transformations[index]
+        ]
+        if len(functions) != len(set(functions)):
+            raise ParseError(
+                detail="Only one transformation per function type is allowed per yAxis"
+            )
     return transformations
 
 

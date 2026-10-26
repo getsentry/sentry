@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Any
 from unittest import TestCase
 from unittest.mock import patch
@@ -7,9 +8,12 @@ from drf_spectacular.settings import patched_settings
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint
+from sentry.api.endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _EXPERIMENTAL_OPERATIONS,
+    _OPERATION_SILOS,
     EXPERIMENTAL_NOTICE,
     CustomEndpointEnumerator,
     _fix_nullable_enums,
@@ -17,7 +21,11 @@ from sentry.apidocs.hooks import (
     custom_preprocessing_hook,
 )
 from sentry.apidocs.utils import SentryApiBuildError
+from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
+from sentry.core.endpoints.project_details import ProjectDetailsEndpoint
+from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.investigations.apidocs import investigation_endpoints
+from sentry.issues.endpoints.group_details import GroupDetailsEndpoint
 
 
 @pytest.mark.django_db
@@ -87,10 +95,12 @@ class PublishStatusFilterTest(TestCase):
 
     def setUp(self) -> None:
         _EXPERIMENTAL_OPERATIONS.clear()
+        _OPERATION_SILOS.clear()
 
     def tearDown(self) -> None:
         _ENDPOINT_SERVERS.clear()
         _EXPERIMENTAL_OPERATIONS.clear()
+        _OPERATION_SILOS.clear()
 
     def _endpoint(self, path: str, status: ApiPublishStatus) -> tuple[Any, Any, str, Any]:
         view_class = type(
@@ -258,6 +268,7 @@ class FixIssueRoutesTest(TestCase):
                         "description": "Something else",
                         "operationId": "get something",
                         "parameters": [],
+                        "x-sentry-routing": {"silo": "unknown"},
                     }
                 },
                 "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/": {
@@ -266,12 +277,179 @@ class FixIssueRoutesTest(TestCase):
                         "description": "Get issues",
                         "operationId": "get issue",
                         "parameters": [],
+                        "x-sentry-routing": {"silo": "unknown"},
                     }
                 },
             },
             "components": {"schemas": {}},
         }
         assert custom_postprocessing_hook(BEFORE, None) == AFTER
+
+
+class UnannotatedRoutingEndpoint(Endpoint):
+    owner = ApiOwner.CRONS
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+
+
+class TestOperationRouting:
+    @pytest.fixture(autouse=True)
+    def isolate_metadata(self) -> Iterator[None]:
+        _ENDPOINT_SERVERS.clear()
+        _EXPERIMENTAL_OPERATIONS.clear()
+        _OPERATION_SILOS.clear()
+        with patch("sentry.apidocs.hooks.__write_ownership_data"):
+            yield
+        _ENDPOINT_SERVERS.clear()
+        _EXPERIMENTAL_OPERATIONS.clear()
+        _OPERATION_SILOS.clear()
+
+    def operation(self, parameters: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return {
+            "tags": ["Events"],
+            "description": "An endpoint",
+            "operationId": "example",
+            "parameters": parameters or [],
+        }
+
+    def parameter(self, name: str, location: str = "path") -> dict[str, Any]:
+        return {"name": name, "in": location, "description": "Organization", "required": True}
+
+    def process(self, paths: dict[str, Any]) -> dict[str, Any]:
+        return custom_postprocessing_hook({"components": {"schemas": {}}, "paths": paths}, None)
+
+    @pytest.mark.parametrize(
+        ("path", "view", "expected"),
+        [
+            (
+                "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/",
+                TeamDetailsEndpoint,
+                {"silo": "cell", "organizationParameter": "organization_id_or_slug"},
+            ),
+            (
+                "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/",
+                ProjectDetailsEndpoint,
+                {"silo": "cell", "organizationParameter": "organization_id_or_slug"},
+            ),
+            ("/api/0/organizations/", OrganizationIndexEndpoint, {"silo": "both"}),
+            ("/api/0/unannotated/", UnannotatedRoutingEndpoint, {"silo": "unknown"}),
+        ],
+    )
+    def test_declared_availability(
+        self, path: str, view: type[Endpoint], expected: dict[str, str]
+    ) -> None:
+        endpoint = (path, path, "GET", view.as_view())
+        assert custom_preprocessing_hook([endpoint]) == [endpoint]
+        result = self.process(
+            {path: {"get": self.operation([self.parameter("organization_id_or_slug")])}}
+        )
+        assert result["paths"][path]["get"]["x-sentry-routing"] == expected
+
+    def test_existing_appended_private_operation_keeps_its_control_annotation(self) -> None:
+        path = "/api/0/organizations/{organization_id_or_slug}/api-keys/"
+        endpoint = (path, path, "GET", OrganizationApiKeyIndexEndpoint.as_view())
+
+        # Simulate a legacy operation supplied through APPEND_PATHS. Recording
+        # routing must not cause preprocessing to publish new private operations.
+        assert custom_preprocessing_hook([endpoint]) == []
+        result = self.process(
+            {path: {"get": self.operation([self.parameter("organization_id_or_slug")])}}
+        )
+        assert result["paths"][path]["get"]["x-sentry-routing"] == {
+            "silo": "control",
+            "organizationParameter": "organization_id_or_slug",
+        }
+
+    def test_metadata_does_not_leak_between_methods(self) -> None:
+        path = "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/"
+        custom_preprocessing_hook([(path, path, "GET", TeamDetailsEndpoint.as_view())])
+        result = self.process({path: {"get": self.operation(), "post": self.operation()}})
+
+        assert result["paths"][path]["get"]["x-sentry-routing"] == {"silo": "cell"}
+        assert result["paths"][path]["post"]["x-sentry-routing"] == {"silo": "unknown"}
+
+    @pytest.mark.parametrize(
+        ("path", "parameters", "expected"),
+        [
+            (
+                "/api/0/arbitrary/{organization_slug}/",
+                [("organization_slug", "path")],
+                {"silo": "unknown", "organizationParameter": "organization_slug"},
+            ),
+            ("/api/0/organizations/", [("organization_id_or_slug", "query")], {"silo": "unknown"}),
+            ("/api/0/no-placeholder/", [("organization_slug", "path")], {"silo": "unknown"}),
+            ("/api/0/{organization_slug}/", [], {"silo": "unknown"}),
+            (
+                "/api/0/{organization_slug}/{organization_id_or_slug}/",
+                [("organization_slug", "path"), ("organization_id_or_slug", "path")],
+                {"silo": "unknown"},
+            ),
+        ],
+    )
+    def test_only_unambiguous_real_path_parameters_identify_the_organization(
+        self, path: str, parameters: list[tuple[str, str]], expected: dict[str, str]
+    ) -> None:
+        result = self.process(
+            {
+                path: {
+                    "get": self.operation([self.parameter(*parameter) for parameter in parameters])
+                }
+            }
+        )
+        assert result["paths"][path]["get"]["x-sentry-routing"] == expected
+
+    @pytest.mark.parametrize(
+        "published_path",
+        [
+            "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/",
+            "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/",
+        ],
+    )
+    def test_issue_alias_and_already_canonical_appended_operation_keep_routing(
+        self, published_path: str
+    ) -> None:
+        source_path = "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/"
+        custom_preprocessing_hook(
+            [(source_path, source_path, "GET", GroupDetailsEndpoint.as_view())]
+        )
+        result = self.process(
+            {published_path: {"get": self.operation([self.parameter("organization_id_or_slug")])}}
+        )
+        canonical_path = "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/"
+        assert result["paths"][canonical_path]["get"]["x-sentry-routing"] == {
+            "silo": "cell",
+            "organizationParameter": "organization_id_or_slug",
+        }
+
+    def test_excluded_legacy_issue_route_does_not_classify_canonical_route(self) -> None:
+        legacy_path = "/api/0/{var}/{issue_id}/"
+        assert (
+            custom_preprocessing_hook(
+                [(legacy_path, legacy_path, "GET", GroupDetailsEndpoint.as_view())]
+            )
+            == []
+        )
+        canonical_path = "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/"
+        result = self.process({canonical_path: {"get": self.operation()}})
+        assert result["paths"][canonical_path]["get"]["x-sentry-routing"] == {"silo": "unknown"}
+
+    def test_experimental_and_routing_metadata_coexist(self) -> None:
+        path = "/api/0/example/"
+        custom_preprocessing_hook([(path, path, "GET", UnannotatedRoutingEndpoint.as_view())])
+        result = self.process({path: {"get": self.operation()}})
+        operation = result["paths"][path]["get"]
+
+        assert operation["x-sentry-experimental"] is True
+        assert operation["x-sentry-routing"] == {"silo": "unknown"}
+
+    def test_next_schema_build_does_not_reuse_previous_routing(self) -> None:
+        path = "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/"
+        custom_preprocessing_hook([(path, path, "GET", TeamDetailsEndpoint.as_view())])
+        first = self.process({path: {"get": self.operation()}})
+        assert first["paths"][path]["get"]["x-sentry-routing"] == {"silo": "cell"}
+
+        custom_preprocessing_hook([])
+        second = self.process({path: {"get": self.operation()}})
+        assert second["paths"][path]["get"]["x-sentry-routing"] == {"silo": "unknown"}
 
 
 class FixNullableEnumsTest(TestCase):

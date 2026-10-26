@@ -12,11 +12,10 @@ from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_ke
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.organizationmember import OrganizationMember
@@ -41,7 +40,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
@@ -124,17 +122,6 @@ class ProjectTest(APITestCase, TestCase):
 
         teams = self.project.teams.all()
         assert team.id in {t.id for t in teams}
-
-    @patch("sentry.models.project.locks.get")
-    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
-        # self.organization is cached property, which means it will be created
-        # only if it is accessed, so we need to simulate access and all potential mock
-        # calls before resetting the mock
-        assert self.organization
-        # Ensure the mock starts clean before the save operation
-        mock_lock.reset_mock()
-        Project.objects.create(organization=self.organization)
-        assert mock_lock.call_count == 3  # 1 lock for cached org, 2 locks for default detectors
 
     @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
@@ -1079,8 +1066,7 @@ class CopyProjectSettingsTest(TestCase):
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    @override_options({STAGE_OPTION: {"releases": "double_write"}})
-    def test_copy_writes_the_row_of_a_double_written_list(self) -> None:
+    def test_copy_writes_the_row_of_a_list(self) -> None:
         self.other_project.update_option("sentry:releases", ["1.*"])
         project = self.create_project(fire_project_created=True)
 
@@ -1089,8 +1075,27 @@ class CopyProjectSettingsTest(TestCase):
         assert project.get_option("sentry:releases") == ["1.*"]
         row = CustomInboundFilter.objects.get(project_id=project.id)
         assert row.legacy_filter == "release-version"
-        assert row.conditions == [{"type": "release", "value": ["1.*"]}]
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
         self.assert_settings_copied(project)
+
+    def test_copy_keeps_the_name_and_the_active_flag_of_a_list_row(self) -> None:
+        self.other_project.update_option("sentry:releases", ["1.*"])
+        self.create_project_custom_inbound_filter(
+            project=self.other_project,
+            name="Old builds",
+            active=False,
+            data_type="all",
+            conditions=[{"type": "release", "operator": "glob", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        project = self.create_project(fire_project_created=True)
+
+        assert project.copy_settings_from(self.other_project.id)
+
+        row = CustomInboundFilter.objects.get(project_id=project.id)
+        assert row.name == "Old builds"
+        assert row.active is False
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
 
 
 @control_silo_test

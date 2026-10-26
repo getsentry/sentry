@@ -12,7 +12,7 @@ import {findBestThread} from 'sentry/components/events/interfaces/threads/thread
 import {Placeholder} from 'sentry/components/placeholder';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {EntryType, type Thread} from 'sentry/types/event';
+import {EntryType, type Event, type Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,7 +24,6 @@ import {
   issueAndEventToMarkdown,
   useActiveThreadId,
 } from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   PullRequestButtons,
   useIssuePreviewPullRequests,
@@ -36,24 +35,23 @@ import {getIssueSummaryText, type IssueSummary} from './issuePreviewSummary';
 
 interface CopyAsMarkdownDropdownProps {
   disabled: boolean;
+  event: Event | undefined;
   group: Group;
+  isEventLoading: boolean;
   autofixData?: ExplorerAutofixState | null;
   autofixFormatted?: string | null;
   summary?: IssueSummary;
 }
 
-interface IssuePreviewActionsProps {
-  disabled: boolean;
-  group: Group;
+interface IssuePreviewActionsProps extends CopyAsMarkdownDropdownProps {
   project: Project;
-  autofixData?: ExplorerAutofixState | null;
-  autofixFormatted?: string | null;
-  summary?: IssueSummary;
 }
 
 function CopyAsMarkdownDropdown({
   group,
   disabled,
+  event,
+  isEventLoading,
   autofixData,
   autofixFormatted,
   summary,
@@ -61,11 +59,6 @@ function CopyAsMarkdownDropdown({
   const organization = useOrganization();
   const {copy} = useCopyToClipboard();
   const activeThreadId = useActiveThreadId();
-  const {data: event, isPending} = useGroupEvent({
-    groupId: group.id,
-    eventId: 'recommended',
-    options: {enabled: !disabled},
-  });
 
   const {description, trace} = getIssueSummaryText(summary);
   const agentLinks = getCodingAgentLinks(group, description);
@@ -99,7 +92,7 @@ function CopyAsMarkdownDropdown({
     eventId: event?.id,
     hasAutofix: Boolean(autofixData),
   };
-  const isDisabled = disabled || isPending;
+  const isDisabled = disabled || isEventLoading;
   const agents: Array<{icon: ReactNode; key: LocalCodingAgent; label: string}> = [
     {
       key: 'cursor',
@@ -139,7 +132,7 @@ function CopyAsMarkdownDropdown({
         variant="primary"
         icon={<IconCopy />}
         disabled={isDisabled}
-        busy={!disabled && isPending}
+        busy={!disabled && isEventLoading}
         onClick={handleCopy}
         analyticsEventKey="issue_details.copy_issue_details_as_markdown"
         analyticsEventName="Issue Details: Copy Issue Details as Markdown"
@@ -169,7 +162,9 @@ function CopyAsMarkdownDropdown({
 
 export function IssuePreviewActions({
   disabled,
+  event,
   group,
+  isEventLoading,
   project,
   autofixData,
   autofixFormatted,
@@ -189,6 +184,8 @@ export function IssuePreviewActions({
       <CopyAsMarkdownDropdown
         group={group}
         disabled={disabled}
+        event={event}
+        isEventLoading={isEventLoading}
         autofixData={autofixData}
         autofixFormatted={autofixFormatted}
         summary={summary}
