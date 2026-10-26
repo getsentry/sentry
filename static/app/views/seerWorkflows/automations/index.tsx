@@ -61,6 +61,7 @@ type AdditionalConfigProps = {
   trigger?: string;
 };
 
+// TODO: can just be Response type once API updated
 type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfigProps;
 
 function makePlaceholderConfig(
