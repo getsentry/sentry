@@ -11,6 +11,7 @@ from slack_sdk.models.blocks import (
 )
 from slack_sdk.web import SlackResponse
 
+from sentry.constants import ObjectStatus
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
 from sentry.integrations.types import IntegrationProviderSlug
@@ -40,8 +41,11 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTargetResourceType,
 )
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SlackRendererTest(TestCase):
@@ -201,6 +205,20 @@ class SlackNotificationProviderSendTest(TestCase):
             unfurl_links=False,
             unfurl_media=False,
         )
+
+    @patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_send_halts_when_org_integration_disabled(self, mock_slack_client: Mock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration.update(status=ObjectStatus.DISABLED)
+
+        result = SlackNotificationProvider.send(
+            target=self._create_target(), renderable=self._create_renderable()
+        )
+
+        assert isinstance(result, SendFailure)
+        assert result.status == SendFailureStatus.HALT
+        assert isinstance(result.exception, IntegrationConfigurationError)
+        mock_slack_client.return_value.chat_postMessage.assert_not_called()
 
     def test_send_invalid_target_class(self) -> None:
         """Test send fails with invalid target class"""
