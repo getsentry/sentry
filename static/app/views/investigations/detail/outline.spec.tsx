@@ -49,6 +49,7 @@ describe('getInvestigationOutline', () => {
       'Activity',
     ]);
     expect(outline[3]).toEqual({
+      depth: 2,
       key: 'when:0',
       label: 'When it happened',
       nested: false,
@@ -75,9 +76,9 @@ describe('getInvestigationOutline', () => {
       InvestigationBlockFixture({id: 'notes', content: '# Notes\n\n## Open questions'}),
     ]);
 
-    expect(outline.map(entry => [entry.label, entry.nested])).toEqual([
-      ['Notes', false],
-      ['Open questions', true],
+    expect(outline.map(entry => [entry.label, entry.depth, entry.nested])).toEqual([
+      ['Notes', 1, false],
+      ['Open questions', 2, true],
     ]);
   });
 
@@ -92,13 +93,14 @@ describe('getInvestigationOutline', () => {
     expect(
       outline.map(entry => [
         entry.label,
+        entry.depth,
         entry.nested,
         'headingIndex' in entry.target ? entry.target.headingIndex : null,
       ])
     ).toEqual([
-      ['Findings', false, 0],
-      ['Latency', true, 2],
-      ['Next steps', false, 3],
+      ['Findings', 2, false, 0],
+      ['Latency', 3, true, 2],
+      ['Next steps', 2, false, 3],
     ]);
   });
 
@@ -133,6 +135,9 @@ describe('getInvestigationOutline', () => {
       'What happened',
       'What to do next',
     ]);
-    expect(outline[1]?.target).toEqual({blockId: 'next', headingIndex: null});
+    expect(outline[1]).toMatchObject({
+      depth: 2,
+      target: {blockId: 'next', headingIndex: null},
+    });
   });
 });

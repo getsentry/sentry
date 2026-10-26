@@ -26,7 +26,18 @@ const OFFSET_BELOW_TOP_BAR = 16;
 /** How long the page goes without scrolling before a jump counts as finished. */
 const SCROLL_SETTLE_MS = 150;
 
+/**
+ * The heading level the page's own sections open with, and the one Seer opens
+ * each of its sections with.
+ */
+const SECTION_DEPTH = 2;
+
+/** How wide an entry's marker is, from an h1 down. Deeper headings share the last. */
+const MARKER_WIDTHS = ['24px', '16px', '10px', '6px'];
+
 export type InvestigationOutlineEntry = {
+  /** The level of the heading the entry stands for, from 1 to 6. */
+  depth: number;
   /** Unique within the outline. */
   key: string;
   label: string;
@@ -74,6 +85,8 @@ export function getInvestigationOutline({
   const blockEntries = headings
     .filter(heading => heading.depth === null || heading.depth <= topDepth + 1)
     .map((heading): InvestigationOutlineEntry => ({
+      // A title stands in for the heading Seer is about to write.
+      depth: heading.depth ?? SECTION_DEPTH,
       key: `${heading.blockId}:${heading.headingIndex ?? 'title'}`,
       label: heading.label,
       nested: heading.depth !== null && heading.depth > topDepth,
@@ -100,7 +113,7 @@ function getSectionEntry(
   label: string,
   elementId: string
 ): InvestigationOutlineEntry {
-  return {key, label, nested: false, target: {elementId}};
+  return {depth: SECTION_DEPTH, key, label, nested: false, target: {elementId}};
 }
 
 function getBlockHeadings(block: InvestigationBlock): BlockHeading[] {
@@ -249,38 +262,46 @@ function waitToSettle(pick: {settled: boolean; timeout: number}) {
 }
 
 /**
- * A rail listing the investigation's sections, which follows the reader down
- * the page and scrolls to the one they pick.
+ * A marker for each of the investigation's sections, sized by its heading's
+ * level, which follows the reader down the page. Hovering the markers, or
+ * tabbing into the outline, opens it over them, and picking a section scrolls
+ * to it.
  */
 export function InvestigationOutline({entries}: {entries: InvestigationOutlineEntry[]}) {
   const [activeKey, pickEntry] = useActiveEntry(entries);
   const titleId = useId();
 
   return (
-    <Stack
-      as="nav"
-      aria-labelledby={titleId}
-      gap="md"
-      position="sticky"
-      top={`calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + ${OFFSET_BELOW_TOP_BAR}px)`}
-      maxHeight={`calc(100vh - var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) - ${OFFSET_BELOW_TOP_BAR * 2}px)`}
-      overflowY="auto"
-    >
-      <OutlineTitle id={titleId} size="xs" variant="muted" bold uppercase>
-        {t('Investigation')}
-      </OutlineTitle>
-      <OutlineList>
+    <OutlineRail aria-labelledby={titleId}>
+      {/* Only a preview of the panel, which is what keyboards and screen readers reach. */}
+      <Stack gap="md" padding="sm" aria-hidden>
         {entries.map(entry => (
-          <li key={entry.key}>
-            <OutlineEntryLink
-              entry={entry}
-              isActive={entry.key === activeKey}
-              onPick={() => pickEntry(entry.key)}
-            />
-          </li>
+          <OutlineMarker
+            key={entry.key}
+            depth={entry.depth}
+            isActive={entry.key === activeKey}
+          />
         ))}
-      </OutlineList>
-    </Stack>
+      </Stack>
+      <OutlinePanel>
+        <Stack gap="md" padding="md">
+          <OutlineTitle id={titleId} size="xs" variant="muted" bold uppercase>
+            {t('Investigation')}
+          </OutlineTitle>
+          <OutlineList>
+            {entries.map(entry => (
+              <li key={entry.key}>
+                <OutlineEntryLink
+                  entry={entry}
+                  isActive={entry.key === activeKey}
+                  onPick={() => pickEntry(entry.key)}
+                />
+              </li>
+            ))}
+          </OutlineList>
+        </Stack>
+      </OutlinePanel>
+    </OutlineRail>
   );
 }
 
@@ -327,6 +348,60 @@ function OutlineEntryLink({
     </OutlineLink>
   );
 }
+
+/**
+ * Sits on top of the markers, from their top left corner, and grows to the
+ * right over the report. It stays in the accessibility tree while hidden, so
+ * tabbing reaches its links, which opens it.
+ */
+const OutlinePanel = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max-content;
+  min-width: 200px;
+  max-width: 320px;
+  max-height: calc(
+    100vh - var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) - ${OFFSET_BELOW_TOP_BAR * 2}px
+  );
+  overflow-y: auto;
+  background: ${p => p.theme.tokens.background.overlay};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  box-shadow: ${p => p.theme.shadow.high};
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity ${p => p.theme.motion.exit.fast};
+`;
+
+/**
+ * Opens its panel while hovered, or while a keyboard is on one of the panel's
+ * links. A click doesn't hold it open, so it closes once the pointer leaves.
+ */
+const OutlineRail = styled('nav')`
+  position: sticky;
+  top: calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + ${OFFSET_BELOW_TOP_BAR}px);
+  /* Above the report, which the panel opens over. */
+  z-index: ${p => p.theme.zIndex.dropdown};
+
+  &:hover > ${OutlinePanel},
+  &:has(:focus-visible) > ${OutlinePanel} {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity ${p => p.theme.motion.enter.moderate};
+  }
+`;
+
+const OutlineMarker = styled('span')<{depth: number; isActive: boolean}>`
+  display: block;
+  width: ${p => MARKER_WIDTHS[Math.min(p.depth, MARKER_WIDTHS.length) - 1]};
+  height: 2px;
+  border-radius: ${p => p.theme.radius.xs};
+  background: ${p =>
+    p.isActive
+      ? p.theme.tokens.graphics.accent.vibrant
+      : p.theme.tokens.graphics.neutral.moderate};
+`;
 
 /** Lines up with the entries' text, inside the rail. */
 const OutlineTitle = styled(Text)`

@@ -213,7 +213,8 @@ function reportTextBlock(id: string, position: number, title: string, markdown: 
 }
 
 // The agentic report as Seer writes one: each text block opens with a level-two
-// heading, which is what the outline beside it lists.
+// heading, some with level-three ones under it, which is what the outline beside
+// it lists.
 const outlinedReportInvestigation = {
   ...agenticReportInvestigation,
   id: 'completed-outlined-report',
@@ -229,7 +230,7 @@ const outlinedReportInvestigation = {
       'outline-how-we-know',
       2,
       'Evidence analysis',
-      '## How we know\n\nThe slowest checkout transactions spend their extra time waiting for a database connection. Query execution time is unchanged.'
+      '## How we know\n\n### Connection waits\n\nThe slowest checkout transactions spend their extra time waiting for a database connection.\n\n### Query time\n\nQuery execution time is unchanged.'
     ),
     {...completedInvestigation.blocks[2]!, position: 3},
     reportTextBlock(
@@ -575,7 +576,7 @@ export default Storybook.story('Investigations — Detail', story => {
     >
       {/*
        * Measured the way the app's main column is, so the outline only shows
-       * once this is at least 1280px wide. Nothing clips it, so it sticks as the
+       * once this is at least 1152px wide. Nothing clips it, so it sticks as the
        * story scrolls.
        */}
       <Container containerType="inline-size" border="primary" radius="md">

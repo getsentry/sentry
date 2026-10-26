@@ -762,10 +762,8 @@ function InvestigationPageContentInner({
               {outline.length > 0 ? (
                 <Container
                   column="1"
-                  display={{zero: 'none', '5xl': 'block'}}
+                  display={{zero: 'none', '4xl': 'block'}}
                   justifySelf="end"
-                  width="100%"
-                  maxWidth="264px"
                   paddingRight="2xl"
                 >
                   <InvestigationOutline entries={outline} />
