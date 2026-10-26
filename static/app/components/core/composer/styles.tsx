@@ -42,7 +42,7 @@ export const ComposerTextArea = styled(InputTextArea)`
   &::selection {
     color: transparent;
     -webkit-text-fill-color: transparent;
-    background: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    background: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.active};
   }
 
   /* iOS Safari zooms the page when focusing an editable element with text
