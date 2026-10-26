@@ -71,6 +71,21 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
             self.incident_expected
         )
 
+    def test_unmapped_period_of_migrated_detector(self) -> None:
+        self.incident_group_open_period.delete()
+        serialized = serialize(
+            self.group_open_period, self.user, WorkflowEngineIncidentSerializer()
+        )
+        fake_id = str(get_fake_id_from_object_id(self.group_open_period.id))
+        assert serialized["id"] == fake_id
+        assert serialized["identifier"] == fake_id
+        assert serialized["alertRule"]["id"] == str(self.legacy_rule_id)
+        self.group_open_period.update(date_ended=self.group_open_period.date_started)
+        resolved = serialize(self.group_open_period, self.user, WorkflowEngineIncidentSerializer())
+        assert resolved["id"] == fake_id
+        assert resolved["identifier"] == fake_id
+        assert resolved["status"] == IncidentStatus.CLOSED.value
+
     def test_no_incident(self) -> None:
         """
         Assert that nothing breaks if the legacy models do not exist.
