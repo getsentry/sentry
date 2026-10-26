@@ -330,12 +330,12 @@ class IntegrationService(RpcService):
 
         For callers outside control that hand the token on: they can't mint or refresh one, and
         can't retry after a 401, so the token has at least five minutes left. For a new token
-        once ``expires_at`` passes, call this again. Supports GitHub, GitHub Enterprise and
-        Cursor Origin.
+        once ``expires_at`` passes, call this again. Supports GitHub, GitHub Enterprise, Cursor
+        Origin and GitLab.
 
         None when the organization has no active install of an active integration with that id
         from one of those providers, or when there's no token to give (the provider refused or
-        failed).
+        failed, or a GitLab install has no identity to take one from).
         """
 
     @rpc_method
