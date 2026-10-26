@@ -155,7 +155,8 @@ function replaceDraftInUrl(draft: DetectorDraft) {
 }
 
 /**
- * Once the monitor is created, so going back doesn't reopen the whole draft.
+ * Also used once the monitor is created, so going back doesn't reopen the
+ * whole draft.
  */
 export function removeDetectorDraftFromUrl() {
   const url = new URL(window.location.href);
