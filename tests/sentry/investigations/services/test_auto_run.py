@@ -790,6 +790,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
                 self.orchestration_run,
                 command,
                 {"organization_id": self.organization.id, "user_id": self.user.id},
+                "workflow_version_conflict",
             )
 
         self.orchestration_run.refresh_from_db()

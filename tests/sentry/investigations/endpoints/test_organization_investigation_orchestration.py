@@ -394,14 +394,13 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
         assert response.status_code == 400
         assert not InvestigationOrchestrationCommand.objects.exists()
 
-    def test_users_cannot_send_an_action_outcome(self) -> None:
-        response = self.client.post(
-            self.command_url,
-            data=self.command(command=fixture("command_record_action_outcome")),
-            format="json",
-        )
+    def test_users_cannot_send_the_commands_sentry_sends_for_action_requests(self) -> None:
+        for name in ("command_record_action_outcome", "command_recheck_action_requests"):
+            response = self.client.post(
+                self.command_url, data=self.command(command=fixture(name)), format="json"
+            )
 
-        assert response.status_code == 400
+            assert response.status_code == 400, name
         assert not InvestigationOrchestrationCommand.objects.exists()
 
     def test_archived_investigation_rejects_commands_without_advancing_the_run(self) -> None:
