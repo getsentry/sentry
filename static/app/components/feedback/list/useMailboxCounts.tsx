@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {parseAsString, useQueryStates} from 'nuqs';
+import {useQueryStates} from 'nuqs';
 
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import type {Organization} from 'sentry/types/organization';
@@ -8,6 +8,7 @@ import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueSt
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -16,13 +17,8 @@ interface Props {
 }
 
 const mailboxCountsParsers = {
-  end: parseAsString.withDefault(''),
-  environment: parseAsStringArray,
+  ...pageFilterParsers,
   field: parseAsStringArray,
-  project: parseAsStringArray,
-  start: parseAsString.withDefault(''),
-  statsPeriod: parseAsString.withDefault(''),
-  utc: parseAsString.withDefault(''),
 };
 
 // The keys here are the different search terms that we're using:
