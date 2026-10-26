@@ -187,5 +187,5 @@ class Investigation(DefaultFieldsModel):
     def get_absolute_url(self) -> str:
         organization = self.organization
         return organization.absolute_url(
-            f"/organizations/{organization.slug}/explore/investigations/{self.id}/"
+            f"/organizations/{organization.slug}/seer/investigations/{self.id}/"
         )
