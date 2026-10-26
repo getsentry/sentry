@@ -32,6 +32,7 @@ pytestmark = [requires_snuba]
 granular_scopes = ["dashboard:read", "dashboard:create", "dashboard:write", "dashboard:delete"]
 non_default_owner_scopes = [
     "org:ci",
+    "org:tokens",
     "openid",
     "email",
     "profile",

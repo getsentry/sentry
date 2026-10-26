@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import time
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-import jwt as pyjwt
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
 from rest_framework.request import Request
@@ -18,7 +16,6 @@ from sentry.viewer_context import (
     Actor,
     ActorType,
     ViewerContext,
-    _key_id,
     encode_viewer_context,
     get_viewer_context,
 )
@@ -243,17 +240,7 @@ class ViewerContextMiddlewareTest(TestCase):
             organization_id=self.organization.id,
             actor=Actor(type=ActorType.AGENT, actor_id=90, delegated_user_id=self.user.id),
         )
-        token = pyjwt.encode(
-            {
-                **vc.serialize(version=2),
-                "iat": time.time(),
-                "exp": time.time() + 300,
-                "iss": "sentry",
-            },
-            "test-secret",
-            algorithm="HS256",
-            headers={"kid": _key_id("test-secret")},
-        )
+        token = encode_viewer_context(vc)
 
         captured: list = []
 

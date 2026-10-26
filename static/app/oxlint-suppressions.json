@@ -570,14 +570,6 @@
       "count": 1
     }
   },
-  "components/forms/fields/segmentedRadioField.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "components/forms/fields/tableField.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -857,16 +849,6 @@
   "components/onboarding/onboardingContext.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "components/onboarding/scm/scmAlertOptionCard.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "components/onboarding/scm/scmCardButton.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "components/onboarding/scm/scmPlatformFeaturesCore.spec.tsx": {

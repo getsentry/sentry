@@ -8,7 +8,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 
 class IssueViewTitleGenerateEndpointTest(APITestCase):
@@ -60,9 +60,8 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
 
     @patch("sentry.seer.endpoints.issue_view_title_generate.run_oneshot")

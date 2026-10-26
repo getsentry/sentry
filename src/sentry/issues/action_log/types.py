@@ -172,7 +172,8 @@ ACTION_TYPES_WITH_COMMIT_DATA = {
     GroupActionType.SET_RESOLVED_IN_RELEASE.value,
 }
 
-COMMENT_MUTATION_ACTION_TYPES = {
+COMMENT_ACTION_TYPES = {
+    GroupActionType.COMMENT.value,
     GroupActionType.COMMENT_EDIT.value,
     GroupActionType.COMMENT_DELETE.value,
 }
@@ -412,8 +413,10 @@ class SentryActorRef(BaseModel):
 
 
 class CommentAction(GroupAction):
-    user_visible = True
-    comment_id: int
+    """Comment creation. Current content lives in the Activity NOTE row."""
+
+    comment_id: int  # Activity NOTE ID
+    # Historical payloads include content; new producers may omit it.
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -423,8 +426,12 @@ class CommentAction(GroupAction):
 
 
 class CommentEditAction(GroupAction):
-    user_visible = True
+    """Comment edit. The ID kind distinguishes historical GAL references from comments."""
+
     comment_id: int
+    # Missing in historical payloads: comment_id refers to the original COMMENT GAL row.
+    # "comment" means the comment's own ID (currently Activity NOTE), independent of any creation event.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -434,8 +441,11 @@ class CommentEditAction(GroupAction):
 
 
 class CommentDeleteAction(GroupAction):
-    user_visible = True
+    """Comment deletion. The referenced comment may no longer exist."""
+
     comment_id: int
+    # Same reference semantics as CommentEditAction; omitted means the original GAL row.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
 
     @classmethod
     def get_type(cls) -> GroupActionType:
