@@ -53,8 +53,6 @@ type AdditionalConfigProps = {
    * Estimated cost of a single run, in US dollars
    */
   costPerRun?: number;
-  description?: string;
-  title?: string;
   /**
    * Estimated tokens used per month
    */
@@ -83,11 +81,30 @@ function makePlaceholderConfig(
     projects: [ALL_ACCESS_PROJECTS],
     schedule: '',
     seededDefault: null,
-    strategy: id,
+    strategy: '',
     version: 0,
     ...overrides,
   };
 }
+
+/**
+ * Temporary mock data for configs endpoint
+ */
+export const PLACEHOLDER_CONFIGS: AutomationConfig[] = [
+  makePlaceholderConfig('placeholder-agentic-triage', {
+    strategy: 'agentic_triage',
+    schedule: 'daily',
+    tokensPerMonth: 85_400_000,
+    costPerRun: 2.5,
+  }),
+  makePlaceholderConfig('placeholder-breached-metrics', {
+    strategy: 'breached_metrics',
+    trigger: 'Triggered by metric exceptions',
+    tokensPerMonth: 341_000,
+    costPerRun: 0.052,
+    projects: [6178942, 11276, 4511418012073984],
+  }),
+];
 
 export default function AutomationsList() {
   const organization = useOrganization();
@@ -103,26 +120,7 @@ export default function AutomationsList() {
     )
   );
 
-  const configs: AutomationConfig[] = [
-    // Placeholders for automations the configs endpoint doesn't return yet
-    makePlaceholderConfig('placeholder-agentic-triage', {
-      title: 'Agentic Triage',
-      description: 'Automatically triage and fix the most fixable issues.',
-      schedule: 'daily',
-      tokensPerMonth: 85_400_000,
-      costPerRun: 2.5,
-    }),
-    makePlaceholderConfig('placeholder-breached-metrics', {
-      title: 'Breached Metrics',
-      description:
-        'Monitors backend metrics and investigates why certain key metrics were breached.',
-      projects: [6178942, 11276, 4511418012073984],
-      trigger: 'Triggered by metric exceptions',
-      tokensPerMonth: 341_000,
-      costPerRun: 0.052,
-    }),
-    ...(data?.configs ?? []),
-  ];
+  const configs: AutomationConfig[] = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])];
 
   return (
     <Grid
@@ -147,9 +145,8 @@ function AutomationCard({config}: {config: AutomationConfig}) {
     : undefined;
 
   const {enabled, trigger, tokensPerMonth, costPerRun} = config;
-  const title = config.title ?? strategyMeta?.label ?? config.strategy;
-  const description =
-    config.description ?? strategyMeta?.description ?? t('No description');
+  const title = strategyMeta?.label ?? config.strategy;
+  const description = strategyMeta?.description ?? t('No description');
   const projectSlugs = config.projects.includes(ALL_ACCESS_PROJECTS)
     ? ['all']
     : config.projects

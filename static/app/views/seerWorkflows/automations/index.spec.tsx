@@ -69,14 +69,14 @@ describe('AutomationsList', () => {
     render(<AutomationsList />, {organization});
 
     expect(
-      await screen.findByRole('heading', {name: 'Agentic triage'})
+      await screen.findByRole('heading', {name: 'custom_strategy'})
     ).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    // The agentic_triage placeholder and the agentic_triage config
+    expect(screen.getAllByRole('heading', {name: 'Agentic triage'})).toHaveLength(2);
     expect(
-      getCard('Agentic triage').getByText(
-        'Automatically triage and fix the most fixable Issues'
-      )
-    ).toBeInTheDocument();
+      screen.getAllByText('Automatically triage and fix the most fixable Issues.')
+    ).toHaveLength(2);
     expect(getCard('custom_strategy').getByText('No description')).toBeInTheDocument();
   });
 

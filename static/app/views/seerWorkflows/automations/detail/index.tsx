@@ -1,4 +1,5 @@
 import {Outlet} from 'react-router';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -6,10 +7,21 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {getAutomationsPath} from 'sentry/views/seerWorkflows/utils';
+import {PLACEHOLDER_CONFIGS} from 'sentry/views/seerWorkflows/automations';
+import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
+import type {
+  SeerWorkflowConfigsResponse,
+  WorkflowStrategy,
+} from 'sentry/views/seerWorkflows/types';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 
 export default function AutomationDetail() {
   const organization = useOrganization();
@@ -22,8 +34,28 @@ export default function AutomationDetail() {
       ? location.pathname.slice(0, -'runs/'.length)
       : location.pathname;
 
-  // TODO(aliu): Fetch the automation and replace the hardcoded content below
-  const title = t('Agentic Triage');
+  const automationsEnabled = useAutomationsEnabled();
+  const {automationId} = useParams<{automationId: string}>();
+
+  // TODO(aliu): Fetch the single config once the API supports it
+  const {data} = useQuery(
+    apiOptions.as<SeerWorkflowConfigsResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
+      {
+        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        staleTime: 0,
+      }
+    )
+  );
+  const config = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])].find(
+    c => c.id === automationId
+  );
+  // TODO(aliu): Handle a config id that doesn't exist
+  const strategy = config?.strategy ?? '';
+  const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
+    ? STRATEGY_META[strategy as WorkflowStrategy]
+    : undefined;
+  const title = strategyMeta?.label ?? strategy;
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
@@ -43,10 +75,10 @@ export default function AutomationDetail() {
           <Heading as="h1" size="xl">
             {title}
           </Heading>
-          <Text>{t('Automatically triage and fix the most fixable Issues')}</Text>
+          <Text>{strategyMeta?.description ?? t('No description')}</Text>
           <Stack direction="row" align="center" gap="md" wrap="wrap">
             <Text size="sm" variant="muted">
-              {t('Last run 08:00 UTC')}
+              {t('(MOCK TEXT) Last run 08:00 UTC')}
             </Text>
             <Stack.Separator />
             <Text size="sm" variant="muted">
