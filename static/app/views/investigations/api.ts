@@ -788,6 +788,7 @@ export function useApplyInvestigationActionRequestMutation(
         data: {},
       }),
     onSuccess: async (response, variables, onMutateResult, context) => {
+      await queryClient.cancelQueries({queryKey: detailOptions.queryKey});
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
