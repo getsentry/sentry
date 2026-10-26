@@ -249,6 +249,8 @@ export function useMetricDetectorThresholdSeries({
       const percentThresholdSeries = visibleLines.map(({series, lineColor}) =>
         createLineSeries({
           name: series.seriesName,
+          // Don't block hovering the open periods drawn beneath the threshold line
+          silent: true,
           data: series.data.map(({name, value}) => [name, value]),
           lineStyle: {
             color: lineColor,
