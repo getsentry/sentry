@@ -142,11 +142,13 @@ function getMobileItems(replayRecord: ReplayRecord | undefined): MenuItemProps[]
   const sdkName = replayRecord?.sdk.name;
   if (!sdkName) {
     // The SDK sent a replay without a name, so there is nothing for us to fix.
+    // Prefixed because the SDK overwrites `sentry.sdk.*` and `sentry.replay_id`
+    // with the viewer's own values.
     Sentry.logger.warn('Replay: Missing SDK name in configure card', {
-      replay_id: replayRecord?.id,
-      platform: replayRecord?.platform,
-      sdk_version: replayRecord?.sdk.version,
-      os_name: replayRecord?.os.name,
+      'replay_record.id': replayRecord?.id,
+      'replay_record.platform': replayRecord?.platform,
+      'replay_record.sdk.version': replayRecord?.sdk.version,
+      'replay_record.os.name': replayRecord?.os.name,
     });
   }
   const path = sdkName ? getPath(sdkName) : null;
