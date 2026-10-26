@@ -5,7 +5,6 @@ import type {LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -13,15 +12,12 @@ import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
-import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 
 type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label' | 'to'> & {
@@ -96,34 +92,11 @@ export function CreateAlertFromViewButton({
 
 type CreateAlertButtonProps = {
   organization: Organization;
-  projectSlug?: string;
-  to?: string | LocationDescriptor;
+  to: string | LocationDescriptor;
 } & Omit<LinkButtonProps, 'to'>;
 
-export function CreateAlertButton({
-  organization,
-  projectSlug,
-  to,
-  ...buttonProps
-}: CreateAlertButtonProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
+function CreateAlertButton({organization, to, ...buttonProps}: CreateAlertButtonProps) {
   const {projects} = useProjects();
-  const createAlertUrl = (providedProj: string): string => {
-    const params = new URLSearchParams();
-    if (providedProj !== ':projectId') {
-      params.append('project', providedProj);
-    }
-    const queryString = params.toString();
-    const basePath = makeMonitorCreatePathname(organization.slug);
-    return queryString ? `${basePath}?${queryString}` : basePath;
-  };
-
-  function handleClickWithoutProject(event: React.MouseEvent) {
-    event.preventDefault();
-
-    navigateTo(createAlertUrl(':projectId'), navigate, location);
-  }
 
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
@@ -139,13 +112,12 @@ export function CreateAlertButton({
     <LinkButton
       disabled={!canCreateAlert}
       icon={<IconSiren />}
-      to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
+      to={to}
       tooltipProps={{
         title: canCreateAlert ? undefined : permissionTooltipText,
         position: 'top',
         maxWidth: 270,
       }}
-      onClick={projectSlug ? undefined : handleClickWithoutProject}
       {...buttonProps}
     >
       {buttonProps.children ?? t('Create Monitor')}
