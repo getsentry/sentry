@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Any, Literal
+
 from django.db import models
-from pydantic import BaseModel
+from pydantic import BaseModel, PositiveInt
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -146,6 +149,7 @@ class SeerWorkflowTriggerBinding(DefaultFieldsModel):
 
 
 class SeerWorkflowRunStatus(models.TextChoices):
+    QUEUED = "queued"
     RUNNING = "running"
     COMPLETE = "complete"
     FAILED = "failed"
@@ -153,9 +157,76 @@ class SeerWorkflowRunStatus(models.TextChoices):
 
 
 class SeerWorkflowExecutionStatus(models.TextChoices):
+    QUEUED = "queued"
     RUNNING = "running"
     COMPLETE = "complete"
     FAILED = "failed"
+
+
+class WorkflowSnapshotFilters(SeerWorkflowFilters):
+    class Config:
+        extra = "allow"
+
+
+class WorkflowRunSnapshot(BaseModel):
+    config_version: int
+    strategy: SeerWorkflowStrategy
+    filters: WorkflowSnapshotFilters
+    project_ids: tuple[int, ...]
+    output_policy: dict[str, Any]
+    inputs: dict[str, Any]
+
+    class Config:
+        allow_mutation = False
+
+
+class WorkflowRunError(BaseModel):
+    code: str
+    message: str
+
+
+class WorkflowLifecycleExtras(BaseModel):
+    error: WorkflowRunError | None = None
+
+    class Config:
+        # Preserve strategy-specific inputs, trigger context, and results.
+        extra = "allow"
+
+
+class ConfiguredWorkflowRunExtras(WorkflowLifecycleExtras):
+    snapshot: WorkflowRunSnapshot
+
+
+MetricBreachRejectionReason = Literal["quota_exceeded"]
+
+
+class MetricBreachTrigger(BaseModel):
+    event_id: str
+    occurrence_id: str
+    detector_id: PositiveInt
+    evidence: dict[str, Any]
+    observed_at: datetime
+    environment: str | None = None
+    group_id: int
+    project_id: int
+    invocation_source: Literal["wfe"] = "wfe"
+    binding_id: int
+    workflow_id: int
+    action_id: int
+
+
+class MetricBreachAdmission(BaseModel):
+    status: Literal["accepted", "rejected"]
+    reason: MetricBreachRejectionReason | None
+    decided_at: datetime
+
+
+class MetricBreachRunExtras(ConfiguredWorkflowRunExtras):
+    admission: MetricBreachAdmission
+
+
+class MetricBreachExecutionExtras(WorkflowLifecycleExtras):
+    result: Literal["noop"] = "noop"
 
 
 @cell_silo_model

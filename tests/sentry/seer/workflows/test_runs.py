@@ -1,3 +1,4 @@
+from copy import copy
 from functools import partial
 from unittest.mock import Mock, patch
 
@@ -16,18 +17,17 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
+    WorkflowLifecycleExtras,
+    WorkflowRunError,
 )
 from sentry.seer.workflows.runs import (
-    complete_workflow_execution,
-    complete_workflow_run,
+    WorkflowRun,
     create_workflow_run,
     deliver_workflow_result,
     finish_workflow_run,
-    get_or_create_workflow_run,
     get_workflow_run_status,
-    get_workflow_runs,
 )
-from sentry.seer.workflows.schemas import WorkflowResult, WorkflowRunError, WorkflowRunSnapshot
+from sentry.seer.workflows.schemas import WorkflowResult
 from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -190,137 +190,127 @@ class WorkflowRunTest(TestCase):
 class ConfiguredWorkflowRunTest(TestCase):
     def test_retries_keep_original_snapshot_and_new_invocations_capture_edits(self) -> None:
         first = self.create_project()
-        config = self.create_config()
-        run, created = get_or_create_workflow_run(
-            organization_id=self.organization.id,
-            workflow_config_id=config.id,
-            trigger_key="manual:first",
-            inputs=RunInputs(issue_limit=10),
+        workflow = self.create_configured_workflow()
+        run, created = workflow.get_or_create_run(
+            trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
         assert created is True
-        assert run.status == SeerWorkflowRunStatus.RUNNING
-        assert not run.executions.exists()
-        snapshot = WorkflowRunSnapshot.parse_obj(run.extras["snapshot"])
+        assert run.run.status == SeerWorkflowRunStatus.QUEUED
+        assert not run.run.executions.exists()
+        snapshot = run.extras.snapshot
         assert snapshot.config_version == 1
         assert snapshot.project_ids == (first.id,)
         assert snapshot.inputs == {"issue_limit": 10}
 
         later = self.create_project()
-        SeerWorkflow(config).set_project_selection(SelectedProjects(project_ids=(later.id,)))
-        retry, created = get_or_create_workflow_run(
-            organization_id=self.organization.id,
-            workflow_config_id=config.id,
-            trigger_key="manual:first",
-            inputs=RunInputs(issue_limit=20),
+        workflow.set_project_selection(SelectedProjects(project_ids=(later.id,)))
+        retry, created = workflow.get_or_create_run(
+            trigger_key="manual:first", inputs=RunInputs(issue_limit=20)
         )
         assert created is False
-        assert retry.id == run.id
-        assert retry.extras["snapshot"] == run.extras["snapshot"]
+        assert retry.run.id == run.run.id
+        assert retry.extras.snapshot == snapshot
 
-        next_run, created = get_or_create_workflow_run(
-            organization_id=self.organization.id,
-            workflow_config_id=config.id,
-            trigger_key="manual:next",
-            inputs=RunInputs(issue_limit=20),
+        next_run, created = workflow.get_or_create_run(
+            trigger_key="manual:next", inputs=RunInputs(issue_limit=20)
         )
         assert created is True
-        assert next_run.id != run.id
-        snapshot = WorkflowRunSnapshot.parse_obj(next_run.extras["snapshot"])
-        assert snapshot.config_version == 2
-        assert snapshot.project_ids == (later.id,)
-        assert snapshot.inputs == {"issue_limit": 20}
+        assert next_run.run.id != run.run.id
+        assert next_run.extras.snapshot.config_version == 2
+        assert next_run.extras.snapshot.project_ids == (later.id,)
+        assert next_run.extras.snapshot.inputs == {"issue_limit": 20}
 
-    def test_request_identity_is_scoped_to_organization_and_config(self) -> None:
-        config, other_config = self.create_config(), self.create_config()
+    def test_request_identity_and_history_are_scoped_to_config_and_organization(self) -> None:
+        workflow, other_workflow = (
+            self.create_configured_workflow(),
+            self.create_configured_workflow(),
+        )
+        first, _ = workflow.get_or_create_run(
+            trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
+        )
+        second, created = other_workflow.get_or_create_run(
+            trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
+        )
+        assert created is True
+        assert first.run.id != second.run.id
+        legacy = Factories.create_seer_workflow_run(
+            self.organization, workflow_config=workflow.config
+        )
+        assert list(workflow.get_runs()) == [legacy, first.run]
+        assert list(other_workflow.get_runs()) == [second.run]
+
         other_org = self.create_organization()
-        first, _ = get_or_create_workflow_run(
-            organization_id=self.organization.id,
-            workflow_config_id=config.id,
-            trigger_key="event:occurrence",
-            inputs=RunInputs(issue_limit=10),
-        )
-        second, created = get_or_create_workflow_run(
-            organization_id=self.organization.id,
-            workflow_config_id=other_config.id,
-            trigger_key="event:occurrence",
-            inputs=RunInputs(issue_limit=10),
-        )
-        assert created is True
-        assert first.id != second.id
-        legacy = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
-        assert list(get_workflow_runs(organization_id=self.organization.id)) == [
-            legacy,
-            second,
-            first,
-        ]
-        assert list(
-            get_workflow_runs(organization_id=self.organization.id, workflow_config_id=config.id)
-        ) == [legacy, first]
-        assert not get_workflow_runs(
-            organization_id=other_org.id, workflow_config_id=config.id
-        ).exists()
+        wrong_org_config = copy(workflow.config)
+        wrong_org_config.organization_id = other_org.id
+        wrong_org_workflow = SeerWorkflow(wrong_org_config)
+        assert not wrong_org_workflow.get_runs().exists()
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
-            get_or_create_workflow_run(
-                organization_id=other_org.id,
-                workflow_config_id=config.id,
-                trigger_key="event:occurrence",
-                inputs=RunInputs(issue_limit=10),
+            wrong_org_workflow.get_or_create_run(
+                trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
             )
         with pytest.raises(SeerWorkflowRun.DoesNotExist):
-            complete_workflow_run(organization_id=other_org.id, workflow_run_id=first.id)
-        first.refresh_from_db()
-        assert first.date_completed is None
+            WorkflowRun.get(organization_id=other_org.id, run_id=first.run.id)
+        first.run.refresh_from_db()
+        assert first.run.date_completed is None
 
     def test_deleted_config_cannot_be_retried(self) -> None:
-        config = self.create_config()
-        config_id = config.id
-        run, _ = get_or_create_workflow_run(
-            organization_id=self.organization.id,
-            workflow_config_id=config_id,
-            trigger_key="manual:first",
-            inputs=RunInputs(issue_limit=10),
+        workflow = self.create_configured_workflow()
+        run, _ = workflow.get_or_create_run(
+            trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
-        config.delete()
-
+        SeerWorkflowConfig.objects.filter(id=workflow.config.id).delete()
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
-            get_or_create_workflow_run(
-                organization_id=self.organization.id,
-                workflow_config_id=config_id,
-                trigger_key="manual:first",
-                inputs=RunInputs(issue_limit=10),
-            )
+            workflow.get_or_create_run(trigger_key="manual:first", inputs=RunInputs(issue_limit=10))
         with pytest.raises(SeerWorkflowRun.DoesNotExist):
-            complete_workflow_run(organization_id=self.organization.id, workflow_run_id=run.id)
-        assert not get_workflow_runs(
-            organization_id=self.organization.id, workflow_config_id=config_id
-        ).exists()
+            run.complete()
+        assert not workflow.get_runs().exists()
+
+    def test_invalid_trigger_key(self) -> None:
+        workflow = self.create_configured_workflow()
+        with pytest.raises(ValueError, match="between 1 and 256"):
+            workflow.get_or_create_run(trigger_key="", inputs=RunInputs(issue_limit=10))
+        with pytest.raises(ValueError, match="between 1 and 256"):
+            workflow.get_or_create_run(trigger_key="x" * 257, inputs=RunInputs(issue_limit=10))
+
+    def test_starting_runs_and_executions_is_idempotent(self) -> None:
+        run = self.create_run()
+        assert run.run.status == SeerWorkflowRunStatus.QUEUED
+        assert run.start().status == SeerWorkflowRunStatus.RUNNING
+        assert run.start().status == SeerWorkflowRunStatus.RUNNING
+        execution = run.create_execution()
+        assert execution.status == SeerWorkflowExecutionStatus.QUEUED
+        assert run.start_execution(execution.id).status == SeerWorkflowExecutionStatus.RUNNING
+        assert run.start_execution(execution.id).status == SeerWorkflowExecutionStatus.RUNNING
+        run.complete_execution(execution.id)
+        completed_at = run.run.date_completed
+
+        assert run.start_execution(execution.id).status == SeerWorkflowExecutionStatus.COMPLETE
+        assert run.start().status == SeerWorkflowRunStatus.COMPLETE
+        assert run.run.date_completed == completed_at
+        with pytest.raises(ValueError, match="running workflow"):
+            run.create_execution()
 
     def test_no_work_completion_is_independent_of_executions_and_idempotent(self) -> None:
         run = self.create_run()
-        complete = complete_workflow_run(
-            organization_id=self.organization.id, workflow_run_id=run.id
-        )
+        snapshot = run.extras.snapshot
+        complete = run.complete()
         assert complete.status == SeerWorkflowRunStatus.COMPLETE
         assert complete.extras["error"] is None
         assert complete.date_completed is not None
         assert not complete.executions.exists()
-        assert complete.extras["snapshot"] == run.extras["snapshot"]
+        assert run.extras.snapshot == snapshot
+        completed_at = complete.date_completed
 
-        repeated = complete_workflow_run(
-            organization_id=self.organization.id,
-            workflow_run_id=run.id,
-            error=WorkflowRunError(code="late_error", message="Late failure"),
-        )
+        repeated = run.complete(error=WorkflowRunError(code="late_error", message="Late failure"))
         assert repeated.status == SeerWorkflowRunStatus.COMPLETE
         assert repeated.extras["error"] is None
-        assert repeated.date_completed == complete.date_completed
+        assert repeated.date_completed == completed_at
 
     def test_failed_work_preserves_snapshot_and_records_error(self) -> None:
         run = self.create_run()
-        complete = complete_workflow_run(
-            organization_id=self.organization.id,
-            workflow_run_id=run.id,
-            error=WorkflowRunError(code="selection_failed", message="Work selection failed"),
+        snapshot = run.extras.snapshot
+        complete = run.complete(
+            error=WorkflowRunError(code="selection_failed", message="Work selection failed")
         )
         assert complete.status == SeerWorkflowRunStatus.FAILED
         assert complete.extras["error"] == {
@@ -328,105 +318,142 @@ class ConfiguredWorkflowRunTest(TestCase):
             "message": "Work selection failed",
         }
         assert complete.date_completed is not None
-        assert complete.extras["snapshot"] == run.extras["snapshot"]
+        assert run.extras.snapshot == snapshot
 
-    def test_execution_completion_is_scoped_to_organization(self) -> None:
+    def test_rejection_is_terminal_and_has_no_executions(self) -> None:
         run = self.create_run()
-        execution = Factories.create_seer_workflow_run_execution(
-            run, status=SeerWorkflowExecutionStatus.RUNNING
-        )
-        other_org = self.create_organization()
-        with pytest.raises(SeerWorkflowRunExecution.DoesNotExist):
-            complete_workflow_execution(
-                organization_id=other_org.id, workflow_execution_id=execution.id
-            )
-        run.refresh_from_db()
-        execution.refresh_from_db()
-        assert run.status == SeerWorkflowRunStatus.RUNNING
-        assert execution.status == SeerWorkflowExecutionStatus.RUNNING
+        failure = WorkflowRunError(code="quota_exceeded", message="Automation quota exceeded.")
+        rejected = run.reject(error=failure)
+        assert rejected.status == SeerWorkflowRunStatus.REJECTED
+        assert rejected.date_completed is not None
+        assert rejected.extras["error"] == failure.dict()
+        assert not rejected.executions.exists()
+        completed_at = rejected.date_completed
+        assert run.start().status == SeerWorkflowRunStatus.REJECTED
+        assert run.complete().status == SeerWorkflowRunStatus.REJECTED
+        assert run.reject(error=failure).date_completed == completed_at
+        with pytest.raises(ValueError, match="running workflow"):
+            run.create_execution()
 
-    def create_run(self) -> SeerWorkflowRun:
-        config = self.create_config()
-        run, _ = get_or_create_workflow_run(
-            organization_id=self.organization.id,
-            workflow_config_id=config.id,
-            trigger_key="manual:first",
-            inputs=RunInputs(issue_limit=10),
+    def test_active_run_cannot_be_rejected_or_completed_with_executions(self) -> None:
+        run = self.create_run()
+        with pytest.raises(ValueError, match="running workflow"):
+            run.create_execution()
+        run.start()
+        run.create_execution()
+        with pytest.raises(ValueError, match="complete_execution"):
+            run.complete()
+        with pytest.raises(ValueError, match="Only queued runs"):
+            run.reject(error=WorkflowRunError(code="rejected", message="Rejected"))
+        assert run.run.status == SeerWorkflowRunStatus.RUNNING
+        assert run.run.date_completed is None
+
+    def test_execution_transitions_are_scoped_to_run(self) -> None:
+        run = self.create_run()
+        run.start()
+        execution = run.create_execution()
+        other = self.create_run()
+        other.start()
+        with pytest.raises(SeerWorkflowRunExecution.DoesNotExist):
+            other.start_execution(execution.id)
+        with pytest.raises(SeerWorkflowRunExecution.DoesNotExist):
+            other.complete_execution(execution.id)
+        execution.refresh_from_db()
+        assert execution.status == SeerWorkflowExecutionStatus.QUEUED
+        assert run.run.date_completed is None
+        assert other.run.date_completed is None
+
+    def test_queued_execution_keeps_parent_running(self) -> None:
+        run = self.create_run()
+        run.start()
+        first = run.create_execution()
+        queued = run.create_execution()
+        run.start_execution(first.id)
+        run.complete_execution(first.id)
+        assert run.run.status == SeerWorkflowRunStatus.RUNNING
+        assert run.run.date_completed is None
+        queued.refresh_from_db()
+        assert queued.status == SeerWorkflowExecutionStatus.QUEUED
+
+        failure = WorkflowRunError(code="dispatch_failed", message="Could not start execution")
+        run.complete_execution(queued.id, error=failure)
+        assert run.run.status == SeerWorkflowRunStatus.FAILED
+        assert run.extras.error == failure
+        assert run.run.date_completed is not None
+
+    def create_run(self) -> WorkflowRun:
+        run, _ = self.create_configured_workflow().get_or_create_run(
+            trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
         return run
 
-    def create_config(self) -> SeerWorkflowConfig:
-        return Factories.create_seer_workflow_config(
-            self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-            filters={"all_projects": True},
+    def create_configured_workflow(self) -> SeerWorkflow:
+        return SeerWorkflow(
+            Factories.create_seer_workflow_config(
+                self.organization,
+                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                filters={"all_projects": True},
+            )
         )
 
 
 @pytest.mark.django_db(databases="__all__")
-@pytest.mark.parametrize("failed_execution", [None, 0, 1])
-def test_run_finishes_after_all_executions(failed_execution: int | None) -> None:
+@pytest.mark.parametrize(
+    "first_error,second_error,expected_status,expected_error",
+    [
+        (None, None, SeerWorkflowRunStatus.COMPLETE, None),
+        (
+            WorkflowRunError(code="investigation_failed", message="Investigation failed"),
+            None,
+            SeerWorkflowRunStatus.FAILED,
+            WorkflowRunError(code="investigation_failed", message="Investigation failed"),
+        ),
+        (
+            None,
+            WorkflowRunError(code="investigation_failed", message="Investigation failed"),
+            SeerWorkflowRunStatus.FAILED,
+            WorkflowRunError(code="investigation_failed", message="Investigation failed"),
+        ),
+    ],
+)
+def test_run_finishes_after_all_executions(
+    first_error: WorkflowRunError | None,
+    second_error: WorkflowRunError | None,
+    expected_status: SeerWorkflowRunStatus,
+    expected_error: WorkflowRunError | None,
+) -> None:
     organization = Factories.create_organization()
     config = Factories.create_seer_workflow_config(
         organization,
         strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
         filters={"all_projects": True},
     )
-    run, _ = get_or_create_workflow_run(
-        organization_id=organization.id,
-        workflow_config_id=config.id,
-        trigger_key="manual:first",
-        inputs=RunInputs(issue_limit=10),
+    run, _ = SeerWorkflow(config).get_or_create_run(
+        trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
     )
-    first = Factories.create_seer_workflow_run_execution(
-        run, status=SeerWorkflowExecutionStatus.RUNNING
-    )
-    second = Factories.create_seer_workflow_run_execution(
-        run, status=SeerWorkflowExecutionStatus.RUNNING
-    )
-    failure = WorkflowRunError(code="investigation_failed", message="Investigation failed")
+    run.start()
+    first = run.create_execution()
+    second = run.create_execution()
+    run.start_execution(first.id)
+    run.start_execution(second.id)
 
-    complete_workflow_execution(
-        organization_id=organization.id,
-        workflow_execution_id=first.id,
-        error=failure if failed_execution == 0 else None,
-    )
-    run.refresh_from_db()
-    assert run.status == SeerWorkflowRunStatus.RUNNING
-    assert run.date_completed is None
+    run.complete_execution(first.id, error=first_error)
+    assert run.run.status == SeerWorkflowRunStatus.RUNNING
+    assert run.run.date_completed is None
 
-    finished = complete_workflow_execution(
-        organization_id=organization.id,
-        workflow_execution_id=second.id,
-        error=failure if failed_execution == 1 else None,
-    )
+    finished = run.complete_execution(second.id, error=second_error)
     first.refresh_from_db()
-    assert first.status == (
-        SeerWorkflowExecutionStatus.FAILED
-        if failed_execution == 0
-        else SeerWorkflowExecutionStatus.COMPLETE
-    )
-    assert finished.status == (
-        SeerWorkflowExecutionStatus.FAILED
-        if failed_execution == 1
-        else SeerWorkflowExecutionStatus.COMPLETE
-    )
-    run = SeerWorkflowRun.objects.get(id=run.id, organization_id=organization.id)
-    assert run.status == (
-        SeerWorkflowRunStatus.FAILED
-        if failed_execution is not None
-        else SeerWorkflowRunStatus.COMPLETE
-    )
-    assert run.extras["error"] == (failure.dict() if failed_execution is not None else None)
-    assert run.date_completed is not None
-    completed_at = run.date_completed
+    assert WorkflowLifecycleExtras.parse_obj(first.extras).error == first_error
+    assert WorkflowLifecycleExtras.parse_obj(finished.extras).error == second_error
+    completed_run = WorkflowRun.get(organization_id=organization.id, run_id=run.run.id)
+    assert completed_run.run.status == expected_status
+    assert completed_run.extras.error == expected_error
+    assert completed_run.run.date_completed is not None
+    completed_at = completed_run.run.date_completed
 
-    complete_workflow_execution(
-        organization_id=organization.id,
-        workflow_execution_id=second.id,
-        error=WorkflowRunError(code="late_callback", message="Late failure"),
+    run.complete_execution(
+        second.id, error=WorkflowRunError(code="late_callback", message="Late failure")
     )
     second.refresh_from_db()
     assert second.status == finished.status
-    run.refresh_from_db()
-    assert run.date_completed == completed_at
+    assert run.run.date_completed == completed_at

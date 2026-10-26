@@ -12,6 +12,8 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.seer.models.workflow import (
+    MetricBreachRunExtras,
+    MetricBreachTrigger,
     SeerWorkflowConfig,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
@@ -24,7 +26,6 @@ from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
     BreachedMetricWorkflow,
     IgnoredMetricBreach,
-    MetricBreachRunExtras,
     RejectedMetricBreach,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects
@@ -126,9 +127,11 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         event = self.breach_event()
         run = self.accept(event)
         assert run is not None
-        trigger = deepcopy(run.extras["trigger"])
+        trigger = deepcopy(run.extras["snapshot"]["inputs"])
         self.detector.update(name="Edited after breach")
         self.condition.update(comparison=200)
+        snapshot = deepcopy(run.extras["snapshot"])
+        self.config.update(version=2, output_policy={"review_required": True})
 
         other_event = self.breach_event(value=240)
         assert other_event.event_id != event.event_id
@@ -138,20 +141,26 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert retried.id == run.id
         run.refresh_from_db()
         assert run.trigger_key == f"issue_created:{self.group.id}"
-        assert run.extras["trigger"] == trigger
+        assert run.extras["snapshot"]["inputs"] == trigger
         assert trigger["evidence"]["value"] == 180
-        assert run.extras["config_version"] == self.config.version
+        assert run.extras["snapshot"] == snapshot
+        assert run.extras["snapshot"]["config_version"] == 1
         assert run.status == SeerWorkflowRunStatus.COMPLETE
         assert run.date_completed is not None
         execution = run.executions.get()
         assert execution.status == SeerWorkflowExecutionStatus.COMPLETE
         assert execution.date_completed is not None
-        assert execution.extras == {"result": "noop"}
+        assert execution.extras == {"result": "noop", "error": None}
         stored = MetricBreachRunExtras.parse_obj(run.extras)
         assert event.occurrence is not None
-        assert stored.trigger.observed_at == event.occurrence.detection_time
-        assert stored.trigger.binding_id == self.action.seer_workflow_binding.id
-        assert stored.admission.decided_at == run.date_completed
+        stored_trigger = MetricBreachTrigger.parse_obj(stored.snapshot.inputs)
+        assert stored_trigger.observed_at == event.occurrence.detection_time
+        assert stored_trigger.binding_id == self.action.seer_workflow_binding.id
+        assert stored.snapshot.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        assert stored.snapshot.project_ids == (self.project.id,)
+        assert stored.snapshot.filters == self.config.filters
+        assert stored.snapshot.output_policy == {}
+        assert stored.admission.decided_at <= run.date_completed
         assert SeerWorkflowRun.objects.count() == 1
 
     def test_accept_uses_latest_scope_from_the_locked_config(self) -> None:
@@ -286,6 +295,9 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert isinstance(first, RejectedMetricBreach)
         assert first.run.status == SeerWorkflowRunStatus.REJECTED
         assert first.run.date_completed is not None
+        assert first.run.extras["snapshot"]["inputs"]["event_id"] == event.event_id
+        assert first.run.extras["snapshot"]["config_version"] == self.config.version
+        assert first.run.extras["error"]["code"] == "quota_exceeded"
         assert "status" not in first.run.extras
         assert isinstance(replayed, RejectedMetricBreach)
         assert replayed.created is False
@@ -323,6 +335,18 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
 
         assert self.accept(self.breach_event(), config=other) is None
         assert not SeerWorkflowRun.objects.exists()
+
+    def test_failed_execution_creation_rolls_back_admission(self) -> None:
+        with (
+            mock.patch(
+                "sentry.seer.workflows.runs.SeerWorkflowRunExecution.objects.create",
+                side_effect=RuntimeError("Cannot create execution"),
+            ),
+            pytest.raises(RuntimeError, match="Cannot create execution"),
+        ):
+            self.accept(self.breach_event())
+        assert not SeerWorkflowRun.objects.exists()
+        assert not SeerWorkflowRunExecution.objects.exists()
 
     def accept(
         self,

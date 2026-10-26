@@ -1,21 +1,29 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import assert_never
+from typing import Any, assert_never
 
 from django.db import router, transaction
 from django.db.models import QuerySet
+from pydantic import BaseModel
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
+    ConfiguredWorkflowRunExtras,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
     SeerWorkflowFilters,
+    SeerWorkflowRun,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
+    WorkflowRunSnapshot,
 )
+from sentry.seer.workflows.runs import WorkflowRun
+from sentry.utils import json
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
@@ -77,6 +85,50 @@ class SeerWorkflow:
     def filters(self) -> SeerWorkflowFilters:
         return SeerWorkflowFilters.parse_obj(self.config.filters)
 
+    def get_or_create_run(
+        self,
+        *,
+        trigger_key: str,
+        inputs: BaseModel,
+        extras: Mapping[str, Any] | None = None,
+    ) -> tuple[WorkflowRun, bool]:
+        """Record an invocation once; retries keep its original snapshot and admission."""
+        if not trigger_key or len(trigger_key) > 256:
+            raise ValueError("Trigger keys must contain between 1 and 256 characters")
+
+        with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+            self.config = SeerWorkflowConfig.objects.select_for_update().get(
+                id=self.config.id, organization_id=self.config.organization_id
+            )
+            existing = self.get_runs().filter(trigger_key=trigger_key).first()
+            if existing is not None:
+                return WorkflowRun(existing), False
+
+            snapshot = WorkflowRunSnapshot(
+                config_version=self.config.version,
+                strategy=SeerWorkflowStrategy(self.config.strategy),
+                filters=self.config.filters,
+                project_ids=tuple(self.get_project_ids()),
+                output_policy=self.config.output_policy,
+                inputs=json.loads(inputs.json()),
+            )
+            run_extras = ConfiguredWorkflowRunExtras.parse_obj(
+                {**(extras or {}), "snapshot": snapshot}
+            )
+            run = SeerWorkflowRun.objects.create(
+                organization_id=self.config.organization_id,
+                workflow_config=self.config,
+                trigger_key=trigger_key,
+                status=SeerWorkflowRunStatus.QUEUED,
+                extras=json.loads(run_extras.json()),
+            )
+        return WorkflowRun(run), True
+
+    def get_runs(self) -> QuerySet[SeerWorkflowRun]:
+        return SeerWorkflowRun.objects.filter(
+            organization_id=self.config.organization_id, workflow_config_id=self.config.id
+        ).order_by("-date_added", "-id")
+
     def matches_scope(self, project_id: int, environment: str | None) -> bool:
         """Check the automation's scope before recording an admission decision."""
         return (
@@ -93,18 +145,6 @@ class SeerWorkflow:
     def get_project_ids(self) -> list[int]:
         """Return active project IDs matching this workflow's filters, in ascending order."""
         return list(self._get_projects().order_by("id").values_list("id", flat=True))
-
-    def _get_projects(self) -> QuerySet[Project]:
-        projects = Project.objects.filter(
-            organization_id=self.config.organization_id, status=ObjectStatus.ACTIVE
-        )
-        if not self.filters.all_projects:
-            projects = projects.filter(
-                id__in=SeerWorkflowConfigProject.objects.filter(config=self.config).values(
-                    "project_id"
-                )
-            )
-        return projects
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         match selection:
@@ -148,3 +188,15 @@ class SeerWorkflow:
             config.save(update_fields=["filters", "version", "date_updated"])
 
         self.config = config
+
+    def _get_projects(self) -> QuerySet[Project]:
+        projects = Project.objects.filter(
+            organization_id=self.config.organization_id, status=ObjectStatus.ACTIVE
+        )
+        if not self.filters.all_projects:
+            projects = projects.filter(
+                id__in=SeerWorkflowConfigProject.objects.filter(config=self.config).values(
+                    "project_id"
+                )
+            )
+        return projects

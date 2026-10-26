@@ -2,171 +2,175 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from datetime import datetime
 from functools import partial
 from typing import Any
 from uuid import UUID
 
 from django.db import router, transaction
-from django.db.models import QuerySet
 from django.utils import timezone
-from pydantic import BaseModel
 
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus
 from sentry.seer.models.workflow import (
+    ConfiguredWorkflowRunExtras,
     SeerWorkflowConfig,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
-)
-from sentry.seer.workflows.schemas import (
-    ConfiguredWorkflowRunExtras,
     WorkflowLifecycleExtras,
-    WorkflowResult,
-    WorkflowResultError,
     WorkflowRunError,
-    WorkflowRunExtras,
-    WorkflowRunSnapshot,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer.workflows.schemas import WorkflowResult, WorkflowResultError, WorkflowRunExtras
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = {"complete", "partial", "failed"}
 
 
-def get_or_create_workflow_run(
-    *,
-    organization_id: int,
-    workflow_config_id: int,
-    trigger_key: str,
-    inputs: BaseModel,
-) -> tuple[SeerWorkflowRun, bool]:
-    """Record an invocation once; retries keep its original configuration and inputs."""
-    if not trigger_key or len(trigger_key) > 256:
-        raise ValueError("Trigger keys must contain between 1 and 256 characters")
+@dataclass
+class WorkflowRun:
+    """The lifecycle of one configurable automation invocation."""
 
-    using = router.db_for_write(SeerWorkflowRun)
-    runs = SeerWorkflowRun.objects.using(using).filter(
-        organization_id=organization_id,
-        workflow_config_id=workflow_config_id,
-        trigger_key=trigger_key,
-    )
-    existing = runs.first()
-    if existing is not None:
-        return existing, False
+    run: SeerWorkflowRun
 
-    with transaction.atomic(using):
-        config = SeerWorkflowConfig.objects.select_for_update().get(
-            id=workflow_config_id, organization_id=organization_id
-        )
-        existing = runs.first()
-        if existing is not None:
-            return existing, False
-
-        snapshot = WorkflowRunSnapshot(
-            config_version=config.version,
-            strategy=SeerWorkflowStrategy(config.strategy),
-            filters=config.filters,
-            project_ids=tuple(SeerWorkflow(config).get_project_ids()),
-            output_policy=config.output_policy,
-            inputs=json.loads(inputs.json()),
-        )
-        run = SeerWorkflowRun.objects.using(using).create(
-            organization_id=organization_id,
-            workflow_config=config,
-            trigger_key=trigger_key,
-            status=SeerWorkflowRunStatus.RUNNING,
-            extras=json.loads(
-                ConfiguredWorkflowRunExtras(snapshot=snapshot).json(exclude_unset=True)
-            ),
-        )
-    return run, True
-
-
-def complete_workflow_run(
-    *,
-    organization_id: int,
-    workflow_run_id: int,
-    error: WorkflowRunError | None = None,
-) -> SeerWorkflowRun:
-    """Finish a run that has no executions, including selection failure or no-work success."""
-    with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-        run = SeerWorkflowRun.objects.select_for_update().get(
-            id=workflow_run_id, organization_id=organization_id, trigger_key__isnull=False
-        )
-        if run.date_completed is not None:
-            return run
-
-        if run.executions.exists():
-            raise ValueError("Finish the run's executions with complete_workflow_execution")
-        run.status = SeerWorkflowRunStatus.FAILED if error else SeerWorkflowRunStatus.COMPLETE
-        extras = ConfiguredWorkflowRunExtras.parse_obj(run.extras)
-        extras.error = error
-        run.extras = json.loads(extras.json(exclude_unset=True))
-        run.date_completed = timezone.now()
-        run.save(update_fields=["status", "extras", "date_completed", "date_updated"])
-    return run
-
-
-def complete_workflow_execution(
-    *,
-    organization_id: int,
-    workflow_execution_id: int,
-    error: WorkflowRunError | None = None,
-) -> SeerWorkflowRunExecution:
-    """Finish one execution and finalize the run after all executions have finished.
-
-    Create the complete execution plan before dispatching any work. Lock the parent first
-    so simultaneous callbacks cannot both miss the other execution's completion.
-    """
-    with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-        execution = SeerWorkflowRunExecution.objects.get(
-            id=workflow_execution_id, run__organization_id=organization_id
-        )
-        run = SeerWorkflowRun.objects.select_for_update().get(
-            id=execution.run_id, organization_id=organization_id
-        )
-        execution.refresh_from_db()
-        if execution.date_completed is not None:
-            return execution
-        execution.status = (
-            SeerWorkflowExecutionStatus.FAILED if error else SeerWorkflowExecutionStatus.COMPLETE
-        )
-        execution_extras = WorkflowLifecycleExtras.parse_obj(execution.extras)
-        execution_extras.error = error
-        execution.extras = json.loads(execution_extras.json(exclude_unset=True))
-        execution.date_completed = timezone.now()
-        execution.save(update_fields=["status", "extras", "date_completed", "date_updated"])
-
-        unfinished = run.executions.exclude(
-            status__in=[SeerWorkflowExecutionStatus.COMPLETE, SeerWorkflowExecutionStatus.FAILED]
-        ).exists()
-        if run.date_completed is None and not unfinished:
-            failed = run.executions.filter(status=SeerWorkflowExecutionStatus.FAILED).first()
-            run.status = SeerWorkflowRunStatus.FAILED if failed else SeerWorkflowRunStatus.COMPLETE
-            extras = ConfiguredWorkflowRunExtras.parse_obj(run.extras)
-            extras.error = (
-                WorkflowLifecycleExtras.parse_obj(failed.extras).error if failed else None
+    @classmethod
+    def get(cls, *, organization_id: int, run_id: int) -> WorkflowRun:
+        return cls(
+            SeerWorkflowRun.objects.get(
+                id=run_id, organization_id=organization_id, status__isnull=False
             )
-            run.extras = json.loads(extras.json(exclude_unset=True))
-            run.date_completed = execution.date_completed
-            run.save(update_fields=["status", "extras", "date_completed", "date_updated"])
-    return execution
+        )
 
+    @property
+    def extras(self) -> ConfiguredWorkflowRunExtras:
+        return ConfiguredWorkflowRunExtras.parse_obj(self.run.extras)
 
-def get_workflow_runs(
-    *,
-    organization_id: int,
-    workflow_config_id: int | None = None,
-) -> QuerySet[SeerWorkflowRun]:
-    runs = SeerWorkflowRun.objects.filter(organization_id=organization_id)
-    if workflow_config_id is not None:
-        runs = runs.filter(workflow_config_id=workflow_config_id)
-    return runs.order_by("-date_added", "-id")
+    def start(self) -> SeerWorkflowRun:
+        """Mark the start of orchestration, including work selection."""
+        with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+            self.run = self._get_locked_run()
+            if self.run.status == SeerWorkflowRunStatus.QUEUED:
+                self.run.status = SeerWorkflowRunStatus.RUNNING
+                self.run.save(update_fields=["status", "date_updated"])
+        return self.run
+
+    def create_execution(
+        self, *, extras: WorkflowLifecycleExtras | None = None
+    ) -> SeerWorkflowRunExecution:
+        """Plan all executions before dispatching any of them."""
+        with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+            self.run = self._get_locked_run()
+            if self.run.status != SeerWorkflowRunStatus.RUNNING:
+                raise ValueError("Executions can only be added to a running workflow")
+            execution = SeerWorkflowRunExecution.objects.create(
+                run=self.run,
+                status=SeerWorkflowExecutionStatus.QUEUED,
+                extras=json.loads((extras or WorkflowLifecycleExtras()).json()),
+            )
+        return execution
+
+    def start_execution(self, execution_id: int) -> SeerWorkflowRunExecution:
+        """Mark an execution running when its work starts."""
+        with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+            self.run = self._get_locked_run()
+            execution = self.run.executions.get(id=execution_id)
+            if execution.status == SeerWorkflowExecutionStatus.QUEUED:
+                execution.status = SeerWorkflowExecutionStatus.RUNNING
+                execution.save(update_fields=["status", "date_updated"])
+        return execution
+
+    def complete(self, *, error: WorkflowRunError | None = None) -> SeerWorkflowRun:
+        """Finish work selection with an error or a successful no-work result."""
+        with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+            self.run = self._get_locked_run()
+            if self.run.date_completed is not None:
+                return self.run
+            if self.run.executions.exists():
+                raise ValueError("Finish the run's executions with complete_execution")
+            self._finish(
+                SeerWorkflowRunStatus.FAILED if error else SeerWorkflowRunStatus.COMPLETE,
+                error=error,
+                completed_at=timezone.now(),
+            )
+        return self.run
+
+    def reject(self, *, error: WorkflowRunError) -> SeerWorkflowRun:
+        """Record a terminal admission rejection without creating executions."""
+        with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+            self.run = self._get_locked_run()
+            if self.run.date_completed is not None:
+                return self.run
+            if self.run.status != SeerWorkflowRunStatus.QUEUED or self.run.executions.exists():
+                raise ValueError("Only queued runs without executions can be rejected")
+            self._finish(SeerWorkflowRunStatus.REJECTED, error=error, completed_at=timezone.now())
+        return self.run
+
+    def complete_execution(
+        self, execution_id: int, *, error: WorkflowRunError | None = None
+    ) -> SeerWorkflowRunExecution:
+        """Finish one execution; finalize the run after every execution finishes.
+
+        Lock the parent before reading executions so simultaneous callbacks cannot
+        both miss the other execution's completion.
+        """
+        with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+            self.run = self._get_locked_run()
+            execution = self.run.executions.get(id=execution_id)
+            if execution.date_completed is not None:
+                return execution
+            execution.status = (
+                SeerWorkflowExecutionStatus.FAILED
+                if error
+                else SeerWorkflowExecutionStatus.COMPLETE
+            )
+            execution_extras = WorkflowLifecycleExtras.parse_obj(execution.extras)
+            execution_extras.error = error
+            execution.extras = json.loads(execution_extras.json())
+            execution.date_completed = timezone.now()
+            execution.save(update_fields=["status", "extras", "date_completed", "date_updated"])
+
+            unfinished = self.run.executions.exclude(
+                status__in=[
+                    SeerWorkflowExecutionStatus.COMPLETE,
+                    SeerWorkflowExecutionStatus.FAILED,
+                ]
+            ).exists()
+            if self.run.date_completed is None and not unfinished:
+                failed = self.run.executions.filter(
+                    status=SeerWorkflowExecutionStatus.FAILED
+                ).first()
+                self._finish(
+                    SeerWorkflowRunStatus.FAILED if failed else SeerWorkflowRunStatus.COMPLETE,
+                    error=WorkflowLifecycleExtras.parse_obj(failed.extras).error
+                    if failed
+                    else None,
+                    completed_at=execution.date_completed,
+                )
+        return execution
+
+    def _get_locked_run(self) -> SeerWorkflowRun:
+        return SeerWorkflowRun.objects.select_for_update().get(
+            id=self.run.id, organization_id=self.run.organization_id, status__isnull=False
+        )
+
+    def _finish(
+        self,
+        status: SeerWorkflowRunStatus,
+        *,
+        error: WorkflowRunError | None,
+        completed_at: datetime,
+    ) -> None:
+        extras = self.extras
+        extras.error = error
+        self.run.status = status
+        self.run.extras = json.loads(extras.json())
+        self.run.date_completed = completed_at
+        self.run.save(update_fields=["status", "extras", "date_completed", "date_updated"])
 
 
 def create_workflow_run(

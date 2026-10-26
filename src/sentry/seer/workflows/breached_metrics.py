@@ -2,29 +2,31 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 
 from django.db import router, transaction
 from django.utils import timezone
-from pydantic import BaseModel, PositiveInt, ValidationError
+from pydantic import ValidationError
 
 from sentry import features
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
+    MetricBreachAdmission,
+    MetricBreachExecutionExtras,
+    MetricBreachRejectionReason,
+    MetricBreachRunExtras,
+    MetricBreachTrigger,
     SeerWorkflowConfig,
-    SeerWorkflowExecutionStatus,
     SeerWorkflowFilters,
     SeerWorkflowRun,
-    SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
+    WorkflowRunError,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils import json
 
 
 @dataclass(frozen=True)
@@ -45,45 +47,11 @@ class IgnoredMetricBreach:
     ]
 
 
-MetricBreachRejectionReason = Literal["quota_exceeded"]
-
-
 @dataclass(frozen=True)
 class RejectedMetricBreach:
     run: SeerWorkflowRun
     reason: MetricBreachRejectionReason
     created: bool
-
-
-class MetricBreachTrigger(BaseModel):
-    event_id: str
-    occurrence_id: str
-    detector_id: PositiveInt
-    evidence: dict[str, Any]
-    observed_at: datetime
-    environment: str | None = None
-    group_id: int
-    project_id: int
-    invocation_source: Literal["wfe"] = "wfe"
-    binding_id: int
-    workflow_id: int
-    action_id: int
-
-
-class MetricBreachAdmission(BaseModel):
-    status: Literal["accepted", "rejected"]
-    reason: MetricBreachRejectionReason | None
-    decided_at: datetime
-
-
-class MetricBreachRunExtras(BaseModel):
-    config_version: int
-    admission: MetricBreachAdmission
-    trigger: MetricBreachTrigger
-
-
-class MetricBreachExecutionExtras(BaseModel):
-    result: Literal["noop"] = "noop"
 
 
 class BreachedMetricWorkflow(SeerWorkflow):
@@ -172,54 +140,33 @@ class BreachedMetricWorkflow(SeerWorkflow):
         group: Group,
         trigger: MetricBreachTrigger,
     ) -> AcceptedMetricBreach | RejectedMetricBreach:
-        config = self.config
         trigger_key = f"issue_created:{group.id}"
-        run = SeerWorkflowRun.objects.filter(
-            organization_id=group.organization.id,
-            workflow_config=config,
-            trigger_key=trigger_key,
-        ).first()
-        if run is not None and (
-            run.status == SeerWorkflowRunStatus.REJECTED
-            or (run.status is None and run.extras.get("status") == "rejected")
-        ):
-            return RejectedMetricBreach(
-                run=run,
-                reason=run.extras["admission"]["reason"],
-                created=False,
+        existing = self.get_runs().filter(trigger_key=trigger_key).first()
+        if existing is not None:
+            if existing.status == SeerWorkflowRunStatus.REJECTED:
+                reason = MetricBreachRunExtras.parse_obj(existing.extras).admission.reason
+                assert reason is not None
+                return RejectedMetricBreach(run=existing, reason=reason, created=False)
+            return AcceptedMetricBreach(run=existing, created=False)
+
+        reason = None if self.has_quota_available() else "quota_exceeded"
+        admission = MetricBreachAdmission(
+            status="rejected" if reason is not None else "accepted",
+            reason=reason,
+            decided_at=timezone.now(),
+        )
+        workflow_run, created = self.get_or_create_run(
+            trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
+        )
+        if reason is not None:
+            workflow_run.reject(
+                error=WorkflowRunError(code=reason, message="Automation quota exceeded.")
             )
-        created = run is None
-        if run is None:
-            reason: MetricBreachRejectionReason | None = (
-                None if self.has_quota_available() else "quota_exceeded"
-            )
-            decided_at = timezone.now()
-            extras = MetricBreachRunExtras(
-                config_version=config.version,
-                admission=MetricBreachAdmission(
-                    status="rejected" if reason is not None else "accepted",
-                    reason=reason,
-                    decided_at=decided_at,
-                ),
-                trigger=trigger,
-            )
-            run = SeerWorkflowRun.objects.create(
-                organization_id=group.organization.id,
-                workflow_config=config,
-                trigger_key=trigger_key,
-                status=(
-                    SeerWorkflowRunStatus.REJECTED if reason else SeerWorkflowRunStatus.COMPLETE
-                ),
-                date_completed=decided_at,
-                extras=json.loads(extras.json()),
-            )
-            if reason is not None:
-                return RejectedMetricBreach(run=run, reason=reason, created=True)
-            # TODO(telkins): Replace this no-op execution with investigation dispatch.
-            SeerWorkflowRunExecution.objects.create(
-                run=run,
-                status=SeerWorkflowExecutionStatus.COMPLETE,
-                date_completed=decided_at,
-                extras=MetricBreachExecutionExtras().dict(),
-            )
-        return AcceptedMetricBreach(run=run, created=created)
+            return RejectedMetricBreach(run=workflow_run.run, reason=reason, created=created)
+
+        workflow_run.start()
+        # TODO(telkins): Replace this no-op execution with investigation dispatch.
+        execution = workflow_run.create_execution(extras=MetricBreachExecutionExtras())
+        workflow_run.start_execution(execution.id)
+        workflow_run.complete_execution(execution.id)
+        return AcceptedMetricBreach(run=workflow_run.run, created=created)
