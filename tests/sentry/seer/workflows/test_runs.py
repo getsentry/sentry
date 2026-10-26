@@ -376,9 +376,10 @@ class ConfiguredWorkflowRunTest(TestCase):
         assert queued.status == SeerWorkflowExecutionStatus.QUEUED
 
         failure = WorkflowRunError(code="dispatch_failed", message="Could not start execution")
-        run.complete_execution(queued.id, error=failure)
+        failed = run.complete_execution(queued.id, error=failure)
         assert run.run.status == SeerWorkflowRunStatus.FAILED
-        assert run.extras.error == failure
+        assert SeerWorkflowExecutionExtras.parse_obj(failed.extras).error == failure
+        assert run.extras.error is None
         assert run.run.date_completed is not None
 
     def create_run(self) -> WorkflowRun:
@@ -399,20 +400,23 @@ class ConfiguredWorkflowRunTest(TestCase):
 
 @pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize(
-    "first_error,second_error,expected_status,expected_error",
+    "first_error,second_error,expected_status",
     [
-        (None, None, SeerWorkflowRunStatus.COMPLETE, None),
+        (None, None, SeerWorkflowRunStatus.COMPLETE),
         (
             WorkflowRunError(code="investigation_failed", message="Investigation failed"),
             None,
             SeerWorkflowRunStatus.FAILED,
-            WorkflowRunError(code="investigation_failed", message="Investigation failed"),
         ),
         (
             None,
             WorkflowRunError(code="investigation_failed", message="Investigation failed"),
             SeerWorkflowRunStatus.FAILED,
+        ),
+        (
+            WorkflowRunError(code="dispatch_failed", message="Could not start execution"),
             WorkflowRunError(code="investigation_failed", message="Investigation failed"),
+            SeerWorkflowRunStatus.FAILED,
         ),
     ],
 )
@@ -420,7 +424,6 @@ def test_run_finishes_after_all_executions(
     first_error: WorkflowRunError | None,
     second_error: WorkflowRunError | None,
     expected_status: SeerWorkflowRunStatus,
-    expected_error: WorkflowRunError | None,
 ) -> None:
     organization = Factories.create_organization()
     config = Factories.create_seer_workflow_config(
@@ -436,10 +439,12 @@ def test_run_finishes_after_all_executions(
     second = run.create_execution()
     run.start_execution(first.id)
     run.start_execution(second.id)
+    original_extras = run.run.extras.copy()
 
     run.complete_execution(first.id, error=first_error)
     assert run.run.status == SeerWorkflowRunStatus.RUNNING
     assert run.run.date_completed is None
+    assert run.run.extras == original_extras
 
     finished = run.complete_execution(second.id, error=second_error)
     first.refresh_from_db()
@@ -447,7 +452,8 @@ def test_run_finishes_after_all_executions(
     assert SeerWorkflowExecutionExtras.parse_obj(finished.extras).error == second_error
     completed_run = WorkflowRun.get(organization_id=organization.id, run_id=run.run.id)
     assert completed_run.run.status == expected_status
-    assert completed_run.extras.error == expected_error
+    assert completed_run.extras.error is None
+    assert completed_run.run.extras == original_extras
     assert completed_run.run.date_completed is not None
     completed_at = completed_run.run.date_completed
 
@@ -456,4 +462,6 @@ def test_run_finishes_after_all_executions(
     )
     second.refresh_from_db()
     assert second.status == finished.status
+    assert SeerWorkflowExecutionExtras.parse_obj(second.extras).error == second_error
+    assert run.run.extras == original_extras
     assert run.run.date_completed == completed_at

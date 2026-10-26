@@ -187,7 +187,7 @@ class WorkflowRunError(BaseModel):
 
 
 class SeerWorkflowRunExtras(BaseModel):
-    """Run JSON metadata: the invocation's configuration/input snapshot and error."""
+    """Run JSON metadata: the invocation snapshot and orchestration/admission error."""
 
     snapshot: WorkflowRunSnapshot
     error: WorkflowRunError | None = None
@@ -198,7 +198,7 @@ class SeerWorkflowRunExtras(BaseModel):
 
 
 class SeerWorkflowExecutionExtras(BaseModel):
-    """Execution JSON metadata; the shared snapshot belongs to the parent run."""
+    """Execution JSON metadata; execution failures stay here, even when the run fails."""
 
     error: WorkflowRunError | None = None
 

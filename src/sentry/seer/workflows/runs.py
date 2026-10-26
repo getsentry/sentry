@@ -115,6 +115,7 @@ class WorkflowRun:
     ) -> SeerWorkflowRunExecution:
         """Finish one execution; finalize the run after every execution finishes.
 
+        Execution errors stay on the execution; only status and completion time roll up.
         Lock the parent before reading executions so simultaneous callbacks cannot
         both miss the other execution's completion.
         """
@@ -143,14 +144,12 @@ class WorkflowRun:
             if self.run.date_completed is None and not unfinished:
                 failed = self.run.executions.filter(
                     status=SeerWorkflowExecutionStatus.FAILED
-                ).first()
-                self._finish(
-                    SeerWorkflowRunStatus.FAILED if failed else SeerWorkflowRunStatus.COMPLETE,
-                    error=SeerWorkflowExecutionExtras.parse_obj(failed.extras).error
-                    if failed
-                    else None,
-                    completed_at=execution.date_completed,
+                ).exists()
+                self.run.status = (
+                    SeerWorkflowRunStatus.FAILED if failed else SeerWorkflowRunStatus.COMPLETE
                 )
+                self.run.date_completed = execution.date_completed
+                self.run.save(update_fields=["status", "date_completed", "date_updated"])
         return execution
 
     def _get_locked_run(self) -> SeerWorkflowRun:
