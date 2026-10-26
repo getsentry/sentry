@@ -81,7 +81,7 @@ def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
     resolved = ctx.resolved
     identity = resolved.autofix_run.identity
     if not isinstance(identity, AutofixIterationIdentity):
-        # This signal updates the issue UI; Ask Seer has no issue to notify.
+        # This signal updates the issue UI; ad-hoc PR iteration has no issue to notify.
         return
     try:
         group = Group.objects.get(

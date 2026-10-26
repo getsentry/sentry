@@ -36,7 +36,7 @@ class QueuedAutofixFeedback(BaseModel):
             values["identity"] = (
                 {"type": "autofix", "group_id": group_id}
                 if group_id is not None
-                else {"type": "ask_seer"}
+                else {"type": "ad_hoc"}
             )
         return values
 
