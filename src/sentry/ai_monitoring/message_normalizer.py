@@ -255,7 +255,7 @@ def _collapse_parts(parts: list[Any]) -> Any:
     buckets = _bucket_parts(parts)
 
     if buckets["has_renderable_text_part"]:
-        return "\n".join(buckets["text_parts"])
+        return "\n".join(buckets["text_parts"]) if buckets["text_parts"] else EMPTY_TEXT_CONTENT
     if buckets["object_parts"]:
         return (
             buckets["object_parts"][0]
@@ -292,7 +292,8 @@ def _bucket_parts(parts: list[Any]) -> PartBuckets:
         if part_type == "text":
             buckets["has_renderable_text_part"] = True
             text = _text_from_part(part, strip=True)
-            buckets["text_parts"].append(text or EMPTY_TEXT_CONTENT)
+            if text:
+                buckets["text_parts"].append(text)
             continue
         if part_type == "reasoning":
             text = _text_from_part(part, strip=True)
@@ -362,18 +363,23 @@ def _append_output_from_parts(
     tool_call_parts: list[Any],
     object_parts: list[Any],
 ) -> None:
+    has_empty_text_part = False
+    text_parts_length_before = len(text_parts)
     for part in parts:
         if not isinstance(part, dict):
             continue
 
         part_type = part.get("type")
         if part_type == "text":
-            text = part.get("content") or part.get("text")
-            text_parts.append(text if isinstance(text, str) and text else EMPTY_TEXT_CONTENT)
+            text = _text_from_part(part, content_first=True)
+            if text:
+                text_parts.append(text)
+            else:
+                has_empty_text_part = True
             continue
         if part_type == "reasoning":
-            text = part.get("content") or part.get("text")
-            if isinstance(text, str) and text:
+            text = _text_from_part(part, content_first=True)
+            if text:
                 reasoning_parts.append(text)
             continue
         if part_type == "tool_call":
@@ -384,19 +390,21 @@ def _append_output_from_parts(
             continue
         if part_type in FILE_CONTENT_PARTS:
             text_parts.append(_redacted_file_content(part))
+    if has_empty_text_part and len(text_parts) == text_parts_length_before:
+        text_parts.append(EMPTY_TEXT_CONTENT)
 
 
 def _parse_json_string(value: str, *, fallback: Any) -> Any:
     try:
         return json.loads(value)
-    except (json.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError, RecursionError):
         return fallback
 
 
 def _try_literal_eval(value: str) -> Any:
     try:
         result = ast.literal_eval(value)
-    except (ValueError, SyntaxError):
+    except (ValueError, SyntaxError, RecursionError):
         return _INVALID_JSON
     if isinstance(result, (list, dict)):
         return result
@@ -411,12 +419,20 @@ def _looks_like_json(raw: str) -> bool:
 
 
 def _extract_text_from_content_parts(parts: list[Any]) -> str:
-    return "\n".join(_bucket_parts(parts)["text_parts"])
+    buckets = _bucket_parts(parts)
+    if buckets["text_parts"]:
+        return "\n".join(buckets["text_parts"])
+    return EMPTY_TEXT_CONTENT if buckets["has_renderable_text_part"] else ""
 
 
-def _text_from_part(part: dict[str, Any], *, strip: bool = False) -> str | None:
-    text = part.get("text") or part.get("content")
-    if not isinstance(text, str) or not text:
+def _text_from_part(
+    part: dict[str, Any], *, strip: bool = False, content_first: bool = False
+) -> str | None:
+    fields = ("content", "text") if content_first else ("text", "content")
+    text = next(
+        (part[field] for field in fields if isinstance(part.get(field), str) and part[field]), None
+    )
+    if text is None:
         return None
     return text.strip() if strip else text
 

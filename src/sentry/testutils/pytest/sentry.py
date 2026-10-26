@@ -403,6 +403,10 @@ def pytest_configure(config: pytest.Config) -> None:
     asset_version_patcher.start()
     from sentry.runner.initializer import initialize_app
 
+    # A GC metrics opt-in exported in the developer's shell would start a
+    # flusher thread in the test process and emit python.gc.* during tests.
+    os.environ.pop("SENTRY_GC_METRICS", None)
+
     SENTRY_SKIP_SERVICE_VALIDATION = "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
 
     initialize_app(

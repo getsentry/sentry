@@ -33,7 +33,7 @@ describe('droppedEventsToOutcomeSections', () => {
 
     expect(sections.map(s => s.label)).toEqual([
       'Invalid or Malformed',
-      'Inbound Filter',
+      'Inbound Filters',
     ]);
     expect(sections[0]!.events).toBe(8);
     expect(sections[0]!.reasons.map(r => r.reason)).toEqual(['cors', 'timestamp']);

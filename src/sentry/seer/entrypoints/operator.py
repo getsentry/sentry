@@ -5,6 +5,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.investigations.access import has_investigations_access
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
@@ -623,7 +624,7 @@ class SeerInvestigationOperator[CachePayloadT]:
 
     @classmethod
     def has_access(cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey) -> bool:
-        if not features.has("organizations:investigations", organization):
+        if not has_investigations_access(organization):
             return False
         entrypoint_cls = investigation_entrypoint_registry.registrations.get(entrypoint_key)
         return entrypoint_cls is not None and entrypoint_cls.has_access(organization)
@@ -931,7 +932,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             {"investigation_id": investigation_id, "organization_id": organization.id}
         )
 
-        if not features.has("organizations:investigations", organization):
+        if not has_investigations_access(organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
@@ -1067,15 +1068,8 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        summary: str | None = None
         try:
             state = fetch_run_status(run_id, organization)
-            for block in reversed(state.blocks):
-                if block.message.role == "user":
-                    break
-                if block.message.role == "assistant" and block.message.content:
-                    summary = block.message.content
-                    break
         except Exception as e:
             lifecycle.record_failure(failure_reason=e)
             return
@@ -1110,9 +1104,8 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
                 try:
                     entrypoint_cls.on_agent_update(
                         cache_payload=cache_payload,
-                        summary=summary,
                         run_id=run_id,
-                        pending_user_input=state.pending_user_input,
+                        state=state,
                     )
                 except IntegrationError:
                     # The refresh task retries integration errors.

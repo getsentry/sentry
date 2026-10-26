@@ -6,32 +6,19 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import {formatDroppedShare} from 'sentry/components/droppedData/outcomes';
-import type {DroppedDataBucket, OutcomeVolume} from 'sentry/components/droppedData/types';
-import {t} from 'sentry/locale';
+import {
+  droppedDataLabel,
+  formatDroppedShare,
+  outcomeLabel,
+} from 'sentry/components/droppedData/outcomes';
+import type {DroppedDataBucket} from 'sentry/components/droppedData/types';
 import {getFormat} from 'sentry/utils/dates';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 interface Ratio {
   total: string;
   value: string;
-}
-
-function outcomeLabel({outcome}: OutcomeVolume): string {
-  switch (outcome) {
-    case 'rate_limited':
-      return t('Rate Limit Rejected');
-    case 'invalid':
-      return t('Invalid Data Rejected');
-    case 'abuse':
-      return t('Abuse Limit Rejected');
-    case 'cardinality_limited':
-      return t('Cardinality Limit Rejected');
-    case 'client_discard':
-      return t('SDK Data Dropped');
-    default:
-      return t('Other Rejected');
-  }
 }
 
 function formatCountRatio(value: number, total: number): Ratio {
@@ -54,7 +41,7 @@ function formatBucketRange(start: number, end: number, timezone: string): string
 }
 
 function totalEventCount(bucket: DroppedDataBucket): number {
-  return bucket.dropped.count + bucket.accepted.count;
+  return bucket.dropped + bucket.accepted;
 }
 
 function VolumeRow({label, value, total}: Ratio & {label: string}) {
@@ -71,17 +58,18 @@ function VolumeRow({label, value, total}: Ratio & {label: string}) {
 
 interface DroppedDataTooltipProps {
   bucket: DroppedDataBucket;
+  dataset: DiscoverDatasets;
   timezone: string;
 }
 
-export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) {
+export function DroppedDataTooltip({bucket, dataset, timezone}: DroppedDataTooltipProps) {
   const totalEvents = totalEventCount(bucket);
 
   return (
     <Fragment>
       <TooltipBody className="tooltip-series">
         <Flex as="header" justify="between" gap="2xl" padding="lg xl">
-          <Text bold>{t('Total Dropped')}</Text>
+          <Text bold>{droppedDataLabel(dataset)}</Text>
           <Text bold tabular>
             {formatDroppedShare(bucket.ratio)}
           </Text>
@@ -93,7 +81,7 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
               {bucket.byOutcome.map(outcome => (
                 <VolumeRow
                   key={outcome.outcome}
-                  label={outcomeLabel(outcome)}
+                  label={outcomeLabel(outcome.outcome)}
                   {...formatCountRatio(outcome.count, totalEvents)}
                 />
               ))}

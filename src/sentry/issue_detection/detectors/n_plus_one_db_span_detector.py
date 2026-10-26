@@ -6,6 +6,7 @@ from typing import Any
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
     total_span_time,
 )
@@ -283,7 +284,7 @@ def is_cached_span(span: Span) -> bool:
 
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
-    query = span.get("description")
+    query = get_span_description(span)
     if is_source and query:
         return True
     else:
@@ -296,7 +297,7 @@ def get_valid_db_span_description(span: Span) -> str | None:
     See https://github.com/getsentry/relay/blob/25.3.0/relay-event-normalization/src/normalize/span/description/mod.rs#L68-L82
     Explicitly require a '{' in MongoDB spans to only trigger on queries rather than client calls.
     """
-    default_description = span.get("description", "")
+    default_description = get_span_description(span)
     db_system = span.get("sentry_tags", {}).get("system", "")
 
     # Connection spans can have `op` as `db` but we don't want to trigger on them.

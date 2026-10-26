@@ -476,6 +476,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.search",
     "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
+    "sentry.telemetry_classifiers",
     "sentry.snuba",
     "social_auth",
     "sudo",
@@ -892,6 +893,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.integrations.bitbucket_server.tasks",
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
@@ -1019,6 +1021,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
+    "sentry.telemetry_classifiers.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1154,6 +1157,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-cache-dynamic-sampling-feature-flags": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
         "schedule": crontab("0", "*", "*", "*", "*"),
+    },
+    "telemetry-classifiers-conversations": {
+        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_conversation_classifiers",
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1894,6 +1901,7 @@ SENTRY_SCOPES = {
     "org:admin",
     "org:integrations",
     "org:ci",
+    "org:tokens",
     # "org:superuser",  Do not use for any type of superuser permission/access checks
     # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
     "member:invite",
@@ -1943,6 +1951,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
     "org:integrations": {"org:integrations"},
     "org:ci": {"org:ci"},
+    "org:tokens": {"org:tokens"},
     "member:invite": {"member:read", "member:invite"},
     "member:read": {"member:read"},
     "member:write": {"member:read", "member:invite", "member:write"},
@@ -1982,6 +1991,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
 SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     [
         "org:ci",  # CI workflows, releases, source maps, and code mappings
+        "org:tokens",  # OAuth consent to manage org auth tokens on the user's behalf
         "project:distribution",  # App distribution/preprod artifacts
     ]
 )
@@ -2019,6 +2029,16 @@ SENTRY_SCOPE_SETS = (
         (
             "org:ci",
             "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ),
+    ),
+    (
+        (
+            "org:tokens",
+            (
+                "Issue, list, rename, and revoke organization auth tokens with org:ci access, "
+                "such as tokens for release, source map, and debug file uploads. "
+                "Does not allow creating personal tokens."
+            ),
         ),
     ),
     (

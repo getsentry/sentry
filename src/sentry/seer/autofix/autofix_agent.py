@@ -193,7 +193,7 @@ def _handle_step_started_events(
                 if actor_user_id is not None:
                     activity_attribution["actor_user_id"] = actor_user_id
                 task_kwargs["activity_attribution"] = activity_attribution
-            elif step == AutofixStep.CODE_CHANGES and actor_user_id is not None:
+            elif actor_user_id is not None:
                 activity_attribution = {
                     "referrer": referrer,
                     "actor_user_id": actor_user_id,

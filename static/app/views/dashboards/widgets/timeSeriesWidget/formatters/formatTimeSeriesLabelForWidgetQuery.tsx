@@ -11,7 +11,7 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
  * ``TimeSeries`` produced by ``widgetQuery`` within ``widget``.
  *
  * This is the label-parts assembly that previously lived inline in
- * ``transformWidgetSeriesToTimeSeries``; it is shared with the chartcuterie
+ * ``transformMultipleWidgetSeriesToTimeSeries``; it is shared with the chartcuterie
  * dashboards-widget renderer so the server-rendered legend stays in lockstep
  * with the FE.
  */
@@ -20,6 +20,13 @@ export function formatTimeSeriesLabelForWidgetQuery(
   widget: Widget,
   widgetQuery: WidgetQuery
 ): string {
+  if (widgetQuery.seriesLabel === 'query') {
+    return widgetQuery.name;
+  }
+  if (widgetQuery.seriesLabel === 'group') {
+    return formatTimeSeriesLabel(timeSeries);
+  }
+
   // The conditions prefix that ``getSeriesQueryPrefix`` adds in the
   // widget-query hooks for the FE — rebuilt here so callers that already
   // have a ``TimeSeries`` (chartcuterie) don't need their own copy.

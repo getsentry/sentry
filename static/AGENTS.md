@@ -32,17 +32,11 @@
 ### Routing
 
 - Routes defined in `static/app/router/routes.tsx`
-- Production, local development, deploy previews, and acceptance builds run
-  React Router V8. Application tests and typechecks run against both versions; set
-  `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run `test-ci` or `typecheck` against one.
-  `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
-- Use V8 import paths: import router APIs and types from `react-router`, and
-  `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
-  runtime through `static/app/utils/reactRouterV6` in V6 builds.
-- Only the compatibility modules may import `react-router-dom` or
-  `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
-  Use Sentry's version-neutral router tracing integration and wrapper. Keep the
-  Nuqs V6 adapter import; V8 builds and tests alias it to the V8 adapter.
+- Builds, tests, and typechecks use React Router V8.
+- Import router APIs and types from `react-router`, and `RouterProvider` from
+  `react-router/dom`. Use the Nuqs adapter from `nuqs/adapters/react-router/v8`.
+- Keep using Sentry's routing helpers where required. Use Sentry's
+  `reactRouterBrowserTracingIntegration` and `wrapCreateBrowserRouter`.
 - Lazy load route components when possible
 
 ### Frontend API Calls

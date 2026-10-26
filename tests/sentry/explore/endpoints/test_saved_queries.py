@@ -135,7 +135,8 @@ class SavedQueriesTest(APITestCase):
         assert response.data[5]["name"] == "Test query"
         assert response.data[5]["queryType"] == "explore"
         assert sorted(response.data[5]["projects"]) == sorted(self.project_ids)
-        assert response.data[5]["range"] == "24h"
+        assert "range" not in response.data[5]
+        assert response.data[5]["statsPeriod"] == "24h"
         assert response.data[5]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
         assert "createdBy" in response.data[5]
         assert response.data[5]["createdBy"]["username"] == self.user.username
