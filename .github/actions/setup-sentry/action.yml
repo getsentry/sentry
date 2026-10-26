@@ -27,6 +27,10 @@ inputs:
     description: 'Start devservices before the venv setup, so the two overlap (see devservices-bg.py)'
     required: false
     default: 'false'
+  ephemeral-databases:
+    description: 'Use tmpfs PostgreSQL/Redis data volumes and disable durability in disposable CI jobs'
+    required: false
+    default: 'false'
 
 outputs:
   matrix-instance-number:
@@ -107,6 +111,13 @@ runs:
         # we just cache the venv-dir directly in action-setup-venv
         enable-cache: false
 
+    - name: Prepare ephemeral CI database storage
+      if: ${{ inputs.ephemeral-databases == 'true' && inputs.skip-devservices != 'true' }}
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: bash "$ACTION_PATH/ephemeral-databases.sh" prepare
+
     - name: Start devservices in the background
       if: ${{ inputs.early-devservices == 'true' && inputs.skip-devservices != 'true' }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
@@ -183,3 +194,10 @@ runs:
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
 
         docker ps -a
+
+    - name: Configure ephemeral CI databases
+      if: ${{ inputs.ephemeral-databases == 'true' && inputs.skip-devservices != 'true' }}
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: bash "$ACTION_PATH/ephemeral-databases.sh" configure

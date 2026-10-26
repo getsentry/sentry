@@ -242,6 +242,7 @@ jobs:
         with:
           mode: backend-ci
           early-devservices: 'true'
+          ephemeral-databases: 'true'
 
       # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
@@ -250,11 +251,13 @@ jobs:
         run: |
           mkdir -p /tmp/pg-sock
           PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
+          PG_DATA_VOLUME=$(docker inspect postgres-postgres-1 --format '{{range .Mounts}}{{if eq .Destination "/var/lib/postgresql/data"}}{{.Name}}{{end}}{{end}}')
+          test -n "$PG_DATA_VOLUME"
           docker stop postgres-postgres-1 && docker rm postgres-postgres-1
           docker run -d --name postgres-postgres-1 \
             --network devservices --label orchestrator=devservices \
             -p 127.0.0.1:5432:5432 \
-            -v postgres-data:/var/lib/postgresql/data \
+            -v "$PG_DATA_VOLUME:/var/lib/postgresql/data" \
             -v /tmp/pg-sock:/var/run/postgresql \
             -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
             "$PG_IMAGE" postgres \
@@ -271,6 +274,7 @@ jobs:
             docker logs postgres-postgres-1 2>&1 | tail -30 || true
             exit 1
           fi
+          bash .github/actions/setup-sentry/ephemeral-databases.sh verify-postgres
           echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
 
       - name: Download odiff binary
@@ -381,6 +385,7 @@ jobs:
         id: setup
         with:
           mode: default
+          ephemeral-databases: 'true'
 
       # Only master saves, so PRs restore the newest master dump.
       - name: Restore migrated test databases
