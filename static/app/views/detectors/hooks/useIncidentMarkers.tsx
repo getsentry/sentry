@@ -20,8 +20,9 @@ const INCIDENT_MARKER_PERSISTENT_AREA_SERIES_ID = '__incident_marker_area_persis
 const INCIDENT_MARKER_HEIGHT = 6;
 const INCIDENT_MARKER_PADDING = 2;
 const INCIDENT_MARKER_PADDING_Y = INCIDENT_MARKER_PADDING * 2;
-// ECharts lifts emphasized elements above their neighbours by default. Keeping
-// them in place lets the mouse move from a wide highlight to a thin one it overlaps.
+
+// You need to set the z2 property manually or the wide "threshold breached" intervals
+// will mask the open periods next to them on hover
 const EMPHASIS_Z2 = 0;
 
 // Default X-axis configuration (when incidents are hidden)
@@ -30,10 +31,8 @@ const DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG = {
   offset: 0,
 };
 
-// X-axis configuration for when incidents are shown (moves axis down to make space)
+// If incidents are shown you need to move the axis down to make space for them
 const INCIDENT_MARKER_X_AXIS_CONFIG = {
-  // configure `axisLine` and `offset` to move axis line below 0 so that
-  // incidents sit between bottom of the main chart and the axis line
   axisLine: {onZero: false},
   offset: INCIDENT_MARKER_HEIGHT + INCIDENT_MARKER_PADDING_Y - 1,
 };
@@ -113,11 +112,6 @@ const getPriorityColor = ({
   return priority === 'medium' ? theme.colors.yellow400 : theme.colors.red400;
 };
 
-/**
- * Resolves the incident period behind a click on the marker series. The click
- * lands on either a data item (the marker or its period highlight) or on an
- * open period's start mark line.
- */
 function findClickedIncidentPeriod(
   params: ECElementEvent,
   incidentPeriods: IncidentPeriod[]
@@ -240,12 +234,10 @@ function createIncidentMarkerSeries({
           },
           emphasis: {z2: EMPHASIS_Z2},
         },
-        // Spans the main chart for the incident's time period. Hovering it or
-        // the marker puts the whole group into its emphasis state, which
-        // reveals the highlight.
+        // Enable viewing incidents by hovering anywhere over their time period on the chart
+        // Hovering puts this in the emphasis state, making it become visible
         {
           type: 'rect',
-          // Keep showing the metric values tooltip instead of the incident tooltip
           tooltipDisabled: true,
           shape: {
             x: clippedStartX,
@@ -254,7 +246,6 @@ function createIncidentMarkerSeries({
             height: coordSys.height ?? 0,
           },
           style: {fill: color, opacity: 0},
-          // The fill is repeated so ECharts doesn't apply its default color lift
           emphasis: {z2: EMPHASIS_Z2, style: {fill: color, opacity: 0.2}},
         },
       ],
@@ -445,8 +436,8 @@ export function useIncidentMarkers({
         }
       };
 
-      // Shows that the incident can be clicked. The zoom brush sets a crosshair
-      // cursor in its own zrender mousemove listener, which runs after this event.
+      // Manually set the cursor to pointer when hovering over an incident marker
+      // to indicate it is a clickable link
       const handleMouseMove = (params: ECElementEvent) => {
         if (params.seriesId !== seriesId || !latestOnClickRef.current) {
           return;
