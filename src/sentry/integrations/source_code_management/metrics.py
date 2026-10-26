@@ -51,6 +51,7 @@ class SCMIntegrationInteractionType(StrEnum):
     # Releases
     COMPARE_COMMITS = "compare_commits"
     RESOLVE_ISSUE_VIA_COMMIT = "resolve_issue_via_commit"
+    RESOLVE_ISSUE_VIA_PR = "resolve_issue_via_pr"
 
     # Status Checks
     CREATE_STATUS_CHECK = "create_status_check"
