@@ -51,17 +51,17 @@ class TestGetRepoFromCodeMappings(TestCase):
         )
         self.create_code_mapping(project=project, repo=github_repo)
 
-        bitbucket_repo = self.create_repo(
-            name="getsentry/sentry-bitbucket",
-            provider="integrations:bitbucket",
+        unsupported_repo = self.create_repo(
+            name="getsentry/sentry-unsupported",
+            provider="integrations:unsupported-provider",
             external_id="456",
             integration_id=345,
         )
         self.create_code_mapping(
             project=project,
-            repo=bitbucket_repo,
-            stack_root="bitbucket/",
-            source_root="src/bitbucket/",
+            repo=unsupported_repo,
+            stack_root="unsupported/",
+            source_root="src/unsupported/",
         )
 
         repos = get_autofix_repos_from_project_code_mappings(project)

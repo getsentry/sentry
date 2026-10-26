@@ -3131,7 +3131,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
-            provider="integrations:bitbucket",
+            provider="integrations:unsupported-provider",
             external_id="12345678",
             integration_id=123,
             status=ObjectStatus.ACTIVE,
@@ -3204,7 +3204,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
-            provider="integrations:bitbucket",
+            provider="integrations:unsupported-provider",
             external_id="99999999",
             integration_id=999,
             status=ObjectStatus.ACTIVE,

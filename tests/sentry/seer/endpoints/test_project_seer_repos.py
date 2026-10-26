@@ -620,7 +620,7 @@ class ProjectSeerReposPostTest(APITestCase):
         unsupported_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/unsupported",
-            provider="integrations:bitbucket",
+            provider="integrations:unsupported-provider",
             external_id="999",
         )
 
@@ -770,7 +770,7 @@ class ProjectSeerReposPutTest(APITestCase):
         unsupported_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/unsupported",
-            provider="integrations:bitbucket",
+            provider="integrations:unsupported-provider",
             external_id="999",
         )
 

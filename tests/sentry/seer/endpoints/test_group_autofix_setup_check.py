@@ -92,10 +92,10 @@ class GetAutofixIntegrationSetupProblemsTestCase(TestCase):
 
         assert result is None
 
-    def test_unsupported_bitbucket_integration(self) -> None:
+    def test_unsupported_provider_integration(self) -> None:
         self.create_integration(
             organization=self.organization,
-            provider=IntegrationProviderSlug.BITBUCKET.value,
+            provider="unsupported-provider",
             external_id="1",
         )
 
