@@ -19,6 +19,7 @@ import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmO
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
+  getSdkImportSpecifier,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 const PACKAGE_NAME = '@sentry/deno';
@@ -313,6 +314,7 @@ prompt: "What is the weather in San Francisco?",
 }
 
 export const agentMonitoring: OnboardingConfig = {
+  sdkImportSpecifier: () => getSdkImportSpecifier(PACKAGE_NAME),
   introduction: params => (
     <SdkUpdateAlert
       projectId={params.project.id}

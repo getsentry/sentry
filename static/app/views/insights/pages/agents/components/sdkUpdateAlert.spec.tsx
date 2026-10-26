@@ -68,6 +68,61 @@ describe('SdkUpdateAlert', () => {
     });
   });
 
+  it('names the outdated package when given several', async () => {
+    renderMockSdkUpdateRequest({
+      organization,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.javascript.nextjs',
+          sdkVersion: '9.0.0',
+        },
+      ],
+    });
+
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="10.0.0"
+        packageName={['@sentry/nextjs', '@sentry/cloudflare']}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your @sentry/nextjs version is below the minimum required for agent monitoring. Update to 10.0.0 or later.'
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not render for an outdated package outside the list', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.javascript.node',
+          sdkVersion: '9.0.0',
+        },
+      ],
+    });
+
+    const {container} = render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="10.0.0"
+        packageName={['@sentry/nextjs', '@sentry/cloudflare']}
+      />,
+      {organization}
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('does not render when there is an error', async () => {
     renderMockSdkUpdateRequest({
       organization,

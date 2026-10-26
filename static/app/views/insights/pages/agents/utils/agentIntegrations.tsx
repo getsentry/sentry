@@ -102,6 +102,16 @@ export const NODE_AGENT_INTEGRATIONS = [
 ];
 
 /**
+ * Bun runs Node packages, so it gets every Node SDK except the Cloudflare-only
+ * ones: Bun projects are fixed to the Bun runtime (see PLATFORM_DEPLOYMENT_TARGETS).
+ */
+export const BUN_AGENT_INTEGRATIONS = NODE_AGENT_INTEGRATIONS.filter(
+  integration =>
+    integration !== AgentIntegration.WORKERS_AI &&
+    integration !== AgentIntegration.CLOUDFLARE_AGENTS
+);
+
+/**
  * The agent SDKs the Deno SDK auto-instruments. Cloudflare-only SDKs don't run
  * on Deno, and the Mastra, Flue, and Eve setups are Node-specific.
  *
@@ -123,22 +133,103 @@ export const PHP_AGENT_INTEGRATIONS = [AgentIntegration.MANUAL];
 /**
  * Where a Node-based project deploys its AI agents. This drives which setup
  * instructions we render in the onboarding empty state (Node runtime vs. the
- * Cloudflare `withSentry` flow).
+ * Cloudflare `withSentry` flow). Deno and Bun are only offered to projects
+ * whose framework supports them (see PROJECT_DEPLOYMENT_TARGETS).
  */
 export enum DeploymentTarget {
   NODE = 'node',
   CLOUDFLARE = 'cloudflare',
+  DENO = 'deno',
+  BUN = 'bun',
 }
 
-export const DEPLOYMENT_TARGET_LABELS = {
+export const DEPLOYMENT_TARGET_LABELS: Record<DeploymentTarget, string> = {
   [DeploymentTarget.NODE]: 'Node',
   [DeploymentTarget.CLOUDFLARE]: 'Cloudflare',
+  [DeploymentTarget.DENO]: 'Deno',
+  [DeploymentTarget.BUN]: 'Bun',
 };
 
 export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
   [DeploymentTarget.NODE]: 'node',
   [DeploymentTarget.CLOUDFLARE]: 'cloudflare',
+  [DeploymentTarget.DENO]: 'deno',
+  [DeploymentTarget.BUN]: 'bun',
 };
+
+/**
+ * The Sentry SDK package each runtime installs.
+ */
+export const DEPLOYMENT_TARGET_PACKAGE_NAMES: Record<
+  DeploymentTarget,
+  `@sentry/${string}`
+> = {
+  [DeploymentTarget.NODE]: '@sentry/node',
+  [DeploymentTarget.CLOUDFLARE]: '@sentry/cloudflare',
+  [DeploymentTarget.DENO]: '@sentry/deno',
+  [DeploymentTarget.BUN]: '@sentry/bun',
+};
+
+/**
+ * The module specifier code snippets import a Sentry SDK package from. Deno
+ * resolves npm packages through the `npm:` specifier.
+ */
+export function getSdkImportSpecifier(packageName: `@sentry/${string}`): string {
+  return packageName === DEPLOYMENT_TARGET_PACKAGE_NAMES[DeploymentTarget.DENO]
+    ? `npm:${packageName}`
+    : packageName;
+}
+
+/**
+ * Project platforms that only run on a single runtime. Their runtime wins over
+ * the one an integration is pinned to (see INTEGRATION_DEPLOYMENT_TARGETS).
+ */
+const PLATFORM_DEPLOYMENT_TARGETS: Partial<Record<PlatformKey, DeploymentTarget>> = {
+  'node-cloudflare-workers': DeploymentTarget.CLOUDFLARE,
+  deno: DeploymentTarget.DENO,
+  bun: DeploymentTarget.BUN,
+};
+
+/**
+ * Returns the runtime fixed by the project platform, or undefined when the
+ * runtime follows the selected integration or the runtime selector.
+ */
+export function getPlatformDeploymentTarget(
+  platform: PlatformKey | null | undefined
+): DeploymentTarget | undefined {
+  return platform ? PLATFORM_DEPLOYMENT_TARGETS[platform] : undefined;
+}
+
+const DEFAULT_DEPLOYMENT_TARGETS = [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE];
+
+/**
+ * Framework projects that let the user pick the runtime even though the
+ * integration is fixed by the project platform.
+ */
+const PROJECT_DEPLOYMENT_TARGETS: Partial<Record<PlatformKey, DeploymentTarget[]>> = {
+  'node-pi-durable': [
+    DeploymentTarget.NODE,
+    DeploymentTarget.CLOUDFLARE,
+    DeploymentTarget.DENO,
+    DeploymentTarget.BUN,
+  ],
+};
+
+/**
+ * Returns the runtimes a project picks from, or undefined when the project
+ * platform does not offer its own runtime selection.
+ */
+export function getProjectDeploymentTargets(
+  platform: PlatformKey | null | undefined
+): DeploymentTarget[] | undefined {
+  return platform ? PROJECT_DEPLOYMENT_TARGETS[platform] : undefined;
+}
+
+export function getDeploymentTargets(
+  platform: PlatformKey | null | undefined
+): DeploymentTarget[] {
+  return getProjectDeploymentTargets(platform) ?? DEFAULT_DEPLOYMENT_TARGETS;
+}
 
 const DEFAULT_AGENT_INTEGRATION_BY_PROJECT_PLATFORM: Partial<
   Record<PlatformKey, AgentIntegration>
@@ -165,9 +256,12 @@ export function getDefaultAgentIntegration(
  * - Mastra's `@mastra/sentry` exporter is not part of the Cloudflare `withSentry`
  *   flow, so it is Node-only.
  * - Eve is a Vercel backend framework that runs on Node, so it is Node-only.
- * - Pi Durable runs on Cloudflare too, but its Cloudflare setup is only shown in
- *   Cloudflare Workers projects, which force the Cloudflare target. In other Node
- *   projects it is Node-only (see INTEGRATIONS_WITHOUT_DEPLOYMENT_TARGET_SELECTOR).
+ * - Pi Durable runs on Cloudflare, Deno, and Bun too, but those setups are only
+ *   offered in Pi Durable projects (see PROJECT_DEPLOYMENT_TARGETS) and projects
+ *   whose platform fixes the runtime (see PLATFORM_DEPLOYMENT_TARGETS). In other
+ *   Node projects it is Node-only (see INTEGRATIONS_WITHOUT_DEPLOYMENT_TARGET_SELECTOR).
+ *
+ * Projects whose platform fixes the runtime ignore these pins.
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
  */
