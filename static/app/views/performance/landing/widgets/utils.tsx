@@ -1,11 +1,6 @@
-import type {Organization} from 'sentry/types/organization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
-  canUseMetricsData,
-  MEPState,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
@@ -119,25 +114,3 @@ export const _setChartSetting = (
 
   setWidgetStorageObject(localObject);
 };
-
-const DISALLOWED_CHARTS_METRICS = [
-  PerformanceWidgetSetting.DURATION_HISTOGRAM,
-  PerformanceWidgetSetting.FCP_HISTOGRAM,
-  PerformanceWidgetSetting.LCP_HISTOGRAM,
-  PerformanceWidgetSetting.FID_HISTOGRAM,
-];
-
-export function filterAllowedChartsMetrics(
-  organization: Organization,
-  allowedCharts: PerformanceWidgetSetting[],
-  mepSetting: MetricsEnhancedSettingContext
-) {
-  if (
-    !canUseMetricsData(organization) ||
-    mepSetting.metricSettingState === MEPState.TRANSACTIONS_ONLY
-  ) {
-    return allowedCharts;
-  }
-
-  return allowedCharts.filter(c => !DISALLOWED_CHARTS_METRICS.includes(c));
-}

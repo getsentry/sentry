@@ -5,18 +5,11 @@ import zipfile
 from unittest.mock import MagicMock, patch
 
 import orjson
-import pytest
 from objectstore_client import RequestError
-from objectstore_client.multipart import CompletePart
 
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots import zip_tasks
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
-from sentry.preprod.snapshots.zip_tasks import (
-    _put_part_with_retry,
-    _upload_archive_multipart,
-    build_snapshot_images_zip,
-)
+from sentry.preprod.snapshots.zip_tasks import build_snapshot_images_zip
 from sentry.testutils.cases import TestCase
 
 SESSION_TARGET = "sentry.preprod.snapshots.zip_tasks.get_snapshot_storage"
@@ -67,25 +60,30 @@ class BuildSnapshotImagesZipTest(TestCase):
     def test_build_includes_manifest(self, mock_session, mock_email):
         session = self._session()
         mock_session.return_value = session
+        archive_bytes = b""
+
+        def upload(contents, **kwargs):
+            nonlocal archive_bytes
+            archive_bytes = contents.read()
+            return kwargs["key"]
+
+        session.put.side_effect = upload
         build_snapshot_images_zip(
             org_id=self.org.id,
             project_id=self.project.id,
             artifact_id=self.artifact.id,
             user_id=self.user.id,
         )
-        session.initiate_multipart_upload.assert_called_once()
-        kwargs = session.initiate_multipart_upload.call_args.kwargs
+        session.put.assert_called_once()
+        kwargs = session.put.call_args.kwargs
         assert kwargs["key"] == f"snapshot_archives/{self.artifact.id}.zip"
-        assert kwargs["compression"] == "none"
         assert kwargs["content_type"] == "application/zip"
+        assert kwargs["compress"] == "none"
+        assert kwargs["resumable_threshold_bytes"] == 0
 
-        upload = session.initiate_multipart_upload.return_value
-        assert upload.put_part.call_count >= 1
-        archive_bytes = b"".join(call.args[0] for call in upload.put_part.call_args_list)
         with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
             assert sorted(archive.namelist()) == ["a.png", "manifest.json"]
             assert archive.read("manifest.json") == _manifest_bytes()
-        upload.complete.assert_called_once()
         mock_email.assert_called_once()
         assert mock_email.call_args.kwargs["ready"] is True
 
@@ -100,7 +98,7 @@ class BuildSnapshotImagesZipTest(TestCase):
             artifact_id=self.artifact.id,
             user_id=self.user.id,
         )
-        session.initiate_multipart_upload.assert_not_called()
+        session.put.assert_not_called()
         mock_email.assert_called_once()
         assert mock_email.call_args.kwargs["ready"] is True
 
@@ -108,7 +106,7 @@ class BuildSnapshotImagesZipTest(TestCase):
     @patch(SESSION_TARGET)
     def test_emails_failure_when_upload_raises(self, mock_session, mock_email):
         session = self._session()
-        session.initiate_multipart_upload.side_effect = RuntimeError("boom")
+        session.put.side_effect = RuntimeError("boom")
         mock_session.return_value = session
         build_snapshot_images_zip(
             org_id=self.org.id,
@@ -126,7 +124,7 @@ class BuildSnapshotImagesZipTest(TestCase):
         self, mock_session, mock_email, mock_available
     ):
         session = self._session()
-        session.initiate_multipart_upload.side_effect = RuntimeError("boom")
+        session.put.side_effect = RuntimeError("boom")
         mock_session.return_value = session
         build_snapshot_images_zip(
             org_id=self.org.id,
@@ -174,80 +172,3 @@ class BuildSnapshotImagesZipTest(TestCase):
         )
         mock_email.assert_called_once()
         assert mock_email.call_args.kwargs["ready"] is False
-
-
-class MultipartUploadHelperTest(TestCase):
-    @patch("sentry.preprod.snapshots.zip_tasks.time.sleep")
-    def test_put_part_retries_then_succeeds(self, mock_sleep):
-        upload = MagicMock()
-        part = CompletePart(part_number=1, etag="e1")
-        upload.put_part.side_effect = [
-            RequestError("transient", status=500, response=""),
-            part,
-        ]
-
-        result = _put_part_with_retry(upload, b"data", 1)
-
-        assert result is part
-        assert upload.put_part.call_count == 2
-
-    @patch("sentry.preprod.snapshots.zip_tasks.time.sleep")
-    def test_put_part_retries_on_transport_error(self, mock_sleep):
-        from urllib3.exceptions import ProtocolError
-
-        upload = MagicMock()
-        part = CompletePart(part_number=1, etag="e1")
-        upload.put_part.side_effect = [ProtocolError("connection aborted"), part]
-
-        result = _put_part_with_retry(upload, b"data", 1)
-
-        assert result is part
-        assert upload.put_part.call_count == 2
-
-    @patch("sentry.preprod.snapshots.zip_tasks.time.sleep")
-    def test_put_part_raises_after_max_retries(self, mock_sleep):
-        upload = MagicMock()
-        upload.put_part.side_effect = RequestError("down", status=500, response="")
-
-        with pytest.raises(RequestError):
-            _put_part_with_retry(upload, b"data", 1)
-
-        assert upload.put_part.call_count == 3
-
-    def test_upload_archive_multipart_uploads_all_parts(self):
-        upload = MagicMock()
-        upload.put_part.side_effect = lambda chunk, *, part_number, content_length: CompletePart(
-            part_number=part_number, etag=f"e{part_number}"
-        )
-        session = MagicMock()
-        session.initiate_multipart_upload.return_value = upload
-
-        with patch.object(zip_tasks, "MULTIPART_PART_SIZE", 4):
-            _upload_archive_multipart(session, "snapshot_archives/1.zip", io.BytesIO(b"abcdefghij"))
-
-        session.initiate_multipart_upload.assert_called_once_with(
-            key="snapshot_archives/1.zip",
-            compression="none",
-            content_type="application/zip",
-        )
-        assert upload.put_part.call_count == 3
-        upload.complete.assert_called_once()
-        parts = upload.complete.call_args.args[0]
-        assert [p.part_number for p in parts] == [1, 2, 3]
-        upload.abort.assert_not_called()
-
-    @patch("sentry.preprod.snapshots.zip_tasks.time.sleep")
-    def test_upload_archive_multipart_aborts_on_failure(self, mock_sleep):
-        upload = MagicMock()
-        upload.put_part.side_effect = RequestError("down", status=500, response="")
-        session = MagicMock()
-        session.initiate_multipart_upload.return_value = upload
-
-        with patch.object(zip_tasks, "MULTIPART_PART_SIZE", 4):
-            with pytest.raises(RequestError):
-                _upload_archive_multipart(
-                    session, "snapshot_archives/1.zip", io.BytesIO(b"abcdefgh")
-                )
-
-        upload.abort.assert_called_once()
-        upload.complete.assert_not_called()

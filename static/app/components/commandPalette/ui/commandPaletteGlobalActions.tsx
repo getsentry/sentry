@@ -67,6 +67,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
@@ -809,7 +810,7 @@ export function GlobalCommandPaletteActions() {
             <CMDKAction
               display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
               keywords={[t('superuser')]}
-              onAction={() => openSudo({isSuperuser: true, needsReload: true})}
+              onAction={() => openSudo({accessMode: 'superuser'})}
             />
           )}
           {isActiveSuperuser() && (
@@ -1188,12 +1189,12 @@ export function GlobalCommandPaletteActions() {
       )}
 
       {user.isStaff &&
-        (window.localStorage?.getItem('DEBUG_ANALYTICS') === '1' ? (
+        (localStorageWrapper.getItem('DEBUG_ANALYTICS') === '1' ? (
           <CMDKAction
             display={{label: 'Disable Analytics Debug Mode', icon: <IconOpen />}}
             keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
             onAction={() => {
-              window.localStorage?.setItem('DEBUG_ANALYTICS', '0');
+              localStorageWrapper.setItem('DEBUG_ANALYTICS', '0');
             }}
           />
         ) : (
@@ -1201,7 +1202,7 @@ export function GlobalCommandPaletteActions() {
             display={{label: 'Enable Analytics Debug Mode', icon: <IconOpen />}}
             keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
             onAction={() => {
-              window.localStorage?.setItem('DEBUG_ANALYTICS', '1');
+              localStorageWrapper.setItem('DEBUG_ANALYTICS', '1');
             }}
           />
         ))}

@@ -1,4 +1,4 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {Event, EventTransaction, ProfileContext} from 'sentry/types/event';
 import {EventOrGroupType, ProfileContextKey} from 'sentry/types/event';

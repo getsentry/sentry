@@ -2,7 +2,7 @@ import {createRef} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -27,18 +27,14 @@ function makeProps(
   overrides: Partial<React.ComponentProps<typeof InputSection>> = {}
 ): React.ComponentProps<typeof InputSection> {
   return {
-    blocks: [],
     composerRef: createRef(),
     enabled: true,
     inputValue: {text: '', mentions: []},
-    onCreatePR: jest.fn(),
     onInputChange: jest.fn(),
     onInputClick: jest.fn(),
     onInterrupt: jest.fn(),
     onKeyDown: jest.fn(),
-    onPRWidgetClick: jest.fn(),
     onSend: jest.fn(),
-    prWidgetButtonRef: createRef(),
     repoPRStates: REPO_PR_STATES,
     ...overrides,
   };
@@ -48,19 +44,15 @@ describe('InputSection', () => {
   it('styles the interrupted placeholder with the warning color', () => {
     render(
       <InputSection
-        blocks={[]}
         composerRef={createRef()}
         enabled
         inputValue={{text: '', mentions: []}}
         interruptState="completed"
-        onCreatePR={jest.fn()}
         onInputChange={jest.fn()}
         onInputClick={jest.fn()}
         onInterrupt={jest.fn()}
         onKeyDown={jest.fn()}
-        onPRWidgetClick={jest.fn()}
         onSend={jest.fn()}
-        prWidgetButtonRef={createRef()}
         repoPRStates={{}}
       />
     );
@@ -90,19 +82,7 @@ describe('InputSection', () => {
       render(<InputSection {...makeProps({enabled: false})} />, {organization});
 
       expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
-      expect(screen.getByRole('link', {name: 'acme/web#482'})).toBeInTheDocument();
-    });
-
-    it('re-expands the pull requests when switching runs', async () => {
-      const {rerender} = render(<InputSection {...makeProps({runId: 1})} />, {
-        organization,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Pull requests (1)'}));
-      expect(screen.queryByRole('link', {name: 'acme/web#482'})).not.toBeInTheDocument();
-
-      rerender(<InputSection {...makeProps({runId: 2})} />);
-      expect(screen.getByRole('link', {name: 'acme/web#482'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'acme/web#482'})).toBeInTheDocument();
     });
   });
 });

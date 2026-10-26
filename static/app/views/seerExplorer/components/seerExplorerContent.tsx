@@ -42,12 +42,8 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
-  PRIMARY_HEADER_HEIGHT,
-} from 'sentry/views/navigation/constants';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
-import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
 import {
@@ -57,10 +53,12 @@ import {
 import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
-import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
-import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
+import {
+  isReauthEnabled,
+  PendingUserInputDock,
+  PendingUserInputPicker,
+} from 'sentry/views/seerExplorer/components/pendingUserInputDock';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
@@ -81,7 +79,6 @@ import type {
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
-  getRelativeExplorerUrl,
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
@@ -114,10 +111,7 @@ function SidebarHeaderShell({
       as="header"
       align="center"
       gap="md"
-      height={{
-        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
-        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
-      }}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding="0 lg"
       background="primary"
       borderBottom="primary"
@@ -215,7 +209,6 @@ export function SeerExplorerContent({
   const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
-  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
   /** A new chat was started and the composer should take focus once it is back. */
   const pendingComposerFocusRef = useRef(false);
 
@@ -237,11 +230,8 @@ export function SeerExplorerContent({
     startNewSession,
     switchToRun,
     respondToUserInput,
-    createPR,
     interruptRun,
     hasSentInterrupt,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
     setOverrideCodeModeEnable,
@@ -322,10 +312,11 @@ export function SeerExplorerContent({
   // Only when the error empty state is what's on screen. A live conversation that hits a
   // transient poll error still has its transcript and must keep its composer.
   const showLoadError = isEmptyState && (isError || hasSessionLoadError);
+  const showEmptyState = isEmptyState && (!chatPrompt || showLoadError);
 
   const suggestions = useChatSuggestions({
     enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
-    allowStructuredContext: overrideCtxEngEnable,
+    allowStructuredContext: true,
   });
   const handleSuggestionClick = useCallback(
     (suggestion: ChatSuggestion, position: number) => {
@@ -424,6 +415,15 @@ export function SeerExplorerContent({
   );
 
   // - Pending user input (file approval + questions) -------------------------
+  // The prompt itself renders in `PendingUserInputPicker`; the composer carries the question and
+  // diff controls.
+  const pendingUserInputState = usePendingUserInput({
+    isAwaitingUserInput,
+    pendingInput,
+    respondToUserInput,
+    scrollContainerRef,
+    userScrolledUpRef,
+  });
   const {
     isFileApprovalPending,
     fileApprovalIndex,
@@ -434,40 +434,17 @@ export function SeerExplorerContent({
     questionIndex,
     totalQuestions,
     currentQuestion,
-    selectedOption,
-    isOtherSelected,
-    customText,
     canSubmitQuestion,
     handleQuestionNext,
     handleQuestionBack,
-    handleQuestionSelectOption,
     handleQuestionMoveUp,
     handleQuestionMoveDown,
-    handleQuestionCustomTextChange,
     isReauthPending,
     reauthData,
     handleReauthComplete,
-  } = usePendingUserInput({
-    isAwaitingUserInput,
-    pendingInput,
-    respondToUserInput,
-    scrollContainerRef,
-    userScrolledUpRef,
-  });
+  } = pendingUserInputState;
 
-  const showReauth =
-    isReauthPending &&
-    !!organization?.features.includes('seer-infra-telemetry') &&
-    !!organization?.features.includes('seer-infra-telemetry-user-level-auth');
-
-  // Pending-input blocks rendered at the end of the transcript. When one is showing,
-  // the request error alert sits directly above it instead of above the composer.
-  const showFileApprovalBlock =
-    !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
-  const questionToShow = !readOnly && isQuestionPending ? currentQuestion : undefined;
-  const reauthToShow = !readOnly && showReauth ? reauthData : null;
-  const showsPendingInputBlock =
-    showFileApprovalBlock || !!questionToShow || !!reauthToShow;
+  const showReauth = isReauthPending && isReauthEnabled(organization);
 
   const requestErrorAlert = requestError ? (
     <Container padding="0 xl">
@@ -550,15 +527,8 @@ export function SeerExplorerContent({
     [sessionData?.repo_pr_states]
   );
 
-  // Get PR widget data for menu
-  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
-    blocks,
-    repoPRStates,
-    onCreatePR: createPR,
-  });
-
   // Menu component
-  const {menu, closeMenu, openPRWidget} = useExplorerMenu({
+  const {menu, closeMenu} = useExplorerMenu({
     clearInput,
     inputValue: inputValue.text,
     focusInput,
@@ -576,9 +546,6 @@ export function SeerExplorerContent({
         : undefined,
     },
     inputAnchorRef: composerRef,
-    prWidgetAnchorRef: prWidgetButtonRef,
-    prWidgetItems,
-    prWidgetFooter,
   });
 
   const handleBlocksClick = useCallback(() => {
@@ -762,12 +729,11 @@ export function SeerExplorerContent({
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-      overrideCtxEngEnable={overrideCtxEngEnable}
-      onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
       overrideBashModeEnabled={overrideBashModeEnabled}
       onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
+      conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
@@ -801,7 +767,7 @@ export function SeerExplorerContent({
           <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
         )}
         <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-          {isEmptyState && (!chatPrompt || showLoadError) ? (
+          {showEmptyState ? (
             <EmptyState
               isLoading={isPolling}
               isError={showLoadError}
@@ -826,39 +792,9 @@ export function SeerExplorerContent({
                 }
                 pendingInput={pendingInput}
                 readOnly={readOnly}
-                respondToUserInput={respondToUserInput}
                 showThinking={showThinking}
               />
               {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
-              {showsPendingInputBlock && requestErrorAlert}
-              {showFileApprovalBlock && (
-                <FileChangeApprovalBlock
-                  currentIndex={fileApprovalIndex}
-                  pendingInput={pendingInput}
-                />
-              )}
-              {questionToShow && (
-                <AskUserQuestionBlock
-                  currentQuestion={questionToShow}
-                  customText={customText}
-                  isOtherSelected={isOtherSelected}
-                  onCustomTextChange={handleQuestionCustomTextChange}
-                  onSelectOption={handleQuestionSelectOption}
-                  questionIndex={questionIndex}
-                  selectedOption={selectedOption}
-                />
-              )}
-              {reauthToShow && (
-                <ReauthMonitoringProviderBlock
-                  data={reauthToShow}
-                  onComplete={handleReauthComplete}
-                  returnUrl={
-                    runId === null
-                      ? undefined
-                      : getRelativeExplorerUrl(runId, {resume: true})
-                  }
-                />
-              )}
             </Fragment>
           )}
         </BlocksContainer>
@@ -883,9 +819,20 @@ export function SeerExplorerContent({
             </Alert>
           </Container>
         )}
-        {!showsPendingInputBlock && requestErrorAlert}
+        {requestErrorAlert}
+        {!showEmptyState && (
+          <PendingUserInputDock>
+            <PendingUserInputPicker
+              isAwaitingUserInput={isAwaitingUserInput}
+              pendingInput={pendingInput}
+              pendingUserInputState={pendingUserInputState}
+              readOnly={readOnly}
+              respondToUserInput={respondToUserInput}
+              runId={runId}
+            />
+          </PendingUserInputDock>
+        )}
         <InputSection
-          blocks={blocks}
           enabled={!readOnly && !showLoadError}
           disabledPlaceholder={
             showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
@@ -893,14 +840,11 @@ export function SeerExplorerContent({
           inputValue={inputValue}
           canSendMessage={canSendMessage}
           interruptState={interruptState}
-          onCreatePR={createPR}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}
           onInterrupt={interruptRun}
           onKeyDown={handleInputKeyDown}
           onSend={handleSend}
-          onPRWidgetClick={openPRWidget}
-          prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
           runId={runId}
           composerRef={composerRef}
@@ -939,7 +883,6 @@ interface SeerExplorerTranscriptProps {
   interactionPending: boolean;
   pendingInput: PendingUserInput | null;
   readOnly: boolean;
-  respondToUserInput: (inputId: string, responseData?: Record<string, unknown>) => void;
   runId: SeerExplorerRunId | null;
   showThinking: boolean;
 }
@@ -955,7 +898,6 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
   interactionPending,
   pendingInput,
   readOnly,
-  respondToUserInput,
   runId,
   showThinking,
 }: SeerExplorerTranscriptProps) {
@@ -988,7 +930,6 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
         interactionPending={interactionPending}
         pendingInput={pendingInput}
         readOnly={readOnly}
-        respondToUserInput={respondToUserInput}
         showThinking={showThinking}
       />
     );

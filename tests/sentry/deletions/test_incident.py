@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.incidents.models.incident import Incident, IncidentProject
+from sentry.incidents.models.incident import Incident
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -30,7 +30,7 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
         group = event.group
         assert group
         group_open_period = GroupOpenPeriod.objects.get(project=self.project, group=group)
-        IncidentGroupOpenPeriod.objects.create(
+        self.create_incident_group_open_period(
             incident_id=incident.id,
             incident_identifier=incident.identifier,
             group_open_period=group_open_period,
@@ -42,10 +42,9 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
             run_scheduled_deletions()
 
         assert not Incident.objects.filter(id=incident.id).exists()
-        assert not IncidentGroupOpenPeriod.objects.filter(
+        assert IncidentGroupOpenPeriod.objects.filter(
             incident_id=incident.id,
             incident_identifier=incident.identifier,
             group_open_period=group_open_period,
         ).exists()
-        assert not IncidentProject.objects.filter(incident=incident, project=self.project).exists()
-        assert not GroupOpenPeriod.objects.filter(project=self.project, group=group)
+        assert GroupOpenPeriod.objects.filter(project=self.project, group=group).exists()

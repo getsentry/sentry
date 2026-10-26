@@ -155,14 +155,24 @@ SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, 
 
 
 SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP: dict[SupportedTraceItemType, dict[str, set[str]]] = {}
+# Same as above, but excluding deprecated sources with `backfill` status. Backfilled
+# attributes are intentionally stored under both the deprecated and the replacement
+# name, so the presence of the deprecated name does not supersede the replacement.
+SENTRY_CONVENTIONS_REVERSE_NON_BACKFILL_REPLACEMENT_MAP: dict[
+    SupportedTraceItemType, dict[str, set[str]]
+] = {}
 for _item_type, _replacement_map in SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.items():
     _internal_mapping = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(_item_type, {})
     _reverse: dict[str, set[str]] = {}
+    _reverse_non_backfill: dict[str, set[str]] = {}
     for _deprecated_alias, _replacement in _replacement_map.items():
         _resolved = _internal_mapping.get(_deprecated_alias)
         _internal_name = _resolved.internal_name if _resolved else _deprecated_alias
         _reverse.setdefault(_replacement, set()).add(_internal_name)
+        if _resolved is None or _resolved.deprecation_status != "backfill":
+            _reverse_non_backfill.setdefault(_replacement, set()).add(_internal_name)
     SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP[_item_type] = _reverse
+    SENTRY_CONVENTIONS_REVERSE_NON_BACKFILL_REPLACEMENT_MAP[_item_type] = _reverse_non_backfill
 
 
 INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
@@ -379,6 +389,16 @@ def get_deprecated_source_internal_names(
     return SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP.get(item_type, {}).get(replacement, set())
 
 
+def get_non_backfill_deprecated_source_internal_names(
+    replacement: str, item_type: SupportedTraceItemType
+) -> set[str]:
+    """Like `get_deprecated_source_internal_names`, but excludes deprecated sources
+    with `backfill` status, which are stored alongside their replacement."""
+    return SENTRY_CONVENTIONS_REVERSE_NON_BACKFILL_REPLACEMENT_MAP.get(item_type, {}).get(
+        replacement, set()
+    )
+
+
 # We want to limit the number of threads to avoid overwhelming the RPC server.
 MAX_ATTRIBUTE_VALIDATION_THREADS = 3
 ATTRIBUTE_NAME_LIMIT = 10_000
@@ -574,6 +594,15 @@ def check_unmatched(label: str, value: str, saved_columns: list[str] | None = No
         )
 
 
+def check_numeric(arg: str, label: str) -> float:
+    float_value = float(arg)
+    if not math.isfinite(float_value):
+        raise InvalidSearchQuery(
+            f"{label} resolved to {float_value}, which is outside the supported number range"
+        )
+    return float_value
+
+
 def parse_formula(
     formula_definition: str,
     arguments: list[str],
@@ -589,11 +618,7 @@ def parse_formula(
         if saved_arg.param_type == ParamItemTypes.NUMBER:
             # Ensure that the user arg is a valid number
             try:
-                float_value = float(arg)
-                if not math.isfinite(float_value):
-                    raise InvalidSearchQuery(
-                        f"{saved_arg.name} resolved to {float_value}, which is outside the supported number range"
-                    )
+                float_value = check_numeric(arg, saved_arg.name)
                 arg = str(float_value)
             except ValueError:
                 raise InvalidSearchQuery(

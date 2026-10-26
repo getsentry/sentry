@@ -284,6 +284,7 @@ def _archived_row(replay_id: str, project_id: int) -> ReplayDetailsResponse:
         "dist": None,
         "platform": None,
         "releases": [],
+        "replay_type": "session",
         "clicks": [],
         "has_viewed": False,
     }

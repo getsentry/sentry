@@ -10,11 +10,11 @@ describe('useRoutes', () => {
     const {result} = renderHook(() => useRoutes(), {
       wrapper: ({children}) => (
         <RouterProvider
+          useTransitions={false}
           router={createMemoryRouter(
             [{path: '/', handle: {path: '/'}, element: children}],
             {initialEntries: ['/']}
           )}
-          future={{v7_startTransition: true}}
         />
       ),
     });

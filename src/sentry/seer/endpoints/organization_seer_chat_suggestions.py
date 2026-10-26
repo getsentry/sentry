@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from urllib3.exceptions import HTTPError
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -26,11 +27,12 @@ from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatPermission,
 )
+from sentry.seer.models import SeerApiError
 from sentry.seer.oneshot import run_oneshot
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.organization_detector_details import (
-    _check_metric_detector_allowed,
+    check_metric_detector_allowed,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     ORGANIZATION_WORKFLOW_WRITE_SCOPES,
@@ -114,6 +116,9 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 request, organization, project_ids=set(sorted(project_ids)[:MAX_PROJECTS])
             )
 
+        actions_enabled = features.has(
+            "organizations:seer-chat-suggestions-actions", organization, actor=request.user
+        )
         payload = {
             **data,
             "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
@@ -123,13 +128,17 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "code_mode": features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             ),
-            # Whether the user has permission to create alerts and monitors.
-            "can_create_alerts": any(
-                request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
-            ),
-            # The page's context node type, if the user can edit its item.
-            "can_edit_node_type": self._can_edit_node_type(request, organization, route_params),
+            "actions_enabled": actions_enabled,
         }
+        if actions_enabled:
+            # Whether the user has permission to create alerts and monitors.
+            payload["can_create_alerts"] = any(
+                request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
+            )
+            # The page's context node type, if the user can edit its item.
+            payload["can_edit_node_type"] = self._can_edit_node_type(
+                request, organization, route_params
+            )
 
         try:
             result = run_oneshot(
@@ -139,10 +148,36 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 user_id=request.user.id,
                 timeout=3.5,
             )
-            suggestions = ChatSuggestionsResult.parse_obj(result).suggestions
-        except Exception:
-            logger.warning("seer.chat_suggestions.failed", exc_info=True)
+        except HTTPError:
+            logger.warning("seer.chat_suggestions.request_failed", exc_info=True)
             metrics.incr("seer.chat_suggestions", tags={"result": "request_error"})
+            return Response({"detail": "Failed to generate suggestions"}, status=502)
+        except SeerApiError as e:
+            if e.status >= 500:
+                logger.warning(
+                    "seer.chat_suggestions.request_failed",
+                    exc_info=True,
+                    extra={"status": e.status},
+                )
+            else:
+                logger.exception("seer.chat_suggestions.failed", extra={"status": e.status})
+            metrics.incr("seer.chat_suggestions", tags={"result": "request_error"})
+            return Response({"detail": "Failed to generate suggestions"}, status=502)
+        except Exception:
+            logger.exception("seer.chat_suggestions.failed")
+            metrics.incr("seer.chat_suggestions", tags={"result": "request_error"})
+            return Response({"detail": "Failed to generate suggestions"}, status=502)
+
+        if not result:
+            logger.warning("seer.chat_suggestions.generation_failed")
+            metrics.incr("seer.chat_suggestions", tags={"result": "generation_failed"})
+            return Response({"detail": "Failed to generate suggestions"}, status=502)
+
+        try:
+            suggestions = ChatSuggestionsResult.parse_obj(result).suggestions
+        except ValidationError:
+            logger.exception("seer.chat_suggestions.invalid_result")
+            metrics.incr("seer.chat_suggestions", tags={"result": "invalid_result"})
             return Response({"detail": "Failed to generate suggestions"}, status=502)
 
         metrics.incr(
@@ -198,7 +233,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 return None
 
             try:
-                _check_metric_detector_allowed(detector, organization)
+                check_metric_detector_allowed(detector, organization)
             except ResourceDoesNotExist:
                 return None
             if can_edit_detector(detector, request):

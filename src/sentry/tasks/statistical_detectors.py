@@ -4,7 +4,7 @@ import contextlib
 import logging
 from collections.abc import Generator, Iterable, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
@@ -23,6 +23,8 @@ from snuba_sdk import (
 from sentry import features, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
@@ -55,6 +57,7 @@ from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -325,8 +328,7 @@ def _detect_function_change_points(
             if get_viewer_context() is None:
                 viewer_context_manager = viewer_context_scope(
                     ViewerContext(
-                        organization_id=organization_id,
-                        actor_type=ActorType.SYSTEM,
+                        actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id
                     )
                 )
 
@@ -360,7 +362,7 @@ def _detect_function_change_points(
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
         amount=emitted_count,
-        tags={"source": "profile", "kind": "function"},
+        tags={"source": "profile", "kind": "function", "producer": "sentry"},
         sample_rate=1.0,
     )
 
@@ -424,7 +426,7 @@ def emit_function_regression_issue(
 
     continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
-    payloads = []
+    payloads: list[dict[str, Any]] = []
 
     for regression in regressions:
         project_id = int(regression["project"])
@@ -460,12 +462,28 @@ def emit_function_regression_issue(
     if not payloads:
         return 0
 
-    response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
+    response = get_from_profiling_service(
+        method="POST", path="/regressed?produce=false", json_data=payloads
+    )
     if response.status != 200:
         return 0
 
     data = json.loads(response.data)
-    return data.get("occurrences")
+    for payload in data["occurrence_payloads"]:
+        event_data = payload["event"]
+        occurrence = IssueOccurrence.from_dict(
+            cast(
+                IssueOccurrenceData,
+                {
+                    **payload,
+                    "event_id": event_data["event_id"],
+                    "resource_id": payload.get("resource_id"),
+                },
+            )
+        )
+        produce_occurrence_to_kafka(occurrence=occurrence, event_data=event_data)
+
+    return len(data["occurrence_payloads"])
 
 
 def fetch_continuous_examples(raw_examples):

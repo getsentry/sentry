@@ -74,7 +74,7 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
-from sentry.viewer_context import get_viewer_context
+from sentry.viewer_context import get_acting_user_id, get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
@@ -105,6 +105,17 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
         )
         .values_list("extras__stopping_point", flat=True)
         .first()
+    )
+
+
+def get_run_stopping_point(
+    organization: Organization, run_id: int, state: SeerRunState
+) -> str | None:
+    """The stopping point the pipeline will continue toward: from the run's metadata,
+    falling back to the Sentry-side run mirror for runs Seer started without it (the
+    autofix feature)."""
+    return (state.metadata or {}).get("stopping_point") or _stopping_point_from_run(
+        organization, run_id
     )
 
 
@@ -176,14 +187,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         cls._record_triggered(organization, run_id, group)
-        viewer_context = get_viewer_context()
         cls._send_step_webhook(
             organization,
             run_id,
             state,
             group,
             fallback_referrer=run_referrer,
-            actor_user_id=viewer_context.user_id if viewer_context is not None else None,
+            actor_user_id=get_acting_user_id(get_viewer_context()),
         )
         cls._maybe_continue_pipeline(
             organization, run_id, state, group, fallback_referrer=run_referrer
@@ -217,14 +227,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             organization, group, state, cls._format_code_changes_payload
         )
         if iteration_fields is not None:
-            viewer_context = get_viewer_context()
             cls._send_step_webhook(
                 organization,
                 run_id,
                 state,
                 group,
                 fallback_referrer=run_referrer,
-                actor_user_id=viewer_context.user_id if viewer_context is not None else None,
+                actor_user_id=get_acting_user_id(get_viewer_context()),
                 iteration_fields=iteration_fields,
             )
 
@@ -527,9 +536,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         # Get pipeline metadata from state, falling back to the Sentry-side run
         # mirror for runs Seer started without it (the autofix feature).
-        raw_stopping_point = (state.metadata or {}).get(
-            "stopping_point"
-        ) or _stopping_point_from_run(organization, run_id)
+        raw_stopping_point = get_run_stopping_point(organization, run_id, state)
         if raw_stopping_point is None:
             stopping_point = None
             reached_stopping_point = True

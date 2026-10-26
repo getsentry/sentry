@@ -1,22 +1,24 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
-import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
+import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
 import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
-import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/utils/schemas';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
@@ -25,22 +27,6 @@ import {
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
 );
-
-export const sampleRateField = z
-  .string()
-  .min(1, t('Please enter a valid number'))
-  .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number')})
-  .refine(
-    val => {
-      const n = Number(val);
-      return n >= 0 && n <= 100;
-    },
-    {message: t('Must be between 0% and 100%')}
-  );
-
-export const targetSampleRateSchema = z.object({
-  targetSampleRate: sampleRateField,
-});
 
 export function OrganizationSampling() {
   const organization = useOrganization();
@@ -87,7 +73,7 @@ export function OrganizationSampling() {
       <form.Subscribe selector={s => ({isDirty: s.isDirty})}>
         {({isDirty}) => (
           <Fragment>
-            <OnRouteLeave
+            <LegacyOnRouteLeave
               message={UNSAVED_CHANGES_MESSAGE}
               when={locationChange =>
                 locationChange.currentLocation.pathname !==
@@ -109,8 +95,49 @@ export function OrganizationSampling() {
                     period={period}
                     targetSampleRate={field.state.value}
                     savedTargetSampleRate={savedTargetSampleRate}
-                    onTargetSampleRateChange={field.handleChange}
-                    targetSampleRateError={field.state.meta.errors[0]?.message}
+                    targetSampleRateInput={
+                      <Container borderBottom="muted">
+                        <field.Layout.Row
+                          padding="lg xl"
+                          label={t('Target Sample Rate')}
+                          hintText={t(
+                            'Set a global sample rate for your entire organization. This will determine how much incoming traffic should be stored across all your projects.'
+                          )}
+                        >
+                          <Stack gap="xs" align="end">
+                            <field.Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step="any"
+                              size="sm"
+                              width="120px"
+                              value={field.state.value}
+                              onChange={field.handleChange}
+                              disabled={
+                                hasAccess
+                                  ? undefined
+                                  : t(
+                                      'You do not have permission to change the sample rate.'
+                                    )
+                              }
+                              trailingItems="%"
+                            />
+                            {field.state.value !== savedTargetSampleRate && (
+                              <Text size="xs" variant="muted">
+                                {t('previous: %f%%', savedTargetSampleRate)}
+                              </Text>
+                            )}
+                            {field.state.value === savedTargetSampleRate &&
+                              field.state.value === '100' && (
+                                <Text size="xs" variant="muted">
+                                  {t('All spans are stored')}
+                                </Text>
+                              )}
+                          </Stack>
+                        </field.Layout.Row>
+                      </Container>
+                    }
                     actions={
                       <Fragment>
                         <form.ResetButton disabled={isPending}>

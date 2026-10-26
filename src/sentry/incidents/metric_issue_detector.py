@@ -91,6 +91,9 @@ def schedule_update_project_config(detector: Detector) -> None:
         )
 
 
+TRANSACTION_UPDATES_DISABLED = "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+
+
 class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
     supported_conditions = frozenset(
         (
@@ -364,9 +367,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         event_types = snuba_query.event_types
 
         if self.is_editing_transaction_dataset(snuba_query, data_source):
-            raise serializers.ValidationError(
-                "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
-            )
+            raise serializers.ValidationError(TRANSACTION_UPDATES_DISABLED)
 
         new_extrapolation_mode = data_source.get(
             "extrapolation_mode", snuba_query.extrapolation_mode

@@ -108,6 +108,12 @@ def _build_query(
     ]
     if categories:
         where.append(Condition(Column("category"), Op.IN, categories))
+    if total_outcomes is not None:
+        # Every aggregate only counts these outcomes, so filtering here lets
+        # ClickHouse skip non-billable rows (CLIENT_DISCARD has high reason
+        # cardinality) via the outcome column in the sort key. It also scopes
+        # max_ts, so last_usage_ts reflects the latest billable outcome.
+        where.append(Condition(Column("outcome"), Op.IN, list(total_outcomes)))
 
     groupby_columns = [*additional_groupby, "category", "time"]
     select: list[Column | Function] = [

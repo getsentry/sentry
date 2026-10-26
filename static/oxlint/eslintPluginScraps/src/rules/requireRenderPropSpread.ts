@@ -1,6 +1,10 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
+import {
+  getChildrenRenderFunction,
+  type RenderFunction,
+} from '../ast/utils/renderFunction.ts';
 
 // These render props receive APIs or state, not props for the rendered JSX element.
 const SCRAPS_SOURCE_EXCEPTIONS = new Set([
@@ -15,7 +19,6 @@ function isScrapsSource(source: string): boolean {
   );
 }
 
-type RenderFunction = ESTree.ArrowFunctionExpression | ESTree.Function;
 type ImportTracker = ReturnType<typeof createImportTracker>;
 
 function getComponentName(
@@ -41,55 +44,6 @@ function getComponentName(
   }
 
   return null;
-}
-
-function getRenderFunction(expression: ESTree.JSXExpression): RenderFunction | null {
-  if (
-    expression.type === 'ArrowFunctionExpression' ||
-    expression.type === 'FunctionExpression'
-  ) {
-    return expression;
-  }
-
-  if (expression.type === 'ParenthesizedExpression') {
-    return getRenderFunction(expression.expression);
-  }
-
-  return null;
-}
-
-function getChildrenRenderFunction(node: ESTree.JSXElement): RenderFunction | null {
-  const childrenAttribute = node.openingElement.attributes.find(
-    (attribute): attribute is ESTree.JSXAttribute =>
-      attribute.type === 'JSXAttribute' &&
-      attribute.name.type === 'JSXIdentifier' &&
-      attribute.name.name === 'children'
-  );
-
-  if (childrenAttribute?.value?.type === 'JSXExpressionContainer') {
-    return getRenderFunction(childrenAttribute.value.expression);
-  }
-
-  const meaningfulChildren = node.children.filter(child => {
-    if (child.type === 'JSXText') {
-      return child.value.trim() !== '';
-    }
-    return !(
-      child.type === 'JSXExpressionContainer' &&
-      child.expression.type === 'JSXEmptyExpression'
-    );
-  });
-
-  if (meaningfulChildren.length !== 1) {
-    return null;
-  }
-
-  const child = meaningfulChildren[0];
-  if (child?.type !== 'JSXExpressionContainer') {
-    return null;
-  }
-
-  return getRenderFunction(child.expression);
 }
 
 function getParameterName(parameter: ESTree.ParamPattern | undefined): string | null {

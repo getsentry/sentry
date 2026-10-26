@@ -1,4 +1,5 @@
 import logging
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import parse_qsl
 
 from oauthlib.oauth1 import SIGNATURE_RSA
@@ -16,6 +17,23 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
+
+
+class BitbucketServerWebhookFields(TypedDict):
+    name: str
+    url: str
+    active: bool
+    events: list[str]
+    sslVerificationRequired: NotRequired[bool]
+
+
+class BitbucketServerWebhookData(BitbucketServerWebhookFields):
+    configuration: dict[str, Any]
+
+
+class BitbucketServerWebhookResponse(BitbucketServerWebhookFields):
+    id: int
+    configuration: NotRequired[dict[str, Any]]
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -143,19 +161,44 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             params={"limit": 250, "permission": "REPO_ADMIN", "name": query_string},
         )
 
-    def get_repo(self, project, repo):
+    def get_repo(self, project: str, repo: str) -> dict[str, Any]:
         return self.get(
             BitbucketServerAPIPath.repository.format(project=project, repo=repo),
         )
 
-    def create_hook(self, project, repo, data):
+    def create_hook(
+        self, project: str, repo: str, data: BitbucketServerWebhookData
+    ) -> BitbucketServerWebhookResponse:
         return self.post(
             BitbucketServerAPIPath.repository_hooks.format(project=project, repo=repo),
             data=data,
         )
 
-    def delete_hook(self, project, repo, webhook_id):
-        return self.delete(
+    def get_hook(
+        self, project: str, repo: str, webhook_id: int | str
+    ) -> BitbucketServerWebhookResponse:
+        return self.get(
+            BitbucketServerAPIPath.repository_hook.format(
+                project=project, repo=repo, id=webhook_id
+            ),
+        )
+
+    def update_hook(
+        self,
+        project: str,
+        repo: str,
+        webhook_id: int | str,
+        data: BitbucketServerWebhookData,
+    ) -> BitbucketServerWebhookResponse:
+        return self.put(
+            BitbucketServerAPIPath.repository_hook.format(
+                project=project, repo=repo, id=webhook_id
+            ),
+            data=data,
+        )
+
+    def delete_hook(self, project: str, repo: str, webhook_id: int | str) -> None:
+        self.delete(
             BitbucketServerAPIPath.repository_hook.format(
                 project=project, repo=repo, id=webhook_id
             ),
