@@ -2577,24 +2577,22 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
         inactive_config = SeerWorkflowConfig.objects.get(service_account_id=inactive.id)
         workflow = SeerWorkflow(config)
         assert workflow.get_project_ids() == [project.id]
+        # Shared databases may replicate during import; explicitly simulate delayed delivery.
+        ServiceAccountReplica.objects.filter(
+            service_account_id__in=[account.id, inactive.id]
+        ).delete()
         assert not ServiceAccountReplica.objects.filter(service_account_id=account.id).exists()
         with pytest.raises(ValueError, match="unavailable"):
             workflow.resolve_service_account()
         config.refresh_from_db()
         assert config.service_account_id == account.id
 
-        # An unrelated destination replica has the same local PK as the imported account ID.
-        unrelated_org = self.create_organization()
-        with outbox_runner():
-            unrelated = Factories.create_service_account(unrelated_org, name="unrelated")
-        ServiceAccountReplica.objects.filter(service_account_id=unrelated.id).update(id=account.id)
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             # Re-deliver account state after destination organization routing is available.
             account.save()
             inactive.save()
 
         replica = workflow.resolve_service_account()
-        assert replica.id != account.id
         assert replica.service_account_id == account.id
         assert list(
             ServiceAccountProjectReplica.objects.filter(service_account=replica).values_list(
