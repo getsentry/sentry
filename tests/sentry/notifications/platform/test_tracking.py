@@ -255,7 +255,7 @@ class RecordEngagementTest(TestCase):
             NotificationLink.SEER_AGENT_RUN,
         ),
         (
-            "https://acme.sentry.io/explore/investigations/1/",
+            "https://acme.sentry.io/seer/investigations/1/",
             NotificationLink.INVESTIGATION,
         ),
     ],
